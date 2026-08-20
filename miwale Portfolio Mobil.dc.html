@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/radius.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/glass.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/motion.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/base.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/components/miwale-ui.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/components/miwale-motion.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/styles.css">
+<script src="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/_ds_bundle.js"></script>
+<script src="https://unpkg.com/lucide@0.400.0/dist/umd/lucide.js"></script>
+<style>
+  body { margin: 0; background: #050A16; color: var(--ice-100); font: var(--type-body); -webkit-tap-highlight-color: transparent; }
+  html, body { overflow-x: hidden; }
+  a { color: var(--aqua-300); text-decoration: none; }
+  a:hover { color: #fff; }
+  [data-reveal] { opacity: 0; transform: translateY(16px); transition: opacity 520ms cubic-bezier(.22,.61,.36,1), transform 520ms cubic-bezier(.22,.61,.36,1); }
+  [data-reveal][data-shown="1"] { opacity: 1; transform: none; }
+  .mw-bottomnav__item { min-height: 52px; }
+  .mw-bottomnav__item svg { width: 22px; height: 22px; stroke-width: 1.75; }
+  [data-mw-list] > span:last-child { border-bottom: 0 !important; }
+  [data-mw-cta] > * { display: flex; }
+  [data-mw-cta] .mw-shinybtn { flex: 1; width: 100%; min-height: 48px; justify-content: center; }
+  [data-snap] { scrollbar-width: none; }
+  [data-snap]::-webkit-scrollbar { display: none; }
+  [data-calm="1"] [data-mw-anim] { animation: none !important; }
+  @keyframes mwSway { 0% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); } 50% { transform: rotate(-29deg) translate3d(38px,0,0) skewX(1.2deg); } 100% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); } }
+  @keyframes mwSwaySlow { 0% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); } 50% { transform: rotate(-29deg) translate3d(-48px,0,0) scaleX(.98); } 100% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); } }
+  @keyframes mwShaftPulse { 0% { opacity: .62; } 38% { opacity: 1; } 70% { opacity: .78; } 100% { opacity: .62; } }
+  @keyframes mwFloat { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(46px,-420px,0); } }
+  @keyframes mwFloatSlow { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-34px,-620px,0); } }
+  @keyframes mwCaustic { 0% { transform: translate3d(-40px,0,0) scaleY(1); opacity: .5; } 50% { transform: translate3d(40px,0,0) scaleY(1.1); opacity: .95; } 100% { transform: translate3d(-40px,0,0) scaleY(1); opacity: .5; } }
+  @keyframes mwSwim { 0% { transform: translateX(-24vw); } 100% { transform: translateX(122vw); } }
+  @keyframes mwSwimBack { 0% { transform: translateX(122vw) scaleX(-1); } 100% { transform: translateX(-24vw) scaleX(-1); } }
+  @keyframes mwWhaleBob { 0% { transform: translateY(0) rotate(-4deg); } 25% { transform: translateY(-9px) rotate(2deg); } 50% { transform: translateY(2px) rotate(5deg); } 75% { transform: translateY(-6px) rotate(0deg); } 100% { transform: translateY(0) rotate(-4deg); } }
+  @keyframes mwShaftDrift { 0% { transform: rotate(-29deg) translate3d(-16px,0,0); } 50% { transform: rotate(-29deg) translate3d(22px,0,0); } 100% { transform: rotate(-29deg) translate3d(-16px,0,0); } }
+  @keyframes mwBreathe { 0% { opacity: .55; } 50% { opacity: 1; } 100% { opacity: .55; } }
+  @keyframes mwTabIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes mwSheetUp { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes mwFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    [data-mw-anim] { animation: none !important; }
+    [data-reveal] { opacity: 1 !important; transform: none !important; }
+  }
+</style>
+</helmet>
+
+<div data-calm="{{ calmAttr }}" style="min-height: 100vh; background: #050A16; position: relative;">
+  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-repeat: no-repeat;">
+
+    <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
+
+    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);">
+      <div style="position: absolute; inset: 0; background: radial-gradient(1200px 900px at 16% 30%, rgba(34,176,158,.22), rgba(34,176,158,0) 66%), radial-gradient(1400px 1000px at 86% 44%, rgba(18,130,142,.20), rgba(18,130,142,0) 68%), radial-gradient(1300px 1000px at 38% 62%, rgba(10,88,98,.26), rgba(10,88,98,0) 70%), radial-gradient(1500px 1100px at 60% 84%, rgba(5,52,64,.34), rgba(5,52,64,0) 72%);"></div>
+      <div style="position: absolute; inset: 0; background: radial-gradient(680px 480px at 30% 14%, rgba(52,214,178,.18), rgba(52,214,178,0) 68%), radial-gradient(520px 420px at 72% 26%, rgba(96,226,196,.13), rgba(96,226,196,0) 70%), radial-gradient(760px 520px at 8% 52%, rgba(22,150,138,.20), rgba(22,150,138,0) 70%), radial-gradient(600px 460px at 88% 66%, rgba(16,120,124,.18), rgba(16,120,124,0) 70%), radial-gradient(540px 380px at 22% 74%, rgba(120,236,205,.14), rgba(120,236,205,0) 70%), radial-gradient(460px 340px at 66% 88%, rgba(40,180,170,.15), rgba(40,180,170,0) 72%);"></div>
+    </div>
+
+    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);">
+      <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; opacity: .6; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); animation: mwSwaySlow 34s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px);"></div>
+    </div>
+
+    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);">
+      <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); animation: mwSway 24s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px);"></div>
+      <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px);"></div>
+    </div>
+
+    <div data-mw="bgNear" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%;">
+      <div data-mw-anim="1" style="position: absolute; inset: 0; opacity: .5; animation: mwFloat 42s linear infinite; background-image: radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%), radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%), radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%), radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%), radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%), radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%); background-size: 620px 620px; background-repeat: repeat;"></div>
+      <div data-mw-anim="1" style="position: absolute; inset: 0; opacity: .34; animation: mwFloatSlow 68s linear infinite; background-image: radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%), radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%), radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%); background-size: 880px 880px; background-repeat: repeat;"></div>
+      <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Meteors" number="{{ 10 }}" color="rgba(206,244,255,.85)" hint-size="100%,100%"></x-import>
+      </div>
+    </div>
+
+    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0;">
+      <div data-mw-anim="1" style="position: absolute; inset: 0; animation: mwFloatSlow 84s linear infinite; background-image: radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%), radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%), radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%), radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%); background-size: 540px 540px; background-repeat: repeat;"></div>
+    </div>
+
+    <div data-mw="bgPlankton" style="position: absolute; inset: 0; opacity: 0;">
+      <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Particles" quantity="{{ 30 }}" color="#1FC9AE" size="{{ 1.8 }}" speed="{{ 0.16 }}" opacity="{{ 0.55 }}" hint-size="100%,100%"></x-import>
+    </div>
+
+    <div data-mw="bgCaustic" style="position: absolute; left: -10%; right: -10%; top: 0; height: 220px; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);">
+      <div data-mw-anim="1" style="position: absolute; inset: 0; animation: mwCaustic 19s ease-in-out infinite; background: repeating-linear-gradient(331deg, rgba(226,252,255,0) 0px, rgba(226,252,255,.05) 10px, rgba(226,252,255,.12) 24px, rgba(226,252,255,.04) 44px, rgba(226,252,255,0) 88px);"></div>
+    </div>
+
+    <div data-mw="bgGlow" style="position: absolute; inset: 0;">
+      <div data-mw-anim="1" style="position: absolute; inset: 0; animation: mwBreathe 22s ease-in-out infinite; background: radial-gradient(720px 340px at 24% 2%, rgba(232,252,255,.24), rgba(232,252,255,0) 70%);"></div>
+    </div>
+    <div data-mw="bgDepth" style="position: absolute; inset: 0; opacity: 0; background: linear-gradient(180deg, rgba(1,10,17,.30) 0%, rgba(1,10,17,.55) 100%);"></div>
+
+    <div data-mw="bgWhales" style="position: absolute; inset: 0; opacity: 0;">
+      <div data-mw-anim="1" style="position: absolute; top: 30%; left: 0; right: 0; animation: mwSwim 96s linear infinite;">
+        <div data-mw-anim="1" style="animation: mwWhaleBob 5.4s ease-in-out infinite;">
+          <img src="assets/mascot-whale-light.png" alt="" style="width: 64px; filter: saturate(1.5) hue-rotate(-10deg) drop-shadow(0 0 20px rgba(63,198,220,.28)); opacity: .3;">
+        </div>
+      </div>
+      <div data-mw-anim="1" style="position: absolute; top: 66%; left: 0; right: 0; animation: mwSwimBack 138s linear infinite;">
+        <div data-mw-anim="1" style="animation: mwWhaleBob 7.2s ease-in-out infinite;">
+          <img src="assets/mascot-whale-light.png" alt="" style="width: 40px; filter: saturate(1.5) hue-rotate(-10deg); opacity: .24;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: relative; z-index: 1;">
+
+    <header style="position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,.10); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.22);">
+      <div style="max-width: 560px; margin: 0 auto; padding: 9px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 30px; width: auto;">
+        <span style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.20);">
+          <span data-mw-anim="1" style="width: 7px; height: 7px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 10px rgba(63,198,220,.9); animation: mwBreathe 3.4s ease-in-out infinite;"></span>
+          <span style="font: var(--type-code); font-size: 11px; white-space: nowrap; color: rgba(237,243,249,.82);">{{ headerNote }}</span>
+        </span>
+      </div>
+      <div style="height: 2px; background: rgba(255,255,255,.08);">
+        <div data-mw="progress" style="height: 2px; width: 0%; background: linear-gradient(90deg, var(--aqua-400), rgba(45,199,178,.6));"></div>
+      </div>
+    </header>
+
+    <main style="max-width: 560px; margin: 0 auto; padding: 20px 16px 132px; display: flex; flex-direction: column; gap: 26px;">
+
+      <sc-if value="{{ isStart }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 26px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
+
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300); display: flex; align-items: center; gap: 7px;">
+              <span>Ich baue</span>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MorphingText" texts="{{ morphWords }}" hint-size="auto,auto"></x-import>
+            </span>
+            <h1 style="margin: 0; display: flex; flex-direction: column; gap: 4px; font: var(--type-display); font-size: 34px; line-height: 1.14; letter-spacing: var(--track-tight); color: #fff;">
+              <span>Entworfen von <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Highlighter" action="underline" color="var(--aqua-400)" hint-size="auto,auto">mir</x-import>,</span>
+              <span style="color: var(--aqua-100);">
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">geschrieben von Ai</x-import>
+              </span>
+            </h1>
+            <p style="margin: 0; font: var(--type-body); font-size: 16px; line-height: 1.6; color: rgba(237,243,249,.78);">Michel, 17, Ein-Personen-Studio aus Deutschland. Ich entwerfe Spiele und Web-Systeme, KI-Agenten schreiben den Code, ich prüfe jede Änderung und spiele alles selbst. Drei Projekte laufen: ein Bestellsystem im Gasthof, ein Deckbuilder im Browser, ein Idle-Spiel in Politur.</p>
+            <div data-mw-cta="1" style="display: flex; flex-direction: column; gap: 10px; padding-top: 4px;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="aqua" on-click="{{ goGames }}" style="{{ fullBtn }}" hint-size="100%,48px">Projekte ansehen</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="deep" on-click="{{ goContact }}" style="{{ fullBtn }}" hint-size="100%,48px">Schreib mir</x-import>
+            </div>
+          </div>
+
+          <div style="margin: -10px -16px; padding: 10% 0; overflow: hidden;">
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextLoop" text="miwale games" shape="wave" ribbon="{{ false }}" font-size="{{ 80 }}" letter-spacing="{{ 4 }}" color="var(--aqua-200)" speed="{{ 280 }}" hint-size="100%,120px"></x-import>
+          </div>
+
+          <sc-if value="{{ showNumbers }}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">In Zahlen</span>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <sc-for list="{{ numbers }}" as="s" hint-placeholder-count="4">
+                  <div style="display: flex; flex-direction: column; gap: 3px; padding: 16px; border-radius: 20px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
+                    <span style="font: var(--type-h2); font-size: 26px; color: #fff;">{{ s.display }}</span>
+                    <span style="font: var(--type-label); font-size: 13px; line-height: 1.35; color: var(--aqua-300);">{{ s.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="margin: 0 -16px; padding: 4px 0;">
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Marquee" duration="{{ 26 }}" gap="{{ 12 }}" hint-size="100%,42px">
+              <sc-for list="{{ band }}" as="bd" hint-placeholder-count="6">
+                <span style="flex: none; padding: 8px 16px; border-radius: 999px; font: var(--type-code); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--aqua-200); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16);">{{ bd.text }}</span>
+              </sc-for>
+            </x-import>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie ich arbeite</span>
+            <div data-mw-list="1" style="position: relative; display: flex; flex-direction: column; padding: 4px 18px; border-radius: 20px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); overflow: hidden;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.BorderBeam" duration="{{ 9 }}" hint-size="100%,100%"></x-import>
+              <sc-for list="{{ principles }}" as="pr" hint-placeholder-count="3">
+                <span style="display: flex; align-items: center; gap: 14px; min-height: 52px; border-bottom: 1px solid rgba(255,255,255,.08);">
+                  <span style="font: var(--type-code); font-size: 12px; color: var(--aqua-300);">{{ pr.no }}</span>
+                  <span style="font: var(--type-label); font-size: 15px; color: #fff;">{{ pr.title }}</span>
+                </span>
+              </sc-for>
+            </div>
+          </div>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isGames }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 22px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Projekte</span>
+            <h1 style="margin: 0; font: var(--type-h1); font-size: 28px; letter-spacing: var(--track-tight); color: #fff;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Drei, die laufen" trigger="mount" by="word" hint-size="auto,auto"></x-import>
+            </h1>
+            <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.6; color: rgba(237,243,249,.72);">Tipp ein Projekt an, dann öffnet sich alles dazu: was es tut, was ich gemacht habe, und wo der Code liegt.</p>
+          </div>
+
+          <sc-for list="{{ projects }}" as="p" hint-placeholder-count="3">
+            <button type="button" onClick="{{ p.open }}" style="text-align: left; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 12px; padding: 0; border-radius: 24px; overflow: hidden; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.20);">
+              <span style="position: relative; display: block; height: 128px; background: linear-gradient(165deg, #04161F 0%, #0A3446 100%);">
+                <sc-if value="{{ p.hasCover }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ p.coverStyle }}"></span>
+                </sc-if>
+                <sc-if value="{{ p.noCover }}" hint-placeholder-val="{{ false }}">
+                  <span style="position: absolute; inset: 0; display: grid; place-items: center;">
+                    <img src="assets/mascot-whale-light.png" alt="" style="width: 74px; opacity: .55;">
+                  </span>
+                </sc-if>
+                <span style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(1,10,17,0) 40%, rgba(1,10,17,.72) 100%);"></span>
+                <span style="position: absolute; left: 14px; bottom: 12px; font: var(--type-code); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--aqua-200);">{{ p.status }}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; gap: 8px; padding: 0 18px 18px;">
+                <span style="font: var(--type-h3); font-size: 20px; color: #fff;">{{ p.name }}</span>
+                <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.55; color: rgba(237,243,249,.74);">{{ p.line }}</span>
+                <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px;">
+                  <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.58);">{{ p.kind }}</span>
+                  <span style="font: var(--type-label); font-size: 13px; color: var(--aqua-300);">Details →</span>
+                </span>
+              </span>
+            </button>
+          </sc-for>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.6);">Nebenbei</span>
+            <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.6; color: rgba(237,243,249,.72);">Nicht alles ist fertig, und das steht hier auch so. michi-mathe-universe hat mir gezeigt, wie man Lerninhalte in ein Spiel packt; der Flappy-Prototyp von 2024 war der Anfang von allem.</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 24px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
+          <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 12px;">
+            <img src="assets/mascot-whale-light.png" alt="" style="width: 92px; opacity: .95;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Über mich</span>
+            <h1 style="margin: 0; font: var(--type-h1); font-size: 28px; letter-spacing: var(--track-tight); color: #fff;">Angefangen mit kopiertem Code</h1>
+            <p style="margin: 0; font: var(--type-body); font-size: 15px; line-height: 1.65; color: rgba(237,243,249,.78);">Mein erstes Spiel war ein Flappy-Bird-Klon in Unity. Den Code hat ChatGPT geschrieben, ich habe jede Zeile von Hand übertragen — KI-Coding-Tools gab es damals noch nicht. Heute entwerfe ich die Systeme selbst und lasse die Agenten tippen.</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zeitleiste</span>
+            <div style="position: relative; padding-left: 26px; display: flex; flex-direction: column; gap: 18px;">
+              <div style="position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(180deg, var(--aqua-400), rgba(255,255,255,.10));"></div>
+              <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="5">
+                <div style="position: relative; display: flex; flex-direction: column; gap: 4px;">
+                  <span style="position: absolute; left: -26px; top: 5px; width: 16px; height: 16px; border-radius: 999px; background: rgba(4,22,31,.9); border: 1px solid rgba(255,255,255,.28); display: grid; place-items: center;">
+                    <span style="width: 6px; height: 6px; border-radius: 999px; background: var(--aqua-400);"></span>
+                  </span>
+                  <span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">{{ t.when }}</span>
+                  <span style="font: var(--type-h3); font-size: 17px; color: #fff;">{{ t.title }}</span>
+                  <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.55; color: rgba(237,243,249,.72);">{{ t.text }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">KI-Workflow</span>
+            <sc-for list="{{ steps }}" as="st" hint-placeholder-count="4">
+              <div style="border-radius: 20px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); overflow: hidden;">
+                <button type="button" onClick="{{ st.toggle }}" style="width: 100%; min-height: 52px; text-align: left; font: inherit; cursor: pointer; background: transparent; border: 0; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                  <span style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font: var(--type-code); font-size: 12px; color: var(--aqua-300);">{{ st.no }}</span>
+                    <span style="font: var(--type-h3); font-size: 16px; color: #fff;">{{ st.title }}</span>
+                  </span>
+                  <span style="font: var(--type-label); font-size: 18px; color: var(--aqua-300);">{{ st.sign }}</span>
+                </button>
+                <sc-if value="{{ st.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding: 0 16px 16px 40px; font: var(--type-body-sm); font-size: 13px; line-height: 1.6; color: rgba(237,243,249,.74); animation: mwFadeIn 220ms ease both;">{{ st.text }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.6);">Devlog</span>
+            <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.6; color: rgba(237,243,249,.72);">Kommt, sobald Wavebreaker aus der Politur ist. Bis dahin steht jede Änderung öffentlich auf GitHub.</span>
+            <span style="font: var(--type-code); font-size: 12px; color: var(--aqua-300);">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextType" texts="{{ typeLines }}" typing-speed="{{ 55 }}" hint-size="auto,auto"></x-import>
+            </span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isContact }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 22px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Kontakt</span>
+            <h1 style="margin: 0; font: var(--type-h1); font-size: 28px; letter-spacing: var(--track-tight); color: #fff;">Schreib mir einfach</h1>
+            <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.6; color: rgba(237,243,249,.74);">Ob du etwas bauen lassen willst, ein Projekt testen möchtest oder eine Frage zum Workflow hast — ich antworte.</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ contacts }}" as="c" hint-placeholder-count="3">
+              <a href="{{ c.href }}" style="min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; border-radius: 22px; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.20);">
+                <span style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                  <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ c.kind }}</span>
+                  <span style="font: var(--type-label); font-size: 15px; color: #fff; overflow: hidden; text-overflow: ellipsis;">{{ c.value }}</span>
+                </span>
+                <span style="font: var(--type-h3); font-size: 18px; color: var(--aqua-300);">→</span>
+              </a>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 6px; padding: 18px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.55);">Impressum</span>
+            <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.6; color: rgba(237,243,249,.76);">Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com</span>
+            <span style="font: var(--type-body-sm); font-size: 12px; line-height: 1.6; color: rgba(237,243,249,.5);">Anschrift wird ergänzt, sobald die Seite öffentlich erreichbar ist.</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 6px;">
+            <span style="position: relative; width: 156px; height: 156px; display: grid; place-items: center;">
+              <span style="position: absolute; inset: 0; opacity: .7;">
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.CircularText" text="miwale · games · studio · " size="{{ 156 }}" font-size="{{ 13 }}" spin-duration="{{ 26 }}" color="var(--aqua-300)" hint-size="156px,156px"></x-import>
+              </span>
+              <img src="assets/mascot-whale-light.png" alt="" style="width: 62px; opacity: .9;">
+            </span>
+            <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 22px; width: auto; opacity: .8;">
+            <span style="font: var(--type-body-sm); font-size: 12px; color: rgba(237,243,249,.5);">miwale · Michel Waggoner · Deutschland</span>
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+
+    <div style="position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; padding: 0 16px calc(14px + env(safe-area-inset-bottom)); pointer-events: none;">
+      <div style="max-width: 560px; margin: 0 auto; pointer-events: auto;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.BottomNav" items="{{ navItems }}" value="{{ tab }}" on-change="{{ setTab }}" hint-size="100%,66px"></x-import>
+      </div>
+    </div>
+
+  </div>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; justify-content: flex-end;">
+      <div onClick="{{ closeSheet }}" style="position: absolute; inset: 0; background: rgba(2,10,20,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: mwFadeIn 220ms ease both;"></div>
+      <div style="position: relative; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 28px 28px 0 0; background: rgba(6,26,38,.86); backdrop-filter: blur(26px) saturate(1.5); -webkit-backdrop-filter: blur(26px) saturate(1.5); border-top: 1px solid rgba(255,255,255,.20); box-shadow: 0 -24px 64px rgba(1,10,17,.6); animation: mwSheetUp 320ms cubic-bezier(.16,.84,.44,1) both;">
+        <div style="position: sticky; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 10px 18px 12px; background: linear-gradient(180deg, rgba(6,26,38,.96) 70%, rgba(6,26,38,0) 100%);">
+          <span style="width: 40px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.28); align-self: center;"></span>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;">
+            <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+              <span style="font: var(--type-code); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--aqua-300);">{{ sheet.status }}</span>
+              <span style="font: var(--type-h2); font-size: 22px; color: #fff;">{{ sheet.name }}</span>
+            </span>
+            <button type="button" onClick="{{ closeSheet }}" style="flex: none; width: 44px; height: 44px; border-radius: 999px; cursor: pointer; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); color: #fff; font: var(--type-label); font-size: 17px;">✕</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px; padding: 4px 18px calc(28px + env(safe-area-inset-bottom));">
+          <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.58);">{{ sheet.kind }}</span>
+          <p style="margin: 0; font: var(--type-body); font-size: 15px; line-height: 1.65; color: rgba(237,243,249,.82);">{{ sheet.line }}</p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+            <sc-for list="{{ sheet.stats }}" as="s" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);">
+                <span style="font: var(--type-h3); font-size: 15px; color: #fff;">{{ s.v }}</span>
+                <span style="font: var(--type-body-sm); font-size: 11px; line-height: 1.4; color: rgba(237,243,249,.62);">{{ s.l }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Was ich gemacht habe</span>
+            <sc-for list="{{ sheet.body }}" as="b" hint-placeholder-count="2">
+              <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.65; color: rgba(237,243,249,.76);">{{ b.text }}</p>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ sheet.hasShots }}" hint-placeholder-val="{{ false }}">
+            <div data-snap="1" style="display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -18px; padding: 0 18px 4px;">
+              <sc-for list="{{ sheet.shots }}" as="sh" hint-placeholder-count="0">
+                <span style="{{ sh.style }}"></span>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <sc-for list="{{ sheet.tags }}" as="tg" hint-placeholder-count="3">
+              <span style="padding: 8px 14px; border-radius: 999px; font: var(--type-label); font-size: 12px; color: rgba(237,243,249,.82); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);">{{ tg.text }}</span>
+            </sc-for>
+          </div>
+
+          <a href="{{ sheet.href }}" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; font: var(--type-label); font-size: 15px; color: #04161F; background: var(--aqua-400); box-shadow: 0 10px 28px rgba(15,140,166,.28);">{{ sheet.linkLabel }}</a>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:880},&quot;navIcons&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;showNumbers&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Inhalt&quot;},&quot;calmBackground&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Bewegung&quot;},&quot;headerNote&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;17 · DE · Michel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Inhalt&quot;}}">
+class Component extends DCLogic {
+  state = { tab: "start", sheet: null, step: 0 };
+
+  el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
+
+  // Der Wasserverlauf ist derselbe wie auf der Desktop-Seite: der Ozean hat eine
+  // feste Länge, beim Scrollen sinkt man hindurch.
+  paintDepth() {
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    const vh = window.innerHeight || 800;
+    const clamp = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+    const span = vh * 3.2;
+    const travel = span - vh;
+    const offset = Math.min(y * 0.4, travel);
+    const root = this.el("bgRoot");
+    if (root) {
+      root.style.backgroundSize = "100% " + Math.round(span) + "px";
+      root.style.backgroundPosition = "0px " + Math.round(-offset) + "px";
+    }
+    const depth = clamp(offset / travel);
+    const light = 1 - depth;
+    const surf = this.el("bgSurface");
+    if (surf) surf.style.opacity = String(clamp(light));
+    const cau = this.el("bgCaustic");
+    if (cau) cau.style.opacity = String(clamp((light - 0.62) / 0.38));
+    const glw = this.el("bgGlow");
+    if (glw) glw.style.opacity = String(clamp((light - 0.5) / 0.5));
+
+    const shift = (name, factor, extraOpacity) => {
+      const el = this.el(name);
+      if (!el) return;
+      el.style.transform = "translate3d(0," + (-y * factor).toFixed(2) + "px,0)";
+      if (extraOpacity != null) el.style.opacity = String(clamp(light * extraOpacity + 0.04));
+    };
+    shift("bgFar", 0.06, null);
+    shift("bgShaftsB", 0.09, 0.95);
+    shift("bgShaftsA", 0.14, 1);
+
+    const st = this.el("bgStreaks");
+    if (st) {
+      st.style.transform = "rotate(26deg) scale(" + (1.3 - depth * 0.72).toFixed(3) + ")";
+      st.style.opacity = String(clamp(0.95 - depth * 0.75));
+    }
+    const pl = this.el("bgPlankton");
+    if (pl) pl.style.opacity = String(clamp(0.26 + depth * 0.74));
+    const dr = this.el("bgDrift");
+    if (dr) {
+      dr.style.opacity = String(clamp((depth - 0.45) / 0.4) * 0.8);
+      dr.style.transform = "translate3d(0," + (-y * 0.2).toFixed(1) + "px,0)";
+    }
+    const wh = this.el("bgWhales");
+    if (wh) wh.style.opacity = String(clamp((depth - 0.34) / 0.4));
+    const veil = this.el("bgDepth");
+    if (veil) veil.style.opacity = String(clamp(depth * 0.9));
+
+    // Feiner Fortschrittsbalken unter der Kopfzeile: auf dem Handy ersetzt er
+    // die Orientierung, die auf dem Desktop die breite Navigation gibt.
+    const doc = document.documentElement;
+    const max = Math.max(1, doc.scrollHeight - vh);
+    const bar = this.el("progress");
+    if (bar) bar.style.width = (clamp(y / max) * 100).toFixed(1) + "%";
+  }
+
+  scanReveal() {
+    const vh = window.innerHeight || 800;
+    const now = Date.now();
+    const pend = document.querySelectorAll('[data-reveal]:not([data-shown="1"])');
+    for (let i = 0; i < pend.length; i++) {
+      const el = pend[i];
+      const r = el.getBoundingClientRect();
+      const stale = el.hasAttribute("data-seen") && now - Number(el.getAttribute("data-seen")) > 4000;
+      if (!el.hasAttribute("data-seen")) el.setAttribute("data-seen", String(now));
+      if ((r.bottom > 0 && r.top < vh * 0.92) || stale) el.setAttribute("data-shown", "1");
+    }
+  }
+
+  icons() { try { if (window.lucide) window.lucide.createIcons(); } catch (e) {} }
+
+  componentDidMount() {
+    this.onScroll = () => {
+      if (this.raf) return;
+      this.raf = requestAnimationFrame(() => { this.raf = 0; this.paintDepth(); this.scanReveal(); });
+    };
+    window.addEventListener("scroll", this.onScroll, { passive: true });
+    window.addEventListener("resize", this.onScroll);
+    this.onKey = (e) => { if (e.key === "Escape" && this.state.sheet) this.setState({ sheet: null }); };
+    window.addEventListener("keydown", this.onKey);
+    this.paintDepth();
+    this.scanReveal();
+    this.icons();
+    this.timer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
+    if (window.lucide) setTimeout(() => this.icons(), 600);
+    else window.addEventListener("load", () => this.icons(), { once: true });
+  }
+
+  componentDidUpdate() {
+    document.body.style.overflow = this.state.sheet ? "hidden" : "";
+    this.paintDepth();
+    this.icons();
+    requestAnimationFrame(() => this.scanReveal());
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this.onScroll);
+    window.removeEventListener("resize", this.onScroll);
+    window.removeEventListener("keydown", this.onKey);
+    if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.timer) clearInterval(this.timer);
+    document.body.style.overflow = "";
+  }
+
+  go(t) {
+    return () => {
+      if (t === this.state.tab) { window.scrollTo(0, 0); return; }
+      this.setState({ tab: t, sheet: null });
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* Vorschau blockiert Scrollen evtl. */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+    };
+  }
+
+  data() {
+    return [
+      {
+        id: "xrai",
+        name: "XRAI Order System",
+        status: "läuft täglich",
+        kind: "Bestellsystem für die Gastronomie",
+        cover: "",
+        line: "Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch und bestellen. In der Küche läuft die Bestellung auf. Kein Übungsprojekt: fremde Menschen benutzen es jeden Tag.",
+        stats: [{ v: "unter 20 h", l: "Idee bis live" }, { v: "83", l: "Commits" }, { v: "23", l: "Pull Requests" }],
+        body: [
+          { text: "Vom ersten Gespräch mit dem Gasthof über Konzept, Frontend, Backend und Datenhaltung bis zu Deployment und DNS habe ich alles allein umgesetzt, begleitet von einem erfahrenen Senior-Entwickler." },
+          { text: "Jede Änderung lief einzeln durch ein Review, inklusive Security-Durchsicht. Nichts wurde in einem Rutsch hochgeladen." }
+        ],
+        shots: [],
+        tags: [{ text: "Web" }, { text: "Datenhaltung" }, { text: "Deployment" }, { text: "Reviews" }],
+        href: "https://github.com/milchinien",
+        linkLabel: "Code auf GitHub"
+      },
+      {
+        id: "chromatic",
+        name: "Chromatic",
+        status: "spielbar",
+        kind: "Roguelite-Deckbuilder · TypeScript, DOM und Canvas",
+        cover: "assets/games/chromatic-akt-1.png",
+        line: "Eine Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis zum Endboss. Läuft im Browser, ohne Engine.",
+        stats: [{ v: "25", l: "Karten im Deck" }, { v: "5 × 5", l: "Farben, Klassen" }, { v: "5", l: "Kartenebenen" }],
+        body: [
+          { text: "Kartenlogik, Kampfablauf und Balancing habe ich selbst entworfen und über viele Durchläufe von Hand nachgezogen." },
+          { text: "Die Oberfläche ist reines DOM mit Canvas für die Effekte — kein Framework, damit es auf jedem Rechner sofort startet." }
+        ],
+        shots: [
+          { src: "assets/games/chromatic-akt-1.png" },
+          { src: "assets/games/chromatic-kampf-1.png" },
+          { src: "assets/games/chromatic-card-1.png" },
+          { src: "assets/games/chromatic-card-2.png" }
+        ],
+        tags: [{ text: "TypeScript" }, { text: "Canvas" }, { text: "Deckbuilder" }],
+        href: "https://milchinien.itch.io/",
+        linkLabel: "Auf itch.io ansehen"
+      },
+      {
+        id: "wavebreaker",
+        name: "Wavebreaker",
+        status: "in Politur",
+        kind: "Idle-Verteidigung · TypeScript",
+        cover: "assets/games/wb-sky.svg",
+        line: "Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Deshalb lässt sich jeder Durchlauf automatisch nachrechnen.",
+        stats: [{ v: "692", l: "Prüfläufe grün" }, { v: "16", l: "Kapitel Konzept" }, { v: "1", l: "Zufallsquelle" }],
+        body: [
+          { text: "Bevor eine Zeile Code entstand, stand ein Design-Dokument über sechzehn Kapitel: Mechaniken, Klassen, Kurven und wie sie sich gegenseitig beeinflussen." },
+          { text: "Was noch fehlt, ist das Feintuning der Kurven. Herausgeben werde ich es erst, wenn es sich richtig anfühlt — Tests messen das nicht." }
+        ],
+        shots: [
+          { src: "assets/games/wb-station.svg" },
+          { src: "assets/games/wb-turret.svg" },
+          { src: "assets/games/wb-boss.svg" }
+        ],
+        tags: [{ text: "TypeScript" }, { text: "Simulation" }, { text: "692 Tests" }],
+        href: "https://github.com/milchinien",
+        linkLabel: "Code auf GitHub"
+      }
+    ];
+  }
+
+  renderVals() {
+    const tab = this.state.tab;
+    const open = (id) => () => { this.setState({ sheet: id }); window.scrollTo(0, 0); };
+    const items = this.data().map((p) => Object.assign({}, p, {
+      open: open(p.id),
+      hasCover: !!p.cover,
+      noCover: !p.cover,
+      coverStyle: { position: "absolute", inset: 0, backgroundImage: p.cover ? 'url("' + p.cover + '")' : "none", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.92 }
+    }));
+    const cur = items.find((p) => p.id === this.state.sheet) || null;
+    const icon = (n) => React.createElement("i", { "data-lucide": n });
+    const showIcons = this.props.navIcons !== false;
+
+    const steps = [
+      { no: "01", title: "Ich entscheide", text: "Mechanik, Kurven, Grenzen und wie sich alles anfühlen soll — das lege ich fest, bevor irgendwer tippt." },
+      { no: "02", title: "Agenten schreiben", text: "Die KI setzt um, in kleinen Schritten. Jede Änderung lese ich, bevor sie in den Hauptzweig darf." },
+      { no: "03", title: "Tests halten fest", text: "751 automatische Prüfungen laufen nach jeder Änderung durch. Was einmal kaputt war, bleibt geprüft." },
+      { no: "04", title: "Ich spiele es", text: "Nichts geht raus, das ich nicht selbst gespielt habe. Ob es sich gut anfühlt, misst kein Test." }
+    ].map((s, i) => Object.assign({}, s, {
+      open: this.state.step === i,
+      sign: this.state.step === i ? "−" : "+",
+      toggle: () => this.setState({ step: this.state.step === i ? -1 : i })
+    }));
+
+    return {
+      tab,
+      calmAttr: this.props.calmBackground ? "1" : "0",
+      showNumbers: this.props.showNumbers !== false,
+      headerNote: this.props.headerNote || "17 · DE · Michel",
+      isStart: tab === "start",
+      isGames: tab === "games",
+      isAbout: tab === "about",
+      isContact: tab === "contact",
+      setTab: (v) => this.go(v)(),
+      goGames: this.go("games"),
+      goContact: this.go("contact"),
+      navItems: [
+        { value: "start", label: "Start", icon: showIcons ? icon("home") : null },
+        { value: "games", label: "Projekte", icon: showIcons ? icon("gamepad-2") : null },
+        { value: "about", label: "Über mich", icon: showIcons ? icon("user") : null },
+        { value: "contact", label: "Kontakt", icon: showIcons ? icon("message-square") : null }
+      ],
+      fullBtn: { width: "100%", justifyContent: "center", minHeight: 48 },
+      morphWords: ["Spiele", "Systeme", "Werkzeuge"],
+
+      projects: items,
+      now: items.map((p) => ({ name: p.name, status: p.status, line: p.line.split(".")[0] + ".", open: p.open })),
+      openXrai: open("xrai"),
+      sheetOpen: !!cur,
+      sheet: cur ? Object.assign({}, cur, {
+        hasShots: cur.shots.length > 0,
+        shots: cur.shots.map((s) => ({
+          src: s.src,
+          style: { scrollSnapAlign: "center", flex: "none", width: "74%", height: 168, borderRadius: 18, border: "1px solid rgba(255,255,255,.16)", backgroundColor: "#06202C", backgroundImage: 'url("' + s.src + '")', backgroundSize: "cover", backgroundPosition: "center" }
+        }))
+      }) : { stats: [], body: [], shots: [], tags: [], hasShots: false },
+      closeSheet: () => this.setState({ sheet: null }),
+
+      band: [
+        { text: "TypeScript" }, { text: "KI-Workflow" }, { text: "Canvas" },
+        { text: "751 Tests" }, { text: "Deckbuilder" }, { text: "Gastronomie" },
+        { text: "Deployment" }, { text: "Ein-Personen-Studio" }
+      ],
+      typeLines: [
+        "692 / 692 Prüfläufe grün",
+        "build 0.4.2 · Balancing offen",
+        "XRAI Order System · läuft"
+      ],
+      numbers: [
+        { display: "751", label: "automatische Tests" },
+        { display: "106", label: "Änderungen belegt" },
+        { display: "16", label: "Kapitel Konzept" },
+        { display: "20 h", label: "Idee bis live" }
+      ],
+      proofStats: [{ v: "unter 20 h", l: "Idee bis live" }, { v: "23 / 83", l: "PRs und Commits" }, { v: "1", l: "Entwickler" }],
+      principles: [
+        { no: "01", title: "Erst das Dokument", text: "Bei Wavebreaker standen sechzehn Kapitel, bevor die erste Zeile Code entstand." },
+        { no: "02", title: "Agenten tippen, ich entscheide", text: "Ich lege Mechanik und Grenzen fest und lese jede Änderung, bevor sie bleibt." },
+        { no: "03", title: "Selbst gespielt oder gar nicht", text: "Tests fangen Fehler. Ob es sich gut anfühlt, merke ich nur beim Spielen." }
+      ],
+      timeline: [
+        { when: "8. Klasse", title: "Praktikum in einer Softwarefirma", text: "Zwei Wochen zugeschaut, wie echte Entwickler arbeiten. Danach war klar, was ich machen will." },
+        { when: "13.06.2024", title: "Flappy-Prototyp in Unity", text: "Erstes eigenes Spiel mit eigenen Assets. Code von ChatGPT, Zeile für Zeile von Hand übertragen." },
+        { when: "2024 – 2025", title: "Chromatic", text: "Erster großer Eigenbau: Deckbuilder mit Weltkarte, Akten und Endboss, durchspielbar im Browser." },
+        { when: "seit 2025", title: "miwale als Studio", text: "Eigener Name, eigener Workflow: ich entwerfe, die Agenten setzen um, ich teste." },
+        { when: "August 2025", title: "XRAI Order System live", text: "Bestellsystem im Gasthof Nüßleshof, in unter 20 Stunden von der Idee bis zum Livegang." },
+        { when: "geplant", title: "Wavebreaker veröffentlichen", text: "Sobald das Balancing sitzt. Danach der erste Devlog." }
+      ],
+      steps,
+      contacts: [
+        { kind: "E-Mail", value: "michi.waggoner@gmail.com", href: "mailto:michi.waggoner@gmail.com" },
+        { kind: "GitHub", value: "github.com/milchinien", href: "https://github.com/milchinien" },
+        { kind: "itch.io", value: "milchinien.itch.io", href: "https://milchinien.itch.io/" }
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/radius.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/elevation.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/glass.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/motion.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/base.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/components/miwale-ui.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/components/miwale-motion.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/styles.css">
+<script src="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: #050A16; color: var(--ice-100); font: var(--type-body); }
+  a { color: var(--aqua-300); text-decoration: none; }
+  a:hover { color: #fff; }
+  .mw-tabs__tab { white-space: nowrap; }
+  [data-reveal] { opacity: 0; transform: translateY(20px); transition: opacity 620ms cubic-bezier(.22,.61,.36,1), transform 620ms cubic-bezier(.22,.61,.36,1); }
+  [data-reveal][data-shown="1"] { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { [data-reveal] { opacity: 1 !important; transform: none !important; } }
+  @media (max-width: 1180px) { [data-mw-badge] { display: none; } }
+  @media (max-width: 1040px) { [data-mw-name] { display: none; } }
+  @media (max-width: 880px) { .mw-tabs__tab { padding-left: 12px; padding-right: 12px; font-size: var(--text-xs); } }
+
+  /* ---- Mobil (bis 760px). Die Desktop-Fassung bleibt unverändert. ---- */
+  @media (max-width: 760px) {
+    html, body { overflow-x: hidden; }
+    body {
+      --text-6xl: 38px; --text-5xl: 32px; --text-4xl: 27px;
+      --text-3xl: 23px; --text-2xl: 20px; --text-xl: 18px; --text-lg: 17px;
+    }
+    /* Kopfzeile: Marke oben, Reiter darunter als scrollbare Leiste */
+    header > div { flex-wrap: wrap !important; padding: 8px 16px !important; gap: 8px !important; row-gap: 6px !important; }
+    header > div > img { height: 32px !important; }
+    header .mw-tabs {
+      flex: 1 0 100% !important; display: flex !important; overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; max-width: 100%;
+      justify-content: flex-start !important;
+    }
+    header .mw-tabs::-webkit-scrollbar { display: none; }
+    .mw-tabs__tab { flex: none !important; min-height: 40px; padding-left: 14px !important; padding-right: 14px !important; font-size: var(--text-sm) !important; }
+
+    /* Ränder: 32px sind auf dem Handy zu viel */
+    section, footer { padding-left: 18px !important; padding-right: 18px !important; }
+
+    [style*="gap: 60px"], [style*="gap: 56px"], [style*="gap: 44px"], [style*="gap: 36px"] { gap: 28px !important; }
+
+    /* Alle Inhaltsraster werden einspaltig, nur der Hintergrund bleibt */
+    [style*="grid-template-columns"]:not([style*="repeat(7"]) { grid-template-columns: 1fr !important; }
+    /* Ausnahmen: Bildstreifen und kleine Kennzahlen bleiben zweispaltig */
+    [style*="repeat(4"][style*="gap: 10px"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="repeat(4"][style*="gap: 14px"] { grid-template-columns: repeat(2, 1fr) !important; }
+    [style*="104px 1fr"] { grid-template-columns: 78px 1fr !important; gap: 12px !important; }
+    [style*="210px 1fr"] { gap: 12px !important; }
+    /* Klebende Jahreszahlen der Zeitleiste stören auf kleinen Schirmen */
+    [style*="top: 104px"] { position: static !important; }
+
+    /* Karten und Panels: weniger Innenabstand */
+    .mw-glass-card, .mw-card { padding: 20px !important; border-radius: 20px !important; }
+    [style*="padding: 26px"] { padding: 20px !important; }
+
+    /* Wortmarke im Tauchgang und Maskottchen kleiner */
+    [data-mw="diveLogo"] { width: min(78vw, 340px) !important; }
+
+    /* Bänder und Effekte bleiben, laufen aber flacher */
+    [data-mw="tlMarquee"] { display: none; }
+  }
+  @media (max-width: 420px) {
+    section, footer { padding-left: 14px !important; padding-right: 14px !important; }
+    [style*="104px 1fr"] { grid-template-columns: 1fr !important; }
+  }
+  @keyframes mwSway { 0% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); } 50% { transform: rotate(-29deg) translate3d(38px,0,0) skewX(1.2deg); } 100% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); } }
+  @keyframes mwSwaySlow { 0% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); } 50% { transform: rotate(-29deg) translate3d(-48px,0,0) scaleX(.98); } 100% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); } }
+  @keyframes mwShaftPulse { 0% { opacity: .62; } 38% { opacity: 1; } 70% { opacity: .78; } 100% { opacity: .62; } }
+  @keyframes mwFloat { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(46px,-420px,0); } }
+  @keyframes mwFloatSlow { 0% { transform: translate3d(0,0,0); } 100% { transform: translate3d(-34px,-620px,0); } }
+  @keyframes mwCaustic { 0% { transform: translate3d(-40px,0,0) scaleY(1); opacity: .5; } 50% { transform: translate3d(40px,0,0) scaleY(1.1); opacity: .95; } 100% { transform: translate3d(-40px,0,0) scaleY(1); opacity: .5; } }
+  @keyframes mwSwim { 0% { transform: translateX(-24vw); } 100% { transform: translateX(122vw); } }
+  @keyframes mwSwimBack { 0% { transform: translateX(122vw) scaleX(-1); } 100% { transform: translateX(-24vw) scaleX(-1); } }
+  @keyframes mwWhaleBob { 0% { transform: translateY(0) rotate(-4deg); } 25% { transform: translateY(-9px) rotate(2deg); } 50% { transform: translateY(2px) rotate(5deg); } 75% { transform: translateY(-6px) rotate(0deg); } 100% { transform: translateY(0) rotate(-4deg); } }
+  @keyframes mwColUp { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+  @keyframes mwColDown { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+  @keyframes mwShaftDrift { 0% { transform: rotate(-29deg) translate3d(-16px,0,0); } 50% { transform: rotate(-29deg) translate3d(22px,0,0); } 100% { transform: rotate(-29deg) translate3d(-16px,0,0); } }
+  @keyframes mwBreathe { 0% { opacity: .55; } 50% { opacity: 1; } 100% { opacity: .55; } }
+  @keyframes mwTabIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes mwRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    [data-mw-anim] { animation: none !important; }
+  }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: #050A16; position: relative;">
+  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-repeat: no-repeat;">
+
+    <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
+
+    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);">
+      <div style="position: absolute; inset: 0; background: radial-gradient(1200px 900px at 16% 30%, rgba(34,176,158,.22), rgba(34,176,158,0) 66%), radial-gradient(1400px 1000px at 86% 44%, rgba(18,130,142,.20), rgba(18,130,142,0) 68%), radial-gradient(1300px 1000px at 38% 62%, rgba(10,88,98,.26), rgba(10,88,98,0) 70%), radial-gradient(1500px 1100px at 60% 84%, rgba(5,52,64,.34), rgba(5,52,64,0) 72%);"></div>
+      <div style="position: absolute; inset: 0; background: radial-gradient(680px 480px at 30% 14%, rgba(52,214,178,.18), rgba(52,214,178,0) 68%), radial-gradient(520px 420px at 72% 26%, rgba(96,226,196,.13), rgba(96,226,196,0) 70%), radial-gradient(760px 520px at 8% 52%, rgba(22,150,138,.20), rgba(22,150,138,0) 70%), radial-gradient(600px 460px at 88% 66%, rgba(16,120,124,.18), rgba(16,120,124,0) 70%), radial-gradient(540px 380px at 22% 74%, rgba(120,236,205,.14), rgba(120,236,205,0) 70%), radial-gradient(460px 340px at 66% 88%, rgba(40,180,170,.15), rgba(40,180,170,0) 72%);"></div>
+    </div>
+
+    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);">
+      <div style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; opacity: .6; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); animation: mwSwaySlow 34s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px);"></div>
+    </div>
+
+    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);">
+      <div style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); animation: mwSway 24s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px);"></div>
+      <div style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px);"></div>
+    </div>
+
+    <div data-mw="bgNear" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%;">
+      <div style="position: absolute; inset: 0; opacity: .5; animation: mwFloat 42s linear infinite; background-image: radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%), radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%), radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%), radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%), radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%), radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%); background-size: 620px 620px; background-repeat: repeat;"></div>
+      <div style="position: absolute; inset: 0; opacity: .34; animation: mwFloatSlow 68s linear infinite; background-image: radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%), radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%), radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%); background-size: 880px 880px; background-repeat: repeat;"></div>
+      <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Meteors" number="{{ 14 }}" color="rgba(206,244,255,.85)" hint-size="100%,100%"></x-import>
+      </div>
+    </div>
+
+    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0;">
+      <div style="position: absolute; inset: 0; animation: mwFloatSlow 84s linear infinite; background-image: radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%), radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%), radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%), radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%); background-size: 540px 540px; background-repeat: repeat;"></div>
+      <div style="position: absolute; inset: 0; animation: mwFloat 58s linear infinite; background-image: radial-gradient(1.4px 1.4px at 22% 62%, rgba(191,241,247,.5), transparent 60%), radial-gradient(1.1px 1.1px at 74% 34%, rgba(191,241,247,.42), transparent 60%), radial-gradient(1.7px 1.7px at 48% 12%, rgba(127,224,238,.45), transparent 60%); background-size: 760px 760px; background-repeat: repeat;"></div>
+    </div>
+
+    <div data-mw="bgPlankton" style="position: absolute; inset: 0; opacity: 0;">
+      <div style="position: absolute; inset: 0;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Particles" quantity="{{ 46 }}" color="#1FC9AE" size="{{ 1.8 }}" speed="{{ 0.16 }}" opacity="{{ 0.55 }}" hint-size="100%,100%"></x-import>
+      </div>
+    </div>
+
+    <div data-mw="bgCaustic" style="position: absolute; left: -10%; right: -10%; top: 0; height: 220px; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);">
+      <div style="position: absolute; inset: 0; animation: mwCaustic 19s ease-in-out infinite; background: repeating-linear-gradient(331deg, rgba(226,252,255,0) 0px, rgba(226,252,255,.05) 10px, rgba(226,252,255,.12) 24px, rgba(226,252,255,.04) 44px, rgba(226,252,255,0) 88px);"></div>
+    </div>
+
+    <div data-mw="bgGlow" style="position: absolute; inset: 0;">
+      <div style="position: absolute; inset: 0; animation: mwBreathe 22s ease-in-out infinite; background: radial-gradient(720px 340px at 24% 2%, rgba(232,252,255,.24), rgba(232,252,255,0) 70%);"></div>
+    </div>
+    <div data-mw="bgDepth" style="position: absolute; inset: 0; opacity: 0; background: linear-gradient(180deg, rgba(1,10,17,.30) 0%, rgba(1,10,17,.55) 100%);"></div>
+
+    <div data-mw="bgWhales" style="position: absolute; inset: 0; opacity: 0;">
+      <div style="position: absolute; top: 26%; left: 0; right: 0; animation: mwSwim 96s linear infinite;">
+        <div style="animation: mwWhaleBob 5.4s ease-in-out infinite;">
+          <img src="assets/mascot-whale-light.png" alt="" style="width: 84px; filter: saturate(1.5) hue-rotate(-10deg) drop-shadow(0 0 20px rgba(63,198,220,.28)); opacity: .3;">
+        </div>
+      </div>
+      <div style="position: absolute; top: 58%; left: 0; right: 0; animation: mwSwimBack 138s linear infinite;">
+        <div style="animation: mwWhaleBob 7.2s ease-in-out infinite;">
+          <img src="assets/mascot-whale-light.png" alt="" style="width: 54px; filter: saturate(1.5) hue-rotate(-10deg) drop-shadow(0 0 16px rgba(63,198,220,.22)); opacity: .24;">
+        </div>
+      </div>
+      <div style="position: absolute; top: 78%; left: 0; right: 0; animation: mwSwim 176s linear infinite;">
+        <div style="animation: mwWhaleBob 6.2s ease-in-out infinite;">
+          <img src="assets/mascot-whale-light.png" alt="" style="width: 36px; filter: saturate(1.4) hue-rotate(-10deg); opacity: .2;">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="position: relative; z-index: 1;">
+
+  <header style="position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,.10); backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.22);">
+    <div style="max-width: 1200px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 18px;">
+      <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto;">
+        <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 42px; width: auto; flex: none;">
+        <span data-mw-name="1" style="width: 1px; height: 24px; background: rgba(255,255,255,.18); flex: none;"></span>
+        <span data-mw-name="1" style="font: var(--type-label); font-size: var(--text-sm); color: var(--ice-100); white-space: nowrap;">Michel Waggoner</span>
+      </div>
+      <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tabs" items="{{ tabItems }}" value="{{ tab }}" on-change="{{ setTab }}" tone="glass" hint-size="auto,42px"></x-import>
+      <span data-mw-badge="1" style="flex: none;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">17 · DE</x-import>
+      </span>
+    </div>
+  </header>
+
+  <sc-if value="{{ isStart }}" hint-placeholder-val="{{ true }}">
+    <div data-mw-anim="start" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+
+      <section style="position: relative; overflow: hidden; padding: 88px 32px 96px;">
+        
+        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 60px; align-items: center;">
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300); display: flex; align-items: center; gap: 8px;">
+              <span>Ich baue</span>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MorphingText" texts="{{ morphWords }}" hint-size="auto,auto"></x-import>
+            </span>
+            <h1 style="margin: 0; font: var(--type-display); font-size: var(--text-5xl); letter-spacing: var(--track-tight); color: #fff; max-width: 18ch;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Gebaut mit KI," trigger="mount" hint-size="auto,auto"></x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">getunt von Hand</x-import>
+            </h1>
+            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">Ich entwerfe die Systeme, KI-Agenten schreiben den Code, und nichts geht raus, das ich nicht selbst gespielt habe. Ein Bestellsystem läuft damit täglich in einem Gasthof, zwei Spiele laufen im Browser.</p>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 4px;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="aqua" on-click="{{ goGames }}" hint-size="auto,46px">Projekte ansehen</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="deep" on-click="{{ goContact }}" hint-size="auto,46px">Kontakt</x-import>
+            </div>
+          </div>
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" style="{{ heroCardStyle }}" hint-size="100%,auto">
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.BorderBeam" duration="{{ 8 }}" hint-size="100%,100%"></x-import>
+            <img src="assets/mascot-whale-light.png" alt="" style="width: 104px; align-self: center; opacity: .95;">
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">1</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">System im täglichen Einsatz</span>
+                <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Bestellsystem im Gasthof Nüßleshof</span>
+              </div>
+              <div style="height: 1px; background: rgba(255,255,255,.14);"></div>
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">2</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Spiele, spielbar im Browser</span>
+                <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Chromatic und Wavebreaker</span>
+              </div>
+              <div style="height: 1px; background: rgba(255,255,255,.14);"></div>
+              <div style="display: flex; flex-direction: column; gap: 3px;">
+                <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">2024</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">erste eigene Zeile Code</span>
+                <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">seitdem jeden Tag weiter</span>
+              </div>
+            </div>
+            <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.62);">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextType" texts="{{ typeLines }}" hint-size="auto,auto"></x-import>
+            </span>
+          </x-import>
+        </div>
+      </section>
+
+      <section style="position: relative; padding: 8px 32px 96px;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wo du hier was findest</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Drei Wege durch die Seite</h2>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+            <button type="button" onClick="{{ goGames }}" style="text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: 24px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms;" style-hover="{{ navCardHover }}">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">01</span>
+              <span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">Projekte</span>
+              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Was ich gebaut habe, mit Zeitstrahl, Zahlen und Links zu den Repositories.</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300); padding-top: 4px;">Ansehen →</span>
+            </button>
+            <button type="button" onClick="{{ goAbout }}" style="text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: 24px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms;" style-hover="{{ navCardHover }}">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">02</span>
+              <span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">Über mich</span>
+              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Wie ich vom Praktikum zum eigenen Studio gekommen bin, und wie ich arbeite.</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300); padding-top: 4px;">Lesen →</span>
+            </button>
+            <button type="button" onClick="{{ goAi }}" style="text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: 24px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms;" style-hover="{{ navCardHover }}">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">03</span>
+              <span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">KI-Workflow</span>
+              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Was die Agenten übernehmen, und welche Entscheidungen bei mir bleiben.</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300); padding-top: 4px;">Ansehen →</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div style="overflow: hidden; padding: 0 0 12px;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextLoop" text="miwale games" shape="wave" ribbon="{{ true }}" ribbon-color="rgba(63,198,220,.35)" ribbon-width="{{ 64 }}" font-size="{{ 32 }}" color="var(--aqua-200)" speed="{{ 70 }}" hint-size="100%,120px"></x-import>
+      </div>
+      <section style="position: relative; padding: 8px 32px 56px;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+          <span data-reveal style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">In Zahlen</span>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
+              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">751</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">automatische Tests</span>
+              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">prüfen meine Spiele nach jeder Änderung selbst</span>
+            </div>
+            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
+              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">106</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Änderungen dokumentiert</span>
+              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">83 Commits und 23 Pull Requests im Bestellsystem</span>
+            </div>
+            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
+              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">16</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Kapitel Design-Dokument</span>
+              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">geschrieben, bevor die erste Zeile Code entstand</span>
+            </div>
+            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
+              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">20 h</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">von der Idee bis live</span>
+              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Bestellsystem im Gasthof, allein umgesetzt</span>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">3</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Projekte, die laufen</span></div>
+            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">25</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Karten im Chromatic-Deck</span></div>
+            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">5 × 5</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Farben und Klassen</span></div>
+            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">2 Jahre</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">seit der ersten eigenen Zeile</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section style="position: relative; padding: 96px 32px 84px;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px;">
+          <div style="display: flex; flex-direction: column; gap: 10px; max-width: 62ch;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Der wichtigste Beleg</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Ein System, das <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Highlighter" action="underline" color="var(--aqua-400)" hint-size="auto,auto">Fremde täglich benutzen</x-import></h2>
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Das XRAI Order System ist kein Übungsprojekt. Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch und bestellen; in der Küche läuft die Bestellung auf. Von den ersten Gesprächen bis zu Deployment und DNS habe ich es allein umgesetzt.</p>
+          </div>
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">unter 20 h</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm);">von der Idee bis zum Livegang</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Konzept, Prototyp, Frontend, Backend, Datenhaltung, Deployment.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">23 / 83</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm);">Pull Requests und Commits</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Jede Änderung wurde einzeln geprüft, nicht in einem Rutsch hochgeladen.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">1</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm);">Entwickler</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Begleitet von einem erfahrenen Senior-Entwickler, umgesetzt von mir.</span>
+              </div>
+            </div>
+          </x-import>
+          <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" on-click="{{ goGames }}" hint-size="auto,44px">Alle Projekte ansehen</x-import>
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" variant="secondary" hint-size="auto,44px">Code auf GitHub</x-import>
+          </div>
+        </div>
+      </section>
+
+      <section style="position: relative; padding: 0 32px 88px;">
+        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Warum das trägt</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">Erst das Dokument, dann der Code</h3>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Bei Wavebreaker stand ein Design-Dokument über sechzehn Kapitel, bevor eine Zeile Code existierte: Mechaniken, Klassen, Kurven und wie sie sich gegenseitig beeinflussen.</p>
+            </div>
+          </x-import>
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Und warum es hält</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">692 automatische Prüfungen</h3>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Wavebreaker prüft sich nach jeder Änderung selbst: 692 kleine Testläufe rechnen nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.</p>
+            </div>
+          </x-import>
+        </div>
+      </section>
+
+      <div style="height: 88px;"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isGames }}" hint-placeholder-val="{{ true }}">
+    <div data-mw-anim="games" class="mw-dark" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+
+      <section style="position: relative; overflow: hidden; padding: 76px 32px 60px;">
+        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Projekte</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Alles, was bisher entstanden ist</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.78); max-width: 52ch;">Öffentlich auf GitHub, mit Commits und Tests. Scroll weiter, dann geht es nach unten.</p>
+        </div>
+      </section>
+
+      <section data-mw="diveRoot" style="position: relative; height: 170vh;">
+        <div style="position: sticky; top: 0; height: 100vh; display: grid; place-items: start center; padding-top: 22vh; overflow: hidden;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 22px;">
+            <img data-mw="diveLogo" src="assets/logo-wordmark-light.png" alt="miwale" style="width: min(46vw, 520px); height: auto; will-change: transform, opacity;">
+            <span data-mw="diveHint" style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.6);">Scrollen, um abzutauchen</span>
+          </div>
+          <div data-mw="diveArrow" style="position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <span style="width: 1px; height: 46px; background: linear-gradient(180deg, rgba(127,224,238,0), rgba(127,224,238,.85));"></span>
+          </div>
+        </div>
+      </section>
+
+      <section data-mw="tlRoot" style="position: relative; padding: 40px 32px 40px; overflow: hidden;">
+        <div data-mw="tlMarquee" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0;">
+          <div style="position: absolute; inset: -34%; transform: rotate(-15deg) skewY(7deg) scale(.8); display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColUp 52s linear infinite;">
+          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColDown 64s linear infinite;">
+          <img src="assets/games/wb-station.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-kampf-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/wb-station.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-kampf-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColUp 58s linear infinite;">
+          <img src="assets/games/chromatic-card-3.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/wb-title.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-3.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/wb-title.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColDown 70s linear infinite;">
+          <img src="assets/games/wb-sky.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/wb-sky.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
+        </div>
+          </div>
+          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(2,12,18,.72) 0%, rgba(2,12,18,.5) 40%, rgba(2,12,18,.78) 100%);"></div>
+        </div>
+
+        <div style="position: relative; max-width: 1200px; margin: 0 auto;">
+          <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 0 48px 0;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zeitleiste</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Von der ersten Zeile Code bis heute</h2>
+          </div>
+
+          <div style="position: relative; padding-left: 19px;">
+            <div style="position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.12);"></div>
+            <div data-mw="tlLine" style="position: absolute; left: 19px; top: 0; width: 2px; height: 0; background: linear-gradient(180deg, var(--aqua-300), rgba(45,199,178,.5)); box-shadow: 0 0 16px rgba(63,198,220,.6);"></div>
+            <div style="display: flex; flex-direction: column; margin-left: -19px;">
+
+        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
+          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
+              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
+            </span>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">13. Juni 2024</span>
+              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Flappy-Prototyp</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Mein erstes eigenes Spiel: ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools gab es damals noch nicht.</p>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Unity</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">eigene Assets</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">nicht veröffentlicht</x-import>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
+          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
+              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
+            </span>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">2025</span>
+              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">XRAI Order System</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.</p>
+          <div style="perspective: 1200px;">
+            <a href="https://github.com/milchinien/xrai.order-system" style="display: block; text-decoration: none;">
+              <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
+                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">Im Einsatz</span>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Bestellsystem für die Gastronomie</span>
+                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Von den ersten Gesprächen über Konzept, Frontend, Backend und Datenhaltung bis zu Reviews, Security-Scans, Container, CI/CD, Deployment und DNS. Alles allein, in unter zwanzig Arbeitsstunden.</p>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+                    <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">unter 20 h</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">bis zum Livegang</span></div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">23</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Pull Requests</span></div>
+                    <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">83</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Commits</span></div>
+                  </div>
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Screenshots folgen: Gästeansicht und Küchenansicht</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
+          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
+              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
+            </span>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">August 2025</span>
+              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Chromatic</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.</p>
+          <div style="perspective: 1200px;">
+            <a href="https://github.com/milchinien/Chromatic" style="display: block; text-decoration: none;">
+              <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
+                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">Spielbar</span>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Roguelite-Deckbuilder · TypeScript, DOM und Canvas</span>
+                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis zum Endboss. Kein Framework, keine Engine: Oberfläche im DOM, Kampf auf Canvas, Klang prozedural erzeugt. 59 Prüfläufe sichern die Kampflogik ab.</p>
+                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                    <img src="assets/games/chromatic-akt-1.png" alt="Aktauswahl aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                    <img src="assets/games/chromatic-card-1.png" alt="Karte aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                    <img src="assets/games/chromatic-card-2.png" alt="Karte aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                    <img src="assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
+          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
+              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
+            </span>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">Ende 2025</span>
+              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Wavebreaker</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige. Vor der ersten Zeile Code stand ein Design-Dokument über sechzehn Kapitel.</p>
+          <div style="perspective: 1200px;">
+            <a href="https://github.com/milchinien/Wavebreaker" style="display: block; text-decoration: none;">
+              <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
+                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">In Politur</span>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Idle-Verteidigung · TypeScript</span>
+                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Deshalb kann sich das Spiel selbst prüfen: 692 kleine Testläufe rechnen nach jeder Änderung nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.</p>
+                  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: center;">
+                    <div style="border-radius: 16px; border: 1px solid rgba(255,255,255,.16); background: linear-gradient(165deg, #04161F 0%, #0A3446 100%); min-height: 150px; display: grid; place-items: center;">
+                      <img src="assets/games/wb-station.svg" alt="Stationsgrafik aus Wavebreaker" style="width: 62%;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      <span style="font: var(--type-h2); font-size: var(--text-2xl); color: var(--aqua-300);">692 / 692</span>
+                      <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Prüfläufe bestanden, Typecheck fehlerfrei. Offen sind Spielgefühl, Klang und Balancing.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
+          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
+            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
+              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
+            </span>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">daneben</span>
+              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Prototypen und Design-Dokumente</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Nicht jedes Projekt ist fertig, und das steht hier auch so. Diese haben mir vor allem gezeigt, wie ich arbeiten will.</p>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
+              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">michi-mathe-universe</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Lernspiel-Experiment rund um Mathe-Aufgaben.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">mindforge-playground</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Spielwiese für Mechaniken, die noch kein Zuhause haben.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">dungeon-and-diplomas</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Dungeon-Crawler-Idee mit Schul-Thema.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">The Last Outpost</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem, Skilltrees.</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; padding-top: 8px;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" hint-size="auto,42px">Alle Repositories</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://milchinien.itch.io/" variant="secondary" hint-size="auto,42px">itch.io</x-import>
+            </div>
+          </div>
+        </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div style="height: 88px;"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ true }}">
+    <div data-mw-anim="about" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+
+      <section style="position: relative; overflow: hidden; padding: 76px 32px 84px;">
+        
+        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center;">
+          <div style="display: flex; flex-direction: column; gap: 18px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Über mich</span>
+            <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 24ch;">Kein gerader Weg, aber ein sehr genauer</h1>
+            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 50ch;">Michel Waggoner, 17, aus Deutschland. Ich habe die Schule nach der zehnten Klasse aus gesundheitlichen Gründen verlassen und gehe den Abschluss über den zweiten Bildungsweg an. Arbeiten und Entwickeln laufen seitdem parallel.</p>
+          </div>
+          <div style="display: grid; place-items: center;">
+            <img src="assets/mascot-whale-light.png" alt="" style="width: 156px; opacity: .9;">
+          </div>
+        </div>
+      </section>
+
+      <section style="padding: 96px 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 26px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zeitleiste</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Wie ich hier gelandet bin</h2>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">8. Klasse</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Praktikum bei meinem Vater</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Im Betrieb von Tobias Waggoner sitze ich zum ersten Mal ernsthaft an eigenem Code.</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">13.06.2024</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Das erste eigene Spiel</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools gab es damals noch nicht. Ab da wollte ich nur noch das.</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">2024 – 2025</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Schule aus gesundheitlichen Gründen beendet</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Eine chronische Erkrankung hat die zweite Hälfte meiner Schulzeit bestimmt. Nach der zehnten Klasse bin ich abgegangen — nicht geflogen. Den Abschluss gehe ich über den zweiten Bildungsweg an.</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">seit 2025</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Arbeit im Betrieb, Entwicklung daneben</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich arbeite bei meinem Vater mit und entwickle täglich. Begleitet von einem erfahrenen Senior-Entwickler, umgesetzt eigenständig. So ist das XRAI Order System entstanden.</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">August 2025</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Spiele mit Struktur</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ab hier keine Experimente mehr, sondern Projekte mit Design-Dokument, Tests und Versionsverwaltung. Chromatic und Wavebreaker sind daraus geworden.</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">geplant</span>
+              <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid var(--aqua-300); padding-left: 20px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Ausbildung in Leipzig</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Noch nicht fest, aber der Plan. Das „le“ in miwale steht schon dafür.</span>
+              </div>
+            </div>
+          </div>
+        </x-import>
+
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Der Name</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">miwale, ausgeschrieben</h3>
+              <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px;">
+                <div style="display: flex; gap: 14px; align-items: baseline;">
+                  <span style="font: var(--type-code); font-size: var(--text-xl); color: var(--aqua-300); min-width: 44px;">mi</span>
+                  <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Michel</span>
+                </div>
+                <div style="display: flex; gap: 14px; align-items: baseline;">
+                  <span style="font: var(--type-code); font-size: var(--text-xl); color: var(--aqua-300); min-width: 44px;">wa</span>
+                  <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Waggoner</span>
+                </div>
+                <div style="display: flex; gap: 14px; align-items: baseline;">
+                  <span style="font: var(--type-code); font-size: var(--text-xl); color: var(--aqua-300); min-width: 44px;">le</span>
+                  <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Leipzig</span>
+                </div>
+              </div>
+            </div>
+          </x-import>
+
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie ich arbeite</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">In Systemen denken</h3>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Bevor ich baue, schreibe ich auf, wie die Teile zusammenhängen. Wenn ich später eine Kurve ändere, will ich vorher wissen, was das mit den anderen macht.</p>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Danach iterativ: Grundidee, Struktur, ein System, Balancing, das nächste. Entscheidungen bleiben stehen, bis es einen Grund gibt, sie zu kippen.</p>
+            </div>
+          </x-import>
+
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Stack</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">Womit ich arbeite</h3>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">TypeScript</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">JavaScript</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Python</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Unity</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Godot</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Roblox Studio</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Blender</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Git / GitHub</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Container</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">CI/CD</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Claude Code</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Codex</x-import>
+              </div>
+            </div>
+          </x-import>
+
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" hint-size="100%,auto">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.52);">Privat</span>
+              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich spiele seit über zehn Jahren und lese Spiele wie Systeme — Progressionskurven, Builds, Wirtschaft. Das ist der Grund, warum ich Design-Dokumente schreibe, bevor ich baue.</span>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px;">
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Crusader Kings 3</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">World of Warcraft</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Transport Fever 2</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Minecraft</x-import>
+              </div>
+            </div>
+          </x-import>
+        </div>
+        </div>
+      </section>
+
+      <div style="height: 88px;"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAi }}" hint-placeholder-val="{{ true }}">
+    <div data-mw-anim="ai" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+
+      <section style="position: relative; overflow: hidden; padding: 76px 32px 84px;">
+        
+        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">KI-Workflow</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 26ch;">Was die Agenten machen, und was ich mache</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 52ch;">KI ist Werkzeug, nicht Magie. Sie schreibt den Code und liefert erste Entwürfe. Die Entscheidungen und das Spielgefühl bleiben bei mir.</p>
+        </div>
+      </section>
+
+      <section style="padding: 96px 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 18px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Die Maschine</span>
+            <h2 style="margin: 0; font: var(--type-h3); color: #fff;">Claude Code und Codex</h2>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Implementierung</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Aus meiner Spezifikation wird lauffähiger Code — ganze Module auf einmal.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Prüfen</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Testläufe, Code Reviews und Security-Scans laufen KI-gestützt mit.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Grafiken</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Kartenmotive, Hintergründe und Symbole entstehen zum Teil mit ChatGPT, 3D-Entwürfe über Blender.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Werkzeugkette</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Über MCP-Server hängen die Werkzeuge direkt am Agenten, statt fünf Programme parallel offen zu haben.</span>
+              </div>
+            </div>
+          </div>
+        </x-import>
+
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 18px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Der Mensch</span>
+            <h2 style="margin: 0; font: var(--type-h3); color: #fff;">Was bei mir bleibt</h2>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Das Design-Dokument</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Mechaniken, Klassen, Kurven und ihre Wechselwirkungen. Bei Wavebreaker sechzehn Kapitel, bevor gebaut wurde.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Architektur</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Dass die Spielsimulation die Oberfläche nicht kennen darf, war meine Entscheidung. Ohne sie wären die automatischen Prüfungen nicht möglich.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Balancing und Spielgefühl</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Zahlen, Tempo, Klang. Das lässt sich nicht generieren, das muss man spielen.</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Der letzte Blick</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Nichts geht in einen Build, das ich nicht selbst gelesen und ausprobiert habe.</span>
+              </div>
+            </div>
+          </div>
+        </x-import>
+        </div>
+      </section>
+
+      <section style="padding: 24px 32px 0;"><div style="max-width: 1200px; margin: 0 auto;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Was das bringt</span>
+              <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Tempo ist das Argument</h2>
+              <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72); max-width: 46ch;">Das XRAI Order System ist in weniger als zwanzig Arbeitsstunden entstanden — von den ersten Gesprächen mit den Nutzern bis zum laufenden Betrieb. So komme ich als Einzelperson auf Ergebnisse, für die es sonst ein kleines Team braucht.</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">XRAI: Idee bis Livegang</span>
+                <span style="font: var(--type-code); color: var(--aqua-200);">unter 20 h</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Wavebreaker: Design-Dokument</span>
+                <span style="font: var(--type-code); color: var(--aqua-200);">16 Kapitel</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Wavebreaker: Prüfläufe grün</span>
+                <span style="font: var(--type-code); color: var(--aqua-200);">692 / 692</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Chromatic: Prüfläufe grün</span>
+                <span style="font: var(--type-code); color: var(--aqua-200);">59 / 59</span>
+              </div>
+            </div>
+          </div>
+        </x-import>
+        </div>
+      </section>
+
+      <div style="height: 88px;"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDevlog }}" hint-placeholder-val="{{ true }}">
+    <div data-mw-anim="devlog" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+      <section style="position: relative; overflow: hidden; padding: 76px 32px 84px;">
+        
+        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Devlog</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Kommt, sobald Wavebreaker aus der Politur ist</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 52ch;">Hier werden Einträge stehen: was in der Woche gebaut wurde, was kaputtgegangen ist und wie sich das Balancing verschoben hat. Bis dahin steht der ehrlichste Verlauf in den Commits.</p>
+        </div>
+      </section>
+
+      <section style="padding: 96px 32px 0;"><div style="max-width: 1200px; margin: 0 auto;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <h2 style="margin: 0; font: var(--type-h3); color: #fff;">Noch keine Einträge</h2>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">BALD</x-import>
+              </div>
+              <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Ich schreibe hier nichts hin, nur damit die Seite voll ist.</p>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" hint-size="auto,42px">Commits auf GitHub lesen</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" variant="secondary" hint-size="auto,42px">Benachrichtigt werden</x-import>
+              </div>
+            </div>
+            <div style="display: grid; place-items: center;">
+              <img src="assets/mascot-whale.png" alt="" style="width: 118px; opacity: .42;">
+            </div>
+          </div>
+        </x-import>
+        </div>
+      </section>
+
+      <div style="height: 88px;"></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isContact }}" hint-placeholder-val="{{ true }}">
+    <div data-mw-anim="contact" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+      <section style="position: relative; overflow: hidden; padding: 76px 32px 84px;">
+        
+        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Kontakt</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Schreib mir einfach</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 50ch;">Ein Projekt, ein Ausbildungsplatz, eine Frage zu einem der Repositories oder Lust, etwas zu testen — alles willkommen.</p>
+          <div style="padding-top: 8px;">
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" size="lg" hint-size="auto,48px">E-Mail an michi.waggoner@gmail.com</x-import>
+          </div>
+        </div>
+      </section>
+
+      <section style="padding: 0 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">E-Mail</span>
+            <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">michi.waggoner@gmail.com</a>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Der direkteste Weg.</span>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">GitHub</span>
+            <a href="https://github.com/milchinien" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">github.com/milchinien</a>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Alle Projekte offen, mit Commits und Tests.</span>
+          </div>
+        </x-import>
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">itch.io</span>
+            <a href="https://milchinien.itch.io/" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">milchinien.itch.io</a>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Wo die spielbaren Builds landen.</span>
+          </div>
+        </x-import>
+        </div>
+      </section>
+
+      <div style="height: 88px;"></div>
+    </div>
+  </sc-if>
+
+  <footer style="position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(1,10,17,0) 0%, rgba(1,10,17,.22) 46%, rgba(1,10,17,.44) 100%); padding: 72px 32px 48px;">
+    <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
+        <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 26px; width: auto;">
+        <div style="display: flex; gap: 20px;">
+          <a href="https://github.com/milchinien" style="font: var(--type-label); color: var(--aqua-300);">GitHub</a>
+          <a href="https://milchinien.itch.io/" style="font: var(--type-label); color: var(--aqua-300);">itch.io</a>
+          <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">E-Mail</a>
+        </div>
+      </div>
+      <div style="padding: 20px 22px; border-radius: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); display: flex; flex-direction: column; gap: 6px;">
+        <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.55);">Impressum</span>
+        <span style="font: var(--type-body-sm); color: rgba(237,243,249,.78);">Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com</span>
+        <span style="font: var(--type-body-sm); color: rgba(237,243,249,.5);">Anschrift wird ergänzt, sobald die Seite öffentlich erreichbar ist.</span>
+      </div>
+      <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">miwale · Michel Waggoner · Deutschland</span>
+    </div>
+  </footer>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { tab: "start" };
+
+  // Die Ebenen werden bei jedem Frame frisch aus dem DOM geholt, damit ein
+  // Re-Render (Tabwechsel) die Anbindung nicht abreißen lässt.
+  el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
+
+  // Der Verlauf liegt über die ganze Seitenhöhe: oben Oberfläche, unten Tiefsee.
+  // Beim Scrollen fährt er mit, die Lichtebenen verschwinden mit zunehmender Tiefe.
+  paintDepth() {
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    const vh = window.innerHeight || 800;
+    const docH = Math.max(document.documentElement.scrollHeight, vh);
+    const clamp = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+    // Der Ozean hat eine feste Länge (3,2 Bildschirmhöhen) und ist damit
+    // unabhängig davon, wie lang der aktuelle Tab ist. Sonst springt beim
+    // Tabwechsel die ganze Wasserfarbe.
+    const rate = 0.4;
+    const span = vh * 3.2;
+    const travel = span - vh;
+    const offset = Math.min(y * rate, travel);
+    const root = this.el("bgRoot");
+    if (root) {
+      root.style.backgroundSize = "100% " + Math.round(span) + "px";
+      root.style.backgroundPosition = "0px " + Math.round(-offset) + "px";
+    }
+    const depth = clamp(offset / travel);
+    const light = 1 - depth;
+    const fade = (name, mul) => { const el = this.el(name); if (el) el.style.opacity = String(clamp(light * mul)); };
+    // Oberflächenlicht gehört an die Oberfläche: es ist schon im oberen Drittel
+    // verschwunden, statt bis in die Tiefe am oberen Bildrand zu kleben.
+    fade("bgSurface", 1);
+    const nearSurface = clamp((light - 0.62) / 0.38);
+    const cau = this.el("bgCaustic");
+    if (cau) cau.style.opacity = String(nearSurface);
+    const glw = this.el("bgGlow");
+    if (glw) glw.style.opacity = String(clamp((light - 0.5) / 0.5));
+
+    const shift = (name, factor, extraOpacity) => {
+      const el = this.el(name);
+      if (!el) return;
+      el.style.transform = "translate3d(0," + (-y * factor).toFixed(2) + "px,0)";
+      if (extraOpacity != null) el.style.opacity = String(clamp(light * extraOpacity + 0.04));
+    };
+    // Alle Lichtebenen wandern langsam mit. Ohne die Weichzeichnungsfilter ist
+    // das Verschieben billig, deshalb hängt es dem Scrollen nicht mehr nach.
+    shift("bgFar", 0.06, null);
+    shift("bgShaftsB", 0.09, 0.95);
+    shift("bgShaftsA", 0.14, 1);
+
+    // Einfliegende Partikel werden mit der Tiefe kleiner und dunkler
+    const st = this.el("bgStreaks");
+    if (st) {
+      const scale = 1.3 - depth * 0.72;
+      st.style.transform = "rotate(26deg) scale(" + scale.toFixed(3) + ")";
+      st.style.opacity = String(clamp(0.95 - depth * 0.75));
+      st.style.filter = "brightness(" + (1 - depth * 0.55).toFixed(3) + ") saturate(" + (1 + depth * 0.5).toFixed(2) + ")";
+    }
+    // Plankton setzt erst ab einer bestimmten Tiefe ein und bleibt dann auf der Stelle
+    // Punktpartikel gibt es überall, sie werden mit der Tiefe nur dichter
+    const pl = this.el("bgPlankton");
+    if (pl) pl.style.opacity = String(clamp(0.26 + depth * 0.74));
+    // Wale ziehen erst tief unten vorbei
+    // Plankton-Drift kommt erst tief unten dazu und wird nach unten dichter
+    const dr2 = this.el("bgDrift");
+    if (dr2) {
+      dr2.style.opacity = String(clamp((depth - 0.45) / 0.4) * 0.8);
+      dr2.style.transform = "translate3d(0," + (-y * 0.2).toFixed(1) + "px,0)";
+    }
+    const wh = this.el("bgWhales");
+    if (wh) wh.style.opacity = String(clamp((depth - 0.34) / 0.4));
+
+    // Tauchgang im Projekte-Tab: hinter dem Logo wird es Stück für Stück dunkler
+    let dive = 0;
+    const dr = this.el("diveRoot");
+    if (dr) {
+      const r = dr.getBoundingClientRect();
+      const travel = r.height - vh;
+      if (travel > 0) dive = clamp(-r.top / travel);
+      const logo = this.el("diveLogo");
+      if (logo) {
+        logo.style.transform = "scale(" + (1 + dive * 0.22).toFixed(3) + ") translateY(" + (dive * -30).toFixed(1) + "px)";
+        logo.style.opacity = String(clamp(1 - Math.max(0, dive - 0.86) / 0.14));
+      }
+      const hint = this.el("diveHint");
+      if (hint) hint.style.opacity = String(clamp(1 - dive * 2.4));
+      const arrow = this.el("diveArrow");
+      if (arrow) arrow.style.opacity = String(clamp(1 - dive * 1.8));
+    }
+    // Ein weicher Übergang auf dem Schleier verhindert jedes kurze Aufblitzen,
+    // wenn Tiefe und Tauchgang unterschiedlich schnell rechnen.
+    const veil = this.el("bgDepth");
+    if (veil) {
+      if (!veil.style.transition) veil.style.transition = "opacity 260ms linear";
+      veil.style.opacity = String(clamp(Math.max(clamp(depth * 0.9), dive * 0.92)));
+    }
+
+    // Zeitleiste: Lichtlinie wächst mit dem Scrollen, Spiele schwimmen dahinter
+    const tr = this.el("tlRoot");
+    if (tr) {
+      const r = tr.getBoundingClientRect();
+      const p = clamp((vh * 0.72 - r.top) / Math.max(1, r.height - vh * 0.28));
+      const line = this.el("tlLine");
+      if (line) line.style.height = (p * 100).toFixed(1) + "%";
+      const mq = this.el("tlMarquee");
+      if (mq) {
+        if (!mq.style.transition) mq.style.transition = "opacity 320ms linear";
+        mq.style.opacity = String(clamp(p * 1.6) * 0.1);
+      }
+    }
+  }
+
+  // Texte tauchen beim ersten Erscheinen auf und bleiben dann stehen.
+  // Läuft im selben Takt wie die Tiefenrechnung, damit nichts hängen bleibt.
+  scanReveal() {
+    const vh = window.innerHeight || 800;
+    const now = Date.now();
+    if (!this.firstScan) this.firstScan = now;
+    const pend = document.querySelectorAll('[data-reveal]:not([data-shown="1"])');
+    for (let i = 0; i < pend.length; i++) {
+      const el = pend[i];
+      const r = el.getBoundingClientRect();
+      const inView = r.bottom > 0 && r.top < vh * 0.92;
+      // Sicherheitsnetz: was nach vier Sekunden noch verborgen ist, wird gezeigt.
+      // Unsichtbarer Text ist immer schlimmer als eine verpasste Animation.
+      const stale = el.hasAttribute("data-seen") && now - Number(el.getAttribute("data-seen")) > 4000;
+      if (!el.hasAttribute("data-seen")) el.setAttribute("data-seen", String(now));
+      if (inView || stale) el.setAttribute("data-shown", "1");
+    }
+  }
+
+  componentDidMount() {
+    this.reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.scanReveal();
+    this.onScroll = () => {
+      if (this.raf) return;
+      this.raf = requestAnimationFrame(() => { this.raf = 0; this.paintDepth(); this.scanReveal(); });
+    };
+    window.addEventListener("scroll", this.onScroll, { passive: true });
+    window.addEventListener("resize", this.onScroll);
+    this.paintDepth();
+    this.sizeTimer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
+  }
+
+  componentDidUpdate() {
+    this.paintDepth();
+    requestAnimationFrame(() => this.scanReveal());
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this.onScroll);
+    window.removeEventListener("resize", this.onScroll);
+    if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.sizeTimer) clearInterval(this.sizeTimer);
+  }
+
+  go(t) {
+    return () => {
+      if (t === this.state.tab) return;
+      this.setState({ tab: t });
+      // Sofort nach oben springen, nicht animiert: eine laufende Scroll-Animation
+      // über eine neue, kürzere Seite lässt den Tiefenschleier kurz zulaufen.
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* preview may block scrolling */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+    };
+  }
+
+  renderVals() {
+    const tab = this.state.tab;
+    return {
+      tab,
+      tabItems: [
+        { value: "start", label: "Start" },
+        { value: "games", label: "Projekte" },
+        { value: "about", label: "Über mich" },
+        { value: "ai", label: "KI-Workflow" },
+        { value: "devlog", label: "Devlog" },
+        { value: "contact", label: "Kontakt" }
+      ],
+      setTab: (v) => this.go(v)(),
+      isStart: tab === "start",
+      isGames: tab === "games",
+      isAbout: tab === "about",
+      isAi: tab === "ai",
+      isDevlog: tab === "devlog",
+      isContact: tab === "contact",
+      goGames: this.go("games"),
+      goAbout: this.go("about"),
+      goAi: this.go("ai"),
+      goContact: this.go("contact"),
+
+      pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
+
+      heroCardStyle: { position: "relative", display: "flex", flexDirection: "column", gap: 22 },
+      relStyle: { position: "relative" },
+      navCardHover: { transform: "translateY(-3px)", background: "rgba(255,255,255,.16)" },
+
+      morphWords: ["Spiele", "Systeme", "Werkzeuge", "Prototypen"],
+      typeLines: [
+        "XRAI Order System · läuft im Gasthof",
+        "Wavebreaker · 692 / 692 Prüfläufe grün",
+        "Chromatic · spielbar bis zum Endboss"
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

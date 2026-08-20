@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#18306c"></stop>
+      <stop offset="100%" stop-color="#0a1436"></stop>
+    </linearGradient>
+    <filter id="edgeGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="soft"></feGaussianBlur>
+      <feMerge>
+        <feMergeNode in="soft"></feMergeNode>
+        <feMergeNode in="soft"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7fd8ff" stop-opacity="0.55"></stop>
+      <stop offset="100%" stop-color="#7fd8ff" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+
+  
+  <circle cx="800" cy="470" r="330" fill="url(#core)"></circle>
+
+  <g fill="url(#panel)" stroke="#27407e" stroke-width="2.4">
+    <path d="M890 470 845 547.9 755 547.9 710 470 755 392.1 845 392.1 Z"></path>
+    <path d="M1025 392 980 469.9 890 469.9 845 392 890 314.1 980 314.1 Z"></path>
+    <path d="M1025 548 980 625.9 890 625.9 845 548 890 470.1 980 470.1 Z"></path>
+    <path d="M755 392 710 469.9 620 469.9 575 392 620 314.1 710 314.1 Z"></path>
+    <path d="M890 626 845 703.9 755 703.9 710 626 755 548.1 845 548.1 Z"></path>
+  </g>
+
+  
+  <g stroke="#7fd8ff" stroke-width="3" stroke-linecap="round" filter="url(#edgeGlow)">
+    <path d="M890 470 L845 392"></path>
+    <path d="M890 470 L845 548"></path>
+    <path d="M755 392 L710 470"></path>
+    <path d="M755 548 L845 548"></path>
+    <path d="M980 470 L890 470"></path>
+  </g>
+
+  
+  <g fill="none" stroke="#46c8ff" stroke-width="3" filter="url(#edgeGlow)">
+    <circle cx="800" cy="470" r="34"></circle>
+    <circle cx="800" cy="470" r="13" fill="#46c8ff" stroke="none"></circle>
+  </g>
+</svg>
