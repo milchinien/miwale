@@ -1,0 +1,37 @@
+:root{
+/* Families — Quicksand echoes the rounded geometry of the wordmark. */
+--font-brand:"Quicksand",ui-rounded,"Segoe UI",system-ui,sans-serif;
+--font-ui:"Manrope","Helvetica Neue",Arial,system-ui,sans-serif;
+--font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+--font-display:var(--font-brand);
+--font-heading:var(--font-brand);
+--font-body:var(--font-ui);
+--font-label:var(--font-ui);
+--font-code:var(--font-mono);
+
+/* Weights */
+--w-regular:400; /* @kind font */--w-medium:500; /* @kind font */--w-semibold:600; /* @kind font */--w-bold:700; /* @kind font */--w-extrabold:800; /* @kind font */
+
+/* Sizes */
+--text-3xs:11px;--text-2xs:12px;--text-xs:13px;--text-sm:14px;--text-md:16px;
+--text-lg:18px;--text-xl:21px;--text-2xl:26px;--text-3xl:32px;--text-4xl:40px;
+--text-5xl:52px;--text-6xl:68px;--text-7xl:88px;
+
+/* Line heights */
+--lh-tight:1.06; /* @kind font */--lh-snug:1.2; /* @kind font */--lh-normal:1.45; /* @kind font */--lh-relaxed:1.65; /* @kind font */
+
+/* Tracking */
+--track-tight:-0.02em; /* @kind font */--track-normal:0; /* @kind font */--track-wide:0.04em; /* @kind font */--track-caps:0.16em; /* @kind font */
+
+/* Ready-made roles */
+--type-display:var(--w-bold) var(--text-6xl)/var(--lh-tight) var(--font-display); /* @kind font */
+--type-h1:var(--w-bold) var(--text-4xl)/var(--lh-snug) var(--font-heading); /* @kind font */
+--type-h2:var(--w-semibold) var(--text-3xl)/var(--lh-snug) var(--font-heading); /* @kind font */
+--type-h3:var(--w-semibold) var(--text-xl)/var(--lh-snug) var(--font-heading); /* @kind font */
+--type-body:var(--w-regular) var(--text-md)/var(--lh-relaxed) var(--font-body); /* @kind font */
+--type-body-sm:var(--w-regular) var(--text-sm)/var(--lh-normal) var(--font-body); /* @kind font */
+--type-label:var(--w-semibold) var(--text-sm)/var(--lh-normal) var(--font-label); /* @kind font */
+--type-eyebrow:var(--w-bold) var(--text-2xs)/var(--lh-normal) var(--font-label); /* @kind font */
+--type-code:var(--w-regular) var(--text-sm)/var(--lh-normal) var(--font-code); /* @kind font */
+}

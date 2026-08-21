@@ -1,0 +1,83 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import GlassCard from '../../components/ds/GlassCard.astro';
+import Button from '../../components/ds/Button.astro';
+import Badge from '../../components/ds/Badge.astro';
+import Tag from '../../components/ds/Tag.astro';
+
+const posts = (await getCollection('devlog', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' });
+---
+
+<Base
+  title="Devlog — miwale"
+  description="Was in der Woche gebaut wurde, was kaputtgegangen ist und wie sich das Balancing verschoben hat."
+>
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow">Devlog</p>
+      {posts.length === 0 ? (
+        <h1 class="mw-h1">Kommt, sobald Wavebreaker aus der Politur ist</h1>
+      ) : (
+        <h1 class="mw-h1">Was gerade passiert</h1>
+      )}
+      <p class="mw-lead" data-reveal>
+        Hier werden Einträge stehen: was in der Woche gebaut wurde, was kaputtgegangen ist und
+        wie sich das Balancing verschoben hat. Bis dahin steht der ehrlichste Verlauf in den
+        Commits.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-section">
+    <div class="mw-wrap">
+      {posts.length === 0 ? (
+        <GlassCard pad="lg">
+          <div class="mw-empty">
+            <div>
+              <div class="mw-empty__head">
+                <h2 class="mw-h2">Noch keine Einträge</h2>
+                <Badge>BALD</Badge>
+              </div>
+              <p class="mw-lead" data-reveal>
+                Ich schreibe hier nichts hin, nur damit die Seite voll ist.
+              </p>
+              <div class="mw-hero__actions">
+                <Button href="https://github.com/milchinien" variant="primary" external>
+                  Commits auf GitHub lesen
+                </Button>
+                <Button href="mailto:michi.waggoner@gmail.com" variant="ghost">
+                  Benachrichtigt werden
+                </Button>
+              </div>
+            </div>
+            <img class="mw-empty__whale" src="/assets/mascot-whale.png" alt="" width="150" height="150" />
+          </div>
+        </GlassCard>
+      ) : (
+        <ul class="mw-posts">
+          {posts.map((p, i) => (
+            <li data-reveal style={`--reveal-delay:${i * 70}ms`}>
+              <a class="mw-post" href={`/devlog/${p.id}/`}>
+                <GlassCard pad="lg">
+                  <time class="mw-post__date" datetime={p.data.date.toISOString()}>
+                    {fmt(p.data.date)}
+                  </time>
+                  <h2 class="mw-h3">{p.data.title}</h2>
+                  <p class="mw-lead">{p.data.summary}</p>
+                  {p.data.tags.length > 0 && (
+                    <div class="mw-tags mw-mt-sm">{p.data.tags.map((t) => <Tag>{t}</Tag>)}</div>
+                  )}
+                </GlassCard>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+</Base>

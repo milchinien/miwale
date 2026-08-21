@@ -1,0 +1,62 @@
+name: CI
+
+# Läuft auf jedem PR und auf main. Das ist das Gate, das für den Merge
+# grün sein muss.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Typecheck
+        # Prüft auch die Frontmatter-Schemas der Devlog-Einträge.
+        run: npm run check
+
+      - name: Build
+        # Ein Devlog-Eintrag, der nicht zum Schema passt, lässt den Build
+        # hier scheitern – bevor er die Seite erreicht.
+        run: npm run build
+
+      - name: Smoke-Test der Ausgabe
+        # Billige Absicherung dagegen, dass ein Build zwar durchläuft, aber
+        # Seiten fehlen oder leer sind.
+        run: |
+          set -euo pipefail
+          for page in index projekte ueber-mich ki-workflow devlog kontakt 404; do
+            file="dist/${page}/index.html"
+            [ "$page" = "index" ] && file="dist/index.html"
+            [ "$page" = "404" ] && file="dist/404.html"
+            if [ ! -f "$file" ]; then
+              echo "::error::Erwartete Seite fehlt: $file"
+              exit 1
+            fi
+            if [ "$(wc -c < "$file")" -lt 2000 ]; then
+              echo "::error::Verdächtig kleine Seite: $file"
+              exit 1
+            fi
+            grep -q '<h1' "$file" || { echo "::error::Kein <h1> in $file"; exit 1; }
+          done
+          echo "Alle Seiten vorhanden und plausibel."
+
+      - name: Container baut durch
+        run: docker build -t miwale:ci .

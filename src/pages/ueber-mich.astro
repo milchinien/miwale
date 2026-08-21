@@ -1,0 +1,118 @@
+---
+import Base from '../layouts/Base.astro';
+import GlassCard from '../components/ds/GlassCard.astro';
+import Tag from '../components/ds/Tag.astro';
+
+const PATH = [
+  { when: '8. Klasse',   title: 'Praktikum bei meinem Vater',                 text: 'Im Betrieb von Tobias Waggoner sitze ich zum ersten Mal ernsthaft an eigenem Code.' },
+  { when: '13.06.2024',  title: 'Das erste eigene Spiel',                     text: 'Ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools gab es damals noch nicht. Ab da wollte ich nur noch das.' },
+  { when: '2024 – 2025', title: 'Schule aus gesundheitlichen Gründen beendet', text: 'Eine chronische Erkrankung hat die zweite Hälfte meiner Schulzeit bestimmt. Nach der zehnten Klasse bin ich abgegangen — nicht geflogen. Den Abschluss gehe ich über den zweiten Bildungsweg an.' },
+  { when: 'seit 2025',   title: 'Arbeit im Betrieb, Entwicklung daneben',     text: 'Ich arbeite bei meinem Vater mit und entwickle täglich. Begleitet von einem erfahrenen Senior-Entwickler, umgesetzt eigenständig. So ist das XRAI Order System entstanden.' },
+  { when: 'August 2025', title: 'Spiele mit Struktur',                        text: 'Ab hier keine Experimente mehr, sondern Projekte mit Design-Dokument, Tests und Versionsverwaltung. Chromatic und Wavebreaker sind daraus geworden.' },
+  { when: 'geplant',     title: 'Ausbildung in Leipzig',                      text: 'Noch nicht fest, aber der Plan. Das „le“ in miwale steht schon dafür.' },
+];
+
+const NAME = [
+  { part: 'mi', word: 'Michel' },
+  { part: 'wa', word: 'Waggoner' },
+  { part: 'le', word: 'Leipzig' },
+];
+
+const STACK = ['TypeScript', 'JavaScript', 'Python', 'Unity', 'Godot', 'Roblox Studio',
+               'Blender', 'Git / GitHub', 'Container', 'CI/CD', 'Claude Code', 'Codex'];
+
+const GAMES = ['Crusader Kings 3', 'World of Warcraft', 'Transport Fever 2', 'Minecraft'];
+---
+
+<Base
+  title="Über mich — miwale"
+  description="Michel Waggoner, 17: wie aus einem Praktikum beim Vater ein Ein-Personen-Game-Studio wurde, und wie er arbeitet."
+>
+  <section class="mw-section">
+    <div class="mw-wrap mw-about__head">
+      <div>
+        <p class="mw-eyebrow">Über mich</p>
+        <h1 class="mw-h1">Kein gerader Weg, aber ein sehr genauer</h1>
+        <p class="mw-lead" data-reveal>
+          Michel Waggoner, 17, aus Deutschland. Ich habe die Schule nach der zehnten Klasse aus
+          gesundheitlichen Gründen verlassen und gehe den Abschluss über den zweiten Bildungsweg
+          an. Arbeiten und Entwickeln laufen seitdem parallel.
+        </p>
+      </div>
+      <img class="mw-about__whale" src="/assets/mascot-whale-light.png" alt="" width="180" height="180" />
+    </div>
+  </section>
+
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <GlassCard pad="lg">
+        <p class="mw-eyebrow">Zeitleiste</p>
+        <h2 class="mw-h2" data-reveal>Wie ich hier gelandet bin</h2>
+
+        <ol class="mw-path">
+          {PATH.map((p, i) => (
+            <li class="mw-path__row" data-reveal style={`--reveal-delay:${i * 70}ms`}>
+              <span class="mw-path__when">{p.when}</span>
+              <div>
+                <span class="mw-path__title">{p.title}</span>
+                <span class="mw-path__text">{p.text}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </GlassCard>
+
+      <div class="mw-grid mw-grid--2 mw-mt-lg">
+        <div data-reveal>
+          <GlassCard pad="lg">
+            <p class="mw-eyebrow">Der Name</p>
+            <h3 class="mw-h3">miwale, ausgeschrieben</h3>
+            <div class="mw-name">
+              {NAME.map((n) => (
+                <div class="mw-name__row">
+                  <span class="mw-name__part">{n.part}</span>
+                  <span class="mw-name__word">{n.word}</span>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+
+        <div data-reveal style="--reveal-delay:80ms">
+          <GlassCard pad="lg">
+            <p class="mw-eyebrow">Wie ich arbeite</p>
+            <h3 class="mw-h3">In Systemen denken</h3>
+            <p class="mw-lead">
+              Bevor ich baue, schreibe ich auf, wie die Teile zusammenhängen. Wenn ich später eine
+              Kurve ändere, will ich vorher wissen, was das mit den anderen macht.
+            </p>
+            <p class="mw-lead mw-mt-sm">
+              Danach iterativ: Grundidee, Struktur, ein System, Balancing, das nächste.
+              Entscheidungen bleiben stehen, bis es einen Grund gibt, sie zu kippen.
+            </p>
+          </GlassCard>
+        </div>
+
+        <div data-reveal style="--reveal-delay:160ms">
+          <GlassCard pad="lg">
+            <p class="mw-eyebrow">Stack</p>
+            <h3 class="mw-h3">Womit ich arbeite</h3>
+            <div class="mw-tags">{STACK.map((t) => <Tag>{t}</Tag>)}</div>
+          </GlassCard>
+        </div>
+
+        <div data-reveal style="--reveal-delay:240ms">
+          <GlassCard pad="lg">
+            <p class="mw-eyebrow">Privat</p>
+            <p class="mw-lead">
+              Ich spiele seit über zehn Jahren und lese Spiele wie Systeme — Progressionskurven,
+              Builds, Wirtschaft. Das ist der Grund, warum ich Design-Dokumente schreibe, bevor
+              ich baue.
+            </p>
+            <div class="mw-tags mw-mt-sm">{GAMES.map((g) => <Tag tone="aqua">{g}</Tag>)}</div>
+          </GlassCard>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>

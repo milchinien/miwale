@@ -1,0 +1,6 @@
+---
+/** Versetzter Farbschatten unter der Schrift. Ersatz fuer LineShadowText. */
+interface Props { color?: string; }
+const { color = 'var(--aqua-500)' } = Astro.props;
+---
+<span class="mw-lineshadow" style={`--ls-color:${color}`}><slot /></span>

@@ -1,0 +1,18 @@
+---
+/** Zyklisch wechselnde Woerter. Ersatz fuer MorphingText aus _ds_bundle.js.
+    Alle Varianten liegen uebereinander; das laengste Wort haelt die Breite,
+    damit die Zeile beim Wechsel nicht springt. */
+interface Props { words: string[]; }
+const { words } = Astro.props;
+const each = 2.4;
+const total = words.length * each;
+---
+<span class="mw-morph" style={`--morph-total:${total}s`}>
+  <span class="mw-morph__sizer" aria-hidden="true">
+    {words.reduce((a, b) => (b.length > a.length ? b : a), '')}
+  </span>
+  {words.map((w, i) => (
+    <span class="mw-morph__item" style={`animation-delay:${i * each}s`}>{w}</span>
+  ))}
+  <span class="mw-sr-only">{words.join(', ')}</span>
+</span>

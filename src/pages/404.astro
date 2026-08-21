@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import Button from '../components/ds/Button.astro';
+---
+<Base title="Nicht gefunden — miwale" description="Diese Seite gibt es nicht.">
+  <section class="mw-section">
+    <div class="mw-wrap mw-narrow">
+      <p class="mw-eyebrow">404</p>
+      <h1 class="mw-h1">Hier unten ist nichts</h1>
+      <p class="mw-lead">
+        Die Seite gibt es nicht — oder nicht mehr. Zurück an die Oberfläche?
+      </p>
+      <div class="mw-hero__actions">
+        <Button href="/" variant="primary">Zur Startseite</Button>
+        <Button href="/projekte/" variant="ghost">Projekte ansehen</Button>
+      </div>
+    </div>
+  </section>
+</Base>

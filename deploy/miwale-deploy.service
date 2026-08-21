@@ -1,0 +1,9 @@
+[Unit]
+Description=miwale.com – neues Image aus GHCR holen und ausrollen
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=tobias
+ExecStart=/home/tobias/projects/miwale/miwale-deploy.sh

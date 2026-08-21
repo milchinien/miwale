@@ -1,0 +1,86 @@
+---
+/**
+ * Der Ozean liegt fixed hinter allem und ueberlebt dank transition:persist
+ * jeden Seitenwechsel. Genau deshalb springt die Wasserfarbe beim Tabwechsel
+ * nicht mehr – im Export war das nur durch eine feste Ozeanlaenge kaschiert.
+ *
+ * Bewusst rein deklarativ: kein Canvas, keine Komponenten-Runtime. Die beiden
+ * JS-Komponenten des Design-System-Exports (Meteors, Particles) sind hier
+ * durch CSS-Gradienten bzw. ein paar absolut positionierte Striche ersetzt.
+ */
+const METEORS = [
+  { left: 6,  delay: 0,   dur: 9.5 },
+  { left: 14, delay: 3.2, dur: 12  },
+  { left: 23, delay: 1.4, dur: 8.2 },
+  { left: 31, delay: 6.1, dur: 13.4 },
+  { left: 39, delay: 2.7, dur: 10.1 },
+  { left: 47, delay: 8.3, dur: 11.6 },
+  { left: 55, delay: 4.6, dur: 9.1 },
+  { left: 63, delay: 0.9, dur: 12.8 },
+  { left: 71, delay: 5.4, dur: 8.8 },
+  { left: 79, delay: 2.1, dur: 14.2 },
+  { left: 87, delay: 7.5, dur: 10.6 },
+  { left: 95, delay: 3.9, dur: 11.2 },
+];
+---
+
+<div class="mw-ocean" aria-hidden="true" transition:persist="ocean">
+  <div class="mw-ocean__layer mw-ocean__surface"></div>
+
+  <div class="mw-ocean__far">
+    <div class="mw-ocean__far-a"></div>
+    <div class="mw-ocean__far-b"></div>
+  </div>
+
+  <div class="mw-ocean__shafts mw-ocean__shafts--b">
+    <div class="mw-shaft mw-shaft--slow"></div>
+  </div>
+
+  <div class="mw-ocean__shafts mw-ocean__shafts--a">
+    <div class="mw-shaft mw-shaft--main"></div>
+    <div class="mw-shaft mw-shaft--fine"></div>
+  </div>
+
+  <div class="mw-ocean__near">
+    <div class="mw-motes mw-motes--fine"></div>
+    <div class="mw-motes mw-motes--coarse"></div>
+    <div class="mw-ocean__streaks">
+      {METEORS.map((m) => (
+        <span
+          class="mw-meteor"
+          style={`left:${m.left}%;animation-delay:${m.delay}s;animation-duration:${m.dur}s`}
+        />
+      ))}
+    </div>
+  </div>
+
+  <div class="mw-ocean__drift">
+    <div class="mw-motes mw-motes--drift"></div>
+  </div>
+
+  <div class="mw-ocean__plankton">
+    <div class="mw-motes mw-motes--plankton"></div>
+  </div>
+
+  <div class="mw-ocean__caustic">
+    <div class="mw-ocean__caustic-inner"></div>
+  </div>
+
+  <div class="mw-ocean__layer mw-ocean__glow">
+    <div class="mw-ocean__glow-inner"></div>
+  </div>
+
+  <div class="mw-ocean__layer mw-ocean__veil"></div>
+
+  <div class="mw-ocean__layer mw-ocean__whales">
+    <div class="mw-whale-lane mw-whale-lane--1">
+      <div class="mw-whale-bob"><img class="mw-whale" src="/assets/mascot-whale-light.png" alt="" width="84" height="84" loading="lazy" decoding="async" /></div>
+    </div>
+    <div class="mw-whale-lane mw-whale-lane--2">
+      <div class="mw-whale-bob"><img class="mw-whale" src="/assets/mascot-whale-light.png" alt="" width="54" height="54" loading="lazy" decoding="async" /></div>
+    </div>
+    <div class="mw-whale-lane mw-whale-lane--3">
+      <div class="mw-whale-bob"><img class="mw-whale" src="/assets/mascot-whale-light.png" alt="" width="36" height="36" loading="lazy" decoding="async" /></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,12 @@
+[Unit]
+Description=miwale.com regelmaessig auf ein neues Image pruefen
+
+[Timer]
+# Alle fuenf Minuten. Der Pull ist billig, wenn sich nichts geaendert hat:
+# Docker laedt dann nur das Manifest, keine Layer.
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

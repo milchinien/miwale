@@ -1,0 +1,326 @@
+/* ══ Ozean-Hintergrund ══════════════════════════════════════════════════
+   Der komplette Tiefenverlauf haengt an drei Custom Properties, die das
+   Skript in src/scripts/ocean.ts einmal pro Frame auf <html> schreibt:
+
+     --sy     Scrollposition in px (einheitenlose Zahl)
+     --depth  0 = Wasseroberflaeche, 1 = Tiefsee
+     --dive   0..1, nur im Projekte-Tauchgang
+
+   Warum so: der Export hat pro Frame ~20 Elemente einzeln per
+   element.style angefasst und dabei Reads (getBoundingClientRect) mit
+   Writes gemischt. Jeder Read nach einem Write erzwingt ein synchrones
+   Re-Layout – das war das Ruckeln. Jetzt gibt es drei Writes auf genau
+   einen Knoten, alles andere leitet CSS selbst ab.
+
+   Zweite Regel, die hier durchgehalten wird:
+   Ein Element hat ENTWEDER eine @keyframes-Animation ODER einen
+   var()-gesteuerten transform – nie beides. Im Export haben sich Inline-
+   Transform und laufende Keyframes gegenseitig ueberschrieben, das waren
+   die "haengenden" Mikroanimationen. Deshalb: aeussere Huelle = Parallaxe
+   per Variable, inneres Kind = Keyframes.                              */
+
+:root {
+  --sy: 0;
+  --depth: 0;
+  --dive: 0;
+  --vhpx: 800;
+
+  --light: calc(1 - var(--depth));
+  --ocean-span: calc(var(--vhpx) * 3.2px);
+  --ocean-travel: calc(var(--vhpx) * 2.2px);
+}
+
+.mw-ocean {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: #010a11;
+  background-image: linear-gradient(
+    180deg,
+    #3c8aa6 0%, #2e7794 6%, #22637f 13%, #1a5470 21%, #14485f 29%,
+    #103c51 38%, #0c3244 47%, #092838 57%, #061e2a 68%, #04151f 78%,
+    #020d14 89%, #01070c 100%
+  );
+  background-repeat: no-repeat;
+  /* Feste Ozeanlaenge, unabhaengig von der Laenge des aktuellen Tabs –
+     sonst springt die Wasserfarbe beim Seitenwechsel. */
+  background-size: 100% var(--ocean-span);
+  background-position: 0 calc(-1 * min(calc(var(--sy) * 0.4px), var(--ocean-travel)));
+}
+
+.mw-ocean__layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── Oberflaechenlicht: verschwindet im oberen Drittel ─────────────────── */
+.mw-ocean__surface {
+  background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);
+  opacity: var(--light);
+}
+
+/* ── Ferne Farbwolken (Parallaxe 0.06) ────────────────────────────────── */
+.mw-ocean__far {
+  position: absolute;
+  left: -12%; right: -12%; top: -30%; height: 170%;
+  transform: translate3d(0, calc(var(--sy) * -0.06px), 0);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);
+}
+.mw-ocean__far-a {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(1200px 900px at 16% 30%, rgba(34,176,158,.22), rgba(34,176,158,0) 66%),
+    radial-gradient(1400px 1000px at 86% 44%, rgba(18,130,142,.20), rgba(18,130,142,0) 68%),
+    radial-gradient(1300px 1000px at 38% 62%, rgba(10,88,98,.26), rgba(10,88,98,0) 70%),
+    radial-gradient(1500px 1100px at 60% 84%, rgba(5,52,64,.34), rgba(5,52,64,0) 72%);
+}
+.mw-ocean__far-b {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(680px 480px at 30% 14%, rgba(52,214,178,.18), rgba(52,214,178,0) 68%),
+    radial-gradient(520px 420px at 72% 26%, rgba(96,226,196,.13), rgba(96,226,196,0) 70%),
+    radial-gradient(760px 520px at 8% 52%, rgba(22,150,138,.20), rgba(22,150,138,0) 70%),
+    radial-gradient(600px 460px at 88% 66%, rgba(16,120,124,.18), rgba(16,120,124,0) 70%),
+    radial-gradient(540px 380px at 22% 74%, rgba(120,236,205,.14), rgba(120,236,205,0) 70%),
+    radial-gradient(460px 340px at 66% 88%, rgba(40,180,170,.15), rgba(40,180,170,0) 72%);
+}
+
+/* ── Lichtschaechte ───────────────────────────────────────────────────── */
+.mw-ocean__shafts {
+  position: absolute;
+  left: -75%; right: -75%; top: -55%; height: 250%;
+}
+.mw-ocean__shafts--b {
+  transform: translate3d(0, calc(var(--sy) * -0.09px), 0);
+  opacity: calc(var(--light) * .95 + .04);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);
+}
+.mw-ocean__shafts--a {
+  transform: translate3d(0, calc(var(--sy) * -0.14px), 0);
+  opacity: calc(var(--light) + .04);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);
+}
+
+/* Kinder tragen die Keyframes – die Huelle darueber die Parallaxe. */
+.mw-shaft {
+  position: absolute; inset: 0;
+  transform-origin: 8% 0%;
+  will-change: transform;
+}
+.mw-shaft--slow {
+  opacity: .6;
+  animation: mwSwaySlow 34s ease-in-out infinite;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%);
+  background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px);
+}
+.mw-shaft--main {
+  animation: mwSway 24s ease-in-out infinite;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%);
+  background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px);
+}
+.mw-shaft--fine {
+  animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%);
+  background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px);
+}
+
+/* ── Schwebeteilchen ──────────────────────────────────────────────────── */
+.mw-ocean__near {
+  position: absolute;
+  left: -12%; right: -12%; top: -30%; height: 170%;
+}
+.mw-motes {
+  position: absolute; inset: 0;
+  background-repeat: repeat;
+  will-change: transform;
+}
+.mw-motes--fine {
+  opacity: .5;
+  animation: mwFloat 42s linear infinite;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%),
+    radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%),
+    radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%),
+    radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%),
+    radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%),
+    radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%);
+  background-size: 620px 620px;
+}
+.mw-motes--coarse {
+  opacity: .34;
+  animation: mwFloatSlow 68s linear infinite;
+  background-image:
+    radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%),
+    radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%),
+    radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%);
+  background-size: 880px 880px;
+}
+
+/* Plankton: loest die JS-Canvas-Komponente "Particles" aus dem Export ab.
+   Gleiche Anmutung, aber ohne Canvas und ohne eigene Render-Schleife. */
+.mw-ocean__plankton {
+  position: absolute; inset: 0;
+  opacity: calc(.26 + var(--depth) * .74);
+}
+.mw-motes--plankton {
+  animation: mwFloatSlow 84s linear infinite;
+  background-image:
+    radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%),
+    radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%),
+    radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%),
+    radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%);
+  background-size: 540px 540px;
+}
+
+/* ── Drift: setzt erst in der Tiefe ein ───────────────────────────────── */
+.mw-ocean__drift {
+  position: absolute;
+  left: -12%; right: -12%; top: -30%; height: 170%;
+  opacity: calc(clamp(0, (var(--depth) - .45) / .4, 1) * .8);
+  transform: translate3d(0, calc(var(--sy) * -0.2px), 0);
+}
+.mw-motes--drift {
+  animation: mwFloat 58s linear infinite;
+  background-image:
+    radial-gradient(1.4px 1.4px at 22% 62%, rgba(191,241,247,.5), transparent 60%),
+    radial-gradient(1.1px 1.1px at 74% 34%, rgba(191,241,247,.42), transparent 60%),
+    radial-gradient(1.7px 1.7px at 48% 12%, rgba(127,224,238,.45), transparent 60%);
+  background-size: 760px 760px;
+}
+
+/* ── Meteore: ersetzt die JS-Komponente "Meteors" durch reines CSS ────── */
+.mw-ocean__streaks {
+  position: absolute; inset: 0;
+  transform: rotate(26deg) scale(calc(1.3 - var(--depth) * .72));
+  transform-origin: 8% 0%;
+  opacity: clamp(0, calc(.95 - var(--depth) * .75), 1);
+}
+.mw-meteor {
+  position: absolute;
+  top: -10%;
+  width: 1px;
+  height: 88px;
+  background: linear-gradient(180deg, rgba(206,244,255,0), rgba(206,244,255,.85));
+  border-radius: 999px;
+  animation: mwMeteor linear infinite;
+  will-change: transform, opacity;
+}
+
+/* ── Kaustik direkt unter der Oberflaeche ─────────────────────────────── */
+.mw-ocean__caustic {
+  position: absolute;
+  left: -10%; right: -10%; top: 0; height: 220px;
+  opacity: clamp(0, calc((var(--light) - .62) / .38), 1);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%);
+}
+.mw-ocean__caustic-inner {
+  position: absolute; inset: 0;
+  animation: mwCaustic 19s ease-in-out infinite;
+  background: repeating-linear-gradient(331deg, rgba(226,252,255,0) 0px, rgba(226,252,255,.05) 10px, rgba(226,252,255,.12) 24px, rgba(226,252,255,.04) 44px, rgba(226,252,255,0) 88px);
+}
+
+/* ── Oberflaechen-Glimmen ─────────────────────────────────────────────── */
+.mw-ocean__glow { opacity: clamp(0, calc((var(--light) - .5) / .5), 1); }
+.mw-ocean__glow-inner {
+  position: absolute; inset: 0;
+  animation: mwBreathe 22s ease-in-out infinite;
+  background: radial-gradient(720px 340px at 24% 2%, rgba(232,252,255,.24), rgba(232,252,255,0) 70%);
+}
+
+/* ── Tiefenschleier ───────────────────────────────────────────────────── */
+.mw-ocean__veil {
+  opacity: max(calc(var(--depth) * .9), calc(var(--dive) * .92));
+  background: linear-gradient(180deg, rgba(1,10,17,.30) 0%, rgba(1,10,17,.55) 100%);
+}
+
+/* ── Wale ─────────────────────────────────────────────────────────────── */
+.mw-ocean__whales { opacity: clamp(0, calc((var(--depth) - .34) / .4), 1); }
+.mw-whale-lane {
+  position: absolute;
+  left: 0; right: 0;
+  will-change: transform;
+}
+.mw-whale-lane--1 { top: 26%; animation: mwSwim 96s linear infinite; }
+.mw-whale-lane--2 { top: 58%; animation: mwSwimBack 138s linear infinite; }
+.mw-whale-lane--3 { top: 78%; animation: mwSwim 176s linear infinite; }
+.mw-whale-bob { animation: mwWhaleBob 6s ease-in-out infinite; }
+.mw-whale-lane--1 .mw-whale-bob { animation-duration: 5.4s; }
+.mw-whale-lane--2 .mw-whale-bob { animation-duration: 7.2s; }
+.mw-whale-lane--3 .mw-whale-bob { animation-duration: 6.2s; }
+.mw-whale {
+  display: block;
+  filter: saturate(1.5) hue-rotate(-10deg);
+  /* Groesse und Deckkraft pro Bahn – gibt Tiefenstaffelung. */
+}
+.mw-whale-lane--1 .mw-whale { width: 84px; opacity: .30; }
+.mw-whale-lane--2 .mw-whale { width: 54px; opacity: .24; }
+.mw-whale-lane--3 .mw-whale { width: 36px; opacity: .20; }
+
+/* ══ Keyframes ══════════════════════════════════════════════════════════ */
+@keyframes mwSway {
+  0%   { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); }
+  50%  { transform: rotate(-29deg) translate3d(38px,0,0) skewX(1.2deg); }
+  100% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); }
+}
+@keyframes mwSwaySlow {
+  0%   { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); }
+  50%  { transform: rotate(-29deg) translate3d(-48px,0,0) scaleX(.98); }
+  100% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); }
+}
+@keyframes mwShaftDrift {
+  0%   { transform: rotate(-29deg) translate3d(-16px,0,0); }
+  50%  { transform: rotate(-29deg) translate3d(22px,0,0); }
+  100% { transform: rotate(-29deg) translate3d(-16px,0,0); }
+}
+@keyframes mwShaftPulse {
+  0% { opacity: .62; } 38% { opacity: 1; } 70% { opacity: .78; } 100% { opacity: .62; }
+}
+@keyframes mwFloat {
+  from { transform: translate3d(0,0,0); }
+  to   { transform: translate3d(46px,-420px,0); }
+}
+@keyframes mwFloatSlow {
+  from { transform: translate3d(0,0,0); }
+  to   { transform: translate3d(-34px,-620px,0); }
+}
+@keyframes mwCaustic {
+  0%   { transform: translate3d(-40px,0,0) scaleY(1); opacity: .5; }
+  50%  { transform: translate3d(40px,0,0) scaleY(1.1); opacity: .95; }
+  100% { transform: translate3d(-40px,0,0) scaleY(1); opacity: .5; }
+}
+@keyframes mwBreathe { 0% { opacity: .55; } 50% { opacity: 1; } 100% { opacity: .55; } }
+@keyframes mwSwim     { from { transform: translateX(-24vw); }            to { transform: translateX(122vw); } }
+@keyframes mwSwimBack { from { transform: translateX(122vw) scaleX(-1); } to { transform: translateX(-24vw) scaleX(-1); } }
+@keyframes mwWhaleBob {
+  0%   { transform: translateY(0) rotate(-4deg); }
+  25%  { transform: translateY(-9px) rotate(2deg); }
+  50%  { transform: translateY(2px) rotate(5deg); }
+  75%  { transform: translateY(-6px) rotate(0deg); }
+  100% { transform: translateY(0) rotate(-4deg); }
+}
+@keyframes mwMeteor {
+  0%   { transform: translate3d(0, -20vh, 0); opacity: 0; }
+  8%   { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translate3d(0, 130vh, 0); opacity: 0; }
+}
+@keyframes mwRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+
+/* ── Bewegung aus ─────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .mw-ocean *,
+  .mw-ocean {
+    animation: none !important;
+    transition: none !important;
+  }
+  .mw-ocean__streaks { display: none; }
+}

@@ -1,0 +1,691 @@
+/* Reihenfolge zaehlt: Tokens definieren die Variablen, die alles Weitere nutzt. */
+@import './fonts.css';
+@import './colors.css';
+@import './typography.css';
+@import './spacing.css';
+@import './radius.css';
+@import './elevation.css';
+@import './glass.css';
+@import './motion.css';
+@import './base.css';
+@import './miwale-ui.css';
+@import './miwale-motion.css';
+@import './ocean.css';
+@import './components.css';
+
+/* ══ Dunkler Kontext ════════════════════════════════════════════════════
+   Das Design System ist fuer helle Seiten getont: base.css setzt
+   h1–h4 auf --text-strong (dunkles Navy) und gibt jedem Link eine
+   Unterkante. Auf dem Ozean ist das unlesbar.
+
+   Statt jede Regel einzeln zu ueberschreiben werden hier die semantischen
+   Tokens umgehaengt. Alles, was das DS darauf aufbaut, zieht automatisch
+   nach – auch Komponenten, die wir heute noch nicht benutzen.          */
+:root {
+  --mw-abyss: #050a16;
+
+  --text-strong: var(--ice-000);
+  --text-body: var(--ice-200);
+  --text-muted: var(--ice-400);
+  --text-subtle: var(--ice-500);
+  --text-link: var(--aqua-300);
+  --text-link-hover: var(--ice-000);
+  --surface-page: var(--mw-abyss);
+  --border-hairline: rgba(255,255,255,.12);
+  --border-default: rgba(255,255,255,.16);
+  --border-strong: rgba(255,255,255,.24);
+}
+
+/* Die Unterkante aus base.css gilt nur noch im Fliesstext, nicht in
+   Navigation, Karten und Buttons. */
+a { border-bottom: 0; }
+.mw-prose a { border-bottom: 1px solid rgba(23,169,196,.45); }
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  /* Tabwechsel sind echte Navigationen – kein Smooth-Scroll, das ueber die
+     neue Seite hinweglaeuft. */
+  scroll-behavior: auto;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--mw-abyss, #050a16);
+  color: var(--ice-100);
+  font: var(--type-body);
+  /* Der Ozean liegt fixed dahinter; horizontales Scrollen darf nie entstehen. */
+  overflow-x: hidden;
+}
+
+a { color: var(--aqua-300); text-decoration: none; }
+a:hover { color: #fff; }
+
+img { max-width: 100%; }
+
+:focus-visible {
+  outline: 2px solid var(--aqua-300);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.mw-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 200;
+  padding: 12px 18px;
+  background: var(--navy-900);
+  color: var(--ice-100);
+  border-radius: 0 0 12px 0;
+}
+.mw-skip:focus { left: 0; }
+
+/* ── Reveal ────────────────────────────────────────────────────────────
+   Wird per IntersectionObserver einmalig geschaltet, nicht pro Frame
+   gemessen. Ohne JS ist alles sichtbar – Text darf nie an JS haengen. */
+[data-reveal] {
+  opacity: 1;
+  transform: none;
+}
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 620ms cubic-bezier(.22,.61,.36,1),
+    transform 620ms cubic-bezier(.22,.61,.36,1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.js [data-reveal][data-shown] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ── Layout-Grundraster ───────────────────────────────────────────────── */
+.mw-shell { position: relative; z-index: 1; }
+
+.mw-wrap {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-inline: clamp(16px, 5vw, 32px);
+}
+
+.mw-section {
+  position: relative;
+  padding-block: clamp(48px, 9vw, 96px);
+}
+
+.mw-eyebrow {
+  font: var(--type-label);
+  font-size: var(--text-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--aqua-300);
+  margin: 0 0 12px;
+}
+
+.mw-h1 {
+  font: var(--type-display);
+  font-size: clamp(2.1rem, 6.2vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -.03em;
+  margin: 0 0 18px;
+}
+
+.mw-h2 {
+  font: var(--type-h3);
+  font-size: clamp(1.5rem, 3.6vw, 2.3rem);
+  line-height: 1.12;
+  letter-spacing: -.02em;
+  margin: 0 0 14px;
+}
+
+.mw-lead {
+  font-size: clamp(1rem, 1.6vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--ice-300, #a9c6d4);
+  margin: 0;
+  max-width: 62ch;
+}
+
+.mw-muted { color: var(--ice-400, #7fa3b5); }
+
+/* ══ Kopfleiste ═════════════════════════════════════════════════════════ */
+.mw-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: rgba(255,255,255,.10);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+.mw-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px clamp(16px, 4vw, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.mw-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.mw-header__brand img { height: 42px; width: auto; flex: none; }
+.mw-header__rule { width: 1px; height: 24px; background: rgba(255,255,255,.18); flex: none; }
+.mw-header__name {
+  font: var(--type-label);
+  font-size: var(--text-sm);
+  color: var(--ice-100);
+  white-space: nowrap;
+}
+
+/* Die Tab-Pille sitzt auf hellem Wasser – mit dem hellen Standard-Glas
+   des Design-Systems waere helle Schrift darauf nicht lesbar. */
+.mw-header__nav .mw-tabs--glass {
+  background: rgba(4, 24, 36, .42);
+  border-color: rgba(255,255,255,.20);
+}
+
+.mw-header__nav .mw-tabs__tab {
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.mw-header__nav .mw-tabs__tab:not(.mw-tabs__tab--on) { color: var(--ice-100); }
+.mw-header__nav .mw-tabs__tab:hover { color: #fff; }
+.mw-header__nav .mw-tabs__tab--on { color: var(--navy-900); }
+
+/* Der Name weicht vor den Tabs, das Badge zuerst – in dieser Reihenfolge
+   bleibt die Navigation am laengsten vollstaendig sichtbar. */
+@media (max-width: 1180px) { .mw-header__badge { display: none; } }
+@media (max-width: 1040px) { .mw-header__rule, .mw-header__name { display: none; } }
+@media (max-width: 900px)  { /* Die Tab-Pille sitzt auf hellem Wasser – mit dem hellen Standard-Glas
+   des Design-Systems waere helle Schrift darauf nicht lesbar. */
+.mw-header__nav .mw-tabs--glass {
+  background: rgba(4, 24, 36, .42);
+  border-color: rgba(255,255,255,.20);
+}
+
+.mw-header__nav .mw-tabs__tab { padding: 9px 12px; font-size: var(--text-xs); } }
+
+/* ══ Bottom-Nav (Handy) ═════════════════════════════════════════════════ */
+.mw-bottomnav-wrap {
+  display: none;
+  position: fixed;
+  left: 0; right: 0;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  z-index: 70;
+  padding-inline: 10px;
+}
+/* Das DS liefert die Bottom-Nav in hellem Glas – auf dem Ozean waeren die
+   Labels darauf nicht lesbar. Dunkel eindunkeln statt neu bauen. */
+.mw-bottomnav {
+  background: rgba(4, 20, 32, .72);
+  border-color: rgba(255,255,255,.16);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  gap: 2px;
+  padding: 8px 8px;
+}
+.mw-bottomnav__item {
+  text-decoration: none;
+  color: var(--ice-300);
+  min-width: 0;
+  gap: 3px;
+  padding: 7px 2px;
+  font-size: var(--text-3xs);
+  /* Touch-Ziel bleibt trotz kleiner Schrift gross genug. */
+  min-height: 48px;
+  justify-content: center;
+}
+.mw-bottomnav__item svg { flex: none; }
+.mw-bottomnav__item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.mw-bottomnav__item:hover { color: #fff; }
+.mw-bottomnav__item--on {
+  background: rgba(23,169,196,.22);
+  color: var(--aqua-200);
+}
+
+/* Umschaltpunkt: ab hier reissen sechs Tabs oben unweigerlich um. */
+@media (max-width: 760px) {
+  .mw-header__nav { display: none; }
+  .mw-bottomnav-wrap { display: block; }
+  /* Platz, damit die Bottom-Nav nichts verdeckt. */
+  body { padding-bottom: 92px; }
+}
+
+/* ══ Raster ═════════════════════════════════════════════════════════════
+   Ein Auto-Fit-Raster statt fester Spaltenzahlen: es bricht von selbst um,
+   ohne dass pro Breakpoint eine Regel noetig ist. Genau das hat im Export
+   gefehlt – dort lagen feste grid-template-columns inline und wurden per
+   [style*="repeat(4"]-Hack mit !important ueberschrieben.               */
+.mw-grid { display: grid; gap: clamp(12px, 2vw, 20px); }
+.mw-grid--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.mw-grid--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.mw-grid--4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+.mw-grid--tight { margin-top: clamp(12px, 2vw, 20px); }
+.mw-grid + .mw-grid { margin-top: clamp(12px, 2vw, 20px); }
+
+.mw-mt-lg { margin-top: clamp(20px, 3.4vw, 34px); }
+
+.mw-h3 {
+  font: var(--type-h3);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  line-height: 1.2;
+  margin: 0 0 10px;
+}
+
+.mw-rule { border: 0; height: 1px; background: rgba(255,255,255,.12); margin: 16px 0; }
+
+/* ══ Hero ═══════════════════════════════════════════════════════════════ */
+.mw-hero { padding-block: clamp(40px, 8vw, 88px) clamp(48px, 9vw, 96px); }
+.mw-hero__grid {
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  align-items: center;
+  /* Ab ~980px zweispaltig, darunter automatisch untereinander. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+.mw-hero__morph { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.mw-hero__line { display: block; }
+.mw-hero__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: clamp(20px, 3vw, 30px); }
+.mw-hero__card { display: flex; flex-direction: column; gap: 20px; }
+.mw-hero__whale { width: 72px; height: auto; }
+.mw-hero__stats { display: block; }
+
+/* ══ Wegweiser ══════════════════════════════════════════════════════════ */
+.mw-ways {
+  display: grid;
+  gap: clamp(12px, 2vw, 18px);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  margin-top: clamp(18px, 3vw, 28px);
+}
+.mw-way {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: clamp(18px, 2.6vw, 24px);
+  border-radius: clamp(16px, 2vw, 22px);
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 200ms var(--ease-out, ease), background 200ms ease;
+}
+.mw-way:hover { transform: translateY(-3px); background: rgba(255,255,255,.14); color: inherit; }
+.mw-way__n     { font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--aqua-300); }
+.mw-way__title { font: var(--type-h3); font-size: var(--text-lg); color: #fff; }
+.mw-way__text  { font-size: var(--text-sm); line-height: 1.6; color: var(--ice-300, #a9c6d4); }
+.mw-way__cta   { margin-top: auto; padding-top: 8px; font-size: var(--text-sm); color: var(--aqua-300); }
+
+/* ══ Kleine Kennzahl ════════════════════════════════════════════════════ */
+.mw-ministat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+}
+.mw-ministat__value { font: var(--type-h3); font-size: var(--text-xl); color: #fff; }
+.mw-ministat__label { font-size: var(--text-xs); color: var(--ice-400, #7fa3b5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-way:hover { transform: none; }
+}
+
+/* ══ Tauchgang ══════════════════════════════════════════════════════════
+   Der Fortschritt kommt als --dive von ocean.ts. Statt drei Elemente pro
+   Frame per element.style anzufassen, haengt hier alles an einer Variablen. */
+.mw-dive {
+  position: relative;
+  /* Hoehe = Scrollstrecke des Tauchgangs. */
+  height: 240vh;
+}
+.mw-dive__sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  padding-inline: 20px;
+}
+.mw-dive__logo {
+  width: min(78vw, 460px);
+  height: auto;
+  transform: scale(calc(1 + var(--dive) * .22)) translateY(calc(var(--dive) * -30px));
+  opacity: clamp(0, calc(1 - max(0, var(--dive) - .86) / .14), 1);
+}
+.mw-dive__hint {
+  font: var(--type-label);
+  font-size: var(--text-xs);
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ice-300, #a9c6d4);
+  opacity: clamp(0, calc(1 - var(--dive) * 2.4), 1);
+}
+.mw-dive__arrow {
+  width: 1px;
+  height: 54px;
+  background: linear-gradient(180deg, var(--aqua-300), transparent);
+  opacity: clamp(0, calc(1 - var(--dive) * 1.8), 1);
+}
+
+/* ══ Zeitleiste ═════════════════════════════════════════════════════════ */
+.mw-tl {
+  list-style: none;
+  margin: clamp(24px, 4vw, 40px) 0 0;
+  padding: 0;
+  position: relative;
+}
+/* Die Lichtlinie waechst mit --tl, das ocean.ts auf dem Abschnitt setzt. */
+.mw-tl::before,
+.mw-tl::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 999px;
+}
+.mw-tl::before { background: rgba(255,255,255,.10); }
+.mw-tl::after {
+  background: linear-gradient(180deg, var(--aqua-300), var(--aqua-600));
+  bottom: auto;
+  height: calc(var(--tl, 0) * 100%);
+  box-shadow: 0 0 18px rgba(63,198,220,.5);
+}
+
+.mw-tl__item {
+  position: relative;
+  padding-left: 34px;
+  padding-bottom: clamp(32px, 5vw, 56px);
+}
+.mw-tl__head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.mw-tl__dot {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--navy-900);
+  border: 2px solid var(--aqua-400);
+  box-shadow: 0 0 16px rgba(63,198,220,.45);
+}
+.mw-tl__date  { display: block; font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--aqua-300); }
+.mw-tl__title { display: block; font: var(--type-h3); font-size: clamp(1.1rem, 2.4vw, 1.5rem); color: #fff; }
+.mw-tl__body  { display: flex; flex-direction: column; gap: 16px; }
+
+.mw-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ── Projekt-Karte ────────────────────────────────────────────────────── */
+.mw-pin { display: block; color: inherit; text-decoration: none; }
+.mw-pin .mw-glass { transition: transform 220ms var(--ease-out, ease), box-shadow 220ms ease; }
+.mw-pin:hover { color: inherit; }
+.mw-pin:hover .mw-glass {
+  transform: translateY(-4px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6);
+}
+.mw-pin__flag {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font: var(--type-label);
+  font-size: var(--text-3xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  background: rgba(23,169,196,.22);
+  border: 1px solid rgba(127,224,238,.34);
+  color: var(--aqua-200);
+}
+.mw-pin__note { margin: 14px 0 0; font-size: var(--text-xs); color: var(--ice-400, #7fa3b5); }
+
+.mw-shots {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  margin-top: 18px;
+}
+.mw-shots img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+.mw-wb {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  align-items: center;
+  margin-top: 18px;
+}
+.mw-wb img { width: 100%; max-width: 220px; height: auto; }
+
+.mw-side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+}
+.mw-side__name { font-family: var(--font-mono, monospace); font-size: var(--text-sm); color: var(--aqua-200); }
+.mw-side__text { font-size: var(--text-xs); line-height: 1.6; color: var(--ice-400, #7fa3b5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-pin:hover .mw-glass { transform: none; }
+}
+
+/* Auf kleinen Schirmen ist der Tauchgang kuerzer – 240vh Scrollen ohne
+   Inhalt fuehlt sich am Handy endlos an. */
+@media (max-width: 760px) {
+  .mw-dive { height: 160vh; }
+}
+
+/* ══ Über mich ══════════════════════════════════════════════════════════ */
+.mw-mt-sm { margin-top: 12px; }
+
+.mw-about__head {
+  display: grid;
+  gap: clamp(20px, 4vw, 40px);
+  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+.mw-about__whale { width: min(46vw, 180px); height: auto; justify-self: center; }
+
+.mw-path { list-style: none; margin: clamp(18px, 3vw, 28px) 0 0; padding: 0; }
+.mw-path__row {
+  display: grid;
+  gap: 4px 18px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255,255,255,.10);
+  /* Datum links, Text rechts – faellt unter 560px automatisch untereinander. */
+  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+}
+@media (max-width: 560px) { .mw-path__row { grid-template-columns: 1fr; } }
+.mw-path__row:first-child { border-top: 0; padding-top: 0; }
+.mw-path__when  { font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--aqua-300); padding-top: 3px; }
+.mw-path__title { display: block; font: var(--type-h3); font-size: var(--text-lg); color: #fff; margin-bottom: 4px; }
+.mw-path__text  { display: block; font-size: var(--text-sm); line-height: 1.65; color: var(--ice-300, #a9c6d4); }
+
+.mw-name { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.mw-name__row { display: flex; align-items: baseline; gap: 14px; }
+.mw-name__part {
+  font: var(--type-display);
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  color: var(--aqua-300);
+  min-width: 2.6ch;
+}
+.mw-name__word { font-size: var(--text-md); color: var(--ice-200); }
+
+/* ══ KI-Workflow ════════════════════════════════════════════════════════ */
+.mw-deflist { margin: 16px 0 0; }
+.mw-deflist dt {
+  font: var(--type-h3);
+  font-size: var(--text-md);
+  color: #fff;
+  margin-top: 16px;
+}
+.mw-deflist dt:first-of-type { margin-top: 0; }
+.mw-deflist dd {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--ice-300, #a9c6d4);
+}
+
+.mw-figures { list-style: none; margin: clamp(18px, 3vw, 26px) 0 0; padding: 0; }
+.mw-figures__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 18px;
+  padding: 13px 0;
+  border-top: 1px solid rgba(255,255,255,.10);
+}
+.mw-figures__row:first-child { border-top: 0; }
+.mw-figures__label { font-size: var(--text-sm); color: var(--ice-300, #a9c6d4); }
+.mw-figures__value {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-md);
+  color: var(--aqua-200);
+  white-space: nowrap;
+}
+
+/* ══ Kontakt ════════════════════════════════════════════════════════════ */
+.mw-channel { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.mw-channel__value {
+  font: var(--type-h3);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: #fff;
+  /* Lange Adressen duerfen umbrechen statt die Karte zu sprengen. */
+  overflow-wrap: anywhere;
+}
+.mw-channel__value:hover { color: var(--aqua-300); }
+.mw-channel__note { font-size: var(--text-xs); color: var(--ice-400, #7fa3b5); }
+
+/* ══ Devlog ═════════════════════════════════════════════════════════════ */
+.mw-narrow { max-width: 780px; }
+
+.mw-empty {
+  display: grid;
+  gap: clamp(18px, 3vw, 32px);
+  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.mw-empty__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mw-empty__head .mw-h2 { margin: 0; }
+.mw-empty__whale { width: min(40vw, 150px); height: auto; justify-self: center; }
+
+.mw-posts { list-style: none; margin: 0; padding: 0; display: grid; gap: clamp(12px, 2vw, 18px); }
+.mw-post { display: block; color: inherit; text-decoration: none; }
+.mw-post .mw-glass { transition: transform 200ms var(--ease-out, ease); }
+.mw-post:hover { color: inherit; }
+.mw-post:hover .mw-glass { transform: translateY(-3px); }
+.mw-post__date {
+  display: block;
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  color: var(--aqua-300);
+  margin-bottom: 6px;
+}
+.mw-back { display: inline-block; margin-bottom: 18px; font-size: var(--text-sm); }
+
+/* ── Markdown-Fliesstext ──────────────────────────────────────────────── */
+.mw-prose { font-size: var(--text-md); line-height: 1.75; color: var(--ice-200); }
+.mw-prose > :first-child { margin-top: 0; }
+.mw-prose > :last-child { margin-bottom: 0; }
+.mw-prose h2 { font: var(--type-h3); font-size: clamp(1.25rem, 2.6vw, 1.6rem); color: #fff; margin: 32px 0 12px; }
+.mw-prose h3 { font: var(--type-h3); font-size: clamp(1.05rem, 2.1vw, 1.25rem); color: #fff; margin: 26px 0 10px; }
+.mw-prose p  { margin: 0 0 16px; }
+.mw-prose ul, .mw-prose ol { margin: 0 0 16px; padding-left: 22px; }
+.mw-prose li { margin-bottom: 6px; }
+.mw-prose code {
+  font-family: var(--font-mono, monospace);
+  font-size: .9em;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.09);
+}
+.mw-prose pre {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(1,10,17,.6);
+  border: 1px solid rgba(255,255,255,.10);
+  overflow-x: auto;
+}
+.mw-prose pre code { background: none; padding: 0; }
+.mw-prose blockquote {
+  margin: 0 0 16px;
+  padding-left: 16px;
+  border-left: 2px solid var(--aqua-500);
+  color: var(--ice-300, #a9c6d4);
+}
+.mw-prose img { border-radius: 12px; }
+.mw-prose a { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ══ Fußzeile ═══════════════════════════════════════════════════════════ */
+.mw-footer {
+  margin-top: clamp(40px, 7vw, 80px);
+  padding-block: clamp(28px, 5vw, 48px);
+  border-top: 1px solid rgba(255,255,255,.12);
+  background: rgba(1,10,17,.34);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.mw-footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mw-footer__top img { height: 38px; width: auto; }
+.mw-footer__links { display: flex; flex-wrap: wrap; gap: 18px; font-size: var(--text-sm); }
+.mw-footer__imprint { margin-top: clamp(20px, 3vw, 30px); }
+.mw-footer__imprint p { margin: 4px 0 0; font-size: var(--text-xs); color: var(--ice-400, #7fa3b5); line-height: 1.6; }
+.mw-footer__note { margin: clamp(18px, 3vw, 26px) 0 0; font-size: var(--text-xs); color: var(--ice-500, #64879a); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-post:hover .mw-glass { transform: none; }
+}
