@@ -25,11 +25,16 @@ const fmt = (d: Date) =>
       ) : (
         <h1 class="mw-h1">Was gerade passiert</h1>
       )}
-      <p class="mw-lead" data-reveal>
-        Hier werden Einträge stehen: was in der Woche gebaut wurde, was kaputtgegangen ist und
-        wie sich das Balancing verschoben hat. Bis dahin steht der ehrlichste Verlauf in den
-        Commits.
-      </p>
+      {posts.length === 0 ? (
+        <p class="mw-lead" data-reveal>
+          Hier werden Einträge stehen: was gebaut wurde, was kaputtgegangen ist und wie sich
+          das Balancing verschoben hat. Bis dahin steht der Verlauf in den Commits.
+        </p>
+      ) : (
+        <p class="mw-lead" data-reveal>
+          Was gebaut wurde, was kaputtgegangen ist und wie sich das Balancing verschoben hat.
+        </p>
+      )}
     </div>
   </section>
 
