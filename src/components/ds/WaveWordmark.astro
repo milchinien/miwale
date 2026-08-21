@@ -1,0 +1,18 @@
+---
+/** Gewellter Schriftzug auf einem Band. Ersatz fuer TextLoop (shape=wave).
+    SVG textPath statt Canvas – skaliert sauber und kostet nichts. */
+interface Props { text?: string; }
+const { text = 'miwale games' } = Astro.props;
+const repeated = Array.from({ length: 6 }, () => text).join('  ✦  ');
+---
+<div class="mw-wave" aria-hidden="true">
+  <svg viewBox="0 0 1200 120" preserveAspectRatio="none" role="presentation">
+    <defs>
+      <path id="mw-wave-path" d="M-200,74 C 100,18 300,110 600,62 C 900,14 1100,102 1400,52" fill="none" />
+    </defs>
+    <use href="#mw-wave-path" class="mw-wave__ribbon" />
+    <text class="mw-wave__text">
+      <textPath href="#mw-wave-path" startOffset="0%">{repeated}</textPath>
+    </text>
+  </svg>
+</div>

@@ -1,0 +1,83 @@
+:root{
+/* --- Brand ink: sampled from the miwale wordmark (#172449) --- */
+--navy-950:#070C1A;
+--navy-900:#0C142B;
+--navy-800:#172449;
+--navy-700:#22336B;
+--navy-600:#33488C;
+--navy-500:#4A62AD;
+--navy-400:#7B8FCB;
+--navy-300:#AEBCE2;
+--navy-200:#D3DBF0;
+--navy-100:#E8EDF9;
+
+/* --- Aqua: the whale's water. Primary accent --- */
+--aqua-900:#063B4A;
+--aqua-700:#0B6E86;
+--aqua-600:#0F8CA6;
+--aqua-500:#17A9C4;
+--aqua-400:#3FC6DC;
+--aqua-300:#7FE0EE;
+--aqua-200:#BFF1F7;
+--aqua-100:#E4F8FB;
+
+/* --- Ice: cool neutrals for surfaces and text --- */
+--ice-000:#FFFFFF;
+--ice-050:#F6FAFD;
+--ice-100:#EDF3F9;
+--ice-200:#DEE8F2;
+--ice-300:#C7D6E6;
+--ice-400:#A3B5CA;
+--ice-500:#7C8EA6;
+--ice-600:#5B6C84;
+--ice-700:#415065;
+--ice-800:#2B3A4D;
+
+/* --- Semantic hues --- */
+--green-500:#2FB47C;
+--green-200:#C4EEDC;
+--amber-500:#E8A33D;
+--amber-200:#FAE6C4;
+--rose-500:#E2596B;
+--rose-200:#F8D2D8;
+
+/* --- Semantic aliases (use these in components) --- */
+--text-strong:var(--navy-900);
+--text-body:var(--navy-800);
+--text-muted:var(--ice-600);
+--text-subtle:var(--ice-500);
+--text-inverse:var(--ice-050);
+--text-accent:var(--aqua-700);
+--text-link:var(--aqua-700);
+--text-link-hover:var(--navy-800);
+
+--surface-page:var(--ice-050);
+--surface-card:var(--ice-000);
+--surface-sunken:var(--ice-100);
+--surface-inset:var(--ice-200);
+--surface-inverse:var(--navy-900);
+
+--border-hairline:var(--ice-200);
+--border-default:var(--ice-300);
+--border-strong:var(--ice-400);
+--border-accent:var(--aqua-400);
+
+--accent-primary:var(--aqua-500);
+--accent-primary-hover:var(--aqua-600);
+--accent-primary-press:var(--aqua-700);
+--accent-secondary:var(--navy-800);
+--accent-on-primary:#062A33;
+
+--state-success:var(--green-500);
+--state-warning:var(--amber-500);
+--state-danger:var(--rose-500);
+--state-info:var(--aqua-500);
+
+--focus-ring:var(--aqua-400);
+
+/* --- Signature gradients: deep water + surface light --- */
+--grad-deep:linear-gradient(160deg,#0C142B 0%,#172449 45%,#0B4A5E 100%); /* @kind color */
+--grad-surf:linear-gradient(140deg,#F6FAFD 0%,#E4F8FB 55%,#DEE8F2 100%); /* @kind color */
+--grad-aqua:linear-gradient(100deg,var(--aqua-500) 0%,var(--aqua-300) 100%); /* @kind color */
+--grad-sheen:linear-gradient(120deg,rgba(255,255,255,.72) 0%,rgba(255,255,255,.08) 42%,rgba(127,224,238,.28) 100%); /* @kind color */
+}

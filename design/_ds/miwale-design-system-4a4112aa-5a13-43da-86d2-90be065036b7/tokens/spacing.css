@@ -1,0 +1,16 @@
+:root{
+--space-0:0px;--space-1:2px;--space-2:4px;--space-3:6px;--space-4:8px;--space-5:12px;
+--space-6:16px;--space-7:20px;--space-8:24px;--space-9:32px;--space-10:40px;
+--space-11:56px;--space-12:72px;--space-13:96px;--space-14:128px;
+
+/* Rhythm aliases */
+--gap-inline:var(--space-4);
+--gap-stack:var(--space-6);
+--gap-group:var(--space-9);
+--gap-section:var(--space-13);
+--pad-control:10px 18px;
+--pad-card:var(--space-8);
+--pad-panel:var(--space-9);
+--page-gutter:var(--space-9);
+--page-max:1200px; /* @kind spacing */
+}

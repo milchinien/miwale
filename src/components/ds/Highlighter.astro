@@ -1,0 +1,6 @@
+---
+/** Unterstreichung, die beim Sichtbarwerden einlaeuft. Ersatz fuer Highlighter. */
+interface Props { color?: string; }
+const { color = 'var(--aqua-400)' } = Astro.props;
+---
+<span class="mw-highlight" data-reveal style={`--hl-color:${color}`}><slot /></span>

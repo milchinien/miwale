@@ -1,0 +1,16 @@
+---
+/** Zeilen, die nacheinander eingeblendet werden. Ersatz fuer TextType –
+    ohne Zeichen-fuer-Zeichen-Timer, der im Export pro Frame lief. */
+interface Props { lines: string[]; }
+const { lines } = Astro.props;
+const each = 3.6;
+const total = lines.length * each;
+---
+<span class="mw-type" style={`--type-total:${total}s`}>
+  <span class="mw-type__sizer" aria-hidden="true">
+    {lines.reduce((a, b) => (b.length > a.length ? b : a), '')}
+  </span>
+  {lines.map((l, i) => (
+    <span class="mw-type__line" style={`animation-delay:${i * each}s`}>{l}</span>
+  ))}
+</span>

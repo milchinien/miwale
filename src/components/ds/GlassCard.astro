@@ -1,0 +1,8 @@
+---
+interface Props { tone?: 'dark' | 'light'; pad?: 'sm' | 'md' | 'lg'; class?: string; beam?: boolean; }
+const { tone = 'dark', pad = 'md', class: cls = '', beam = false } = Astro.props;
+---
+<div class:list={['mw-glass', `mw-glass--${tone}`, `mw-glass--pad-${pad}`, beam && 'mw-glass--beam', cls]}>
+  {beam && <span class="mw-beam" aria-hidden="true"></span>}
+  <slot />
+</div>

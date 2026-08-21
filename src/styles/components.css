@@ -1,0 +1,247 @@
+/* ══ Bausteine ══════════════════════════════════════════════════════════
+   Ersetzt die JS-Komponenten aus _ds_bundle.js (GlassCard, Button, Tag,
+   Badge, BorderBeam ...) durch reines CSS auf denselben Design-Tokens.  */
+
+/* ── Glaskarte ────────────────────────────────────────────────────────── */
+.mw-glass {
+  position: relative;
+  border-radius: clamp(16px, 2vw, 24px);
+  border: 1px solid var(--glass-border-dark, rgba(255,255,255,.14));
+  background: var(--glass-fill-dark, rgba(10,28,44,.55));
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 24px 56px rgba(1,10,17,.44);
+}
+.mw-glass--light {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.22);
+}
+.mw-glass--pad-sm { padding: clamp(14px, 2.4vw, 18px); }
+.mw-glass--pad-md { padding: clamp(18px, 3vw, 26px); }
+.mw-glass--pad-lg { padding: clamp(22px, 4vw, 34px); }
+.mw-glass--beam { overflow: hidden; }
+
+/* BorderBeam: ein umlaufender Lichtstreif am Kartenrand. */
+.mw-beam {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--beam-angle, 0deg),
+    transparent 0deg, transparent 300deg,
+    var(--aqua-300, #7fe0ee) 340deg, transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: mwBeam 6s linear infinite;
+  pointer-events: none;
+}
+@property --beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes mwBeam { to { --beam-angle: 360deg; } }
+
+/* ── Tag ──────────────────────────────────────────────────────────────── */
+.mw-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font: var(--type-label);
+  font-size: var(--text-2xs);
+  letter-spacing: .04em;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.07);
+  color: var(--ice-200);
+  white-space: nowrap;
+}
+.mw-tag--aqua { border-color: rgba(127,224,238,.34); background: rgba(23,169,196,.16); color: var(--aqua-200); }
+.mw-tag--mono { font-family: var(--font-mono, ui-monospace, monospace); text-transform: uppercase; font-size: var(--text-3xs); }
+
+/* ── Button ───────────────────────────────────────────────────────────── */
+.mw-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font: var(--type-label);
+  font-weight: var(--w-semibold, 600);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 180ms var(--ease-out, ease), box-shadow 180ms ease, background 180ms ease;
+  /* Touch-Ziel: nie unter 44px hoch. */
+  min-height: 44px;
+}
+.mw-button--md { padding: 11px 22px; font-size: var(--text-sm); }
+.mw-button--lg { padding: 14px 28px; font-size: var(--text-md); }
+
+.mw-button--primary {
+  background: linear-gradient(180deg, #4fd8ea, #17a9c4);
+  color: #04222b;
+  box-shadow: 0 10px 26px rgba(23,169,196,.34);
+}
+.mw-button--primary:hover { color: #04222b; transform: translateY(-2px); box-shadow: 0 16px 34px rgba(23,169,196,.42); }
+
+.mw-button--ghost {
+  background: rgba(255,255,255,.09);
+  border-color: rgba(255,255,255,.20);
+  color: var(--ice-100);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.mw-button--ghost:hover { color: #fff; background: rgba(255,255,255,.16); transform: translateY(-2px); }
+
+/* ShinyButton: Glanzlicht wandert einmalig beim Hover durch. */
+.mw-button--shiny {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,.10);
+  border-color: rgba(255,255,255,.22);
+  color: var(--ice-100);
+}
+.mw-button--shiny::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-120%);
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.42) 50%, transparent 70%);
+}
+.mw-button--shiny:hover::after { transition: transform 720ms ease; transform: translateX(120%); }
+.mw-button--shiny:hover { color: #fff; }
+
+/* ── Kennzahl ─────────────────────────────────────────────────────────── */
+.mw-stat__value {
+  font: var(--type-display);
+  font-size: clamp(1.9rem, 4.4vw, 2.6rem);
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: #fff;
+}
+.mw-stat__label { margin-top: 6px; font-size: var(--text-sm); color: var(--aqua-200); }
+.mw-stat__note  { margin-top: 2px; font-size: var(--text-xs); color: var(--ice-400, #7fa3b5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-beam { animation: none; }
+  .mw-button:hover { transform: none; }
+  .mw-button--shiny::after { display: none; }
+}
+
+/* ══ Texteffekte ════════════════════════════════════════════════════════ */
+.mw-sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── MorphingText ─────────────────────────────────────────────────────── */
+.mw-morph {
+  position: relative;
+  display: inline-grid;
+  vertical-align: baseline;
+}
+.mw-morph__sizer { visibility: hidden; grid-area: 1 / 1; }
+.mw-morph__item {
+  grid-area: 1 / 1;
+  opacity: 0;
+  color: var(--aqua-300);
+  animation: mwMorph var(--morph-total) linear infinite;
+}
+@keyframes mwMorph {
+  0%, 2%   { opacity: 0; transform: translateY(8px); }
+  6%, 26%  { opacity: 1; transform: none; }
+  32%,100% { opacity: 0; transform: translateY(-8px); }
+}
+
+/* ── LineShadowText ───────────────────────────────────────────────────── */
+.mw-lineshadow {
+  position: relative;
+  font-style: italic;
+  text-shadow:
+    2px 2px 0 var(--ls-color),
+    4px 4px 0 color-mix(in srgb, var(--ls-color) 55%, transparent),
+    6px 6px 0 color-mix(in srgb, var(--ls-color) 25%, transparent);
+}
+
+/* ── Highlighter ──────────────────────────────────────────────────────── */
+.mw-highlight {
+  position: relative;
+  white-space: nowrap;
+}
+.mw-highlight::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -.06em;
+  height: .09em;
+  border-radius: 999px;
+  background: var(--hl-color);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 720ms cubic-bezier(.22,.61,.36,1) 180ms;
+}
+.mw-highlight[data-shown]::after,
+html:not(.js) .mw-highlight::after { transform: scaleX(1); }
+
+/* ── TextType ─────────────────────────────────────────────────────────── */
+.mw-type {
+  position: relative;
+  display: inline-grid;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-xs);
+  color: var(--aqua-200);
+}
+.mw-type__sizer { visibility: hidden; grid-area: 1 / 1; white-space: nowrap; }
+.mw-type__line {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  opacity: 0;
+  animation: mwTypeLine var(--type-total) linear infinite;
+}
+.mw-type__line::after {
+  content: '_';
+  animation: mwCaret 1.05s steps(1) infinite;
+}
+@keyframes mwTypeLine {
+  0%, 1%   { opacity: 0; }
+  4%, 30%  { opacity: 1; }
+  34%,100% { opacity: 0; }
+}
+@keyframes mwCaret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+/* ── Wellen-Schriftzug ────────────────────────────────────────────────── */
+.mw-wave { width: 100%; overflow: hidden; }
+.mw-wave svg { display: block; width: 100%; height: clamp(72px, 11vw, 120px); }
+.mw-wave__ribbon {
+  stroke: rgba(63,198,220,.35);
+  stroke-width: 64;
+  stroke-linecap: round;
+}
+.mw-wave__text {
+  font-family: var(--font-display, var(--font-label));
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  fill: var(--aqua-200);
+}
+.mw-wave__text textPath { animation: mwWaveScroll 26s linear infinite; }
+@keyframes mwWaveScroll { from { startOffset: 0%; } to { startOffset: -50%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mw-morph__item { animation: none; opacity: 0; }
+  .mw-morph__item:first-of-type { opacity: 1; }
+  .mw-type__line { animation: none; opacity: 0; }
+  .mw-type__line:first-of-type { opacity: 1; }
+  .mw-type__line::after { animation: none; }
+  .mw-wave__text textPath { animation: none; }
+  .mw-highlight::after { transition: none; transform: scaleX(1); }
+}

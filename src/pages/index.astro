@@ -1,0 +1,187 @@
+---
+import Base from '../layouts/Base.astro';
+import GlassCard from '../components/ds/GlassCard.astro';
+import Button from '../components/ds/Button.astro';
+import Stat from '../components/ds/Stat.astro';
+import MorphingText from '../components/ds/MorphingText.astro';
+import LineShadowText from '../components/ds/LineShadowText.astro';
+import Highlighter from '../components/ds/Highlighter.astro';
+import TextType from '../components/ds/TextType.astro';
+import WaveWordmark from '../components/ds/WaveWordmark.astro';
+
+const MORPH = ['Spiele', 'Systeme', 'Werkzeuge', 'Prototypen'];
+const TYPE_LINES = [
+  'XRAI Order System · läuft im Gasthof',
+  'Wavebreaker · 692 / 692 Prüfläufe grün',
+  'Chromatic · spielbar bis zum Endboss',
+];
+
+const WAYS = [
+  { n: '01', title: 'Projekte',    text: 'Was ich gebaut habe, mit Zeitstrahl, Zahlen und Links zu den Repositories.', cta: 'Ansehen', href: '/projekte/' },
+  { n: '02', title: 'Über mich',   text: 'Wie ich vom Praktikum zum eigenen Studio gekommen bin, und wie ich arbeite.', cta: 'Lesen',   href: '/ueber-mich/' },
+  { n: '03', title: 'KI-Workflow', text: 'Was die Agenten übernehmen, und welche Entscheidungen bei mir bleiben.',      cta: 'Ansehen', href: '/ki-workflow/' },
+];
+
+const BIG_STATS = [
+  { value: '751',  label: 'automatische Tests',      note: 'prüfen meine Spiele nach jeder Änderung selbst' },
+  { value: '106',  label: 'Änderungen dokumentiert', note: '83 Commits und 23 Pull Requests im Bestellsystem' },
+  { value: '16',   label: 'Kapitel Design-Dokument', note: 'geschrieben, bevor die erste Zeile Code entstand' },
+  { value: '20 h', label: 'von der Idee bis live',   note: 'Bestellsystem im Gasthof, allein umgesetzt' },
+];
+
+const SMALL_STATS = [
+  { value: '3',       label: 'Projekte, die laufen' },
+  { value: '25',      label: 'Karten im Chromatic-Deck' },
+  { value: '5 × 5',   label: 'Farben und Klassen' },
+  { value: '2 Jahre', label: 'seit der ersten eigenen Zeile' },
+];
+
+const PROOF = [
+  { value: 'unter 20 h', label: 'von der Idee bis zum Livegang', note: 'Konzept, Prototyp, Frontend, Backend, Datenhaltung, Deployment.' },
+  { value: '23 / 83',    label: 'Pull Requests und Commits',     note: 'Jede Änderung wurde einzeln geprüft, nicht in einem Rutsch hochgeladen.' },
+  { value: '1',          label: 'Entwickler',                    note: 'Begleitet von einem erfahrenen Senior-Entwickler, umgesetzt von mir.' },
+];
+---
+
+<Base
+  title="miwale — Michel Waggoner, Game Studio"
+  description="miwale ist das Ein-Personen-Game-Studio von Michel Waggoner. Spiele und Systeme, gebaut mit KI, getunt von Hand."
+>
+  <!-- ── Hero ───────────────────────────────────────────────────────── -->
+  <section class="mw-section mw-hero">
+    <div class="mw-wrap mw-hero__grid">
+      <div class="mw-hero__copy">
+        <p class="mw-eyebrow mw-hero__morph">
+          <span>Ich baue</span>
+          <MorphingText words={MORPH} />
+        </p>
+
+        <h1 class="mw-h1">
+          <span class="mw-hero__line">Gebaut mit KI,</span>
+          <LineShadowText>getunt von Hand</LineShadowText>
+        </h1>
+
+        <p class="mw-lead" data-reveal>
+          Ich entwerfe die Systeme, KI-Agenten schreiben den Code, und nichts geht raus,
+          das ich nicht selbst gespielt habe. Ein Bestellsystem läuft damit täglich in
+          einem Gasthof, zwei Spiele laufen im Browser.
+        </p>
+
+        <div class="mw-hero__actions">
+          <Button href="/projekte/" variant="primary" size="lg">Projekte ansehen</Button>
+          <Button href="/kontakt/" variant="ghost" size="lg">Kontakt</Button>
+        </div>
+      </div>
+
+      <GlassCard pad="lg" beam class="mw-hero__card">
+        <img class="mw-hero__whale" src="/assets/mascot-whale-light.png" alt="" width="72" height="72" />
+        <div class="mw-hero__stats">
+          <Stat value="1"    label="System im täglichen Einsatz" note="Bestellsystem im Gasthof Nüßleshof" />
+          <hr class="mw-rule" />
+          <Stat value="2"    label="Spiele, spielbar im Browser" note="Chromatic und Wavebreaker" />
+          <hr class="mw-rule" />
+          <Stat value="2024" label="erste eigene Zeile Code"     note="seitdem jeden Tag weiter" />
+        </div>
+        <TextType lines={TYPE_LINES} />
+      </GlassCard>
+    </div>
+  </section>
+
+  <!-- ── Wegweiser ──────────────────────────────────────────────────── -->
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow" data-reveal>Wo du hier was findest</p>
+      <h2 class="mw-h2" data-reveal>Drei Wege durch die Seite</h2>
+
+      <div class="mw-ways">
+        {WAYS.map((w, i) => (
+          <a class="mw-way" href={w.href} data-reveal style={`--reveal-delay:${i * 90}ms`}>
+            <span class="mw-way__n">{w.n}</span>
+            <span class="mw-way__title">{w.title}</span>
+            <span class="mw-way__text">{w.text}</span>
+            <span class="mw-way__cta">{w.cta} <span aria-hidden="true">→</span></span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <WaveWordmark />
+
+  <!-- ── Zahlen ─────────────────────────────────────────────────────── -->
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow" data-reveal>In Zahlen</p>
+
+      <div class="mw-grid mw-grid--4">
+        {BIG_STATS.map((s, i) => (
+          <div data-reveal style={`--reveal-delay:${i * 80}ms`}>
+            <GlassCard pad="md"><Stat {...s} /></GlassCard>
+          </div>
+        ))}
+      </div>
+
+      <div class="mw-grid mw-grid--4 mw-grid--tight">
+        {SMALL_STATS.map((s, i) => (
+          <div class="mw-ministat" data-reveal style={`--reveal-delay:${i * 70}ms`}>
+            <span class="mw-ministat__value">{s.value}</span>
+            <span class="mw-ministat__label">{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Beleg ──────────────────────────────────────────────────────── -->
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow" data-reveal>Der wichtigste Beleg</p>
+      <h2 class="mw-h2" data-reveal>
+        Ein System, das <Highlighter>Fremde täglich benutzen</Highlighter>
+      </h2>
+      <p class="mw-lead" data-reveal>
+        Das XRAI Order System ist kein Übungsprojekt. Gäste im Gasthof Nüßleshof scannen
+        den QR-Code am Tisch und bestellen; in der Küche läuft die Bestellung auf. Von den
+        ersten Gesprächen bis zu Deployment und DNS habe ich es allein umgesetzt.
+      </p>
+
+      <GlassCard pad="lg" class="mw-mt-lg">
+        <div class="mw-grid mw-grid--3">
+          {PROOF.map((s) => <Stat {...s} />)}
+        </div>
+      </GlassCard>
+
+      <div class="mw-hero__actions mw-mt-lg">
+        <Button href="/projekte/" variant="primary">Alle Projekte ansehen</Button>
+        <Button href="https://github.com/milchinien" variant="ghost" external>Code auf GitHub</Button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Warum es trägt ─────────────────────────────────────────────── -->
+  <section class="mw-section">
+    <div class="mw-wrap mw-grid mw-grid--2">
+      <div data-reveal>
+        <GlassCard pad="lg">
+          <p class="mw-eyebrow">Warum das trägt</p>
+          <h3 class="mw-h3">Erst das Dokument, dann der Code</h3>
+          <p class="mw-lead">
+            Bei Wavebreaker stand ein Design-Dokument über sechzehn Kapitel, bevor eine
+            Zeile Code existierte: Mechaniken, Klassen, Kurven und wie sie sich
+            gegenseitig beeinflussen.
+          </p>
+        </GlassCard>
+      </div>
+      <div data-reveal style="--reveal-delay:110ms">
+        <GlassCard pad="lg">
+          <p class="mw-eyebrow">Und warum es hält</p>
+          <h3 class="mw-h3">692 automatische Prüfungen</h3>
+          <p class="mw-lead">
+            Wavebreaker prüft sich nach jeder Änderung selbst: 692 kleine Testläufe rechnen
+            nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.
+          </p>
+        </GlassCard>
+      </div>
+    </div>
+  </section>
+</Base>

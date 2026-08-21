@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+import GlassCard from '../components/ds/GlassCard.astro';
+
+const MACHINE = [
+  { title: 'Implementierung', text: 'Aus meiner Spezifikation wird lauffähiger Code — ganze Module auf einmal.' },
+  { title: 'Prüfen',          text: 'Testläufe, Code Reviews und Security-Scans laufen KI-gestützt mit.' },
+  { title: 'Grafiken',        text: 'Kartenmotive, Hintergründe und Symbole entstehen zum Teil mit ChatGPT, 3D-Entwürfe über Blender.' },
+  { title: 'Werkzeugkette',   text: 'Über MCP-Server hängen die Werkzeuge direkt am Agenten, statt fünf Programme parallel offen zu haben.' },
+];
+
+const HUMAN = [
+  { title: 'Das Design-Dokument',     text: 'Mechaniken, Klassen, Kurven und ihre Wechselwirkungen. Bei Wavebreaker sechzehn Kapitel, bevor gebaut wurde.' },
+  { title: 'Architektur',             text: 'Dass die Spielsimulation die Oberfläche nicht kennen darf, war meine Entscheidung. Ohne sie wären die automatischen Prüfungen nicht möglich.' },
+  { title: 'Balancing und Spielgefühl', text: 'Zahlen, Tempo, Klang. Das lässt sich nicht generieren, das muss man spielen.' },
+  { title: 'Der letzte Blick',        text: 'Nichts geht in einen Build, das ich nicht selbst gelesen und ausprobiert habe.' },
+];
+
+const NUMBERS = [
+  { label: 'XRAI: Idee bis Livegang',      value: 'unter 20 h' },
+  { label: 'Wavebreaker: Design-Dokument', value: '16 Kapitel' },
+  { label: 'Wavebreaker: Prüfläufe grün',  value: '692 / 692' },
+  { label: 'Chromatic: Prüfläufe grün',    value: '59 / 59' },
+];
+---
+
+<Base
+  title="KI-Workflow — miwale"
+  description="Was die KI-Agenten übernehmen und welche Entscheidungen bei Michel Waggoner bleiben: Design-Dokument, Architektur, Balancing, der letzte Blick."
+>
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow">KI-Workflow</p>
+      <h1 class="mw-h1">Was die Agenten machen, und was ich mache</h1>
+      <p class="mw-lead" data-reveal>
+        KI ist Werkzeug, nicht Magie. Sie schreibt den Code und liefert erste Entwürfe.
+        Die Entscheidungen und das Spielgefühl bleiben bei mir.
+      </p>
+    </div>
+  </section>
+
+  <section class="mw-section">
+    <div class="mw-wrap mw-grid mw-grid--2">
+      <div data-reveal>
+        <GlassCard pad="lg">
+          <p class="mw-eyebrow">Die Maschine</p>
+          <h2 class="mw-h2">Claude Code und Codex</h2>
+          <dl class="mw-deflist">
+            {MACHINE.map((m) => (<>
+              <dt>{m.title}</dt>
+              <dd>{m.text}</dd>
+            </>))}
+          </dl>
+        </GlassCard>
+      </div>
+
+      <div data-reveal style="--reveal-delay:100ms">
+        <GlassCard pad="lg">
+          <p class="mw-eyebrow">Der Mensch</p>
+          <h2 class="mw-h2">Was bei mir bleibt</h2>
+          <dl class="mw-deflist">
+            {HUMAN.map((m) => (<>
+              <dt>{m.title}</dt>
+              <dd>{m.text}</dd>
+            </>))}
+          </dl>
+        </GlassCard>
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <GlassCard pad="lg">
+        <p class="mw-eyebrow">Was das bringt</p>
+        <h2 class="mw-h2" data-reveal>Tempo ist das Argument</h2>
+        <p class="mw-lead" data-reveal>
+          Das XRAI Order System ist in weniger als zwanzig Arbeitsstunden entstanden — von den
+          ersten Gesprächen mit den Nutzern bis zum laufenden Betrieb. So komme ich als
+          Einzelperson auf Ergebnisse, für die es sonst ein kleines Team braucht.
+        </p>
+
+        <ul class="mw-figures">
+          {NUMBERS.map((n) => (
+            <li class="mw-figures__row">
+              <span class="mw-figures__label">{n.label}</span>
+              <span class="mw-figures__value">{n.value}</span>
+            </li>
+          ))}
+        </ul>
+      </GlassCard>
+    </div>
+  </section>
+</Base>

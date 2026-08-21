@@ -1,2 +1,11 @@
 # Enthaelt persoenliche Daten - bleibt lokal
 brief.md
+
+node_modules/
+dist/
+.astro/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example

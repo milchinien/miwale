@@ -1,0 +1,211 @@
+---
+import Base from '../layouts/Base.astro';
+import GlassCard from '../components/ds/GlassCard.astro';
+import Button from '../components/ds/Button.astro';
+import Tag from '../components/ds/Tag.astro';
+
+const SIDE_PROJECTS = [
+  { name: 'michi-mathe-universe',  text: 'Lernspiel-Experiment rund um Mathe-Aufgaben.' },
+  { name: 'mindforge-playground',  text: 'Spielwiese für Mechaniken, die noch kein Zuhause haben.' },
+  { name: 'dungeon-and-diplomas',  text: 'Dungeon-Crawler-Idee mit Schul-Thema.' },
+  { name: 'The Last Outpost',      text: 'Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem, Skilltrees.' },
+];
+---
+
+<Base
+  title="Projekte — miwale"
+  description="Chromatic, Wavebreaker und das XRAI Order System: was Michel Waggoner gebaut hat, mit Zeitstrahl, Zahlen und Links zu den Repositories."
+>
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow">Projekte</p>
+      <h1 class="mw-h1">Alles, was bisher entstanden ist</h1>
+      <p class="mw-lead" data-reveal>
+        Öffentlich auf GitHub, mit Commits und Tests. Scroll weiter, dann geht es nach unten.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Tauchgang ──────────────────────────────────────────────────────
+       --dive kommt aus ocean.ts und steuert hier Logo und Hinweis; den
+       Tiefenschleier im Hintergrund treibt dieselbe Variable mit an. -->
+  <section class="mw-dive" data-dive-root>
+    <div class="mw-dive__sticky">
+      <img class="mw-dive__logo" src="/assets/logo-wordmark-light.png" alt="miwale" width="340" height="120" />
+      <span class="mw-dive__hint">Scrollen, um abzutauchen</span>
+      <span class="mw-dive__arrow" aria-hidden="true"></span>
+    </div>
+  </section>
+
+  <!-- ── Zeitleiste ─────────────────────────────────────────────────── -->
+  <section class="mw-section" data-timeline>
+    <div class="mw-wrap">
+      <p class="mw-eyebrow" data-reveal>Zeitleiste</p>
+      <h2 class="mw-h2" data-reveal>Von der ersten Zeile Code bis heute</h2>
+
+      <ol class="mw-tl">
+        <!-- 2024 -->
+        <li class="mw-tl__item" data-reveal>
+          <div class="mw-tl__head">
+            <span class="mw-tl__dot" aria-hidden="true"></span>
+            <div>
+              <span class="mw-tl__date">13. Juni 2024</span>
+              <span class="mw-tl__title">Flappy-Prototyp</span>
+            </div>
+          </div>
+          <div class="mw-tl__body">
+            <p class="mw-lead">
+              Mein erstes eigenes Spiel: ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam
+              von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools
+              gab es damals noch nicht.
+            </p>
+            <div class="mw-tags">
+              <Tag>Unity</Tag><Tag>eigene Assets</Tag><Tag>nicht veröffentlicht</Tag>
+            </div>
+          </div>
+        </li>
+
+        <!-- Order System -->
+        <li class="mw-tl__item" data-reveal>
+          <div class="mw-tl__head">
+            <span class="mw-tl__dot" aria-hidden="true"></span>
+            <div>
+              <span class="mw-tl__date">2025</span>
+              <span class="mw-tl__title">XRAI Order System</span>
+            </div>
+          </div>
+          <div class="mw-tl__body">
+            <p class="mw-lead">
+              Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und
+              bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie
+              abarbeitet — echter Betrieb, keine Übung.
+            </p>
+
+            <a class="mw-pin" href="https://github.com/milchinien/xrai.order-system" target="_blank" rel="noopener noreferrer">
+              <GlassCard pad="lg">
+                <span class="mw-pin__flag">Im Einsatz</span>
+                <h3 class="mw-h3">Bestellsystem für die Gastronomie</h3>
+                <p class="mw-lead">
+                  Von den ersten Gesprächen über Konzept, Frontend, Backend und Datenhaltung bis
+                  zu Reviews, Security-Scans, Container, CI/CD, Deployment und DNS. Alles allein,
+                  in unter zwanzig Arbeitsstunden.
+                </p>
+                <div class="mw-grid mw-grid--3 mw-mt-lg">
+                  <div class="mw-ministat"><span class="mw-ministat__value">unter 20 h</span><span class="mw-ministat__label">bis zum Livegang</span></div>
+                  <div class="mw-ministat"><span class="mw-ministat__value">23</span><span class="mw-ministat__label">Pull Requests</span></div>
+                  <div class="mw-ministat"><span class="mw-ministat__value">83</span><span class="mw-ministat__label">Commits</span></div>
+                </div>
+                <p class="mw-pin__note">Screenshots folgen: Gästeansicht und Küchenansicht</p>
+              </GlassCard>
+            </a>
+          </div>
+        </li>
+
+        <!-- Chromatic -->
+        <li class="mw-tl__item" data-reveal>
+          <div class="mw-tl__head">
+            <span class="mw-tl__dot" aria-hidden="true"></span>
+            <div>
+              <span class="mw-tl__date">August 2025</span>
+              <span class="mw-tl__title">Chromatic</span>
+            </div>
+          </div>
+          <div class="mw-tl__body">
+            <p class="mw-lead">
+              Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf
+              ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und
+              erzeugen Auren, die den Kampf drehen können.
+            </p>
+
+            <a class="mw-pin" href="https://github.com/milchinien/Chromatic" target="_blank" rel="noopener noreferrer">
+              <GlassCard pad="lg">
+                <span class="mw-pin__flag">Spielbar</span>
+                <h3 class="mw-h3">Roguelite-Deckbuilder · TypeScript, DOM und Canvas</h3>
+                <p class="mw-lead">
+                  Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis
+                  zum Endboss. Kein Framework, keine Engine: Oberfläche im DOM, Kampf auf Canvas,
+                  Klang prozedural erzeugt. 59 Prüfläufe sichern die Kampflogik ab.
+                </p>
+                <div class="mw-shots">
+                  <img src="/assets/games/chromatic-akt-1.png"   alt="Aktauswahl aus Chromatic" loading="lazy" decoding="async" />
+                  <img src="/assets/games/chromatic-card-1.png"  alt="Karte aus Chromatic" loading="lazy" decoding="async" />
+                  <img src="/assets/games/chromatic-card-2.png"  alt="Karte aus Chromatic" loading="lazy" decoding="async" />
+                  <img src="/assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic" loading="lazy" decoding="async" />
+                </div>
+              </GlassCard>
+            </a>
+          </div>
+        </li>
+
+        <!-- Wavebreaker -->
+        <li class="mw-tl__item" data-reveal>
+          <div class="mw-tl__head">
+            <span class="mw-tl__dot" aria-hidden="true"></span>
+            <div>
+              <span class="mw-tl__date">Ende 2025</span>
+              <span class="mw-tl__title">Wavebreaker</span>
+            </div>
+          </div>
+          <div class="mw-tl__body">
+            <p class="mw-lead">
+              Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die
+              Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige. Vor der ersten Zeile
+              Code stand ein Design-Dokument über sechzehn Kapitel.
+            </p>
+
+            <a class="mw-pin" href="https://github.com/milchinien/Wavebreaker" target="_blank" rel="noopener noreferrer">
+              <GlassCard pad="lg">
+                <span class="mw-pin__flag">In Politur</span>
+                <h3 class="mw-h3">Idle-Verteidigung · TypeScript</h3>
+                <p class="mw-lead">
+                  Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils
+                  einer Quelle. Deshalb kann sich das Spiel selbst prüfen: 692 kleine Testläufe
+                  rechnen nach jeder Änderung nach, ob Schaden, Kosten und Wellen noch stimmen.
+                  Alle 692 laufen grün durch.
+                </p>
+                <div class="mw-wb">
+                  <img src="/assets/games/wb-station.svg" alt="Stationsgrafik aus Wavebreaker" loading="lazy" decoding="async" />
+                  <div>
+                    <span class="mw-ministat__value">692 / 692</span>
+                    <span class="mw-ministat__label">
+                      Prüfläufe bestanden, Typecheck fehlerfrei. Offen sind Spielgefühl, Klang und Balancing.
+                    </span>
+                  </div>
+                </div>
+              </GlassCard>
+            </a>
+          </div>
+        </li>
+
+        <!-- Prototypen -->
+        <li class="mw-tl__item" data-reveal>
+          <div class="mw-tl__head">
+            <span class="mw-tl__dot" aria-hidden="true"></span>
+            <div>
+              <span class="mw-tl__date">daneben</span>
+              <span class="mw-tl__title">Prototypen und Design-Dokumente</span>
+            </div>
+          </div>
+          <div class="mw-tl__body">
+            <p class="mw-lead">
+              Nicht jedes Projekt ist fertig, und das steht hier auch so. Diese haben mir vor
+              allem gezeigt, wie ich arbeiten will.
+            </p>
+            <div class="mw-grid mw-grid--2">
+              {SIDE_PROJECTS.map((p) => (
+                <div class="mw-side">
+                  <span class="mw-side__name">{p.name}</span>
+                  <span class="mw-side__text">{p.text}</span>
+                </div>
+              ))}
+            </div>
+            <div class="mw-hero__actions">
+              <Button href="https://github.com/milchinien" variant="primary" external>Alle Repositories</Button>
+              <Button href="https://milchinien.itch.io/" variant="ghost" external>itch.io</Button>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+</Base>

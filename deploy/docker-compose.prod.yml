@@ -1,0 +1,30 @@
+# miwale.com — Produktion auf dev-cloud.
+#
+# Das Image kommt aus GHCR und wird von der GitHub-Action auf main gebaut.
+# Der Server zieht es selbst (siehe miwale-deploy.sh): dadurch braucht die
+# Pipeline keinen eingehenden Zugang zum Server – der haengt hinter Tailscale
+# und hat keinen offenen SSH-Port.
+#
+# Ingress ist das geteilte campsite-nginx aus dem Repo dev-cloud-server-config.
+# Der Vertrag nach aussen: Containername `miwale`, Port 8080, Netz campsite-net.
+services:
+  miwale:
+    image: ghcr.io/milchinien/miwale:latest
+    container_name: miwale
+    restart: unless-stopped
+    networks:
+      - campsite-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  campsite-net:
+    external: true
+    name: xrai-campsite-manager_campsite-net

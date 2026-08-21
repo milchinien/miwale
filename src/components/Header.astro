@@ -1,0 +1,32 @@
+---
+import { NAV, isActive } from '../nav';
+const path = Astro.url.pathname;
+---
+
+<header class="mw-header" transition:persist="header">
+  <div class="mw-header__inner">
+    <a class="mw-header__brand" href="/" aria-label="miwale — zur Startseite">
+      <img src="/assets/logo-wordmark-light.png" alt="miwale" width="120" height="42" />
+      <span class="mw-header__rule" aria-hidden="true"></span>
+      <span class="mw-header__name">Michel Waggoner</span>
+    </a>
+
+    <nav class="mw-header__nav" aria-label="Hauptnavigation">
+      <div class="mw-tabs mw-tabs--glass">
+        {NAV.map((item) => (
+          <a
+            class:list={['mw-tabs__tab', isActive(item.href, path) && 'mw-tabs__tab--on']}
+            href={item.href}
+            aria-current={isActive(item.href, path) ? 'page' : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </nav>
+
+    <span class="mw-header__badge">
+      <span class="mw-badge mw-badge--glass">17 · DE</span>
+    </span>
+  </div>
+</header>

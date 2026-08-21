@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import GlassCard from '../components/ds/GlassCard.astro';
+import Button from '../components/ds/Button.astro';
+
+const CHANNELS = [
+  { label: 'E-Mail',  value: 'michi.waggoner@gmail.com', href: 'mailto:michi.waggoner@gmail.com', note: 'Der direkteste Weg.' },
+  { label: 'GitHub',  value: 'github.com/milchinien',    href: 'https://github.com/milchinien',   note: 'Alle Projekte offen, mit Commits und Tests.' },
+  { label: 'itch.io', value: 'milchinien.itch.io',       href: 'https://milchinien.itch.io/',     note: 'Wo die spielbaren Builds landen.' },
+];
+---
+
+<Base
+  title="Kontakt — miwale"
+  description="Ein Projekt, ein Ausbildungsplatz oder eine Frage zu einem der Repositories: so erreichst du Michel Waggoner."
+>
+  <section class="mw-section">
+    <div class="mw-wrap">
+      <p class="mw-eyebrow">Kontakt</p>
+      <h1 class="mw-h1">Schreib mir einfach</h1>
+      <p class="mw-lead" data-reveal>
+        Ein Projekt, ein Ausbildungsplatz, eine Frage zu einem der Repositories oder Lust,
+        etwas zu testen — alles willkommen.
+      </p>
+      <div class="mw-hero__actions">
+        <Button href="mailto:michi.waggoner@gmail.com" variant="primary" size="lg">
+          E-Mail an michi.waggoner@gmail.com
+        </Button>
+      </div>
+    </div>
+  </section>
+
+  <section class="mw-section">
+    <div class="mw-wrap mw-grid mw-grid--3">
+      {CHANNELS.map((c, i) => (
+        <div data-reveal style={`--reveal-delay:${i * 90}ms`}>
+          <GlassCard pad="lg" class="mw-channel">
+            <span class="mw-eyebrow">{c.label}</span>
+            <a class="mw-channel__value" href={c.href}
+               target={c.href.startsWith('http') ? '_blank' : undefined}
+               rel={c.href.startsWith('http') ? 'noopener noreferrer' : undefined}>{c.value}</a>
+            <span class="mw-channel__note">{c.note}</span>
+          </GlassCard>
+        </div>
+      ))}
+    </div>
+  </section>
+</Base>
