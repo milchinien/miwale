@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import GlassCard from '../components/ds/GlassCard.astro';
 import Button from '../components/ds/Button.astro';
 import Tag from '../components/ds/Tag.astro';
+import GameArcade from '../components/GameArcade.astro';
 
 const SIDE_PROJECTS = [
   { name: 'michi-mathe-universe',  text: 'Lernspiel-Experiment rund um Mathe-Aufgaben.' },
@@ -14,7 +15,7 @@ const SIDE_PROJECTS = [
 
 <Base
   title="Projekte — miwale"
-  description="Chromatic, Wavebreaker und das XRAI Order System: was Michel Waggoner gebaut hat, mit Zeitstrahl, Zahlen und Links zu den Repositories."
+  description="Chromatic, Wavebreaker, Runecall, Dropfall und Harmonics direkt im Browser spielen."
 >
   <section class="mw-section">
     <div class="mw-wrap">
@@ -25,6 +26,8 @@ const SIDE_PROJECTS = [
       </p>
     </div>
   </section>
+
+  <GameArcade />
 
   <!-- ── Tauchgang ──────────────────────────────────────────────────────
        --dive kommt aus ocean.ts und steuert hier Logo und Hinweis; den
