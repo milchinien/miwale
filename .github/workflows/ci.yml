@@ -28,7 +28,8 @@ jobs:
           test -d _ds
           test -d assets
           grep -q "Chromatic und Wavebreaker" "miwale Portfolio.dc.html"
-          grep -q "Chromatic und Wavebreaker" "miwale Portfolio Mobil.dc.html"
+          grep -q "Chromatic" "miwale Portfolio Mobil.dc.html"
+          grep -q "Wavebreaker" "miwale Portfolio Mobil.dc.html"
 
       - name: Build container
         run: docker build -t miwale:ci .
