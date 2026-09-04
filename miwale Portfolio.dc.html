@@ -192,14 +192,14 @@
         <div style="position: relative; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 60px; align-items: center;">
           <div style="display: flex; flex-direction: column; gap: 20px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300); display: flex; align-items: center; gap: 8px;">
-              <span>Ich baue</span>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MorphingText" texts="{{ morphWords }}" hint-size="auto,auto"></x-import>
+              <span>Game Developer &amp; Software-Entwickler</span>
             </span>
-            <h1 style="margin: 0; font: var(--type-display); font-size: var(--text-5xl); letter-spacing: var(--track-tight); color: #fff; max-width: 18ch;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Gebaut mit KI," trigger="mount" hint-size="auto,auto"></x-import>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">getunt von Hand</x-import>
+            <h1 style="margin: 0; font: var(--type-display); font-size: var(--text-5xl); letter-spacing: var(--track-tight); color: #fff; max-width: 18ch; display: flex; flex-direction: column; gap: 2px;">
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Ich baue" trigger="mount" hint-size="auto,auto"></x-import>
+              <span style="color: var(--aqua-100);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MorphingText" texts="{{ morphWords }}" hint-size="auto,auto"></x-import></span>
             </h1>
-            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">Ich entwerfe die Systeme, KI-Agenten schreiben den Code, und nichts geht raus, das ich nicht selbst gespielt habe. Ein Bestellsystem läuft damit täglich in einem Gasthof, zwei Spiele laufen im Browser.</p>
+            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">Ein Bestellsystem läuft täglich in einem Gasthof, zwei Spiele laufen im Browser. Ich entwerfe die Systeme, prüfe jede Änderung und gebe nichts raus, das ich nicht selbst gespielt habe.</p>
+            <span data-reveal style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">Gebaut mit KI, getunt von Hand</x-import></span>
             <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 4px;">
               <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="aqua" on-click="{{ goGames }}" hint-size="auto,46px">Projekte ansehen</x-import>
               <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="deep" on-click="{{ goContact }}" hint-size="auto,46px">Kontakt</x-import>
@@ -234,31 +234,15 @@
         </div>
       </section>
 
-      <section style="position: relative; padding: 8px 32px 96px;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;">
+      <section style="position: relative; padding: 8px 32px 88px;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px;">
           <div style="display: flex; flex-direction: column; gap: 10px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wo du hier was findest</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Drei Wege durch die Seite</h2>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zum Ansehen</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Zwei Spiele, gebaut ohne Engine</h2>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-            <button type="button" onClick="{{ goGames }}" style="text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: 24px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms;" style-hover="{{ navCardHover }}">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">01</span>
-              <span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">Projekte</span>
-              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Was ich gebaut habe, mit Zeitstrahl, Zahlen und Links zu den Repositories.</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300); padding-top: 4px;">Ansehen →</span>
-            </button>
-            <button type="button" onClick="{{ goAbout }}" style="text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: 24px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms;" style-hover="{{ navCardHover }}">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">02</span>
-              <span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">Über mich</span>
-              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Wie ich vom Praktikum zum eigenen Studio gekommen bin, und wie ich arbeite.</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300); padding-top: 4px;">Lesen →</span>
-            </button>
-            <button type="button" onClick="{{ goAi }}" style="text-align: left; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 10px; padding: 26px; border-radius: 24px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); transition: transform 220ms cubic-bezier(.22,.61,.36,1), background 220ms;" style-hover="{{ navCardHover }}">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">03</span>
-              <span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">KI-Workflow</span>
-              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Was die Agenten übernehmen, und welche Entscheidungen bei mir bleiben.</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300); padding-top: 4px;">Ansehen →</span>
-            </button>
+          <div data-reveal style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MediaCard" image="assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic mit Karten am unteren Rand" title="Chromatic" meta="Roguelite-Deckbuilder · 25 Karten im Deck, spielbar bis zum Endboss" height="{{ 300 }}" on-click="{{ goGames }}" hint-size="100%,300px"></x-import>
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MediaCard" image="assets/games/wb-sky.svg" alt="Himmelsgrafik aus Wavebreaker" title="Wavebreaker" meta="Idle-Verteidigung · 692 von 692 Prüfläufen grün, noch in Politur" height="{{ 300 }}" on-click="{{ goGames }}" hint-size="100%,300px"></x-import>
           </div>
         </div>
       </section>
@@ -272,13 +256,13 @@
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
             <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
               <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">751</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">automatische Tests</span>
-              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">prüfen meine Spiele nach jeder Änderung selbst</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">automatische Tests, alle grün</span>
+              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">692 in Wavebreaker, 59 in Chromatic: sie rechnen Schaden, Kosten und Wellen nach jeder Änderung nach</span>
             </div>
             <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
-              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">106</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Änderungen dokumentiert</span>
-              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">83 Commits und 23 Pull Requests im Bestellsystem</span>
+              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">83</span>
+              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Commits im Bestellsystem</span>
+              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">dazu 23 Pull Requests: jede Änderung ging einzeln durch ein Review</span>
             </div>
             <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
               <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">16</span>
@@ -315,20 +299,20 @@
                 <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Konzept, Prototyp, Frontend, Backend, Datenhaltung, Deployment.</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">23 / 83</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm);">Pull Requests und Commits</span>
+                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">83</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm);">Commits, dazu 23 Pull Requests</span>
                 <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Jede Änderung wurde einzeln geprüft, nicht in einem Rutsch hochgeladen.</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
                 <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">1</span>
                 <span style="font: var(--type-label); font-size: var(--text-sm);">Entwickler</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Begleitet von einem erfahrenen Senior-Entwickler, umgesetzt von mir.</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Architektur, Umsetzung, Tests und Deployment von mir; Review durch einen erfahrenen Senior-Entwickler.</span>
               </div>
             </div>
           </x-import>
           <div style="display: flex; gap: 14px; flex-wrap: wrap;">
             <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" on-click="{{ goGames }}" hint-size="auto,44px">Alle Projekte ansehen</x-import>
-            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" variant="secondary" hint-size="auto,44px">Code auf GitHub</x-import>
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,44px">Code auf GitHub</x-import>
           </div>
         </div>
       </section>
@@ -337,14 +321,12 @@
         <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
             <div style="display: flex; flex-direction: column; gap: 12px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Warum das trägt</span>
               <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">Erst das Dokument, dann der Code</h3>
               <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Bei Wavebreaker stand ein Design-Dokument über sechzehn Kapitel, bevor eine Zeile Code existierte: Mechaniken, Klassen, Kurven und wie sie sich gegenseitig beeinflussen.</p>
             </div>
           </x-import>
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
             <div style="display: flex; flex-direction: column; gap: 12px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Und warum es hält</span>
               <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">692 automatische Prüfungen</h3>
               <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Wavebreaker prüft sich nach jeder Änderung selbst: 692 kleine Testläufe rechnen nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.</p>
             </div>
@@ -462,7 +444,7 @@
           <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
             <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.</p>
           <div style="perspective: 1200px;">
-            <a href="https://github.com/milchinien/xrai.order-system" style="display: block; text-decoration: none;">
+            <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none;">
               <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
                 <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">Im Einsatz</span>
                 <div style="display: flex; flex-direction: column; gap: 16px;">
@@ -474,6 +456,7 @@
                     <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">83</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Commits</span></div>
                   </div>
                   <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Screenshots folgen: Gästeansicht und Küchenansicht</span>
+                  <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Kundenprojekt, Repository nicht öffentlich →</span>
                 </div>
               </div>
             </a>
@@ -494,18 +477,26 @@
           <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
             <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.</p>
           <div style="perspective: 1200px;">
-            <a href="https://github.com/milchinien/Chromatic" style="display: block; text-decoration: none;">
+            <a href="https://github.com/milchinien/Chromatic" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none;">
               <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
                 <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">Spielbar</span>
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                   <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Roguelite-Deckbuilder · TypeScript, DOM und Canvas</span>
-                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis zum Endboss. Kein Framework, keine Engine: Oberfläche im DOM, Kampf auf Canvas, Klang prozedural erzeugt. 59 Prüfläufe sichern die Kampflogik ab.</p>
-                  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                    <img src="assets/games/chromatic-akt-1.png" alt="Aktauswahl aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
-                    <img src="assets/games/chromatic-card-1.png" alt="Karte aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
-                    <img src="assets/games/chromatic-card-2.png" alt="Karte aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
-                    <img src="assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic" style="width: 100%; height: 96px; object-fit: cover; border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis zum Endboss. Kein Framework, keine Engine: Oberfläche im DOM, Kampf auf Canvas, Klang prozedural erzeugt. 59 Prüfläufe sichern die Kampflogik ab, alle grün.</p>
+                  <div style="display: grid; grid-template-columns: 1.7fr 1fr; gap: 10px;">
+                    <img src="assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic" style="width: 100%; height: 250px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);">
+                    <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 10px;">
+                      <img src="assets/games/chromatic-akt-1.png" alt="Aktauswahl aus Chromatic" style="width: 100%; height: 120px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);">
+                      <img src="assets/games/chromatic-kampf-2.png" alt="Zweiter Kampfraum aus Chromatic" style="width: 100%; height: 120px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);">
+                    </div>
                   </div>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                    <img src="assets/games/chromatic-card-1.png" alt="Karte aus dem Chromatic-Deck" style="width: 100%; height: 150px; object-fit: contain; background: rgba(255,255,255,.04); border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                    <img src="assets/games/chromatic-card-2.png" alt="Karte aus dem Chromatic-Deck" style="width: 100%; height: 150px; object-fit: contain; background: rgba(255,255,255,.04); border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                    <img src="assets/games/chromatic-card-3.png" alt="Karte aus dem Chromatic-Deck" style="width: 100%; height: 150px; object-fit: contain; background: rgba(255,255,255,.04); border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
+                  </div>
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Aktauswahl, zwei Kampfräume und drei Karten aus dem 25er-Deck.</span>
+                  <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Code auf GitHub ansehen →</span>
                 </div>
               </div>
             </a>
@@ -526,21 +517,32 @@
           <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
             <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige. Vor der ersten Zeile Code stand ein Design-Dokument über sechzehn Kapitel.</p>
           <div style="perspective: 1200px;">
-            <a href="https://github.com/milchinien/Wavebreaker" style="display: block; text-decoration: none;">
+            <a href="https://github.com/milchinien/Wavebreaker" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none;">
               <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
                 <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">In Politur</span>
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                   <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Idle-Verteidigung · TypeScript</span>
                   <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Deshalb kann sich das Spiel selbst prüfen: 692 kleine Testläufe rechnen nach jeder Änderung nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.</p>
-                  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: center;">
-                    <div style="border-radius: 16px; border: 1px solid rgba(255,255,255,.16); background: linear-gradient(165deg, #04161F 0%, #0A3446 100%); min-height: 150px; display: grid; place-items: center;">
-                      <img src="assets/games/wb-station.svg" alt="Stationsgrafik aus Wavebreaker" style="width: 62%;">
+                  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: stretch;">
+                    <div style="position: relative; overflow: hidden; border-radius: 16px; border: 1px solid rgba(255,255,255,.16); background: linear-gradient(165deg, #04161F 0%, #0A3446 100%); min-height: 200px; display: grid; place-items: center;">
+                      <img src="assets/games/wb-sky.svg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55;">
+                      <img src="assets/games/wb-station.svg" alt="Kampfstation aus Wavebreaker" style="position: relative; width: 62%;">
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center;">
                       <span style="font: var(--type-h2); font-size: var(--text-2xl); color: var(--aqua-300);">692 / 692</span>
                       <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Prüfläufe bestanden, Typecheck fehlerfrei. Offen sind Spielgefühl, Klang und Balancing.</span>
                     </div>
                   </div>
+                  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
+                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-turret.svg" alt="Turm aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
+                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-boss.svg" alt="Boss aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
+                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-hull.svg" alt="Rumpf aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
+                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-upgrade.svg" alt="Ausbau-Symbol aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
+                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-coin.svg" alt="Währung aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
+                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-frame-mythic.svg" alt="Raritätsrahmen aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
+                  </div>
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Turm, Boss, Rumpf, Ausbau, Währung und Raritätsrahmen — Originalgrafiken aus dem Spiel.</span>
+                  <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Code auf GitHub ansehen →</span>
                 </div>
               </div>
             </a>
@@ -579,8 +581,8 @@
               </div>
             </div>
             <div style="display: flex; gap: 12px; padding-top: 8px;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" hint-size="auto,42px">Alle Repositories</x-import>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://milchinien.itch.io/" variant="secondary" hint-size="auto,42px">itch.io</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">Alle Repositories</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,42px">itch.io</x-import>
             </div>
           </div>
         </div>
@@ -643,7 +645,7 @@
               <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">seit 2025</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
                 <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Arbeit im Betrieb, Entwicklung daneben</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich arbeite bei meinem Vater mit und entwickle täglich. Begleitet von einem erfahrenen Senior-Entwickler, umgesetzt eigenständig. So ist das XRAI Order System entstanden.</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich arbeite bei meinem Vater mit und entwickle täglich. Konzept, Umsetzung und Deployment liegen bei mir, ein erfahrener Senior-Entwickler liest gegen. So ist das XRAI Order System entstanden.</span>
               </div>
             </div>
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
@@ -856,7 +858,7 @@
               </div>
               <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Ich schreibe hier nichts hin, nur damit die Seite voll ist.</p>
               <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" hint-size="auto,42px">Commits auf GitHub lesen</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">Commits auf GitHub lesen</x-import>
                 <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" variant="secondary" hint-size="auto,42px">Benachrichtigt werden</x-import>
               </div>
             </div>
@@ -897,14 +899,14 @@
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">GitHub</span>
-            <a href="https://github.com/milchinien" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">github.com/milchinien</a>
+            <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">github.com/milchinien</a>
             <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Alle Projekte offen, mit Commits und Tests.</span>
           </div>
         </x-import>
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">itch.io</span>
-            <a href="https://milchinien.itch.io/" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">milchinien.itch.io</a>
+            <a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">milchinien.itch.io</a>
             <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Wo die spielbaren Builds landen.</span>
           </div>
         </x-import>
@@ -920,15 +922,14 @@
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
         <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 26px; width: auto;">
         <div style="display: flex; gap: 20px;">
-          <a href="https://github.com/milchinien" style="font: var(--type-label); color: var(--aqua-300);">GitHub</a>
-          <a href="https://milchinien.itch.io/" style="font: var(--type-label); color: var(--aqua-300);">itch.io</a>
+          <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">GitHub</a>
+          <a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">itch.io</a>
           <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">E-Mail</a>
         </div>
       </div>
       <div style="padding: 20px 22px; border-radius: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); display: flex; flex-direction: column; gap: 6px;">
         <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.55);">Impressum</span>
         <span style="font: var(--type-body-sm); color: rgba(237,243,249,.78);">Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com</span>
-        <span style="font: var(--type-body-sm); color: rgba(237,243,249,.5);">Anschrift wird ergänzt, sobald die Seite öffentlich erreichbar ist.</span>
       </div>
       <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">miwale · Michel Waggoner · Deutschland</span>
     </div>
@@ -1055,7 +1056,6 @@ class Component extends DCLogic {
   scanReveal() {
     const vh = window.innerHeight || 800;
     const now = Date.now();
-    if (!this.firstScan) this.firstScan = now;
     const pend = document.querySelectorAll('[data-reveal]:not([data-shown="1"])');
     for (let i = 0; i < pend.length; i++) {
       const el = pend[i];
@@ -1129,15 +1129,11 @@ class Component extends DCLogic {
       isDevlog: tab === "devlog",
       isContact: tab === "contact",
       goGames: this.go("games"),
-      goAbout: this.go("about"),
-      goAi: this.go("ai"),
       goContact: this.go("contact"),
 
       pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
 
       heroCardStyle: { position: "relative", display: "flex", flexDirection: "column", gap: 22 },
-      relStyle: { position: "relative" },
-      navCardHover: { transform: "translateY(-3px)", background: "rgba(255,255,255,.16)" },
 
       morphWords: ["Spiele", "Systeme", "Werkzeuge", "Prototypen"],
       typeLines: [

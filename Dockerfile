@@ -1,20 +1,12 @@
-# ── Build ───────────────────────────────────────────────────────────────
-FROM node:24-alpine AS build
-WORKDIR /app
-
-# Erst nur die Manifeste: solange die sich nicht aendern, bleibt der
-# npm-ci-Layer im Cache und der Build ist schnell.
-COPY package.json package-lock.json ./
-RUN npm ci
-
-COPY . .
-RUN npm run build
-
-# ── Runtime ─────────────────────────────────────────────────────────────
-FROM nginx:alpine AS runtime
+FROM nginx:alpine
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY index.html /usr/share/nginx/html/index.html
+COPY ["miwale Portfolio.dc.html", "/usr/share/nginx/html/miwale Portfolio.dc.html"]
+COPY ["miwale Portfolio Mobil.dc.html", "/usr/share/nginx/html/miwale Portfolio Mobil.dc.html"]
+COPY support.js /usr/share/nginx/html/support.js
+COPY _ds /usr/share/nginx/html/_ds
+COPY assets /usr/share/nginx/html/assets
 
 EXPOSE 8080
 
