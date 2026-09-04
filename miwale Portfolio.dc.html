@@ -596,6 +596,25 @@
     </div>
   </sc-if>
 
+  <sc-if value="{{ isPlay }}" hint-placeholder-val="{{ false }}">
+    <div data-mw-anim="play" class="mw-dark" style="min-height: calc(100vh - 64px); animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+      <section style="position: relative; overflow: hidden; padding: 76px 32px 96px;">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Direkt im Browser</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Meine Projekte testen</h1>
+          <p style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.78); max-width: 52ch;">Wähle ein Spiel aus. Es öffnet sich direkt auf dieser Seite und beginnt mit dem gemeinsamen miwale-Ladebildschirm.</p>
+          <div data-reveal style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 12px;">
+            <button type="button" onClick="{{ playChromatic }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Chromatic<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playWavebreaker }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Wavebreaker<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playRunecall }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Runecall<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playDropfall }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Dropfall<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playHarmonics }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Harmonics<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ true }}">
     <div data-mw-anim="about" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
 
@@ -934,13 +953,22 @@
       <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">miwale · Michel Waggoner · Deutschland</span>
     </div>
   </footer>
+  <sc-if value="{{ gameOpen }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 9999; padding: 18px; background: rgba(1,10,17,.92); backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1500px; width: 100%; margin: 0 auto;">
+        <span style="font: var(--type-h3); color: #fff;">{{ gameName }}</span>
+        <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 10px 18px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label); cursor: pointer;">Spiel schließen ×</button>
+      </div>
+      <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="flex: 1; width: 100%; max-width: 1500px; margin: 0 auto; border: 1px solid rgba(127,224,238,.28); border-radius: 18px; background: #050b10;"></iframe>
+    </div>
+  </sc-if>
   </div>
 </div>
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{}">
 class Component extends DCLogic {
-  state = { tab: "start" };
+  state = { tab: "start", game: null, projectsVisited: false };
 
   // Die Ebenen werden bei jedem Frame frisch aus dem DOM geholt, damit ein
   // Re-Render (Tabwechsel) die Anbindung nicht abreißen lässt.
@@ -1078,11 +1106,19 @@ class Component extends DCLogic {
     };
     window.addEventListener("scroll", this.onScroll, { passive: true });
     window.addEventListener("resize", this.onScroll);
+    this.onKey = (e) => { if (e.key === "Escape" && this.state.game) this.setState({ game: null }); };
+    window.addEventListener("keydown", this.onKey);
     this.paintDepth();
     this.sizeTimer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
   }
 
   componentDidUpdate() {
+    document.body.style.overflow = this.state.game ? "hidden" : "";
+    const frame = this.el("gameFrame");
+    if (frame) {
+      const wanted = this.gameUrl();
+      if (frame.getAttribute("src") !== wanted) frame.setAttribute("src", wanted);
+    }
     this.paintDepth();
     requestAnimationFrame(() => this.scanReveal());
   }
@@ -1090,14 +1126,16 @@ class Component extends DCLogic {
   componentWillUnmount() {
     window.removeEventListener("scroll", this.onScroll);
     window.removeEventListener("resize", this.onScroll);
+    window.removeEventListener("keydown", this.onKey);
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.sizeTimer) clearInterval(this.sizeTimer);
+    document.body.style.overflow = "";
   }
 
   go(t) {
     return () => {
       if (t === this.state.tab) return;
-      this.setState({ tab: t });
+      this.setState({ tab: t, projectsVisited: this.state.projectsVisited || t === "games" });
       // Sofort nach oben springen, nicht animiert: eine laufende Scroll-Animation
       // über eine neue, kürzere Seite lässt den Tiefenschleier kurz zulaufen.
       try {
@@ -1109,27 +1147,44 @@ class Component extends DCLogic {
     };
   }
 
+  gameUrl() {
+    const id = this.state.game && this.state.game.id;
+    return id ? "https://milchinien.github.io/" + ({ chromatic: "Chromatic", wavebreaker: "Wavebreaker", runecall: "Runecall", dropfall: "Dropfall", harmonics: "Harmonics" }[id]) + "/" : "about:blank";
+  }
+
   renderVals() {
     const tab = this.state.tab;
+    const play = (id, name) => () => this.setState({ game: { id, name } });
+    const tabItems = [
+      { value: "start", label: "Start" },
+      { value: "games", label: "Projekte" },
+      { value: "about", label: "Über mich" },
+      { value: "ai", label: "KI-Workflow" },
+      { value: "devlog", label: "Devlog" },
+      { value: "contact", label: "Kontakt" }
+    ];
+    if (this.state.projectsVisited) tabItems.splice(2, 0, { value: "play", label: "Meine Projekte testen" });
     return {
       tab,
-      tabItems: [
-        { value: "start", label: "Start" },
-        { value: "games", label: "Projekte" },
-        { value: "about", label: "Über mich" },
-        { value: "ai", label: "KI-Workflow" },
-        { value: "devlog", label: "Devlog" },
-        { value: "contact", label: "Kontakt" }
-      ],
+      tabItems,
       setTab: (v) => this.go(v)(),
       isStart: tab === "start",
       isGames: tab === "games",
+      isPlay: tab === "play",
       isAbout: tab === "about",
       isAi: tab === "ai",
       isDevlog: tab === "devlog",
       isContact: tab === "contact",
       goGames: this.go("games"),
       goContact: this.go("contact"),
+      gameOpen: !!this.state.game,
+      gameName: this.state.game ? this.state.game.name : "",
+      closeGame: () => this.setState({ game: null }),
+      playChromatic: play("chromatic", "Chromatic"),
+      playWavebreaker: play("wavebreaker", "Wavebreaker"),
+      playRunecall: play("runecall", "Runecall"),
+      playDropfall: play("dropfall", "Dropfall"),
+      playHarmonics: play("harmonics", "Harmonics"),
 
       pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
 

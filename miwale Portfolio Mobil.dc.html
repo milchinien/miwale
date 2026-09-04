@@ -129,6 +129,11 @@
       <div style="height: 2px; background: rgba(255,255,255,.08);">
         <div data-mw="progress" style="height: 2px; width: 0%; background: linear-gradient(90deg, var(--aqua-400), rgba(45,199,178,.6));"></div>
       </div>
+      <sc-if value="{{ showPlayTab }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width: 560px; margin: 0 auto; padding: 8px 16px 10px;">
+          <button type="button" onClick="{{ goPlay }}" style="width: 100%; min-height: 38px; border-radius: 999px; border: 1px solid rgba(127,224,238,.32); background: rgba(63,198,220,.14); color: #fff; font: var(--type-label);">Meine Projekte testen</button>
+        </div>
+      </sc-if>
     </header>
 
     <main style="max-width: 560px; margin: 0 auto; padding: 20px 16px 132px; display: flex; flex-direction: column; gap: 26px;">
@@ -196,7 +201,24 @@
         </div>
       </sc-if>
 
-      <sc-if value="{{ isGames }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ isPlay }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 22px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Direkt im Browser</span>
+            <h1 style="margin: 0; font: var(--type-h1); font-size: 28px; letter-spacing: var(--track-tight); color: #fff;">Meine Projekte testen</h1>
+            <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.6; color: rgba(237,243,249,.72);">Wähle ein Spiel aus. Es öffnet sich direkt hier und beginnt mit dem miwale-Ladebildschirm.</p>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button type="button" onClick="{{ playChromatic }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Chromatic<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playWavebreaker }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Wavebreaker<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playRunecall }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Runecall<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playDropfall }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Dropfall<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
+            <button type="button" onClick="{{ playHarmonics }}" style="grid-column: 1 / -1; min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Harmonics<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
+          </div>
+        </div>
+      </sc-if>
+
+  <sc-if value="{{ isGames }}" hint-placeholder-val="{{ false }}">
         <div style="display: flex; flex-direction: column; gap: 22px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Projekte</span>
@@ -395,12 +417,22 @@
     </div>
   </sc-if>
 
+  <sc-if value="{{ gameOpen }}" hint-placeholder-val="{{ false }}">
+    <div role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 10000; padding: 10px; background: rgba(1,10,17,.96); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+        <span style="font: var(--type-label); font-size: 16px; color: #fff;">{{ gameName }}</span>
+        <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 9px 14px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label);">Schließen ×</button>
+      </div>
+      <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="flex: 1; width: 100%; border: 1px solid rgba(127,224,238,.28); border-radius: 14px; background: #050b10;"></iframe>
+    </div>
+  </sc-if>
+
 </div>
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:880},&quot;navIcons&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;showNumbers&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Inhalt&quot;},&quot;calmBackground&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Bewegung&quot;},&quot;headerNote&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;17 · DE · Michel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Inhalt&quot;}}">
 class Component extends DCLogic {
-  state = { tab: "start", sheet: null, step: 0 };
+  state = { tab: "start", sheet: null, step: 0, game: null, projectsVisited: false };
 
   el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
 
@@ -484,7 +516,7 @@ class Component extends DCLogic {
     };
     window.addEventListener("scroll", this.onScroll, { passive: true });
     window.addEventListener("resize", this.onScroll);
-    this.onKey = (e) => { if (e.key === "Escape" && this.state.sheet) this.setState({ sheet: null }); };
+    this.onKey = (e) => { if (e.key === "Escape") this.setState({ sheet: null, game: null }); };
     window.addEventListener("keydown", this.onKey);
     this.paintDepth();
     this.scanReveal();
@@ -495,7 +527,12 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate() {
-    document.body.style.overflow = this.state.sheet ? "hidden" : "";
+    document.body.style.overflow = (this.state.sheet || this.state.game) ? "hidden" : "";
+    const frame = this.el("gameFrame");
+    if (frame) {
+      const wanted = this.gameUrl();
+      if (frame.getAttribute("src") !== wanted) frame.setAttribute("src", wanted);
+    }
     this.paintDepth();
     this.icons();
     requestAnimationFrame(() => this.scanReveal());
@@ -513,7 +550,7 @@ class Component extends DCLogic {
   go(t) {
     return () => {
       if (t === this.state.tab) { window.scrollTo(0, 0); return; }
-      this.setState({ tab: t, sheet: null });
+      this.setState({ tab: t, sheet: null, projectsVisited: this.state.projectsVisited || t === "games" });
       try {
         window.scrollTo(0, 0);
         const sc = document.scrollingElement || document.documentElement;
@@ -521,6 +558,11 @@ class Component extends DCLogic {
       } catch (e) { /* Vorschau blockiert Scrollen evtl. */ }
       requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
+  }
+
+  gameUrl() {
+    const id = this.state.game && this.state.game.id;
+    return id ? "https://milchinien.github.io/" + ({ chromatic: "Chromatic", wavebreaker: "Wavebreaker", runecall: "Runecall", dropfall: "Dropfall", harmonics: "Harmonics" }[id]) + "/" : "about:blank";
   }
 
   data() {
@@ -596,6 +638,7 @@ class Component extends DCLogic {
 
   renderVals() {
     const tab = this.state.tab;
+    const play = (id, name) => () => this.setState({ sheet: null, game: { id, name } });
     const open = (id) => () => { this.setState({ sheet: id }); window.scrollTo(0, 0); };
     const items = this.data().map((p) => Object.assign({}, p, {
       open: open(p.id),
@@ -625,11 +668,22 @@ class Component extends DCLogic {
       headerNote: this.props.headerNote || "17 · DE · Michel",
       isStart: tab === "start",
       isGames: tab === "games",
+      isPlay: tab === "play",
       isAbout: tab === "about",
       isContact: tab === "contact",
       setTab: (v) => this.go(v)(),
       goGames: this.go("games"),
+      goPlay: this.go("play"),
       goContact: this.go("contact"),
+      showPlayTab: this.state.projectsVisited,
+      gameOpen: !!this.state.game,
+      gameName: this.state.game ? this.state.game.name : "",
+      closeGame: () => this.setState({ game: null }),
+      playChromatic: play("chromatic", "Chromatic"),
+      playWavebreaker: play("wavebreaker", "Wavebreaker"),
+      playRunecall: play("runecall", "Runecall"),
+      playDropfall: play("dropfall", "Dropfall"),
+      playHarmonics: play("harmonics", "Harmonics"),
       navItems: [
         { value: "start", label: "Start", icon: showIcons ? icon("home") : null },
         { value: "games", label: "Projekte", icon: showIcons ? icon("gamepad-2") : null },
