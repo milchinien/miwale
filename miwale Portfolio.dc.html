@@ -33,6 +33,280 @@
   @media (max-width: 1040px) { [data-mw-name] { display: none; } }
   @media (max-width: 880px) { .mw-tabs__tab { padding-left: 12px; padding-right: 12px; font-size: var(--text-xs); } }
 
+  /* ---- Projektkacheln: Screenshot im Hintergrund, beim Hover wird er scharf ----
+     Die Interaktion folgt SpotlightCards von dorianbaffier (kokonutui.com, MIT):
+     magnetische Neigung, zuruecktretende Geschwister, Akzentschimmer, Lichtstreif
+     und wachsende Linie am unteren Rand. Hier ohne React und framer-motion
+     nachgebaut, weil die Seite auf der x-dc-Laufzeit liegt. ---- */
+  /* Zwoelfspaltiges Raster. Jede Reihe traegt zwei Kacheln im Verhaeltnis 5:7,
+     und die naechste Reihe dreht es um — klein links, gross rechts, dann gross
+     links, klein rechts. Bleibt am Ende eine Kachel allein, nimmt sie die
+     ganze Breite. */
+  /* Die Projektseite laeuft breiter als der Rest der Seite: bei 1200px blieben
+     auf grossen Schirmen links und rechts leere Balken stehen. */
+  .mw-breit { width: min(1680px, 100%); margin-left: auto; margin-right: auto; }
+  .mw-tiles { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: stretch; }
+  .mw-tile--schmal { grid-column: span 5; }
+  .mw-tile--breit { grid-column: span 7; }
+  .mw-tile--voll { grid-column: span 12; }
+
+  .mw-tile {
+    /* Neigung, Anheben und Zuruecktreten laufen ueber Variablen, damit sie sich
+       eine einzige transform-Kette teilen und sich nicht gegenseitig ueberschreiben. */
+    --rx: 0deg; --ry: 0deg; --hub: 0px; --masz: 1; --akzent: 127,224,238;
+    position: relative; display: block; width: 100%; min-height: 300px;
+    margin: 0; padding: 0; border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+    overflow: hidden; isolation: isolate; cursor: pointer; text-align: left;
+    background: #04131C; color: inherit; font: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 18px 46px rgba(1,10,17,.42);
+    transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) translateY(var(--hub)) scale(var(--masz));
+    transition: border-color 300ms cubic-bezier(.22,.61,.36,1), box-shadow 520ms cubic-bezier(.22,.61,.36,1),
+                transform 260ms cubic-bezier(.22,.61,.36,1), opacity 220ms ease-out;
+  }
+  .mw-tile--blau { --akzent: 127,224,238; }
+  .mw-tile--weiss { --akzent: 236,246,252; }
+  .mw-tile:hover, .mw-tile:focus-visible {
+    --hub: -4px;
+    border-color: rgba(var(--akzent),.46);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 30px 66px rgba(1,10,17,.58);
+  }
+  .mw-tile:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 3px; }
+
+  /* Liegt der Zeiger auf einer Kachel, treten die uebrigen zurueck */
+  .mw-tiles--fokus .mw-tile:not(.mw-tile--fokus) { --masz: .96; opacity: .5; }
+
+  /* Schimmer in der Akzentfarbe, waechst beim Ueberfahren auf */
+  .mw-tile::before {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    opacity: 0; transition: opacity 340ms ease-out;
+    background: radial-gradient(ellipse at 20% 18%, rgba(var(--akzent),.22), transparent 66%);
+  }
+  .mw-tile:hover::before, .mw-tile:focus-visible::before { opacity: 1; }
+
+  /* Lichtstreif, der einmal quer ueber die Kachel laeuft */
+  .mw-tile__veil::after {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 55%; pointer-events: none;
+    transform: translateX(-110%) skewX(-12deg);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.11), transparent);
+    transition: transform 760ms ease-out;
+  }
+  .mw-tile:hover .mw-tile__veil::after, .mw-tile:focus-visible .mw-tile__veil::after { transform: translateX(280%) skewX(-12deg); }
+
+  /* Akzentlinie am unteren Rand */
+  .mw-tile::after {
+    content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 0; z-index: 3;
+    border-radius: 999px; pointer-events: none;
+    background: linear-gradient(90deg, rgba(var(--akzent),.9), transparent);
+    transition: width 520ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-tile:hover::after, .mw-tile:focus-visible::after { width: 100%; }
+  .mw-tile__bg {
+    position: absolute; inset: -5%; z-index: 0;
+    background-size: cover; background-position: center;
+    filter: blur(2.5px) saturate(.92) brightness(.76); transform: scale(1.04);
+    transition: filter 640ms cubic-bezier(.22,.61,.36,1), transform 640ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-tile:hover .mw-tile__bg, .mw-tile:focus-visible .mw-tile__bg {
+    filter: blur(0) saturate(1.04) brightness(.94); transform: scale(1.015);
+  }
+
+  /* Der Schleier wechselt Kachel fuer Kachel die Farbe: hellblau, weiss,
+     hellblau … Zur Textseite hin bleibt er dunkel, damit die weisse Schrift
+     auf jedem Screenshot lesbar bleibt. */
+  .mw-tile__veil {
+    position: absolute; inset: 0; z-index: 1;
+    transition: opacity 640ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-tile--blau .mw-tile__veil {
+    background:
+      linear-gradient(104deg, rgba(3,20,34,.94) 0%, rgba(5,34,56,.78) 36%, rgba(12,84,122,.44) 70%, rgba(24,126,168,.26) 100%),
+      linear-gradient(0deg, rgba(86,208,232,.44), rgba(86,208,232,.44));
+  }
+  .mw-tile--weiss .mw-tile__veil {
+    background:
+      linear-gradient(104deg, rgba(10,18,26,.94) 0%, rgba(30,40,50,.74) 36%, rgba(120,132,142,.40) 70%, rgba(196,206,214,.22) 100%),
+      linear-gradient(0deg, rgba(255,255,255,.52), rgba(255,255,255,.52));
+  }
+  .mw-tile:hover .mw-tile__veil, .mw-tile:focus-visible .mw-tile__veil { opacity: .62; }
+
+  .mw-tile__body { position: relative; z-index: 4; display: flex; flex-direction: column; gap: 14px; padding: 38px 38px; max-width: 46ch; }
+  .mw-tile__title { font: var(--type-h2); font-size: var(--text-3xl); letter-spacing: var(--track-tight); color: #fff; }
+  .mw-tile--breit .mw-tile__title, .mw-tile--voll .mw-tile__title { font-size: var(--text-4xl); }
+  .mw-tile__rule { display: block; width: 104px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--aqua-300), rgba(127,224,238,0)); transition: width 640ms cubic-bezier(.22,.61,.36,1); }
+  .mw-tile:hover .mw-tile__rule, .mw-tile:focus-visible .mw-tile__rule { width: 184px; }
+  .mw-tile__sub { font: var(--type-label); font-size: var(--text-xs); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.86); }
+  .mw-tile__meta { position: absolute; z-index: 4; top: 22px; right: 24px; display: flex; align-items: center; gap: 10px; }
+  .mw-tile__badge { padding: 5px 14px; border-radius: 999px; background: rgba(2,14,22,.52); border: 1px solid rgba(206,244,255,.42); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: #EAF9FF; }
+  .mw-tile__go { position: absolute; z-index: 4; right: 28px; bottom: 28px; display: inline-flex; align-items: center; gap: 8px; font: var(--type-label); font-size: var(--text-sm); color: #EAF9FF; opacity: 0; transform: translateX(-8px); transition: opacity 520ms, transform 520ms cubic-bezier(.22,.61,.36,1); }
+  .mw-tile:hover .mw-tile__go, .mw-tile:focus-visible .mw-tile__go { opacity: 1; transform: none; }
+
+  /* Schmale Fenster: das Wechselraster bringt nichts mehr, alles untereinander */
+  @media (max-width: 900px) {
+    .mw-tiles { grid-template-columns: 1fr; }
+    .mw-tile--schmal, .mw-tile--breit, .mw-tile--voll { grid-column: 1 / -1; }
+    .mw-tile { min-height: 250px; }
+    .mw-tile--breit .mw-tile__title, .mw-tile--voll .mw-tile__title { font-size: var(--text-3xl); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mw-tile, .mw-tile__bg, .mw-tile__veil, .mw-tile__rule, .mw-tile__go,
+    .mw-tile::before, .mw-tile::after, .mw-tile__veil::after { transition: none !important; }
+    .mw-tile { --rx: 0deg !important; --ry: 0deg !important; }
+    .mw-tile__veil::after { display: none; }
+  }
+  /* Ohne Zeigergeraet gibt es kein Ueberfahren — Neigung und Abdunkeln entfallen */
+  @media (hover: none) {
+    .mw-tiles--fokus .mw-tile:not(.mw-tile--fokus) { --masz: 1; opacity: 1; }
+    .mw-tile { --rx: 0deg !important; --ry: 0deg !important; }
+  }
+
+
+  /* Beim Zurueckkommen in den Tab kurz alle Uebergaenge stilllegen, damit
+     nichts sichtbar nachanimiert. Laufende Endlos-Animationen im Hintergrund
+     bleiben absichtlich unberuehrt. */
+  .mw-sofort *, .mw-sofort *::before, .mw-sofort *::after { transition: none !important; }
+
+  /* ---- Liquid Glass ----
+     Nachbau von LiquidGlassCard von dorianbaffier (kokonutui.com, MIT):
+     ein SVG-Verzerrungsfilter im backdrop-filter bricht den Hintergrund, ein
+     Stapel aus Inset-Schatten zeichnet die Glaskante, beim Ueberfahren zieht
+     ein schwacher Schimmer darueber. Ohne React und Tailwind. */
+  .mw-glas {
+    position: relative; overflow: hidden; border-radius: 26px;
+    /* Duenne, helle Scheibe statt eigener dunkler Farbe: das Glas nimmt an, was
+       dahinter liegt, und hebt es nur leicht an. */
+    background: rgba(255,255,255,.10);
+    -webkit-backdrop-filter: blur(18px) saturate(1.6) brightness(1.06);
+    backdrop-filter: blur(18px) saturate(1.6) brightness(1.06);
+    box-shadow:
+      0 2px 6px rgba(1,10,17,.18),
+      0 14px 40px rgba(1,10,17,.28),
+      inset 3px 3px .5px -3.5px rgba(255,255,255,.55),
+      inset -3px -3px .5px -3.5px rgba(255,255,255,.75),
+      inset 1px 1px 1px -.5px rgba(255,255,255,.45),
+      inset -1px -1px 1px -.5px rgba(255,255,255,.45),
+      inset 0 0 6px 6px rgba(255,255,255,.05),
+      inset 0 0 2px 2px rgba(255,255,255,.04);
+  }
+  /* Die Brechung liegt auf einer eigenen Ebene. Wo der SVG-Filter im
+     backdrop-filter nicht greift (derzeit Safari und Firefox), faellt nur
+     diese Ebene aus — Unschaerfe und Kante bleiben. */
+  .mw-glas::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    border-radius: inherit;
+    -webkit-backdrop-filter: url("#mwGlasBrechung");
+    backdrop-filter: url("#mwGlasBrechung");
+  }
+  .mw-glas::after {
+    content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    border-radius: inherit; opacity: 0; transition: opacity 220ms ease-out;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.05), transparent);
+  }
+  .mw-glas:hover::after { opacity: 1; }
+  .mw-glas__inhalt { position: relative; z-index: 1; padding: 24px; }
+  .mw-glas--eng > .mw-glas__inhalt { padding: 16px; }
+  .mw-glas--weit > .mw-glas__inhalt { padding: 32px; }
+  @media (prefers-reduced-motion: reduce) { .mw-glas::after { transition: none; } }
+
+  /* ---- Detailseite: Bild links im Glasrahmen, Text rechts auf Glas ---- */
+  /* Drei Spalten: grosses Bild, schmale Miniaturenspalte, Textspalte.
+     Die mittlere Spalte ist fest, damit das Bild gross bleibt. */
+  .mw-detail { display: grid; grid-template-columns: minmax(0, 1.12fr) 126px minmax(0, 1fr); gap: 22px; align-items: start; }
+  /* Spalten ausdruecklich zuweisen: ohne Zusatzbilder faellt die mittlere Spalte
+     weg, und der Text landete sonst in der 126px-Spalte statt rechts. */
+  .mw-detail__bild { grid-column: 1; min-width: 0; }
+  .mw-thumbs { grid-column: 2; }
+  .mw-detail__text { grid-column: 3; }
+  .mw-detail__bild + .mw-detail__text { grid-column: 2 / -1; }
+  /* Das Bild sitzt in einem Glasrand, der den Hintergrund der Seite durchscheinen
+     laesst — kein eigener Untergrund, nur eine gerahmte Kante. */
+  .mw-shot { padding: 12px; border-radius: 26px; }
+  .mw-shot__img { position: relative; z-index: 1; display: block; width: 100%; height: 460px; border-radius: 18px; background: rgba(4,20,30,.55); }
+  .mw-shot__nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 46px; height: 46px; border-radius: 999px; cursor: pointer;
+    display: grid; place-items: center; padding: 0;
+    background: rgba(6,26,40,.30); border: 0;
+    -webkit-backdrop-filter: blur(3px) saturate(1.35); backdrop-filter: blur(3px) saturate(1.35);
+    box-shadow:
+      inset 2px 2px .5px -2.5px rgba(255,255,255,.09),
+      inset -2px -2px .5px -2.5px rgba(255,255,255,.85),
+      inset 1px 1px 1px -.5px rgba(255,255,255,.6),
+      inset -1px -1px 1px -.5px rgba(255,255,255,.6),
+      inset 0 0 5px 5px rgba(255,255,255,.12),
+      0 0 12px rgba(0,0,0,.15);
+    color: #EAF9FF; font: var(--type-h3); font-size: 22px; line-height: 1;
+    transition: background 260ms, border-color 260ms, transform 260ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-shot__nav:hover { background: rgba(18,74,100,.52); }
+  .mw-shot__nav:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 3px; }
+  .mw-shot__nav--prev { left: 26px; }
+  .mw-shot__nav--next { right: 26px; }
+  .mw-shot__nav--prev:hover { transform: translateY(-50%) translateX(-2px); }
+  .mw-shot__nav--next:hover { transform: translateY(-50%) translateX(2px); }
+
+  /* Miniaturen stehen jetzt senkrecht zwischen Bild und Text. Wird die Liste
+     laenger als das Bild, scrollt die Spalte statt das Raster zu sprengen. */
+  .mw-thumbs { display: flex; flex-direction: column; gap: 8px; max-height: 484px; overflow-y: auto; padding-right: 2px; scrollbar-width: thin; }
+  .mw-thumb {
+    padding: 5px; border-radius: 16px; cursor: pointer; line-height: 0;
+    background: rgba(6,26,40,.26); border: 1px solid rgba(255,255,255,.14);
+    -webkit-backdrop-filter: blur(3px) saturate(1.35); backdrop-filter: blur(3px) saturate(1.35);
+    box-shadow: inset -1px -1px 1px -.5px rgba(255,255,255,.55), inset 1px 1px 1px -.5px rgba(255,255,255,.45);
+    transition: border-color 300ms, transform 300ms cubic-bezier(.22,.61,.36,1), opacity 300ms;
+    opacity: .68;
+  }
+  .mw-thumb:hover { opacity: 1; transform: translateY(-2px); }
+  .mw-thumb:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 3px; }
+  .mw-thumb--an { opacity: 1; border-color: var(--aqua-300); box-shadow: 0 0 0 1px rgba(127,224,238,.45); }
+  .mw-thumb__img { display: block; width: 106px; height: 60px; border-radius: 11px; background: rgba(4,20,30,.55); }
+
+  /* Titel und Beschreibung liegen auf Glas, damit sie sich vom Hintergrund loesen */
+  .mw-detail__text { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  /* Unter der Beschreibung stehen Spielen und Eckdaten als zwei gleich hohe
+     Bloecke nebeneinander. Gibt es kein Spiel, nimmt Eckdaten die ganze Breite. */
+  .mw-detail__unten { display: grid; grid-template-columns: 1fr 1.15fr; gap: 14px; align-items: stretch; min-height: 200px; }
+  .mw-detail__eckdaten { min-width: 0; }
+  .mw-detail__eckdaten:only-child { grid-column: 1 / -1; }
+  .mw-detail__fakten { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+
+  /* Der Spielen-Knopf ist selbst eine Glasflaeche, keine Pille auf einer. */
+  .mw-spielen {
+    display: block; width: 100%; margin: 0; padding: 0; border: 0;
+    cursor: pointer; font: inherit; color: inherit; text-align: center;
+    background: rgba(86,208,232,.20);
+    transition: background 320ms cubic-bezier(.22,.61,.36,1), transform 320ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-spielen:hover { background: rgba(86,208,232,.34); transform: translateY(-2px); }
+  .mw-spielen:active { transform: translateY(0); }
+  .mw-spielen:focus-visible { outline: 2px solid var(--aqua-200); outline-offset: 3px; }
+  .mw-spielen__inhalt { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; }
+  .mw-spielen__wort { font: var(--type-h2); font-size: var(--text-3xl); letter-spacing: var(--track-tight); color: #fff; }
+  .mw-spielen__hinweis { font: var(--type-label); font-size: var(--text-2xs); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.82); }
+  @media (prefers-reduced-motion: reduce) { .mw-spielen { transition: none; } .mw-spielen:hover { transform: none; } }
+  .mw-detail__titel { margin: 0; font: var(--type-h1); font-size: var(--text-5xl); letter-spacing: var(--track-tight); color: #fff; }
+
+  @media (max-width: 1240px) {
+    .mw-detail { grid-template-columns: minmax(0, 1fr) 108px; }
+    .mw-detail__text, .mw-detail__bild + .mw-detail__text { grid-column: 1 / -1; }
+    .mw-thumbs { max-height: 404px; }
+    .mw-thumb__img { width: 92px; height: 58px; }
+  }
+  @media (max-width: 1040px) {
+    .mw-detail { grid-template-columns: 1fr; gap: 22px; }
+    .mw-detail__bild, .mw-thumbs,
+    .mw-detail__text, .mw-detail__bild + .mw-detail__text { grid-column: 1 / -1; }
+    .mw-shot__img { height: 380px; }
+    .mw-thumbs { flex-direction: row; flex-wrap: wrap; max-height: none; overflow: visible; }
+    .mw-thumb__img { width: 104px; height: 66px; }
+  }
+  @media (max-width: 640px) {
+    .mw-shot__img { height: 260px; }
+    .mw-shot__nav { width: 40px; height: 40px; }
+    .mw-shot__nav--prev { left: 16px; }
+    .mw-shot__nav--next { right: 16px; }
+    .mw-thumb__img { width: 78px; height: 52px; }
+  }
+
   /* ---- Mobil (bis 760px). Die Desktop-Fassung bleibt unverändert. ---- */
   @media (max-width: 760px) {
     html, body { overflow-x: hidden; }
@@ -74,7 +348,6 @@
     [data-mw="diveLogo"] { width: min(78vw, 340px) !important; }
 
     /* Bänder und Effekte bleiben, laufen aber flacher */
-    [data-mw="tlMarquee"] { display: none; }
   }
   @media (max-width: 420px) {
     section, footer { padding-left: 14px !important; padding-right: 14px !important; }
@@ -341,8 +614,10 @@
   <sc-if value="{{ isGames }}" hint-placeholder-val="{{ true }}">
     <div data-mw-anim="games" class="mw-dark" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
 
+      <sc-if value="{{ showList }}" hint-placeholder-val="{{ true }}">
+
       <section style="position: relative; overflow: hidden; padding: 76px 32px 60px;">
-        <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
+        <div class="mw-breit" style="position: relative; display: flex; flex-direction: column; gap: 18px;">
           <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Projekte</span>
           <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Alles, was bisher entstanden ist</h1>
           <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.78); max-width: 52ch;">Öffentlich auf GitHub, mit Commits und Tests. Scroll weiter, dann geht es nach unten.</p>
@@ -361,257 +636,159 @@
         </div>
       </section>
 
-      <section data-mw="tlRoot" style="position: relative; padding: 40px 32px 40px; overflow: hidden;">
-        <div data-mw="tlMarquee" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0;">
-          <div style="position: absolute; inset: -34%; transform: rotate(-15deg) skewY(7deg) scale(.8); display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px;">
-        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColUp 52s linear infinite;">
-          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColDown 64s linear infinite;">
-          <img src="assets/games/wb-station.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-kampf-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/wb-station.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-kampf-2.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColUp 58s linear infinite;">
-          <img src="assets/games/chromatic-card-3.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/wb-title.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-3.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/wb-title.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-akt-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 18px; animation: mwColDown 70s linear infinite;">
-          <img src="assets/games/wb-sky.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/wb-sky.svg" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-kampf-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-          <img src="assets/games/chromatic-card-1.png" alt="" style="width: 100%; border-radius: 14px; border: 1px solid rgba(255,255,255,.14);">
-        </div>
-          </div>
-          <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(2,12,18,.72) 0%, rgba(2,12,18,.5) 40%, rgba(2,12,18,.78) 100%);"></div>
+      <section style="position: relative; padding: 8px 32px 40px;">
+        <div class="mw-breit" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 34px;">
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Unten angekommen</span>
+          <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Ein Projekt anklicken, dann wird es ausführlich</h2>
         </div>
 
-        <div style="position: relative; max-width: 1200px; margin: 0 auto;">
-          <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 0 48px 0;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zeitleiste</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Von der ersten Zeile Code bis heute</h2>
-          </div>
-
-          <div style="position: relative; padding-left: 19px;">
-            <div style="position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,.12);"></div>
-            <div data-mw="tlLine" style="position: absolute; left: 19px; top: 0; width: 2px; height: 0; background: linear-gradient(180deg, var(--aqua-300), rgba(45,199,178,.5)); box-shadow: 0 0 16px rgba(63,198,220,.6);"></div>
-            <div style="display: flex; flex-direction: column; margin-left: -19px;">
-
-        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
-          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
-            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
-              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
-            </span>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">13. Juni 2024</span>
-              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Flappy-Prototyp</span>
-            </div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Mein erstes eigenes Spiel: ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools gab es damals noch nicht.</p>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Unity</x-import>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">eigene Assets</x-import>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">nicht veröffentlicht</x-import>
-            </div>
-          </div>
+        <div class="mw-tiles mw-breit">
+          <sc-for list="{{ projects }}" as="p" hint-placeholder-count="{{ 4 }}">
+            <button type="button" class="{{ p.cls }}" onClick="{{ p.open }}" aria-label="{{ p.aria }}">
+              <span class="mw-tile__bg" style="background-image: url({{ p.shot }});"></span>
+              <span class="mw-tile__veil"></span>
+              <span class="mw-tile__meta"><span class="mw-tile__badge">{{ p.status }}</span></span>
+              <span class="mw-tile__body">
+                <span class="mw-tile__title">{{ p.name }}</span>
+                <span class="mw-tile__rule"></span>
+                <span class="mw-tile__sub">{{ p.tagline }}</span>
+              </span>
+              <span class="mw-tile__go">Ansehen →</span>
+            </button>
+          </sc-for>
         </div>
 
-        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
-          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
-            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
-              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
-            </span>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">2025</span>
-              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">XRAI Order System</span>
-            </div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.</p>
-          <div style="perspective: 1200px;">
-            <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none;">
-              <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
-                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">Im Einsatz</span>
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Bestellsystem für die Gastronomie</span>
-                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Von den ersten Gesprächen über Konzept, Frontend, Backend und Datenhaltung bis zu Reviews, Security-Scans, Container, CI/CD, Deployment und DNS. Alles allein, in unter zwanzig Arbeitsstunden.</p>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
-                    <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">unter 20 h</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">bis zum Livegang</span></div>
-                    <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">23</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Pull Requests</span></div>
-                    <div style="display: flex; flex-direction: column; gap: 2px;"><span style="font: var(--type-h2); font-size: var(--text-2xl); color: #fff;">83</span><span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Commits</span></div>
-                  </div>
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Screenshots folgen: Gästeansicht und Küchenansicht</span>
-                  <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Kundenprojekt, Repository nicht öffentlich →</span>
-                </div>
-              </div>
-            </a>
-          </div>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
-          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
-            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
-              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
-            </span>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">August 2025</span>
-              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Chromatic</span>
-            </div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.</p>
-          <div style="perspective: 1200px;">
-            <a href="https://github.com/milchinien/Chromatic" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none;">
-              <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
-                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">Spielbar</span>
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Roguelite-Deckbuilder · TypeScript, DOM und Canvas</span>
-                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis zum Endboss. Kein Framework, keine Engine: Oberfläche im DOM, Kampf auf Canvas, Klang prozedural erzeugt. 59 Prüfläufe sichern die Kampflogik ab, alle grün.</p>
-                  <div style="display: grid; grid-template-columns: 1.7fr 1fr; gap: 10px;">
-                    <img src="assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic" style="width: 100%; height: 250px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);">
-                    <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 10px;">
-                      <img src="assets/games/chromatic-akt-1.png" alt="Aktauswahl aus Chromatic" style="width: 100%; height: 120px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);">
-                      <img src="assets/games/chromatic-kampf-2.png" alt="Zweiter Kampfraum aus Chromatic" style="width: 100%; height: 120px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,.16);">
-                    </div>
-                  </div>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                    <img src="assets/games/chromatic-card-1.png" alt="Karte aus dem Chromatic-Deck" style="width: 100%; height: 150px; object-fit: contain; background: rgba(255,255,255,.04); border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
-                    <img src="assets/games/chromatic-card-2.png" alt="Karte aus dem Chromatic-Deck" style="width: 100%; height: 150px; object-fit: contain; background: rgba(255,255,255,.04); border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
-                    <img src="assets/games/chromatic-card-3.png" alt="Karte aus dem Chromatic-Deck" style="width: 100%; height: 150px; object-fit: contain; background: rgba(255,255,255,.04); border-radius: 16px; border: 1px solid rgba(255,255,255,.16);">
-                  </div>
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Aktauswahl, zwei Kampfräume und drei Karten aus dem 25er-Deck.</span>
-                  <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Code auf GitHub ansehen →</span>
-                </div>
-              </div>
-            </a>
-          </div>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
-          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
-            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
-              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
-            </span>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">Ende 2025</span>
-              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Wavebreaker</span>
-            </div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige. Vor der ersten Zeile Code stand ein Design-Dokument über sechzehn Kapitel.</p>
-          <div style="perspective: 1200px;">
-            <a href="https://github.com/milchinien/Wavebreaker" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none;">
-              <div style="position: relative; transform-style: preserve-3d; transition: transform 420ms cubic-bezier(.22,.61,.36,1), box-shadow 420ms; display: flex; flex-direction: column; border-radius: 28px; padding: 30px; background: linear-gradient(165deg, rgba(255,255,255,.085) 0%, rgba(255,255,255,.045) 100%); border: 1px solid rgba(255,255,255,.13); box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 20px 52px rgba(1,10,17,.46);" style-hover="{{ pinHover }}">
-                <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 5px 14px; border-radius: 999px; background: rgba(63,198,220,.14); border: 1px solid rgba(127,224,238,.32); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: var(--aqua-200);">In Politur</span>
-                <div style="display: flex; flex-direction: column; gap: 16px;">
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.58);">Idle-Verteidigung · TypeScript</span>
-                  <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Deshalb kann sich das Spiel selbst prüfen: 692 kleine Testläufe rechnen nach jeder Änderung nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.</p>
-                  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; align-items: stretch;">
-                    <div style="position: relative; overflow: hidden; border-radius: 16px; border: 1px solid rgba(255,255,255,.16); background: linear-gradient(165deg, #04161F 0%, #0A3446 100%); min-height: 200px; display: grid; place-items: center;">
-                      <img src="assets/games/wb-sky.svg" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55;">
-                      <img src="assets/games/wb-station.svg" alt="Kampfstation aus Wavebreaker" style="position: relative; width: 62%;">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 6px; justify-content: center;">
-                      <span style="font: var(--type-h2); font-size: var(--text-2xl); color: var(--aqua-300);">692 / 692</span>
-                      <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Prüfläufe bestanden, Typecheck fehlerfrei. Offen sind Spielgefühl, Klang und Balancing.</span>
-                    </div>
-                  </div>
-                  <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
-                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-turret.svg" alt="Turm aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
-                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-boss.svg" alt="Boss aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
-                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-hull.svg" alt="Rumpf aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
-                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-upgrade.svg" alt="Ausbau-Symbol aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
-                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-coin.svg" alt="Währung aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
-                    <div style="display: grid; place-items: center; height: 84px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14);"><img src="assets/games/wb-frame-mythic.svg" alt="Raritätsrahmen aus Wavebreaker" style="width: 46px; height: 46px; object-fit: contain;"></div>
-                  </div>
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">Turm, Boss, Rumpf, Ausbau, Währung und Raritätsrahmen — Originalgrafiken aus dem Spiel.</span>
-                  <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Code auf GitHub ansehen →</span>
-                </div>
-              </div>
-            </a>
-          </div>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 210px 1fr; gap: 36px; align-items: start;">
-          <div style="position: sticky; top: 104px; display: flex; align-items: center; gap: 14px;">
-            <span style="width: 38px; height: 38px; border-radius: 999px; flex: none; display: grid; place-items: center; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); ">
-              <span style="width: 12px; height: 12px; border-radius: 999px; background: var(--aqua-400); box-shadow: 0 0 14px rgba(63,198,220,.8);"></span>
-            </span>
-            <div style="display: flex; flex-direction: column;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300);">daneben</span>
-              <span style="font: var(--type-h3); font-size: var(--text-lg); color: #fff;">Prototypen und Design-Dokumente</span>
-            </div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 18px; padding-bottom: 72px;">
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.76); max-width: 66ch;">Nicht jedes Projekt ist fertig, und das steht hier auch so. Diese haben mir vor allem gezeigt, wie ich arbeiten will.</p>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;">
-              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">michi-mathe-universe</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Lernspiel-Experiment rund um Mathe-Aufgaben.</span>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">mindforge-playground</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Spielwiese für Mechaniken, die noch kein Zuhause haben.</span>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">dungeon-and-diplomas</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Dungeon-Crawler-Idee mit Schul-Thema.</span>
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">The Last Outpost</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem, Skilltrees.</span>
-              </div>
-            </div>
-            <div style="display: flex; gap: 12px; padding-top: 8px;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">Alle Repositories</x-import>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,42px">itch.io</x-import>
-            </div>
-          </div>
-        </div>
-
-            </div>
-          </div>
+        <div class="mw-breit" style="margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap;">
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">Alle Repositories</x-import>
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,42px">itch.io</x-import>
         </div>
       </section>
+
+      </sc-if>
+
+      <sc-if value="{{ showDetail }}" hint-placeholder-val="{{ false }}">
+      <div data-mw-anim="detail" style="animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
+
+        <section style="position: relative; padding: 34px 32px 0;">
+          <div class="mw-breit">
+            <button type="button" onClick="{{ closeProject }}" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: var(--ice-100); font: var(--type-label); font-size: var(--text-sm); cursor: pointer;">← Alle Projekte</button>
+          </div>
+        </section>
+
+        <section style="position: relative; padding: 22px 32px 0;">
+          <div class="mw-breit" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ detail.kind }}</span>
+            <span style="display: inline-flex; align-items: center; padding: 5px 14px; border-radius: 999px; background: rgba(2,14,22,.52); border: 1px solid rgba(206,244,255,.42); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: #EAF9FF;">{{ detail.status }}</span>
+          </div>
+        </section>
+
+        <section style="position: relative; padding: 18px 32px 0;">
+          <div class="mw-breit mw-detail">
+
+            <div class="mw-detail__bild">
+              <div class="mw-glas mw-shot">
+                <img class="mw-shot__img" src="{{ detail.bild }}" alt="{{ detail.bildAlt }}" style="object-fit: {{ detail.bildFit }};">
+                <sc-if value="{{ detail.mehrereBilder }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" class="mw-shot__nav mw-shot__nav--prev" onClick="{{ detail.bildZurueck }}" aria-label="Vorheriges Bild">‹</button>
+                  <button type="button" class="mw-shot__nav mw-shot__nav--next" onClick="{{ detail.bildVor }}" aria-label="Nächstes Bild">›</button>
+                </sc-if>
+              </div>
+              <sc-if value="{{ detail.mehrereBilder }}" hint-placeholder-val="{{ false }}">
+                <div style="padding-top: 10px;">
+                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">{{ detail.shotsCaption }}</span>
+                </div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ detail.mehrereBilder }}" hint-placeholder-val="{{ false }}">
+              <div class="mw-thumbs">
+                <sc-for list="{{ detail.galerie }}" as="g" hint-placeholder-count="{{ 4 }}">
+                  <button type="button" class="{{ g.cls }}" onClick="{{ g.waehlen }}" aria-label="{{ g.aria }}">
+                    <img class="mw-thumb__img" src="{{ g.src }}" alt="" style="object-fit: {{ g.fit }};">
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <div class="mw-detail__text">
+              <div class="mw-glas">
+                <div class="mw-glas__inhalt">
+                  <h1 class="mw-detail__titel">{{ detail.name }}</h1>
+                </div>
+              </div>
+
+              <div class="mw-glas mw-glas--weit">
+                <div class="mw-glas__inhalt" style="display: flex; flex-direction: column; gap: 18px;">
+                  <p style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.62; color: rgba(237,243,249,.88);">{{ detail.lead }}</p>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <sc-for list="{{ detail.tags }}" as="t" hint-placeholder-count="{{ 3 }}">
+                      <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">{{ t }}</x-import>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mw-detail__unten">
+                <sc-if value="{{ detail.canPlay }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" class="mw-glas mw-spielen" onClick="{{ detail.play }}" aria-label="{{ detail.spielenAria }}">
+                    <span class="mw-glas__inhalt mw-spielen__inhalt">
+                      <span class="mw-spielen__wort">Spielen</span>
+                      <span class="mw-spielen__hinweis">Direkt im Browser</span>
+                    </span>
+                  </button>
+                </sc-if>
+
+                <div class="mw-glas mw-detail__eckdaten">
+                  <div class="mw-glas__inhalt" style="display: flex; flex-direction: column; gap: 14px;">
+                    <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.62);">Eckdaten</span>
+                    <div class="mw-detail__fakten">
+                      <sc-for list="{{ detail.facts }}" as="f" hint-placeholder-count="{{ 4 }}">
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                          <span style="font: var(--type-h2); font-size: var(--text-xl); line-height: 1.25; color: #fff;">{{ f.value }}</span>
+                          <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.62);">{{ f.label }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section style="position: relative; padding: 52px 32px 0;">
+          <div class="mw-breit" style="display: flex; flex-direction: column; gap: 18px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie und wann gebaut</span>
+            <h2 data-reveal style="margin: 0 0 6px; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ detail.buildTitle }}</h2>
+            <sc-for list="{{ detail.build }}" as="b" hint-placeholder-count="{{ 3 }}">
+              <p style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.80); max-width: 78ch;">{{ b }}</p>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="position: relative; padding: 44px 32px 0;">
+          <div class="mw-breit" style="display: flex; flex-direction: column; gap: 16px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Code</span>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+              <sc-for list="{{ detail.links }}" as="l" hint-placeholder-count="{{ 2 }}">
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="{{ l.href }}" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,44px">{{ l.label }}</x-import>
+              </sc-for>
+            </div>
+            <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">{{ detail.linkNote }}</span>
+          </div>
+        </section>
+
+        <section style="position: relative; padding: 56px 32px 0;">
+          <div class="mw-breit">
+            <button type="button" onClick="{{ closeProject }}" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: var(--ice-100); font: var(--type-label); font-size: var(--text-sm); cursor: pointer;">← Zurück zu allen Projekten</button>
+          </div>
+        </section>
+
+      </div>
+      </sc-if>
 
       <div style="height: 88px;"></div>
-    </div>
-  </sc-if>
-
-  <sc-if value="{{ isPlay }}" hint-placeholder-val="{{ false }}">
-    <div data-mw-anim="play" class="mw-dark" style="min-height: calc(100vh - 64px); animation: mwTabIn 420ms cubic-bezier(.22,.61,.36,1) both;">
-      <section style="position: relative; overflow: hidden; padding: 76px 32px 96px;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
-          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Direkt im Browser</span>
-          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Meine Projekte testen</h1>
-          <p style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.78); max-width: 52ch;">Wähle ein Spiel aus. Es öffnet sich direkt auf dieser Seite und beginnt mit dem gemeinsamen miwale-Ladebildschirm.</p>
-          <div data-reveal style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 12px;">
-            <button type="button" onClick="{{ playChromatic }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Chromatic<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playWavebreaker }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Wavebreaker<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playRunecall }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Runecall<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playDropfall }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Dropfall<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playHarmonics }}" style="padding: 22px 12px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label); cursor: pointer;">Harmonics<br><span style="font: var(--type-code); font-size: var(--text-3xs); color: var(--aqua-300);">Jetzt spielen</span></button>
-          </div>
-        </div>
-      </section>
     </div>
   </sc-if>
 
@@ -967,8 +1144,334 @@
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{}">
+// Alle Projekte, nach Relevanz sortiert: was fertig und spielbar ist, steht oben.
+// Zeitraum, Commit-Zahlen und Sprachen stammen aus den GitHub-Repositories,
+// die Screenshots aus den veröffentlichten Fassungen auf GitHub Pages.
+const PROJECTS = [
+  {
+    id: "chromatic", name: "Chromatic",
+    kind: "Roguelite-Deckbuilder", status: "Spielbar",
+    tagline: "Deckbuilder ohne Mana · 25 Karten, fünf Farben, bis zum Endboss",
+    lead: "Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.",
+    tags: ["TypeScript", "Canvas", "ohne Engine", "Vite"],
+    shot: "assets/games/chromatic-kampf-1.png",
+    shotAlt: "Kampfraum aus Chromatic mit Karten am unteren Rand",
+    shots: [
+      { src: "assets/games/chromatic-kampf-2.png", alt: "Zweiter Kampfraum aus Chromatic" },
+      { src: "assets/games/chromatic-akt-1.png", alt: "Aktauswahl aus Chromatic" },
+      { src: "assets/games/chromatic-card-1.png", alt: "Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-2.png", alt: "Zweite Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-3.png", alt: "Dritte Karte aus dem Chromatic-Deck", fit: "contain" }
+    ],
+    shotsCaption: "Kampfraum, Aktauswahl und drei Karten aus dem 25er-Deck.",
+    buildTitle: "Kein Framework, keine Engine — alles von Hand",
+    build: [
+      "Angefangen im Mai 2026, seitdem in 33 Commits gewachsen. Die Weltkarte ist ein Graph aus fünf Ebenen mit endlos eskalierenden Akten, durchspielbar bis zum Endboss.",
+      "Gebaut ohne Framework und ohne Engine: die Oberfläche liegt im DOM, der Kampf läuft auf einem Canvas, der Klang wird zur Laufzeit erzeugt. Das war eine bewusste Entscheidung — ich wollte verstehen, was eine Engine mir sonst abnimmt.",
+      "59 Prüfläufe sichern die Kampflogik ab und laufen alle grün durch. Sie waren der Grund, dass ich das Balancing später noch mehrfach umwerfen konnte, ohne das Spiel zu zerlegen."
+    ],
+    facts: [
+      { value: "Mai bis September 2026", label: "Zeitraum" },
+      { value: "33", label: "Commits" },
+      { value: "59 / 59", label: "Prüfläufe grün" },
+      { value: "25", label: "Karten im Deck" }
+    ],
+    playId: "chromatic",
+    links: [
+      { href: "https://github.com/milchinien/Chromatic", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Chromatic/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "wavebreaker", name: "Wavebreaker",
+    kind: "Idle-Verteidigung", status: "In Politur",
+    tagline: "Modulare Kampfstation gegen endlose Wellen · 692 Selbsttests grün",
+    lead: "Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige.",
+    tags: ["TypeScript", "DOM-freie Simulation", "Vite"],
+    shot: "assets/games/wavebreaker-main.jpg",
+    shotAlt: "Kampfstation aus Wavebreaker mit Reichweitenkreis und anfliegenden Gegnern",
+    shots: [
+      { src: "assets/games/wavebreaker-1.jpg", alt: "Wavebreaker in Welle 3 im Gefecht" },
+      { src: "assets/games/wb-station.svg", alt: "Kampfstation aus Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-turret.svg", alt: "Turm aus Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-boss.svg", alt: "Boss aus Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-upgrade.svg", alt: "Ausbau-Symbol aus Wavebreaker", fit: "contain" }
+    ],
+    shotsCaption: "Aufnahmen aus der laufenden Fassung, dazu Originalgrafiken aus dem Spiel.",
+    buildTitle: "Erst sechzehn Kapitel schreiben, dann bauen",
+    build: [
+      "Vor der ersten Zeile Code stand ein Design-Dokument über sechzehn Kapitel. Der erste Commit liegt im August 2026, bis September sind 15 dazugekommen.",
+      "Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Genau deshalb kann sich das Spiel selbst prüfen: 692 kleine Testläufe rechnen nach jeder Änderung nach, ob Schaden, Kosten und Wellen noch stimmen.",
+      "Alle 692 laufen grün durch, der Typecheck ist fehlerfrei. Offen sind Spielgefühl, Klang und Balancing — also genau die Dinge, die kein Test beantwortet."
+    ],
+    facts: [
+      { value: "August bis September 2026", label: "Zeitraum" },
+      { value: "15", label: "Commits" },
+      { value: "692 / 692", label: "Selbsttests grün" },
+      { value: "16", label: "Kapitel im Design-Dokument" }
+    ],
+    playId: "wavebreaker",
+    links: [
+      { href: "https://github.com/milchinien/Wavebreaker", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Wavebreaker/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "xrai", name: "XRAI Order System",
+    kind: "Bestellsystem für die Gastronomie", status: "Im Einsatz",
+    tagline: "QR-Code am Tisch, bestellen, Küche sieht es sofort — echter Betrieb",
+    lead: "Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.",
+    tags: ["TypeScript", "Kundenprojekt", "CI/CD", "Container"],
+    shot: "assets/games/ph-xrai.svg",
+    shotAlt: "Platzhalter für das XRAI Order System",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Von den ersten Gesprächen bis zum Livegang in unter zwanzig Stunden",
+    build: [
+      "Angelegt im Mai 2026. Von den ersten Gesprächen über Konzept, Frontend, Backend und Datenhaltung bis zu Reviews, Security-Scans, Container, CI/CD, Deployment und DNS — alles allein, in unter zwanzig Arbeitsstunden.",
+      "Das Repository ist als einziges hier nicht öffentlich: es gehört dem Kunden. Deshalb stehen an dieser Stelle keine Screenshots aus dem echten Betrieb, sondern ein Platzhalter.",
+      "Es ist das einzige Projekt auf dieser Seite, das fremde Menschen täglich benutzen, ohne zu wissen, dass ich es gebaut habe."
+    ],
+    facts: [
+      { value: "Mai 2026", label: "Zeitraum" },
+      { value: "unter 20 h", label: "bis zum Livegang" },
+      { value: "23", label: "Pull Requests" },
+      { value: "83", label: "Commits" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Kundenprojekt — Repository nicht öffentlich, Screenshots folgen nach Absprache."
+  },
+  {
+    id: "runecall", name: "Runecall",
+    kind: "Digitales Stichkartenspiel", status: "Prototyp spielbar",
+    tagline: "Stiche exakt ansagen — einer zu viel ist so schlecht wie einer zu wenig",
+    lead: "Vor jeder Runde sagst du exakt voraus, wie viele Stiche du gewinnen wirst, und musst danach genau diese Zahl treffen. Die Regeln folgen dem gemeinfreien Stichansage-Prinzip, erweitert um den Magier, der jeden Stich gewinnt, und den Narren, der keinen gewinnen will.",
+    tags: ["TypeScript", "Monorepo", "Bots", "deterministische Engine"],
+    shot: "assets/games/runecall-main.jpg",
+    shotAlt: "Runecall während der Ansage, mit Hand, Trumpf und Analysepanel",
+    shots: [
+      { src: "assets/games/runecall-1.jpg", alt: "Runecall mit laufendem Stich auf dem Tisch" }
+    ],
+    shotsCaption: "Aufnahmen aus Prototyp 01, der öffentlichen Fassung auf GitHub Pages.",
+    buildTitle: "Die Regeln zuerst, und zwar getrennt vom Rest",
+    build: [
+      "Erster Commit im August 2026, acht Commits bis September. Das Projekt ist ein Monorepo aus drei Paketen: engine, bots und client.",
+      "Die Engine kennt weder Browser noch Netzwerk und ist deterministisch — dieselbe Ausgangslage ergibt immer dieselbe Partie. Deshalb läuft sie an drei Stellen gleich: in den Tests, im Client und später im Server. Die Bots sehen aus demselben Grund nur die eigene Hand; ein Gegner, der alle Hände kennt, wäre kein Gegner.",
+      "Geplant sind 3 bis 6 Spieler gegen Computergegner oder online, eigene Layouts für PC und Handy, 60 einzeln gestaltete Karten, Deutsch und Englisch. Öffentlich steht bisher Prototyp 01: geben, analysieren, legen. Der Rest liegt im Repository und ist noch nicht veröffentlicht."
+    ],
+    facts: [
+      { value: "August bis September 2026", label: "Zeitraum" },
+      { value: "8", label: "Commits" },
+      { value: "3", label: "Pakete im Monorepo" },
+      { value: "60", label: "geplante Kartenmotive" }
+    ],
+    playId: "runecall",
+    links: [
+      { href: "https://github.com/milchinien/Runecall", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Runecall/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentlich steht Prototyp 01. Ton, Handy-Layout und Netzwerk fehlen noch."
+  },
+  {
+    id: "dropfall", name: "Dropfall",
+    kind: "Idle-Incremental", status: "Prototyp spielbar",
+    tagline: "Kugeln fallen durch Pegs und machen bei jedem Kontakt Geld",
+    lead: "Idle-Incremental im Outhold-Design: flache Flächen, extrudierte Sockel, lange harte Schatten. Kugeln fallen durch eine Arena aus Pegs und zahlen bei jedem Kontakt aus. Fortschritt läuft über zwei Achsen — neue Kugeltypen und größere Arenen.",
+    tags: ["TypeScript", "Skill Tree", "Balancing-Simulation", "Vite"],
+    shot: "assets/games/dropfall-main.jpg",
+    shotAlt: "Arena 1 aus Dropfall mit fallender Kugel und Pegs",
+    shots: [
+      { src: "assets/games/dropfall-1.jpg", alt: "Skill Tree aus Dropfall im Outhold-Stil" }
+    ],
+    shotsCaption: "Arena und Skill Tree — Kreis heisst freigeschaltet, Fragezeichen heisst gesperrt.",
+    buildTitle: "Zahlen belegen statt schätzen",
+    build: [
+      "Angelegt im September 2026, bisher fünf Commits. Stand ist v0.4: neun Arenen mit je vier Zielen, fünf Kugeltypen, sechzehn Knoten im Skill Tree.",
+      "Jede Arena hat vier Ziele — Freischaltung, Meisterschaft, Tempo, Ausdauer — und der Zutritt zur nächsten hängt daran, wie viele Ziele insgesamt erfüllt sind.",
+      "Zum Projekt gehört eine kopflose Balancing-Simulation. Sie spielt ganze Kampagnen durch die echte Physik, damit Zahlenänderungen belegt statt geschätzt werden: rund 35 Läufe und 60 Minuten Arena-Zeit bis zur letzten Arena. Offen sind Prestige, Meta-Baum, Perks, Audio und Tutorial."
+    ],
+    facts: [
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "5", label: "Commits" },
+      { value: "9", label: "Arenen mit je vier Zielen" },
+      { value: "16", label: "Knoten im Skill Tree" }
+    ],
+    playId: "dropfall",
+    links: [
+      { href: "https://github.com/milchinien/Dropfall", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Dropfall/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "harmonics", name: "Harmonics",
+    kind: "Idle-Prototyp", status: "Prototyp spielbar",
+    tagline: "Knoten auf gemeinsamer Linie zahlen aus — je mehr gleichzeitig, desto mehr",
+    lead: "Knoten kreisen auf Bahnen. Laufen mehrere gleichzeitig durch dieselbe Linie, zahlen sie aus, und zwar exponentiell mit ihrer Zahl. Darum herum liegen Konvergenzen, Grade und ein Baum aus Ausbauten.",
+    tags: ["TypeScript", "Canvas", "Idle", "Vite"],
+    shot: "assets/games/harmonics-main.jpg",
+    shotAlt: "Harmonics mit kreisenden Knoten und der Anzeige zur nächsten Konvergenz",
+    shots: [
+      { src: "assets/games/harmonics-1.jpg", alt: "Ausbaubaum aus Harmonics mit gesperrten Knoten" }
+    ],
+    shotsCaption: "Spielansicht und Ausbaubaum aus der veröffentlichten Fassung.",
+    buildTitle: "Aus Dropfall herausgelöst",
+    build: [
+      "Harmonics war zuerst ein Gegenentwurf im Dropfall-Repository. Im September 2026 habe ich ihn herausgelöst und ihm ein eigenes Repository gegeben, damit beide Ideen sich nicht gegenseitig im Weg stehen.",
+      "Es ist mit zwei Commits das jüngste und kleinste Projekt auf dieser Seite — ein Prototyp, kein fertiges Spiel. Was läuft, läuft im Browser: Echo als Währung, Grade als Fortschritt, ein Uhrwerk, das auch weiterläuft, während das Fenster zu ist.",
+      "Der Ausbaubaum steht als Gerüst, die meisten Knoten sind noch gesperrt."
+    ],
+    facts: [
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "2", label: "Commits" },
+      { value: "Prototyp", label: "Reifegrad" }
+    ],
+    playId: "harmonics",
+    links: [
+      { href: "https://github.com/milchinien/Harmonics", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Harmonics/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "dnd", name: "Dungeons & Diplomas",
+    kind: "Lern-Dungeon-Crawler", status: "Größtes Nebenprojekt",
+    tagline: "Prozeduraler Dungeon mit Quizgegnern — 229 Commits",
+    lead: "Ein Dungeon-Crawler im Browser mit prozedural erzeugten Ebenen, Echtzeitkampf und Gegnern, die man über Quizfragen schlägt. Dazu XP, Gegenstände, Highscores und eigenes Editor-Werkzeug.",
+    tags: ["TypeScript", "Next.js", "eigener Canvas-Renderer", "Supabase"],
+    shot: "assets/games/dnd-main.jpg",
+    shotAlt: "Anmeldebildschirm von Dungeons & Diplomas",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Das längste Projekt — und das mit den meisten Umwegen",
+    build: [
+      "Erster Commit im November 2025, letzter im Juni 2026. Mit 229 Commits ist es das mit Abstand größte Projekt in meinem Konto.",
+      "Angefangen hat es mit Phaser als Engine. Geblieben ist ein eigener Canvas-Renderer in einer Next.js-App — Phaser gehörte zur Spike-Phase und ist heute nicht mehr drin. Die Datenhaltung läuft über einen Adapter: lokal SQLite, in der Produktion Supabase.",
+      "Die veröffentlichte Fassung kommt derzeit nicht über die Anmeldung hinaus, weil die Datenbank dort nicht angebunden ist. Deshalb zeigt der Screenshot den Anmeldebildschirm und nicht den Dungeon."
+    ],
+    facts: [
+      { value: "November 2025 bis Juni 2026", label: "Zeitraum" },
+      { value: "229", label: "Commits" },
+      { value: "Next.js", label: "Grundlage" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/dungeons-and-diplomas", label: "Code auf GitHub" },
+      { href: "https://dungeons-and-diplomas.vercel.app", label: "Veröffentlichte Fassung" }
+    ],
+    linkNote: "Die veröffentlichte Fassung lässt sich ohne Datenbank nicht bis ins Spiel durchklicken."
+  },
+  {
+    id: "mathuniverse", name: "Michis Mathe Universe",
+    kind: "Lernspiel-Sammlung", status: "Live",
+    tagline: "Analysis spielerisch — Asymptoten, Kurven, Grundlagen",
+    lead: "Eine Sammlung kleiner Browserspiele rund um die Grundlagen der Analysis. Der Einstieg ist die Asymptoten-Raserei, in der man lernt, wie sich Funktionen an ihren Rändern verhalten.",
+    tags: ["JavaScript", "Lernspiel", "GitHub Pages"],
+    shot: "assets/games/mathuniverse-main.jpg",
+    shotAlt: "Startseite von Michis Mathe Universe mit der Spielauswahl",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Das erste Projekt, das wirklich online ging",
+    build: [
+      "Erster Commit im August 2025, gewachsen auf 75 Commits bis September 2025. Damit ist es das älteste Projekt auf dieser Seite.",
+      "Entstanden ist es aus der Frage, ob sich ein Mathe-Thema so verpacken lässt, dass man es freiwillig anfasst. Die Antwort war halb ja — die Spiele funktionieren, der Umfang blieb klein.",
+      "Es liegt weiterhin öffentlich auf GitHub Pages und ist ohne Anmeldung spielbar."
+    ],
+    facts: [
+      { value: "August bis September 2025", label: "Zeitraum" },
+      { value: "75", label: "Commits" },
+      { value: "JavaScript", label: "Sprache" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/michi-math-universe", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/michi-math-universe/", label: "Spielen" }
+    ],
+    linkNote: "Öffentlich und ohne Anmeldung spielbar."
+  },
+  {
+    id: "mindforge", name: "mindforge-playground",
+    kind: "Spielwiese", status: "Experimente",
+    tagline: "Mechaniken, die noch kein Zuhause haben",
+    lead: "Eine Spielwiese für Mechaniken, die noch zu keinem Projekt gehören. Kein Spiel, sondern der Ort, an dem ich Ideen ausprobiere, bevor sie irgendwo einziehen.",
+    tags: ["React", "Vite", "Experimente"],
+    shot: "assets/games/ph-mindforge.svg",
+    shotAlt: "Platzhalter für mindforge-playground",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Absichtlich unfertig",
+    build: [
+      "Angelegt im Februar 2026, 43 Commits bis März 2026. Grundlage ist eine React-Vorlage auf Vite.",
+      "Hier steht bewusst nichts Fertiges. Was sich bewährt, wandert in ein eigenes Repository; der Rest bleibt liegen und darf liegen bleiben.",
+      "Es gibt keine veröffentlichte Fassung und deshalb auch keinen Screenshot."
+    ],
+    facts: [
+      { value: "Februar bis März 2026", label: "Zeitraum" },
+      { value: "43", label: "Commits" },
+      { value: "React", label: "Grundlage" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/mindforge-playground", label: "Code auf GitHub" }
+    ],
+    linkNote: "Keine veröffentlichte Fassung — Spielwiese, kein Spiel."
+  },
+  {
+    id: "outpost", name: "The Last Outpost",
+    kind: "Design-Dokument", status: "Auf Papier",
+    tagline: "Auto-Kampf, Expeditionen, Extraction-Risiko — noch keine Zeile Code",
+    lead: "Ein Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem und Skilltrees. Es ist die vollständigste Idee, die ich bisher nicht gebaut habe.",
+    tags: ["Design-Dokument", "Auto-Kampf", "Extraction"],
+    shot: "assets/games/ph-outpost.svg",
+    shotAlt: "Platzhalter für The Last Outpost",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Bewusst noch nicht gebaut",
+    build: [
+      "Es existiert kein Repository und kein Prototyp — nur das Design-Dokument.",
+      "Das ist Absicht. Bei Wavebreaker hat sich gezeigt, dass ein durchgeschriebenes Dokument die spätere Arbeit deutlich verkürzt. The Last Outpost wartet, bis eines der laufenden Projekte fertig ist.",
+      "Sobald es losgeht, steht hier mehr als ein Platzhalter."
+    ],
+    facts: [
+      { value: "noch offen", label: "Baustart" },
+      { value: "0", label: "Zeilen Code" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Kein Repository — das Projekt existiert bisher nur als Design-Dokument."
+  },
+  {
+    id: "flappy", name: "Flappy-Prototyp",
+    kind: "Erstes eigenes Spiel", status: "Nicht veröffentlicht",
+    tagline: "Der Anfang — jede Zeile von Hand aus dem Chat nach Unity kopiert",
+    lead: "Mein erstes eigenes Spiel: ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Werkzeuge gab es damals noch nicht.",
+    tags: ["Unity", "eigene Assets", "nicht veröffentlicht"],
+    shot: "assets/games/ph-flappy.svg",
+    shotAlt: "Platzhalter für den Flappy-Prototyp",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Wo alles angefangen hat",
+    build: [
+      "Der Prototyp entstand am 13. Juni 2024 in Unity, mit selbst gebauten Assets.",
+      "Es gibt kein Repository dazu und keine veröffentlichte Fassung. Er steht hier trotzdem, weil ohne ihn nichts von dem folgt, was darüber liegt.",
+      "Was ich daraus mitgenommen habe: Abtippen ist kein Verstehen. Genau deshalb schreibe ich heute erst das Dokument und lasse danach prüfen, ob der Code tut, was darin steht."
+    ],
+    facts: [
+      { value: "13. Juni 2024", label: "Entstanden" },
+      { value: "Unity", label: "Werkzeug" },
+      { value: "nicht veröffentlicht", label: "Stand" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Kein Repository und keine veröffentlichte Fassung."
+  }
+];
+
 class Component extends DCLogic {
-  state = { tab: "start", game: null, projectsVisited: false };
+  state = { tab: "start", game: null, project: null, bild: 0 };
 
   // Die Ebenen werden bei jedem Frame frisch aus dem DOM geholt, damit ein
   // Re-Render (Tabwechsel) die Anbindung nicht abreißen lässt.
@@ -1064,19 +1567,6 @@ class Component extends DCLogic {
       veil.style.opacity = String(clamp(Math.max(clamp(depth * 0.9), dive * 0.92)));
     }
 
-    // Zeitleiste: Lichtlinie wächst mit dem Scrollen, Spiele schwimmen dahinter
-    const tr = this.el("tlRoot");
-    if (tr) {
-      const r = tr.getBoundingClientRect();
-      const p = clamp((vh * 0.72 - r.top) / Math.max(1, r.height - vh * 0.28));
-      const line = this.el("tlLine");
-      if (line) line.style.height = (p * 100).toFixed(1) + "%";
-      const mq = this.el("tlMarquee");
-      if (mq) {
-        if (!mq.style.transition) mq.style.transition = "opacity 320ms linear";
-        mq.style.opacity = String(clamp(p * 1.6) * 0.1);
-      }
-    }
   }
 
   // Texte tauchen beim ersten Erscheinen auf und bleiben dann stehen.
@@ -1110,6 +1600,129 @@ class Component extends DCLogic {
     window.addEventListener("keydown", this.onKey);
     this.paintDepth();
     this.sizeTimer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
+    this.glasFilterEinsetzen();
+
+    // Kachel unter dem Zeiger neigt sich leicht mit, die uebrigen treten zurueck.
+    // Delegiert am Fenster, weil ein Tabwechsel die Kacheln neu aufbaut und
+    // direkt gesetzte Listener dabei abreissen wuerden.
+    this.onZeiger = (e) => {
+      if (e.pointerType && e.pointerType !== "mouse") return;
+      const kachel = e.target && e.target.closest ? e.target.closest(".mw-tile") : null;
+      if (this.geneigt && this.geneigt !== kachel) this.kachelZuruecksetzen();
+      if (!kachel) return;
+      this.geneigt = kachel;
+      kachel.classList.add("mw-tile--fokus");
+      const gitter = kachel.parentElement;
+      if (gitter) gitter.classList.add("mw-tiles--fokus");
+      if (this.reduced) return;
+      const r = kachel.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width;
+      const ny = (e.clientY - r.top) / r.height;
+      const MAX = 9;
+      kachel.style.setProperty("--ry", ((nx - 0.5) * 2 * MAX).toFixed(2) + "deg");
+      kachel.style.setProperty("--rx", ((0.5 - ny) * 2 * MAX).toFixed(2) + "deg");
+    };
+    window.addEventListener("pointermove", this.onZeiger, { passive: true });
+    this.onZeigerWeg = () => this.kachelZuruecksetzen();
+    document.addEventListener("pointerleave", this.onZeigerWeg);
+    window.addEventListener("blur", this.onZeigerWeg);
+
+    // Zurueck im Tab: die Seite muss fertig dastehen, nicht erst fertig werden.
+    this.onSichtbar = () => this.sofortFertig();
+    document.addEventListener("visibilitychange", this.onSichtbar);
+    window.addEventListener("pageshow", this.onSichtbar);
+  }
+
+  // Wird der Tab weggeschaltet, halten Browser Animationen und Zeitgeber an.
+  // Beim Zurueckkommen liefen sie sichtbar weiter: Eingeblendetes blendete
+  // erneut ein, eine Kachel blieb unter dem alten Zeiger geneigt stehen.
+  // Hier wird alles in einem Rutsch in den Endzustand gesetzt.
+  sofortFertig() {
+    if (document.visibilityState === "hidden") return;
+
+    // Die Kachel unter dem alten Zeiger steht sonst schief da, bis man sie bewegt.
+    this.kachelZuruecksetzen();
+
+    document.documentElement.classList.add("mw-sofort");
+
+    // Einmalige Animationen ans Ende setzen. Endlose Hintergrundbewegungen
+    // laufen weiter, sonst steht das Wasser still.
+    if (document.getAnimations) {
+      const laufende = document.getAnimations();
+      for (let i = 0; i < laufende.length; i++) {
+        const a = laufende[i];
+        let dauerhaft = false;
+        try { dauerhaft = a.effect && a.effect.getTiming().iterations === Infinity; } catch (e) { dauerhaft = true; }
+        if (dauerhaft) continue;
+        try { a.finish(); } catch (e) { /* schon beendet */ }
+      }
+    }
+
+    // Was im Bild steht, wird ohne Einblenden gezeigt.
+    const vh = window.innerHeight || 800;
+    const offen = document.querySelectorAll('[data-reveal]:not([data-shown="1"])');
+    for (let i = 0; i < offen.length; i++) {
+      const r = offen[i].getBoundingClientRect();
+      if (r.bottom > 0 && r.top < vh) offen[i].setAttribute("data-shown", "1");
+    }
+
+    this.paintDepth();
+    this.scanReveal();
+    void document.body.offsetHeight; // Umbruch erzwingen, solange die Uebergaenge aus sind
+
+    // Sperre wieder loesen. Nicht nur ueber requestAnimationFrame: liefert der
+    // Browser gerade keine Bilder, bliebe sie sonst haengen und alle Uebergaenge
+    // waeren dauerhaft tot.
+    const loesen = () => {
+      if (this.sofortTimer) { clearTimeout(this.sofortTimer); this.sofortTimer = 0; }
+      document.documentElement.classList.remove("mw-sofort");
+    };
+    requestAnimationFrame(() => requestAnimationFrame(loesen));
+    this.sofortTimer = setTimeout(loesen, 150);
+  }
+
+  // Der Brechungsfilter fuer die Glasflaechen. Er wird per JS erzeugt und nicht
+  // in die Vorlage geschrieben: beim HTML-Parsen wuerden Attributnamen wie
+  // baseFrequency kleingeschrieben und der Filter bliebe wirkungslos.
+  glasFilterEinsetzen() {
+    if (document.getElementById("mwGlasSvg")) return;
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("id", "mwGlasSvg");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("width", "0");
+    svg.setAttribute("height", "0");
+    svg.style.cssText = "position:absolute;width:0;height:0;pointer-events:none";
+    const defs = document.createElementNS(NS, "defs");
+    const filter = document.createElementNS(NS, "filter");
+    filter.setAttribute("id", "mwGlasBrechung");
+    filter.setAttribute("color-interpolation-filters", "sRGB");
+    filter.setAttribute("x", "-50%");
+    filter.setAttribute("y", "-50%");
+    filter.setAttribute("width", "200%");
+    filter.setAttribute("height", "200%");
+    const bau = (tag, attrs) => {
+      const el = document.createElementNS(NS, tag);
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+      filter.appendChild(el);
+    };
+    bau("feTurbulence", { type: "fractalNoise", baseFrequency: "0.05 0.05", numOctaves: "1", seed: "1", result: "rauschen" });
+    bau("feGaussianBlur", { in: "rauschen", stdDeviation: "2", result: "weich" });
+    bau("feDisplacementMap", { in: "SourceGraphic", in2: "weich", scale: "14", xChannelSelector: "R", yChannelSelector: "B", result: "versetzt" });
+    bau("feGaussianBlur", { in: "versetzt", stdDeviation: "1.5", result: "fertig" });
+    defs.appendChild(filter);
+    svg.appendChild(defs);
+    document.body.appendChild(svg);
+  }
+
+  kachelZuruecksetzen() {
+    const k = this.geneigt;
+    this.geneigt = null;
+    if (!k) return;
+    k.classList.remove("mw-tile--fokus");
+    k.style.removeProperty("--rx");
+    k.style.removeProperty("--ry");
+    if (k.parentElement) k.parentElement.classList.remove("mw-tiles--fokus");
   }
 
   componentDidUpdate() {
@@ -1127,7 +1740,13 @@ class Component extends DCLogic {
     window.removeEventListener("scroll", this.onScroll);
     window.removeEventListener("resize", this.onScroll);
     window.removeEventListener("keydown", this.onKey);
+    window.removeEventListener("pointermove", this.onZeiger);
+    document.removeEventListener("pointerleave", this.onZeigerWeg);
+    window.removeEventListener("blur", this.onZeigerWeg);
+    document.removeEventListener("visibilitychange", this.onSichtbar);
+    window.removeEventListener("pageshow", this.onSichtbar);
     if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.sofortTimer) clearTimeout(this.sofortTimer);
     if (this.sizeTimer) clearInterval(this.sizeTimer);
     document.body.style.overflow = "";
   }
@@ -1135,7 +1754,7 @@ class Component extends DCLogic {
   go(t) {
     return () => {
       if (t === this.state.tab) return;
-      this.setState({ tab: t, projectsVisited: this.state.projectsVisited || t === "games" });
+      this.setState({ tab: t, project: null, bild: 0 });
       // Sofort nach oben springen, nicht animiert: eine laufende Scroll-Animation
       // über eine neue, kürzere Seite lässt den Tiefenschleier kurz zulaufen.
       try {
@@ -1154,7 +1773,79 @@ class Component extends DCLogic {
 
   renderVals() {
     const tab = this.state.tab;
-    const play = (id, name) => () => this.setState({ game: { id, name } });
+    const openProject = (id) => () => {
+      this.setState({ project: id, bild: 0 });
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* preview may block scrolling */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+    };
+    const closeProject = () => {
+      this.setState({ project: null, bild: 0 });
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* preview may block scrolling */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+    };
+
+    // Die Kacheln bekommen ihren Klickgriff hier, damit die Vorlage ohne
+    // Ausdruecke auskommt: sc-for kann Pfade lesen, aber nichts aufrufen.
+    // Reihenrhythmus und Farbe haengen an der Position in der Liste, nicht an
+    // der Stellung im DOM: nth-child wuerde Nachbarelemente mitzaehlen.
+    const projects = PROJECTS.map((p, i) => ({
+      cls: [
+        "mw-tile",
+        i % 2 === 0 ? "mw-tile--blau" : "mw-tile--weiss",
+        i === PROJECTS.length - 1 && i % 2 === 0
+          ? "mw-tile--voll"
+          : (i % 4 === 0 || i % 4 === 3) ? "mw-tile--schmal" : "mw-tile--breit"
+      ].join(" "),
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      tagline: p.tagline,
+      shot: p.shot,
+      aria: p.name + " — " + p.tagline,
+      open: openProject(p.id)
+    }));
+
+    const current = PROJECTS.find((p) => p.id === this.state.project) || null;
+    // Hauptbild und Zusatzbilder bilden eine gemeinsame Galerie. Welches Bild
+    // gross zu sehen ist, entscheidet this.state.bild; Pfeile und Miniaturen
+    // schieben nur diesen Index.
+    const bilder = current
+      ? [{ src: current.shot, alt: current.shotAlt, fit: "cover" }]
+          .concat(current.shots.map((sh) => ({ src: sh.src, alt: sh.alt, fit: sh.fit || "cover" })))
+      : [];
+    const idx = bilder.length ? ((this.state.bild % bilder.length) + bilder.length) % bilder.length : 0;
+    const detail = current ? {
+      ...current,
+      galerie: bilder.map((b, i) => ({
+        src: b.src,
+        fit: b.fit,
+        aria: "Bild " + (i + 1) + " von " + bilder.length + (b.alt ? ": " + b.alt : ""),
+        cls: i === idx ? "mw-thumb mw-thumb--an" : "mw-thumb",
+        waehlen: () => this.setState({ bild: i })
+      })),
+      bild: bilder.length ? bilder[idx].src : "",
+      bildAlt: bilder.length ? bilder[idx].alt : "",
+      bildFit: bilder.length ? bilder[idx].fit : "cover",
+      mehrereBilder: bilder.length > 1,
+      // Zaehlt vom tatsaechlichen Zustand, nicht vom Index dieses Durchlaufs:
+      // sonst lesen zwei schnelle Klicks denselben Wert und springen nur einmal.
+      bildVor: () => this.setState((z) => ({ bild: z.bild + 1 })),
+      bildZurueck: () => this.setState((z) => ({ bild: z.bild - 1 })),
+      canPlay: !!current.playId,
+      spielenAria: current.name + " im Browser spielen",
+      play: current.playId
+        ? () => this.setState({ game: { id: current.playId, name: current.name } })
+        : () => {}
+    } : null;
+
     const tabItems = [
       { value: "start", label: "Start" },
       { value: "games", label: "Projekte" },
@@ -1163,28 +1854,28 @@ class Component extends DCLogic {
       { value: "devlog", label: "Devlog" },
       { value: "contact", label: "Kontakt" }
     ];
-    if (this.state.projectsVisited) tabItems.splice(2, 0, { value: "play", label: "Meine Projekte testen" });
     return {
       tab,
       tabItems,
       setTab: (v) => this.go(v)(),
       isStart: tab === "start",
       isGames: tab === "games",
-      isPlay: tab === "play",
       isAbout: tab === "about",
       isAi: tab === "ai",
       isDevlog: tab === "devlog",
       isContact: tab === "contact",
       goGames: this.go("games"),
       goContact: this.go("contact"),
+
+      projects,
+      detail,
+      showList: tab === "games" && !current,
+      showDetail: tab === "games" && !!current,
+      closeProject,
+
       gameOpen: !!this.state.game,
       gameName: this.state.game ? this.state.game.name : "",
       closeGame: () => this.setState({ game: null }),
-      playChromatic: play("chromatic", "Chromatic"),
-      playWavebreaker: play("wavebreaker", "Wavebreaker"),
-      playRunecall: play("runecall", "Runecall"),
-      playDropfall: play("dropfall", "Dropfall"),
-      playHarmonics: play("harmonics", "Harmonics"),
 
       pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
 

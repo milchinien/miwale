@@ -51,6 +51,60 @@
   @keyframes mwTabIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
   @keyframes mwSheetUp { from { transform: translateY(100%); } to { transform: none; } }
   @keyframes mwFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Beim Zurueckkommen in den Tab kurz alle Uebergaenge stilllegen, damit
+     nichts sichtbar nachanimiert. Endlose Hintergrundbewegungen bleiben. */
+  .mw-sofort *, .mw-sofort *::before, .mw-sofort *::after { transition: none !important; }
+
+  /* ---- Projektkacheln: Screenshot im Hintergrund, beim Antippen wird er scharf ---- */
+  .mw-tile {
+    position: relative; display: block; width: 100%; min-height: 188px;
+    margin: 0; padding: 0; border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+    overflow: hidden; isolation: isolate; cursor: pointer; text-align: left;
+    background: #04131C; color: inherit; font: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 12px 32px rgba(1,10,17,.38);
+    transition: border-color 420ms cubic-bezier(.22,.61,.36,1), transform 420ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-tile:active, .mw-tile:focus-visible { border-color: rgba(127,224,238,.46); transform: scale(.988); }
+  .mw-tile:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 3px; }
+  .mw-tile__bg {
+    position: absolute; inset: -5%; z-index: 0;
+    background-size: cover; background-position: center;
+    filter: blur(2.5px) saturate(.92) brightness(.78); transform: scale(1.04);
+    transition: filter 480ms cubic-bezier(.22,.61,.36,1), transform 480ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-tile:active .mw-tile__bg, .mw-tile:focus-visible .mw-tile__bg { filter: blur(0) saturate(1.04) brightness(.92); transform: scale(1.02); }
+  @media (hover: hover) {
+    .mw-tile:hover .mw-tile__bg { filter: blur(0) saturate(1.04) brightness(.92); transform: scale(1.02); }
+    .mw-tile:hover .mw-tile__veil { opacity: .68; }
+  }
+  .mw-tile__veil {
+    position: absolute; inset: 0; z-index: 1;
+    transition: opacity 480ms cubic-bezier(.22,.61,.36,1);
+  }
+  /* Kachel fuer Kachel im Wechsel: hellblau, weiss, hellblau … Nach unten hin
+     bleibt der Schleier dunkel, dort steht die Schrift. */
+  .mw-tile--blau .mw-tile__veil {
+    background:
+      linear-gradient(180deg, rgba(20,116,158,.30) 0%, rgba(5,36,56,.76) 54%, rgba(2,12,18,.94) 100%),
+      linear-gradient(0deg, rgba(86,208,232,.44), rgba(86,208,232,.44));
+  }
+  .mw-tile--weiss .mw-tile__veil {
+    background:
+      linear-gradient(180deg, rgba(200,210,218,.26) 0%, rgba(34,44,54,.76) 54%, rgba(4,12,18,.94) 100%),
+      linear-gradient(0deg, rgba(255,255,255,.52), rgba(255,255,255,.52));
+  }
+  .mw-tile:active .mw-tile__veil { opacity: .70; }
+  .mw-tile__body { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 10px; padding: 22px 18px; min-height: 188px; justify-content: flex-end; }
+  .mw-tile__title { font: var(--type-h2); font-size: 24px; letter-spacing: var(--track-tight); color: #fff; }
+  .mw-tile__rule { display: block; width: 84px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--aqua-300), rgba(127,224,238,0)); }
+  .mw-tile__sub { font: var(--type-label); font-size: 11px; letter-spacing: .10em; text-transform: uppercase; line-height: 1.5; color: rgba(237,243,249,.80); }
+  .mw-tile__meta { position: absolute; z-index: 2; top: 14px; left: 16px; }
+  .mw-tile__badge { padding: 5px 12px; border-radius: 999px; background: rgba(2,14,22,.52); border: 1px solid rgba(206,244,255,.42); font: var(--type-code); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: #EAF9FF; }
+  @media (prefers-reduced-motion: reduce) {
+    .mw-tile, .mw-tile__bg, .mw-tile__veil { transition: none !important; }
+    .mw-tile:active { transform: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
     [data-mw-anim] { animation: none !important; }
     [data-reveal] { opacity: 1 !important; transform: none !important; }
@@ -129,11 +183,6 @@
       <div style="height: 2px; background: rgba(255,255,255,.08);">
         <div data-mw="progress" style="height: 2px; width: 0%; background: linear-gradient(90deg, var(--aqua-400), rgba(45,199,178,.6));"></div>
       </div>
-      <sc-if value="{{ showPlayTab }}" hint-placeholder-val="{{ false }}">
-        <div style="max-width: 560px; margin: 0 auto; padding: 8px 16px 10px;">
-          <button type="button" onClick="{{ goPlay }}" style="width: 100%; min-height: 38px; border-radius: 999px; border: 1px solid rgba(127,224,238,.32); background: rgba(63,198,220,.14); color: #fff; font: var(--type-label);">Meine Projekte testen</button>
-        </div>
-      </sc-if>
     </header>
 
     <main style="max-width: 560px; margin: 0 auto; padding: 20px 16px 132px; display: flex; flex-direction: column; gap: 26px;">
@@ -201,62 +250,30 @@
         </div>
       </sc-if>
 
-      <sc-if value="{{ isPlay }}" hint-placeholder-val="{{ false }}">
-        <div style="display: flex; flex-direction: column; gap: 22px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Direkt im Browser</span>
-            <h1 style="margin: 0; font: var(--type-h1); font-size: 28px; letter-spacing: var(--track-tight); color: #fff;">Meine Projekte testen</h1>
-            <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.6; color: rgba(237,243,249,.72);">Wähle ein Spiel aus. Es öffnet sich direkt hier und beginnt mit dem miwale-Ladebildschirm.</p>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <button type="button" onClick="{{ playChromatic }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Chromatic<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playWavebreaker }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Wavebreaker<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playRunecall }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Runecall<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playDropfall }}" style="min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Dropfall<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
-            <button type="button" onClick="{{ playHarmonics }}" style="grid-column: 1 / -1; min-height: 72px; border-radius: 18px; border: 1px solid rgba(127,224,238,.3); background: rgba(63,198,220,.12); color: #fff; font: var(--type-label);">Harmonics<br><span style="font: var(--type-code); font-size: 11px; color: var(--aqua-300);">Jetzt spielen</span></button>
-          </div>
-        </div>
-      </sc-if>
 
   <sc-if value="{{ isGames }}" hint-placeholder-val="{{ false }}">
         <div style="display: flex; flex-direction: column; gap: 22px; animation: mwTabIn 380ms cubic-bezier(.22,.61,.36,1) both;">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Projekte</span>
             <h1 style="margin: 0; font: var(--type-h1); font-size: 28px; letter-spacing: var(--track-tight); color: #fff;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Drei, die laufen" trigger="mount" by="word" hint-size="auto,auto"></x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Alles, was bisher entstand" trigger="mount" by="word" hint-size="auto,auto"></x-import>
             </h1>
-            <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.6; color: rgba(237,243,249,.72);">Tipp ein Projekt an, dann öffnet sich alles dazu: was es tut, was ich gemacht habe, und wo der Code liegt.</p>
+            <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.6; color: rgba(237,243,249,.72);">Von oben nach unten: was läuft, steht vorn. Tipp ein Projekt an, dann öffnet sich alles dazu — was es tut, wie und wann ich es gebaut habe, und wo der Code liegt.</p>
           </div>
 
           <sc-for list="{{ projects }}" as="p" hint-placeholder-count="3">
-            <button type="button" onClick="{{ p.open }}" style="text-align: left; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 12px; padding: 0; border-radius: 24px; overflow: hidden; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.20);">
-              <span style="position: relative; display: block; height: 128px; background: linear-gradient(165deg, #04161F 0%, #0A3446 100%);">
-                <sc-if value="{{ p.hasCover }}" hint-placeholder-val="{{ false }}">
-                  <span style="{{ p.coverStyle }}"></span>
-                </sc-if>
-                <sc-if value="{{ p.noCover }}" hint-placeholder-val="{{ false }}">
-                  <span style="position: absolute; inset: 0; display: grid; place-items: center;">
-                    <img src="assets/mascot-whale-light.png" alt="" style="width: 74px; opacity: .55;">
-                  </span>
-                </sc-if>
-                <span style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(1,10,17,0) 40%, rgba(1,10,17,.72) 100%);"></span>
-                <span style="position: absolute; left: 14px; bottom: 12px; font: var(--type-code); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--aqua-200);">{{ p.status }}</span>
-              </span>
-              <span style="display: flex; flex-direction: column; gap: 8px; padding: 0 18px 18px;">
-                <span style="font: var(--type-h3); font-size: 20px; color: #fff;">{{ p.name }}</span>
-                <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.55; color: rgba(237,243,249,.74);">{{ p.line }}</span>
-                <span style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px;">
-                  <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.58);">{{ p.kind }}</span>
-                  <span style="font: var(--type-label); font-size: 13px; color: var(--aqua-300);">Details →</span>
-                </span>
+            <button type="button" class="{{ p.cls }}" onClick="{{ p.open }}" aria-label="{{ p.aria }}">
+              <span class="mw-tile__bg" style="background-image: url({{ p.shot }});"></span>
+              <span class="mw-tile__veil"></span>
+              <span class="mw-tile__meta"><span class="mw-tile__badge">{{ p.status }}</span></span>
+              <span class="mw-tile__body">
+                <span class="mw-tile__title">{{ p.name }}</span>
+                <span class="mw-tile__rule"></span>
+                <span class="mw-tile__sub">{{ p.tagline }}</span>
               </span>
             </button>
           </sc-for>
 
-          <div style="display: flex; flex-direction: column; gap: 10px; padding: 18px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.6);">Nebenbei</span>
-            <span style="font: var(--type-body-sm); font-size: 13px; line-height: 1.6; color: rgba(237,243,249,.72);">Nicht alles ist fertig, und das steht hier auch so. michi-mathe-universe hat mir gezeigt, wie man Lerninhalte in ein Spiel packt; der Flappy-Prototyp von 2024 war der Anfang von allem.</span>
-          </div>
         </div>
       </sc-if>
 
@@ -379,39 +396,52 @@
 
         <div style="display: flex; flex-direction: column; gap: 20px; padding: 4px 18px calc(28px + env(safe-area-inset-bottom));">
           <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.58);">{{ sheet.kind }}</span>
-          <p style="margin: 0; font: var(--type-body); font-size: 15px; line-height: 1.65; color: rgba(237,243,249,.82);">{{ sheet.line }}</p>
+          <img src="{{ sheet.shot }}" alt="{{ sheet.shotAlt }}" style="width: 100%; height: 190px; object-fit: cover; border-radius: 20px; border: 1px solid rgba(255,255,255,.16);">
+          <p style="margin: 0; font: var(--type-body); font-size: 15px; line-height: 1.65; color: rgba(237,243,249,.82);">{{ sheet.lead }}</p>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
-            <sc-for list="{{ sheet.stats }}" as="s" hint-placeholder-count="3">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <sc-for list="{{ sheet.facts }}" as="s" hint-placeholder-count="{{ 4 }}">
               <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);">
-                <span style="font: var(--type-h3); font-size: 15px; color: #fff;">{{ s.v }}</span>
-                <span style="font: var(--type-body-sm); font-size: 11px; line-height: 1.4; color: rgba(237,243,249,.62);">{{ s.l }}</span>
+                <span style="font: var(--type-h3); font-size: 15px; line-height: 1.3; color: #fff;">{{ s.value }}</span>
+                <span style="font: var(--type-body-sm); font-size: 11px; line-height: 1.4; color: rgba(237,243,249,.62);">{{ s.label }}</span>
               </div>
             </sc-for>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Was ich gemacht habe</span>
-            <sc-for list="{{ sheet.body }}" as="b" hint-placeholder-count="2">
-              <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.65; color: rgba(237,243,249,.76);">{{ b.text }}</p>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie und wann gebaut</span>
+            <span style="font: var(--type-h3); font-size: 17px; line-height: 1.4; color: #fff;">{{ sheet.buildTitle }}</span>
+            <sc-for list="{{ sheet.build }}" as="b" hint-placeholder-count="{{ 3 }}">
+              <p style="margin: 0; font: var(--type-body-sm); font-size: 14px; line-height: 1.65; color: rgba(237,243,249,.76);">{{ b }}</p>
             </sc-for>
           </div>
 
           <sc-if value="{{ sheet.hasShots }}" hint-placeholder-val="{{ false }}">
-            <div data-snap="1" style="display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -18px; padding: 0 18px 4px;">
-              <sc-for list="{{ sheet.shots }}" as="sh" hint-placeholder-count="0">
-                <span style="{{ sh.style }}"></span>
-              </sc-for>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div data-snap="1" style="display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -18px; padding: 0 18px 4px;">
+                <sc-for list="{{ sheet.shots }}" as="sh" hint-placeholder-count="{{ 0 }}">
+                  <span style="{{ sh.style }}"></span>
+                </sc-for>
+              </div>
+              <span style="font: var(--type-code); font-size: 11px; line-height: 1.5; color: rgba(237,243,249,.5);">{{ sheet.shotsCaption }}</span>
             </div>
           </sc-if>
 
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <sc-for list="{{ sheet.tags }}" as="tg" hint-placeholder-count="3">
-              <span style="padding: 8px 14px; border-radius: 999px; font: var(--type-label); font-size: 12px; color: rgba(237,243,249,.82); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);">{{ tg.text }}</span>
+            <sc-for list="{{ sheet.tags }}" as="tg" hint-placeholder-count="{{ 3 }}">
+              <span style="padding: 8px 14px; border-radius: 999px; font: var(--type-label); font-size: 12px; color: rgba(237,243,249,.82); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);">{{ tg }}</span>
             </sc-for>
           </div>
 
-          <a href="{{ sheet.href }}" target="_blank" rel="noopener noreferrer" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; font: var(--type-label); font-size: 15px; color: #04161F; background: var(--aqua-400); box-shadow: 0 10px 28px rgba(15,140,166,.28);">{{ sheet.linkLabel }}</a>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-if value="{{ sheet.canPlay }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ sheet.play }}" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; cursor: pointer; font: var(--type-label); font-size: 15px; color: #04161F; background: var(--aqua-400); box-shadow: 0 10px 28px rgba(15,140,166,.28);">Spielen</button>
+            </sc-if>
+            <sc-for list="{{ sheet.links }}" as="l" hint-placeholder-count="{{ 1 }}">
+              <a href="{{ l.href }}" target="_blank" rel="noopener noreferrer" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; font: var(--type-label); font-size: 15px; color: var(--ice-100); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);">{{ l.label }}</a>
+            </sc-for>
+            <span style="font: var(--type-code); font-size: 11px; line-height: 1.5; color: rgba(237,243,249,.5);">{{ sheet.linkNote }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -431,8 +461,334 @@
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:880},&quot;navIcons&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Navigation&quot;},&quot;showNumbers&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Inhalt&quot;},&quot;calmBackground&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Bewegung&quot;},&quot;headerNote&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;17 · DE · Michel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Inhalt&quot;}}">
+// Alle Projekte, nach Relevanz sortiert: was fertig und spielbar ist, steht oben.
+// Zeitraum, Commit-Zahlen und Sprachen stammen aus den GitHub-Repositories,
+// die Screenshots aus den veröffentlichten Fassungen auf GitHub Pages.
+const PROJECTS = [
+  {
+    id: "chromatic", name: "Chromatic",
+    kind: "Roguelite-Deckbuilder", status: "Spielbar",
+    tagline: "Deckbuilder ohne Mana · 25 Karten, fünf Farben, bis zum Endboss",
+    lead: "Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.",
+    tags: ["TypeScript", "Canvas", "ohne Engine", "Vite"],
+    shot: "assets/games/chromatic-kampf-1.png",
+    shotAlt: "Kampfraum aus Chromatic mit Karten am unteren Rand",
+    shots: [
+      { src: "assets/games/chromatic-kampf-2.png", alt: "Zweiter Kampfraum aus Chromatic" },
+      { src: "assets/games/chromatic-akt-1.png", alt: "Aktauswahl aus Chromatic" },
+      { src: "assets/games/chromatic-card-1.png", alt: "Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-2.png", alt: "Zweite Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-3.png", alt: "Dritte Karte aus dem Chromatic-Deck", fit: "contain" }
+    ],
+    shotsCaption: "Kampfraum, Aktauswahl und drei Karten aus dem 25er-Deck.",
+    buildTitle: "Kein Framework, keine Engine — alles von Hand",
+    build: [
+      "Angefangen im Mai 2026, seitdem in 33 Commits gewachsen. Die Weltkarte ist ein Graph aus fünf Ebenen mit endlos eskalierenden Akten, durchspielbar bis zum Endboss.",
+      "Gebaut ohne Framework und ohne Engine: die Oberfläche liegt im DOM, der Kampf läuft auf einem Canvas, der Klang wird zur Laufzeit erzeugt. Das war eine bewusste Entscheidung — ich wollte verstehen, was eine Engine mir sonst abnimmt.",
+      "59 Prüfläufe sichern die Kampflogik ab und laufen alle grün durch. Sie waren der Grund, dass ich das Balancing später noch mehrfach umwerfen konnte, ohne das Spiel zu zerlegen."
+    ],
+    facts: [
+      { value: "Mai bis September 2026", label: "Zeitraum" },
+      { value: "33", label: "Commits" },
+      { value: "59 / 59", label: "Prüfläufe grün" },
+      { value: "25", label: "Karten im Deck" }
+    ],
+    playId: "chromatic",
+    links: [
+      { href: "https://github.com/milchinien/Chromatic", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Chromatic/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "wavebreaker", name: "Wavebreaker",
+    kind: "Idle-Verteidigung", status: "In Politur",
+    tagline: "Modulare Kampfstation gegen endlose Wellen · 692 Selbsttests grün",
+    lead: "Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige.",
+    tags: ["TypeScript", "DOM-freie Simulation", "Vite"],
+    shot: "assets/games/wavebreaker-main.jpg",
+    shotAlt: "Kampfstation aus Wavebreaker mit Reichweitenkreis und anfliegenden Gegnern",
+    shots: [
+      { src: "assets/games/wavebreaker-1.jpg", alt: "Wavebreaker in Welle 3 im Gefecht" },
+      { src: "assets/games/wb-station.svg", alt: "Kampfstation aus Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-turret.svg", alt: "Turm aus Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-boss.svg", alt: "Boss aus Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-upgrade.svg", alt: "Ausbau-Symbol aus Wavebreaker", fit: "contain" }
+    ],
+    shotsCaption: "Aufnahmen aus der laufenden Fassung, dazu Originalgrafiken aus dem Spiel.",
+    buildTitle: "Erst sechzehn Kapitel schreiben, dann bauen",
+    build: [
+      "Vor der ersten Zeile Code stand ein Design-Dokument über sechzehn Kapitel. Der erste Commit liegt im August 2026, bis September sind 15 dazugekommen.",
+      "Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Genau deshalb kann sich das Spiel selbst prüfen: 692 kleine Testläufe rechnen nach jeder Änderung nach, ob Schaden, Kosten und Wellen noch stimmen.",
+      "Alle 692 laufen grün durch, der Typecheck ist fehlerfrei. Offen sind Spielgefühl, Klang und Balancing — also genau die Dinge, die kein Test beantwortet."
+    ],
+    facts: [
+      { value: "August bis September 2026", label: "Zeitraum" },
+      { value: "15", label: "Commits" },
+      { value: "692 / 692", label: "Selbsttests grün" },
+      { value: "16", label: "Kapitel im Design-Dokument" }
+    ],
+    playId: "wavebreaker",
+    links: [
+      { href: "https://github.com/milchinien/Wavebreaker", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Wavebreaker/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "xrai", name: "XRAI Order System",
+    kind: "Bestellsystem für die Gastronomie", status: "Im Einsatz",
+    tagline: "QR-Code am Tisch, bestellen, Küche sieht es sofort — echter Betrieb",
+    lead: "Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.",
+    tags: ["TypeScript", "Kundenprojekt", "CI/CD", "Container"],
+    shot: "assets/games/ph-xrai.svg",
+    shotAlt: "Platzhalter für das XRAI Order System",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Von den ersten Gesprächen bis zum Livegang in unter zwanzig Stunden",
+    build: [
+      "Angelegt im Mai 2026. Von den ersten Gesprächen über Konzept, Frontend, Backend und Datenhaltung bis zu Reviews, Security-Scans, Container, CI/CD, Deployment und DNS — alles allein, in unter zwanzig Arbeitsstunden.",
+      "Das Repository ist als einziges hier nicht öffentlich: es gehört dem Kunden. Deshalb stehen an dieser Stelle keine Screenshots aus dem echten Betrieb, sondern ein Platzhalter.",
+      "Es ist das einzige Projekt auf dieser Seite, das fremde Menschen täglich benutzen, ohne zu wissen, dass ich es gebaut habe."
+    ],
+    facts: [
+      { value: "Mai 2026", label: "Zeitraum" },
+      { value: "unter 20 h", label: "bis zum Livegang" },
+      { value: "23", label: "Pull Requests" },
+      { value: "83", label: "Commits" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Kundenprojekt — Repository nicht öffentlich, Screenshots folgen nach Absprache."
+  },
+  {
+    id: "runecall", name: "Runecall",
+    kind: "Digitales Stichkartenspiel", status: "Prototyp spielbar",
+    tagline: "Stiche exakt ansagen — einer zu viel ist so schlecht wie einer zu wenig",
+    lead: "Vor jeder Runde sagst du exakt voraus, wie viele Stiche du gewinnen wirst, und musst danach genau diese Zahl treffen. Die Regeln folgen dem gemeinfreien Stichansage-Prinzip, erweitert um den Magier, der jeden Stich gewinnt, und den Narren, der keinen gewinnen will.",
+    tags: ["TypeScript", "Monorepo", "Bots", "deterministische Engine"],
+    shot: "assets/games/runecall-main.jpg",
+    shotAlt: "Runecall während der Ansage, mit Hand, Trumpf und Analysepanel",
+    shots: [
+      { src: "assets/games/runecall-1.jpg", alt: "Runecall mit laufendem Stich auf dem Tisch" }
+    ],
+    shotsCaption: "Aufnahmen aus Prototyp 01, der öffentlichen Fassung auf GitHub Pages.",
+    buildTitle: "Die Regeln zuerst, und zwar getrennt vom Rest",
+    build: [
+      "Erster Commit im August 2026, acht Commits bis September. Das Projekt ist ein Monorepo aus drei Paketen: engine, bots und client.",
+      "Die Engine kennt weder Browser noch Netzwerk und ist deterministisch — dieselbe Ausgangslage ergibt immer dieselbe Partie. Deshalb läuft sie an drei Stellen gleich: in den Tests, im Client und später im Server. Die Bots sehen aus demselben Grund nur die eigene Hand; ein Gegner, der alle Hände kennt, wäre kein Gegner.",
+      "Geplant sind 3 bis 6 Spieler gegen Computergegner oder online, eigene Layouts für PC und Handy, 60 einzeln gestaltete Karten, Deutsch und Englisch. Öffentlich steht bisher Prototyp 01: geben, analysieren, legen. Der Rest liegt im Repository und ist noch nicht veröffentlicht."
+    ],
+    facts: [
+      { value: "August bis September 2026", label: "Zeitraum" },
+      { value: "8", label: "Commits" },
+      { value: "3", label: "Pakete im Monorepo" },
+      { value: "60", label: "geplante Kartenmotive" }
+    ],
+    playId: "runecall",
+    links: [
+      { href: "https://github.com/milchinien/Runecall", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Runecall/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentlich steht Prototyp 01. Ton, Handy-Layout und Netzwerk fehlen noch."
+  },
+  {
+    id: "dropfall", name: "Dropfall",
+    kind: "Idle-Incremental", status: "Prototyp spielbar",
+    tagline: "Kugeln fallen durch Pegs und machen bei jedem Kontakt Geld",
+    lead: "Idle-Incremental im Outhold-Design: flache Flächen, extrudierte Sockel, lange harte Schatten. Kugeln fallen durch eine Arena aus Pegs und zahlen bei jedem Kontakt aus. Fortschritt läuft über zwei Achsen — neue Kugeltypen und größere Arenen.",
+    tags: ["TypeScript", "Skill Tree", "Balancing-Simulation", "Vite"],
+    shot: "assets/games/dropfall-main.jpg",
+    shotAlt: "Arena 1 aus Dropfall mit fallender Kugel und Pegs",
+    shots: [
+      { src: "assets/games/dropfall-1.jpg", alt: "Skill Tree aus Dropfall im Outhold-Stil" }
+    ],
+    shotsCaption: "Arena und Skill Tree — Kreis heisst freigeschaltet, Fragezeichen heisst gesperrt.",
+    buildTitle: "Zahlen belegen statt schätzen",
+    build: [
+      "Angelegt im September 2026, bisher fünf Commits. Stand ist v0.4: neun Arenen mit je vier Zielen, fünf Kugeltypen, sechzehn Knoten im Skill Tree.",
+      "Jede Arena hat vier Ziele — Freischaltung, Meisterschaft, Tempo, Ausdauer — und der Zutritt zur nächsten hängt daran, wie viele Ziele insgesamt erfüllt sind.",
+      "Zum Projekt gehört eine kopflose Balancing-Simulation. Sie spielt ganze Kampagnen durch die echte Physik, damit Zahlenänderungen belegt statt geschätzt werden: rund 35 Läufe und 60 Minuten Arena-Zeit bis zur letzten Arena. Offen sind Prestige, Meta-Baum, Perks, Audio und Tutorial."
+    ],
+    facts: [
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "5", label: "Commits" },
+      { value: "9", label: "Arenen mit je vier Zielen" },
+      { value: "16", label: "Knoten im Skill Tree" }
+    ],
+    playId: "dropfall",
+    links: [
+      { href: "https://github.com/milchinien/Dropfall", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Dropfall/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "harmonics", name: "Harmonics",
+    kind: "Idle-Prototyp", status: "Prototyp spielbar",
+    tagline: "Knoten auf gemeinsamer Linie zahlen aus — je mehr gleichzeitig, desto mehr",
+    lead: "Knoten kreisen auf Bahnen. Laufen mehrere gleichzeitig durch dieselbe Linie, zahlen sie aus, und zwar exponentiell mit ihrer Zahl. Darum herum liegen Konvergenzen, Grade und ein Baum aus Ausbauten.",
+    tags: ["TypeScript", "Canvas", "Idle", "Vite"],
+    shot: "assets/games/harmonics-main.jpg",
+    shotAlt: "Harmonics mit kreisenden Knoten und der Anzeige zur nächsten Konvergenz",
+    shots: [
+      { src: "assets/games/harmonics-1.jpg", alt: "Ausbaubaum aus Harmonics mit gesperrten Knoten" }
+    ],
+    shotsCaption: "Spielansicht und Ausbaubaum aus der veröffentlichten Fassung.",
+    buildTitle: "Aus Dropfall herausgelöst",
+    build: [
+      "Harmonics war zuerst ein Gegenentwurf im Dropfall-Repository. Im September 2026 habe ich ihn herausgelöst und ihm ein eigenes Repository gegeben, damit beide Ideen sich nicht gegenseitig im Weg stehen.",
+      "Es ist mit zwei Commits das jüngste und kleinste Projekt auf dieser Seite — ein Prototyp, kein fertiges Spiel. Was läuft, läuft im Browser: Echo als Währung, Grade als Fortschritt, ein Uhrwerk, das auch weiterläuft, während das Fenster zu ist.",
+      "Der Ausbaubaum steht als Gerüst, die meisten Knoten sind noch gesperrt."
+    ],
+    facts: [
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "2", label: "Commits" },
+      { value: "Prototyp", label: "Reifegrad" }
+    ],
+    playId: "harmonics",
+    links: [
+      { href: "https://github.com/milchinien/Harmonics", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Harmonics/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "dnd", name: "Dungeons & Diplomas",
+    kind: "Lern-Dungeon-Crawler", status: "Größtes Nebenprojekt",
+    tagline: "Prozeduraler Dungeon mit Quizgegnern — 229 Commits",
+    lead: "Ein Dungeon-Crawler im Browser mit prozedural erzeugten Ebenen, Echtzeitkampf und Gegnern, die man über Quizfragen schlägt. Dazu XP, Gegenstände, Highscores und eigenes Editor-Werkzeug.",
+    tags: ["TypeScript", "Next.js", "eigener Canvas-Renderer", "Supabase"],
+    shot: "assets/games/dnd-main.jpg",
+    shotAlt: "Anmeldebildschirm von Dungeons & Diplomas",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Das längste Projekt — und das mit den meisten Umwegen",
+    build: [
+      "Erster Commit im November 2025, letzter im Juni 2026. Mit 229 Commits ist es das mit Abstand größte Projekt in meinem Konto.",
+      "Angefangen hat es mit Phaser als Engine. Geblieben ist ein eigener Canvas-Renderer in einer Next.js-App — Phaser gehörte zur Spike-Phase und ist heute nicht mehr drin. Die Datenhaltung läuft über einen Adapter: lokal SQLite, in der Produktion Supabase.",
+      "Die veröffentlichte Fassung kommt derzeit nicht über die Anmeldung hinaus, weil die Datenbank dort nicht angebunden ist. Deshalb zeigt der Screenshot den Anmeldebildschirm und nicht den Dungeon."
+    ],
+    facts: [
+      { value: "November 2025 bis Juni 2026", label: "Zeitraum" },
+      { value: "229", label: "Commits" },
+      { value: "Next.js", label: "Grundlage" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/dungeons-and-diplomas", label: "Code auf GitHub" },
+      { href: "https://dungeons-and-diplomas.vercel.app", label: "Veröffentlichte Fassung" }
+    ],
+    linkNote: "Die veröffentlichte Fassung lässt sich ohne Datenbank nicht bis ins Spiel durchklicken."
+  },
+  {
+    id: "mathuniverse", name: "Michis Mathe Universe",
+    kind: "Lernspiel-Sammlung", status: "Live",
+    tagline: "Analysis spielerisch — Asymptoten, Kurven, Grundlagen",
+    lead: "Eine Sammlung kleiner Browserspiele rund um die Grundlagen der Analysis. Der Einstieg ist die Asymptoten-Raserei, in der man lernt, wie sich Funktionen an ihren Rändern verhalten.",
+    tags: ["JavaScript", "Lernspiel", "GitHub Pages"],
+    shot: "assets/games/mathuniverse-main.jpg",
+    shotAlt: "Startseite von Michis Mathe Universe mit der Spielauswahl",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Das erste Projekt, das wirklich online ging",
+    build: [
+      "Erster Commit im August 2025, gewachsen auf 75 Commits bis September 2025. Damit ist es das älteste Projekt auf dieser Seite.",
+      "Entstanden ist es aus der Frage, ob sich ein Mathe-Thema so verpacken lässt, dass man es freiwillig anfasst. Die Antwort war halb ja — die Spiele funktionieren, der Umfang blieb klein.",
+      "Es liegt weiterhin öffentlich auf GitHub Pages und ist ohne Anmeldung spielbar."
+    ],
+    facts: [
+      { value: "August bis September 2025", label: "Zeitraum" },
+      { value: "75", label: "Commits" },
+      { value: "JavaScript", label: "Sprache" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/michi-math-universe", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/michi-math-universe/", label: "Spielen" }
+    ],
+    linkNote: "Öffentlich und ohne Anmeldung spielbar."
+  },
+  {
+    id: "mindforge", name: "mindforge-playground",
+    kind: "Spielwiese", status: "Experimente",
+    tagline: "Mechaniken, die noch kein Zuhause haben",
+    lead: "Eine Spielwiese für Mechaniken, die noch zu keinem Projekt gehören. Kein Spiel, sondern der Ort, an dem ich Ideen ausprobiere, bevor sie irgendwo einziehen.",
+    tags: ["React", "Vite", "Experimente"],
+    shot: "assets/games/ph-mindforge.svg",
+    shotAlt: "Platzhalter für mindforge-playground",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Absichtlich unfertig",
+    build: [
+      "Angelegt im Februar 2026, 43 Commits bis März 2026. Grundlage ist eine React-Vorlage auf Vite.",
+      "Hier steht bewusst nichts Fertiges. Was sich bewährt, wandert in ein eigenes Repository; der Rest bleibt liegen und darf liegen bleiben.",
+      "Es gibt keine veröffentlichte Fassung und deshalb auch keinen Screenshot."
+    ],
+    facts: [
+      { value: "Februar bis März 2026", label: "Zeitraum" },
+      { value: "43", label: "Commits" },
+      { value: "React", label: "Grundlage" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/mindforge-playground", label: "Code auf GitHub" }
+    ],
+    linkNote: "Keine veröffentlichte Fassung — Spielwiese, kein Spiel."
+  },
+  {
+    id: "outpost", name: "The Last Outpost",
+    kind: "Design-Dokument", status: "Auf Papier",
+    tagline: "Auto-Kampf, Expeditionen, Extraction-Risiko — noch keine Zeile Code",
+    lead: "Ein Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem und Skilltrees. Es ist die vollständigste Idee, die ich bisher nicht gebaut habe.",
+    tags: ["Design-Dokument", "Auto-Kampf", "Extraction"],
+    shot: "assets/games/ph-outpost.svg",
+    shotAlt: "Platzhalter für The Last Outpost",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Bewusst noch nicht gebaut",
+    build: [
+      "Es existiert kein Repository und kein Prototyp — nur das Design-Dokument.",
+      "Das ist Absicht. Bei Wavebreaker hat sich gezeigt, dass ein durchgeschriebenes Dokument die spätere Arbeit deutlich verkürzt. The Last Outpost wartet, bis eines der laufenden Projekte fertig ist.",
+      "Sobald es losgeht, steht hier mehr als ein Platzhalter."
+    ],
+    facts: [
+      { value: "noch offen", label: "Baustart" },
+      { value: "0", label: "Zeilen Code" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Kein Repository — das Projekt existiert bisher nur als Design-Dokument."
+  },
+  {
+    id: "flappy", name: "Flappy-Prototyp",
+    kind: "Erstes eigenes Spiel", status: "Nicht veröffentlicht",
+    tagline: "Der Anfang — jede Zeile von Hand aus dem Chat nach Unity kopiert",
+    lead: "Mein erstes eigenes Spiel: ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Werkzeuge gab es damals noch nicht.",
+    tags: ["Unity", "eigene Assets", "nicht veröffentlicht"],
+    shot: "assets/games/ph-flappy.svg",
+    shotAlt: "Platzhalter für den Flappy-Prototyp",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Wo alles angefangen hat",
+    build: [
+      "Der Prototyp entstand am 13. Juni 2024 in Unity, mit selbst gebauten Assets.",
+      "Es gibt kein Repository dazu und keine veröffentlichte Fassung. Er steht hier trotzdem, weil ohne ihn nichts von dem folgt, was darüber liegt.",
+      "Was ich daraus mitgenommen habe: Abtippen ist kein Verstehen. Genau deshalb schreibe ich heute erst das Dokument und lasse danach prüfen, ob der Code tut, was darin steht."
+    ],
+    facts: [
+      { value: "13. Juni 2024", label: "Entstanden" },
+      { value: "Unity", label: "Werkzeug" },
+      { value: "nicht veröffentlicht", label: "Stand" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Kein Repository und keine veröffentlichte Fassung."
+  }
+];
+
 class Component extends DCLogic {
-  state = { tab: "start", sheet: null, step: 0, game: null, projectsVisited: false };
+  state = { tab: "start", sheet: null, step: 0, game: null };
 
   el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
 
@@ -524,6 +880,51 @@ class Component extends DCLogic {
     this.timer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
     if (window.lucide) setTimeout(() => this.icons(), 600);
     else window.addEventListener("load", () => this.icons(), { once: true });
+
+    // Zurueck im Tab: die Seite muss fertig dastehen, nicht erst fertig werden.
+    this.onSichtbar = () => this.sofortFertig();
+    document.addEventListener("visibilitychange", this.onSichtbar);
+    window.addEventListener("pageshow", this.onSichtbar);
+  }
+
+  // Weggeschaltete Tabs halten Animationen und Zeitgeber an. Beim Zurueckkommen
+  // liefen sie sichtbar weiter, statt schon fertig zu sein.
+  sofortFertig() {
+    if (document.visibilityState === "hidden") return;
+    document.documentElement.classList.add("mw-sofort");
+
+    if (document.getAnimations) {
+      const laufende = document.getAnimations();
+      for (let i = 0; i < laufende.length; i++) {
+        const a = laufende[i];
+        let dauerhaft = false;
+        try { dauerhaft = a.effect && a.effect.getTiming().iterations === Infinity; } catch (e) { dauerhaft = true; }
+        if (dauerhaft) continue;
+        try { a.finish(); } catch (e) { /* schon beendet */ }
+      }
+    }
+
+    const vh = window.innerHeight || 800;
+    const offen = document.querySelectorAll('[data-reveal]:not([data-shown="1"])');
+    for (let i = 0; i < offen.length; i++) {
+      const r = offen[i].getBoundingClientRect();
+      if (r.bottom > 0 && r.top < vh) offen[i].setAttribute("data-shown", "1");
+    }
+
+    this.paintDepth();
+    this.scanReveal();
+    this.icons();
+    void document.body.offsetHeight;
+
+    // Sperre wieder loesen. Nicht nur ueber requestAnimationFrame: liefert der
+    // Browser gerade keine Bilder, bliebe sie sonst haengen und alle Uebergaenge
+    // waeren dauerhaft tot.
+    const loesen = () => {
+      if (this.sofortTimer) { clearTimeout(this.sofortTimer); this.sofortTimer = 0; }
+      document.documentElement.classList.remove("mw-sofort");
+    };
+    requestAnimationFrame(() => requestAnimationFrame(loesen));
+    this.sofortTimer = setTimeout(loesen, 150);
   }
 
   componentDidUpdate() {
@@ -542,7 +943,10 @@ class Component extends DCLogic {
     window.removeEventListener("scroll", this.onScroll);
     window.removeEventListener("resize", this.onScroll);
     window.removeEventListener("keydown", this.onKey);
+    document.removeEventListener("visibilitychange", this.onSichtbar);
+    window.removeEventListener("pageshow", this.onSichtbar);
     if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.sofortTimer) clearTimeout(this.sofortTimer);
     if (this.timer) clearInterval(this.timer);
     document.body.style.overflow = "";
   }
@@ -550,7 +954,7 @@ class Component extends DCLogic {
   go(t) {
     return () => {
       if (t === this.state.tab) { window.scrollTo(0, 0); return; }
-      this.setState({ tab: t, sheet: null, projectsVisited: this.state.projectsVisited || t === "games" });
+      this.setState({ tab: t, sheet: null });
       try {
         window.scrollTo(0, 0);
         const sc = document.scrollingElement || document.documentElement;
@@ -566,85 +970,18 @@ class Component extends DCLogic {
   }
 
   data() {
-    return [
-      {
-        id: "xrai",
-        name: "XRAI Order System",
-        status: "läuft täglich",
-        kind: "Bestellsystem für die Gastronomie",
-        cover: "",
-        line: "Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch und bestellen. In der Küche läuft die Bestellung auf. Kein Übungsprojekt: fremde Menschen benutzen es jeden Tag.",
-        stats: [{ v: "unter 20 h", l: "Idee bis live" }, { v: "83", l: "Commits" }, { v: "23", l: "Pull Requests" }],
-        body: [
-          { text: "Vom ersten Gespräch mit dem Gasthof über Konzept, Frontend, Backend und Datenhaltung bis zu Deployment und DNS habe ich alles allein umgesetzt; ein erfahrener Senior-Entwickler hat jede Änderung gegengelesen." },
-          { text: "Jede Änderung lief einzeln durch ein Review, inklusive Security-Durchsicht. Nichts wurde in einem Rutsch hochgeladen." }
-        ],
-        shots: [],
-        tags: [{ text: "Web" }, { text: "Datenhaltung" }, { text: "Deployment" }, { text: "Reviews" }],
-        href: "https://github.com/milchinien",
-        linkLabel: "Code auf GitHub"
-      },
-      {
-        id: "chromatic",
-        name: "Chromatic",
-        status: "spielbar",
-        kind: "Roguelite-Deckbuilder · TypeScript, DOM und Canvas",
-        cover: "assets/games/chromatic-akt-1.png",
-        line: "Eine Weltkarte als Graph aus fünf Ebenen, endlos eskalierende Akte, durchspielbar bis zum Endboss. Läuft im Browser, ohne Engine.",
-        stats: [{ v: "25", l: "Karten im Deck" }, { v: "5 × 5", l: "Farben, Klassen" }, { v: "5", l: "Kartenebenen" }],
-        body: [
-          { text: "Kartenlogik, Kampfablauf und Balancing habe ich selbst entworfen und über viele Durchläufe von Hand nachgezogen." },
-          { text: "Die Oberfläche ist reines DOM mit Canvas für die Effekte — kein Framework, damit es auf jedem Rechner sofort startet." }
-        ],
-        shots: [
-          { src: "assets/games/chromatic-kampf-1.png" },
-          { src: "assets/games/chromatic-kampf-2.png" },
-          { src: "assets/games/chromatic-akt-1.png" },
-          { src: "assets/games/chromatic-card-1.png", fit: "contain" },
-          { src: "assets/games/chromatic-card-2.png", fit: "contain" },
-          { src: "assets/games/chromatic-card-3.png", fit: "contain" }
-        ],
-        tags: [{ text: "TypeScript" }, { text: "Canvas" }, { text: "Deckbuilder" }],
-        href: "https://github.com/milchinien/Chromatic",
-        linkLabel: "Code auf GitHub"
-      },
-      {
-        id: "wavebreaker",
-        name: "Wavebreaker",
-        status: "in Politur",
-        kind: "Idle-Verteidigung · TypeScript",
-        cover: "assets/games/wb-sky.svg",
-        line: "Die Simulation kennt die Oberfläche nicht, Zeit und Zufall kommen aus jeweils einer Quelle. Deshalb lässt sich jeder Durchlauf automatisch nachrechnen.",
-        stats: [{ v: "692", l: "Prüfläufe grün" }, { v: "16", l: "Kapitel Konzept" }, { v: "1", l: "Zufallsquelle" }],
-        body: [
-          { text: "Bevor eine Zeile Code entstand, stand ein Design-Dokument über sechzehn Kapitel: Mechaniken, Klassen, Kurven und wie sie sich gegenseitig beeinflussen." },
-          { text: "Was noch fehlt, ist das Feintuning der Kurven. Herausgeben werde ich es erst, wenn es sich richtig anfühlt — Tests messen das nicht." }
-        ],
-        shots: [
-          { src: "assets/games/wb-station.svg" },
-          { src: "assets/games/wb-turret.svg", fit: "contain" },
-          { src: "assets/games/wb-boss.svg", fit: "contain" },
-          { src: "assets/games/wb-hull.svg", fit: "contain" },
-          { src: "assets/games/wb-upgrade.svg", fit: "contain" },
-          { src: "assets/games/wb-coin.svg", fit: "contain" },
-          { src: "assets/games/wb-frame-mythic.svg", fit: "contain" }
-        ],
-        tags: [{ text: "TypeScript" }, { text: "Simulation" }, { text: "692 Tests" }],
-        href: "https://github.com/milchinien/Wavebreaker",
-        linkLabel: "Code auf GitHub"
-      }
-    ];
+    return PROJECTS;
   }
 
   renderVals() {
     const tab = this.state.tab;
-    const play = (id, name) => () => this.setState({ sheet: null, game: { id, name } });
     const open = (id) => () => { this.setState({ sheet: id }); window.scrollTo(0, 0); };
-    const items = this.data().map((p) => Object.assign({}, p, {
+    // Farbe haengt an der Position in der Liste, nicht an der Stellung im DOM:
+    // nth-child wuerde den Einleitungsblock darueber mitzaehlen.
+    const items = this.data().map((p, i) => Object.assign({}, p, {
       open: open(p.id),
-      hasCover: !!p.cover,
-      noCover: !p.cover,
-      coverStyle: { position: "absolute", inset: 0, backgroundImage: p.cover ? 'url("' + p.cover + '")' : "none", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.92 }
+      aria: p.name + " — " + p.tagline,
+      cls: "mw-tile " + (i % 2 === 0 ? "mw-tile--blau" : "mw-tile--weiss")
     }));
     const cur = items.find((p) => p.id === this.state.sheet) || null;
     const icon = (n) => React.createElement("i", { "data-lucide": n });
@@ -668,22 +1005,14 @@ class Component extends DCLogic {
       headerNote: this.props.headerNote || "17 · DE · Michel",
       isStart: tab === "start",
       isGames: tab === "games",
-      isPlay: tab === "play",
       isAbout: tab === "about",
       isContact: tab === "contact",
       setTab: (v) => this.go(v)(),
       goGames: this.go("games"),
-      goPlay: this.go("play"),
       goContact: this.go("contact"),
-      showPlayTab: this.state.projectsVisited,
       gameOpen: !!this.state.game,
       gameName: this.state.game ? this.state.game.name : "",
       closeGame: () => this.setState({ game: null }),
-      playChromatic: play("chromatic", "Chromatic"),
-      playWavebreaker: play("wavebreaker", "Wavebreaker"),
-      playRunecall: play("runecall", "Runecall"),
-      playDropfall: play("dropfall", "Dropfall"),
-      playHarmonics: play("harmonics", "Harmonics"),
       navItems: [
         { value: "start", label: "Start", icon: showIcons ? icon("home") : null },
         { value: "games", label: "Projekte", icon: showIcons ? icon("gamepad-2") : null },
@@ -694,15 +1023,18 @@ class Component extends DCLogic {
       morphWords: ["Spiele", "Systeme", "Werkzeuge"],
 
       projects: items,
-      now: items.map((p) => ({ name: p.name, status: p.status, line: p.line.split(".")[0] + ".", open: p.open })),
       sheetOpen: !!cur,
       sheet: cur ? Object.assign({}, cur, {
         hasShots: cur.shots.length > 0,
+        canPlay: !!cur.playId,
+        play: cur.playId
+          ? () => this.setState({ sheet: null, game: { id: cur.playId, name: cur.name } })
+          : () => {},
         shots: cur.shots.map((s) => ({
           src: s.src,
-          style: { scrollSnapAlign: "center", flex: "none", width: "74%", height: 168, borderRadius: 18, border: "1px solid rgba(255,255,255,.16)", backgroundColor: "#06202C", backgroundImage: 'url("' + s.src + '")', backgroundSize: s.fit || "cover", backgroundPosition: "center" }
+          style: { scrollSnapAlign: "center", flex: "none", width: "74%", height: 168, borderRadius: 18, border: "1px solid rgba(255,255,255,.16)", backgroundColor: "#06202C", backgroundImage: 'url("' + s.src + '")', backgroundSize: s.fit || "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }
         }))
-      }) : { stats: [], body: [], shots: [], tags: [], hasShots: false },
+      }) : { facts: [], build: [], shots: [], tags: [], links: [], hasShots: false, canPlay: false },
       closeSheet: () => this.setState({ sheet: null }),
 
       band: [
