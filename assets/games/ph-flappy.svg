@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800" role="img" aria-label="Platzhalter">
+  <defs>
+    <linearGradient id="deep" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#14485F"/><stop offset="1" stop-color="#02141D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="26%" cy="12%" r="72%">
+      <stop offset="0" stop-color="#CEF4FF" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#CEF4FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shaft" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#D6F8FF" stop-opacity=".20"/>
+      <stop offset="1" stop-color="#D6F8FF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="800" fill="url(#deep)"/>
+  <rect width="1280" height="800" fill="url(#glow)"/>
+  <g transform="rotate(-29 220 0)" opacity=".55">
+    <rect x="140" y="-260" width="52" height="1500" fill="url(#shaft)"/>
+    <rect x="286" y="-260" width="26" height="1500" fill="url(#shaft)"/>
+    <rect x="392" y="-260" width="70" height="1500" fill="url(#shaft)"/>
+    <rect x="596" y="-260" width="34" height="1500" fill="url(#shaft)"/>
+  </g>
+  <g fill="#CEF4FF" opacity=".30">
+    <circle cx="196" cy="214" r="2.6"/><circle cx="432" cy="520" r="1.9"/><circle cx="742" cy="188" r="2.9"/>
+    <circle cx="968" cy="596" r="2.2"/><circle cx="1108" cy="322" r="1.7"/><circle cx="318" cy="678" r="2.4"/>
+    <circle cx="616" cy="404" r="1.6"/><circle cx="856" cy="722" r="2.1"/>
+  </g>
+  <text x="640" y="418" text-anchor="middle" font-family="Manrope, Segoe UI, sans-serif" font-size="58" font-weight="700" fill="#EDF3F9" fill-opacity=".30" letter-spacing="4">Flappy-Prototyp</text>
+  <text x="640" y="468" text-anchor="middle" font-family="Manrope, Segoe UI, sans-serif" font-size="19" font-weight="600" fill="#7FE0EE" fill-opacity=".62" letter-spacing="6">SCREENSHOT FOLGT</text>
+</svg>
