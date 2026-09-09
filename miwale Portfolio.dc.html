@@ -371,6 +371,34 @@
   @media (prefers-reduced-motion: reduce) {
     [data-mw-anim] { animation: none !important; }
   }
+  /* ---- Spiel-Overlay: Vollbild ----
+     Der Schalter unten links legt das ganze Overlay ins Vollbild, nicht nur den
+     iframe. Sonst waere der Schalter selbst weg und man kaeme nur per Esc zurueck.
+     Das Aussehen im Vollbild kommt aus :fullscreen, der Zustand liegt also im
+     Browser und nicht doppelt noch einmal im State. */
+  .mw-spiel:fullscreen { padding: 0 !important; background: #01060b !important; gap: 0 !important; }
+  .mw-spiel:fullscreen .mw-spiel__kopf { display: none !important; }
+  .mw-spiel:fullscreen .mw-spiel__buehne { max-width: none; }
+  .mw-spiel:fullscreen .mw-spiel__buehne iframe { border: 0 !important; border-radius: 0 !important; }
+  .mw-spiel__buehne { position: relative; flex: 1; width: 100%; min-height: 0; max-width: 1500px; margin: 0 auto; }
+  .mw-spiel__buehne iframe { display: block; width: 100%; height: 100%; }
+
+  .mw-vollbild {
+    position: absolute; left: 14px; bottom: 14px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid rgba(255,255,255,.22); border-radius: 999px;
+    padding: 9px 15px; background: rgba(1,10,17,.55); color: #fff;
+    font: var(--type-label); cursor: pointer; opacity: .5;
+    backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    transition: opacity 200ms ease, background 200ms ease, border-color 200ms ease;
+  }
+  .mw-vollbild:hover, .mw-vollbild:focus-visible { opacity: 1; background: rgba(127,224,238,.22); border-color: rgba(127,224,238,.5); }
+  .mw-vollbild svg { display: block; }
+  /* Beschriftung und Symbol wechseln, sobald das Overlay im Vollbild liegt. */
+  .mw-vollbild__aus { display: none; }
+  .mw-spiel:fullscreen .mw-vollbild__aus { display: inline-flex !important; }
+  .mw-spiel:fullscreen .mw-vollbild__an { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { .mw-vollbild { transition: none; } }
 </style>
 </helmet>
 
@@ -1131,12 +1159,24 @@
     </div>
   </footer>
   <sc-if value="{{ gameOpen }}" hint-placeholder-val="{{ false }}">
-    <div role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 9999; padding: 18px; background: rgba(1,10,17,.92); backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1500px; width: 100%; margin: 0 auto;">
+    <div class="mw-spiel" data-mw="gameShell" role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 9999; padding: 18px; background: rgba(1,10,17,.92); backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px;">
+      <div class="mw-spiel__kopf" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1500px; width: 100%; margin: 0 auto;">
         <span style="font: var(--type-h3); color: #fff;">{{ gameName }}</span>
         <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 10px 18px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label); cursor: pointer;">Spiel schließen ×</button>
       </div>
-      <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="flex: 1; width: 100%; max-width: 1500px; margin: 0 auto; border: 1px solid rgba(127,224,238,.28); border-radius: 18px; background: #050b10;"></iframe>
+      <div class="mw-spiel__buehne">
+        <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="border: 1px solid rgba(127,224,238,.28); border-radius: 18px; background: #050b10;"></iframe>
+        <button type="button" class="mw-vollbild" data-mw="gameFsBtn" onClick="{{ toggleVollbild }}">
+          <span class="mw-vollbild__an" style="display: inline-flex; align-items: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M1 5.5V1h4.5M9.5 1H14v4.5M14 9.5V14H9.5M5.5 14H1V9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Vollbild
+          </span>
+          <span class="mw-vollbild__aus" style="align-items: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M5.5 1v4.5H1M14 5.5H9.5V1M9.5 14V9.5H14M1 9.5h4.5V14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Vollbild beenden
+          </span>
+        </button>
+      </div>
     </div>
   </sc-if>
   </div>
@@ -1596,7 +1636,13 @@ class Component extends DCLogic {
     };
     window.addEventListener("scroll", this.onScroll, { passive: true });
     window.addEventListener("resize", this.onScroll);
-    this.onKey = (e) => { if (e.key === "Escape" && this.state.game) this.setState({ game: null }); };
+    // Esc schliesst das Spiel — ausser im Vollbild: dort beendet der Browser
+    // zuerst das Vollbild, und das Spiel soll dabei weiterlaufen.
+    this.onKey = (e) => {
+      if (e.key !== "Escape" || !this.state.game) return;
+      if (document.fullscreenElement) return;
+      this.setState({ game: null });
+    };
     window.addEventListener("keydown", this.onKey);
     this.paintDepth();
     this.sizeTimer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
@@ -1732,6 +1778,13 @@ class Component extends DCLogic {
       const wanted = this.gameUrl();
       if (frame.getAttribute("src") !== wanted) frame.setAttribute("src", wanted);
     }
+    // Ohne Spiel darf kein Vollbild stehen bleiben — sonst haengt der Nutzer
+    // nach dem Schliessen auf einem schwarzen Vollbild ohne Ausweg.
+    if (!this.state.game && document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) { /* egal, dann bleibt es eben */ }
+    }
+    const fsBtn = this.el("gameFsBtn");
+    if (fsBtn) fsBtn.style.display = this.vollbildMoeglich() ? "" : "none";
     this.paintDepth();
     requestAnimationFrame(() => this.scanReveal());
   }
@@ -1764,6 +1817,23 @@ class Component extends DCLogic {
       } catch (e) { /* preview may block scrolling */ }
       requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
+  }
+
+  // iOS-Safari kennt requestFullscreen auf normalen Elementen nicht; dort bleibt
+  // der Schalter aus, statt ins Leere zu greifen.
+  vollbildMoeglich() {
+    return !!(document.fullscreenEnabled && this.el("gameShell") && this.el("gameShell").requestFullscreen);
+  }
+
+  toggleVollbild() {
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) { /* Browser verweigert, dann bleibt es */ }
+      return;
+    }
+    const shell = this.el("gameShell");
+    if (!shell || !shell.requestFullscreen) return;
+    const p = shell.requestFullscreen();
+    if (p && p.catch) p.catch(() => { /* z. B. ohne Nutzergeste abgelehnt */ });
   }
 
   gameUrl() {
@@ -1876,6 +1946,7 @@ class Component extends DCLogic {
       gameOpen: !!this.state.game,
       gameName: this.state.game ? this.state.game.name : "",
       closeGame: () => this.setState({ game: null }),
+      toggleVollbild: () => this.toggleVollbild(),
 
       pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
 
