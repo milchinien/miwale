@@ -109,6 +109,28 @@
     [data-mw-anim] { animation: none !important; }
     [data-reveal] { opacity: 1 !important; transform: none !important; }
   }
+  /* ---- Spiel-Overlay: Vollbild ----
+     Der Schalter unten links legt das ganze Overlay ins Vollbild, nicht nur den
+     iframe — sonst waere der Schalter selbst weg. Auf iOS-Safari gibt es kein
+     Vollbild fuer normale Elemente, dort blendet das Skript ihn aus. */
+  .mw-spiel:fullscreen { padding: 0 !important; background: #01060b !important; gap: 0 !important; }
+  .mw-spiel:fullscreen .mw-spiel__kopf { display: none !important; }
+  .mw-spiel:fullscreen .mw-spiel__buehne iframe { border: 0 !important; border-radius: 0 !important; }
+  .mw-spiel__buehne { position: relative; flex: 1; width: 100%; min-height: 0; }
+  .mw-spiel__buehne iframe { display: block; width: 100%; height: 100%; }
+
+  .mw-vollbild {
+    position: absolute; left: 10px; bottom: 10px; z-index: 2;
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid rgba(255,255,255,.22); border-radius: 999px;
+    padding: 9px 14px; background: rgba(1,10,17,.6); color: #fff;
+    font: var(--type-label); opacity: .72;
+  }
+  .mw-vollbild:active { background: rgba(127,224,238,.24); border-color: rgba(127,224,238,.5); }
+  .mw-vollbild svg { display: block; }
+  .mw-vollbild__aus { display: none; }
+  .mw-spiel:fullscreen .mw-vollbild__aus { display: inline-flex !important; }
+  .mw-spiel:fullscreen .mw-vollbild__an { display: none !important; }
 </style>
 </helmet>
 
@@ -448,12 +470,24 @@
   </sc-if>
 
   <sc-if value="{{ gameOpen }}" hint-placeholder-val="{{ false }}">
-    <div role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 10000; padding: 10px; background: rgba(1,10,17,.96); display: flex; flex-direction: column; gap: 8px;">
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+    <div class="mw-spiel" data-mw="gameShell" role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 10000; padding: 10px; background: rgba(1,10,17,.96); display: flex; flex-direction: column; gap: 8px;">
+      <div class="mw-spiel__kopf" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
         <span style="font: var(--type-label); font-size: 16px; color: #fff;">{{ gameName }}</span>
         <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 9px 14px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label);">Schließen ×</button>
       </div>
-      <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="flex: 1; width: 100%; border: 1px solid rgba(127,224,238,.28); border-radius: 14px; background: #050b10;"></iframe>
+      <div class="mw-spiel__buehne">
+        <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="border: 1px solid rgba(127,224,238,.28); border-radius: 14px; background: #050b10;"></iframe>
+        <button type="button" class="mw-vollbild" data-mw="gameFsBtn" onClick="{{ toggleVollbild }}">
+          <span class="mw-vollbild__an" style="display: inline-flex; align-items: center; gap: 7px;">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M1 5.5V1h4.5M9.5 1H14v4.5M14 9.5V14H9.5M5.5 14H1V9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Vollbild
+          </span>
+          <span class="mw-vollbild__aus" style="align-items: center; gap: 7px;">
+            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M5.5 1v4.5H1M14 5.5H9.5V1M9.5 14V9.5H14M1 9.5h4.5V14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Vollbild beenden
+          </span>
+        </button>
+      </div>
     </div>
   </sc-if>
 
@@ -872,7 +906,13 @@ class Component extends DCLogic {
     };
     window.addEventListener("scroll", this.onScroll, { passive: true });
     window.addEventListener("resize", this.onScroll);
-    this.onKey = (e) => { if (e.key === "Escape") this.setState({ sheet: null, game: null }); };
+    // Im Vollbild faengt der Browser Esc ab, um es zu verlassen — das Spiel
+    // soll dabei offen bleiben.
+    this.onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (document.fullscreenElement) return;
+      this.setState({ sheet: null, game: null });
+    };
     window.addEventListener("keydown", this.onKey);
     this.paintDepth();
     this.scanReveal();
@@ -934,6 +974,12 @@ class Component extends DCLogic {
       const wanted = this.gameUrl();
       if (frame.getAttribute("src") !== wanted) frame.setAttribute("src", wanted);
     }
+    // Ohne Spiel darf kein Vollbild stehen bleiben.
+    if (!this.state.game && document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) { /* egal, dann bleibt es eben */ }
+    }
+    const fsBtn = this.el("gameFsBtn");
+    if (fsBtn) fsBtn.style.display = this.vollbildMoeglich() ? "" : "none";
     this.paintDepth();
     this.icons();
     requestAnimationFrame(() => this.scanReveal());
@@ -962,6 +1008,23 @@ class Component extends DCLogic {
       } catch (e) { /* Vorschau blockiert Scrollen evtl. */ }
       requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
+  }
+
+  // iOS-Safari kennt requestFullscreen auf normalen Elementen nicht; dort bleibt
+  // der Schalter aus, statt ins Leere zu greifen.
+  vollbildMoeglich() {
+    return !!(document.fullscreenEnabled && this.el("gameShell") && this.el("gameShell").requestFullscreen);
+  }
+
+  toggleVollbild() {
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen(); } catch (e) { /* Browser verweigert, dann bleibt es */ }
+      return;
+    }
+    const shell = this.el("gameShell");
+    if (!shell || !shell.requestFullscreen) return;
+    const p = shell.requestFullscreen();
+    if (p && p.catch) p.catch(() => { /* z. B. ohne Nutzergeste abgelehnt */ });
   }
 
   gameUrl() {
@@ -1013,6 +1076,7 @@ class Component extends DCLogic {
       gameOpen: !!this.state.game,
       gameName: this.state.game ? this.state.game.name : "",
       closeGame: () => this.setState({ game: null }),
+      toggleVollbild: () => this.toggleVollbild(),
       navItems: [
         { value: "start", label: "Start", icon: showIcons ? icon("home") : null },
         { value: "games", label: "Projekte", icon: showIcons ? icon("gamepad-2") : null },
