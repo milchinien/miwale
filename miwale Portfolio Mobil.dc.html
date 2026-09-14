@@ -206,18 +206,39 @@
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap;
   }
-  .mw-sortier { display: inline-flex; align-items: center; gap: 9px; }
-  /* 16px Schriftgroesse: alles darunter laesst iOS beim Antippen hineinzoomen. */
-  .mw-sortier select {
-    min-height: 44px; padding: 9px 38px 9px 15px; border-radius: 999px;
-    border: 1px solid rgba(255,255,255,.18); background-color: rgba(255,255,255,.06);
-    color: #EAF9FF; font: var(--type-label); font-size: 16px; cursor: pointer;
-    appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23BFE9F2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 13px center; background-size: 16px;
+  .mw-sortier { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+  .mw-sortmenu { position: relative; width: 208px; max-width: 100%; }
+  .mw-sortmenu summary {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    min-height: 46px; padding: 10px 14px; box-sizing: border-box;
+    border: 1px solid rgba(191,233,242,.3); border-radius: 14px;
+    background: #103441; color: #EAF9FF; font: var(--type-label); font-size: 15px;
+    cursor: pointer; list-style: none; user-select: none; touch-action: manipulation;
   }
-  .mw-sortier select:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 2px; }
-  .mw-sortier select option { background: #06202C; color: #EAF9FF; }
+  .mw-sortmenu summary::-webkit-details-marker { display: none; }
+  .mw-sortmenu summary svg { flex: none; transition: transform 160ms ease; color: #9EDBE5; }
+  .mw-sortmenu[open] { z-index: 30; }
+  .mw-sortmenu[open] summary { border-color: #7FE0EE; background: #163E4B; }
+  .mw-sortmenu[open] summary svg { transform: rotate(180deg); }
+  .mw-sortmenu__liste {
+    position: absolute; top: calc(100% + 8px); left: 0; right: 0;
+    display: grid; gap: 3px; padding: 6px; border-radius: 16px;
+    background: #0B2936; border: 1px solid rgba(191,233,242,.28);
+    box-shadow: 0 14px 36px rgba(0,10,18,.38);
+  }
+  .mw-sortmenu__option {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 10px;
+    background: transparent; color: #DAEDF2; font: var(--type-label); font-size: 15px;
+    text-align: left; cursor: pointer; touch-action: manipulation;
+  }
+  .mw-sortmenu__option svg { opacity: 0; flex: none; color: #98E7EF; }
+  .mw-sortmenu__option[aria-pressed="true"] { background: #1C4653; color: #fff; }
+  .mw-sortmenu__option[aria-pressed="true"] svg { opacity: 1; }
+  .mw-sortmenu summary:focus-visible, .mw-sortmenu__option:focus-visible { outline: 2px solid #7FE0EE; outline-offset: 3px; }
+  @media (hover: hover) { .mw-sortmenu summary:hover, .mw-sortmenu__option:hover { background: #204957; } }
+  @media (max-width: 480px) { .mw-sortier { width: 100%; justify-content: space-between; gap: 8px; } .mw-sortmenu { width: 190px; flex-shrink: 0; } .mw-sortier > .mw-filter__titel { font-size: 10px; } }
+  @media (prefers-reduced-motion: reduce) { .mw-sortmenu summary svg { transition: none; } }
 
   .mw-filterfeld {
     display: flex; flex-direction: column; gap: 14px; padding: 18px;
@@ -247,13 +268,13 @@
      iframe — sonst waere der Schalter selbst weg. Auf iOS-Safari gibt es kein
      Vollbild fuer normale Elemente, dort blendet das Skript ihn aus. */
   .mw-spiel:fullscreen { padding: 0 !important; background: #01060b !important; gap: 0 !important; }
-  .mw-spiel:fullscreen .mw-spiel__kopf { display: none !important; }
+  .mw-spiel:fullscreen .mw-spiel__kopf { padding: 6px 10px; box-sizing: border-box; }
   .mw-spiel:fullscreen .mw-spiel__buehne iframe { border: 0 !important; border-radius: 0 !important; }
   .mw-spiel__buehne { position: relative; flex: 1; width: 100%; min-height: 0; }
   .mw-spiel__buehne iframe { display: block; width: 100%; height: 100%; }
 
   .mw-vollbild {
-    position: absolute; left: 10px; bottom: 10px; z-index: 2;
+    position: absolute; right: 10px; top: 10px; z-index: 2;
     display: inline-flex; align-items: center; gap: 7px;
     border: 1px solid rgba(255,255,255,.22); border-radius: 999px;
     padding: 9px 14px; background: rgba(1,10,17,.6); color: #fff;
@@ -264,24 +285,39 @@
   .mw-vollbild__aus { display: none; }
   .mw-spiel:fullscreen .mw-vollbild__aus { display: inline-flex !important; }
   .mw-spiel:fullscreen .mw-vollbild__an { display: none !important; }
+
+  .mw-spiel { box-sizing: border-box; }
+  .mw-spiel__kopf { flex-shrink: 0; }
+  .mw-spiel__kopf > span { flex: 1; min-width: 0; }
+  .mw-spiel__kopf .mw-vollbild { position: static; flex: none; min-height: 44px; opacity: 1; }
+  .mw-spiel__kopf > button { min-height: 44px; }
+  @media (max-width: 700px) {
+    .mw-spiel { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) !important; gap: 0 !important; }
+    .mw-spiel__kopf { padding: 6px 8px; gap: 6px !important; box-sizing: border-box; }
+    .mw-spiel__kopf > span { font-size: 14px !important; }
+    .mw-spiel__kopf > button { font-size: 12px !important; padding: 6px 8px !important; }
+    .mw-spiel__buehne iframe { border: 0 !important; border-radius: 0 !important; }
+  }
 </style>
 </helmet>
 
 <div data-calm="{{ calmAttr }}" style="min-height: 100dvh; background: #050A16; position: relative;">
-  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-repeat: no-repeat;">
+  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11;">
+
+    <div data-mw="bgVerlauf" style="position: absolute; left: 0; right: 0; top: 0; height: 100%; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-size: 100% 100%; background-repeat: no-repeat; will-change: transform;"></div>
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
 
-    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);">
+    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); will-change: transform;">
       <div style="position: absolute; inset: 0; background: radial-gradient(1200px 900px at 16% 30%, rgba(34,176,158,.22), rgba(34,176,158,0) 66%), radial-gradient(1400px 1000px at 86% 44%, rgba(18,130,142,.20), rgba(18,130,142,0) 68%), radial-gradient(1300px 1000px at 38% 62%, rgba(10,88,98,.26), rgba(10,88,98,0) 70%), radial-gradient(1500px 1100px at 60% 84%, rgba(5,52,64,.34), rgba(5,52,64,0) 72%);"></div>
       <div style="position: absolute; inset: 0; background: radial-gradient(680px 480px at 30% 14%, rgba(52,214,178,.18), rgba(52,214,178,0) 68%), radial-gradient(520px 420px at 72% 26%, rgba(96,226,196,.13), rgba(96,226,196,0) 70%), radial-gradient(760px 520px at 8% 52%, rgba(22,150,138,.20), rgba(22,150,138,0) 70%), radial-gradient(600px 460px at 88% 66%, rgba(16,120,124,.18), rgba(16,120,124,0) 70%), radial-gradient(540px 380px at 22% 74%, rgba(120,236,205,.14), rgba(120,236,205,0) 70%), radial-gradient(460px 340px at 66% 88%, rgba(40,180,170,.15), rgba(40,180,170,0) 72%);"></div>
     </div>
 
-    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);">
+    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); will-change: transform;">
       <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; opacity: .6; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); animation: mwSwaySlow 34s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px);"></div>
     </div>
 
-    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);">
+    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); will-change: transform;">
       <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); animation: mwSway 24s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px);"></div>
       <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px);"></div>
     </div>
@@ -289,12 +325,12 @@
     <div data-mw="bgNear" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%;">
       <div data-mw-anim="1" style="position: absolute; inset: 0; opacity: .5; animation: mwFloat 42s linear infinite; background-image: radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%), radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%), radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%), radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%), radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%), radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%); background-size: 620px 620px; background-repeat: repeat;"></div>
       <div data-mw-anim="1" style="position: absolute; inset: 0; opacity: .34; animation: mwFloatSlow 68s linear infinite; background-image: radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%), radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%), radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%); background-size: 880px 880px; background-repeat: repeat;"></div>
-      <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95;">
+      <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95; will-change: transform;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Meteors" number="{{ 10 }}" color="rgba(206,244,255,.85)" hint-size="100%,100%"></x-import>
       </div>
     </div>
 
-    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0;">
+    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0; will-change: transform;">
       <div data-mw-anim="1" style="position: absolute; inset: 0; animation: mwFloatSlow 84s linear infinite; background-image: radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%), radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%), radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%), radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%); background-size: 540px 540px; background-repeat: repeat;"></div>
     </div>
 
@@ -430,14 +466,17 @@
             </div>
 
             <div class="mw-werkzeuge">
-              <label class="mw-sortier">
-                <span class="mw-filter__titel">Sortieren nach</span>
-                <select value="{{ sortierung }}" onChange="{{ sortierenNach }}">
+              <div class="mw-sortier">
+              <span class="mw-filter__titel" id="mw-sort-label">Sortieren nach</span>
+              <details class="mw-sortmenu" onKeyDown="{{ sortierTasten }}" onBlur="{{ sortierVerlassen }}">
+                <summary aria-labelledby="mw-sort-label mw-sort-current"><span id="mw-sort-current">{{ sortierLabel }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div class="mw-sortmenu__liste" role="group" aria-label="Sortierung">
                   <sc-for list="{{ sortierWerte }}" as="o" hint-placeholder-count="3">
-                    <option value="{{ o.wert }}">{{ o.label }}</option>
+                    <button type="button" class="mw-sortmenu__option" aria-pressed="{{ o.aktiv }}" onClick="{{ o.waehlen }}"><span>{{ o.label }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg></button>
                   </sc-for>
-                </select>
-              </label>
+                </div>
+              </details>
+            </div>
               <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.62);">{{ trefferText }}</span>
                 <button type="button" class="{{ filterKnopfCls }}" onClick="{{ filterUmschalten }}" aria-expanded="{{ filterOffen }}">
@@ -667,10 +706,6 @@
     <div class="mw-spiel" data-mw="gameShell" role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 10000; padding: 10px; background: rgba(1,10,17,.96); display: flex; flex-direction: column; gap: 8px;">
       <div class="mw-spiel__kopf" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
         <span style="font: var(--type-label); font-size: 16px; color: #fff;">{{ gameName }}</span>
-        <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 9px 14px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label);">Schließen ×</button>
-      </div>
-      <div class="mw-spiel__buehne">
-        <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="border: 1px solid rgba(127,224,238,.28); border-radius: 14px; background: #050b10;"></iframe>
         <button type="button" class="mw-vollbild" data-mw="gameFsBtn" onClick="{{ toggleVollbild }}">
           <span class="mw-vollbild__an" style="display: inline-flex; align-items: center; gap: 7px;">
             <svg width="14" height="14" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M1 5.5V1h4.5M9.5 1H14v4.5M14 9.5V14H9.5M5.5 14H1V9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -681,6 +716,11 @@
             Vollbild beenden
           </span>
         </button>
+        <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 9px 14px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label);">Schließen ×</button>
+      </div>
+      <div class="mw-spiel__buehne">
+        <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="border: 1px solid rgba(127,224,238,.28); border-radius: 14px; background: #050b10;"></iframe>
+
       </div>
     </div>
   </sc-if>
@@ -763,7 +803,7 @@ const PROJECTS = [
     playId: "wavebreaker",
     links: [
       { href: "https://github.com/milchinien/Wavebreaker", label: "Code auf GitHub" },
-      { href: "https://milchinien.github.io/Wavebreaker/", label: "In neuem Tab öffnen" }
+      { href: "games/wavebreaker/index.html", label: "In neuem Tab öffnen" }
     ],
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
@@ -801,7 +841,7 @@ const PROJECTS = [
     playId: "chromatic",
     links: [
       { href: "https://github.com/milchinien/Chromatic", label: "Code auf GitHub" },
-      { href: "https://milchinien.github.io/Chromatic/", label: "In neuem Tab öffnen" }
+      { href: "games/chromatic/index.html", label: "In neuem Tab öffnen" }
     ],
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
@@ -864,7 +904,7 @@ const PROJECTS = [
     playId: "runecall",
     links: [
       { href: "https://github.com/milchinien/Runecall", label: "Code auf GitHub" },
-      { href: "https://milchinien.github.io/Runecall/", label: "In neuem Tab öffnen" }
+      { href: "games/runecall/index.html", label: "In neuem Tab öffnen" }
     ],
     linkNote: "Öffentlich steht Prototyp 01. Ton, Handy-Layout und Netzwerk fehlen noch."
   },
@@ -897,7 +937,7 @@ const PROJECTS = [
     playId: "harmonics",
     links: [
       { href: "https://github.com/milchinien/Harmonics", label: "Code auf GitHub" },
-      { href: "https://milchinien.github.io/Harmonics/", label: "In neuem Tab öffnen" }
+      { href: "games/harmonics/index.html", label: "In neuem Tab öffnen" }
     ],
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
@@ -1197,10 +1237,18 @@ class Component extends DCLogic {
     const span = vh * 3.2;
     const travel = span - vh;
     const offset = Math.min(y * 0.4, travel);
-    const root = this.el("bgRoot");
-    if (root) {
-      root.style.backgroundSize = "100% " + Math.round(span) + "px";
-      root.style.backgroundPosition = "0px " + Math.round(-offset) + "px";
+    // Der Verlauf liegt auf einer eigenen Ebene und wird nur noch verschoben.
+    // Vorher standen hier backgroundSize und backgroundPosition: beides zwingt
+    // den Browser, den bildschirmfuellenden Verlauf in jedem Bild neu zu malen —
+    // das war der teuerste Posten beim Scrollen. Die Hoehe haengt allein an der
+    // Fensterhoehe und wird darum nur gesetzt, wenn die sich aendert.
+    const verlauf = this.el("bgVerlauf");
+    if (verlauf) {
+      if (this.letzteSpanne !== span) {
+        verlauf.style.height = Math.round(span) + "px";
+        this.letzteSpanne = span;
+      }
+      verlauf.style.transform = "translate3d(0," + Math.round(-offset) + "px,0)";
     }
     const depth = clamp(offset / travel);
     const light = 1 - depth;
@@ -1246,25 +1294,54 @@ class Component extends DCLogic {
     if (bar) bar.style.width = (clamp(y / max) * 100).toFixed(1) + "%";
   }
 
+  // Einblenden laeuft ueber einen IntersectionObserver statt ueber Messen pro
+  // Bild. Vorher las scanReveal bei jedem Scrollbild die Position jedes noch
+  // nicht gezeigten Elements — getBoundingClientRect erzwingt dabei ein Layout,
+  // und ein Zeitgeber trieb dasselbe alle 700 ms auch im Leerlauf an.
   scanReveal() {
-    const vh = window.innerHeight || 800;
-    const now = Date.now();
-    const pend = document.querySelectorAll('[data-reveal]:not([data-shown="1"])');
-    for (let i = 0; i < pend.length; i++) {
-      const el = pend[i];
-      const r = el.getBoundingClientRect();
-      const stale = el.hasAttribute("data-seen") && now - Number(el.getAttribute("data-seen")) > 4000;
-      if (!el.hasAttribute("data-seen")) el.setAttribute("data-seen", String(now));
-      if ((r.bottom > 0 && r.top < vh * 0.92) || stale) el.setAttribute("data-shown", "1");
+    if (!this.beobachter) {
+      if (!("IntersectionObserver" in window)) {
+        // Ohne Observer bleibt nur: alles zeigen. Unsichtbarer Text ist immer
+        // schlimmer als eine verpasste Animation.
+        document.querySelectorAll("[data-reveal]").forEach((el) => el.setAttribute("data-shown", "1"));
+        return;
+      }
+      this.beobachter = new IntersectionObserver((eintraege) => {
+        for (const e of eintraege) {
+          // Sichtbar — oder schon daran vorbeigescrollt. Ein Sprung (Anker,
+          // Tabwechsel, wiederhergestellte Scrollposition) kann ein Element
+          // ueberspringen, ohne dass es je im Bild war. Unsichtbarer Text ist
+          // immer schlimmer als eine verpasste Animation.
+          const vorbei = e.boundingClientRect.bottom <= 0;
+          if (!e.isIntersecting && !vorbei) continue;
+          e.target.setAttribute("data-shown", "1");
+          this.beobachter.unobserve(e.target);
+        }
+      // Der Beobachtungsbereich reicht nach oben weit ueber den Bildschirm
+      // hinaus: damit zaehlt "schon vorbeigescrollt" als sichtbar. Ohne das
+      // ueberspringt ein Sprung (Tabwechsel, Anker) Elemente, ohne je eine
+      // Schwelle zu kreuzen — der Observer meldet dann nichts und der Text
+      // bliebe dauerhaft unsichtbar. Unten dagegen -8%, damit das Einblenden
+      // erst kurz nach dem Eintreten auslaest.
+      }, { rootMargin: "99999px 0px -8% 0px" });
     }
+    document.querySelectorAll('[data-reveal]:not([data-shown="1"]):not([data-beobachtet])').forEach((el) => {
+      el.setAttribute("data-beobachtet", "1");
+      this.beobachter.observe(el);
+    });
   }
 
   icons() { try { if (window.lucide) window.lucide.createIcons(); } catch (e) {} }
 
   componentDidMount() {
+    this.onSortOutside = (e) => {
+      document.querySelectorAll(".mw-sortmenu[open]").forEach((menu) => { if (!menu.contains(e.target)) menu.open = false; });
+    };
+    document.addEventListener("pointerdown", this.onSortOutside);
+
     this.onScroll = () => {
       if (this.raf) return;
-      this.raf = requestAnimationFrame(() => { this.raf = 0; this.paintDepth(); this.scanReveal(); });
+      this.raf = requestAnimationFrame(() => { this.raf = 0; this.paintDepth(); });
     };
     window.addEventListener("scroll", this.onScroll, { passive: true });
     window.addEventListener("resize", this.onScroll);
@@ -1296,7 +1373,6 @@ class Component extends DCLogic {
     this.paintDepth();
     this.scanReveal();
     this.icons();
-    this.timer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
     if (window.lucide) setTimeout(() => this.icons(), 600);
     else window.addEventListener("load", () => this.icons(), { once: true });
 
@@ -1365,6 +1441,7 @@ class Component extends DCLogic {
   }
 
   componentWillUnmount() {
+    document.removeEventListener("pointerdown", this.onSortOutside);
     window.removeEventListener("scroll", this.onScroll);
     window.removeEventListener("resize", this.onScroll);
     window.removeEventListener("keydown", this.onKey);
@@ -1373,7 +1450,7 @@ class Component extends DCLogic {
     window.removeEventListener("pageshow", this.onSichtbar);
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.sofortTimer) clearTimeout(this.sofortTimer);
-    if (this.timer) clearInterval(this.timer);
+    if (this.beobachter) this.beobachter.disconnect();
     document.body.style.overflow = "";
   }
 
@@ -1409,7 +1486,7 @@ class Component extends DCLogic {
 
   gameUrl() {
     const id = this.state.game && this.state.game.id;
-    return id ? "https://milchinien.github.io/" + ({ chromatic: "Chromatic", wavebreaker: "Wavebreaker", runecall: "Runecall", dropfall: "Dropfall", harmonics: "Harmonics" }[id]) + "/" : "about:blank";
+    return id === "dropfall" ? "https://milchinien.github.io/Dropfall/" : ["wavebreaker", "chromatic", "runecall", "harmonics"].includes(id) ? new URL("games/" + id + "/index.html", document.baseURI).href : "about:blank";
   }
 
   data() {
@@ -1497,9 +1574,29 @@ class Component extends DCLogic {
           waehlen: () => this.setState({ art: a.wert })
         };
       }),
-      sortierWerte: SORTIERUNGEN.map((o) => ({ wert: o.wert, label: o.label })),
-      sortierung: this.state.sortierung,
-      sortierenNach: (e) => this.setState({ sortierung: e.target.value }),
+      sortierLabel: SORTIERUNGEN.find((o) => o.wert === this.state.sortierung).label,
+      sortierWerte: SORTIERUNGEN.map((o) => ({
+        label: o.label, aktiv: o.wert === this.state.sortierung ? "true" : "false",
+        waehlen: (e) => {
+          const menu = e.currentTarget.closest("details");
+          menu.open = false;
+          menu.querySelector("summary").focus();
+          this.setState({ sortierung: o.wert });
+        }
+      })),
+      sortierVerlassen: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.open = false; },
+      sortierTasten: (e) => {
+        const menu = e.currentTarget;
+        if (e.key === "Escape") {
+          e.preventDefault(); e.stopPropagation(); menu.open = false; menu.querySelector("summary").focus();
+        } else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) {
+          e.preventDefault(); menu.open = true;
+          const options = Array.from(menu.querySelectorAll("button"));
+          const i = options.indexOf(document.activeElement);
+          const next = e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : e.key === "ArrowDown" ? (i + 1) % options.length : (i < 0 ? options.length - 1 : (i - 1 + options.length) % options.length);
+          options[next].focus();
+        }
+      },
 
       filterOffen: this.state.filterOffen,
       filterKnopfCls: "mw-chip" + (this.state.filterOffen ? " mw-chip--offen" : "") + (anzahlFilter ? " mw-chip--an" : ""),
