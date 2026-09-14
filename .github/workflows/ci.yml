@@ -23,14 +23,14 @@ jobs:
           set -euo pipefail
           test -s index.html
           test -s "miwale Portfolio.dc.html"
-          test -s "miwale Portfolio Mobil.dc.html"
           test -s support.js
           test -d _ds
           test -d assets
           node tools/check-games.mjs
           grep -q "Chromatic und Wavebreaker" "miwale Portfolio.dc.html"
-          grep -q "Chromatic" "miwale Portfolio Mobil.dc.html"
-          grep -q "Wavebreaker" "miwale Portfolio Mobil.dc.html"
+          grep -q "Chromatic" "miwale Portfolio.dc.html"
+          grep -q "Wavebreaker" "miwale Portfolio.dc.html"
+          test ! -e "miwale Portfolio Mobil.dc.html"
 
       - name: Build container
         run: docker build -t miwale:ci .
@@ -54,7 +54,10 @@ jobs:
             sleep 1
           done
           kopf="$(curl -sSI http://127.0.0.1:8080/games/runecall/raum/A9YW4 | tr -d '\r')"
+          mobil="$(curl -sSI 'http://127.0.0.1:8080/miwale%20Portfolio%20Mobil.dc.html?test=1' | tr -d '\r')"
           docker rm -f miwale-ci >/dev/null
           echo "$kopf"
           echo "$kopf" | grep -q '^HTTP/1.1 302'
           echo "$kopf" | grep -qi '^location: /games/runecall/#A9YW4$'
+          echo "$mobil" | grep -q '^HTTP/1.1 301'
+          echo "$mobil" | grep -qi '^location: /miwale%20Portfolio.dc.html?test=1$'
