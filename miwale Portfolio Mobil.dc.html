@@ -304,14 +304,19 @@
   }
   .mw-chip__pfeil { transition: transform 240ms cubic-bezier(.22,.61,.36,1); }
   .mw-chip--offen .mw-chip__pfeil { transform: rotate(180deg); }
-  /* Wer weniger Bewegung eingestellt hat, bekommt hier alles auf einmal
-     stillgelegt — vorher standen dieselben vier Bloecke einzeln untereinander. */
   @media (prefers-reduced-motion: reduce) {
     .mw-seg__knopf, .mw-chip__pfeil { transition: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
     .mw-hot { transition: none !important; }
     .mw-hot:active { transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
     .mw-tile, .mw-tile__bg, .mw-tile__veil { transition: none !important; }
     .mw-tile:active { transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
     [data-mw-anim] { animation: none !important; }
     [data-reveal] { opacity: 1 !important; transform: none !important; }
   }
@@ -354,18 +359,9 @@
 </helmet>
 
 <div data-calm="{{ calmAttr }}" style="min-height: 100dvh; background: #050A16; position: relative;">
-  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #0A3040;">
+  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11;">
 
-    <!-- Der Wasserverlauf besteht aus drei bildschirmgrossen Ebenen: flaches
-         Wasser, mittlere Tiefe, Tiefsee. Beim Scrollen werden die unteren
-         eingeblendet. Vorher war das EINE Ebene von 3,2 Fensterhoehen, die
-         verschoben wurde — auf dem Handy sind das ueber 8000 Geraetepixel und
-         damit mehr, als die GPU als eine Textur halten kann. Dann malt sie sie
-         gar nicht: genau daher kam der schwarze Hintergrund. Drei Ebenen, die
-         nur ihre Deckkraft aendern, kosten den Compositor nichts. -->
-    <div data-mw="bgVerlaufFlach" style="position: absolute; inset: 0; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 19.2%, #22637F 41.6%, #1A5470 67.2%, #14485F 92.8%, #13455C 100%);"></div>
-    <div data-mw="bgVerlaufMitte" style="position: absolute; inset: 0; opacity: 0; background-image: linear-gradient(180deg, #124157 0%, #103C51 11.6%, #0C3244 40.4%, #092838 72.4%, #08202D 100%);"></div>
-    <div data-mw="bgVerlaufTief" style="position: absolute; inset: 0; opacity: 0; background-image: linear-gradient(180deg, #061D29 0%, #04151F 29.6%, #020D14 64.8%, #01070C 100%);"></div>
+    <div data-mw="bgVerlauf" style="position: absolute; left: 0; right: 0; top: 0; height: 100%; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-size: 100% 100%; background-repeat: no-repeat;"></div>
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
 
@@ -1200,13 +1196,6 @@ const SORTIERUNGEN = [
   { wert: "name", label: "Name A–Z" }
 ];
 
-// Welche Spiele im Overlay laufen. Die vier liegen mitgeliefert unter
-// games/<id>/index.html; Dropfall steht noch auf GitHub Pages und hat darum
-// eine eigene Adresse. Alles andere bekommt kein Spielfenster.
-const EIGENE_SPIELE = ["wavebreaker", "chromatic", "runecall", "harmonics"];
-const DROPFALL_ID = "dropfall";
-const DROPFALL_URL = "https://milchinien.github.io/Dropfall/";
-
 function passtZurArt(p, art) {
   return art === "alle" || p.art === art;
 }
@@ -1265,17 +1254,7 @@ class Component extends DCLogic {
   // wuerde ein direkt geteilter Link die Seite verlassen statt zuzuklappen.
   eigeneEintraege = 0;
 
-  // Die Ebenen werden beim Scrollen in jedem Bild angefasst — ein Dutzend
-  // Suchlaeufe je Bild waere reine Verschwendung, und am Handy zaehlt jedes
-  // Milligramm. Darum gemerkt, aber nur so lange der gemerkte Knoten noch in
-  // der Seite haengt: ein Re-Render (Tabwechsel) tauscht ihn aus, und dann wird
-  // frisch gesucht.
-  el(name) {
-    const merker = this.ebenen || (this.ebenen = {});
-    const bekannt = merker[name];
-    if (bekannt && bekannt.isConnected) return bekannt;
-    return (merker[name] = document.querySelector('[data-mw="' + name + '"]'));
-  }
+  el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
 
   // Misst die tatsaechliche Bildrate auf diesem Geraet und schaltet den
   // Hintergrund ab, wenn sie nicht reicht. Auf einem Entwicklerrechner laesst
@@ -1322,10 +1301,9 @@ class Component extends DCLogic {
   // durch: Zustand setzen und einen Verlaufseintrag dazulegen.
   zeige(teil) {
     const next = Object.assign({ tab: this.state.tab, sheet: this.state.sheet, game: this.state.game }, teil);
-    const ziel = adresseBauen(next);
-    if (ziel !== adresseBauen(this.state)) {
+    if (adresseBauen(next) !== adresseBauen(this.state)) {
       try {
-        history.pushState(null, "", ziel);
+        history.pushState(null, "", adresseBauen(next));
         this.eigeneEintraege++;
       } catch (e) { /* z. B. Vorschau ohne eigene Adresse */ }
     }
@@ -1350,13 +1328,20 @@ class Component extends DCLogic {
     const span = vh * 3.2;
     const travel = span - vh;
     const offset = Math.min(y * 0.4, travel);
+    // Der Verlauf liegt auf einer eigenen Ebene und wird nur noch verschoben.
+    // Vorher standen hier backgroundSize und backgroundPosition: beides zwingt
+    // den Browser, den bildschirmfuellenden Verlauf in jedem Bild neu zu malen —
+    // das war der teuerste Posten beim Scrollen. Die Hoehe haengt allein an der
+    // Fensterhoehe und wird darum nur gesetzt, wenn die sich aendert.
+    const verlauf = this.el("bgVerlauf");
+    if (verlauf) {
+      if (this.letzteSpanne !== span) {
+        verlauf.style.height = Math.round(span) + "px";
+        this.letzteSpanne = span;
+      }
+      verlauf.style.transform = "translate3d(0," + Math.round(-offset) + "px,0)";
+    }
     const depth = clamp(offset / travel);
-    // Die drei Verlaufsebenen liegen uebereinander und werden nur ein- und
-    // ausgeblendet. Keine Groessenaenderung, kein Verschieben, kein Neumalen.
-    const mitte = this.el("bgVerlaufMitte");
-    if (mitte) mitte.style.opacity = String(clamp(depth / 0.5));
-    const tief = this.el("bgVerlaufTief");
-    if (tief) tief.style.opacity = String(clamp((depth - 0.5) / 0.5));
     const light = 1 - depth;
     const surf = this.el("bgSurface");
     if (surf) surf.style.opacity = String(clamp(light));
@@ -1595,9 +1580,11 @@ class Component extends DCLogic {
 
   gameUrl() {
     const id = this.state.game && this.state.game.id;
-    if (id === DROPFALL_ID) return DROPFALL_URL;
-    if (EIGENE_SPIELE.includes(id)) return new URL("games/" + id + "/index.html", document.baseURI).href;
-    return "about:blank";
+    return id === "dropfall" ? "https://milchinien.github.io/Dropfall/" : ["wavebreaker", "chromatic", "runecall", "harmonics"].includes(id) ? new URL("games/" + id + "/index.html", document.baseURI).href : "about:blank";
+  }
+
+  data() {
+    return PROJECTS;
   }
 
   renderVals() {
@@ -1608,7 +1595,7 @@ class Component extends DCLogic {
     const gf = this.state.genres, df = this.state.geraete;
     const anzahlFilter = gf.length + df.length;
     const gefiltert = sortiere(
-      PROJECTS.filter((p) => passtZurArt(p, this.state.art) && passtZumFilter(p, gf, df)),
+      this.data().filter((p) => passtZurArt(p, this.state.art) && passtZumFilter(p, gf, df)),
       this.state.sortierung
     );
     const items = gefiltert.map((p, i) => Object.assign({}, p, {

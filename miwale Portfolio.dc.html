@@ -364,6 +364,7 @@
   }
   .mw-glas:hover::after { opacity: 1; }
   .mw-glas__inhalt { position: relative; z-index: 1; padding: 24px; }
+  .mw-glas--eng > .mw-glas__inhalt { padding: 16px; }
   .mw-glas--weit > .mw-glas__inhalt { padding: 32px; }
   @media (prefers-reduced-motion: reduce) { .mw-glas::after { transition: none; } }
 
@@ -506,7 +507,7 @@
     [style*="top: 104px"] { position: static !important; }
 
     /* Karten und Panels: weniger Innenabstand */
-    .mw-card { padding: 20px !important; border-radius: 20px !important; }
+    .mw-glass-card, .mw-card { padding: 20px !important; border-radius: 20px !important; }
     [style*="padding: 26px"] { padding: 20px !important; }
 
     /* Wortmarke im Tauchgang und Maskottchen kleiner */
@@ -1776,13 +1777,6 @@ const SORTIERUNGEN = [
   { wert: "name", label: "Name A–Z" }
 ];
 
-// Welche Spiele im Overlay laufen. Die vier liegen mitgeliefert unter
-// games/<id>/index.html; Dropfall steht noch auf GitHub Pages und hat darum
-// eine eigene Adresse. Alles andere bekommt kein Spielfenster.
-const EIGENE_SPIELE = ["wavebreaker", "chromatic", "runecall", "harmonics"];
-const DROPFALL_ID = "dropfall";
-const DROPFALL_URL = "https://milchinien.github.io/Dropfall/";
-
 function passtZurArt(p, art) {
   return art === "alle" || p.art === art;
 }
@@ -1854,10 +1848,9 @@ class Component extends DCLogic {
   // durch: Zustand setzen und einen Verlaufseintrag dazulegen.
   zeige(teil) {
     const next = Object.assign({ tab: this.state.tab, project: this.state.project, game: this.state.game }, teil);
-    const ziel = adresseBauen(next);
-    if (ziel !== adresseBauen(this.state)) {
+    if (adresseBauen(next) !== adresseBauen(this.state)) {
       try {
-        history.pushState(null, "", ziel);
+        history.pushState(null, "", adresseBauen(next));
         this.eigeneEintraege++;
       } catch (e) { /* z. B. Vorschau ohne eigene Adresse */ }
     }
@@ -1873,28 +1866,9 @@ class Component extends DCLogic {
     this.setState(next);
   }
 
-  // Nach oben, ohne Animation: eine laufende Scroll-Animation ueber eine neue,
-  // kuerzere Seite laesst den Tiefenschleier kurz zulaufen. Danach im naechsten
-  // Bild noch einmal, weil der Neuaufbau die Position sonst wieder verschiebt.
-  nachObenSpringen() {
-    try {
-      window.scrollTo(0, 0);
-      const sc = document.scrollingElement || document.documentElement;
-      if (sc) sc.scrollTop = 0;
-    } catch (e) { /* preview may block scrolling */ }
-    requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
-  }
-
-  // Die Ebenen werden beim Scrollen in jedem Bild angefasst — ein gutes Dutzend
-  // Suchlaeufe je Bild waere reine Verschwendung. Darum gemerkt, aber nur so
-  // lange der gemerkte Knoten noch in der Seite haengt: ein Re-Render
-  // (Tabwechsel) tauscht ihn aus, und dann wird frisch gesucht.
-  el(name) {
-    const merker = this.ebenen || (this.ebenen = {});
-    const bekannt = merker[name];
-    if (bekannt && bekannt.isConnected) return bekannt;
-    return (merker[name] = document.querySelector('[data-mw="' + name + '"]'));
-  }
+  // Die Ebenen werden bei jedem Frame frisch aus dem DOM geholt, damit ein
+  // Re-Render (Tabwechsel) die Anbindung nicht abreißen lässt.
+  el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
 
   // Der Verlauf liegt über die ganze Seitenhöhe: oben Oberfläche, unten Tiefsee.
   // Beim Scrollen fährt er mit, die Lichtebenen verschwinden mit zunehmender Tiefe.
@@ -1974,9 +1948,8 @@ class Component extends DCLogic {
     const dr = this.el("diveRoot");
     if (dr) {
       const r = dr.getBoundingClientRect();
-      // Eigene Strecke: der Tauchgang misst sich am eigenen Block, nicht am Ozean.
-      const strecke = r.height - vh;
-      if (strecke > 0) dive = clamp(-r.top / strecke);
+      const travel = r.height - vh;
+      if (travel > 0) dive = clamp(-r.top / travel);
       const logo = this.el("diveLogo");
       if (logo) {
         logo.style.transform = "scale(" + (1 + dive * 0.22).toFixed(3) + ") translateY(" + (dive * -30).toFixed(1) + "px)";
@@ -2081,23 +2054,25 @@ class Component extends DCLogic {
     // Kachel unter dem Zeiger neigt sich leicht mit, die uebrigen treten zurueck.
     // Delegiert am Fenster, weil ein Tabwechsel die Kacheln neu aufbaut und
     // direkt gesetzte Listener dabei abreissen wuerden.
-    //
-    // Hier wird nur die Zeigerstelle gemerkt, gerechnet wird einmal je Bild:
-    // Maeuse melden Bewegungen um ein Vielfaches oefter, als der Bildschirm
-    // Bilder zeigt, und das Neigen misst die Kachel, nachdem es sie gerade
-    // verstellt hat — jede einzelne Meldung zwang den Browser damit zu einem
-    // Umbruch mitten im Ereignis. Sichtbar ist das dasselbe: was zwischen zwei
-    // Bildern liegt, kaeme ohnehin nie auf den Schirm.
     this.onZeiger = (e) => {
       if (e.pointerType && e.pointerType !== "mouse") return;
-      this.zeigerZiel = e.target;
-      this.zeigerX = e.clientX;
-      this.zeigerY = e.clientY;
-      if (this.zeigerRaf) return;
-      this.zeigerRaf = requestAnimationFrame(() => { this.zeigerRaf = 0; this.kachelNeigen(); });
+      const kachel = e.target && e.target.closest ? e.target.closest(".mw-tile") : null;
+      if (this.geneigt && this.geneigt !== kachel) this.kachelZuruecksetzen();
+      if (!kachel) return;
+      this.geneigt = kachel;
+      kachel.classList.add("mw-tile--fokus");
+      const gitter = kachel.parentElement;
+      if (gitter) gitter.classList.add("mw-tiles--fokus");
+      if (this.reduced) return;
+      const r = kachel.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width;
+      const ny = (e.clientY - r.top) / r.height;
+      const MAX = 9;
+      kachel.style.setProperty("--ry", ((nx - 0.5) * 2 * MAX).toFixed(2) + "deg");
+      kachel.style.setProperty("--rx", ((0.5 - ny) * 2 * MAX).toFixed(2) + "deg");
     };
     window.addEventListener("pointermove", this.onZeiger, { passive: true });
-    this.onZeigerWeg = () => this.zeigerVergessen();
+    this.onZeigerWeg = () => this.kachelZuruecksetzen();
     document.addEventListener("pointerleave", this.onZeigerWeg);
     window.addEventListener("blur", this.onZeigerWeg);
 
@@ -2115,7 +2090,7 @@ class Component extends DCLogic {
     if (document.visibilityState === "hidden") return;
 
     // Die Kachel unter dem alten Zeiger steht sonst schief da, bis man sie bewegt.
-    this.zeigerVergessen();
+    this.kachelZuruecksetzen();
 
     document.documentElement.classList.add("mw-sofort");
 
@@ -2189,26 +2164,6 @@ class Component extends DCLogic {
     document.body.appendChild(svg);
   }
 
-  // Neigt die Kachel unter dem Zeiger und laesst die Geschwister zuruecktreten.
-  // Laeuft aus dem Bildtakt heraus, nicht aus dem Zeigerereignis.
-  kachelNeigen() {
-    const ziel = this.zeigerZiel;
-    const kachel = ziel && ziel.closest ? ziel.closest(".mw-tile") : null;
-    if (this.geneigt && this.geneigt !== kachel) this.kachelZuruecksetzen();
-    if (!kachel) return;
-    this.geneigt = kachel;
-    kachel.classList.add("mw-tile--fokus");
-    const gitter = kachel.parentElement;
-    if (gitter) gitter.classList.add("mw-tiles--fokus");
-    if (this.reduced) return;
-    const r = kachel.getBoundingClientRect();
-    const nx = (this.zeigerX - r.left) / r.width;
-    const ny = (this.zeigerY - r.top) / r.height;
-    const MAX = 9;
-    kachel.style.setProperty("--ry", ((nx - 0.5) * 2 * MAX).toFixed(2) + "deg");
-    kachel.style.setProperty("--rx", ((0.5 - ny) * 2 * MAX).toFixed(2) + "deg");
-  }
-
   kachelZuruecksetzen() {
     const k = this.geneigt;
     this.geneigt = null;
@@ -2217,14 +2172,6 @@ class Component extends DCLogic {
     k.style.removeProperty("--rx");
     k.style.removeProperty("--ry");
     if (k.parentElement) k.parentElement.classList.remove("mw-tiles--fokus");
-  }
-
-  // Ist der Zeiger weg, faellt auch eine noch wartende Rechnung weg — sonst
-  // neigte sie die Kachel gleich wieder zurecht, die gerade geloest wurde.
-  zeigerVergessen() {
-    if (this.zeigerRaf) { cancelAnimationFrame(this.zeigerRaf); this.zeigerRaf = 0; }
-    this.zeigerZiel = null;
-    this.kachelZuruecksetzen();
   }
 
   componentDidUpdate() {
@@ -2257,7 +2204,6 @@ class Component extends DCLogic {
     document.removeEventListener("visibilitychange", this.onSichtbar);
     window.removeEventListener("pageshow", this.onSichtbar);
     if (this.raf) cancelAnimationFrame(this.raf);
-    if (this.zeigerRaf) cancelAnimationFrame(this.zeigerRaf);
     if (this.sofortTimer) clearTimeout(this.sofortTimer);
     if (this.beobachter) this.beobachter.disconnect();
     document.body.style.overflow = "";
@@ -2267,7 +2213,14 @@ class Component extends DCLogic {
     return () => {
       if (t === this.state.tab) return;
       this.zeige({ tab: t, project: null, game: null, bild: 0 });
-      this.nachObenSpringen();
+      // Sofort nach oben springen, nicht animiert: eine laufende Scroll-Animation
+      // über eine neue, kürzere Seite lässt den Tiefenschleier kurz zulaufen.
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* preview may block scrolling */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
   }
 
@@ -2290,20 +2243,28 @@ class Component extends DCLogic {
 
   gameUrl() {
     const id = this.state.game && this.state.game.id;
-    if (id === DROPFALL_ID) return DROPFALL_URL;
-    if (EIGENE_SPIELE.includes(id)) return new URL("games/" + id + "/index.html", document.baseURI).href;
-    return "about:blank";
+    return id === "dropfall" ? "https://milchinien.github.io/Dropfall/" : ["wavebreaker", "chromatic", "runecall", "harmonics"].includes(id) ? new URL("games/" + id + "/index.html", document.baseURI).href : "about:blank";
   }
 
   renderVals() {
     const tab = this.state.tab;
     const openProject = (id) => () => {
       this.zeige({ project: id, bild: 0 });
-      this.nachObenSpringen();
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* preview may block scrolling */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
     const closeProject = () => {
       this.schliesse({ project: null, game: null, bild: 0 });
-      this.nachObenSpringen();
+      try {
+        window.scrollTo(0, 0);
+        const sc = document.scrollingElement || document.documentElement;
+        if (sc) sc.scrollTop = 0;
+      } catch (e) { /* preview may block scrolling */ }
+      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
 
     // Die Kacheln bekommen ihren Klickgriff hier, damit die Vorlage ohne
@@ -2461,6 +2422,8 @@ class Component extends DCLogic {
       gameName: this.state.game ? this.state.game.name : "",
       closeGame: () => this.schliesse({ game: null }),
       toggleVollbild: () => this.toggleVollbild(),
+
+      pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
 
       heroCardStyle: { position: "relative", display: "flex", flexDirection: "column", gap: 22 },
 

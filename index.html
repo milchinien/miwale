@@ -6,21 +6,11 @@
     <title>miwale games</title>
     <meta name="description" content="Spiele und Projekte von miwale — direkt im Browser spielbar." />
     <script>
-      const HANDY = "miwale%20Portfolio%20Mobil.dc.html";
-      const RECHNER = "miwale%20Portfolio.dc.html";
-      // Schmal ist eindeutig ein Handy. Quer gehalten ist dasselbe Handy aber
-      // breiter als 700px und bekam bisher die Rechnerfassung — dort haengen
-      // die Kacheln am Mauszeiger und die Leiste hat kleine Ziele. Darum
-      // zusaetzlich: kein feiner Zeiger vorhanden und die kurze Geraeteseite
-      // klein. Tablets liegen darueber und behalten die grosse Fassung.
-      const schmal = matchMedia("(max-width: 700px)").matches;
-      const kurzeSeite = Math.min(screen.width || 9999, screen.height || 9999);
-      const handyQuer = matchMedia("(pointer: coarse)").matches && kurzeSeite <= 500;
-      location.replace(schmal || handyQuer ? HANDY : RECHNER);
+      const mobile = matchMedia("(max-width: 700px)").matches;
+      location.replace(mobile ? "miwale%20Portfolio%20Mobil.dc.html" : "miwale%20Portfolio.dc.html");
     </script>
   </head>
   <body>
     <p><a href="miwale%20Portfolio.dc.html">miwale öffnen</a></p>
-    <p><a href="miwale%20Portfolio%20Mobil.dc.html">miwale auf dem Handy öffnen</a></p>
   </body>
 </html>
