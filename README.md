@@ -1,7 +1,7 @@
 # miwale
 
-Portfolio-Website von **miwale** — einem angehenden Ein-Personen-Game-Studio aus
-Leipzig, das Spiele mit KI-Unterstützung baut. Der Name steht für
+Portfolio-Website von **miwale** — einem angehenden Ein-Personen-Game-Studio,
+das Spiele mit KI-Unterstützung baut. Der Name steht für
 **mi**chel · **wa**ggoner · **le**ipzig.
 
 Dieses Repository enthält den Design-Stand der Seite: die Canvas-Dateien, das
@@ -28,8 +28,12 @@ Mobil: **Start · Projekte · Über mich · Kontakt**
 ### Der Projekte-Tab
 
 Auf dem Desktop bleibt oben der Tauchgang: Wortmarke, Scrollen, es wird dunkler.
-Darunter liegen alle Projekte in einem **Wechselraster**, nach Relevanz sortiert —
-was läuft und spielbar ist, steht vorn. Jede Reihe trägt zwei Kacheln im
+Darunter liegen alle Projekte in einem **Wechselraster**. Vorn stehen die drei mit
+einem **Trend-Rang**: Dropfall, Wavebreaker, Chromatic. Sie tragen in der oberen
+Ecke ein Flammen-Abzeichen mit ihrer Nummer, warm getönt gegen die aqua Palette,
+damit es als Feuer liest und nicht als zweites Statusschild. Den Rang setzt das
+Feld `trend: 1|2|3` am Projekt; ohne das Feld bleibt das Abzeichen aus. Dahinter
+folgen die übrigen nach Relevanz — was läuft und spielbar ist, steht weiter vorn. Jede Reihe trägt zwei Kacheln im
 Verhältnis 5:7, und die nächste Reihe dreht es um: klein links und groß rechts,
 dann groß links und klein rechts. Bleibt am Ende eine Kachel allein, nimmt sie
 die ganze Breite. Unter 900 px Fensterbreite und auf dem Handy steht alles
@@ -47,6 +51,69 @@ zurück, ein Schimmer in der Akzentfarbe legt sich darüber, ein Lichtstreif lä
 einmal quer und am unteren Rand wächst eine Linie auf. Die Neigung kommt aus
 einem `pointermove`-Listener am Fenster, alles Übrige aus CSS. Ohne Zeigergerät
 und bei `prefers-reduced-motion` entfällt es.
+
+### Die Startseite
+
+Die Startseite spricht über **mich**, nicht über einzelne Projekte: kein
+Projektname steht in ihren Texten. Wer welches Spiel ansehen soll, entscheidet
+weiter unten der Abschnitt **„Gerade am beliebtesten"** — dort stehen dieselben
+drei Trend-Projekte als Karten mit Flammen-Abzeichen, nebeneinander auf dem
+Desktop, untereinander am Handy. Ein Klick springt in die Projekte und öffnet
+direkt die Detailansicht.
+
+Die frühere Kennzahlen-Strecke **„In Zahlen"** ist in beiden Fassungen entfallen,
+ebenso der Schalter `showNumbers`. Die Glaskarte rechts im Desktop-Held zeigt
+keine Zahlen mehr, sondern eine kurze Vorstellung und löst den Namen auf:
+**mi**chel · **wa**ggoner · **le**ipzig.
+
+### Die Leiste ueber den Kacheln
+
+Drei Ebenen, von grob nach fein:
+
+**Art** teilt zuerst auf: *Alle*, *Projekte*, *Spiele*. „Projekte" ist das, was
+Arbeit ist — bislang allein das Bestellsystem; alles andere sind Spiele oder
+Spielkonzepte. Das Feld dazu heisst `art`. Dass **Alle** dabei ist und der
+Standard bleibt, ist Absicht: mit nur zwei Knoepfen waere beim Aufschlagen der
+Seite immer eine Haelfte versteckt, und bei einem Verhaeltnis von 1 zu 10 waere
+das die falsche.
+
+**Sortieren nach** kennt drei Ordnungen. *Empfohlen* ist die feste Reihenfolge
+aus `PROJECTS`, die drei mit Trend-Rang zuerst. *Zuletzt gebaut* geht nach dem
+Feld `stand`, einem `JJJJ-MM` aus dem jeweiligen Zeitraum in den Eckdaten; was
+keinen Stand hat, weil noch kein Baustart war, rutscht ans Ende statt nach vorn.
+*Name A–Z* sortiert mit `localeCompare(..., "de")`, damit Umlaute und
+Kleinschreibung richtig einsortiert werden.
+
+**Filter** klappt Genre und Geraet auf. Der Knopf traegt die Zahl der gesetzten
+Filter, damit im zugeklappten Zustand sichtbar bleibt, dass etwas aktiv ist.
+
+### Filter nach Genre und Geraet
+
+Ueber dem Kachelraster stehen zwei Reihen Knoepfe. **Genre** hat bewusst nur sechs
+grobe Schubladen — Idle, Strategie, Karten, Lernspiel, Experiment, Anwendung —
+damit jeder Knopf mehrere Projekte trifft; feinere Begriffe haetten meist nur
+einen Treffer gehabt. **Spielbar auf** trennt Handy und PC.
+
+Innerhalb einer Reihe gilt **oder**, zwischen den Reihen **und**: „Idle oder
+Karten, und davon nur das, was am Handy laeuft". Jeder Knopf traegt seine
+Trefferzahl, gezaehlt gegen die jeweils andere Reihe — die Zahl zeigt also, was
+ein Klick wirklich braechte. Findet eine Auswahl nichts, steht dort ein Hinweis
+statt einer leeren Flaeche.
+
+`geraete` steht nur an dem, was sich wirklich spielen laesst. Von den fuenf
+Browserspielen laeuft bislang allein **Dropfall** am Handy; die uebrigen vier
+sind auf PC gesetzt. Projekte ohne Spielfassung — das Bestellsystem, die
+Lernspiele, das Design-Dokument — tragen gar kein `geraete` und tauchen unter
+keinem der beiden Geraeteknoepfe auf. Das ist gewollt: man kann sie nirgends
+spielen.
+
+Die Filter stehen bewusst **nicht** in der Adresse. Sonst legte jeder Knopfdruck
+einen Verlaufseintrag an und die Zurueck-Taste kaeme nicht mehr aus den Projekten
+heraus.
+
+Auf dem Desktop rechnet das Wechselraster mit der **gefilterten** Laenge, nicht
+mit der vollen Projektzahl — sonst bekaeme die letzte Kachel einer ungeraden
+Auswahl nie die volle Breite.
 
 ### Die Detailseite
 
@@ -106,12 +173,40 @@ Beide Fassungen lesen dieselbe Liste `PROJECTS`, die in jeder Datei einmal im
 `<script type="text/x-dc">`-Block steht. Ein neues Projekt braucht dort einen
 Eintrag — in beiden Dateien, sie werden nicht geteilt.
 
-Enthalten sind elf Projekte: Chromatic, Wavebreaker, XRAI Order System, Runecall,
-Dropfall, Harmonics, Dungeons & Diplomas, Michis Mathe Universe,
-mindforge-playground, The Last Outpost und der Flappy-Prototyp.
+Enthalten sind elf Projekte, in dieser Reihenfolge: Dropfall, Wavebreaker,
+Chromatic, XRAI Order System, Runecall, Harmonics, Dungeons & Diplomas,
+Michis Mathe Universe, mindforge-playground, The Last Outpost und der
+Flappy-Prototyp. Die ersten drei sind die mit Trend-Rang.
 
 Der Devlog-Tab steht bewusst auf „bald" und bleibt leer, bis es echte Einträge
 gibt.
+
+## Adresse und Verlauf
+
+Der sichtbare Zustand steht in der Adresse: `#projekte`,
+`#projekte/chromatic`, `#projekte/chromatic/spielen`. Ohne das führte die
+Zurück-Taste am Handy aus der Seite heraus, sobald eine Detailansicht oder ein
+Spiel offen war; jetzt schließt sie sie. Nebenbei lässt sich damit ein einzelnes
+Projekt verschicken.
+
+Tabwechsel, Detailansicht und Spiel legen über `zeige()` je einen Verlaufseintrag
+an. Die Schließen-Knöpfe gehen über `schliesse()` denselben Weg zurück, damit kein
+toter Eintrag liegen bleibt. Der Zähler `eigeneEintraege` merkt sich, ob es
+überhaupt einen eigenen Eintrag gibt — bei einem direkt geteilten Link wird der
+Zustand stattdessen ersetzt, sonst verließe Schließen die Seite.
+
+Beide Fassungen benutzen dieselben Adress-Bausteine und dieselben Slugs.
+
+## Mobile Grundlagen
+
+Das Viewport-Meta der Mobil-Fassung trägt `viewport-fit=cover`. Ohne das liefert
+`env(safe-area-inset-bottom)` auf iOS immer 0, und die Navileiste säße auf dem
+Home-Indicator. Seitenrahmen und Sheet rechnen in `dvh` statt `vh`, damit die
+ein- und ausfahrende Adressleiste die Höhe nicht springen lässt.
+
+In der Desktop-Fassung steht `viewport-fit=cover` bewusst **nicht**: dort gibt es
+keine Safe-Area-Angaben, und mit `cover` rutschte Inhalt im Querformat unter die
+Notch.
 
 ## Rückkehr in den Tab
 
@@ -157,3 +252,11 @@ Sektion, ein BorderBeam pro Screen, ein Scroll-Set-Piece pro Seite.
 - E-Mail: michi.waggoner@gmail.com
 - itch.io: https://milchinien.itch.io/
 - GitHub: https://github.com/milchinien
+
+### Projektvorschauen
+
+Alle elf Projekte verwenden eigene Illustrationen in den Projektkacheln und auf
+der Startseite, auf Desktop und Mobil. Die Zuordnung steht im Feld `preview`;
+`shot` und `shots` behalten die bisherigen Detailbilder. Unter
+`assets/games/previews/` liegen die PNG-Originale, kompakte JPEG-Webdateien
+und die vollst?ndigen Generierungsprompts in `prompts.md`.

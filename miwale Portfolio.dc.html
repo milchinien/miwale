@@ -103,7 +103,7 @@
   .mw-tile__bg {
     position: absolute; inset: -5%; z-index: 0;
     background-size: cover; background-position: center;
-    filter: blur(2.5px) saturate(.92) brightness(.76); transform: scale(1.04);
+    filter: saturate(.96) brightness(.94); transform: scale(1.04);
     transition: filter 640ms cubic-bezier(.22,.61,.36,1), transform 640ms cubic-bezier(.22,.61,.36,1);
   }
   .mw-tile:hover .mw-tile__bg, .mw-tile:focus-visible .mw-tile__bg {
@@ -135,7 +135,14 @@
   .mw-tile__rule { display: block; width: 104px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--aqua-300), rgba(127,224,238,0)); transition: width 640ms cubic-bezier(.22,.61,.36,1); }
   .mw-tile:hover .mw-tile__rule, .mw-tile:focus-visible .mw-tile__rule { width: 184px; }
   .mw-tile__sub { font: var(--type-label); font-size: var(--text-xs); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.86); }
-  .mw-tile__meta { position: absolute; z-index: 4; top: 22px; right: 24px; display: flex; align-items: center; gap: 10px; }
+  /* Status und Trend teilen sich eine Zeile ueber der Kachel. Vorher hingen
+     beide getrennt in derselben Ecke und lagen uebereinander. row-reverse haelt
+     den Status aussen rechts und schiebt die Flamme links daneben. */
+  .mw-tile__meta {
+    position: absolute; z-index: 4; top: 22px; left: 24px; right: 24px;
+    display: flex; flex-direction: row-reverse; justify-content: flex-start;
+    align-items: center; gap: 10px; flex-wrap: wrap;
+  }
   .mw-tile__badge { padding: 5px 14px; border-radius: 999px; background: rgba(2,14,22,.52); border: 1px solid rgba(206,244,255,.42); font: var(--type-code); font-size: var(--text-3xs); letter-spacing: var(--track-caps); text-transform: uppercase; white-space: nowrap; color: #EAF9FF; }
   .mw-tile__go { position: absolute; z-index: 4; right: 28px; bottom: 28px; display: inline-flex; align-items: center; gap: 8px; font: var(--type-label); font-size: var(--text-sm); color: #EAF9FF; opacity: 0; transform: translateX(-8px); transition: opacity 520ms, transform 520ms cubic-bezier(.22,.61,.36,1); }
   .mw-tile:hover .mw-tile__go, .mw-tile:focus-visible .mw-tile__go { opacity: 1; transform: none; }
@@ -154,6 +161,139 @@
     .mw-tile__veil::after { display: none; }
   }
   /* Ohne Zeigergeraet gibt es kein Ueberfahren — Neigung und Abdunkeln entfallen */
+
+  /* ---- Trend-Abzeichen: die drei meistgespielten Projekte ----
+     Warm gegen die aqua Palette, damit die Flamme als Feuer liest und nicht als
+     zweites Statusschild. Kacheln ohne Rang tragen dieselbe Marke mit --aus und
+     blenden sie aus: sc-for kann keine Bedingung, also entscheidet die Klasse. */
+  .mw-trend {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px 5px 8px; border-radius: 999px;
+    background: rgba(46,20,4,.58);
+    border: 1px solid rgba(232,163,61,.52);
+    box-shadow: 0 0 18px rgba(232,163,61,.20);
+    font: var(--type-code); font-size: 10px; letter-spacing: .08em;
+    text-transform: uppercase; white-space: nowrap; color: var(--amber-200);
+  }
+  .mw-trend--aus { display: none; }
+  .mw-trend__flamme { display: block; width: 13px; height: 13px; flex: none; color: var(--amber-500); }
+
+  /* ---- Trend-Karten auf der Startseite ----
+     Dieselbe Karte in beiden Fassungen, nur der Container unterscheidet sich:
+     nebeneinander auf dem Desktop, untereinander am Handy. Angefasst wird sie
+     ueber :active, nicht nur :hover — am Finger gibt es kein Ueberfahren. */
+  .mw-hot {
+    position: relative; display: flex; flex-direction: column; width: 100%;
+    margin: 0; padding: 0; border: 1px solid rgba(255,255,255,.14);
+    border-radius: 18px; overflow: hidden; cursor: pointer; text-align: left;
+    background: #06202C; color: inherit; font: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 14px 34px rgba(1,10,17,.34);
+    transition: transform 320ms cubic-bezier(.22,.61,.36,1), border-color 320ms cubic-bezier(.22,.61,.36,1);
+  }
+  .mw-hot:active, .mw-hot:focus-visible { transform: translateY(-2px); border-color: rgba(232,163,61,.46); }
+  .mw-hot:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 3px; }
+  @media (hover: hover) { .mw-hot:hover { transform: translateY(-3px); border-color: rgba(232,163,61,.46); } }
+  .mw-hot__bild { display: block; width: 100%; height: 172px; background-size: cover; background-position: center; background-color: #04131C; }
+  .mw-hot__text { display: flex; flex-direction: column; gap: 7px; padding: 14px 16px 16px; }
+  .mw-hot__kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mw-hot__name { font: var(--type-h3); font-size: 18px; letter-spacing: var(--track-tight); color: #fff; }
+  .mw-hot__sub { font: var(--type-body-sm); font-size: 13px; line-height: 1.5; color: rgba(237,243,249,.72); }
+
+  /* ---- Filterleiste ueber den Projekten ----
+     Mehrfachauswahl: innerhalb einer Gruppe gilt oder, zwischen den Gruppen und.
+     Angefasst wird ueber :active, am Finger gibt es kein Ueberfahren. Die Knoepfe
+     sind 44px hoch, damit sie auch am Handy sicher zu treffen sind. */
+  .mw-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .mw-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: 44px; padding: 8px 15px; margin: 0; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06);
+    color: rgba(237,243,249,.82); font: var(--type-label); font-size: 13px;
+    cursor: pointer; white-space: nowrap; text-align: left;
+    transition: background 220ms, border-color 220ms, color 220ms;
+  }
+  .mw-chip:active { border-color: rgba(127,224,238,.5); }
+  .mw-chip:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 2px; }
+  @media (hover: hover) { .mw-chip:hover { background: rgba(255,255,255,.11); } }
+  .mw-chip--an {
+    background: rgba(127,224,238,.18);
+    border-color: rgba(127,224,238,.55);
+    color: #EAF9FF;
+  }
+  .mw-chip__zahl { font: var(--type-code); font-size: 10px; opacity: .7; }
+  .mw-filter__titel {
+    font: var(--type-eyebrow); letter-spacing: var(--track-caps);
+    text-transform: uppercase; font-size: 11px; color: var(--aqua-300);
+  }
+  .mw-leer {
+    padding: 28px 20px; border-radius: 18px; text-align: center;
+    border: 1px dashed rgba(255,255,255,.20); background: rgba(255,255,255,.04);
+    font: var(--type-body-sm); color: rgba(237,243,249,.72);
+  }
+  @media (prefers-reduced-motion: reduce) { .mw-chip { transition: none !important; } }
+
+  /* ---- Leiste ueber den Projekten: Art, Sortierung, Filter ----
+     Die Art teilt zuerst grob auf, darunter sitzen Sortierung links und der
+     Filterknopf rechts. Die Genre- und Geraeteknöpfe stecken im Klappfeld,
+     damit über den Kacheln nicht drei Reihen Knöpfe stehen. */
+  .mw-seg {
+    /* align-self, damit die Pille ihren Inhalt umschliesst statt sich im
+       Flex-Container ueber die ganze Breite zu ziehen. */
+    display: inline-flex; align-self: flex-start;
+    padding: 4px; gap: 4px; border-radius: 999px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+    max-width: 100%; flex-wrap: wrap;
+  }
+  .mw-seg__knopf {
+    display: inline-flex; align-items: center; gap: 7px;
+    min-height: 40px; padding: 8px 17px; margin: 0; border: 0; border-radius: 999px;
+    background: transparent; color: rgba(237,243,249,.72);
+    font: var(--type-label); font-size: 14px; cursor: pointer; white-space: nowrap;
+    transition: background 220ms, color 220ms;
+  }
+  @media (hover: hover) { .mw-seg__knopf:hover { background: rgba(255,255,255,.08); } }
+  .mw-seg__knopf:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 2px; }
+  .mw-seg__knopf--an { background: rgba(127,224,238,.20); color: #EAF9FF; }
+  .mw-seg__zahl { font: var(--type-code); font-size: 10px; opacity: .7; }
+
+  .mw-werkzeuge {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .mw-sortier { display: inline-flex; align-items: center; gap: 9px; }
+  /* 16px Schriftgroesse: alles darunter laesst iOS beim Antippen hineinzoomen. */
+  .mw-sortier select {
+    min-height: 44px; padding: 9px 38px 9px 15px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.18); background-color: rgba(255,255,255,.06);
+    color: #EAF9FF; font: var(--type-label); font-size: 16px; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23BFE9F2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 13px center; background-size: 16px;
+  }
+  .mw-sortier select:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 2px; }
+  .mw-sortier select option { background: #06202C; color: #EAF9FF; }
+
+  .mw-filterfeld {
+    display: flex; flex-direction: column; gap: 14px; padding: 18px;
+    border-radius: 18px; background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.14);
+  }
+  .mw-chip__pfeil { transition: transform 240ms cubic-bezier(.22,.61,.36,1); }
+  .mw-chip--offen .mw-chip__pfeil { transform: rotate(180deg); }
+  @media (prefers-reduced-motion: reduce) {
+    .mw-seg__knopf, .mw-chip__pfeil { transition: none !important; }
+  }
+  /* Auf dem Desktop stehen die drei nebeneinander, darunter untereinander. */
+  .mw-hotgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .mw-artgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  @media (max-width: 900px) {
+    .mw-hotgrid, .mw-artgrid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mw-hot { transition: none !important; }
+    .mw-hot:active { transform: none; }
+  }
+
   @media (hover: none) {
     .mw-tiles--fokus .mw-tile:not(.mw-tile--fokus) { --masz: 1; opacity: 1; }
     .mw-tile { --rx: 0deg !important; --ry: 0deg !important; }
@@ -402,7 +542,7 @@
 </style>
 </helmet>
 
-<div style="min-height: 100vh; background: #050A16; position: relative;">
+<div style="min-height: 100dvh; background: #050A16; position: relative;">
   <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-repeat: no-repeat;">
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
@@ -499,7 +639,7 @@
               <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Ich baue" trigger="mount" hint-size="auto,auto"></x-import>
               <span style="color: var(--aqua-100);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MorphingText" texts="{{ morphWords }}" hint-size="auto,auto"></x-import></span>
             </h1>
-            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">Ein Bestellsystem läuft täglich in einem Gasthof, zwei Spiele laufen im Browser. Ich entwerfe die Systeme, prüfe jede Änderung und gebe nichts raus, das ich nicht selbst gespielt habe.</p>
+            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">Ich bin Michel, 17. Angefangen hat es damit, dass mir ein Spiel nicht gefiel und ich wissen wollte, ob ich das besser hinbekomme. Der erste Versuch war schlecht. Der zweite auch. Irgendwann wurde es besser — und seitdem höre ich nicht mehr auf.</p>
             <span data-reveal style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">Gebaut mit KI, getunt von Hand</x-import></span>
             <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 4px;">
               <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="aqua" on-click="{{ goGames }}" hint-size="auto,46px">Projekte ansehen</x-import>
@@ -509,24 +649,11 @@
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" style="{{ heroCardStyle }}" hint-size="100%,auto">
             <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.BorderBeam" duration="{{ 8 }}" hint-size="100%,100%"></x-import>
             <img src="assets/mascot-whale-light.png" alt="" style="width: 104px; align-self: center; opacity: .95;">
-            <div style="display: flex; flex-direction: column; gap: 18px;">
-              <div style="display: flex; flex-direction: column; gap: 3px;">
-                <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">1</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">System im täglichen Einsatz</span>
-                <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Bestellsystem im Gasthof Nüßleshof</span>
-              </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Kurz zu mir</span>
+              <p style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.82);">Der Name setzt sich aus drei Teilen zusammen: <strong style="color: #fff; font-weight: 600;">Mi</strong>chel, <strong style="color: #fff; font-weight: 600;">Wa</strong>ggoner, <strong style="color: #fff; font-weight: 600;">Le</strong>ipzig. Kein Studio mit Team dahinter — das bin ich, ein Rechner und ziemlich viele Abende.</p>
               <div style="height: 1px; background: rgba(255,255,255,.14);"></div>
-              <div style="display: flex; flex-direction: column; gap: 3px;">
-                <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">2</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Spiele, spielbar im Browser</span>
-                <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Chromatic und Wavebreaker</span>
-              </div>
-              <div style="height: 1px; background: rgba(255,255,255,.14);"></div>
-              <div style="display: flex; flex-direction: column; gap: 3px;">
-                <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">2024</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">erste eigene Zeile Code</span>
-                <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">seitdem jeden Tag weiter</span>
-              </div>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich entwerfe die Systeme selbst, lese jede Änderung nach und gebe nichts raus, das ich nicht vorher gespielt habe. Wenn etwas langweilig ist, soll mir das vor dir auffallen.</p>
             </div>
             <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.62);">
               <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextType" texts="{{ typeLines }}" hint-size="auto,auto"></x-import>
@@ -536,14 +663,25 @@
       </section>
 
       <section style="position: relative; padding: 8px 32px 88px;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px;">
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zum Ansehen</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Zwei Spiele, gebaut ohne Engine</h2>
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 10px; max-width: 62ch;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Gerade am beliebtesten</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Womit im Moment am meisten gespielt wird</h2>
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Drei laufen zurzeit besser als der Rest. Wenn du nur eins anschauen willst, nimm das erste.</p>
           </div>
-          <div data-reveal style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MediaCard" image="assets/games/chromatic-kampf-1.png" alt="Kampfraum aus Chromatic mit Karten am unteren Rand" title="Chromatic" meta="Roguelite-Deckbuilder · 25 Karten im Deck, spielbar bis zum Endboss" height="{{ 300 }}" on-click="{{ goGames }}" hint-size="100%,300px"></x-import>
-            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MediaCard" image="assets/games/wb-sky.svg" alt="Himmelsgrafik aus Wavebreaker" title="Wavebreaker" meta="Idle-Verteidigung · 692 von 692 Prüfläufen grün, noch in Politur" height="{{ 300 }}" on-click="{{ goGames }}" hint-size="100%,300px"></x-import>
+          <div data-reveal class="mw-hotgrid">
+            <sc-for list="{{ trending }}" as="t" hint-placeholder-count="3">
+              <button type="button" class="mw-hot" onClick="{{ t.open }}" aria-label="{{ t.aria }}">
+                <span class="mw-hot__bild" style="background-image: url({{ t.shot }});"></span>
+                <span class="mw-hot__text">
+                  <span class="mw-hot__kopf">
+                    <span class="{{ t.trendCls }}"><svg class="mw-trend__flamme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><span>{{ t.trendText }}</span></span>
+                    <span class="mw-hot__name">{{ t.name }}</span>
+                  </span>
+                  <span class="mw-hot__sub">{{ t.tagline }}</span>
+                </span>
+              </button>
+            </sc-for>
           </div>
         </div>
       </section>
@@ -551,63 +689,30 @@
       <div style="overflow: hidden; padding: 0 0 12px;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextLoop" text="miwale games" shape="wave" ribbon="{{ true }}" ribbon-color="rgba(63,198,220,.35)" ribbon-width="{{ 64 }}" font-size="{{ 32 }}" color="var(--aqua-200)" speed="{{ 70 }}" hint-size="100%,120px"></x-import>
       </div>
-      <section style="position: relative; padding: 8px 32px 56px;">
-        <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
-          <span data-reveal style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">In Zahlen</span>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
-              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">751</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">automatische Tests, alle grün</span>
-              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">692 in Wavebreaker, 59 in Chromatic: sie rechnen Schaden, Kosten und Wellen nach jeder Änderung nach</span>
-            </div>
-            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
-              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">83</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Commits im Bestellsystem</span>
-              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">dazu 23 Pull Requests: jede Änderung ging einzeln durch ein Review</span>
-            </div>
-            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
-              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">16</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">Kapitel Design-Dokument</span>
-              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">geschrieben, bevor die erste Zeile Code entstand</span>
-            </div>
-            <div data-reveal style="display: flex; flex-direction: column; gap: 4px; padding: 22px; border-radius: 22px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); ">
-              <span style="font: var(--type-h2); font-size: var(--text-3xl); color: #fff;">20 h</span>
-              <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">von der Idee bis live</span>
-              <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.6);">Bestellsystem im Gasthof, allein umgesetzt</span>
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
-            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">3</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Projekte, die laufen</span></div>
-            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">25</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Karten im Chromatic-Deck</span></div>
-            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">5 × 5</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">Farben und Klassen</span></div>
-            <div data-reveal style="display: flex; align-items: baseline; gap: 10px; padding: 15px 20px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12);"><span style="font: var(--type-h3); color: #fff; white-space: nowrap; flex: none;">2 Jahre</span><span style="font: var(--type-body-sm); color: rgba(237,243,249,.68);">seit der ersten eigenen Zeile</span></div>
-          </div>
-        </div>
-      </section>
 
       <section style="position: relative; padding: 96px 32px 84px;">
         <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px;">
           <div style="display: flex; flex-direction: column; gap: 10px; max-width: 62ch;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Der wichtigste Beleg</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Ein System, das <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Highlighter" action="underline" color="var(--aqua-400)" hint-size="auto,auto">Fremde täglich benutzen</x-import></h2>
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Das XRAI Order System ist kein Übungsprojekt. Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch und bestellen; in der Küche läuft die Bestellung auf. Von den ersten Gesprächen bis zu Deployment und DNS habe ich es allein umgesetzt.</p>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Warum ich das mache</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Etwas bauen, das jemand <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Highlighter" action="underline" color="var(--aqua-400)" hint-size="auto,auto">wirklich benutzt</x-import></h2>
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Der Unterschied zwischen einer Übung und echter Arbeit ist, ob es jemandem auffällt, wenn es kaputtgeht. Eines meiner Projekte läuft inzwischen jeden Tag bei Leuten, die mich nicht kennen. Seitdem baue ich anders — weniger verspielt, mehr mit dem Gedanken, was passiert, wenn ich nicht danebenstehe.</p>
           </div>
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;">
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">unter 20 h</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm);">von der Idee bis zum Livegang</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Konzept, Prototyp, Frontend, Backend, Datenhaltung, Deployment.</span>
+            <div class="mw-artgrid">
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">Erst aufschreiben</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">dann tippen</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Solange ich nicht erklären kann, wie sich etwas anfühlen soll, fange ich nicht an. Das Dokument steht vor der ersten Zeile.</span>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">83</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm);">Commits, dazu 23 Pull Requests</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Jede Änderung wurde einzeln geprüft, nicht in einem Rutsch hochgeladen.</span>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">Die KI tippt</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">ich entscheide</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Mechanik, Kurven und Grenzen lege ich fest. Was am Ende drin bleibt, habe ich vorher gelesen — jede Zeile.</span>
               </div>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-h2); font-size: var(--text-4xl); letter-spacing: var(--track-tight); color: #fff;">1</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm);">Entwickler</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Architektur, Umsetzung, Tests und Deployment von mir; Review durch einen erfahrenen Senior-Entwickler.</span>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">Selbst gespielt</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">oder gar nicht</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Tests fangen Fehler. Ob etwas Spaß macht, merkt kein Test. Das muss ich selbst spielen, und zwar länger als einmal.</span>
               </div>
             </div>
           </x-import>
@@ -615,23 +720,6 @@
             <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" on-click="{{ goGames }}" hint-size="auto,44px">Alle Projekte ansehen</x-import>
             <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,44px">Code auf GitHub</x-import>
           </div>
-        </div>
-      </section>
-
-      <section style="position: relative; padding: 0 32px 88px;">
-        <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">Erst das Dokument, dann der Code</h3>
-              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Bei Wavebreaker stand ein Design-Dokument über sechzehn Kapitel, bevor eine Zeile Code existierte: Mechaniken, Klassen, Kurven und wie sie sich gegenseitig beeinflussen.</p>
-            </div>
-          </x-import>
-          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">692 automatische Prüfungen</h3>
-              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Wavebreaker prüft sich nach jeder Änderung selbst: 692 kleine Testläufe rechnen nach, ob Schaden, Kosten und Wellen noch stimmen. Alle 692 laufen grün durch.</p>
-            </div>
-          </x-import>
         </div>
       </section>
 
@@ -670,12 +758,70 @@
           <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Ein Projekt anklicken, dann wird es ausführlich</h2>
         </div>
 
+        <div class="mw-breit" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px;">
+
+          <div class="mw-seg" role="group" aria-label="Art">
+            <sc-for list="{{ artKnoepfe }}" as="a" hint-placeholder-count="3">
+              <button type="button" class="{{ a.cls }}" onClick="{{ a.waehlen }}" aria-pressed="{{ a.gedrueckt }}" aria-label="{{ a.aria }}">
+                <span>{{ a.label }}</span><span class="mw-seg__zahl">{{ a.treffer }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div class="mw-werkzeuge">
+            <label class="mw-sortier">
+              <span class="mw-filter__titel">Sortieren nach</span>
+              <select value="{{ sortierung }}" onChange="{{ sortierenNach }}">
+                <sc-for list="{{ sortierWerte }}" as="o" hint-placeholder-count="3">
+                  <option value="{{ o.wert }}">{{ o.label }}</option>
+                </sc-for>
+              </select>
+            </label>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.62);">{{ trefferText }}</span>
+              <button type="button" class="{{ filterKnopfCls }}" onClick="{{ filterUmschalten }}" aria-expanded="{{ filterOffen }}">
+                <span>{{ filterKnopfText }}</span><svg class="mw-chip__pfeil" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <sc-if value="{{ filterOffen }}" hint-placeholder-val="{{ true }}">
+            <div class="mw-filterfeld">
+              <div class="mw-filter">
+                <span class="mw-filter__titel" style="width: 100%;">Genre</span>
+                <sc-for list="{{ genreKnoepfe }}" as="k" hint-placeholder-count="6">
+                  <button type="button" class="{{ k.cls }}" onClick="{{ k.umschalten }}" aria-pressed="{{ k.gedrueckt }}" aria-label="{{ k.aria }}">
+                    <span>{{ k.label }}</span><span class="mw-chip__zahl">{{ k.treffer }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div class="mw-filter">
+                <span class="mw-filter__titel" style="width: 100%;">Spielbar auf</span>
+                <sc-for list="{{ geraetKnoepfe }}" as="k" hint-placeholder-count="2">
+                  <button type="button" class="{{ k.cls }}" onClick="{{ k.umschalten }}" aria-pressed="{{ k.gedrueckt }}" aria-label="{{ k.aria }}">
+                    <span>{{ k.label }}</span><span class="mw-chip__zahl">{{ k.treffer }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <sc-if value="{{ filterAktiv }}" hint-placeholder-val="{{ false }}">
+                <div>
+                  <button type="button" class="mw-chip" onClick="{{ filterLeeren }}" style="min-height: 36px; padding: 6px 14px;">Filter zurücksetzen</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ nichtsGefunden }}" hint-placeholder-val="{{ false }}">
+          <p class="mw-leer mw-breit" style="margin: 0 auto;">Zu dieser Auswahl gibt es nichts. Nimm einen Filter weg.</p>
+        </sc-if>
+
         <div class="mw-tiles mw-breit">
           <sc-for list="{{ projects }}" as="p" hint-placeholder-count="{{ 4 }}">
             <button type="button" class="{{ p.cls }}" onClick="{{ p.open }}" aria-label="{{ p.aria }}">
-              <span class="mw-tile__bg" style="background-image: url({{ p.shot }});"></span>
+              <span class="mw-tile__bg" style="background-image: url({{ p.preview }});"></span>
               <span class="mw-tile__veil"></span>
-              <span class="mw-tile__meta"><span class="mw-tile__badge">{{ p.status }}</span></span>
+              <span class="mw-tile__meta"><span class="mw-tile__badge">{{ p.status }}</span><span class="{{ p.trendCls }}"><svg class="mw-trend__flamme" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><span>{{ p.trendText }}</span></span></span>
               <span class="mw-tile__body">
                 <span class="mw-tile__title">{{ p.name }}</span>
                 <span class="mw-tile__rule"></span>
@@ -1189,43 +1335,47 @@
 // die Screenshots aus den veröffentlichten Fassungen auf GitHub Pages.
 const PROJECTS = [
   {
-    id: "chromatic", name: "Chromatic",
-    kind: "Roguelite-Deckbuilder", status: "Spielbar",
-    tagline: "Deckbuilder ohne Mana · 25 Karten, fünf Farben, bis zum Endboss",
-    lead: "Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.",
-    tags: ["TypeScript", "Canvas", "ohne Engine", "Vite"],
-    shot: "assets/games/chromatic-kampf-1.png",
-    shotAlt: "Kampfraum aus Chromatic mit Karten am unteren Rand",
+    id: "dropfall", name: "Dropfall", trend: 1,
+    preview: "assets/games/previews/dropfall-v1.jpg",
+    kind: "Idle-Incremental", status: "Prototyp spielbar",
+    genres: ["Idle", "Strategie"], geraete: ["pc", "handy"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Kugeln fallen durch Pegs und sammeln bei jedem Kontakt Funken",
+    lead: "Incremental mit Lauf-Struktur. Kugeln fallen durch eine Arena aus Pegs und sammeln bei jedem Kontakt Funken. Der Skill Tree ist die Hauptansicht, von dort startet man einen Lauf, und der Lauf endet, wenn die Lebensleiste leer ist.",
+    tags: ["TypeScript", "Skill Tree", "Balancing-Simulation", "am Handy spielbar"],
+    shot: "assets/games/dropfall-main.jpg",
+    shotAlt: "Arena 1 aus Dropfall mit fallender Kugel und Pegs",
     shots: [
-      { src: "assets/games/chromatic-kampf-2.png", alt: "Zweiter Kampfraum aus Chromatic" },
-      { src: "assets/games/chromatic-akt-1.png", alt: "Aktauswahl aus Chromatic" },
-      { src: "assets/games/chromatic-card-1.png", alt: "Karte aus dem Chromatic-Deck", fit: "contain" },
-      { src: "assets/games/chromatic-card-2.png", alt: "Zweite Karte aus dem Chromatic-Deck", fit: "contain" },
-      { src: "assets/games/chromatic-card-3.png", alt: "Dritte Karte aus dem Chromatic-Deck", fit: "contain" }
+      { src: "assets/games/dropfall-1.jpg", alt: "Skill Tree aus Dropfall im Outhold-Stil" }
     ],
-    shotsCaption: "Kampfraum, Aktauswahl und drei Karten aus dem 25er-Deck.",
-    buildTitle: "Kein Framework, keine Engine — alles von Hand",
+    shotsCaption: "Arena und Skill Tree — Kreis heisst freigeschaltet, Fragezeichen heisst gesperrt.",
+    buildTitle: "Zahlen belegen statt schätzen",
     build: [
-      "Angefangen im Mai 2026, seitdem in 33 Commits gewachsen. Die Weltkarte ist ein Graph aus fünf Ebenen mit endlos eskalierenden Akten, durchspielbar bis zum Endboss.",
-      "Gebaut ohne Framework und ohne Engine: die Oberfläche liegt im DOM, der Kampf läuft auf einem Canvas, der Klang wird zur Laufzeit erzeugt. Das war eine bewusste Entscheidung — ich wollte verstehen, was eine Engine mir sonst abnimmt.",
-      "59 Prüfläufe sichern die Kampflogik ab und laufen alle grün durch. Sie waren der Grund, dass ich das Balancing später noch mehrfach umwerfen konnte, ohne das Spiel zu zerlegen."
+      "Angelegt im September 2026, inzwischen 18 Commits. Stand ist v0.5: Siegel und Esse sind dazugekommen, die Stufen im Skill Tree wurden kürzer, und die Währungen haben eigene Farben bekommen.",
+      "Vier Währungen trennen Lauf und Fortschritt. Funken fallen im Lauf an und überleben ihn nicht. Geld wird am Laufende ausgezahlt und geht in den Skill Tree. Splitter gibt es nur für direkte Peg-Treffer, Kronen einmalig je gemeisterter Arena.",
+      "Die Lebensleiste ist in Sekunden bemessen und leert sich überproportional schnell — heilen tun nur direkte Kontakte. Dieselbe Zahl ist am Ende die Belohnung: wer sich tief in die Rampe hineinspielt, bekommt dafür bezahlt.",
+      "Zuletzt kam die Bedienung mit dem Finger dazu: hochkant stapelt sich das HUD, damit das Spiel auch am Handy läuft.",
+      "Dazu gehört eine kopflose Balancing-Simulation. Sie spielt ganze Kampagnen durch die echte Physik, damit Zahlenänderungen belegt statt geschätzt werden."
     ],
     facts: [
-      { value: "Mai bis September 2026", label: "Zeitraum" },
-      { value: "33", label: "Commits" },
-      { value: "59 / 59", label: "Prüfläufe grün" },
-      { value: "25", label: "Karten im Deck" }
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "18", label: "Commits" },
+      { value: "v0.5", label: "Aktueller Stand" },
+      { value: "4", label: "Währungen" }
     ],
-    playId: "chromatic",
+    playId: "dropfall",
     links: [
-      { href: "https://github.com/milchinien/Chromatic", label: "Code auf GitHub" },
-      { href: "https://milchinien.github.io/Chromatic/", label: "In neuem Tab öffnen" }
+      { href: "https://github.com/milchinien/Dropfall", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Dropfall/", label: "In neuem Tab öffnen" }
     ],
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
   {
-    id: "wavebreaker", name: "Wavebreaker",
+    id: "wavebreaker", name: "Wavebreaker", trend: 2,
+    preview: "assets/games/previews/wavebreaker-v1.jpg",
     kind: "Idle-Verteidigung", status: "In Politur",
+    genres: ["Idle", "Strategie"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
     tagline: "Modulare Kampfstation gegen endlose Wellen · 692 Selbsttests grün",
     lead: "Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige.",
     tags: ["TypeScript", "DOM-freie Simulation", "Vite"],
@@ -1259,8 +1409,49 @@ const PROJECTS = [
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
   {
+    id: "chromatic", name: "Chromatic", trend: 3,
+    preview: "assets/games/previews/chromatic-v1.jpg",
+    kind: "Roguelite-Deckbuilder", status: "Spielbar",
+    genres: ["Karten", "Strategie"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Deckbuilder ohne Mana · 25 Karten, fünf Farben, bis zum Endboss",
+    lead: "Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.",
+    tags: ["TypeScript", "Canvas", "ohne Engine", "Vite"],
+    shot: "assets/games/chromatic-kampf-1.png",
+    shotAlt: "Kampfraum aus Chromatic mit Karten am unteren Rand",
+    shots: [
+      { src: "assets/games/chromatic-kampf-2.png", alt: "Zweiter Kampfraum aus Chromatic" },
+      { src: "assets/games/chromatic-akt-1.png", alt: "Aktauswahl aus Chromatic" },
+      { src: "assets/games/chromatic-card-1.png", alt: "Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-2.png", alt: "Zweite Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-3.png", alt: "Dritte Karte aus dem Chromatic-Deck", fit: "contain" }
+    ],
+    shotsCaption: "Kampfraum, Aktauswahl und drei Karten aus dem 25er-Deck.",
+    buildTitle: "Kein Framework, keine Engine — alles von Hand",
+    build: [
+      "Angefangen im Mai 2026, seitdem in 33 Commits gewachsen. Die Weltkarte ist ein Graph aus fünf Ebenen mit endlos eskalierenden Akten, durchspielbar bis zum Endboss.",
+      "Gebaut ohne Framework und ohne Engine: die Oberfläche liegt im DOM, der Kampf läuft auf einem Canvas, der Klang wird zur Laufzeit erzeugt. Das war eine bewusste Entscheidung — ich wollte verstehen, was eine Engine mir sonst abnimmt.",
+      "59 Prüfläufe sichern die Kampflogik ab und laufen alle grün durch. Sie waren der Grund, dass ich das Balancing später noch mehrfach umwerfen konnte, ohne das Spiel zu zerlegen."
+    ],
+    facts: [
+      { value: "Mai bis September 2026", label: "Zeitraum" },
+      { value: "33", label: "Commits" },
+      { value: "59 / 59", label: "Prüfläufe grün" },
+      { value: "25", label: "Karten im Deck" }
+    ],
+    playId: "chromatic",
+    links: [
+      { href: "https://github.com/milchinien/Chromatic", label: "Code auf GitHub" },
+      { href: "https://milchinien.github.io/Chromatic/", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
     id: "xrai", name: "XRAI Order System",
+    preview: "assets/games/previews/xrai-v1.jpg",
     kind: "Bestellsystem für die Gastronomie", status: "Im Einsatz",
+    genres: ["Anwendung"], geraete: [],
+    art: "projekt", stand: "2026-05",
     tagline: "QR-Code am Tisch, bestellen, Küche sieht es sofort — echter Betrieb",
     lead: "Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.",
     tags: ["TypeScript", "Kundenprojekt", "CI/CD", "Container"],
@@ -1286,7 +1477,10 @@ const PROJECTS = [
   },
   {
     id: "runecall", name: "Runecall",
+    preview: "assets/games/previews/runecall-v1.jpg",
     kind: "Digitales Stichkartenspiel", status: "Prototyp spielbar",
+    genres: ["Karten", "Strategie"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
     tagline: "Stiche exakt ansagen — einer zu viel ist so schlecht wie einer zu wenig",
     lead: "Vor jeder Runde sagst du exakt voraus, wie viele Stiche du gewinnen wirst, und musst danach genau diese Zahl treffen. Die Regeln folgen dem gemeinfreien Stichansage-Prinzip, erweitert um den Magier, der jeden Stich gewinnt, und den Narren, der keinen gewinnen will.",
     tags: ["TypeScript", "Monorepo", "Bots", "deterministische Engine"],
@@ -1316,39 +1510,11 @@ const PROJECTS = [
     linkNote: "Öffentlich steht Prototyp 01. Ton, Handy-Layout und Netzwerk fehlen noch."
   },
   {
-    id: "dropfall", name: "Dropfall",
-    kind: "Idle-Incremental", status: "Prototyp spielbar",
-    tagline: "Kugeln fallen durch Pegs und machen bei jedem Kontakt Geld",
-    lead: "Idle-Incremental im Outhold-Design: flache Flächen, extrudierte Sockel, lange harte Schatten. Kugeln fallen durch eine Arena aus Pegs und zahlen bei jedem Kontakt aus. Fortschritt läuft über zwei Achsen — neue Kugeltypen und größere Arenen.",
-    tags: ["TypeScript", "Skill Tree", "Balancing-Simulation", "Vite"],
-    shot: "assets/games/dropfall-main.jpg",
-    shotAlt: "Arena 1 aus Dropfall mit fallender Kugel und Pegs",
-    shots: [
-      { src: "assets/games/dropfall-1.jpg", alt: "Skill Tree aus Dropfall im Outhold-Stil" }
-    ],
-    shotsCaption: "Arena und Skill Tree — Kreis heisst freigeschaltet, Fragezeichen heisst gesperrt.",
-    buildTitle: "Zahlen belegen statt schätzen",
-    build: [
-      "Angelegt im September 2026, bisher fünf Commits. Stand ist v0.4: neun Arenen mit je vier Zielen, fünf Kugeltypen, sechzehn Knoten im Skill Tree.",
-      "Jede Arena hat vier Ziele — Freischaltung, Meisterschaft, Tempo, Ausdauer — und der Zutritt zur nächsten hängt daran, wie viele Ziele insgesamt erfüllt sind.",
-      "Zum Projekt gehört eine kopflose Balancing-Simulation. Sie spielt ganze Kampagnen durch die echte Physik, damit Zahlenänderungen belegt statt geschätzt werden: rund 35 Läufe und 60 Minuten Arena-Zeit bis zur letzten Arena. Offen sind Prestige, Meta-Baum, Perks, Audio und Tutorial."
-    ],
-    facts: [
-      { value: "September 2026", label: "Zeitraum" },
-      { value: "5", label: "Commits" },
-      { value: "9", label: "Arenen mit je vier Zielen" },
-      { value: "16", label: "Knoten im Skill Tree" }
-    ],
-    playId: "dropfall",
-    links: [
-      { href: "https://github.com/milchinien/Dropfall", label: "Code auf GitHub" },
-      { href: "https://milchinien.github.io/Dropfall/", label: "In neuem Tab öffnen" }
-    ],
-    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
-  },
-  {
     id: "harmonics", name: "Harmonics",
+    preview: "assets/games/previews/harmonics-v1.jpg",
     kind: "Idle-Prototyp", status: "Prototyp spielbar",
+    genres: ["Idle", "Experiment"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
     tagline: "Knoten auf gemeinsamer Linie zahlen aus — je mehr gleichzeitig, desto mehr",
     lead: "Knoten kreisen auf Bahnen. Laufen mehrere gleichzeitig durch dieselbe Linie, zahlen sie aus, und zwar exponentiell mit ihrer Zahl. Darum herum liegen Konvergenzen, Grade und ein Baum aus Ausbauten.",
     tags: ["TypeScript", "Canvas", "Idle", "Vite"],
@@ -1378,7 +1544,10 @@ const PROJECTS = [
   },
   {
     id: "dnd", name: "Dungeons & Diplomas",
+    preview: "assets/games/previews/dnd-v1.jpg",
     kind: "Lern-Dungeon-Crawler", status: "Größtes Nebenprojekt",
+    genres: ["Lernspiel", "Strategie"], geraete: [],
+    art: "spiel", stand: "2026-06",
     tagline: "Prozeduraler Dungeon mit Quizgegnern — 229 Commits",
     lead: "Ein Dungeon-Crawler im Browser mit prozedural erzeugten Ebenen, Echtzeitkampf und Gegnern, die man über Quizfragen schlägt. Dazu XP, Gegenstände, Highscores und eigenes Editor-Werkzeug.",
     tags: ["TypeScript", "Next.js", "eigener Canvas-Renderer", "Supabase"],
@@ -1406,7 +1575,10 @@ const PROJECTS = [
   },
   {
     id: "mathuniverse", name: "Michis Mathe Universe",
+    preview: "assets/games/previews/mathuniverse-v1.jpg",
     kind: "Lernspiel-Sammlung", status: "Live",
+    genres: ["Lernspiel", "Experiment"], geraete: [],
+    art: "spiel", stand: "2025-09",
     tagline: "Analysis spielerisch — Asymptoten, Kurven, Grundlagen",
     lead: "Eine Sammlung kleiner Browserspiele rund um die Grundlagen der Analysis. Der Einstieg ist die Asymptoten-Raserei, in der man lernt, wie sich Funktionen an ihren Rändern verhalten.",
     tags: ["JavaScript", "Lernspiel", "GitHub Pages"],
@@ -1434,7 +1606,10 @@ const PROJECTS = [
   },
   {
     id: "mindforge", name: "mindforge-playground",
+    preview: "assets/games/previews/mindforge-v1.jpg",
     kind: "Spielwiese", status: "Experimente",
+    genres: ["Experiment"], geraete: [],
+    art: "spiel", stand: "2026-03",
     tagline: "Mechaniken, die noch kein Zuhause haben",
     lead: "Eine Spielwiese für Mechaniken, die noch zu keinem Projekt gehören. Kein Spiel, sondern der Ort, an dem ich Ideen ausprobiere, bevor sie irgendwo einziehen.",
     tags: ["React", "Vite", "Experimente"],
@@ -1461,7 +1636,10 @@ const PROJECTS = [
   },
   {
     id: "outpost", name: "The Last Outpost",
+    preview: "assets/games/previews/outpost-v1.jpg",
     kind: "Design-Dokument", status: "Auf Papier",
+    genres: ["Strategie", "Experiment"], geraete: [],
+    art: "spiel", stand: "",
     tagline: "Auto-Kampf, Expeditionen, Extraction-Risiko — noch keine Zeile Code",
     lead: "Ein Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem und Skilltrees. Es ist die vollständigste Idee, die ich bisher nicht gebaut habe.",
     tags: ["Design-Dokument", "Auto-Kampf", "Extraction"],
@@ -1485,7 +1663,10 @@ const PROJECTS = [
   },
   {
     id: "flappy", name: "Flappy-Prototyp",
+    preview: "assets/games/previews/flappy-v1.jpg",
     kind: "Erstes eigenes Spiel", status: "Nicht veröffentlicht",
+    genres: ["Experiment"], geraete: [],
+    art: "spiel", stand: "2024-06",
     tagline: "Der Anfang — jede Zeile von Hand aus dem Chat nach Unity kopiert",
     lead: "Mein erstes eigenes Spiel: ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Werkzeuge gab es damals noch nicht.",
     tags: ["Unity", "eigene Assets", "nicht veröffentlicht"],
@@ -1510,8 +1691,140 @@ const PROJECTS = [
   }
 ];
 
+// ---- Adresse und Verlauf ----------------------------------------------------
+// Dieselbe Loesung wie in der Mobil-Fassung: der sichtbare Zustand steht in der
+// Adresse, damit die Zurueck-Taste eine Detailseite oder ein Spiel schliesst,
+// statt die Seite zu verlassen — und damit sich ein Projekt verschicken laesst.
+const TAB_SLUG = { start: "start", games: "projekte", about: "ueber-mich", ai: "ki-workflow", devlog: "devlog", contact: "kontakt" };
+const SLUG_TAB = {};
+for (const t in TAB_SLUG) SLUG_TAB[TAB_SLUG[t]] = t;
+
+function adresseBauen(s) {
+  let h = "#" + (TAB_SLUG[s.tab] || "start");
+  if (!s.project) return h;
+  h += "/" + s.project;
+  // Nur mit Projekt, sonst liesse sich "/spielen" beim Lesen nicht zuordnen.
+  if (s.game) h += "/spielen";
+  return h;
+}
+
+// Liest den Zustand zurueck. Unbekanntes faellt auf den Start zurueck, damit ein
+// veralteter Link keine leere Seite zeigt.
+function adresseLesen() {
+  const teile = decodeURIComponent(String(location.hash || "").replace(/^#/, "")).split("/").filter(Boolean);
+  const tab = SLUG_TAB[teile[0]] || "start";
+  const projekt = PROJECTS.find((p) => p.id === teile[1]) || null;
+  const spielt = !!(projekt && projekt.playId && teile[2] === "spielen");
+  return {
+    tab,
+    project: projekt ? projekt.id : null,
+    game: spielt ? { id: projekt.playId, name: projekt.name } : null,
+    bild: 0
+  };
+}
+
+// Die Art teilt zuerst grob auf. "alle" ist der Standard, damit beim Aufschlagen
+// nichts fehlt — mit nur zwei Knoepfen waere immer eine Haelfte versteckt.
+const ARTEN = [
+  { wert: "alle", label: "Alle" },
+  { wert: "projekt", label: "Projekte" },
+  { wert: "spiel", label: "Spiele" }
+];
+
+const SORTIERUNGEN = [
+  { wert: "empfohlen", label: "Empfohlen" },
+  { wert: "neu", label: "Zuletzt gebaut" },
+  { wert: "name", label: "Name A–Z" }
+];
+
+function passtZurArt(p, art) {
+  return art === "alle" || p.art === art;
+}
+
+// Sortiert eine Kopie, damit PROJECTS seine Reihenfolge behaelt: "empfohlen" ist
+// genau diese Reihenfolge, die drei mit Trend-Rang zuerst. Projekte ohne Stand
+// (noch kein Baustart) rutschen bei "neu" ans Ende statt nach vorn.
+function sortiere(liste, wie) {
+  if (wie === "name") {
+    return liste.slice().sort((a, b) => a.name.localeCompare(b.name, "de"));
+  }
+  if (wie === "neu") {
+    return liste.slice().sort((a, b) => (b.stand || "").localeCompare(a.stand || ""));
+  }
+  return liste;
+}
+
+// ---- Filter ueber Genre und Geraet --------------------------------------------
+// Die Reihenfolge steht fest, damit die Knoepfe nicht je nach Datenlage springen.
+const GENRES = ["Idle", "Strategie", "Karten", "Lernspiel", "Experiment", "Anwendung"];
+const GERAETE = [{ wert: "handy", label: "Handy" }, { wert: "pc", label: "PC" }];
+
+// Innerhalb einer Gruppe gilt oder, zwischen den Gruppen und: „Idle oder Karten,
+// und davon nur das, was am Handy laeuft". Leere Gruppe heisst keine Einschraenkung.
+function passtZumFilter(p, genres, geraete) {
+  if (genres.length && !genres.some((g) => (p.genres || []).indexOf(g) >= 0)) return false;
+  if (geraete.length && !geraete.some((g) => (p.geraete || []).indexOf(g) >= 0)) return false;
+  return true;
+}
+
+// Baut die Knopfliste inklusive Trefferzahl. Gezaehlt wird gegen die jeweils
+// andere Gruppe, damit die Zahl zeigt, was ein Klick wirklich brachte.
+function filterKnoepfe(werte, aktiv, andereGruppe, istGenre, umschalten) {
+  return werte.map((w) => {
+    const wert = w.wert || w;
+    const label = w.label || w;
+    const an = aktiv.indexOf(wert) >= 0;
+    const treffer = PROJECTS.filter((p) => istGenre
+      ? passtZumFilter(p, [wert], andereGruppe)
+      : passtZumFilter(p, andereGruppe, [wert])).length;
+    return {
+      label, treffer: String(treffer),
+      cls: "mw-chip" + (an ? " mw-chip--an" : ""),
+      gedrueckt: an ? "true" : "false",
+      aria: label + ", " + treffer + (treffer === 1 ? " Projekt" : " Projekte") + (an ? ", ausgewählt" : ""),
+      umschalten: () => umschalten(wert)
+    };
+  });
+}
+
 class Component extends DCLogic {
-  state = { tab: "start", game: null, project: null, bild: 0 };
+  state = { tab: "start", game: null, project: null, bild: 0, genres: [], geraete: [], art: "alle", sortierung: "empfohlen", filterOffen: false };
+
+  // Zaehlt die Eintraege, die diese Seite selbst angelegt hat. Nur solange davon
+  // welche da sind, darf der Schliessen-Knopf history.back() benutzen — sonst
+  // wuerde ein direkt geteilter Link die Seite verlassen statt zuzuklappen.
+  eigeneEintraege = 0;
+
+  // Filter bleiben aus dem Verlauf heraus: sonst legte jeder Knopfdruck einen
+  // Eintrag an und die Zurueck-Taste kaeme nicht mehr aus den Projekten raus.
+  umschalten(gruppe, wert) {
+    const alt = this.state[gruppe] || [];
+    const neu = alt.indexOf(wert) >= 0 ? alt.filter((x) => x !== wert) : alt.concat([wert]);
+    this.setState({ [gruppe]: neu });
+  }
+
+
+  // Jede Ansicht, die die Zurueck-Taste schliessen koennen soll, laeuft hier
+  // durch: Zustand setzen und einen Verlaufseintrag dazulegen.
+  zeige(teil) {
+    const next = Object.assign({ tab: this.state.tab, project: this.state.project, game: this.state.game }, teil);
+    if (adresseBauen(next) !== adresseBauen(this.state)) {
+      try {
+        history.pushState(null, "", adresseBauen(next));
+        this.eigeneEintraege++;
+      } catch (e) { /* z. B. Vorschau ohne eigene Adresse */ }
+    }
+    this.setState(next);
+  }
+
+  // Gegenstueck zu zeige(): geht den Verlauf zurueck, damit kein toter Eintrag
+  // stehen bleibt. Gibt es keinen eigenen, wird der Zustand nur ersetzt.
+  schliesse(teil) {
+    if (this.eigeneEintraege > 0) { try { history.back(); return; } catch (e) { /* dann eben ersetzen */ } }
+    const next = Object.assign({ tab: this.state.tab, project: this.state.project, game: this.state.game }, teil);
+    try { history.replaceState(null, "", adresseBauen(next)); } catch (e) { /* egal */ }
+    this.setState(next);
+  }
 
   // Die Ebenen werden bei jedem Frame frisch aus dem DOM geholt, damit ein
   // Re-Render (Tabwechsel) die Anbindung nicht abreißen lässt.
@@ -1641,9 +1954,26 @@ class Component extends DCLogic {
     this.onKey = (e) => {
       if (e.key !== "Escape" || !this.state.game) return;
       if (document.fullscreenElement) return;
-      this.setState({ game: null });
+      this.schliesse({ game: null });
     };
     window.addEventListener("keydown", this.onKey);
+
+    // Zurueck-Taste: den Zustand aus der Adresse uebernehmen, statt die Seite zu
+    // verlassen. Der Zaehler sinkt mit, damit schliesse() weiss, wann es nichts
+    // mehr zurueckzugehen gibt.
+    this.onPop = () => {
+      this.eigeneEintraege = Math.max(0, this.eigeneEintraege - 1);
+      this.setState(adresseLesen());
+    };
+    window.addEventListener("popstate", this.onPop);
+
+    // Geteilter Link: dorthin springen, wohin er zeigt.
+    if (location.hash) {
+      const anfang = adresseLesen();
+      try { history.replaceState(null, "", adresseBauen(anfang)); } catch (e) { /* egal */ }
+      this.setState(anfang);
+    }
+
     this.paintDepth();
     this.sizeTimer = setInterval(() => { this.paintDepth(); this.scanReveal(); }, 700);
     this.glasFilterEinsetzen();
@@ -1793,6 +2123,7 @@ class Component extends DCLogic {
     window.removeEventListener("scroll", this.onScroll);
     window.removeEventListener("resize", this.onScroll);
     window.removeEventListener("keydown", this.onKey);
+    window.removeEventListener("popstate", this.onPop);
     window.removeEventListener("pointermove", this.onZeiger);
     document.removeEventListener("pointerleave", this.onZeigerWeg);
     window.removeEventListener("blur", this.onZeigerWeg);
@@ -1807,7 +2138,7 @@ class Component extends DCLogic {
   go(t) {
     return () => {
       if (t === this.state.tab) return;
-      this.setState({ tab: t, project: null, bild: 0 });
+      this.zeige({ tab: t, project: null, game: null, bild: 0 });
       // Sofort nach oben springen, nicht animiert: eine laufende Scroll-Animation
       // über eine neue, kürzere Seite lässt den Tiefenschleier kurz zulaufen.
       try {
@@ -1844,7 +2175,7 @@ class Component extends DCLogic {
   renderVals() {
     const tab = this.state.tab;
     const openProject = (id) => () => {
-      this.setState({ project: id, bild: 0 });
+      this.zeige({ project: id, bild: 0 });
       try {
         window.scrollTo(0, 0);
         const sc = document.scrollingElement || document.documentElement;
@@ -1853,7 +2184,7 @@ class Component extends DCLogic {
       requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
     };
     const closeProject = () => {
-      this.setState({ project: null, bild: 0 });
+      this.schliesse({ project: null, game: null, bild: 0 });
       try {
         window.scrollTo(0, 0);
         const sc = document.scrollingElement || document.documentElement;
@@ -1866,11 +2197,30 @@ class Component extends DCLogic {
     // Ausdruecke auskommt: sc-for kann Pfade lesen, aber nichts aufrufen.
     // Reihenrhythmus und Farbe haengen an der Position in der Liste, nicht an
     // der Stellung im DOM: nth-child wuerde Nachbarelemente mitzaehlen.
-    const projects = PROJECTS.map((p, i) => ({
+    // Die drei mit Rang, oben auf der Startseite. Ein Klick springt in die
+    // Projekte und oeffnet direkt die Detailseite.
+    const trending = PROJECTS.filter((p) => p.trend).sort((a, b) => a.trend - b.trend).map((p) => ({
+      name: p.name, tagline: p.tagline, shot: p.preview,
+      trendCls: "mw-trend",
+      trendText: "Nr. " + p.trend,
+      aria: p.name + " — Nummer " + p.trend + " der meistgespielten — " + p.tagline,
+      open: () => {
+        this.zeige({ tab: "games", project: p.id, game: null, bild: 0 });
+        try { window.scrollTo(0, 0); } catch (e) { /* Vorschau blockiert Scrollen evtl. */ }
+      }
+    }));
+
+    const gf = this.state.genres, df = this.state.geraete;
+    const anzahlFilter = gf.length + df.length;
+    const gefiltert = sortiere(
+      PROJECTS.filter((p) => passtZurArt(p, this.state.art) && passtZumFilter(p, gf, df)),
+      this.state.sortierung
+    );
+    const projects = gefiltert.map((p, i) => ({
       cls: [
         "mw-tile",
         i % 2 === 0 ? "mw-tile--blau" : "mw-tile--weiss",
-        i === PROJECTS.length - 1 && i % 2 === 0
+        i === gefiltert.length - 1 && i % 2 === 0
           ? "mw-tile--voll"
           : (i % 4 === 0 || i % 4 === 3) ? "mw-tile--schmal" : "mw-tile--breit"
       ].join(" "),
@@ -1878,8 +2228,11 @@ class Component extends DCLogic {
       name: p.name,
       status: p.status,
       tagline: p.tagline,
-      shot: p.shot,
-      aria: p.name + " — " + p.tagline,
+      preview: p.preview,
+      // Der Rang gehoert in den Vorlesetext: das Abzeichen selbst ist nur ein Bild.
+      aria: p.name + " — " + p.tagline + (p.trend ? " — Nummer " + p.trend + " der meistgespielten" : ""),
+      trendCls: p.trend ? "mw-trend" : "mw-trend mw-trend--aus",
+      trendText: p.trend ? "Nr. " + p.trend : "",
       open: openProject(p.id)
     }));
 
@@ -1912,7 +2265,7 @@ class Component extends DCLogic {
       canPlay: !!current.playId,
       spielenAria: current.name + " im Browser spielen",
       play: current.playId
-        ? () => this.setState({ game: { id: current.playId, name: current.name } })
+        ? () => this.zeige({ game: { id: current.playId, name: current.name } })
         : () => {}
     } : null;
 
@@ -1937,6 +2290,34 @@ class Component extends DCLogic {
       goGames: this.go("games"),
       goContact: this.go("contact"),
 
+      trending,
+      // Die Art zaehlt gegen die uebrigen Filter, damit die Zahl am Knopf zeigt,
+      // was ein Klick wirklich braechte.
+      artKnoepfe: ARTEN.map((a) => {
+        const treffer = PROJECTS.filter((p) => passtZurArt(p, a.wert) && passtZumFilter(p, gf, df)).length;
+        const an = this.state.art === a.wert;
+        return {
+          label: a.label, treffer: String(treffer),
+          cls: "mw-seg__knopf" + (an ? " mw-seg__knopf--an" : ""),
+          gedrueckt: an ? "true" : "false",
+          aria: a.label + ", " + treffer + (treffer === 1 ? " Projekt" : " Projekte") + (an ? ", ausgewählt" : ""),
+          waehlen: () => this.setState({ art: a.wert })
+        };
+      }),
+      sortierWerte: SORTIERUNGEN.map((o) => ({ wert: o.wert, label: o.label })),
+      sortierung: this.state.sortierung,
+      sortierenNach: (e) => this.setState({ sortierung: e.target.value }),
+
+      filterOffen: this.state.filterOffen,
+      filterKnopfCls: "mw-chip" + (this.state.filterOffen ? " mw-chip--offen" : "") + (anzahlFilter ? " mw-chip--an" : ""),
+      filterKnopfText: anzahlFilter ? "Filter · " + anzahlFilter : "Filter",
+      filterUmschalten: () => this.setState({ filterOffen: !this.state.filterOffen }),
+      genreKnoepfe: filterKnoepfe(GENRES, gf, df, true, (w) => this.umschalten("genres", w)),
+      geraetKnoepfe: filterKnoepfe(GERAETE, df, gf, false, (w) => this.umschalten("geraete", w)),
+      filterAktiv: anzahlFilter > 0,
+      trefferText: projects.length + " von " + PROJECTS.length + " Projekten",
+      nichtsGefunden: projects.length === 0,
+      filterLeeren: () => this.setState({ genres: [], geraete: [] }),
       projects,
       detail,
       showList: tab === "games" && !current,
@@ -1945,7 +2326,7 @@ class Component extends DCLogic {
 
       gameOpen: !!this.state.game,
       gameName: this.state.game ? this.state.game.name : "",
-      closeGame: () => this.setState({ game: null }),
+      closeGame: () => this.schliesse({ game: null }),
       toggleVollbild: () => this.toggleVollbild(),
 
       pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
@@ -1954,9 +2335,9 @@ class Component extends DCLogic {
 
       morphWords: ["Spiele", "Systeme", "Werkzeuge", "Prototypen"],
       typeLines: [
-        "XRAI Order System · läuft im Gasthof",
-        "Wavebreaker · 692 / 692 Prüfläufe grün",
-        "Chromatic · spielbar bis zum Endboss"
+        "Michel · Waggoner · Leipzig",
+        "Ein-Personen-Studio",
+        "erste eigene Zeile: Juni 2024"
       ]
     };
   }

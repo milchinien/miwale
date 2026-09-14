@@ -5,3 +5,4 @@ brief.md
 node_modules/
 dist/
 .astro/
+.vite/
