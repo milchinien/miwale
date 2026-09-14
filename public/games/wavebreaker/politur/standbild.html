@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>WAVEBREAKER — Standbild</title>
+<style>
+  body { margin: 0; background: #05070f; color: #cfe0ff; font: 13px/1.5 system-ui, sans-serif; }
+  #leinwand { display: block; margin: 0 auto; }
+  #meldung { padding: 8px 12px; font-family: ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<canvas id="leinwand"></canvas>
+<div id="meldung">bereit — window.standbild({ wave, sekunden, name })</div>
+
+<script type="module">
+/*
+ * Standbild-Werkzeug: baut eine Welle deterministisch auf, zeichnet EIN Bild und schickt es
+ * an den Bildserver.
+ *
+ * Der Sinn: Ein Kritiker soll dasselbe Bild zweimal bekommen, vor und nach einer Aenderung,
+ * ohne dass Zufall, Mauszeiger oder Bildrate dazwischenfunken. Deshalb fester Keim, feste
+ * Schrittweite, feste Leinwandgroesse — und kein requestAnimationFrame, damit das Ganze auch
+ * in einem unsichtbaren Tab durchlaeuft.
+ */
+import { createInitialState } from '/src/app/state.ts'
+import { stationView, invalidateStationView } from '/src/app/view.ts'
+import { syncStation, stepBattle } from '/src/sim/battle.ts'
+import { startWave } from '/src/sim/waves.ts'
+import { freeEdges, newModule, place } from '/src/sim/station.ts'
+import { spawnEnemy } from '/src/sim/enemies.ts'
+import { syncUnlocks } from '/src/sim/prestige.ts'
+import { render } from '/src/render/scene.ts'
+import { SPRITES } from '/src/render/sprites.ts'
+import { createCamera, snapToTarget } from '/src/render/camera.ts'
+import { THEME } from '/src/render/theme.ts'
+
+const TICK = 1 / 60
+const leinwand = document.getElementById('leinwand')
+const meldung = document.getElementById('meldung')
+
+async function schriftLaden () {
+  try { await document.fonts?.load(`16px ${THEME.numberFont.split(',')[0]}`) } catch { /* Ersatzschrift genuegt */ }
+}
+
+/*
+ * Auf die Anlagen warten, bevor gezeichnet wird.
+ *
+ * Ohne diesen Schritt ist das Standbild NICHT wiederholbar, und das ist beim Vergleichen der
+ * schlimmste Fehler, den ein Messwerkzeug haben kann: `loadStrip` holt jedes Bild erst beim
+ * ersten `ready()` und meldet bis dahin false, also greift ueberall die gezeichnete
+ * Ersatzfassung. Nachgemessen lag dieselbe Muenze einmal als flaches Gold rgb(255,204,51)
+ * im Bild (Ersatz) und einmal als silbernes Bild rgb(163,167,194) — allein danach, ob das
+ * PNG rechtzeitig da war. Wer zwei solche Bilder nebeneinanderlegt, vergleicht die Ladezeit
+ * und haelt das Ergebnis fuer eine Aenderung am Spiel.
+ *
+ * Der Rueckgabewert steht im Bericht: Ein Bild, das mit unvollstaendigen Anlagen entstanden
+ * ist, sagt das ueber sich selbst.
+ */
+async function anlagenLaden (maxMs = 4000) {
+  const streifen = Object.values(SPRITES).filter((s) => s && typeof s.ready === 'function')
+  const begonnen = performance.now()
+  while (performance.now() - begonnen < maxMs) {
+    if (streifen.every((s) => s.ready())) {
+      return { anlagen: `${streifen.length}/${streifen.length}`, wartete: Math.round(performance.now() - begonnen) }
+    }
+    await new Promise((weiter) => setTimeout(weiter, 20))
+  }
+  const fertig = streifen.filter((s) => s.ready()).length
+  return { anlagen: `${fertig}/${streifen.length}`, wartete: maxMs, unvollstaendig: true }
+}
+
+/*
+ * Die Station, mit der ein Spieler in Welle 12 tatsaechlich dasteht.
+ *
+ * Ohne diesen Schritt zeigt das Standbild einen nackten Hauptturm, und ein nackter
+ * Hauptturm ist kein Bild dieses Spiels: Er schiesst allein, also faellt in der ganzen
+ * Szene ungefaehr eine Schadenszahl je anderthalb Sekunden an. Was das Standbild
+ * beurteilen soll - Gedraenge, Ueberlagerung, Lesbarkeit vieler Zahlen nebeneinander -
+ * kommt in einem solchen Bild gar nicht vor.
+ *
+ * Der Bauplan bleibt bei dem, was ohne Prestige-Knoten offen steht (Autocannon, Cannon,
+ * Marksman, Amplifier); Laser, Tesla, Rocket und Plasma haengen an `tech.*` und waeren im
+ * ersten Run nicht zu haben. Die Mischung ist die uebliche: viel Dauerfeuer, zwei schwere
+ * Rohre, ein weit reichender Marksman, und ein Amplifier in der Mitte des Verbunds, damit
+ * die Nachbarn seinen Schadensbuff mitnehmen.
+ */
+const BAUPLAN = [
+  'amplifier',
+  'autocannon',
+  'autocannon',
+  'autocannon',
+  'autocannon',
+  'cannon',
+  'sniper',
+]
+
+/** Die drei Platz-Knoten aus dem Prestige-Baum - mehr als sieben Tuerme gibt es nicht. */
+const PLATZ_KNOTEN = ['towers.slot1', 'towers.slot2', 'towers.slot3']
+
+/**
+ * Upgradestufen, wie sie bis Welle 12 bezahlbar sind: die Grundpfade angefasst, keiner
+ * ausgereizt. Sie stehen hier, weil eine Welle-12-Station mit Welle-1-Werten die Gegner
+ * nicht durchbekaeme - das Bild zeigte dann eine erdrueckte Station statt eines Gefechts.
+ */
+const AUSBAU = {
+  'core.damage': 6,
+  'core.attackSpeed': 6,
+  'core.range': 12,
+  'tower.autocannon.damage': 8,
+  'tower.autocannon.attackSpeed': 8,
+  'tower.autocannon.range': 12,
+  'tower.cannon.damage': 6,
+  'tower.cannon.range': 10,
+  'tower.sniper.damage': 6,
+  'tower.sniper.range': 8,
+  'global.stationHp': 6,
+}
+
+function bestuecken (zustand) {
+  const station = zustand.run.station
+  // Die Turmplaetze kommen auf demselben Weg wie im Spiel: ueber die drei Knoten des
+  // Prestige-Baums. `syncUnlocks` schreibt die Grenze in den Run - `station.slots` von
+  // Hand zu setzen waere dieselbe Zahl aus einer zweiten Quelle.
+  for (const knoten of PLATZ_KNOTEN) {
+    if (!zustand.permanent.prestigeNodes.includes(knoten)) {
+      zustand.permanent.prestigeNodes.push(knoten)
+    }
+  }
+  syncUnlocks(zustand)
+
+  for (const defId of BAUPLAN) {
+    const modul = newModule(station, defId, 'common')
+    station.inventory.push(modul)
+    // Die erste Kante, an der das Modul ueberhaupt passt. `place` prueft selbst und
+    // aendert bei einem Fehler nichts, deshalb genuegt Durchprobieren.
+    for (const kante of freeEdges(station)) {
+      if (place(station, modul.uid, kante) === null) break
+    }
+  }
+
+  Object.assign(zustand.run.upgrades, AUSBAU)
+  invalidateStationView(zustand)
+}
+
+/**
+ * Baut den Zustand auf und laesst ihn `sekunden` lang laufen.
+ * Gibt Zustand und Kamera zurueck, gezeichnet wird danach.
+ */
+function schritte (zustand, sekunden) {
+  const anzahl = Math.round(sekunden / TICK)
+  for (let i = 0; i < anzahl; i++) {
+    const sicht = stationView(zustand)
+    syncStation(zustand, sicht.modules, sicht.buffs)
+    stepBattle(zustand, TICK)
+  }
+}
+
+/*
+ * Der Belastungsfall.
+ *
+ * Eine regulaere Welle 12 stellt hoechstens ein gutes Dutzend Gegner ins Bild. Fragen wie
+ * "summieren sich die Halos bei Gedraenge zu einer Flaeche" oder "haelt das Bild 60 Bilder je
+ * Sekunde" lassen sich daran gar nicht stellen — die Szene, um die es geht, kommt darin nicht
+ * vor. `pulk` setzt sie deshalb von Hand: N Gegner gleichmaessig auf den Erscheinungsring,
+ * mit einem Versatz aus dem Wellenzufall, damit das Ergebnis wiederholbar bleibt und trotzdem
+ * kein Zierdeckchen wird.
+ *
+ * Das ist ausdruecklich KEINE Aussage darueber, wie dicht das Spiel sein soll — nur eine
+ * Sonde, die den teuersten Fall herstellt, den die Obergrenze MAX_ENEMIES zulaesst.
+ */
+function pulkSetzen (zustand, anzahl, art) {
+  const wuerfel = zustand.runtime.rng.fork(4711)
+  let gesetzt = 0
+  for (let i = 0; i < anzahl; i++) {
+    const winkel = (i / anzahl) * Math.PI * 2 + wuerfel.range(-0.02, 0.02)
+    if (spawnEnemy(zustand, art, winkel) !== null) gesetzt++
+  }
+  return gesetzt
+}
+
+/**
+ * Baut den Zustand auf und laesst ihn `sekunden` lang laufen.
+ * Gibt den Zustand zurueck, gezeichnet wird danach.
+ */
+function laufenLassen ({ keim, welle, sekunden, ansicht, pulk, pulkArt, pulkSekunden }) {
+  const zustand = createInitialState(keim)
+  zustand.runtime.view = ansicht
+  bestuecken(zustand)
+  invalidateStationView(zustand)
+  startWave(zustand, welle)
+
+  schritte(zustand, sekunden)
+
+  if (pulk > 0) {
+    zustand.pulkGesetzt = pulkSetzen(zustand, pulk, pulkArt)
+    // Kurz weiterlaufen lassen: Frisch gesetzte Gegner stehen alle exakt auf dem Ring und
+    // haetten weder Abstandsstreuung noch Treffer abbekommen. Erst der Anmarsch macht aus
+    // dem Kreis ein Band.
+    schritte(zustand, pulkSekunden)
+  }
+  return zustand
+}
+
+/**
+ * Zieht ein Standbild und legt es beim Bildserver ab.
+ * Bei `bilder > 1` wird zusaetzlich die Zeichenzeit je Bild gemessen.
+ *
+ * Zum Zeitpunkt: Welle 12 laesst ihre 25 Gegner ueber 20 Sekunden ein und ist gegen eine
+ * ausgebaute Station nach gut 25 Sekunden abgeraeumt. Wer das **Gedraenge** sehen will -
+ * volles Feld, viele Zahlen gleichzeitig -, nimmt `sekunden: 17..19`; nachgemessen stehen
+ * bei 18 s zehn Gegner im Feld und siebzehn Schadenszahlen im Bild. Die voreingestellten
+ * 26 s zeigen dagegen das Ende der Welle.
+ */
+window.standbild = async function standbild (opt = {}) {
+  const o = {
+    name: 'standbild',
+    keim: 20260807,
+    welle: 12,
+    sekunden: 26,
+    ansicht: 'combat',
+    breite: 1280,
+    hoehe: 800,
+    zeit: 8,
+    bilder: 60,
+    pulk: 0,
+    pulkArt: 'swarm',
+    pulkSekunden: 4,
+    server: 'http://127.0.0.1:57900/bild',
+    ...opt,
+  }
+
+  await schriftLaden()
+  const anlagen = await anlagenLaden()
+  leinwand.width = o.breite
+  leinwand.height = o.hoehe
+  const ctx = leinwand.getContext('2d')
+
+  const begonnen = performance.now()
+  const zustand = laufenLassen(o)
+  const simMs = performance.now() - begonnen
+  // Zum Nachmessen von aussen: Wer das Bild beurteilt, will an dieselben Zahlen kommen,
+  // die gezeichnet wurden - nicht an einen zweiten Lauf.
+  window.letzterZustand = zustand
+
+  const kamera = createCamera()
+  window.letzteKamera = kamera
+  const eingabe = { pointer: null, showBuffLines: true, showEffects: true }
+
+  // Zweimal zeichnen: Der erste Aufruf setzt das Kameraziel, snapToTarget springt hin,
+  // der zweite zeichnet das gesetzte Bild. Sonst sieht man die Anfahrt statt der Szene.
+  render(ctx, zustand, kamera, o.breite, o.hoehe, o.zeit, eingabe)
+  snapToTarget(kamera)
+  render(ctx, zustand, kamera, o.breite, o.hoehe, o.zeit, eingabe)
+
+  // Zeichenzeit: dieselbe Szene mehrfach, damit die Zahl nicht von einem Ausreisser lebt.
+  const zeiten = []
+  for (let i = 0; i < o.bilder; i++) {
+    const t0 = performance.now()
+    render(ctx, zustand, kamera, o.breite, o.hoehe, o.zeit + i * (1 / 60), eingabe)
+    zeiten.push(performance.now() - t0)
+  }
+  zeiten.sort((a, b) => a - b)
+  const mittel = zeiten.reduce((s, z) => s + z, 0) / zeiten.length
+  const p95 = zeiten[Math.floor(zeiten.length * 0.95)]
+
+  // Zum Schluss das saubere Bild, damit die Messschleife nichts hinterlaesst.
+  render(ctx, zustand, kamera, o.breite, o.hoehe, o.zeit, eingabe)
+
+  const bericht = {
+    name: o.name,
+    welle: o.welle,
+    ansicht: o.ansicht,
+    ...anlagen,
+    module: stationView(zustand).modules.length,
+    // Wie viele Schadenszahlen im gezeichneten Bild wirklich stehen - die eine Zahl,
+    // an der die Politur dieses Stuecks gemessen wird.
+    zahlen: zustand.runtime.combat.damages.filter((eintrag) => eintrag.active).length,
+    // Meldungen je Sekunde ueber den ganzen Lauf: Erst Rate mal Lebensdauer ergibt, wie
+    // viele Zahlen gleichzeitig stehen koennen.
+    meldungenProSekunde: Number((zustand.runtime.combat.damageSeq / o.sekunden).toFixed(2)),
+    gegner: zustand.runtime.combat.enemies.length,
+    pulkGesetzt: zustand.pulkGesetzt ?? 0,
+    geschosse: zustand.runtime.combat.projectiles.length,
+    phase: zustand.runtime.combat.phase,
+    stationHp: `${Math.round(zustand.runtime.combat.stationHp)} / ${Math.round(zustand.runtime.combat.maxStationHp)}`,
+    simMs: Math.round(simMs),
+    zeichnenMsMittel: Number(mittel.toFixed(2)),
+    zeichnenMsP95: Number(p95.toFixed(2)),
+    bilderProSekunde: Math.round(1000 / mittel),
+  }
+
+  const antwort = await fetch(o.server, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: o.name, bild: leinwand.toDataURL('image/png') }),
+  })
+  bericht.abgelegt = antwort.ok ? (await antwort.json()).pfad : `FEHLER ${antwort.status}`
+
+  meldung.textContent = JSON.stringify(bericht, null, 2)
+  return bericht
+}
+</script>
+</body>
+</html>

@@ -27,6 +27,7 @@ jobs:
           test -s support.js
           test -d _ds
           test -d assets
+          node tools/check-games.mjs
           grep -q "Chromatic und Wavebreaker" "miwale Portfolio.dc.html"
           grep -q "Chromatic" "miwale Portfolio Mobil.dc.html"
           grep -q "Wavebreaker" "miwale Portfolio Mobil.dc.html"

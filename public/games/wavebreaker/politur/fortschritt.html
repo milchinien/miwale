@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>WAVEBREAKER — Politur läuft</title>
+<style>
+  :root {
+    --grund: #05070f;
+    --karte: #0b1022;
+    --kante: #1c2a4d;
+    --cyan: #38e8ff;
+    --magenta: #ff4fd8;
+    --gold: #ffc83d;
+    --gruen: #4dff9e;
+    --violett: #a97bff;
+    --text: #cfe0ff;
+    --blass: #6d7fa8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 32px 60px;
+    background: radial-gradient(120% 90% at 50% 0%, #101a35 0%, var(--grund) 60%);
+    color: var(--text);
+    font: 14px/1.55 "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 22px; letter-spacing: .22em; margin: 0 0 4px;
+    color: #fff; text-shadow: 0 0 8px var(--cyan), 0 0 26px rgba(56,232,255,.45);
+  }
+  .unterzeile { color: var(--blass); font-size: 12px; letter-spacing: .08em; margin-bottom: 22px; }
+  .unterzeile b { color: var(--cyan); font-weight: 600; }
+  h2 {
+    font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--blass); margin: 26px 0 10px; font-weight: 600;
+  }
+  .reihe { display: flex; flex-wrap: wrap; gap: 10px; }
+  .messwert {
+    flex: 1 1 170px; background: var(--karte); border: 1px solid var(--kante);
+    border-radius: 10px; padding: 10px 14px;
+    box-shadow: inset 0 0 18px rgba(56,232,255,.05);
+  }
+  .messwert .name { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--blass); }
+  .messwert .wert { font-size: 19px; font-weight: 600; margin-top: 2px; }
+  .gut  { color: var(--gruen); text-shadow: 0 0 10px rgba(77,255,158,.5); }
+  .roh  { color: var(--gold); text-shadow: 0 0 10px rgba(255,200,61,.45); }
+  .weg  { color: var(--magenta); text-shadow: 0 0 10px rgba(255,79,216,.5); }
+  .offen { color: var(--blass); }
+
+  .stueck {
+    background: var(--karte); border: 1px solid var(--kante); border-left: 3px solid var(--kante);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
+  }
+  .stueck.laeuft   { border-left-color: var(--cyan);    box-shadow: 0 0 0 1px rgba(56,232,255,.12), 0 0 22px rgba(56,232,255,.08); }
+  .stueck.gewonnen { border-left-color: var(--gruen); }
+  .stueck.verloren { border-left-color: var(--magenta); }
+  .kopf { display: flex; align-items: baseline; gap: 12px; }
+  .kopf .titel { font-weight: 600; color: #fff; flex: 1; }
+  .kopf .runde { font-size: 11px; color: var(--blass); letter-spacing: .1em; }
+  .urteil { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+  .luecke { font-size: 12.5px; color: var(--blass); margin-top: 5px; }
+  .luecke b { color: var(--text); font-weight: 500; }
+
+  .log { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11.5px; color: var(--blass); }
+  .log div { padding: 2px 0; border-bottom: 1px solid rgba(28,42,77,.5); }
+  .log div:last-child { border: 0; }
+  .zeit { color: #3d4d72; margin-right: 10px; }
+  .puls { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--cyan);
+          box-shadow: 0 0 8px var(--cyan); animation: puls 1.6s ease-in-out infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes puls { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+  footer { margin-top: 30px; font-size: 11px; color: #3d4d72; }
+</style>
+</head>
+<body>
+  <h1>WAVEBREAKER — POLITUR</h1>
+  <div class="unterzeile">
+    <span class="puls"></span>Die Latte: <b>The Tower — Idle Tower Defense</b> für Feld, HUD und Wucht ·
+    <b>Orc Incremental</b> für Laden, Upgrades und Basis
+  </div>
+
+  <h2>Harte Bedingungen</h2>
+  <div class="reihe" id="messlatte"></div>
+
+  <h2>Stücke</h2>
+  <div id="stuecke"></div>
+
+  <h2>Verlauf</h2>
+  <div class="log" id="log"></div>
+
+  <footer id="stand">…</footer>
+
+<script>
+const bewertung = { gewonnen: ['gewonnen', 'gut', 'unseres gewinnt'],
+                    verloren: ['verloren', 'weg', 'Latte gewinnt'],
+                    laeuft:   ['laeuft', 'roh', 'läuft'] };
+
+function zeichne (d) {
+  const m = document.getElementById('messlatte');
+  m.innerHTML = (d.messlatte || []).map(w => `
+    <div class="messwert">
+      <div class="name">${w.name}</div>
+      <div class="wert ${w.stand}">${w.wert}</div>
+    </div>`).join('');
+
+  document.getElementById('stuecke').innerHTML = (d.stuecke || []).map(s => `
+    <div class="stueck ${s.stand}">
+      <div class="kopf">
+        <span class="titel">${s.titel}</span>
+        <span class="runde">RUNDE ${s.runde ?? '–'}</span>
+        <span class="urteil ${s.stand}">${s.urteil ?? ''}</span>
+      </div>
+      ${s.luecke ? `<div class="luecke"><b>Größte Lücke:</b> ${s.luecke}</div>` : ''}
+    </div>`).join('') || '<div class="luecke">Die Stücke werden gerade geschnitten …</div>';
+
+  document.getElementById('log').innerHTML = (d.log || []).slice().reverse()
+    .map(z => `<div><span class="zeit">${z.zeit}</span>${z.text}</div>`).join('');
+
+  document.getElementById('stand').textContent =
+    `Stand: ${d.stand || '—'} · aktualisiert ${d.aktualisiert || '—'} · Seite lädt alle 3 s neu`;
+}
+
+async function hole () {
+  try {
+    const a = await fetch('fortschritt.json?t=' + Date.now());
+    if (a.ok) zeichne(await a.json());
+  } catch (f) { /* Seite bleibt stehen, bis die naechste Runde schreibt */ }
+}
+hole(); setInterval(hole, 3000);
+</script>
+</body>
+</html>

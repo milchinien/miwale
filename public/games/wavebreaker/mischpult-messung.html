@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Mischpult nachgerechnet</title>
+<style>
+ body{background:#070a18;color:#cfe4ff;font:14px/1.55 ui-monospace,monospace;padding:26px;max-width:900px;margin:auto}
+ h1{color:#46c8ff;font-size:19px;letter-spacing:.08em}
+ h2{color:#7fd8ff;font-size:15px;margin-top:26px}
+ p{color:#8fa6c8}
+ table{border-collapse:collapse;margin:10px 0;width:100%}
+ td,th{border:1px solid #1d3566;padding:6px 10px;text-align:right}
+ th:first-child,td:first-child{text-align:left}
+ th{color:#7fd8ff;background:#0a1436}
+ .ok{color:#5ef2a0}
+ .bad{color:#ff6b6b}
+ pre{white-space:pre-wrap}
+</style></head><body>
+<h1>Mischpult nachgerechnet</h1>
+<p>Alles hier laeuft im <code>OfflineAudioContext</code> und benutzt <code>createMixer</code> aus
+<code>src/app/mixer.ts</code> — dieselbe Funktion, die im Spiel den Klang aufbaut.</p>
+<div id="out">rechnet …</div>
+
+<script type="module">
+import { createMixer, softClip, CEILING } from '/src/app/mixer.ts'
+import { mountAudio } from '/src/app/audio.ts'
+
+/*
+ * Den Ereignisbus holen, den `audio.ts` benutzt - und zwar genau den.
+ *
+ * Der Entwicklungsserver haengt an jeden Import einer geaenderten Datei einen Zeitstempel
+ * (`?t=…`). Ein schlichtes `import ... from '/src/core/events.ts'` ergibt dann ein zweites,
+ * eigenes Modul mit einer eigenen Zuhoererliste - und die Meldungen dieser Seite kaemen bei
+ * niemandem an. Deshalb wird die Adresse aus der uebersetzten Quelle abgelesen, statt sie zu
+ * erraten - und zwar ueber zwei Ecken: `audio.ts` haengt sich nicht selbst an den Bus,
+ * sondern ueberlaesst das dem Klangplan.
+ */
+const quelle = await (await fetch('/src/app/audio.ts')).text()
+const planUrl = quelle.match(/from\s*["']([^"']*soundplan\.ts[^"']*)["']/)[1]
+const planQuelle = await (await fetch(planUrl)).text()
+const busUrl = planQuelle.match(/from\s*["']([^"']*core\/events\.ts[^"']*)["']/)[1]
+const { emit, listenerCount } = await import(/* @vite-ignore */ busUrl)
+
+const RATE = 44100
+const out = document.getElementById('out')
+
+/*
+ * Die Stimmen des schlimmsten gleichzeitigen Falls - nicht abgeschrieben, sondern aus dem
+ * Klangplan geholt.
+ *
+ * Frueher stand hier eine Liste, die aus den `on(...)`-Zeilen von `src/app/audio.ts`
+ * abgetippt war. Eine abgetippte Liste veraltet still: Wer einen Pegel aendert, aendert die
+ * Messung nicht mit, und die Messung sagt dann etwas ueber ein Spiel, das es nicht mehr
+ * gibt. Jetzt kommen Namen, Pegel und Gruppe aus `SOUND_PLAN` - derselben Tabelle, nach der
+ * das Spiel spielt.
+ *
+ * Genommen werden die sechzehn lautesten verschiedenen Aufnahmen, weil `app/audio.ts`
+ * hoechstens sechzehn Stimmen gleichzeitig zulaesst (MAX_VOICES). Schlimmer geht es nicht.
+ */
+const { SOUND_PLAN, busOfCue } = await import(/* @vite-ignore */ planUrl)
+
+const alleCues = Object.values(SOUND_PLAN).flatMap((entry) =>
+  typeof entry === 'function'
+    ? [entry({ uid: 'x', defId: 'x', crit: false }), entry({ uid: 'x', defId: 'x', crit: true })]
+    : [entry],
+)
+const proAufnahme = new Map()
+for (const cue of alleCues) {
+  const bisher = proAufnahme.get(cue.sample)
+  if (!bisher || cue.gain > bisher.gain) proAufnahme.set(cue.sample, cue)
+}
+const SCENE = [...proAufnahme.values()]
+  .sort((a, b) => b.gain - a.gain)
+  .slice(0, 16)
+  .map((cue) => ({ name: cue.sample, gain: cue.gain, bus: busOfCue(cue) }))
+
+const probe = new AudioContext()
+const cache = new Map()
+async function load(name) {
+  if (cache.has(name)) return cache.get(name)
+  const r = await fetch('/sfx/' + name + '-1.wav')
+  const b = await probe.decodeAudioData(await r.arrayBuffer())
+  cache.set(name, b)
+  return b
+}
+
+function peakOf(buffer) {
+  let peak = 0
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const data = buffer.getChannelData(ch)
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i])
+      if (v > peak) peak = v
+    }
+  }
+  return peak
+}
+
+function samplePeak(buffer) { return peakOf(buffer) }
+
+/* --- Vorher: jede Stimme mit ihrem Gain direkt an einen Master-GainNode, so wie es
+       vor dem Umbau war (src/app/audio.ts, master.connect(destination)). ------------- */
+async function renderBefore(voices, master = 1) {
+  const ctx = new OfflineAudioContext(2, RATE * 3, RATE)
+  const bus = ctx.createGain()
+  bus.gain.value = master
+  bus.connect(ctx.destination)
+  for (const v of voices) {
+    const src = ctx.createBufferSource()
+    src.buffer = await load(v.name)
+    const g = ctx.createGain()
+    g.gain.value = v.gain * (v.scale ?? 1)
+    src.connect(g); g.connect(bus); src.start(0)
+  }
+  return peakOf(await ctx.startRendering())
+}
+
+/* --- Nachher: durch das echte Pult ------------------------------------------------- */
+async function renderAfter(voices, levels) {
+  const ctx = new OfflineAudioContext(2, RATE * 3, RATE)
+  const mixer = createMixer(ctx, levels)
+  for (const v of voices) {
+    const src = ctx.createBufferSource()
+    src.buffer = await load(v.name)
+    const g = ctx.createGain()
+    g.gain.value = v.gain * (v.scale ?? 1)
+    src.connect(g); g.connect(mixer.bus(v.bus)); src.start(0)
+  }
+  return peakOf(await ctx.startRendering())
+}
+
+const f = (x) => x.toFixed(4)
+const db = (x) => (20 * Math.log10(Math.max(x, 1e-9))).toFixed(2)
+
+async function run() {
+  const lines = []
+  const full = { music: 1, sfx: 1, ui: 1 }
+
+  // === (a) Der schlimmste gleichzeitige Fall ==================================
+  const before = await renderBefore(SCENE, 1)
+  const after = await renderAfter(SCENE, full)
+
+  // Zum Vergleich auch der Alltagsfall: Startstellung aller drei Regler.
+  const half = { music: 0.5, sfx: 0.5, ui: 0.5 }
+  const beforeHalf = await renderBefore(SCENE, 0.5)
+  const afterHalf = await renderAfter(SCENE, half)
+
+  lines.push('<h2>(a) Bosstod plus 15 weitere Stimmen, alle gleichzeitig</h2>')
+  lines.push('<table><tr><th>Reglerstellung</th><th>vorher (Master-Gain)</th><th>nachher (Pult)</th></tr>')
+  lines.push(`<tr><td>alle auf 100 %</td>
+    <td class="${before < 1 ? 'ok' : 'bad'}">${f(before)} (${db(before)} dBFS)</td>
+    <td class="${after < 1 ? 'ok' : 'bad'}">${f(after)} (${db(after)} dBFS)</td></tr>`)
+  lines.push(`<tr><td>alle auf 50 % (Startstellung)</td>
+    <td class="${beforeHalf < 1 ? 'ok' : 'bad'}">${f(beforeHalf)} (${db(beforeHalf)} dBFS)</td>
+    <td class="${afterHalf < 1 ? 'ok' : 'bad'}">${f(afterHalf)} (${db(afterHalf)} dBFS)</td></tr>`)
+  lines.push('</table>')
+
+  // === (b) Jeder Regler bewegt nur seine eigene Gruppe ========================
+  // Gemessen wird im linearen Bereich: Jede Gruppe wird fuer sich gerendert und ihr
+  // Pegel so weit heruntergesetzt, dass die Bremse nicht eingreift. Nur so ist der
+  // Vergleich sauber - ein Limiter koppelt die Gruppen absichtlich, sobald er zieht.
+  const SCALE = 0.15
+  const groups = { music: [], sfx: [], ui: [] }
+  for (const v of SCENE) groups[v.bus].push({ ...v, scale: SCALE })
+
+  const buses = ['music', 'sfx', 'ui']
+  const grid = {}
+  for (const slider of buses) {
+    const levels = { music: 1, sfx: 1, ui: 1 }
+    levels[slider] = 0.5
+    grid[slider] = {}
+    for (const group of buses) grid[slider][group] = await renderAfter(groups[group], levels)
+  }
+  const reference = {}
+  for (const group of buses) reference[group] = await renderAfter(groups[group], full)
+
+  lines.push('<h2>(b) Ein Regler auf 50 %, die anderen zwei auf 100 % — Spitze je Gruppe</h2>')
+  lines.push('<table><tr><th>Regler auf 50 %</th><th>Gruppe music</th><th>Gruppe sfx</th><th>Gruppe ui</th></tr>')
+  lines.push(`<tr><td>keiner (Bezug)</td>${buses.map((g) => `<td>${f(reference[g])}</td>`).join('')}</tr>`)
+  let isolated = true
+  for (const slider of buses) {
+    const cells = buses.map((group) => {
+      const ratio = grid[slider][group] / reference[group]
+      const want = slider === group ? 0.5 : 1
+      const ok = Math.abs(ratio - want) < 0.005
+      if (!ok) isolated = false
+      return `<td class="${ok ? 'ok' : 'bad'}">${f(grid[slider][group])} &nbsp;(&times;${ratio.toFixed(4)})</td>`
+    })
+    lines.push(`<tr><td>${slider}</td>${cells.join('')}</tr>`)
+  }
+  lines.push('</table>')
+  lines.push(`<p class="${isolated ? 'ok' : 'bad'}">Diagonale &times;0,5000, alles daneben &times;1,0000: ${isolated ? 'ja' : 'NEIN'}</p>`)
+
+  // === (c) Regler auf null macht wirklich still ===============================
+  const silent = await renderAfter(SCENE, { music: 0, sfx: 0, ui: 0 })
+  const onlyUi = await renderAfter(SCENE, { music: 0, sfx: 0, ui: 1 })
+  lines.push('<h2>(c) Randstellungen</h2>')
+  lines.push(`<pre>alle drei auf 0 %          Spitze ${f(silent)}
+music/sfx 0 %, ui 100 %    Spitze ${f(onlyUi)}</pre>`)
+
+  // === (d) Die Kennlinie selbst ==============================================
+  let curvePeak = 0
+  for (let i = 0; i <= 20000; i++) curvePeak = Math.max(curvePeak, Math.abs(softClip(i / 100 - 100)))
+  lines.push('<h2>(d) Die Kennlinie der Bremse</h2>')
+  lines.push(`<pre>groesster Ausgang ueber -100 .. +100 am Eingang: ${f(curvePeak)}   (Decke ${CEILING})
+Spitze bei Vollaussteuerung am Eingang (x = 1):  ${f(softClip(1))}</pre>`)
+
+  // === (e) Was der Anschluss im Spiel wirklich baut ===========================
+  // Bis hierher wurde `createMixer` geprueft. Diese Sektion prueft, dass `mountAudio` es
+  // auch benutzt: Die Knotenfabriken werden gezaehlt, dann ein Bosstod gemeldet.
+  const census = { gain: 0, shaper: 0, compressor: 0, bufferSource: 0, oscillator: 0 }
+  const P = AudioContext.prototype
+  const orig = {
+    createGain: P.createGain, createWaveShaper: P.createWaveShaper,
+    createDynamicsCompressor: P.createDynamicsCompressor,
+    createBufferSource: P.createBufferSource, createOscillator: P.createOscillator,
+  }
+  P.createGain = function () { census.gain++; return orig.createGain.apply(this, arguments) }
+  P.createWaveShaper = function () { census.shaper++; return orig.createWaveShaper.apply(this, arguments) }
+  P.createDynamicsCompressor = function () { census.compressor++; return orig.createDynamicsCompressor.apply(this, arguments) }
+  P.createBufferSource = function () { census.bufferSource++; return orig.createBufferSource.apply(this, arguments) }
+  P.createOscillator = function () { census.oscillator++; return orig.createOscillator.apply(this, arguments) }
+
+  const audio = mountAudio({ music: 0.5, sfx: 0.5, ui: 0.5 })
+  audio.setLevel('sfx', 0.5)              // legt den Apparat an (erste Beruehrung)
+  const afterMount = { ...census }
+  const zuhoerer = listenerCount('boss.killed')
+  emit('boss.killed', { wave: 10 })
+  emit('tower.fired', { uid: 'x', defId: 'y', crit: false })
+  const afterEvents = { ...census }
+
+  // Ein stummer Bus darf gar keine Stimme mehr aufbauen.
+  audio.setLevel('sfx', 0)
+  const beforeSilent = { ...census }
+  emit('tower.fired', { uid: 'x', defId: 'y', crit: false })
+  const afterSilent = { ...census }
+  audio.detach()
+  Object.assign(P, orig)
+
+  // Vier GainNodes: die drei Busse und der Summenpunkt davor.
+  const wiredOk = afterMount.gain === 4 && afterMount.shaper === 1 && afterMount.compressor === 0
+  const heard = (afterEvents.bufferSource + afterEvents.oscillator) -
+                (afterMount.bufferSource + afterMount.oscillator)
+  const silentOk = afterSilent.oscillator === beforeSilent.oscillator &&
+                   afterSilent.bufferSource === beforeSilent.bufferSource
+  lines.push('<h2>(e) Was <code>mountAudio</code> wirklich baut</h2>')
+  lines.push(`<pre class="${wiredOk ? 'ok' : 'bad'}">beim Anlegen      ${afterMount.gain} GainNodes (drei Busse + Summenpunkt), ${afterMount.shaper} WaveShaper, ${afterMount.compressor} Kompressor
+am Ereignisbus    ${zuhoerer} Zuhoerer auf "boss.killed"
+nach 2 Meldungen  ${heard} neue Stimmen (${afterEvents.bufferSource} Aufnahme, ${afterEvents.oscillator} gerechnet)</pre>`)
+  lines.push(`<p class="${silentOk ? 'ok' : 'bad'}">Bus auf 0 % baut keine Stimme mehr auf: ${silentOk ? 'ja' : 'NEIN'}</p>`)
+
+  // === Rohmaterial: wie laut ist eine einzelne Aufnahme? ======================
+  const rows = []
+  for (const v of SCENE) rows.push(`${v.name.padEnd(9)} ${v.bus.padEnd(6)} Gain ${v.gain.toFixed(2)}  Aufnahmespitze ${samplePeak(await load(v.name)).toFixed(3)}`)
+  lines.push('<h2>Rohmaterial</h2><pre>' + rows.join('\n') + '</pre>')
+
+  out.innerHTML = lines.join('\n')
+  window.__ergebnis = {
+    before, after, beforeHalf, afterHalf, grid, reference, isolated, silent, onlyUi,
+    curvePeak, atFullScale: softClip(1), afterMount, afterEvents, wiredOk, silentOk,
+  }
+  window.__fertig = true
+}
+
+run().catch((e) => { out.textContent = 'Fehler: ' + e; window.__fertig = true; window.__fehler = String(e) })
+</script></body></html>

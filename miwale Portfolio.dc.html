@@ -470,6 +470,11 @@
 
   /* ---- Mobil (bis 760px). Die Desktop-Fassung bleibt unverändert. ---- */
   @media (max-width: 760px) {
+    .mw-detail__unten { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 14px; }
+    .mw-spielen { min-height: 88px; }
+    .mw-spielen__inhalt { height: auto; padding: 18px; gap: 5px; }
+    .mw-detail__eckdaten > .mw-glas__inhalt { padding: 20px; }
+    .mw-detail__fakten > div { min-width: 0; overflow-wrap: anywhere; }
     html, body { overflow-x: hidden; }
     body {
       --text-6xl: 38px; --text-5xl: 32px; --text-4xl: 27px;
@@ -906,11 +911,6 @@
                   <button type="button" class="mw-shot__nav mw-shot__nav--next" onClick="{{ detail.bildVor }}" aria-label="Nächstes Bild">›</button>
                 </sc-if>
               </div>
-              <sc-if value="{{ detail.mehrereBilder }}" hint-placeholder-val="{{ false }}">
-                <div style="padding-top: 10px;">
-                  <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">{{ detail.shotsCaption }}</span>
-                </div>
-              </sc-if>
             </div>
 
             <sc-if value="{{ detail.mehrereBilder }}" hint-placeholder-val="{{ false }}">

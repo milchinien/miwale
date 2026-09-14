@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12" fill="none">
+  <!-- Schraege Schraffur, an beiden Kanten gleich angeschnitten: So laeuft sie beim
+       Aneinanderreihen ohne Naht durch. -->
+  <g stroke="#ffffff" stroke-width="3">
+    <path d="M-3 9L9 -3M3 15L15 3"/>
+  </g>
+</svg>

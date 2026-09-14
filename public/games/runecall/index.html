@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Runecall</title>
+    <meta name="description" content="Runecall — Stichkartenspiel für PC und Handy." />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#150b28" />
+    <script type="module" crossorigin src="./assets/index-XoDmCIRD.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-JsDVS7gV.css">
+  </head>
+  <body>
+    <!--
+      Der Raum liegt hinter allem und bleibt stehen, auch im Menü: Er ist die
+      Buehne, nicht der Spielbildschirm (Stufe 6 in docs/08-TISCHANSICHT.md).
+      Was darin liegt, ist ein Gegenstand -- Karten, Tisch, Licht. Alles
+      Uebrige darueber ist Text und Knopf und bleibt HTML (Entscheidung 4.2).
+    -->
+    <canvas id="scene" class="scene" aria-hidden="true"></canvas>
+
+    <!-- ---------------------------------------------------------- Menü -->
+    <!--
+      Nur die Tafel und der Kopf stehen hier. Was darin liegt, wechselt mit
+      dem Bildschirm -- Start, Spielen, Spielersuche, eigener Raum,
+      Einstellungen -- und wird deshalb in src/menu.ts gebaut, nicht hier
+      aufgeschrieben. Sieben feste Abschnitte, von denen sechs immer
+      versteckt sind, waeren dasselbe in unuebersichtlich.
+    -->
+    <section id="menu" class="menu">
+      <div class="menu__panel">
+        <div class="menu__masthead" aria-hidden="true"><span></span><i>R</i><span></span></div>
+        <p class="menu__eyebrow">Das Stichkarten-Spiel</p>
+        <h1>Runecall</h1>
+        <p class="menu__claim">Wie viele Stiche liegen heute in deiner Hand?</p>
+
+        <div id="menuScreen" class="menu__body"></div>
+
+        <!-- Steht nur auf dem Startbildschirm; tiefer drin zaehlt der Inhalt. -->
+        <p class="menu__rules">
+          Jede Runde bekommst du eine Karte mehr. Sage vorher an, wie viele Stiche du holst — und
+          triff die Zahl genau. Ein Stich zu viel kostet so viel wie einer zu wenig. Der
+          <strong>Magier</strong> gewinnt jeden Stich, der <strong>Narr</strong> keinen.
+        </p>
+      </div>
+    </section>
+
+    <!-- --------------------------------------------------------- Tisch -->
+    <!--
+      Diese Schicht liegt ueber der Szene und laesst Zeigergeraete
+      hindurch. Nur was bedient wird, faengt sie wieder ein -- sonst kaeme
+      kein Klick mehr bei den Karten an.
+    -->
+    <section id="table" class="table" hidden>
+      <header class="bar">
+        <button id="btnMenu" type="button" class="ghost small">Menü</button>
+        <span id="roundInfo" class="bar__round"></span>
+      </header>
+
+      <!-- Namensschilder, an die Bildschirmposition der Sitze geheftet. -->
+      <div id="plates" class="plates"></div>
+
+      <!--
+        Das Trumpfschild haengt unter der Trumpfkarte auf dem Tisch. Es sagt,
+        was die Karte dort bedeutet -- ohne das liegt sie da wie eine, die
+        jemand vergessen hat.
+      -->
+      <div id="trump" class="trump" hidden></div>
+
+      <!--
+        Die Tastaturhand: je eigener Karte ein unsichtbarer Knopf ueber ihr.
+        Karten in einer Zeichenflaeche sind fuer Tastatur und Vorlesehilfen
+        sonst nicht vorhanden.
+      -->
+      <ul id="handKeys" class="handkeys" aria-label="Deine Handkarten"></ul>
+
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div id="actions" class="actions"></div>
+      <div id="counting" class="counting" hidden></div>
+
+      <div id="overlay" class="overlay" hidden></div>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  </body>
+</html>

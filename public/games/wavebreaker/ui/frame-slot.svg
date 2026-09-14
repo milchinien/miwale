@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 62 62" fill="none">
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16306e" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#081436" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+  <!-- Achteckige Fassung: die Ecken sind gekappt, damit der Knopf zur Formensprache der
+       Schilde passt und nicht wie ein Web-Button aussieht. -->
+  <path d="M2 12 12 2h38l10 10v38L50 60H12L2 50z" fill="url(#body)"/>
+  <path d="M2 12 12 2h38l10 10v38L50 60H12L2 50z" stroke="#2f5da8" stroke-width="2" stroke-linejoin="round"/>
+  <!-- Eckwinkel. Sie sitzen innen und leuchten heller als der Rahmen - dieselbe Sprache wie
+       die Ecken am Spielfeldrand. -->
+  <g stroke="#46c8ff" stroke-width="2.2" stroke-linecap="round" opacity="0.9">
+    <path d="M8 18v-6.5L14.5 5H21M54 18v-6.5L47.5 5H41M8 44v6.5L14.5 57H21M54 44v6.5L47.5 57H41"/>
+  </g>
+</svg>

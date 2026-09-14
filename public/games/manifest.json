@@ -1,0 +1,18 @@
+{
+  "wavebreaker": {
+    "path": "games/wavebreaker/",
+    "sha256": "3d7f385c1b40d6ddba889f37649137cb062112d76f913552dfe5dc5f6fcec283"
+  },
+  "chromatic": {
+    "path": "games/chromatic/",
+    "sha256": "f403123c4461b74588cc7779bbf6a3d0542d11d480f2499ceca19421109c805c"
+  },
+  "runecall": {
+    "path": "games/runecall/",
+    "sha256": "ef4f11cf9eeffe39d5d304cb71c6d083f99890f12f6591b51ccbbf30d33dfbe0"
+  },
+  "harmonics": {
+    "path": "games/harmonics/",
+    "sha256": "e342ce48c99aa98154e6ee223240f13593e45b4a59df739e717528fc050a9e34"
+  }
+}
