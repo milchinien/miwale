@@ -29,6 +29,18 @@
   a:hover { color: #fff; }
   [data-reveal] { opacity: 0; transform: translateY(16px); transition: opacity 520ms cubic-bezier(.22,.61,.36,1), transform 520ms cubic-bezier(.22,.61,.36,1); }
   [data-reveal][data-shown="1"] { opacity: 1; transform: none; }
+  /* Das Design System legt auf die Bottom-Navigation und die Knoepfe einen
+     backdrop-filter. Beide stehen dauerhaft im Bild — der Grafikchip rechnet
+     ihre Unschaerfe damit in jedem Scrollbild neu, und weil darunter staendig
+     Inhalt durchwandert, flackert es dabei. Auf dem Handy ist das zu teuer;
+     eine deckende Fuellung sieht ueber dem dunklen Wasser fast gleich aus.
+     Die Desktop-Fassung behaelt die Unschaerfe. */
+  .mw-bottomnav {
+    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    background: rgba(9,36,50,.94) !important;
+  }
+  .mw-shinybtn { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
   .mw-bottomnav__item { min-height: 52px; }
   .mw-bottomnav__item svg { width: 22px; height: 22px; stroke-width: 1.75; }
   [data-mw-list] > span:last-child { border-bottom: 0 !important; }
@@ -37,6 +49,22 @@
   [data-snap] { scrollbar-width: none; }
   [data-snap]::-webkit-scrollbar { display: none; }
   [data-calm="1"] [data-mw-anim] { animation: none !important; }
+
+  /* ---- Sparbetrieb ----
+     Wird gesetzt, wenn die gemessene Bildrate auf dem Geraet nicht reicht.
+     Dann bleibt der Wasserverlauf stehen, aber die teuren Schichten fallen weg:
+     alles mit Maske (die erzwingt einen zusaetzlichen Zeichendurchgang) und
+     jede Dauerbewegung. Lieber ein ruhiger Hintergrund als eine ruckelnde
+     Seite — bedienbar geht vor huebsch. */
+  [data-spar="1"] [data-mw-anim] { animation: none !important; }
+  [data-spar="1"] [data-mw="bgShaftsA"],
+  [data-spar="1"] [data-mw="bgShaftsB"],
+  [data-spar="1"] [data-mw="bgFar"],
+  [data-spar="1"] [data-mw="bgStreaks"],
+  [data-spar="1"] [data-mw="bgDrift"],
+  [data-spar="1"] [data-mw="bgPlankton"],
+  [data-spar="1"] [data-mw="bgCaustic"],
+  [data-spar="1"] [data-mw="bgWhales"] { display: none !important; }
   @keyframes mwSway { 0% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); } 50% { transform: rotate(-29deg) translate3d(38px,0,0) skewX(1.2deg); } 100% { transform: rotate(-29deg) translate3d(-38px,0,0) skewX(-1.2deg); } }
   @keyframes mwSwaySlow { 0% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); } 50% { transform: rotate(-29deg) translate3d(-48px,0,0) scaleX(.98); } 100% { transform: rotate(-29deg) translate3d(48px,0,0) scaleX(1.04); } }
   @keyframes mwShaftPulse { 0% { opacity: .62; } 38% { opacity: 1; } 70% { opacity: .78; } 100% { opacity: .62; } }
@@ -70,12 +98,12 @@
   .mw-tile__bg {
     position: absolute; inset: -5%; z-index: 0;
     background-size: cover; background-position: center;
-    filter: saturate(.96) brightness(.94); transform: scale(1.04);
+    transform: scale(1.04);
     transition: filter 480ms cubic-bezier(.22,.61,.36,1), transform 480ms cubic-bezier(.22,.61,.36,1);
   }
-  .mw-tile:active .mw-tile__bg, .mw-tile:focus-visible .mw-tile__bg { filter: blur(0) saturate(1.04) brightness(.92); transform: scale(1.02); }
+  .mw-tile:active .mw-tile__bg, .mw-tile:focus-visible .mw-tile__bg { transform: scale(1.02); }
   @media (hover: hover) {
-    .mw-tile:hover .mw-tile__bg { filter: blur(0) saturate(1.04) brightness(.92); transform: scale(1.02); }
+    .mw-tile:hover .mw-tile__bg { transform: scale(1.02); }
     .mw-tile:hover .mw-tile__veil { opacity: .68; }
   }
   .mw-tile__veil {
@@ -308,16 +336,16 @@
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
 
-    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); will-change: transform;">
+    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);">
       <div style="position: absolute; inset: 0; background: radial-gradient(1200px 900px at 16% 30%, rgba(34,176,158,.22), rgba(34,176,158,0) 66%), radial-gradient(1400px 1000px at 86% 44%, rgba(18,130,142,.20), rgba(18,130,142,0) 68%), radial-gradient(1300px 1000px at 38% 62%, rgba(10,88,98,.26), rgba(10,88,98,0) 70%), radial-gradient(1500px 1100px at 60% 84%, rgba(5,52,64,.34), rgba(5,52,64,0) 72%);"></div>
       <div style="position: absolute; inset: 0; background: radial-gradient(680px 480px at 30% 14%, rgba(52,214,178,.18), rgba(52,214,178,0) 68%), radial-gradient(520px 420px at 72% 26%, rgba(96,226,196,.13), rgba(96,226,196,0) 70%), radial-gradient(760px 520px at 8% 52%, rgba(22,150,138,.20), rgba(22,150,138,0) 70%), radial-gradient(600px 460px at 88% 66%, rgba(16,120,124,.18), rgba(16,120,124,0) 70%), radial-gradient(540px 380px at 22% 74%, rgba(120,236,205,.14), rgba(120,236,205,0) 70%), radial-gradient(460px 340px at 66% 88%, rgba(40,180,170,.15), rgba(40,180,170,0) 72%);"></div>
     </div>
 
-    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); will-change: transform;">
+    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);">
       <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; opacity: .6; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); animation: mwSwaySlow 34s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px);"></div>
     </div>
 
-    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); will-change: transform;">
+    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);">
       <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); animation: mwSway 24s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px);"></div>
       <div data-mw-anim="1" style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px);"></div>
     </div>
@@ -325,12 +353,12 @@
     <div data-mw="bgNear" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%;">
       <div data-mw-anim="1" style="position: absolute; inset: 0; opacity: .5; animation: mwFloat 42s linear infinite; background-image: radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%), radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%), radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%), radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%), radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%), radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%); background-size: 620px 620px; background-repeat: repeat;"></div>
       <div data-mw-anim="1" style="position: absolute; inset: 0; opacity: .34; animation: mwFloatSlow 68s linear infinite; background-image: radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%), radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%), radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%); background-size: 880px 880px; background-repeat: repeat;"></div>
-      <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95; will-change: transform;">
+      <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Meteors" number="{{ 10 }}" color="rgba(206,244,255,.85)" hint-size="100%,100%"></x-import>
       </div>
     </div>
 
-    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0; will-change: transform;">
+    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0;">
       <div data-mw-anim="1" style="position: absolute; inset: 0; animation: mwFloatSlow 84s linear infinite; background-image: radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%), radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%), radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%), radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%); background-size: 540px 540px; background-repeat: repeat;"></div>
     </div>
 
@@ -363,7 +391,7 @@
 
   <div style="position: relative; z-index: 1;">
 
-    <header style="position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,.10); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.22);">
+    <header style="position: sticky; top: 0; z-index: 60; background: rgba(12,44,60,.88); border-bottom: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.22);">
       <div style="max-width: 560px; margin: 0 auto; padding: 9px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
         <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 30px; width: auto;">
         <span style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.20);">
@@ -636,8 +664,8 @@
 
   <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
     <div style="position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; justify-content: flex-end;">
-      <div onClick="{{ closeSheet }}" style="position: absolute; inset: 0; background: rgba(2,10,20,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: mwFadeIn 220ms ease both;"></div>
-      <div style="position: relative; max-height: 92dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 28px 28px 0 0; background: rgba(6,26,38,.86); backdrop-filter: blur(26px) saturate(1.5); -webkit-backdrop-filter: blur(26px) saturate(1.5); border-top: 1px solid rgba(255,255,255,.20); box-shadow: 0 -24px 64px rgba(1,10,17,.6); animation: mwSheetUp 320ms cubic-bezier(.16,.84,.44,1) both;">
+      <div onClick="{{ closeSheet }}" style="position: absolute; inset: 0; background: rgba(2,10,20,.82); animation: mwFadeIn 220ms ease both;"></div>
+      <div style="position: relative; max-height: 92dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 28px 28px 0 0; background: rgba(6,26,38,.97); border-top: 1px solid rgba(255,255,255,.20); box-shadow: 0 -24px 64px rgba(1,10,17,.6); animation: mwSheetUp 320ms cubic-bezier(.16,.84,.44,1) both;">
         <div style="position: sticky; top: 0; z-index: 2; display: flex; flex-direction: column; gap: 12px; padding: 10px 18px 12px; background: linear-gradient(180deg, rgba(6,26,38,.96) 70%, rgba(6,26,38,0) 100%);">
           <span style="width: 40px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.28); align-self: center;"></span>
           <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;">
@@ -652,9 +680,12 @@
         <div style="display: flex; flex-direction: column; gap: 20px; padding: 4px 18px calc(28px + env(safe-area-inset-bottom));">
           <span style="font: var(--type-code); font-size: 11px; color: rgba(237,243,249,.58);">{{ sheet.kind }}</span>
           <img src="{{ sheet.shot }}" alt="{{ sheet.shotAlt }}" style="width: 100%; height: 190px; object-fit: cover; border-radius: 20px; border: 1px solid rgba(255,255,255,.16);">
-          <p style="margin: 0; font: var(--type-body); font-size: 15px; line-height: 1.65; color: rgba(237,243,249,.82);">{{ sheet.lead }}</p>
+          <sc-if value="{{ sheet.canPlay }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ sheet.play }}" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; cursor: pointer; font: var(--type-label); font-size: 15px; color: #04161F; background: var(--aqua-400); box-shadow: 0 10px 28px rgba(15,140,166,.28);">Spielen</button>
+            </sc-if>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="mw-sheet__facts" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px;">
+            <span style="grid-column: 1 / -1; font: var(--type-eyebrow); color: var(--aqua-300);">Eckdaten</span>
             <sc-for list="{{ sheet.facts }}" as="s" hint-placeholder-count="{{ 4 }}">
               <div style="display: flex; flex-direction: column; gap: 3px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);">
                 <span style="font: var(--type-h3); font-size: 15px; line-height: 1.3; color: #fff;">{{ s.value }}</span>
@@ -662,6 +693,8 @@
               </div>
             </sc-for>
           </div>
+
+          <p style="margin: 0; font: var(--type-body); font-size: 15px; line-height: 1.65; color: rgba(237,243,249,.82);">{{ sheet.lead }}</p>
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie und wann gebaut</span>
@@ -678,7 +711,6 @@
                   <span style="{{ sh.style }}"></span>
                 </sc-for>
               </div>
-              <span style="font: var(--type-code); font-size: 11px; line-height: 1.5; color: rgba(237,243,249,.5);">{{ sheet.shotsCaption }}</span>
             </div>
           </sc-if>
 
@@ -689,9 +721,7 @@
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 10px;">
-            <sc-if value="{{ sheet.canPlay }}" hint-placeholder-val="{{ false }}">
-              <button type="button" onClick="{{ sheet.play }}" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 999px; cursor: pointer; font: var(--type-label); font-size: 15px; color: #04161F; background: var(--aqua-400); box-shadow: 0 10px 28px rgba(15,140,166,.28);">Spielen</button>
-            </sc-if>
+
             <sc-for list="{{ sheet.links }}" as="l" hint-placeholder-count="{{ 1 }}">
               <a href="{{ l.href }}" target="_blank" rel="noopener noreferrer" style="min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 999px; font: var(--type-label); font-size: 15px; color: var(--ice-100); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);">{{ l.label }}</a>
             </sc-for>
@@ -1197,6 +1227,38 @@ class Component extends DCLogic {
 
   el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
 
+  // Misst die tatsaechliche Bildrate auf diesem Geraet und schaltet den
+  // Hintergrund ab, wenn sie nicht reicht. Auf einem Entwicklerrechner laesst
+  // sich das nicht abschaetzen — ein Handy-Viewport auf einem Desktop sagt ueber
+  // dessen Grafikchip nichts aus. Nur das Geraet selbst weiss, was es schafft.
+  leistungPruefen() {
+    if (this.sparGeprueft) return;
+    this.sparGeprueft = true;
+
+    // Einmal pro Sitzung entscheiden, sonst springt die Seite hin und her.
+    let gemerkt = null;
+    try { gemerkt = sessionStorage.getItem("mw-spar"); } catch (e) { /* privater Modus */ }
+    if (gemerkt === "1") { document.documentElement.setAttribute("data-spar", "1"); return; }
+    if (gemerkt === "0") return;
+
+    const zeiten = [];
+    let vorher = performance.now();
+    const messen = () => {
+      const jetzt = performance.now();
+      zeiten.push(jetzt - vorher);
+      vorher = jetzt;
+      if (zeiten.length < 48) { requestAnimationFrame(messen); return; }
+      // Die ersten Bilder nach dem Laden sind nie repraesentativ.
+      const sortiert = zeiten.slice(8).sort((a, b) => a - b);
+      const median = sortiert[Math.floor(sortiert.length / 2)];
+      // 22 ms sind rund 45 fps. Darunter faellt das Ruckeln auf.
+      const schwach = median > 22;
+      if (schwach) document.documentElement.setAttribute("data-spar", "1");
+      try { sessionStorage.setItem("mw-spar", schwach ? "1" : "0"); } catch (e) { /* egal */ }
+    };
+    requestAnimationFrame(messen);
+  }
+
   // Filter bleiben aus dem Verlauf heraus: sonst legte jeder Knopfdruck einen
   // Eintrag an und die Zurueck-Taste kaeme nicht mehr aus den Projekten raus.
   umschalten(gruppe, wert) {
@@ -1377,6 +1439,9 @@ class Component extends DCLogic {
     else window.addEventListener("load", () => this.icons(), { once: true });
 
     // Zurueck im Tab: die Seite muss fertig dastehen, nicht erst fertig werden.
+    // Erst laufen lassen, dann messen: direkt nach dem Aufbau ist jedes Bild lang.
+    setTimeout(() => this.leistungPruefen(), 900);
+
     this.onSichtbar = () => this.sofortFertig();
     document.addEventListener("visibilitychange", this.onSichtbar);
     window.addEventListener("pageshow", this.onSichtbar);
