@@ -475,7 +475,10 @@
     .mw-spielen__inhalt { height: auto; padding: 18px; gap: 5px; }
     .mw-detail__eckdaten > .mw-glas__inhalt { padding: 20px; }
     .mw-detail__fakten > div { min-width: 0; overflow-wrap: anywhere; }
-    html, body { overflow-x: hidden; }
+    /* Die Laufzeit setzt body auf 100% Hoehe. hidden wuerde overflow-y:auto
+       erzeugen und body zum zweiten Scroller machen, waehrend die Logik
+       window.scrollY verwendet. clip schneidet nur horizontal ab. */
+    html, body { overflow-x: clip; }
     body {
       --text-6xl: 38px; --text-5xl: 32px; --text-4xl: 27px;
       --text-3xl: 23px; --text-2xl: 20px; --text-xl: 18px; --text-lg: 17px;
@@ -489,7 +492,7 @@
       justify-content: flex-start !important;
     }
     header .mw-tabs::-webkit-scrollbar { display: none; }
-    .mw-tabs__tab { flex: none !important; min-height: 40px; padding-left: 14px !important; padding-right: 14px !important; font-size: var(--text-sm) !important; }
+    .mw-tabs__tab { flex: none !important; min-height: 44px; padding-left: 14px !important; padding-right: 14px !important; font-size: var(--text-sm) !important; }
 
     /* Ränder: 32px sind auf dem Handy zu viel */
     section, footer { padding-left: 18px !important; padding-right: 18px !important; }
@@ -513,7 +516,23 @@
     /* Wortmarke im Tauchgang und Maskottchen kleiner */
     [data-mw="diveLogo"] { width: min(78vw, 340px) !important; }
 
-    /* Bänder und Effekte bleiben, laufen aber flacher */
+    /* Kleinere Hintergrundflaechen und weniger Filterarbeit beim Scrollen. */
+    [data-mw="bgShaftsA"], [data-mw="bgShaftsB"] {
+      left: -20% !important; right: -20% !important;
+      top: -15% !important; height: 130% !important;
+    }
+    [data-mw="bgFar"], [data-mw="bgNear"], [data-mw="bgDrift"] {
+      left: -10% !important; right: -10% !important;
+      top: -10% !important; height: 120% !important;
+    }
+    [data-mw="bgShaftsA"], [data-mw="bgShaftsB"], [data-mw="bgFar"],
+    [data-mw="bgShaftsA"] *, [data-mw="bgShaftsB"] *, [data-mw="bgFar"] * {
+      mask-image: none !important; -webkit-mask-image: none !important;
+    }
+    header, header .mw-tabs, .mw-shinybtn {
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    }
+    header { background: rgba(9,36,50,.96) !important; }
   }
   @media (max-width: 420px) {
     section, footer { padding-left: 14px !important; padding-right: 14px !important; }
@@ -582,9 +601,13 @@
 </helmet>
 
 <div style="min-height: 100dvh; background: #050A16; position: relative;">
-  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11;">
+  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #0A3040;">
 
-    <div data-mw="bgVerlauf" style="position: absolute; left: 0; right: 0; top: 0; height: 100%; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-size: 100% 100%; background-repeat: no-repeat; will-change: transform;"></div>
+    <!-- Viewportgrosse Verlaeufe vermeiden die bisherige bewegte Flaeche von
+         3,2 Fensterhoehen. Die Scrolltiefe steuert nur ihre Deckkraft. -->
+    <div data-mw="bgVerlaufFlach" style="position: absolute; inset: 0; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 19.2%, #22637F 41.6%, #1A5470 67.2%, #14485F 92.8%, #13455C 100%);"></div>
+    <div data-mw="bgVerlaufMitte" style="position: absolute; inset: 0; opacity: 0; background-image: linear-gradient(180deg, #124157 0%, #103C51 11.6%, #0C3244 40.4%, #092838 72.4%, #08202D 100%);"></div>
+    <div data-mw="bgVerlaufTief" style="position: absolute; inset: 0; opacity: 0; background-image: linear-gradient(180deg, #061D29 0%, #04151F 29.6%, #020D14 64.8%, #01070C 100%);"></div>
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
 
@@ -1884,20 +1907,11 @@ class Component extends DCLogic {
     const span = vh * 3.2;
     const travel = span - vh;
     const offset = Math.min(y * rate, travel);
-    // Der Verlauf liegt auf einer eigenen Ebene und wird nur noch verschoben.
-    // Vorher standen hier backgroundSize und backgroundPosition: beides zwingt
-    // den Browser, den bildschirmfuellenden Verlauf in jedem Bild neu zu malen —
-    // das war der teuerste Posten beim Scrollen. Die Hoehe haengt allein an der
-    // Fensterhoehe und wird darum nur gesetzt, wenn die sich aendert.
-    const verlauf = this.el("bgVerlauf");
-    if (verlauf) {
-      if (this.letzteSpanne !== span) {
-        verlauf.style.height = Math.round(span) + "px";
-        this.letzteSpanne = span;
-      }
-      verlauf.style.transform = "translate3d(0," + Math.round(-offset) + "px,0)";
-    }
     const depth = clamp(offset / travel);
+    const mitte = this.el("bgVerlaufMitte");
+    if (mitte) mitte.style.opacity = String(clamp(depth / 0.5));
+    const tief = this.el("bgVerlaufTief");
+    if (tief) tief.style.opacity = String(clamp((depth - 0.5) / 0.5));
     const light = 1 - depth;
     const fade = (name, mul) => { const el = this.el(name); if (el) el.style.opacity = String(clamp(light * mul)); };
     // Oberflächenlicht gehört an die Oberfläche: es ist schon im oberen Drittel
@@ -2175,7 +2189,7 @@ class Component extends DCLogic {
   }
 
   componentDidUpdate() {
-    document.body.style.overflow = this.state.game ? "hidden" : "";
+    document.documentElement.style.overflowY = this.state.game ? "hidden" : "";
     const frame = this.el("gameFrame");
     if (frame) {
       const wanted = this.gameUrl();
@@ -2206,7 +2220,7 @@ class Component extends DCLogic {
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.sofortTimer) clearTimeout(this.sofortTimer);
     if (this.beobachter) this.beobachter.disconnect();
-    document.body.style.overflow = "";
+    document.documentElement.style.overflowY = "";
   }
 
   go(t) {

@@ -6,8 +6,7 @@
     <title>miwale games</title>
     <meta name="description" content="Spiele und Projekte von miwale — direkt im Browser spielbar." />
     <script>
-      const mobile = matchMedia("(max-width: 700px)").matches;
-      location.replace(mobile ? "miwale%20Portfolio%20Mobil.dc.html" : "miwale%20Portfolio.dc.html");
+      location.replace("miwale%20Portfolio.dc.html" + location.search + location.hash);
     </script>
   </head>
   <body>

@@ -11,8 +11,7 @@ Design System und alle Bild-Assets.
 
 | Pfad | Was es ist |
 | --- | --- |
-| `miwale Portfolio.dc.html` | Desktop-Fassung der Seite, sechs Tabs |
-| `miwale Portfolio Mobil.dc.html` | Mobil-Fassung, auf vier Tabs gekürzt |
+| `miwale Portfolio.dc.html` | Gemeinsame responsive Seite für Handy und Desktop, sechs Tabs |
 | `support.js` | Laufzeit für die Canvas-Dateien |
 | `_ds/miwale-design-system-…/` | miwale Design System: Tokens, Komponenten, Styles |
 | `assets/` | Logo-Wordmarks und Wal-Maskottchen, je für hell und dunkel |
@@ -22,8 +21,10 @@ Design System und alle Bild-Assets.
 
 ## Aufbau der Seite
 
-Desktop: **Start · Projekte · Über mich · KI-Workflow · Devlog · Kontakt**
-Mobil: **Start · Projekte · Über mich · Kontakt**
+Auf allen Geräten: **Start · Projekte · Über mich · KI-Workflow · Devlog · Kontakt**.
+Auf schmalen Bildschirmen werden die Inhalte einspaltig und die Navigation
+horizontal scrollbar. Der Einstieg wählt keine separate Mobil-Datei mehr aus;
+alte Mobil-Links werden auf dem Produktionsserver zur gemeinsamen Seite umgeleitet.
 
 ### Der Projekte-Tab
 
