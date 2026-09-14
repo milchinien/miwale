@@ -197,6 +197,20 @@ Zustand stattdessen ersetzt, sonst verließe Schließen die Seite.
 
 Beide Fassungen benutzen dieselben Adress-Bausteine und dieselben Slugs.
 
+## Welche Fassung wer bekommt
+
+`index.html` leitet weiter: schmale Fenster auf die Handyfassung, alles andere
+auf die Rechnerfassung. Allein an der Breite reichte das nicht — ein Handy quer
+gehalten ist breiter als 700 px und landete damit auf der Rechnerfassung, wo die
+Kacheln am Mauszeiger hängen und die Leiste kleine Ziele hat. Darum zählt
+zusätzlich, ob es überhaupt einen feinen Zeiger gibt und wie kurz die kürzere
+Geräteseite ist. Tablets liegen über dieser Grenze und behalten die große
+Fassung; der PC ist die Hauptfassung.
+
+`tools/weiterleitung.test.mjs` führt dafür den Code aus `index.html` selbst in
+einer Sandbox aus, statt die Regel nachzubauen — sonst gehen Test und Seite mit
+der Zeit auseinander.
+
 ## Mobile Grundlagen
 
 Das Viewport-Meta der Mobil-Fassung trägt `viewport-fit=cover`. Ohne das liefert

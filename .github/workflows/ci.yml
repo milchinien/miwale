@@ -32,5 +32,12 @@ jobs:
           grep -q "Chromatic" "miwale Portfolio Mobil.dc.html"
           grep -q "Wavebreaker" "miwale Portfolio Mobil.dc.html"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run tests
+        run: node --test tools/*.test.mjs
+
       - name: Build container
         run: docker build -t miwale:ci .
