@@ -50,6 +50,35 @@
   [data-snap]::-webkit-scrollbar { display: none; }
   [data-calm="1"] [data-mw-anim] { animation: none !important; }
 
+  /* ---- Ebenengroesse begrenzen ----
+     Diese Schichten standen auf left/right -75% und 250% Hoehe und wurden
+     zusaetzlich um 29 Grad gedreht. Mit Maske braucht jede davon einen
+     Zwischenpuffer in voller Groesse — gemessen 145 bis 149 MB je Ebene, bei
+     ueber 5500 Pixeln Breite. Handy-Grafikchips schaffen meist hoechstens
+     4096 Pixel am Stueck; was darueber liegt, wird gekachelt oder verworfen
+     und beim Scrollen neu gezeichnet. Genau das sah man als Flackern.
+     Kleiner gerechnet reicht voellig: auch gedreht deckt die Ebene den
+     Bildschirm noch ab, und die Maske blendet die Raender ohnehin aus. */
+  [data-mw="bgShaftsA"], [data-mw="bgShaftsB"] {
+    left: -20% !important; right: -20% !important;
+    top: -15% !important; height: 130% !important;
+  }
+  [data-mw="bgFar"], [data-mw="bgNear"], [data-mw="bgDrift"] {
+    left: -10% !important; right: -10% !important;
+    top: -10% !important; height: 120% !important;
+  }
+
+  /* Die Maske ist es, die den Zwischenpuffer ueberhaupt erzwingt: ohne sie
+     zeichnet der Grafikchip die Ebene direkt, ganz ohne Umweg. Die weichen
+     Raender fallen damit weg — bei diesen sehr blassen Lichtschaechten faellt
+     das kaum auf, ein ruhiges Bild dagegen sehr. Auf dem Desktop bleiben die
+     Masken. */
+  [data-mw="bgShaftsA"], [data-mw="bgShaftsB"], [data-mw="bgFar"],
+  [data-mw="bgShaftsA"] *, [data-mw="bgShaftsB"] *, [data-mw="bgFar"] * {
+    mask-image: none !important; -webkit-mask-image: none !important;
+  }
+  [data-mw="bgShaftsA"], [data-mw="bgShaftsB"] { opacity: .55; }
+
   /* ---- Sparbetrieb ----
      Wird gesetzt, wenn die gemessene Bildrate auf dem Geraet nicht reicht.
      Dann bleibt der Wasserverlauf stehen, aber die teuren Schichten fallen weg:
@@ -332,7 +361,7 @@
 <div data-calm="{{ calmAttr }}" style="min-height: 100dvh; background: #050A16; position: relative;">
   <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #010A11;">
 
-    <div data-mw="bgVerlauf" style="position: absolute; left: 0; right: 0; top: 0; height: 100%; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-size: 100% 100%; background-repeat: no-repeat; will-change: transform;"></div>
+    <div data-mw="bgVerlauf" style="position: absolute; left: 0; right: 0; top: 0; height: 100%; background-image: linear-gradient(180deg, #3C8AA6 0%, #2E7794 6%, #22637F 13%, #1A5470 21%, #14485F 29%, #103C51 38%, #0C3244 47%, #092838 57%, #061E2A 68%, #04151F 78%, #020D14 89%, #01070C 100%); background-size: 100% 100%; background-repeat: no-repeat;"></div>
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
 
