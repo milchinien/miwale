@@ -34,3 +34,27 @@ jobs:
 
       - name: Build container
         run: docker build -t miwale:ci .
+
+      # `docker build` merkt von einer kaputten nginx-Konfiguration nichts --
+      # sie wird nur hineinkopiert. Erst beim Start liest nginx sie, und dann
+      # steht die ganze Seite. Genau so ist sie am 14.09.2026 ausgefallen.
+      - name: nginx-Konfiguration lesen lassen
+        run: docker run --rm miwale:ci nginx -t
+
+      # Und die Umleitung fuer Einladungslinks einmal wirklich abrufen: dass
+      # der Ausdruck greift, sagt `nginx -t` naemlich nicht. Geprueft wird der
+      # Location-Kopf selbst -- er muss ohne Schema und Host kommen, sonst
+      # schickt er Besucher auf den internen Port 8080.
+      - name: Einladungslink umleiten lassen
+        run: |
+          set -euo pipefail
+          docker run -d --name miwale-ci -p 8080:8080 miwale:ci
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8080/healthz && break
+            sleep 1
+          done
+          kopf="$(curl -sSI http://127.0.0.1:8080/games/runecall/raum/A9YW4 | tr -d '\r')"
+          docker rm -f miwale-ci >/dev/null
+          echo "$kopf"
+          echo "$kopf" | grep -q '^HTTP/1.1 302'
+          echo "$kopf" | grep -qi '^location: /games/runecall/#A9YW4$'
