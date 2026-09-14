@@ -1,0 +1,51 @@
+<!--
+  PLATZHALTER - Ebene 3 von 5, anfliegende Welle (src/ui/boot.ts).
+
+  Die Gegner kommen von rechts, wie im Spiel. Sie liegen zwischen Gitter und Station und
+  bekommen deshalb einen mittleren Start-Zoom - beim Aufbau ziehen sie sichtbar schneller
+  ins Bild als der Grund und langsamer als der Schriftzug.
+
+  Leinwand wie alle Ebenen: 1600 x 900.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <filter id="burn" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="soft" />
+      <feMerge>
+        <feMergeNode in="soft" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <linearGradient id="trail" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#ff2d78" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#ff2d78" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Spuren zuerst, damit die Rumpfe darauf liegen. -->
+  <g fill="url(#trail)">
+    <path d="M1210 214 h300 v9 h-300 z" />
+    <path d="M1092 372 h250 v7 h-250 z" />
+    <path d="M1338 468 h240 v8 h-240 z" />
+    <path d="M1156 596 h280 v7 h-280 z" />
+    <path d="M1420 706 h180 v6 h-180 z" />
+  </g>
+
+  <g filter="url(#burn)" fill="#ff2d78">
+    <!-- Ein Rumpf ist ein Keil mit der Spitze nach links: Flugrichtung ohne Erklaerung. -->
+    <path d="M1150 218 l52 -21 -13 21 13 21 z" />
+    <path d="M1040 376 l44 -18 -11 18 11 18 z" />
+    <path d="M1290 472 l48 -19 -12 19 12 19 z" />
+    <path d="M1108 600 l40 -16 -10 16 10 16 z" />
+    <path d="M1382 710 l34 -14 -9 14 9 14 z" />
+    <path d="M1246 302 l30 -12 -8 12 8 12 z" />
+    <path d="M1466 348 l26 -11 -7 11 7 11 z" />
+    <path d="M1338 812 l30 -12 -8 12 8 12 z" />
+  </g>
+
+  <!-- Zwei Schwerere weiter hinten, in Violett - die Bossfarbe der Palette. -->
+  <g filter="url(#burn)" fill="#b45cff" opacity="0.85">
+    <path d="M1512 156 l64 -26 -16 26 16 26 z" />
+    <path d="M1544 542 l58 -23 -15 23 15 23 z" />
+  </g>
+</svg>

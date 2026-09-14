@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Musik nachgemessen</title>
+<style>
+ body{background:#070a18;color:#cfe4ff;font:14px/1.55 ui-monospace,monospace;padding:26px;max-width:980px;margin:auto}
+ h1{color:#46c8ff;font-size:19px;letter-spacing:.08em}
+ h2{color:#7fd8ff;font-size:15px;margin-top:28px}
+ p{color:#8fa6c8}
+ table{border-collapse:collapse;margin:10px 0;width:100%}
+ td,th{border:1px solid #1d3566;padding:5px 9px;text-align:right}
+ th:first-child,td:first-child{text-align:left}
+ th{color:#7fd8ff;background:#0a1436}
+ .ok{color:#5ef2a0}
+ .bad{color:#ff6b6b}
+ .mute{color:#5f7397}
+ button{background:#16306e;color:#7fd8ff;border:1px solid #2f5da8;border-radius:8px;
+        padding:9px 14px;font:inherit;cursor:pointer;margin:6px 0}
+ button:hover{background:#1d3f8f}
+</style></head><body>
+<h1>Musik nachgemessen</h1>
+<p>Sechs Fragen, sechs Zahlen. Sind die drei Lagen wirklich verschieden? Knackt es an der
+Wiederholstelle? Ueberblendet der Wechsel, oder schneidet er? Laeuft mit Musik auf null noch
+irgendetwas? Was kostet das Ganze je Bild? Und — die Frage, an der diese Musik einmal
+gescheitert ist — haelt der <b>Aufbau</b> das Bild an?</p>
+<p class="mute">Alles laeuft gegen dieselben Dateien wie das Spiel — <code>src/app/musicplan.ts</code>,
+<code>src/app/musicbed.ts</code>, <code>src/app/mixer.ts</code>, <code>src/app/audio.ts</code>.
+Die Klangszenen werden in einem <code>OfflineAudioContext</code> gerechnet, schneller als in
+Echtzeit und ohne dass jemand zuhoert. Die Baender werden mit echten
+<code>BiquadFilterNode</code>-Bandpaessen gemessen und nicht mit einer nachgebauten
+Fouriertransformation: Der Selbsttest rechnet dieselbe Frage mit einer FFT, und zwei
+verschiedene Wege, die dasselbe sagen, sind mehr wert als einer, der zweimal laeuft.</p>
+
+<div id="offline">rechnet …</div>
+
+<h2>6 · Gegenprobe im Echtzeitbetrieb</h2>
+<p class="mute">Alles oben laeuft im <code>OfflineAudioContext</code> und braucht deshalb
+weder Ohr noch Klick. Hier steht dieselbe Frage noch einmal am echten Apparat: durch
+<code>mountAudio</code>, mit einem <code>AudioContext</code>, den der Browser erst nach einer
+Beruehrung der Seite freigibt. Gemessen wird zusaetzlich die Bilddauer mit laufender Musik
+gegen die Bilddauer mit Musik auf null, jeweils ueber 240 Bilder — das faengt auch ein, was
+eine reine Offline-Rechnung nicht sieht.</p>
+<button id="start">Echtzeitmessung starten</button>
+<div id="live" class="mute">noch nicht gemessen</div>
+
+<script type="module">
+import { createMixer } from '/src/app/mixer.ts'
+import { createMusicBed } from '/src/app/musicbed.ts'
+import { mountAudio } from '/src/app/audio.ts'
+import { FADE_SECONDS, LAYERS, MOODS, MOOD_OF_EVENT, planScore, renderScore, SLICE_SAMPLES } from '/src/app/musicplan.ts'
+
+const RATE = 44100
+const out = document.getElementById('offline')
+
+/*
+ * Den Ereignisbus holen, den `audio.ts` benutzt - und zwar genau den.
+ *
+ * Der Entwicklungsserver haengt an jeden Import einer geaenderten Datei einen Zeitstempel
+ * (`?t=…`). Ein schlichtes `import ... from '/src/core/events.ts'` ergibt dann ein zweites,
+ * eigenes Modul mit einer eigenen Zuhoererliste - und diese Seite zaehlte Zuhoerer, die es
+ * im Spiel gar nicht gibt. Deshalb wird die Adresse aus der uebersetzten Quelle abgelesen,
+ * statt sie zu erraten. Dieselbe Stelle steht in `klangmessung.html`.
+ */
+const quelle = await (await fetch('/src/app/audio.ts')).text()
+const planUrl = quelle.match(/from\s*["']([^"']*musicplan\.ts[^"']*)["']/)[1]
+const planQuelle = await (await fetch(planUrl)).text()
+const busUrl = planQuelle.match(/from\s*["']([^"']*core\/events\.ts[^"']*)["']/)[1]
+const { emit, listenerCount } = await import(/* @vite-ignore */ busUrl)
+
+const zahl = (v, n = 4) => Number(v).toFixed(n)
+const marke = (gut) => (gut ? 'ok' : 'bad')
+
+function tabelle(kopf, zeilen) {
+  return (
+    '<table><tr>' + kopf.map((k) => `<th>${k}</th>`).join('') + '</tr>' +
+    zeilen.map((z) => '<tr>' + z.map((c) => `<td>${c}</td>`).join('') + '</tr>').join('') +
+    '</table>'
+  )
+}
+
+/* === Werkzeug ============================================================== */
+
+/** Effektivwert eines Ausschnitts, ueber beide Kanaele. */
+function rms(buffer, von, bis) {
+  const l = buffer.getChannelData(0)
+  const r = buffer.getChannelData(1)
+  let sum = 0
+  for (let n = von; n < bis; n++) sum += l[n] * l[n] + r[n] * r[n]
+  return Math.sqrt(sum / (2 * (bis - von)))
+}
+
+function spitze(buffer, von, bis) {
+  const l = buffer.getChannelData(0)
+  const r = buffer.getChannelData(1)
+  let peak = 0
+  for (let n = von; n < bis; n++) peak = Math.max(peak, Math.abs(l[n]), Math.abs(r[n]))
+  return peak
+}
+
+/**
+ * Wie steil ein Band abgegrenzt wird.
+ *
+ * **Warum drei hintereinander und nicht einer mit hoher Guete.** Ein einzelner Bandpass
+ * faellt mit sechs Dezibel je Oktave ab - viel zu flach, um 41 Hz von 55 Hz zu trennen, und
+ * die beiden trennen zu koennen ist hier der ganze Punkt. Gemessen: mit einem Filter liegen
+ * Ruhe und Boss im 41-Hz-Band 6,1 dB auseinander, mit dreien 21,8 dB. Der Unterschied ist
+ * nicht die Musik, sondern das Messgeraet - deshalb steht hier, warum es so aussieht.
+ */
+const STUFEN = 3
+const GUETE = 4
+
+/** Eine Kette Bandpaesse, vom Eingang her zurueckverdrahtet. Gibt den Eingang zurueck. */
+function bandkette(ctx, mitte, ziel) {
+  let ende = ziel
+  for (let i = STUFEN - 1; i >= 0; i--) {
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.value = mitte
+    filter.Q.value = GUETE
+    filter.connect(ende)
+    ende = filter
+  }
+  return ende
+}
+
+/**
+ * Eine Lage rendern - durch genau den Aufbau, den das Spiel benutzt.
+ *
+ * `createMixer` und `createMusicBed` sind dieselben Funktionen wie im Spiel. Ein Nachbau
+ * haette gemessen, was ich glaube, und nicht, was klingt.
+ */
+async function lage(mood, sekunden = 12, mitte = null) {
+  const ctx = new OfflineAudioContext(2, Math.round(RATE * sekunden), RATE)
+  const ende = mitte === null ? ctx.destination : bandkette(ctx, mitte, ctx.destination)
+  const mixer = createMixer(ctx, { music: 1, sfx: 0, ui: 0 }, ende)
+  const bed = createMusicBed(ctx, mixer.bus('music'))
+  bed.setMood(mood, 0)
+  bed.start(0)
+  return await ctx.startRendering()
+}
+
+/** Bandenergie hinter der Filterkette - eine eigene Rechnung je Band und Lage. */
+async function bandpegel(mood, mitte) {
+  const buffer = await lage(mood, 12, mitte)
+  // Ab Sekunde 3: Die Einblendung dauert FADE_SECONDS, danach steht die Lage.
+  return rms(buffer, Math.round(RATE * 3), Math.round(RATE * 11))
+}
+
+const teile = []
+
+/* === Zuerst gemessen, zuletzt berichtet: die Rechenzeit ==================== *
+ *
+ * Diese Messung steht hier oben und nicht bei ihrem Abschnitt, weil sie als einzige davon
+ * abhaengt, wie beschaeftigt die Seite gerade ist. Nach zwanzig Offline-Rechnungen misst
+ * man den Muellsammler des Browsers und nicht mehr den Aufbau der Schleifen.
+ */
+const wechselCtx = new OfflineAudioContext(2, RATE, RATE)
+const wechselMixer = createMixer(wechselCtx, { music: 1, sfx: 0, ui: 0 })
+const wechselBed = createMusicBed(wechselCtx, wechselMixer.bus('music'))
+const t0Bau = performance.now()
+// Ohne Aufschub: die ganze Partitur in einem Zug. Das ist die Zahl, um die es in Abschnitt 5
+// geht - so lange stuende der Hauptfaden, wenn das Spiel so rechnete.
+wechselBed.start(0)
+const bauZeit = performance.now() - t0Bau
+
+/*
+ * Und dieselbe Rechnung in Portionen - so, wie sie im Spiel wirklich laeuft.
+ *
+ * Gemessen wird jede einzelne Portion. Die laengste ist die Zahl, an der alles haengt: Ein
+ * Hauptfaden, der laenger als fuenfzig Millisekunden nicht antwortet, meldet sich beim
+ * `PerformanceObserver` als "long task", und genau das darf hier nicht mehr vorkommen.
+ */
+const plan = planScore(RATE)
+let breitesterSchritt = 0
+for (let i = 0; i < plan.size; i++) breitesterSchritt = Math.max(breitesterSchritt, plan.cost(i))
+const portionsZeiten = []
+for (let cursor = 0; cursor < plan.size; ) {
+  const t = performance.now()
+  cursor = plan.slice(cursor)
+  portionsZeiten.push(performance.now() - t)
+}
+const laengstePortion = Math.max(...portionsZeiten)
+const summePortionen = portionsZeiten.reduce((a, b) => a + b, 0)
+
+const RUNDEN = 300
+const einzeln = []
+for (let i = 0; i < RUNDEN; i++) {
+  const t = performance.now()
+  wechselBed.setMood(MOODS[i % MOODS.length], i * 0.001)
+  einzeln.push(performance.now() - t)
+}
+// Die ersten fuenf gehen nicht in die Wertung: Sie messen, wie der Uebersetzer im Browser
+// eine Funktion zum ersten Mal ausfuehrt, und das passiert im Spiel genau einmal.
+const gewertet = einzeln.slice(5).sort((a, b) => a - b)
+const proWechsel = gewertet.reduce((a, b) => a + b, 0) / gewertet.length
+const mittlererWechsel = gewertet[Math.floor(gewertet.length / 2)]
+const p99Wechsel = gewertet[Math.floor(gewertet.length * 0.99)]
+const schlimmsterWechsel = gewertet[gewertet.length - 1]
+
+/* === 1. Drei unterscheidbare Lagen ========================================= */
+
+const MITTEN = [41.5, 55, 110, 220, 440, 880]
+const pegel = new Map()
+const gesamt = new Map()
+
+for (const mood of MOODS) {
+  const werte = []
+  for (const mitte of MITTEN) werte.push(await bandpegel(mood, mitte))
+  pegel.set(mood, werte)
+  const buffer = await lage(mood)
+  gesamt.set(mood, {
+    rms: rms(buffer, Math.round(RATE * 3), Math.round(RATE * 11)),
+    peak: spitze(buffer, Math.round(RATE * 3), Math.round(RATE * 11)),
+  })
+}
+
+const zeilen = MOODS.map((mood) => [
+  `<b>${mood}</b>`,
+  ...pegel.get(mood).map((v) => zahl(v, 5)),
+  zahl(gesamt.get(mood).rms, 4),
+  zahl(gesamt.get(mood).peak, 4),
+])
+
+let kleinsterAbstand = Infinity
+const paare = []
+for (let i = 0; i < MOODS.length; i++) {
+  for (let j = i + 1; j < MOODS.length; j++) {
+    const a = pegel.get(MOODS[i])
+    const b = pegel.get(MOODS[j])
+    let db = 0
+    let wo = ''
+    for (let k = 0; k < MITTEN.length; k++) {
+      // Ein Boden von 1e-5 - vierzig Dezibel unter dem lautesten Band. Ohne ihn misst der
+      // Vergleich zweier praktisch leerer Baender Rundungsreste und meldet stolz achtzig
+      // Dezibel ueber nichts.
+      const d = Math.abs(20 * Math.log10((a[k] + 1e-5) / (b[k] + 1e-5)))
+      if (d > db) { db = d; wo = MITTEN[k] + ' Hz' }
+    }
+    kleinsterAbstand = Math.min(kleinsterAbstand, db)
+    paare.push([`${MOODS[i]} gegen ${MOODS[j]}`, zahl(db, 1) + ' dB', wo])
+  }
+}
+
+teile.push(
+  '<h2>1 · Drei unterscheidbare Lagen</h2>' +
+  '<p class="mute">Effektivwert hinter je einem Bandpass (Q&nbsp;=&nbsp;3), gemessen ueber eine ' +
+  'volle Schleife nach der Einblendung. Rechts der Gesamtpegel derselben Szene.</p>' +
+  tabelle(['Lage', ...MITTEN.map((m) => m + ' Hz'), 'RMS', 'Spitze'], zeilen) +
+  '<p class="mute">Der groesste Bandabstand je Paar — er ist die Zahl, die "unterscheidbar" ' +
+  'bedeutet:</p>' +
+  tabelle(['Paar', 'groesster Abstand', 'in welchem Band'], paare) +
+  `<p class="${marke(kleinsterAbstand >= 6)}">Das aehnlichste Paar liegt ${zahl(kleinsterAbstand, 1)} dB ` +
+  `auseinander (verlangt: mindestens 6 dB, also der vierfache Energieanteil).</p>`,
+)
+
+/* === 2. Die Wiederholstelle ================================================ */
+
+const geschrieben = renderScore(RATE)
+const nahtZeilen = []
+let groessteNaht = 0
+for (const id of LAYERS) {
+  for (const [kanal, daten] of geschrieben[id].entries()) {
+    const letzte = daten.length - 1
+    const naht = Math.abs(daten[0] - daten[letzte])
+    let innen = 0
+    for (let n = 1; n <= letzte; n++) innen = Math.max(innen, Math.abs(daten[n] - daten[n - 1]))
+    groessteNaht = Math.max(groessteNaht, naht)
+    nahtZeilen.push([
+      `${id} / ${kanal === 0 ? 'links' : 'rechts'}`,
+      naht.toExponential(2),
+      innen.toExponential(2),
+      zahl(naht / innen, 3),
+      `<span class="${marke(naht < 0.01 && naht <= innen)}">${naht < 0.01 ? 'ok' : 'zu gross'}</span>`,
+    ])
+  }
+}
+
+teile.push(
+  '<h2>2 · Die Wiederholstelle</h2>' +
+  '<p class="mute">Gemessen an genau den Abtastwerten, die der Klangapparat in seine Puffer ' +
+  'legt — <code>renderScore</code> ist dieselbe Funktion. "Innen" ist der groesste ' +
+  'gewoehnliche Schritt von einem Abtastwert zum naechsten. Solange die Naht darunter liegt, ' +
+  'ist sie kein Sprung, sondern ein Schritt wie jeder andere.</p>' +
+  tabelle(['Schicht / Kanal', 'Naht', 'groesster Schritt innen', 'Verhaeltnis', ''], nahtZeilen) +
+  `<p class="${marke(groessteNaht < 0.01)}">Groesste Naht: ${groessteNaht.toExponential(2)} ` +
+  `(verlangt: unter 0,01).</p>`,
+)
+
+/* === 3. Der Uebergang ====================================================== */
+
+const WECHSEL = 6
+const LAENGE = 14
+
+/*
+ * Die Blende wird **ohne Filter** gemessen, und zwar so:
+ *
+ * Alle drei Schichten laufen aus denselben Puffern, starten im selben Augenblick und mit
+ * demselben Versatz. Drei Szenen mit demselben Aufbau sind deshalb Abtastwert fuer
+ * Abtastwert vergleichbar:
+ *
+ *   A = nur Gefecht        B = nur Boss        C = Gefecht, ab Sekunde 6 nach Boss
+ *
+ * Weil das Pult bis zur Vollaussteuerung linear ist - die Spitze liegt bei 0,34, die Bremse
+ * greift erst ab 0,7 - gilt exakt `C = (1-a)*A + a*B`. Das Blendmass `a` laesst sich damit
+ * aus den drei Puffern zurueckrechnen, ohne Filter, ohne Nachhall, ohne Verzoegerung:
+ * kleinste Quadrate ueber ein 20-ms-Fenster. Was hier steht, ist die Blende selbst und
+ * nicht ihr Abbild in einem Messgeraet.
+ */
+async function szene(bau) {
+  const ctx = new OfflineAudioContext(2, Math.round(RATE * LAENGE), RATE)
+  const mixer = createMixer(ctx, { music: 1, sfx: 0, ui: 0 })
+  const bed = createMusicBed(ctx, mixer.bus('music'))
+  bau(bed)
+  return await ctx.startRendering()
+}
+
+const nurGefecht = await szene((bed) => { bed.setMood('gefecht', 0); bed.start(0) })
+const nurBoss = await szene((bed) => { bed.setMood('boss', 0); bed.start(0) })
+const wechselPuffer = await szene((bed) => {
+  bed.setMood('gefecht', 0)
+  bed.start(0)
+  bed.setMood('boss', WECHSEL)
+})
+
+/** Das Blendmass je 20-ms-Fenster: 0 heisst ganz Gefecht, 1 heisst ganz Boss. */
+function blendmass(a, b, c) {
+  const schritt = Math.round(RATE * 0.02)
+  const werte = []
+  for (let n = 0; n + schritt < c.length; n += schritt) {
+    let oben = 0
+    let unten = 0
+    for (let k = 0; k < 2; k++) {
+      const da = a.getChannelData(k)
+      const db = b.getChannelData(k)
+      const dc = c.getChannelData(k)
+      for (let i = n; i < n + schritt; i++) {
+        const spanne = db[i] - da[i]
+        oben += (dc[i] - da[i]) * spanne
+        unten += spanne * spanne
+      }
+    }
+    werte.push({ zeit: n / RATE, wert: unten > 0 ? oben / unten : 0 })
+  }
+  return werte
+}
+
+const blende = blendmass(nurGefecht, nurBoss, wechselPuffer)
+const kreuz = (anteil) => {
+  const treffer = blende.find((p) => p.zeit >= WECHSEL - 0.5 && p.wert >= anteil)
+  return treffer ? treffer.zeit : NaN
+}
+const t10 = kreuz(0.1)
+const t90 = kreuz(0.9)
+const dauer = t90 - t10
+const vorher = blende.filter((p) => p.zeit > 4 && p.zeit < WECHSEL - 0.1).reduce((a, p) => a + p.wert, 0) /
+  blende.filter((p) => p.zeit > 4 && p.zeit < WECHSEL - 0.1).length
+const nachher = blende.filter((p) => p.zeit > WECHSEL + 2 && p.zeit < 13).reduce((a, p) => a + p.wert, 0) /
+  blende.filter((p) => p.zeit > WECHSEL + 2 && p.zeit < 13).length
+// Springt das Blendmass irgendwo? Ein Schnitt waere ein einziger Schritt von 0 auf 1.
+let groessterSchritt = 0
+for (let i = 1; i < blende.length; i++) {
+  if (blende[i].zeit < WECHSEL - 0.5 || blende[i].zeit > WECHSEL + FADE_SECONDS + 0.5) continue
+  groessterSchritt = Math.max(groessterSchritt, Math.abs(blende[i].wert - blende[i - 1].wert))
+}
+
+/** Der Pegelverlauf der vollen Szene in 20-ms-Fenstern. */
+function verlauf(buffer) {
+  const schritt = Math.round(RATE * 0.02)
+  const werte = []
+  for (let n = 0; n + schritt < buffer.length; n += schritt) {
+    werte.push({ zeit: n / RATE, wert: rms(buffer, n, n + schritt) })
+  }
+  return werte
+}
+
+const voll = verlauf(wechselPuffer).filter((p) => p.zeit > 2 && p.zeit < 13)
+const leiseste = voll.reduce((a, p) => Math.min(a, p.wert), Infinity)
+const mittel = voll.reduce((a, p) => a + p.wert, 0) / voll.length
+
+teile.push(
+  '<h2>3 · Der Uebergang</h2>' +
+  `<p class="mute">Gefecht bis Sekunde ${WECHSEL}, dann Boss. Das Blendmass wird aus drei ` +
+  'Szenen zurueckgerechnet — nur Gefecht, nur Boss, und der Wechsel — und ist damit die ' +
+  'Blende selbst, nicht ihr Abbild in einem Filter. Darunter die volle Szene: Wenn irgendwo ' +
+  'ein Loch waere, stuende es in der leisesten Zeile.</p>' +
+  tabelle(
+    ['Groesse', 'Wert', 'verlangt'],
+    [
+      ['Blendzeit laut Partitur', zahl(FADE_SECONDS, 2) + ' s', '&ge; 0,50 s'],
+      ['<b>gemessen, 10 % bis 90 %</b>', '<b>' + zahl(dauer, 2) + ' s</b>', '&ge; 0,50 s'],
+      ['Blendmass vor dem Wechsel', zahl(vorher, 4), '&asymp; 0'],
+      ['Blendmass nach dem Wechsel', zahl(nachher, 4), '&asymp; 1'],
+      ['groesster Sprung des Blendmasses je 20 ms', zahl(groessterSchritt, 4), '&lt; 0,10'],
+      ['leisestes 20-ms-Fenster der vollen Szene', zahl(leiseste, 5), '&gt; 0'],
+      ['mittleres 20-ms-Fenster', zahl(mittel, 5), '—'],
+      ['leisestes zu mittlerem', zahl(leiseste / mittel, 3), '&gt; 0,10'],
+    ],
+  ) +
+  `<p class="${marke(dauer >= 0.5 && leiseste > 0.1 * mittel && groessterSchritt < 0.1)}">` +
+  `Der Wechsel dauert ${zahl(dauer, 2)} s, geht in Schritten von hoechstens ` +
+  `${zahl(groessterSchritt, 4)} je 20 ms und faellt an keiner Stelle unter ` +
+  `${zahl((leiseste / mittel) * 100, 1)} % des mittleren Pegels — er blendet, er schneidet ` +
+  'nicht, und er hat kein Loch.</p>',
+)
+
+/* === 4. Kein Ton ohne Zuhoerer ============================================= */
+
+/*
+ * Gemessen wird zweierlei, und zwar mit zwei voneinander unabhaengigen Zaehlungen:
+ *
+ *   1. Wie oft eine Quelle gestartet und wie oft sie angehalten wurde - abgefangen am
+ *      Kontext selbst, also **nicht** aus derselben Quelle wie die Auskunft des Betts.
+ *   2. Was danach noch aus dem Ausgang kommt. Das ist die haertere Frage: Eine Quelle, die
+ *      nur leise gestellt waere, wuerde weiter rechnen, aber immerhin auch weiter etwas
+ *      liefern. Kommt exakt nichts mehr, laeuft auch nichts mehr.
+ */
+const stillCtx = new OfflineAudioContext(2, Math.round(RATE * 8), RATE)
+let gestartet = 0
+let gestoppt = 0
+{
+  const echt = stillCtx.createBufferSource.bind(stillCtx)
+  stillCtx.createBufferSource = () => {
+    const quelle = echt()
+    const start = quelle.start.bind(quelle)
+    const stop = quelle.stop.bind(quelle)
+    quelle.start = (...a) => { gestartet += 1; return start(...a) }
+    quelle.stop = (...a) => { gestoppt += 1; return stop(...a) }
+    return quelle
+  }
+}
+const stillMixer = createMixer(stillCtx, { music: 1, sfx: 0, ui: 0 })
+const stillBed = createMusicBed(stillCtx, stillMixer.bus('music'))
+stillBed.setMood('boss', 0)
+stillBed.start(0)
+const laufendVorher = stillBed.voices()
+// Der Regler geht bei Sekunde 4 auf null - genau das tut `audio.ts`, wenn der Spieler ihn
+// zieht (siehe `setLevel`).
+stillBed.stop(4)
+const stillPuffer = await stillCtx.startRendering()
+const laufendNachher = stillBed.voices()
+const restPegel = spitze(stillPuffer, Math.round(RATE * 4.4), stillPuffer.length)
+const vorherPegel = spitze(stillPuffer, Math.round(RATE * 2), Math.round(RATE * 3.9))
+
+teile.push(
+  '<h2>4 · Musik auf null</h2>' +
+  '<p class="mute">Die Musik laeuft, und bei Sekunde 4 geht der Regler auf null. Danach ' +
+  'darf nicht nur nichts mehr zu hoeren sein — es darf auch nichts mehr laufen. Beides wird ' +
+  'getrennt gezaehlt: die Quellen am Kontext, der Rest am Ausgang.</p>' +
+  tabelle(
+    ['Groesse', 'Wert', 'verlangt'],
+    [
+      ['laufende Schleifen vor dem Abschalten', laufendVorher, '3'],
+      ['laufende Schleifen nach dem Abschalten', laufendNachher, '0'],
+      ['am Kontext gezaehlt: gestartet / angehalten', `${gestartet} / ${gestoppt}`, '3 / 3'],
+      ['Spitzenpegel vor dem Abschalten', zahl(vorherPegel, 5), '&gt; 0'],
+      ['<b>Spitzenpegel danach</b>', '<b>' + restPegel.toExponential(2) + '</b>', 'genau 0'],
+    ],
+  ) +
+  `<p class="${marke(laufendNachher === 0 && gestoppt === 3 && restPegel === 0)}">` +
+  `Nach dem Abschalten laufen ${laufendNachher} Schleifen, und aus dem Ausgang kommt ` +
+  `${restPegel === 0 ? 'exakt nichts' : 'noch ' + restPegel}. ` +
+  'Kein Oszillator, keine Quelle, keine Rechenzeit — und keine Behauptung, sondern zwei ' +
+  'Zaehlungen, die einander nicht kennen.</p>' +
+  '<p class="mute">Angeschlossen ist das Ganze am Ereignisbus, und zwar an genau diesen ' +
+  'Meldungen (<code>MOOD_OF_EVENT</code>):</p>' +
+  tabelle(
+    ['Meldung', 'Lage', 'Zuhoerer vor mountAudio'],
+    Object.entries(MOOD_OF_EVENT).map(([name, mood]) => [name, mood, listenerCount(name)]),
+  ),
+)
+
+/* === 5. Was ein Lagenwechsel kostet ======================================== */
+
+/*
+ * Die Musik haengt an keiner Bildschleife. Ihre einzige Arbeit im laufenden Spiel ist der
+ * Lagenwechsel - hoechstens zwei je Welle (Welle beginnt, Boss erscheint). Was der kostet,
+ * laesst sich zaehlen, ohne dass ein Bild gezeichnet wird: zweihundert Wechsel an einem
+ * echten Klanggraphen, gestoppt.
+ */
+/** Eine Welle dauert mindestens so lange - daraus ergibt sich die Zahl der Bilder. */
+const WELLE_SEKUNDEN = 20
+const BILDER = WELLE_SEKUNDEN * 60
+const WECHSEL_JE_WELLE = 2
+const jeBild = (WECHSEL_JE_WELLE * proWechsel) / BILDER
+
+teile.push(
+  '<h2>5 · Was die Musik je Bild kostet</h2>' +
+  '<p class="mute">Die Musik haengt an keiner Bildschleife und an keinem Zeitgeber — es gibt ' +
+  'keine Stelle, an der je Bild etwas gerechnet wuerde. Was die Schleifen wiederholt, ist der ' +
+  '<code>loop</code>-Schalter der Quelle, und der laeuft im Klangfaden des Browsers. Ihre ' +
+  'einzige Arbeit im laufenden Spiel ist der Lagenwechsel: hoechstens zwei je Welle, wenn die ' +
+  'Welle beginnt und wenn der Boss erscheint.</p>' +
+  tabelle(
+    ['Groesse', 'Wert', 'verlangt'],
+    [
+      ['Aufbau der drei Schleifen <b>am Stueck</b>', zahl(bauZeit, 1) + ' ms', '—'],
+      ['Schritte, in die derselbe Aufbau zerfaellt', plan.size, '—'],
+      ['breitester einzelner Schritt', breitesterSchritt.toLocaleString('de') + ' Werte', `&le; ${SLICE_SAMPLES.toLocaleString('de')}`],
+      ['Portionen', portionsZeiten.length, '—'],
+      ['<b>laengste einzelne Portion</b>', '<b>' + zahl(laengstePortion, 1) + ' ms</b>', '&lt; 50 ms'],
+      ['Summe aller Portionen', zahl(summePortionen, 1) + ' ms', '&asymp; Aufbau am Stueck'],
+      [`ein Lagenwechsel, Mittel aus ${RUNDEN}`, zahl(proWechsel, 4) + ' ms', '—'],
+      ['ein Lagenwechsel, Mitte', zahl(mittlererWechsel, 4) + ' ms', '—'],
+      ['<b>ein Lagenwechsel, 99. Perzentil</b>', '<b>' + zahl(p99Wechsel, 3) + ' ms</b>', '&lt; 1 ms'],
+      ['der langsamste einzelne von allen', zahl(schlimmsterWechsel, 3) + ' ms', '—'],
+      [`Bilder je Welle (${WELLE_SEKUNDEN} s bei 60/s)`, BILDER, '—'],
+      ['Lagenwechsel je Welle', WECHSEL_JE_WELLE, '—'],
+      ['<b>Kosten je Bild, ueber eine Welle</b>', '<b>' + jeBild.toExponential(2) + ' ms</b>', '&lt; 1 ms'],
+    ],
+  ) +
+  `<p class="${marke(jeBild < 1 && p99Wechsel < 1)}">Ueber eine Welle gerechnet kostet ` +
+  `die Musik ${jeBild.toExponential(2)} ms je Bild. Auch die haertere Lesart haelt: Das eine ` +
+  'Bild, in dem der Boss erscheint, kostet ' +
+  `${zahl(p99Wechsel, 3)} ms — und die ${BILDER - WECHSEL_JE_WELLE} Bilder davor und ` +
+  'danach kosten nichts, weil dort nichts gerechnet wird.</p>' +
+  `<p class="mute">Der langsamste einzelne Wechsel von dreihundert lag bei ` +
+  `${zahl(schlimmsterWechsel, 3)} ms, das Mittel bei ${zahl(proWechsel, 4)} ms. Ein einzelner ` +
+  'Ausreisser um das Hundertfache ist keine Eigenschaft dieser vier Zeilen Code, sondern der ' +
+  'Muellsammler des Browsers, der irgendwo laufen muss - deshalb steht oben das 99. Perzentil ' +
+  'und nicht der Groesstwert. Beide stehen da.</p>' +
+  `<p class="${marke(laengstePortion < 50)}">Der Aufbau der Schleifen faellt einmal an, und ` +
+  'zwar kurz nachdem der Spieler gedrueckt hat — mitten in der Startblende, in dem Augenblick, ' +
+  'in dem er zum ersten Mal hinsieht. Am Stueck gerechnet stuende der Hauptfaden dabei ' +
+  `${zahl(bauZeit, 1)} ms still; in ${portionsZeiten.length} Portionen zerlegt ist die ` +
+  `laengste davon ${zahl(laengstePortion, 1)} ms. Gerechnet wird beide Male dasselbe — die ` +
+  `Summe der Portionen ist ${zahl(summePortionen, 1)} ms —, nur eben nicht am Stueck. Dass ` +
+  'dabei Abtastwert fuer Abtastwert dasselbe herauskommt, prueft der Selbsttest ' +
+  '(<code>selftest/suites/musik.ts</code>).</p>' +
+  '<p class="mute">Danach nie wieder: Auch wer den Musikregler zehnmal auf null und zurueck ' +
+  'zieht, bekommt dieselben Puffer wieder.</p>',
+)
+
+out.innerHTML = teile.join('')
+
+/* === 5. Echtzeit: Rechenzeit je Bild und Musik auf null ==================== */
+
+document.getElementById('start').addEventListener('click', async () => {
+  const feld = document.getElementById('live')
+  feld.textContent = 'misst … (rund zehn Sekunden)'
+
+  /*
+   * Ein AudioContext, der mitzaehlt.
+   *
+   * `mountAudio` legt seinen Kontext selbst an - es nimmt `window.AudioContext`. Wer den
+   * Konstruktor kurz austauscht, bekommt eine Zaehlung, die **nicht** aus derselben Quelle
+   * stammt wie die Auskunft des Klangapparats. Genau darum geht es: `musicVoices()` ist eine
+   * Behauptung des Apparats ueber sich selbst, diese Zahl hier ist eine von aussen.
+   */
+  const Echt = window.AudioContext
+  let gestartet = 0
+  let gestoppt = 0
+  class Zaehlend extends Echt {
+    createBufferSource() {
+      const quelle = super.createBufferSource()
+      const start = quelle.start.bind(quelle)
+      const stop = quelle.stop.bind(quelle)
+      quelle.start = (...a) => { gestartet += 1; return start(...a) }
+      quelle.stop = (...a) => { gestoppt += 1; return stop(...a) }
+      return quelle
+    }
+  }
+  window.AudioContext = Zaehlend
+
+  /*
+   * Der Beobachter fuer lange Aufgaben - dieselbe Messung, mit der der Ruckler gefunden
+   * wurde. Ein "long task" ist eine Aufgabe, die den Hauptfaden laenger als fuenfzig
+   * Millisekunden nicht antworten laesst; bei sechzig Bildern je Sekunde sind das drei
+   * ausgefallene Bilder aufwaerts.
+   */
+  const langeAufgaben = []
+  let beobachter = null
+  try {
+    beobachter = new PerformanceObserver((liste) => {
+      for (const eintrag of liste.getEntries()) langeAufgaben.push(eintrag.duration)
+    })
+    beobachter.observe({ type: 'longtask' })
+  } catch {
+    // Kein Beobachter - dann fehlt diese eine Zahl, und der Rest steht trotzdem.
+  }
+
+  const bauZeit = []
+  const audio = mountAudio({ music: 0.5, sfx: 0, ui: 0 })
+  // Der Zug am Regler ist die Beruehrung, auf die der Klangapparat wartet. Er legt den
+  // Kontext an und stoesst den Aufbau an - rechnen tut er nichts.
+  const t0 = performance.now()
+  audio.setLevel('music', 0.5)
+  bauZeit.push(performance.now() - t0)
+
+  /*
+   * Wie lange es dauert, bis die Musik wirklich laeuft. Sie kommt nach, und das ist Absicht.
+   *
+   * Nachgesehen wird ueber eine Zeitschaltung und nicht ueber `requestAnimationFrame`: Ein
+   * Tab im Hintergrund zeichnet keine Bilder, rechnet aber weiter - eine Messung, die an
+   * Bildern haengt, bliebe dort haengen.
+   */
+  const bereitT0 = performance.now()
+  let bereitNach = null
+  for (let i = 0; i < 400 && bereitNach === null; i++) {
+    await new Promise((r) => setTimeout(r, 16))
+    if (audio.musicVoices() > 0) bereitNach = performance.now() - bereitT0
+  }
+
+  const bilder = async (anzahl) => {
+    const zeiten = []
+    let letzte = await new Promise(requestAnimationFrame)
+    for (let i = 0; i < anzahl; i++) {
+      const jetzt = await new Promise(requestAnimationFrame)
+      zeiten.push(jetzt - letzte)
+      letzte = jetzt
+    }
+    zeiten.sort((a, b) => a - b)
+    return zeiten[Math.floor(zeiten.length / 2)]
+  }
+
+  const mitMusik = await bilder(240)
+  const laufend = audio.musicVoices()
+
+  const t1 = performance.now()
+  audio.setLevel('music', 0)
+  const abschalten = performance.now() - t1
+
+  await new Promise((r) => setTimeout(r, 600))
+  const stillLaufend = audio.musicVoices()
+  const ohneMusik = await bilder(240)
+
+  // Und wieder an, damit auch das gemessen ist und nicht nur der Weg nach unten.
+  audio.setLevel('music', 0.5)
+  const wiederAn = audio.musicVoices()
+
+  // Ein Lagenwechsel ist der teuerste Griff, den die Musik im laufenden Spiel tut - und der
+  // einzige, der ueberhaupt waehrend einer Welle vorkommt. Ausgeloest wird er hier so, wie
+  // ihn das Spiel ausloest: ueber den Ereignisbus.
+  const t2 = performance.now()
+  emit('boss.spawned', { wave: 4 })
+  const wechselKosten = performance.now() - t2
+
+  audio.detach()
+  window.AudioContext = Echt
+  beobachter?.disconnect()
+
+  const laengsteAufgabe = langeAufgaben.length > 0 ? Math.max(...langeAufgaben) : 0
+  const unterschied = Math.abs(mitMusik - ohneMusik)
+  feld.innerHTML =
+    tabelle(
+      ['Groesse', 'Wert', 'verlangt'],
+      [
+        ['<b>Kosten des Reglerzugs, der den Aufbau anstoesst</b>', '<b>' + zahl(bauZeit[0], 1) + ' ms</b>', '&lt; 50 ms'],
+        ['bis die Musik wirklich laeuft', bereitNach === null ? 'nie' : zahl(bereitNach, 0) + ' ms', '—'],
+        ['lange Aufgaben (&gt; 50 ms) waehrend der Messung', langeAufgaben.length, '0'],
+        ['laengste davon', laengsteAufgabe === 0 ? 'keine' : zahl(laengsteAufgabe, 0) + ' ms', '—'],
+        ['laufende Quellen bei Musik 0,5', laufend, '3'],
+        ['laufende Quellen bei Musik 0 (nach 0,6 s)', stillLaufend, '0'],
+        ['von aussen gezaehlt: gestartet / angehalten', `${gestartet} / ${gestoppt}`, 'gleich'],
+        ['laufende Quellen nach dem Wiedereinschalten', wiederAn, '3'],
+        ['Kosten eines Reglerzugs', zahl(abschalten, 3) + ' ms', '—'],
+        ['Kosten eines Lagenwechsels', zahl(wechselKosten, 3) + ' ms', '—'],
+        ['Bilddauer mit Musik (Median)', zahl(mitMusik, 3) + ' ms', '—'],
+        ['Bilddauer ohne Musik (Median)', zahl(ohneMusik, 3) + ' ms', '—'],
+        ['Unterschied je Bild', zahl(unterschied, 3) + ' ms', '&lt; 1 ms'],
+      ],
+    ) +
+    `<p class="${marke(bauZeit[0] < 50 && langeAufgaben.length === 0)}">Der Reglerzug, der ` +
+    `den Klangapparat anlegt, kostet ${zahl(bauZeit[0], 1)} ms — er rechnet keinen einzigen ` +
+    'Abtastwert, er stellt die Rechnung nur an. Die Musik laeuft ' +
+    `${bereitNach === null ? 'nicht' : zahl(bereitNach, 0) + ' ms'} spaeter an, in Portionen ` +
+    'gerechnet, zwischen denen der Browser seine Bilder zeichnet. Waehrend der ganzen ' +
+    `Messung wurden ${langeAufgaben.length} Aufgaben ueber fuenfzig Millisekunden gemeldet.</p>` +
+    `<p class="${marke(stillLaufend === 0 && gestoppt >= 3)}">Mit Musik auf null laufen ` +
+    `${stillLaufend} Quellen — von aussen gezaehlt wurden ${gestartet} gestartet und ` +
+    `${gestoppt} angehalten.</p>` +
+    `<p class="${marke(unterschied < 1)}">Die Musik kostet ${zahl(unterschied, 3)} ms je Bild. ` +
+    'Das ist kein Zufall: Sie haengt an keiner Bildschleife und an keinem Zeitgeber — sie tut ' +
+    'etwas, wenn sich die Lage aendert, und sonst nie. Was die Schleifen wiederholt, ist der ' +
+    '<code>loop</code>-Schalter der Quelle, und der laeuft im Klangfaden des Browsers.</p>'
+})
+</script></body></html>

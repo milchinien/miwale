@@ -1,0 +1,6 @@
+# Die Spielbundles in public/games sind fertige Build-Ergebnisse. Ihre
+# Pruefsummen stehen in manifest.json und werden von tools/check-games.mjs
+# geprueft. Wuerde Git dort Zeilenenden umschreiben, passten die Pruefsummen
+# nicht mehr und die CI schluege fehl — auf Windows anders als auf Linux.
+# Darum: unveraendert lassen.
+public/games/** -text

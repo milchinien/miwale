@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>WAVEBREAKER</title>
+    <script type="module" crossorigin src="./assets/index-CS4yw8eT.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BRmlt_cF.css">
+  </head>
+  <body>
+    <!--
+      Zwei Zonen, keine schwebende Vollbildflaeche: oben das Spielfeld, unten die Leiste.
+      Das Canvas fuellt genau das Feld - deshalb sitzt die Station immer in der Mitte des
+      sichtbaren Ausschnitts und nicht hinter den Panels (GDD 13 Abschnitt 4).
+    -->
+    <div id="app">
+      <section id="field">
+        <canvas id="stage"></canvas>
+        <div id="overlay"></div>
+      </section>
+      <footer id="dock"></footer>
+    </div>
+  </body>
+</html>

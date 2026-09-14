@@ -7,6 +7,7 @@ COPY ["miwale Portfolio Mobil.dc.html", "/usr/share/nginx/html/miwale Portfolio 
 COPY support.js /usr/share/nginx/html/support.js
 COPY _ds /usr/share/nginx/html/_ds
 COPY assets /usr/share/nginx/html/assets
+COPY public /usr/share/nginx/html
 
 EXPOSE 8080
 

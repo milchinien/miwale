@@ -260,3 +260,14 @@ der Startseite, auf Desktop und Mobil. Die Zuordnung steht im Feld `preview`;
 `shot` und `shots` behalten die bisherigen Detailbilder. Unter
 `assets/games/previews/` liegen die PNG-Originale, kompakte JPEG-Webdateien
 und die vollst?ndigen Generierungsprompts in `prompts.md`.
+
+
+## Eingebettete Spiele aktualisieren
+
+Wavebreaker, Chromatic, Runecall und Harmonics werden als gepr?fte Produktionspakete aus `public/games/` gemeinsam mit dem Portfolio ausgeliefert. Die iframe-Ansicht und ?In neuem Tab ?ffnen? verwenden dieselbe Fassung. Dropfall bleibt unver?ndert extern. Der Vollbildschalter sitzt in der Kopfzeile, nicht ?ber dem Spiel.
+
+Nach ?nderungen in den benachbarten Spiel-Repositories `npm run games:sync` ausf?hren. Das baut alle vier Spiele und ersetzt ihre Pakete einschlie?lich ?ffentlicher Symbole, Texturen und Sounds. `public/games/manifest.json` enth?lt Pr?fsummen; `npm run check:games` erkennt unvollst?ndige oder ver?nderte Pakete. Die Pakete werden mit versioniert, damit ein Portfolio-Deployment keine lokalen Nachbar-Repositories voraussetzt.
+
+`npm run build` erstellt die vollst?ndige statische Seite in `dist/`, einschlie?lich beider Portfolio-Fassungen und aller Spiele. Der Docker-Build kopiert dieselben Dateien. Spielst?nde der externen GitHub-Pages-Adressen liegen auf einer anderen Origin und werden nicht automatisch ?bernommen.
+
+Die Sortierung verwendet ein gestaltetes Disclosure-Dropdown: Auswahl per Klick oder Touch, Pfeiltasten/Home/End zum Navigieren und Escape zum Schlie?en. Tab und Klick au?erhalb schlie?en die Liste ebenfalls.

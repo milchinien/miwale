@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Klang nachgemessen</title>
+<style>
+ body{background:#070a18;color:#cfe4ff;font:14px/1.55 ui-monospace,monospace;padding:26px;max-width:940px;margin:auto}
+ h1{color:#46c8ff;font-size:19px;letter-spacing:.08em}
+ h2{color:#7fd8ff;font-size:15px;margin-top:26px}
+ p{color:#8fa6c8}
+ table{border-collapse:collapse;margin:10px 0;width:100%}
+ td,th{border:1px solid #1d3566;padding:5px 9px;text-align:right}
+ th:first-child,td:first-child{text-align:left}
+ th{color:#7fd8ff;background:#0a1436}
+ .ok{color:#5ef2a0}
+ .bad{color:#ff6b6b}
+ .mute{color:#5f7397}
+ pre{white-space:pre-wrap}
+</style></head><body>
+<h1>Klang nachgemessen</h1>
+<p>Vier Fragen, vier Zahlen: Wie viele Ereignisse haben einen Zuhoerer? Haelt die
+Wiederholsperre auch am laufenden Klangapparat? Wie hoch steigt der Pegel in einer dichten
+Sekunde? Und bleibt die Bedienung unter dem, was sie quittiert?</p>
+<p class="mute">Die letzte Frage wird an der <b>Lautheit</b> gemessen und nicht am Pegel. Der
+Unterschied ist nicht akademisch: Alle 56 Aufnahmen sind auf dieselbe Spitze ausgesteuert
+(0,89), also sagt ein Vergleich zweier <code>gain</code>-Werte ueber die Lautstaerke nichts —
+er hat diese Zusage gruen gemeldet, waehrend sie gebrochen war.</p>
+<p class="mute">Alles laeuft gegen dieselben Dateien wie das Spiel — <code>src/core/events.ts</code>,
+<code>src/app/soundplan.ts</code>, <code>src/app/audio.ts</code>, <code>src/app/mixer.ts</code>.
+Die Pegel werden in einem <code>OfflineAudioContext</code> gerechnet, schneller als in
+Echtzeit und ohne dass jemand zuhoert.</p>
+<div id="out">rechnet … (rund zehn Sekunden, die Sperren wollen in Echtzeit gemessen werden)</div>
+
+<script type="module">
+import { mountAudio } from '/src/app/audio.ts'
+import { createMixer } from '/src/app/mixer.ts'
+import { SOUND_PLAN, SILENT_EVENTS, THROTTLE, LOUDNESS, SAMPLES, busOfCue } from '/src/app/soundplan.ts'
+
+const out = document.getElementById('out')
+
+/*
+ * Den Ereignisbus holen, den `audio.ts` benutzt - und zwar genau den.
+ *
+ * Der Entwicklungsserver haengt an jeden Import einer geaenderten Datei einen Zeitstempel
+ * (`?t=…`). Ein schlichtes `import ... from '/src/core/events.ts'` ergibt dann ein zweites,
+ * eigenes Modul mit einer eigenen Zuhoererliste - und die Meldungen dieser Seite kaemen bei
+ * niemandem an. Deshalb wird die Adresse aus der uebersetzten Quelle abgelesen, statt sie zu
+ * erraten.
+ *
+ * Ueber zwei Ecken, und das ist kein Umweg, sondern die Bauart: `audio.ts` haengt sich nicht
+ * mehr selbst an den Bus, sondern ueberlaesst das dem Klangplan - sein einziger Verweis auf
+ * `core/events.ts` ist ein Typ, und Typen sind nach dem Uebersetzen verschwunden. Der Weg
+ * zum Bus fuehrt also ueber `soundplan.ts`, genau wie im Spiel.
+ */
+async function importiert(url, teil) {
+  const text = await (await fetch(url)).text()
+  const treffer = text.match(new RegExp(`from\\s*["']([^"']*${teil}[^"']*)["']`))
+  if (!treffer) throw new Error(`${url} importiert kein ${teil}`)
+  return treffer[1]
+}
+const planUrl = await importiert('/src/app/audio.ts', 'soundplan\\.ts')
+const busUrl = await importiert(planUrl, 'core/events\\.ts')
+const { emit, listenerCount, EVENT_NAMES } = await import(/* @vite-ignore */ busUrl)
+
+const RATE = 44100
+const lines = []
+const f = (x) => x.toFixed(4)
+const db = (x) => (20 * Math.log10(Math.max(x, 1e-9))).toFixed(2)
+
+/** Alle Klaenge des Plans, den kritischen Schuss eingeschlossen. */
+const alleCues = Object.entries(SOUND_PLAN).flatMap(([name, entry]) =>
+  typeof entry === 'function'
+    ? [
+        { name, cue: entry({ uid: 'x', defId: 'x', crit: false }) },
+        { name, cue: entry({ uid: 'x', defId: 'x', crit: true }) },
+      ]
+    : [{ name, cue: entry }],
+)
+
+async function run() {
+  /* === (a) Wie viele Ereignisse haben einen Zuhoerer? ======================= */
+
+  // Gezaehlt wird nicht die Tabelle, sondern was nach `mountAudio` wirklich am Bus haengt.
+  const vorher = new Map(EVENT_NAMES.map((name) => [name, listenerCount(name)]))
+  const audio = mountAudio({ music: 0.5, sfx: 0.5, ui: 0.5 })
+
+  let gehoert = 0
+  const stumm = []
+  for (const name of EVENT_NAMES) {
+    if (listenerCount(name) - vorher.get(name) > 0) gehoert += 1
+    else stumm.push(name)
+  }
+  const stummOhneGrund = stumm.filter((name) => !(name in SILENT_EVENTS))
+
+  lines.push('<h2>(a) Abdeckung: Zuhoerer je Ereignistyp</h2>')
+  lines.push(`<pre>Ereignistypen in core/events.ts        ${EVENT_NAMES.length}
+davon mit Zuhoerer                     <b class="${gehoert >= 38 ? 'ok' : 'bad'}">${gehoert}</b>
+davon begruendet stumm                 ${stumm.length}
+davon stumm <b>ohne</b> Begruendung           <span class="${stummOhneGrund.length === 0 ? 'ok' : 'bad'}">${stummOhneGrund.length}${stummOhneGrund.length ? ': ' + stummOhneGrund.join(', ') : ''}</span></pre>`)
+  lines.push('<p class="mute">Stumm und begruendet: ' + stumm.join(', ') + '</p>')
+
+  /* === (b) Haelt die Sperre am laufenden Apparat? =========================== */
+
+  /*
+   * Hier wird nicht die Sperre allein geprueft, sondern der ganze Weg: Ereignis, Plan,
+   * Sperre, Klangapparat. Gezaehlt werden die Knoten, die der Apparat wirklich baut - eine
+   * Stimme, die nicht entsteht, ist ein Ton, den niemand hoert.
+   *
+   * Die Meldungen muessen ueber eine echte Sekunde verteilt werden: Die Uhr des
+   * Klangapparats laeuft in Echtzeit, und hundert Meldungen in derselben Millisekunde waeren
+   * fuer sie derselbe Augenblick - die Sperre liesse genau eine durch, und die Messung
+   * haette nichts gezeigt ausser sich selbst.
+   */
+  const zaehler = { bufferSource: 0, oscillator: 0 }
+  const P = AudioContext.prototype
+  const orig = { createBufferSource: P.createBufferSource, createOscillator: P.createOscillator }
+  P.createBufferSource = function () { zaehler.bufferSource++; return orig.createBufferSource.apply(this, arguments) }
+  P.createOscillator = function () { zaehler.oscillator++; return orig.createOscillator.apply(this, arguments) }
+
+  // Der Apparat entsteht erst bei der ersten Beruehrung - ein Zug am Regler ist eine.
+  audio.setLevel('sfx', 0.5)
+  // Kurz warten, damit die Aufnahmen geholt und entschluesselt sind. Ohne sie liefe die
+  // Messung gegen die gerechneten Ersatztoene - dieselbe Sperre, aber nicht dasselbe Bild.
+  await new Promise((fertig) => setTimeout(fertig, 1500))
+
+  async function burst(name, nutzlast, anzahl = 100, abstand = 10) {
+    const vorZaehler = zaehler.bufferSource + zaehler.oscillator
+    const start = performance.now()
+    for (let i = 0; i < anzahl; i++) {
+      emit(name, typeof nutzlast === 'function' ? nutzlast(i) : nutzlast)
+      await new Promise((fertig) => setTimeout(fertig, abstand))
+    }
+    const sekunden = (performance.now() - start) / 1000
+    return { toene: zaehler.bufferSource + zaehler.oscillator - vorZaehler, sekunden }
+  }
+
+  const messungen = []
+  messungen.push({
+    was: 'tower.fired, davon jeder fuenfte kritisch',
+    art: 'shot',
+    ...(await burst('tower.fired', (i) => ({ uid: 'a', defId: 'autocannon', crit: i % 5 === 0 }))),
+  })
+  messungen.push({
+    was: 'gold.collected',
+    art: 'coin',
+    ...(await burst('gold.collected', { amount: 3, coins: 1 })),
+  })
+  messungen.push({
+    was: 'view.changed',
+    art: 'view',
+    ...(await burst('view.changed', { view: 'base' })),
+  })
+  messungen.push({
+    was: 'level.up',
+    art: 'level',
+    ...(await burst('level.up', (i) => ({ level: i + 2 }))),
+  })
+
+  P.createBufferSource = orig.createBufferSource
+  P.createOscillator = orig.createOscillator
+
+  lines.push('<h2>(b) Hundert Meldungen im Abstand von 10 ms gegen die Wiederholsperre</h2>')
+  lines.push('<table><tr><th>Meldung</th><th>Sperre</th><th>Dauer</th><th>erlaubt</th><th>gebaute Stimmen</th></tr>')
+  let sperreHaelt = true
+  for (const messung of messungen) {
+    const gap = THROTTLE[messung.art]
+    const erlaubt = Math.floor(messung.sekunden / gap) + 1
+    const ok = messung.toene <= erlaubt
+    if (!ok) sperreHaelt = false
+    lines.push(`<tr><td>${messung.was} (100×)</td><td>${gap.toFixed(2)} s</td><td>${messung.sekunden.toFixed(2)} s</td>
+      <td>${erlaubt}</td><td class="${ok ? 'ok' : 'bad'}">${messung.toene}</td></tr>`)
+  }
+  lines.push('</table>')
+  lines.push(`<p class="${sperreHaelt ? 'ok' : 'bad'}">Kein Klang kam oefter, als seine Sperre erlaubt: ${sperreHaelt ? 'ja' : 'NEIN'}</p>`)
+
+  audio.detach()
+
+  /* === (c) und (d) Die Pegel ============================================== */
+
+  const probe = new AudioContext()
+  const speicher = new Map()
+  async function ladeAufnahme(name) {
+    if (speicher.has(name)) return speicher.get(name)
+    const antwort = await fetch(`/sfx/${name}-1.wav`)
+    const puffer = await probe.decodeAudioData(await antwort.arrayBuffer())
+    speicher.set(name, puffer)
+    return puffer
+  }
+
+  function spitze(puffer) {
+    let hoch = 0
+    for (let kanal = 0; kanal < puffer.numberOfChannels; kanal++) {
+      const daten = puffer.getChannelData(kanal)
+      for (let i = 0; i < daten.length; i++) {
+        const wert = Math.abs(daten[i])
+        if (wert > hoch) hoch = wert
+      }
+    }
+    return hoch
+  }
+
+  /** Eine Szene durch das echte Pult rechnen. */
+  async function rechne(stimmen, pegel) {
+    const ctx = new OfflineAudioContext(2, RATE * 4, RATE)
+    const mixer = createMixer(ctx, pegel)
+    for (const stimme of stimmen) {
+      const knoten = ctx.createBufferSource()
+      knoten.buffer = await ladeAufnahme(stimme.sample)
+      const gain = ctx.createGain()
+      gain.gain.value = stimme.gain
+      knoten.connect(gain)
+      gain.connect(mixer.bus(stimme.bus))
+      knoten.start(stimme.at ?? 0)
+    }
+    return spitze(await ctx.startRendering())
+  }
+
+  /*
+   * Eine dichte Sekunde, gebaut aus dem Plan und den Sperren.
+   *
+   * Nicht geraten: Von jedem Dauerklang kommen genau so viele Wiederholungen, wie seine
+   * Sperre in einer Sekunde zulaesst - mehr kann das Spiel gar nicht spielen. Dazu die
+   * Zaesuren, die in derselben Sekunde zusammenfallen koennen: Der Boss faellt, die Stufe
+   * steigt, die Welle ist geschafft, und der Spieler baut dabei weiter.
+   */
+  const dicht = []
+  const dauerklang = ['shot', 'crit', 'kill', 'coin', 'hurt']
+  for (const { cue } of alleCues) {
+    if (!dauerklang.includes(cue.sample)) continue
+    const gap = THROTTLE[cue.kind]
+    for (let at = 0; at < 1; at += gap) {
+      dicht.push({ sample: cue.sample, gain: cue.gain, bus: busOfCue(cue), at })
+    }
+  }
+  for (const name of ['bossdown', 'level', 'waveout', 'build', 'buy', 'click']) {
+    const treffer = alleCues.find((eintrag) => eintrag.cue.sample === name)
+    if (treffer) dicht.push({ sample: name, gain: treffer.cue.gain, bus: busOfCue(treffer.cue), at: 0.5 })
+  }
+
+  const halb = { music: 0.5, sfx: 0.5, ui: 0.5 }
+  const voll = { music: 1, sfx: 1, ui: 1 }
+  const dichtHalb = await rechne(dicht, halb)
+  const dichtVoll = await rechne(dicht, voll)
+
+  lines.push(`<h2>(c) Eine dichte Sekunde: ${dicht.length} Stimmen</h2>`)
+  lines.push(`<pre>Regler in Startstellung (50 %)   Spitze <span class="${dichtHalb < 1 ? 'ok' : 'bad'}">${f(dichtHalb)}</span>  (${db(dichtHalb)} dBFS)
+Regler ganz auf (100 %)          Spitze <span class="${dichtVoll < 1 ? 'ok' : 'bad'}">${f(dichtVoll)}</span>  (${db(dichtVoll)} dBFS)</pre>`)
+
+  const alleUiCues = alleCues.filter(({ cue }) => busOfCue(cue) === 'ui')
+  const uiSzene = alleUiCues.map((eintrag, index) => ({
+    sample: eintrag.cue.sample,
+    gain: eintrag.cue.gain,
+    bus: 'ui',
+    at: index * 0.02,
+  }))
+  const feldSzene = dicht.filter((stimme) => stimme.bus === 'sfx')
+  const musikCues = alleCues.filter(({ cue }) => busOfCue(cue) === 'music')
+  const musikSzene = musikCues.map((eintrag, index) => ({
+    sample: eintrag.cue.sample,
+    gain: eintrag.cue.gain,
+    bus: 'music',
+    at: index * 0.05,
+  }))
+
+  const uiSpitze = await rechne(uiSzene, halb)
+  const feldSpitze = await rechne(feldSzene, halb)
+  const musikSpitze = await rechne(musikSzene, halb)
+
+  lines.push('<h2>(d) Bleibt die Quittung unter dem, was sie quittiert?</h2>')
+  lines.push(`<table><tr><th>Gruppe</th><th>Stimmen</th><th>Spitze bei 50 %</th></tr>
+<tr><td>Bedienung (ui), alle Klaenge hintereinander</td><td>${uiSzene.length}</td><td>${f(uiSpitze)}</td></tr>
+<tr><td>Feld (sfx), eine dichte Sekunde</td><td>${feldSzene.length}</td><td>${f(feldSpitze)}</td></tr>
+<tr><td>Zaesuren (music), alle hintereinander</td><td>${musikSzene.length}</td><td>${f(musikSpitze)}</td></tr></table>`)
+
+  /*
+   * Und jetzt die Zahl, um die es geht.
+   *
+   * Bis hierher stand an dieser Stelle ein Vergleich zweier `gain`-Werte - und der konnte
+   * nichts finden: Der Bauplan steuert **jede** Aufnahme auf die Spitze 0,89 aus, also
+   * unterscheiden sich zwei Klaenge mit gleichem `gain` nur noch in ihrer Laenge, und genau
+   * die entscheidet, wie laut sie ankommen. Ein `gain` von 0,34 auf `depart` (1,40 s) lag so
+   * zwei Dezibel ueber dem Stufenaufstieg, waehrend der Vergleich 0,34 < 0,50 meldete und
+   * gruen blieb.
+   *
+   * Gemessen wird deshalb, was hinten herauskommt: jeder Klang des Plans einzeln durch das
+   * echte Pult gerechnet, alle Varianten, und davon die Momentanlautheit im lautesten
+   * 400-ms-Fenster - dieselbe Rechnung, die `tools/klang-messen.mjs` auf die WAV-Dateien
+   * anwendet und deren Ergebnis als `LOUDNESS` im Klangplan steht. Die Spalte "Abweichung"
+   * ist die Gegenprobe: Wenn der Browser dasselbe misst wie das Werkzeug, ist die Tabelle
+   * im Quelltext keine Behauptung mehr.
+   *
+   * Zur Abweichung selbst: Sie ist **immer negativ** und faellt umso groesser aus, je heller
+   * der Klang ist - `hail` (Schwerpunkt 10,7 kHz) verliert 1,4 dB, `equip` (2,8 kHz) fast
+   * nichts. Das ist kein Fehler in einer der beiden Messungen, sondern der Abtastratenwandler
+   * des Browsers: Die Aufnahmen liegen mit 32 kHz, der Klangapparat rechnet mit der Rate der
+   * Soundkarte, und das Antialiasing-Filter dazwischen nimmt die oberste Oktave ein wenig
+   * zurueck. Das Werkzeug misst die Datei, wie sie liegt - geraeteunabhaengig und damit die
+   * richtige Zahl fuer eine Tabelle im Quelltext. Der Browser misst, was auf **diesem** Geraet
+   * herauskommt. Erwartet wird deshalb Uebereinstimmung auf 1,5 dB, nicht auf null.
+   */
+  const TOLERANZ = 1.5
+  const FENSTER = Math.round(0.4 * RATE)
+  function lautheit(puffer) {
+    const daten = puffer.getChannelData(0)
+    const schritt = Math.round(0.01 * RATE)
+    let hoechste = 0
+    for (let start = 0; start === 0 || start < daten.length; start += schritt) {
+      let summe = 0
+      const ende = Math.min(start + FENSTER, daten.length)
+      for (let i = start; i < ende; i++) summe += daten[i] * daten[i]
+      hoechste = Math.max(hoechste, summe / FENSTER)
+    }
+    return Math.sqrt(hoechste)
+  }
+
+  /** Einen einzelnen Klang durch das Pult rechnen und seine Lautheit nehmen. */
+  async function lautheitVon(sample, gain, bus, variante) {
+    const ctx = new OfflineAudioContext(2, RATE * 4, RATE)
+    const mixer = createMixer(ctx, halb)
+    const knoten = ctx.createBufferSource()
+    knoten.buffer = await ladeVariante(sample, variante)
+    const pegel = ctx.createGain()
+    pegel.gain.value = gain
+    knoten.connect(pegel)
+    pegel.connect(mixer.bus(bus))
+    knoten.start(0)
+    return lautheit(await ctx.startRendering())
+  }
+
+  const variantenSpeicher = new Map()
+  async function ladeVariante(name, nummer) {
+    const schluessel = `${name}-${nummer}`
+    if (variantenSpeicher.has(schluessel)) return variantenSpeicher.get(schluessel)
+    const antwort = await fetch(`/sfx/${schluessel}.wav`)
+    const puffer = await probe.decodeAudioData(await antwort.arrayBuffer())
+    variantenSpeicher.set(schluessel, puffer)
+    return puffer
+  }
+
+  // Das Pult steht auf 50 %, also kommt alles um genau die Haelfte leiser heraus. Der Faktor
+  // gehoert herausgerechnet, sonst verglichen wir Reglerstellungen statt Klaenge.
+  const PULT = 0.5
+  const gemessen = []
+  for (const { name, cue } of alleCues) {
+    const bus = busOfCue(cue)
+    const varianten = SAMPLES[cue.sample] ?? 1
+    let summe = 0
+    for (let take = 1; take <= varianten; take++) {
+      summe += await lautheitVon(cue.sample, cue.gain, bus, take)
+    }
+    const wert = summe / varianten / PULT
+    gemessen.push({ name, sample: cue.sample, bus, gain: cue.gain, wert, erwartet: cue.gain * (LOUDNESS[cue.sample] ?? 0) })
+  }
+
+  const uiGemessen = gemessen.filter((e) => e.bus === 'ui').sort((a, b) => b.wert - a.wert)
+  const musikGemessen = gemessen.filter((e) => e.bus === 'music').sort((a, b) => a.wert - b.wert)
+  const lauteste = uiGemessen[0]
+  const leiseste = musikGemessen[0]
+  const abstand = 20 * Math.log10(leiseste.wert / lauteste.wert)
+  const groessteAbweichung = Math.max(
+    ...gemessen.map((e) => Math.abs(20 * Math.log10(e.wert / e.erwartet))),
+  )
+
+  lines.push('<h3>Gemessene Lautheit je Klang (400-ms-Fenster, durch das echte Pult)</h3>')
+  lines.push('<table><tr><th>Ereignis</th><th>Aufnahme</th><th>Gruppe</th><th>gain</th><th>gemessen</th><th>dB</th><th>aus LOUDNESS</th><th>Abweichung</th></tr>')
+  for (const e of [...gemessen].sort((a, b) => b.wert - a.wert)) {
+    const ab = 20 * Math.log10(e.wert / e.erwartet)
+    lines.push(`<tr><td>${e.name}</td><td>${e.sample}</td><td>${e.bus}</td><td>${e.gain.toFixed(2)}</td>
+      <td>${f(e.wert)}</td><td>${db(e.wert)}</td><td>${f(e.erwartet)}</td>
+      <td class="${Math.abs(ab) < TOLERANZ ? 'ok' : 'bad'}">${ab >= 0 ? '+' : ''}${ab.toFixed(2)} dB</td></tr>`)
+  }
+  lines.push('</table>')
+  lines.push(`<pre>lauteste Quittung   ${lauteste.name} (${lauteste.sample})   ${f(lauteste.wert)}   ${db(lauteste.wert)}
+leiseste Zaesur     ${leiseste.name} (${leiseste.sample})   ${f(leiseste.wert)}   ${db(leiseste.wert)}
+Abstand             <b>${abstand.toFixed(2)} dB</b></pre>`)
+  lines.push(`<p class="${abstand > 0 ? 'ok' : 'bad'}">Keine Quittung uebertoent die leiseste Zaesur: ${abstand > 0 ? 'ja' : 'NEIN'}</p>`)
+  lines.push(`<p class="${groessteAbweichung < TOLERANZ ? 'ok' : 'bad'}">Groesste Abweichung zwischen Browser und <code>LOUDNESS</code> im Quelltext: ${groessteAbweichung.toFixed(2)} dB — erlaubt sind ${TOLERANZ.toFixed(1)} dB, so viel kostet der Abtastratenwandler an der obersten Oktave.</p>`)
+
+  const lautesteQuittung = lauteste.wert
+  const leiseZaesur = leiseste.wert
+
+  out.innerHTML = lines.join('\n')
+  window.__ergebnis = {
+    ereignisse: EVENT_NAMES.length,
+    gehoert,
+    stumm,
+    stummOhneGrund,
+    messungen,
+    sperreHaelt,
+    dichteStimmen: dicht.length,
+    dichtHalb,
+    dichtVoll,
+    uiSpitze,
+    feldSpitze,
+    musikSpitze,
+    lautesteQuittung,
+    leiseZaesur,
+    abstandDb: abstand,
+    lauteste: { name: lauteste.name, sample: lauteste.sample, wert: lauteste.wert },
+    leiseste: { name: leiseste.name, sample: leiseste.sample, wert: leiseste.wert },
+    groessteAbweichung,
+    gemessen,
+  }
+  window.__fertig = true
+}
+
+run().catch((fehler) => {
+  out.textContent = 'Fehler: ' + fehler
+  window.__fehler = String(fehler)
+  window.__fertig = true
+})
+</script>
+</body></html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Harmonics — Prototyp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style id="miwale-loader-style">#miwale-loader{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:radial-gradient(circle at 50% 22%,#12536b 0,#082c3b 42%,#03151e 100%);color:#edf9fc;font-family:"Segoe UI",system-ui,sans-serif;transition:opacity .45s ease,visibility .45s ease}#miwale-loader.mw-done{opacity:0;visibility:hidden;pointer-events:none}.mw-loader-inner{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}.mw-loader-mark{font-size:clamp(42px,8vw,76px);font-weight:800;letter-spacing:-.07em;line-height:1}.mw-loader-mark span{color:#7fe0ee}.mw-loader-wave{position:relative;width:190px;height:3px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.14)}.mw-loader-wave::after{content:"";position:absolute;inset:0;width:45%;border-radius:inherit;background:linear-gradient(90deg,transparent,#7fe0ee,#fff);animation:mw-load 1.15s ease-in-out infinite}.mw-loader-copy{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(237,249,252,.65)}@keyframes mw-load{from{transform:translateX(-110%)}to{transform:translateX(330%)}}@media(prefers-reduced-motion:reduce){.mw-loader-wave::after{animation:none;width:100%;background:#7fe0ee}#miwale-loader{transition:none}}</style>
+    <script type="module" crossorigin src="./assets/index-CnDClLqJ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Cy0mNEUZ.css">
+  </head>
+  <body>
+    <div id="miwale-loader" role="status" aria-label="Spiel wird geladen"><div class="mw-loader-inner"><div class="mw-loader-mark">mi<span>wa</span>le</div><div class="mw-loader-wave" aria-hidden="true"></div><div class="mw-loader-copy">Spiel wird geladen</div></div></div>
+    <canvas id="stage"></canvas>
+
+    <div class="hud">
+      <div class="panel panel--res" id="res">
+        <div class="res-row"><span class="glyph glyph--teal">&#9661;</span><span id="echo">0</span></div>
+        <div class="res-row res-row--sub"><span class="glyph glyph--amber">&#9650;</span><span id="rate">0 /s</span></div>
+        <div class="res-row res-row--sub"><span class="glyph glyph--pink">&#10022;</span><span id="threshold">Schwelle: Grad 2</span></div>
+        <div class="res-row res-row--sub"><span class="glyph glyph--magenta">&#9670;</span><span id="record">Rekord: Grad 0</span></div>
+      </div>
+
+      <button class="icon-btn" id="settings" title="Einstellungen">&#9881;</button>
+
+      <div class="panel panel--predictor" id="predictor">
+        <div class="pred-label">N&Auml;CHSTE KONVERGENZ</div>
+        <div class="pred-main">
+          <span class="pred-grade" id="predGrade">Grad &mdash;</span>
+          <span class="pred-time" id="predTime">&mdash;</span>
+        </div>
+        <div class="pred-bar"><div class="pred-fill" id="predFill"></div></div>
+        <div class="pred-hint" id="predHint">
+          Knoten, die gleichzeitig durch dieselbe Linie laufen, zahlen aus.
+          Je mehr gleichzeitig, desto exponentiell mehr.
+        </div>
+      </div>
+
+      <button class="big-btn" id="viewToggle">UPGRADES</button>
+    </div>
+
+    <div class="tooltip hidden" id="tooltip"></div>
+    <div class="toast hidden" id="toast"></div>
+
+    <div class="modal hidden" id="modal">
+      <div class="modal-card">
+        <h2>Einstellungen</h2>
+        <p class="modal-sub">Harmonics &mdash; Prototyp v0.1</p>
+        <button class="ghost-btn" id="wipe">Spielstand l&ouml;schen</button>
+        <button class="ghost-btn" id="closeModal">Schlie&szlig;en</button>
+      </div>
+    </div>
+
+    <script>(()=>{const s=performance.now();window.addEventListener("load",()=>{const l=document.getElementById("miwale-loader"),w=Math.max(0,700-(performance.now()-s));setTimeout(()=>{if(!l)return;l.classList.add("mw-done");setTimeout(()=>l.remove(),500)},w)},{once:true})})();</script>
+  </body>
+</html>

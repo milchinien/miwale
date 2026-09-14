@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Münzklang</title>
+<style>
+ body{background:#070a18;color:#cfe4ff;font:15px/1.5 ui-monospace,monospace;padding:28px;max-width:760px;margin:auto}
+ h1{color:#46c8ff;font-size:20px;letter-spacing:.08em}
+ p{color:#8fa6c8}
+ .k{display:grid;grid-template-columns:78px 1fr auto;gap:14px;align-items:center;
+    border:1px solid #1d3566;border-radius:10px;padding:10px 12px;margin:9px 0;background:#0a1436}
+ button{background:#16306e;color:#7fd8ff;border:1px solid #2f5da8;border-radius:8px;
+        padding:8px 12px;font:inherit;cursor:pointer}
+ button:hover{background:#1d3f8f}
+ .burst{font-size:13px;color:#ffcc33;border-color:#6b5a1e}
+ small{display:block;color:#5f7397;font-size:12px}
+ b{color:#cfe4ff;font-weight:600}
+</style></head><body>
+<h1>Welcher klingt nach Münze?</h1>
+<p>Jeder Knopf spielt eine Aufnahme. „10× schnell" spielt sie so, wie es klingt, wenn du den
+Zeiger über ein volles Feld ziehst — daran entscheidet es sich, nicht am Einzelton.</p>
+
+  <div class="k">
+    <button data-k="a">▶ A</button>
+    <div><b>metallischer Schlag — jetzt eingebaut</b><small>DSGNTonl_SKILL IMPACT-Coin Impact</small></div>
+    <button class="burst" data-k="a">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="b">▶ B</button>
+    <div><b>kurz und sehr hell, 2,4 kHz</b><small>DSGNTonl_USABLE-Coin Zap</small></div>
+    <button class="burst" data-k="b">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="c">▶ C</button>
+    <div><b>heller Anschlag mit Ton</b><small>DSGNTonl_USABLE-Tonal Item</small></div>
+    <button class="burst" data-k="c">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="d">▶ D</button>
+    <div><b>Anschlag mit Funkeln</b><small>DSGNTonl_SKILL IMPACT-Sparkly Star</small></div>
+    <button class="burst" data-k="d">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="e">▶ E</button>
+    <div><b>metallisch, etwas weicher</b><small>DSGNTonl_USABLE-Metallic Item</small></div>
+    <button class="burst" data-k="e">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="f">▶ F</button>
+    <div><b>metallisch, blubbernd</b><small>DSGNTonl_SKILL IMPACT-Metallic Bubble</small></div>
+    <button class="burst" data-k="f">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="g">▶ G</button>
+    <div><b>verspielt</b><small>DSGNTonl_USABLE-Whimsy Coin</small></div>
+    <button class="burst" data-k="g">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="h">▶ H</button>
+    <div><b>elektrisch</b><small>DSGNTonl_USABLE-Zappy Coin</small></div>
+    <button class="burst" data-k="h">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="i">▶ I</button>
+    <div><b>magisch — derzeit fuer Kapseln</b><small>DSGNTonl_USABLE-Magic Coin</small></div>
+    <button class="burst" data-k="i">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="j">▶ J</button>
+    <div><b>Ausgeben statt Aufheben</b><small>DSGNTonl_USABLE-Coin Spend</small></div>
+    <button class="burst" data-k="j">10× schnell</button>
+  </div>
+  <div class="k">
+    <button data-k="k">▶ K</button>
+    <div><b>der alte — Wurf durch die Luft</b><small>DSGNTonl_USABLE-Coin Toss</small></div>
+    <button class="burst" data-k="k">10× schnell</button>
+  </div>
+<p style="margin-top:22px">Sag mir einfach den Buchstaben.</p>
+<script>
+const ctx = new AudioContext(); const cache = {};
+async function load(k,t){const id=k+t; if(cache[id])return cache[id];
+  const r=await fetch('/probe/'+k+'-'+t+'.wav'); const b=await ctx.decodeAudioData(await r.arrayBuffer());
+  cache[id]=b; return b}
+async function play(k,t,when){const b=await load(k,t); const s=ctx.createBufferSource(); const g=ctx.createGain();
+  s.buffer=b; s.playbackRate.value=0.96+Math.random()*0.08; g.gain.value=0.55;
+  s.connect(g); g.connect(ctx.destination); s.start(when??ctx.currentTime)}
+for(const el of document.querySelectorAll('button')){
+  el.addEventListener('click', async ()=>{
+    const k=el.dataset.k;
+    if(el.classList.contains('burst')){
+      for(let i=0;i<10;i++) play(k, 1+(i%3), ctx.currentTime + i*0.11)
+    } else play(k, 1+Math.floor(Math.random()*3))
+  })
+}
+</script></body></html>
