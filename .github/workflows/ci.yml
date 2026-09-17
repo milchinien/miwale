@@ -64,7 +64,10 @@ jobs:
           for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games /games/chromatic /games/wavebreaker/ /support.js; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
-          curl -fsS http://127.0.0.1:8080/games/chromatic | grep -q '<base href="/">'
+          # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
+          # bevor curl fertig ist, und pipefail wertet das als Fehler.
+          seite="$(curl -fsS http://127.0.0.1:8080/games/chromatic)"
+          grep -q '<base href="/">' <<< "$seite"
           test "$(status /gibtsnicht)" = 404
           umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
           umleitung /games/ 301 /games
