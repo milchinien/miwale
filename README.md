@@ -182,20 +182,80 @@ Flappy-Prototyp. Die ersten drei sind die mit Trend-Rang.
 Der Devlog-Tab steht bewusst auf „bald" und bleibt leer, bis es echte Einträge
 gibt.
 
-## Spieleseite unter /games
+## Spieleseite (miwale.com)
 
-`miwale.com/games` zeigt dieselbe Seite ohne Persoenliches: keine Reiter, kein
-Name, kein Alter, keine E-Mail im Fuss — nur die Spiele (`art: "spiel"`). Ins
-Portfolio fuehrt allein der Knopf **Portfolio →** in der Kopfzeile. Das
-Impressum bleibt stehen. Die Seite erkennt den Modus selbst am Pfad
-(`NUR_SPIELE`).
+`miwale.com/` ist die Spieleseite fuer Spieler, die zum Beispiel aus einem
+YouTube-Short kommen. Aufgebaut wie ein Spieleshop, aber ohne Preise:
+
+- **Highlights** oben: grosses Bild oder Trailer, daneben Name, darunter das
+  Trend-Abzeichen, Kurztext, Screenshots (Ueberfahren zeigt sie gross), Tags
+  und ein Play-Knopf. Wechselt alle 9 s. Die Buehne hat eine feste Hoehe
+  (`--sp-hl-hoehe`, nur von der Fensterbreite abhaengig), damit beim Wechsel
+  nichts springt. Links und rechts schaut das vorige und naechste Spiel
+  herein und verblasst zum Rand hin; ab 1330 px Breite, darunter fehlt der Platz.
+- **Beliebt & neu** in einem Kasten: je Seite zwei hohe und zwei kleine Karten,
+  ein Pfeil blaettert weiter. Die Nachbarseite schaut links und rechts
+  verschwommen herein (`--sp-reihe-guck`). Am Handy eine Wischleiste.
+- **Suche** in der Kopfzeile: trifft auf Name, Tags und Kurztext; Pfeiltasten
+  und Enter waehlen, Escape leert.
+- **Alle Spiele** in einem Kasten: Liste mit Bild, Genres und Veroeffentlichung; beim
+  Ueberfahren zeigt rechts eine Vorschau Trailer, Screenshots und Beschreibung.
+- **Spielseite** `/games/<id>`: Galerie, Eckdaten, Play-Box, "Ueber das
+  Spiel", Features, Steuerung und rechts aehnliche Spiele (gleiche Tags).
+  `/games/<id>/spielen` oeffnet das Spiel im Vollfenster.
+
+Dateien: `index.html` (Rahmen), `shop/shop.js` (Seite), `shop/shop.css`,
+`shop/spiele.js` (Katalog). Der Katalog ist bewusst getrennt von `PROJECTS` im
+Portfolio: dort stehen technische Texte, hier Texte fuer Spieler. Ein neues
+Spiel braucht einen Eintrag in beiden. Nicht im Katalog stehen Projekte, die man
+nicht spielen kann (Bestellsystem, Dungeons & Diplomas mit kaputter Anmeldung,
+mindforge, The Last Outpost, Flappy).
+
+Trailer und Screenshots im Querformat liegen unter `assets/games/shop/`. Ohne
+eigene Aufnahmen faellt die Seite auf die Bilder aus `bilder` zurueck.
+
+Oben rechts fuehrt **Portfolio →** nach `/portfolio`. `/games` leitet auf `/` um.
+
+### Bewertungen
+
+Jede Spielseite (`/games/<id>`) hat ganz unten, unter den Beschreibungen, einen
+Bewertungsbereich wie bei Steam: Ja oder Nein zur Empfehlung, dazu freiwillig
+ein oeffentlicher Satz und ein privates Feedback, das nur die Verwaltung sieht.
+Die Oberflaeche steht in `shop/bewertungen.js` und `shop/bewertungen.css`;
+`shop.js` legt nur den leeren Abschnitt an und ruft sie auf.
+
+- **Ohne Account, auf Vertrauensbasis.** Jedes Geraet bekommt beim ersten
+  Besuch eine zufaellige Kennung im localStorage. Pro Spiel zaehlt eine Stimme
+  je Kennung; eine zweite Abgabe ersetzt die erste. Bewertungen erscheinen sofort.
+- **Schutz.** Wortsperrliste auf Englisch und Deutsch, die auch Schreibweisen
+  wie `sh1t` oder `s h i t` erkennt; verstecktes Feld gegen Bots; hoechstens 20
+  schreibende Anfragen je Adresse in zehn Minuten. Adressen werden nur als
+  Pruefsumme gespeichert.
+- **Urteil.** Ab fuenf Stimmen steht ein Urteil wie "Very positive", darunter
+  nur Prozent und Anzahl.
+- **Dienst.** `server/bewertungen.mjs`, ohne Abhaengigkeiten, laeuft im selben
+  Container neben nginx auf `127.0.0.1:8081` (gestartet von
+  `docker/40-bewertungen.sh`, startet sich nach einem Absturz selbst neu). nginx
+  reicht `/api/bewertungen/` durch. Welche Spiele bewertet werden duerfen, liest
+  der Dienst beim Start aus `shop/spiele.js`. Gespeichert wird in `/data`.
+- **Verwaltung unter `/admin/`.** Alle Bewertungen samt privatem Feedback,
+  Text oder ganze Bewertung loeschen, oeffentlich als Entwickler antworten,
+  Sperrliste pflegen. Das Passwort kommt aus `BEWERTUNGEN_ADMIN_PASSWORT`; ohne
+  die Variable bleibt die Verwaltung gesperrt.
+- **Lokal.** `npm run dev` bedient auch die Bewertungen; sie landen in
+  `.bewertungen-dev/`, das Passwort fuer `/admin/` ist `dev`.
+
+**Produktion einmalig einrichten.** Auf dem Server neben
+`docker-compose.prod.yml` eine `.env` mit `BEWERTUNGEN_ADMIN_PASSWORT=...`
+anlegen und die aktualisierte Compose-Datei dorthin kopieren. Sie bindet das
+Volume `miwale-bewertungen` an `/data`. Ohne Volume sind alle Bewertungen nach
+dem naechsten Deployment weg.
 
 ## Adresse und Verlauf
 
-Der sichtbare Zustand steht in kurzen Adressen: `miwale.com/` fuer den Start,
-`/projekte`, `/projekte/chromatic`, `/projekte/chromatic/spielen`,
-`/ueber-mich`, `/ki-workflow`, `/devlog`, `/kontakt` — und auf der Spieleseite
-`/games`, `/games/chromatic`, `/games/chromatic/spielen`. Ohne das führte die
+Der sichtbare Zustand des Portfolios steht in kurzen Adressen: `/portfolio`
+fuer den Start, `/projekte`, `/projekte/chromatic`, `/projekte/chromatic/spielen`,
+`/ueber-mich`, `/ki-workflow`, `/devlog`, `/kontakt`. Ohne das führte die
 Zurück-Taste am Handy aus der Seite heraus, sobald eine Detailansicht oder ein
 Spiel offen war; jetzt schließt sie sie. Nebenbei lässt sich damit ein einzelnes
 Projekt verschicken.
@@ -212,12 +272,11 @@ welches Projekt, liest die Seite aus dem Pfad. Damit `support.js`, `_ds/` und
 `assets/` auch unter `/projekte/chromatic` gefunden werden, setzt die Datei
 `<base href="/">`.
 
-`/games/chromatic` ohne Schraegstrich ist die Detailseite, `/games/chromatic/`
-mit Schraegstrich das mitgelieferte Spiel selbst. `/games/` und `/Games` leiten
-auf `/games` um.
+Auf der Spieleseite ist `/games/chromatic` ohne Schraegstrich die Spielseite,
+`/games/chromatic/` mit Schraegstrich das mitgelieferte Spiel selbst.
 
 Alte Links wie `/miwale%20Portfolio.dc.html#projekte/chromatic` gelten weiter:
-nginx leitet den Dateinamen auf `/` um, der Browser behaelt den Teil hinter dem
+nginx leitet den Dateinamen auf `/portfolio` um, der Browser behaelt den Teil hinter dem
 Doppelkreuz, und die Seite ersetzt ihn durch die kurze Adresse.
 
 ## Mobile Grundlagen

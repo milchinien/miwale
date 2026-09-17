@@ -6,3 +6,6 @@ node_modules/
 dist/
 .astro/
 .vite/
+
+# Lokale Bewertungen aus dem Vite-Server
+.bewertungen-dev/

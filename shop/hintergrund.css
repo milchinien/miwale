@@ -1,0 +1,60 @@
+/* Hintergrund der Spielseite (shop/hintergrund.js), wie bei Steam.
+   Liegt hinter allem, laeuft mit der Seite mit und endet nach etwa einer
+   Bildschirmhoehe im normalen Seitengrund. */
+
+/* Der Seitengrund liegt auf body. Eine Ebene mit negativem z-index laege
+   darunter und waere unsichtbar, darum: Hintergrund auf 0, Seite darueber. */
+#app { position: relative; z-index: 1; }
+
+.sp-hg {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 0;
+  height: clamp(420px, 66vh, 700px);
+  overflow: hidden; pointer-events: none;
+  opacity: 0; transition: opacity .6s ease;
+  /* Unten weich in den Seitengrund auslaufen. */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 35%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 35%, transparent 100%);
+}
+.sp-hg--an { opacity: 1; }
+
+/* Das Bild in fester Groesse statt auf die volle Breite gestreckt, sonst
+   waere es auf breiten Schirmen stark herangezoomt. Alle Ebenen haben genau
+   dieselbe Groesse und Lage: waeren sie verschieden skaliert, saehe man im
+   Uebergang zwei Bilder aufeinandertreffen. Nur die Fuellebene ist gestreckt,
+   sie liegt ganz unten und ist so verschwommen, dass es nicht auffaellt. */
+.sp-hg__ebene {
+  --unschaerfe: 0px;
+  position: absolute; inset: 0;
+  background: var(--sp-hg-bild) center top / min(860px, 100%) auto no-repeat;
+  /* Blau eingefaerbt: Farbe raus, eine Spur Sepia ins Aqua gedreht. Alle
+     Ebenen gleich hell, sonst zeichnen sich die Uebergaenge als Ringe ab. */
+  filter: grayscale(.55) sepia(.35) hue-rotate(160deg) saturate(1.5) brightness(.66) blur(var(--unschaerfe));
+}
+.sp-hg__ebene--fuell { inset: -60px; background-size: cover; --unschaerfe: 44px; }
+
+/* Von aussen nach innen: jede Ebene schaerfer, ihr Oval kleiner. Die Masken
+   laufen von voll deckend in der Mitte gleichmaessig bis ganz durchsichtig. */
+.sp-hg__ebene--5 { --unschaerfe: 30px; --breite: min(640px, 70%); --hoehe: 105%; }
+.sp-hg__ebene--4 { --unschaerfe: 23px; --breite: min(520px, 58%); --hoehe: 88%; }
+.sp-hg__ebene--3 { --unschaerfe: 17px; --breite: min(420px, 48%); --hoehe: 72%; }
+.sp-hg__ebene--2 { --unschaerfe: 12px; --breite: min(330px, 38%); --hoehe: 58%; }
+.sp-hg__ebene--1 { --unschaerfe: 8px;  --breite: min(250px, 29%); --hoehe: 45%; }
+.sp-hg__ebene--5, .sp-hg__ebene--4, .sp-hg__ebene--3, .sp-hg__ebene--2, .sp-hg__ebene--1 {
+  -webkit-mask-image: radial-gradient(ellipse var(--breite) var(--hoehe) at 50% 28%, #000 0%, rgba(0, 0, 0, .6) 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse var(--breite) var(--hoehe) at 50% 28%, #000 0%, rgba(0, 0, 0, .6) 45%, transparent 100%);
+}
+
+/* Blauer Schleier darueber, damit Text davor lesbar bleibt, und seitlich
+   dunkler wie eine Vignette. */
+.sp-hg__toenung {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 90% at 50% 28%, rgba(7, 26, 41, .12) 0%, rgba(7, 26, 41, .65) 100%),
+    linear-gradient(180deg, rgba(20, 90, 120, .28) 0%, rgba(7, 26, 41, .45) 100%);
+}
+
+@media (max-width: 760px) {
+  .sp-hg { height: clamp(380px, 70vh, 640px); }
+  .sp-hg__ebene--fuell { --unschaerfe: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-hg { transition: none; } }

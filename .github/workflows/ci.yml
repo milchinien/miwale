@@ -24,6 +24,12 @@ jobs:
           test -s index.html
           test -s "miwale Portfolio.dc.html"
           test -s support.js
+          test -s shop/shop.js
+          test -s shop/spiele.js
+          node --check shop/shop.js
+          node --check shop/bewertungen.js
+          node --test tools/bewertungen.test.mjs
+          node -e 'global.window={}; require("./shop/spiele.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
           node tools/check-games.mjs
@@ -61,16 +67,29 @@ jobs:
               echo "$1:"; echo "$kopf"; exit 1
             fi
           }
-          for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games /games/chromatic /games/wavebreaker/ /support.js; do
+          for pfad in / /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
           # bevor curl fertig ist, und pipefail wertet das als Fehler.
           seite="$(curl -fsS http://127.0.0.1:8080/games/chromatic)"
           grep -q '<base href="/">' <<< "$seite"
+          grep -q 'shop/shop.js' <<< "$seite"
+          seite="$(curl -fsS http://127.0.0.1:8080/projekte/chromatic)"
+          grep -q '<base href="/">' <<< "$seite"
+          grep -q '<x-dc>' <<< "$seite"
           test "$(status /gibtsnicht)" = 404
+          # Bewertungsdienst hinter nginx
+          for _ in $(seq 1 15); do curl -fsS -o /dev/null http://127.0.0.1:8080/api/bewertungen/healthz && break; sleep 1; done
+          test "$(status /api/bewertungen/healthz)" = 200
+          test "$(status /api/bewertungen/chromatic)" = 200
+          test "$(status /api/bewertungen/gibtsnicht)" = 404
+          test "$(status /api/bewertungen/admin/alle)" = 503
+          test "$(status /admin/)" = 200
+          umleitung /admin 301 /admin/
           umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
-          umleitung /games/ 301 /games
-          umleitung /Games 301 /games
-          umleitung '/miwale%20Portfolio.dc.html' 301 /
-          umleitung '/miwale%20Portfolio%20Mobil.dc.html?test=1' 301 '/?test=1'
+          umleitung /games 301 /
+          umleitung /games/ 301 /
+          umleitung /Games 301 /
+          umleitung '/miwale%20Portfolio.dc.html' 301 /portfolio
+          umleitung '/miwale%20Portfolio%20Mobil.dc.html?test=1' 301 '/portfolio?test=1'

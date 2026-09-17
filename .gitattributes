@@ -4,3 +4,6 @@
 # nicht mehr und die CI schluege fehl — auf Windows anders als auf Linux.
 # Darum: unveraendert lassen.
 public/games/** -text
+
+# Shellskripte laufen im Linux-Container. Mit Windows-Zeilenenden bricht sh ab.
+*.sh text eol=lf

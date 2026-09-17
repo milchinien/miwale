@@ -1,7 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="utf-8">
+<!-- Die Seite hat einen eigenen Sprachschalter. Uebersetzt der Browser sie
+     zusaetzlich automatisch, tauscht er nach jedem Tab- oder Sprachwechsel
+     den frischen Text verzoegert aus: Text blitzt auf und die Seite springt. -->
+<meta name="google" content="notranslate">
+<link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale.png" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale-light.png" media="(prefers-color-scheme: dark)">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Die Seite laeuft unter kurzen Adressen wie /projekte/chromatic. Ohne die
      Basis suchte sie support.js, _ds/ und assets/ dann unter /projekte/. -->
@@ -43,16 +49,6 @@
   .mw-sprache__knopf:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 2px; }
   @media (hover: hover) { .mw-sprache__knopf:not(.mw-sprache__knopf--an):hover { background: rgba(255,255,255,.12); color: #fff; } }
   @media (max-width: 480px) { .mw-sprache__knopf { min-width: 32px; padding: 4px 7px; } }
-
-  /* ---- Spieleseite (miwale.com/games): der einzige Weg zurueck ins Portfolio ----
-     Die Kopfzeile verteilt mit space-between; der automatische Rand schiebt den
-     Knopf nach rechts neben den Sprachschalter. Am Handy haengt der Schalter
-     selbst mit margin-left: auto — zwei automatische Raender teilten sich den
-     Platz, darum bekommt er dort keinen. */
-  .mw-zumportfolio { margin-left: auto; min-height: 38px; padding: 6px 14px; color: var(--ice-100); }
-  .mw-zumportfolio:hover { color: #fff; }
-  header .mw-zumportfolio + .mw-sprache { margin-left: 0; }
-  @media (max-width: 760px) { header .mw-zumportfolio { order: 1; min-height: 36px; padding: 5px 12px; font-size: 12px; } }
 
   /* ---- Projektkacheln: Screenshot im Hintergrund, beim Hover wird er scharf ----
      Die Interaktion folgt SpotlightCards von dorianbaffier (kokonutui.com, MIT):
@@ -712,20 +708,13 @@
     <div style="max-width: 1200px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 18px;">
       <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto;">
         <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 42px; width: auto; flex: none;">
-        <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
-          <span data-mw-name="1" style="width: 1px; height: 24px; background: rgba(255,255,255,.18); flex: none;"></span>
-          <span data-mw-name="1" style="font: var(--type-label); font-size: var(--text-sm); color: var(--ice-100); white-space: nowrap;">Michel Waggoner</span>
-        </sc-if>
+        <span data-mw-name="1" style="width: 1px; height: 24px; background: rgba(255,255,255,.18); flex: none;"></span>
+        <span data-mw-name="1" style="font: var(--type-label); font-size: var(--text-sm); color: var(--ice-100); white-space: nowrap;">Michel Waggoner</span>
       </div>
-      <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
-        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tabs" items="{{ tabItems }}" value="{{ tab }}" on-change="{{ setTab }}" tone="glass" hint-size="auto,42px"></x-import>
-        <span data-mw-badge="1" style="flex: none;">
-          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">17 · DE</x-import>
-        </span>
-      </sc-if>
-      <sc-if value="{{ nurSpiele }}" hint-placeholder-val="{{ false }}">
-        <a class="mw-chip mw-zumportfolio" href="/">{{ t.toPortfolio }}</a>
-      </sc-if>
+      <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tabs" items="{{ tabItems }}" value="{{ tab }}" on-change="{{ setTab }}" tone="glass" hint-size="auto,42px"></x-import>
+      <span data-mw-badge="1" style="flex: none;">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">17 · DE</x-import>
+      </span>
       <div class="mw-sprache" role="group" aria-label="{{ t.langGroup }}">
         <sc-for list="{{ sprachKnoepfe }}" as="l" hint-placeholder-count="2">
           <button type="button" class="{{ l.cls }}" onClick="{{ l.waehlen }}" aria-pressed="{{ l.gedrueckt }}" aria-label="{{ l.name }}" lang="{{ l.code }}">{{ l.kurz }}</button>
@@ -869,7 +858,6 @@
 
         <div class="mw-breit" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px;">
 
-          <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
           <div class="mw-seg" role="group" aria-label="{{ t.typeAria }}">
             <sc-for list="{{ artKnoepfe }}" as="a" hint-placeholder-count="3">
               <button type="button" class="{{ a.cls }}" onClick="{{ a.waehlen }}" aria-pressed="{{ a.gedrueckt }}" aria-label="{{ a.aria }}">
@@ -877,7 +865,6 @@
               </button>
             </sc-for>
           </div>
-          </sc-if>
 
           <div class="mw-werkzeuge">
             <div class="mw-sortier">
@@ -1367,7 +1354,7 @@
         </div>
       </section>
 
-      <section style="padding: 0 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+      <section style="padding: 0 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.email }}</span>
@@ -1389,6 +1376,13 @@
             <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.playableBuilds }}</span>
           </div>
         </x-import>
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">YouTube</span>
+            <a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">@miwale-games</a>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.youtubeText }}</span>
+          </div>
+        </x-import>
         </div>
       </section>
 
@@ -1403,9 +1397,8 @@
         <div style="display: flex; gap: 20px;">
           <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">GitHub</a>
           <a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">itch.io</a>
-          <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
-            <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">{{ t.email }}</a>
-          </sc-if>
+          <a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">YouTube</a>
+          <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">{{ t.email }}</a>
         </div>
       </div>
       <div style="padding: 20px 22px; border-radius: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); display: flex; flex-direction: column; gap: 6px;">
@@ -2386,6 +2379,7 @@ const TEXTE = {
     directWay: "The most direct way.",
     allOpen: "All projects open, with commits and tests.",
     playableBuilds: "Where the playable builds end up.",
+    youtubeText: "Short clips from the games.",
     legal: "Legal notice",
     legalText: "Responsible for the content: Michel Waggoner. Contact: michi.waggoner@gmail.com",
     footerLine: "miwale · Michel Waggoner · Germany",
@@ -2530,6 +2524,7 @@ const TEXTE = {
     directWay: "Der direkteste Weg.",
     allOpen: "Alle Projekte offen, mit Commits und Tests.",
     playableBuilds: "Wo die spielbaren Builds landen.",
+    youtubeText: "Kurze Clips aus den Spielen.",
     legal: "Impressum",
     legalText: "Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com",
     footerLine: "miwale · Michel Waggoner · Deutschland",
@@ -2550,32 +2545,6 @@ const TEXTE = {
   }
 };
 
-// Was auf der Spieleseite anders heisst. Wird ueber TEXTE gelegt.
-const SPIELE_TEXTE = {
-  en: {
-    projectsEyebrow: "Games",
-    projectsTitle: "All games by miwale",
-    projectsText: "Several of them run right here in your browser. Keep scrolling to dive down.",
-    bottomTitle: "Click a game for the full story",
-    allProjectsBack: "← All games",
-    toPortfolio: "Portfolio →",
-    treffer: (a, b) => a + " of " + b + " games",
-    anzahl: (n) => n + (n === 1 ? " game" : " games"),
-    footerLine: "miwale games"
-  },
-  de: {
-    projectsEyebrow: "Spiele",
-    projectsTitle: "Alle Spiele von miwale",
-    projectsText: "Mehrere davon laufen direkt hier im Browser. Scroll weiter, dann geht es nach unten.",
-    bottomTitle: "Ein Spiel anklicken, dann wird es ausführlich",
-    allProjectsBack: "← Alle Spiele",
-    toPortfolio: "Portfolio →",
-    treffer: (a, b) => a + " von " + b + " Spielen",
-    anzahl: (n) => n + (n === 1 ? " Spiel" : " Spiele"),
-    footerLine: "miwale games"
-  }
-};
-
 // ---- Adresse und Verlauf ----------------------------------------------------
 // Der sichtbare Zustand steht in der Adresse, damit die Zurueck-Taste eine
 // Detailseite oder ein Spiel schliesst, statt die Seite zu verlassen — und damit
@@ -2584,25 +2553,17 @@ const TAB_SLUG = { start: "start", games: "projekte", about: "ueber-mich", ai: "
 const SLUG_TAB = {};
 for (const t in TAB_SLUG) SLUG_TAB[TAB_SLUG[t]] = t;
 
-// ---- Spieleseite --------------------------------------------------------------
-// miwale.com/games liefert dieselbe Datei aus (siehe docker/nginx.conf). Dort
-// gibt es keine Reiter und nichts Persoenliches, nur die Spiele; ins Portfolio
-// fuehrt allein der Knopf in der Kopfzeile.
-const NUR_SPIELE = (() => {
-  try { return /^\/games(\/[a-z0-9-]+(\/spielen)?)?\/?$/i.test(location.pathname); } catch (e) { return false; }
-})();
-
-// Kurze Adressen: miwale.com/projekte/chromatic/spielen, auf der Spieleseite
-// miwale.com/games/chromatic. nginx liefert fuer all diese Pfade dieselbe Datei
-// aus. Der Start ist schlicht miwale.com/.
+// Kurze Adressen: miwale.com/portfolio fuer den Start, /projekte/chromatic/spielen
+// und so weiter. miwale.com/ selbst ist die Spieleseite (index.html). nginx
+// liefert fuer all diese Pfade dieselbe Datei aus.
 function adresseBauen(s) {
-  let pfad = NUR_SPIELE ? "/games" : s.tab === "start" ? "" : "/" + (TAB_SLUG[s.tab] || "");
+  let pfad = "/" + (s.tab === "start" ? "portfolio" : TAB_SLUG[s.tab] || "portfolio");
   if (s.project) {
     pfad += "/" + s.project;
     // Nur mit Projekt, sonst liesse sich "/spielen" beim Lesen nicht zuordnen.
     if (s.game) pfad += "/spielen";
   }
-  return (pfad || "/") + location.search;
+  return pfad + location.search;
 }
 
 function adressTeile(x) {
@@ -2615,13 +2576,8 @@ function adresseLesen() {
   // Aeltere Links trugen den Zustand hinter dem Doppelkreuz
   // (/miwale%20Portfolio.dc.html#projekte/chromatic). Die gelten weiter.
   const teile = location.hash ? adressTeile(location.hash.slice(1)) : adressTeile(location.pathname);
-  if (NUR_SPIELE) {
-    if (!location.hash) teile.shift();
-    if (teile[0] === "projekte") teile.shift();
-    teile.unshift("projekte");
-  }
-  const tab = NUR_SPIELE ? "games" : SLUG_TAB[teile[0]] || "start";
-  const projekt = PROJECTS.find((p) => p.id === teile[1] && (!NUR_SPIELE || p.art === "spiel")) || null;
+  const tab = SLUG_TAB[teile[0]] || "start";
+  const projekt = PROJECTS.find((p) => p.id === teile[1]) || null;
   const spielt = !!(projekt && projekt.playId && teile[2] === "spielen");
   return {
     tab,
@@ -2686,13 +2642,12 @@ function passtZumFilter(p, genres, geraete) {
 
 // Baut die Knopfliste inklusive Trefferzahl. Gezaehlt wird gegen die jeweils
 // andere Gruppe, damit die Zahl zeigt, was ein Klick wirklich brachte.
-// basis ist die Menge, in der gezaehlt wird — auf der Spieleseite nur die Spiele.
-function filterKnoepfe(basis, werte, aktiv, andereGruppe, istGenre, umschalten, t) {
+function filterKnoepfe(werte, aktiv, andereGruppe, istGenre, umschalten, t) {
   return werte.map((w) => {
     const wert = w.wert;
     const label = w.label;
     const an = aktiv.indexOf(wert) >= 0;
-    const treffer = basis.filter((p) => istGenre
+    const treffer = PROJECTS.filter((p) => istGenre
       ? passtZumFilter(p, [wert], andereGruppe)
       : passtZumFilter(p, andereGruppe, [wert])).length;
     return {
@@ -2706,7 +2661,7 @@ function filterKnoepfe(basis, werte, aktiv, andereGruppe, istGenre, umschalten, 
 }
 
 class Component extends DCLogic {
-  state = { tab: NUR_SPIELE ? "games" : "start", game: null, project: null, bild: 0, genres: [], geraete: [], art: NUR_SPIELE ? "spiel" : "alle", sortierung: "empfohlen", filterOffen: false, sprache: startSprache() };
+  state = { tab: "start", game: null, project: null, bild: 0, genres: [], geraete: [], art: "alle", sortierung: "empfohlen", filterOffen: false, sprache: startSprache() };
 
   // Zaehlt die Eintraege, die diese Seite selbst angelegt hat. Nur solange davon
   // welche da sind, darf der Schliessen-Knopf history.back() benutzen — sonst
@@ -2938,7 +2893,6 @@ class Component extends DCLogic {
     this.setState(anfang);
 
     document.documentElement.lang = this.state.sprache;
-    if (NUR_SPIELE) document.title = "miwale games";
     this.paintDepth();
     this.glasFilterEinsetzen();
 
@@ -3170,10 +3124,8 @@ class Component extends DCLogic {
   renderVals() {
     const tab = this.state.tab;
     const sprache = this.state.sprache;
-    // Auf der Spieleseite heisst es "Spiele" statt "Projekte"; der Rest bleibt.
-    const t = NUR_SPIELE ? Object.assign({}, TEXTE[sprache], SPIELE_TEXTE[sprache]) : TEXTE[sprache];
+    const t = TEXTE[sprache];
     const liste = projekteIn(sprache);
-    const basis = NUR_SPIELE ? PROJECTS.filter((p) => p.art === "spiel") : PROJECTS;
     const openProject = (id) => () => {
       this.zeige({ project: id, bild: 0 });
       this.nachObenSpringen();
@@ -3278,8 +3230,6 @@ class Component extends DCLogic {
         waehlen: () => this.spracheWaehlen(l.code)
       })),
       tabItems,
-      nurSpiele: NUR_SPIELE,
-      vollSeite: !NUR_SPIELE,
       setTab: (v) => this.go(v)(),
       isStart: tab === "start",
       isGames: tab === "games",
@@ -3332,11 +3282,10 @@ class Component extends DCLogic {
       filterKnopfCls: "mw-chip" + (this.state.filterOffen ? " mw-chip--offen" : "") + (anzahlFilter ? " mw-chip--an" : ""),
       filterKnopfText: anzahlFilter ? "Filter · " + anzahlFilter : "Filter",
       filterUmschalten: () => this.setState({ filterOffen: !this.state.filterOffen }),
-      // Ein Genre ohne ein einziges Spiel (Anwendung) waere dort ein toter Knopf.
-      genreKnoepfe: filterKnoepfe(basis, GENRES.filter((g) => !NUR_SPIELE || basis.some((p) => (p.genres || []).indexOf(g) >= 0)).map((g) => ({ wert: g, label: (GENRE_NAMEN[sprache] || {})[g] || g })), gf, df, true, (w) => this.umschalten("genres", w), t),
-      geraetKnoepfe: filterKnoepfe(basis, GERAETE.map((g) => ({ wert: g.wert, label: g.label[sprache] })), df, gf, false, (w) => this.umschalten("geraete", w), t),
+      genreKnoepfe: filterKnoepfe(GENRES.map((g) => ({ wert: g, label: (GENRE_NAMEN[sprache] || {})[g] || g })), gf, df, true, (w) => this.umschalten("genres", w), t),
+      geraetKnoepfe: filterKnoepfe(GERAETE.map((g) => ({ wert: g.wert, label: g.label[sprache] })), df, gf, false, (w) => this.umschalten("geraete", w), t),
       filterAktiv: anzahlFilter > 0,
-      trefferText: t.treffer(projects.length, basis.length),
+      trefferText: t.treffer(projects.length, PROJECTS.length),
       nichtsGefunden: projects.length === 0,
       filterLeeren: () => this.setState({ genres: [], geraete: [] }),
       projects,
