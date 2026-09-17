@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Die Seite laeuft unter kurzen Adressen wie /projekte/chromatic. Ohne die
+     Basis suchte sie support.js, _ds/ und assets/ dann unter /projekte/. -->
+<base href="/">
 <script src="./support.js"></script>
 </head>
 <body>
@@ -32,6 +35,24 @@
   @media (max-width: 1180px) { [data-mw-badge] { display: none; } }
   @media (max-width: 1040px) { [data-mw-name] { display: none; } }
   @media (max-width: 880px) { .mw-tabs__tab { padding-left: 12px; padding-right: 12px; font-size: var(--text-xs); } }
+
+  /* ---- Sprachschalter: zwei kleine Knoepfe, der aktive ist hell ---- */
+  .mw-sprache { display: inline-flex; flex: none; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); }
+  .mw-sprache__knopf { min-width: 38px; min-height: 32px; padding: 4px 10px; border: 0; border-radius: 999px; background: transparent; color: rgba(237,243,249,.78); font: var(--type-label); font-size: var(--text-xs); letter-spacing: .06em; cursor: pointer; transition: background 160ms ease, color 160ms ease; }
+  .mw-sprache__knopf--an { background: rgba(237,243,249,.92); color: #0A3040; }
+  .mw-sprache__knopf:focus-visible { outline: 2px solid var(--aqua-300); outline-offset: 2px; }
+  @media (hover: hover) { .mw-sprache__knopf:not(.mw-sprache__knopf--an):hover { background: rgba(255,255,255,.12); color: #fff; } }
+  @media (max-width: 480px) { .mw-sprache__knopf { min-width: 32px; padding: 4px 7px; } }
+
+  /* ---- Spieleseite (miwale.com/games): der einzige Weg zurueck ins Portfolio ----
+     Die Kopfzeile verteilt mit space-between; der automatische Rand schiebt den
+     Knopf nach rechts neben den Sprachschalter. Am Handy haengt der Schalter
+     selbst mit margin-left: auto — zwei automatische Raender teilten sich den
+     Platz, darum bekommt er dort keinen. */
+  .mw-zumportfolio { margin-left: auto; min-height: 38px; padding: 6px 14px; color: var(--ice-100); }
+  .mw-zumportfolio:hover { color: #fff; }
+  header .mw-zumportfolio + .mw-sprache { margin-left: 0; }
+  @media (max-width: 760px) { header .mw-zumportfolio { order: 1; min-height: 36px; padding: 5px 12px; font-size: 12px; } }
 
   /* ---- Projektkacheln: Screenshot im Hintergrund, beim Hover wird er scharf ----
      Die Interaktion folgt SpotlightCards von dorianbaffier (kokonutui.com, MIT):
@@ -364,7 +385,6 @@
   }
   .mw-glas:hover::after { opacity: 1; }
   .mw-glas__inhalt { position: relative; z-index: 1; padding: 24px; }
-  .mw-glas--eng > .mw-glas__inhalt { padding: 16px; }
   .mw-glas--weit > .mw-glas__inhalt { padding: 32px; }
   @media (prefers-reduced-motion: reduce) { .mw-glas::after { transition: none; } }
 
@@ -492,6 +512,9 @@
       justify-content: flex-start !important;
     }
     header .mw-tabs::-webkit-scrollbar { display: none; }
+    /* Sprachschalter rechts neben die Marke, damit keine dritte Zeile entsteht */
+    header .mw-sprache { order: 1; margin-left: auto; }
+    header .mw-tabs { order: 2; }
     .mw-tabs__tab { flex: none !important; min-height: 44px; padding-left: 14px !important; padding-right: 14px !important; font-size: var(--text-sm) !important; }
 
     /* Ränder: 32px sind auf dem Handy zu viel */
@@ -510,16 +533,26 @@
     [style*="top: 104px"] { position: static !important; }
 
     /* Karten und Panels: weniger Innenabstand */
-    .mw-glass-card, .mw-card { padding: 20px !important; border-radius: 20px !important; }
+    .mw-card { padding: 20px !important; border-radius: 20px !important; }
     [style*="padding: 26px"] { padding: 20px !important; }
 
     /* Wortmarke im Tauchgang und Maskottchen kleiner */
     [data-mw="diveLogo"] { width: min(78vw, 340px) !important; }
 
-    /* Kleinere Hintergrundflaechen und weniger Filterarbeit beim Scrollen. */
+    /* Kleinere Hintergrundflaechen und weniger Filterarbeit beim Scrollen.
+       Auf dem Handy gilt weiter die schlichte Geometrie ohne Masken; die
+       zugeschnittenen Kinderflaechen vom Desktop werden hier zurueckgesetzt. */
     [data-mw="bgShaftsA"], [data-mw="bgShaftsB"] {
-      left: -20% !important; right: -20% !important;
+      left: -20% !important; right: -20% !important; width: auto !important;
       top: -15% !important; height: 130% !important;
+    }
+    [data-mw="bgShaftsA"] > div, [data-mw="bgShaftsB"] > div,
+    [data-mw="bgNear"] > div:not([data-mw]), [data-mw="bgDrift"] > div {
+      left: 0 !important; top: 0 !important; width: 100% !important; height: 100% !important;
+    }
+    [data-mw="bgShaftsA"] > div, [data-mw="bgShaftsB"] > div {
+      transform-origin: 8% 0% !important;
+      background-size: auto !important; background-position: 0 0 !important; background-repeat: repeat !important;
     }
     [data-mw="bgFar"], [data-mw="bgNear"], [data-mw="bgDrift"] {
       left: -10% !important; right: -10% !important;
@@ -601,7 +634,7 @@
 </helmet>
 
 <div style="min-height: 100dvh; background: #050A16; position: relative;">
-  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #0A3040;">
+  <div data-mw="bgRoot" style="position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; background-color: #0A3040; container-type: size;">
 
     <!-- Viewportgrosse Verlaeufe vermeiden die bisherige bewegte Flaeche von
          3,2 Fensterhoehen. Die Scrolltiefe steuert nur ihre Deckkraft. -->
@@ -611,31 +644,31 @@
 
     <div data-mw="bgSurface" style="position: absolute; inset: 0; background: radial-gradient(1500px 720px at 22% -10%, rgba(198,242,255,.40), rgba(198,242,255,0) 66%);"></div>
 
-    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); will-change: transform;">
+    <div data-mw="bgFar" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 12%, #000 88%, rgba(0,0,0,0) 100%);">
       <div style="position: absolute; inset: 0; background: radial-gradient(1200px 900px at 16% 30%, rgba(34,176,158,.22), rgba(34,176,158,0) 66%), radial-gradient(1400px 1000px at 86% 44%, rgba(18,130,142,.20), rgba(18,130,142,0) 68%), radial-gradient(1300px 1000px at 38% 62%, rgba(10,88,98,.26), rgba(10,88,98,0) 70%), radial-gradient(1500px 1100px at 60% 84%, rgba(5,52,64,.34), rgba(5,52,64,0) 72%);"></div>
       <div style="position: absolute; inset: 0; background: radial-gradient(680px 480px at 30% 14%, rgba(52,214,178,.18), rgba(52,214,178,0) 68%), radial-gradient(520px 420px at 72% 26%, rgba(96,226,196,.13), rgba(96,226,196,0) 70%), radial-gradient(760px 520px at 8% 52%, rgba(22,150,138,.20), rgba(22,150,138,0) 70%), radial-gradient(600px 460px at 88% 66%, rgba(16,120,124,.18), rgba(16,120,124,0) 70%), radial-gradient(540px 380px at 22% 74%, rgba(120,236,205,.14), rgba(120,236,205,0) 70%), radial-gradient(460px 340px at 66% 88%, rgba(40,180,170,.15), rgba(40,180,170,0) 72%);"></div>
     </div>
 
-    <div data-mw="bgShaftsB" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); will-change: transform;">
-      <div style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; opacity: .6; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); animation: mwSwaySlow 34s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px);"></div>
+    <div data-mw="bgShaftsB" style="position: absolute; left: 0; top: 0; width: 100%; height: 140%; mask-size: 100% 250cqh; -webkit-mask-size: 100% 250cqh; mask-position: 0 -55cqh; -webkit-mask-position: 0 -55cqh; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 22%, rgba(0,0,0,.38) 44%, rgba(0,0,0,.12) 62%, rgba(0,0,0,0) 78%);">
+      <div style="position: absolute; left: calc(-75cqw + max(0px, 68.1cqw - 94.5cqh - 260px)); top: calc(-55cqh + max(0px, 26.7cqw + 48.1cqh - 30px)); width: calc(min(250cqw, 155.6cqw - 26.7cqh + 260px) - max(0px, 68.1cqw - 94.5cqh - 260px)); height: calc(min(220cqh, 75.1cqw + 170.6cqh + 30px) - max(0px, 26.7cqw + 48.1cqh - 30px)); transform-origin: calc(20cqw - max(0px, 68.1cqw - 94.5cqh - 260px)) calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); mask-size: 100% 250cqh; -webkit-mask-size: 100% 250cqh; mask-position: 0 calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); -webkit-mask-position: 0 calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transform: rotate(-29deg); opacity: .6; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 16%, #000 52%, rgba(0,0,0,0) 88%); animation: mwSwaySlow 34s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(176,236,238,0) 0px, rgba(176,236,238,.07) 60px, rgba(176,236,238,.20) 170px, rgba(176,236,238,.07) 280px, rgba(176,236,238,0) 470px); background-size: 250cqw 100%; background-position: calc(-1 * max(0px, 68.1cqw - 94.5cqh - 260px)) 0; background-repeat: no-repeat;"></div>
     </div>
 
-    <div data-mw="bgShaftsA" style="position: absolute; left: -75%; right: -75%; top: -55%; height: 250%; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); will-change: transform;">
-      <div style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); animation: mwSway 24s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px);"></div>
-      <div style="position: absolute; inset: 0; transform: rotate(-29deg); transform-origin: 8% 0%; mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px);"></div>
+    <div data-mw="bgShaftsA" style="position: absolute; left: 0; top: 0; width: 100%; height: 140%; mask-size: 100% 250cqh; -webkit-mask-size: 100% 250cqh; mask-position: 0 -55cqh; -webkit-mask-position: 0 -55cqh; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%); -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.82) 18%, rgba(0,0,0,.44) 38%, rgba(0,0,0,.14) 56%, rgba(0,0,0,0) 72%);">
+      <div style="position: absolute; left: calc(-75cqw + max(0px, 68.1cqw - 94.5cqh - 260px)); top: calc(-55cqh + max(0px, 26.7cqw + 48.1cqh - 30px)); width: calc(min(250cqw, 155.6cqw - 26.7cqh + 260px) - max(0px, 68.1cqw - 94.5cqh - 260px)); height: calc(min(220cqh, 75.1cqw + 170.6cqh + 30px) - max(0px, 26.7cqw + 48.1cqh - 30px)); transform-origin: calc(20cqw - max(0px, 68.1cqw - 94.5cqh - 260px)) calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); mask-size: 100% 250cqh; -webkit-mask-size: 100% 250cqh; mask-position: 0 calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); -webkit-mask-position: 0 calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transform: rotate(-29deg); mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 18%, #000 50%, rgba(0,0,0,0) 86%); animation: mwSway 24s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(214,248,255,0) 0px, rgba(214,248,255,.08) 22px, rgba(214,248,255,.26) 56px, rgba(214,248,255,.09) 92px, rgba(214,248,255,0) 150px, rgba(214,248,255,0) 300px); background-size: 250cqw 100%; background-position: calc(-1 * max(0px, 68.1cqw - 94.5cqh - 260px)) 0; background-repeat: no-repeat;"></div>
+      <div style="position: absolute; left: calc(-75cqw + max(0px, 68.1cqw - 94.5cqh - 260px)); top: calc(-55cqh + max(0px, 26.7cqw + 48.1cqh - 30px)); width: calc(min(250cqw, 155.6cqw - 26.7cqh + 260px) - max(0px, 68.1cqw - 94.5cqh - 260px)); height: calc(min(220cqh, 75.1cqw + 170.6cqh + 30px) - max(0px, 26.7cqw + 48.1cqh - 30px)); transform-origin: calc(20cqw - max(0px, 68.1cqw - 94.5cqh - 260px)) calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); mask-size: 100% 250cqh; -webkit-mask-size: 100% 250cqh; mask-position: 0 calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); -webkit-mask-position: 0 calc(-1 * max(0px, 26.7cqw + 48.1cqh - 30px)); mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; transform: rotate(-29deg); mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 20%, #000 48%, rgba(0,0,0,0) 84%); animation: mwShaftPulse 15s ease-in-out infinite, mwShaftDrift 29s ease-in-out infinite; background: repeating-linear-gradient(90deg, rgba(236,254,255,0) 0px, rgba(236,254,255,.12) 12px, rgba(236,254,255,.24) 26px, rgba(236,254,255,.08) 48px, rgba(236,254,255,0) 96px, rgba(236,254,255,0) 330px); background-size: 250cqw 100%; background-position: calc(-1 * max(0px, 68.1cqw - 94.5cqh - 260px)) 0; background-repeat: no-repeat;"></div>
     </div>
 
     <div data-mw="bgNear" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%;">
-      <div style="position: absolute; inset: 0; opacity: .5; animation: mwFloat 42s linear infinite; background-image: radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%), radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%), radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%), radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%), radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%), radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%); background-size: 620px 620px; background-repeat: repeat;"></div>
-      <div style="position: absolute; inset: 0; opacity: .34; animation: mwFloatSlow 68s linear infinite; background-image: radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%), radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%), radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%); background-size: 880px 880px; background-repeat: repeat;"></div>
+      <div style="position: absolute; left: calc(12cqw - 80px); width: calc(100cqw + 160px); top: calc(30cqh - 20px); height: calc(100cqh + 660px); opacity: .5; animation: mwFloat 42s linear infinite; background-image: radial-gradient(1.6px 1.6px at 12% 18%, rgba(226,250,255,.9), transparent 60%), radial-gradient(1.2px 1.2px at 34% 62%, rgba(226,250,255,.7), transparent 60%), radial-gradient(2px 2px at 58% 28%, rgba(226,250,255,.8), transparent 60%), radial-gradient(1.4px 1.4px at 76% 74%, rgba(226,250,255,.75), transparent 60%), radial-gradient(1.1px 1.1px at 88% 40%, rgba(226,250,255,.65), transparent 60%), radial-gradient(1.8px 1.8px at 24% 86%, rgba(226,250,255,.7), transparent 60%); background-size: 620px 620px; background-repeat: repeat;"></div>
+      <div style="position: absolute; left: calc(12cqw - 80px); width: calc(100cqw + 160px); top: calc(30cqh - 20px); height: calc(100cqh + 660px); opacity: .34; animation: mwFloatSlow 68s linear infinite; background-image: radial-gradient(2.4px 2.4px at 20% 44%, rgba(190,240,250,.6), transparent 62%), radial-gradient(3px 3px at 70% 16%, rgba(190,240,250,.5), transparent 62%), radial-gradient(2.2px 2.2px at 46% 78%, rgba(190,240,250,.55), transparent 62%); background-size: 880px 880px; background-repeat: repeat;"></div>
       <div data-mw="bgStreaks" style="position: absolute; inset: 0; transform: rotate(26deg); transform-origin: 8% 0%; opacity: .95; will-change: transform;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Meteors" number="{{ 14 }}" color="rgba(206,244,255,.85)" hint-size="100%,100%"></x-import>
       </div>
     </div>
 
-    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0; will-change: transform;">
-      <div style="position: absolute; inset: 0; animation: mwFloatSlow 84s linear infinite; background-image: radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%), radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%), radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%), radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%); background-size: 540px 540px; background-repeat: repeat;"></div>
-      <div style="position: absolute; inset: 0; animation: mwFloat 58s linear infinite; background-image: radial-gradient(1.4px 1.4px at 22% 62%, rgba(191,241,247,.5), transparent 60%), radial-gradient(1.1px 1.1px at 74% 34%, rgba(191,241,247,.42), transparent 60%), radial-gradient(1.7px 1.7px at 48% 12%, rgba(127,224,238,.45), transparent 60%); background-size: 760px 760px; background-repeat: repeat;"></div>
+    <div data-mw="bgDrift" style="position: absolute; left: -12%; right: -12%; top: -30%; height: 170%; opacity: 0;">
+      <div style="position: absolute; left: calc(12cqw - 80px); width: calc(100cqw + 160px); top: 0; bottom: 0; animation: mwFloatSlow 84s linear infinite; background-image: radial-gradient(2.6px 2.6px at 14% 26%, rgba(31,201,174,.55), transparent 62%), radial-gradient(1.8px 1.8px at 62% 54%, rgba(63,224,200,.5), transparent 62%), radial-gradient(3.2px 3.2px at 84% 18%, rgba(14,143,160,.45), transparent 64%), radial-gradient(2.2px 2.2px at 36% 78%, rgba(31,201,174,.5), transparent 62%); background-size: 540px 540px; background-repeat: repeat;"></div>
+      <div style="position: absolute; left: calc(12cqw - 80px); width: calc(100cqw + 160px); top: 0; bottom: 0; animation: mwFloat 58s linear infinite; background-image: radial-gradient(1.4px 1.4px at 22% 62%, rgba(191,241,247,.5), transparent 60%), radial-gradient(1.1px 1.1px at 74% 34%, rgba(191,241,247,.42), transparent 60%), radial-gradient(1.7px 1.7px at 48% 12%, rgba(127,224,238,.45), transparent 60%); background-size: 760px 760px; background-repeat: repeat;"></div>
     </div>
 
     <div data-mw="bgPlankton" style="position: absolute; inset: 0; opacity: 0;">
@@ -673,19 +706,31 @@
 
   </div>
 
-  <div style="position: relative; z-index: 1;">
+  <div style="position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100dvh;">
 
   <header style="position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,.10); backdrop-filter: blur(24px) saturate(1.6); -webkit-backdrop-filter: blur(24px) saturate(1.6); border-bottom: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.22);">
     <div style="max-width: 1200px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; gap: 18px;">
       <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 0 1 auto;">
         <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 42px; width: auto; flex: none;">
-        <span data-mw-name="1" style="width: 1px; height: 24px; background: rgba(255,255,255,.18); flex: none;"></span>
-        <span data-mw-name="1" style="font: var(--type-label); font-size: var(--text-sm); color: var(--ice-100); white-space: nowrap;">Michel Waggoner</span>
+        <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
+          <span data-mw-name="1" style="width: 1px; height: 24px; background: rgba(255,255,255,.18); flex: none;"></span>
+          <span data-mw-name="1" style="font: var(--type-label); font-size: var(--text-sm); color: var(--ice-100); white-space: nowrap;">Michel Waggoner</span>
+        </sc-if>
       </div>
-      <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tabs" items="{{ tabItems }}" value="{{ tab }}" on-change="{{ setTab }}" tone="glass" hint-size="auto,42px"></x-import>
-      <span data-mw-badge="1" style="flex: none;">
-        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">17 · DE</x-import>
-      </span>
+      <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tabs" items="{{ tabItems }}" value="{{ tab }}" on-change="{{ setTab }}" tone="glass" hint-size="auto,42px"></x-import>
+        <span data-mw-badge="1" style="flex: none;">
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">17 · DE</x-import>
+        </span>
+      </sc-if>
+      <sc-if value="{{ nurSpiele }}" hint-placeholder-val="{{ false }}">
+        <a class="mw-chip mw-zumportfolio" href="/">{{ t.toPortfolio }}</a>
+      </sc-if>
+      <div class="mw-sprache" role="group" aria-label="{{ t.langGroup }}">
+        <sc-for list="{{ sprachKnoepfe }}" as="l" hint-placeholder-count="2">
+          <button type="button" class="{{ l.cls }}" onClick="{{ l.waehlen }}" aria-pressed="{{ l.gedrueckt }}" aria-label="{{ l.name }}" lang="{{ l.code }}">{{ l.kurz }}</button>
+        </sc-for>
+      </div>
     </div>
   </header>
 
@@ -697,27 +742,27 @@
         <div style="position: relative; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 60px; align-items: center;">
           <div style="display: flex; flex-direction: column; gap: 20px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300); display: flex; align-items: center; gap: 8px;">
-              <span>Game Developer &amp; Software-Entwickler</span>
+              <span>{{ t.roleLine }}</span>
             </span>
             <h1 style="margin: 0; font: var(--type-display); font-size: var(--text-5xl); letter-spacing: var(--track-tight); color: #fff; max-width: 18ch; display: flex; flex-direction: column; gap: 2px;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="Ich baue" trigger="mount" hint-size="auto,auto"></x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextAnimate" text="{{ t.heroIBuild }}" trigger="mount" hint-size="auto,auto"></x-import>
               <span style="color: var(--aqua-100);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.MorphingText" texts="{{ morphWords }}" hint-size="auto,auto"></x-import></span>
             </h1>
-            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">Ich bin Michel, 17. Angefangen hat es damit, dass mir ein Spiel nicht gefiel und ich wissen wollte, ob ich das besser hinbekomme. Der erste Versuch war schlecht. Der zweite auch. Irgendwann wurde es besser — und seitdem höre ich nicht mehr auf.</p>
-            <span data-reveal style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">Gebaut mit KI, getunt von Hand</x-import></span>
+            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); line-height: 1.6; color: rgba(237,243,249,.8); max-width: 44ch;">{{ t.heroIntro }}</p>
+            <span data-reveal style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);"><x-import component-from-global-scope="MiwaleDesignSystem_4a4112.LineShadowText" shadow-color="var(--aqua-500)" hint-size="auto,auto">{{ t.heroTagline }}</x-import></span>
             <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding-top: 4px;">
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="aqua" on-click="{{ goGames }}" hint-size="auto,46px">Projekte ansehen</x-import>
-              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="deep" on-click="{{ goContact }}" hint-size="auto,46px">Kontakt</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="aqua" on-click="{{ goGames }}" hint-size="auto,46px">{{ t.viewProjects }}</x-import>
+              <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.ShinyButton" tone="deep" on-click="{{ goContact }}" hint-size="auto,46px">{{ t.contact }}</x-import>
             </div>
           </div>
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" style="{{ heroCardStyle }}" hint-size="100%,auto">
             <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.BorderBeam" duration="{{ 8 }}" hint-size="100%,100%"></x-import>
             <img src="assets/mascot-whale-light.png" alt="" style="width: 104px; align-self: center; opacity: .95;">
             <div style="display: flex; flex-direction: column; gap: 16px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Kurz zu mir</span>
-              <p style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.82);">Der Name setzt sich aus drei Teilen zusammen: <strong style="color: #fff; font-weight: 600;">Mi</strong>chel, <strong style="color: #fff; font-weight: 600;">Wa</strong>ggoner, <strong style="color: #fff; font-weight: 600;">Le</strong>ipzig. Kein Studio mit Team dahinter — das bin ich, ein Rechner und ziemlich viele Abende.</p>
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.quickIntro }}</span>
+              <p style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.82);">{{ t.nameIntro }} <strong style="color: #fff; font-weight: 600;">Mi</strong>chel, <strong style="color: #fff; font-weight: 600;">Wa</strong>ggoner, <strong style="color: #fff; font-weight: 600;">Le</strong>ipzig. {{ t.nameRest }}</p>
               <div style="height: 1px; background: rgba(255,255,255,.14);"></div>
-              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich entwerfe die Systeme selbst, lese jede Änderung nach und gebe nichts raus, das ich nicht vorher gespielt habe. Wenn etwas langweilig ist, soll mir das vor dir auffallen.</p>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.heroCardText }}</p>
             </div>
             <span style="font: var(--type-code); font-size: var(--text-2xs); color: rgba(237,243,249,.62);">
               <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.TextType" texts="{{ typeLines }}" hint-size="auto,auto"></x-import>
@@ -729,9 +774,9 @@
       <section style="position: relative; padding: 8px 32px 88px;">
         <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;">
           <div style="display: flex; flex-direction: column; gap: 10px; max-width: 62ch;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Gerade am beliebtesten</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Womit im Moment am meisten gespielt wird</h2>
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Drei laufen zurzeit besser als der Rest. Wenn du nur eins anschauen willst, nimm das erste.</p>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.popularEyebrow }}</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ t.popularTitle }}</h2>
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">{{ t.popularText }}</p>
           </div>
           <div data-reveal class="mw-hotgrid">
             <sc-for list="{{ trending }}" as="t" hint-placeholder-count="3">
@@ -757,32 +802,32 @@
       <section style="position: relative; padding: 96px 32px 84px;">
         <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px;">
           <div style="display: flex; flex-direction: column; gap: 10px; max-width: 62ch;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Warum ich das mache</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Etwas bauen, das jemand <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Highlighter" action="underline" color="var(--aqua-400)" hint-size="auto,auto">wirklich benutzt</x-import></h2>
-            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Der Unterschied zwischen einer Übung und echter Arbeit ist, ob es jemandem auffällt, wenn es kaputtgeht. Eines meiner Projekte läuft inzwischen jeden Tag bei Leuten, die mich nicht kennen. Seitdem baue ich anders — weniger verspielt, mehr mit dem Gedanken, was passiert, wenn ich nicht danebenstehe.</p>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.whyEyebrow }}</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ t.whyTitle }} <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Highlighter" action="underline" color="var(--aqua-400)" hint-size="auto,auto">{{ t.whyHighlight }}</x-import></h2>
+            <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">{{ t.whyText }}</p>
           </div>
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
             <div class="mw-artgrid">
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">Erst aufschreiben</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">dann tippen</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Solange ich nicht erklären kann, wie sich etwas anfühlen soll, fange ich nicht an. Das Dokument steht vor der ersten Zeile.</span>
+                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">{{ t.p1Title }}</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">{{ t.p1Sub }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.p1Text }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">Die KI tippt</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">ich entscheide</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Mechanik, Kurven und Grenzen lege ich fest. Was am Ende drin bleibt, habe ich vorher gelesen — jede Zeile.</span>
+                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">{{ t.p2Title }}</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">{{ t.p2Sub }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.p2Text }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 6px;">
-                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">Selbst gespielt</span>
-                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">oder gar nicht</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Tests fangen Fehler. Ob etwas Spaß macht, merkt kein Test. Das muss ich selbst spielen, und zwar länger als einmal.</span>
+                <span style="font: var(--type-h3); letter-spacing: var(--track-tight); color: #fff;">{{ t.p3Title }}</span>
+                <span style="font: var(--type-label); font-size: var(--text-sm); color: var(--aqua-300);">{{ t.p3Sub }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.p3Text }}</span>
               </div>
             </div>
           </x-import>
           <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" on-click="{{ goGames }}" hint-size="auto,44px">Alle Projekte ansehen</x-import>
-            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,44px">Code auf GitHub</x-import>
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" on-click="{{ goGames }}" hint-size="auto,44px">{{ t.viewAllProjects }}</x-import>
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,44px">{{ t.codeOnGitHub }}</x-import>
           </div>
         </div>
       </section>
@@ -798,9 +843,9 @@
 
       <section style="position: relative; overflow: hidden; padding: 76px 32px 60px;">
         <div class="mw-breit" style="position: relative; display: flex; flex-direction: column; gap: 18px;">
-          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Projekte</span>
-          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Alles, was bisher entstanden ist</h1>
-          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.78); max-width: 52ch;">Öffentlich auf GitHub, mit Commits und Tests. Scroll weiter, dann geht es nach unten.</p>
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.projectsEyebrow }}</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">{{ t.projectsTitle }}</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.78); max-width: 52ch;">{{ t.projectsText }}</p>
         </div>
       </section>
 
@@ -808,7 +853,7 @@
         <div style="position: sticky; top: 0; height: 100vh; display: grid; place-items: start center; padding-top: 22vh; overflow: hidden;">
           <div style="display: flex; flex-direction: column; align-items: center; gap: 22px;">
             <img data-mw="diveLogo" src="assets/logo-wordmark-light.png" alt="miwale" style="width: min(46vw, 520px); height: auto; will-change: transform, opacity;">
-            <span data-mw="diveHint" style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.6);">Scrollen, um abzutauchen</span>
+            <span data-mw="diveHint" style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.6);">{{ t.scrollToDive }}</span>
           </div>
           <div data-mw="diveArrow" style="position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px;">
             <span style="width: 1px; height: 46px; background: linear-gradient(180deg, rgba(127,224,238,0), rgba(127,224,238,.85));"></span>
@@ -818,26 +863,28 @@
 
       <section style="position: relative; padding: 8px 32px 40px;">
         <div class="mw-breit" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 34px;">
-          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Unten angekommen</span>
-          <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Ein Projekt anklicken, dann wird es ausführlich</h2>
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.bottomEyebrow }}</span>
+          <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ t.bottomTitle }}</h2>
         </div>
 
         <div class="mw-breit" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px;">
 
-          <div class="mw-seg" role="group" aria-label="Art">
+          <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
+          <div class="mw-seg" role="group" aria-label="{{ t.typeAria }}">
             <sc-for list="{{ artKnoepfe }}" as="a" hint-placeholder-count="3">
               <button type="button" class="{{ a.cls }}" onClick="{{ a.waehlen }}" aria-pressed="{{ a.gedrueckt }}" aria-label="{{ a.aria }}">
                 <span>{{ a.label }}</span><span class="mw-seg__zahl">{{ a.treffer }}</span>
               </button>
             </sc-for>
           </div>
+          </sc-if>
 
           <div class="mw-werkzeuge">
             <div class="mw-sortier">
-              <span class="mw-filter__titel" id="mw-sort-label">Sortieren nach</span>
+              <span class="mw-filter__titel" id="mw-sort-label">{{ t.sortBy }}</span>
               <details class="mw-sortmenu" onKeyDown="{{ sortierTasten }}" onBlur="{{ sortierVerlassen }}">
                 <summary aria-labelledby="mw-sort-label mw-sort-current"><span id="mw-sort-current">{{ sortierLabel }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
-                <div class="mw-sortmenu__liste" role="group" aria-label="Sortierung">
+                <div class="mw-sortmenu__liste" role="group" aria-label="{{ t.sortAria }}">
                   <sc-for list="{{ sortierWerte }}" as="o" hint-placeholder-count="3">
                     <button type="button" class="mw-sortmenu__option" aria-pressed="{{ o.aktiv }}" onClick="{{ o.waehlen }}"><span>{{ o.label }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4 10-10"/></svg></button>
                   </sc-for>
@@ -863,7 +910,7 @@
                 </sc-for>
               </div>
               <div class="mw-filter">
-                <span class="mw-filter__titel" style="width: 100%;">Spielbar auf</span>
+                <span class="mw-filter__titel" style="width: 100%;">{{ t.playableOn }}</span>
                 <sc-for list="{{ geraetKnoepfe }}" as="k" hint-placeholder-count="2">
                   <button type="button" class="{{ k.cls }}" onClick="{{ k.umschalten }}" aria-pressed="{{ k.gedrueckt }}" aria-label="{{ k.aria }}">
                     <span>{{ k.label }}</span><span class="mw-chip__zahl">{{ k.treffer }}</span>
@@ -872,7 +919,7 @@
               </div>
               <sc-if value="{{ filterAktiv }}" hint-placeholder-val="{{ false }}">
                 <div>
-                  <button type="button" class="mw-chip" onClick="{{ filterLeeren }}" style="min-height: 36px; padding: 6px 14px;">Filter zurücksetzen</button>
+                  <button type="button" class="mw-chip" onClick="{{ filterLeeren }}" style="min-height: 36px; padding: 6px 14px;">{{ t.resetFilters }}</button>
                 </div>
               </sc-if>
             </div>
@@ -880,7 +927,7 @@
         </div>
 
         <sc-if value="{{ nichtsGefunden }}" hint-placeholder-val="{{ false }}">
-          <p class="mw-leer mw-breit" style="margin: 0 auto;">Zu dieser Auswahl gibt es nichts. Nimm einen Filter weg.</p>
+          <p class="mw-leer mw-breit" style="margin: 0 auto;">{{ t.nothingFound }}</p>
         </sc-if>
 
         <div class="mw-tiles mw-breit">
@@ -894,13 +941,13 @@
                 <span class="mw-tile__rule"></span>
                 <span class="mw-tile__sub">{{ p.tagline }}</span>
               </span>
-              <span class="mw-tile__go">Ansehen →</span>
+              <span class="mw-tile__go">{{ t.viewTile }}</span>
             </button>
           </sc-for>
         </div>
 
         <div class="mw-breit" style="margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap;">
-          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">Alle Repositories</x-import>
+          <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">{{ t.allRepos }}</x-import>
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" variant="secondary" hint-size="auto,42px">itch.io</x-import>
         </div>
       </section>
@@ -912,7 +959,7 @@
 
         <section style="position: relative; padding: 34px 32px 0;">
           <div class="mw-breit">
-            <button type="button" onClick="{{ closeProject }}" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: var(--ice-100); font: var(--type-label); font-size: var(--text-sm); cursor: pointer;">← Alle Projekte</button>
+            <button type="button" onClick="{{ closeProject }}" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: var(--ice-100); font: var(--type-label); font-size: var(--text-sm); cursor: pointer;">{{ t.allProjectsBack }}</button>
           </div>
         </section>
 
@@ -930,8 +977,8 @@
               <div class="mw-glas mw-shot">
                 <img class="mw-shot__img" src="{{ detail.bild }}" alt="{{ detail.bildAlt }}" style="object-fit: {{ detail.bildFit }};">
                 <sc-if value="{{ detail.mehrereBilder }}" hint-placeholder-val="{{ false }}">
-                  <button type="button" class="mw-shot__nav mw-shot__nav--prev" onClick="{{ detail.bildZurueck }}" aria-label="Vorheriges Bild">‹</button>
-                  <button type="button" class="mw-shot__nav mw-shot__nav--next" onClick="{{ detail.bildVor }}" aria-label="Nächstes Bild">›</button>
+                  <button type="button" class="mw-shot__nav mw-shot__nav--prev" onClick="{{ detail.bildZurueck }}" aria-label="{{ t.prevImage }}">‹</button>
+                  <button type="button" class="mw-shot__nav mw-shot__nav--next" onClick="{{ detail.bildVor }}" aria-label="{{ t.nextImage }}">›</button>
                 </sc-if>
               </div>
             </div>
@@ -968,15 +1015,15 @@
                 <sc-if value="{{ detail.canPlay }}" hint-placeholder-val="{{ false }}">
                   <button type="button" class="mw-glas mw-spielen" onClick="{{ detail.play }}" aria-label="{{ detail.spielenAria }}">
                     <span class="mw-glas__inhalt mw-spielen__inhalt">
-                      <span class="mw-spielen__wort">Spielen</span>
-                      <span class="mw-spielen__hinweis">Direkt im Browser</span>
+                      <span class="mw-spielen__wort">{{ t.play }}</span>
+                      <span class="mw-spielen__hinweis">{{ t.inBrowser }}</span>
                     </span>
                   </button>
                 </sc-if>
 
                 <div class="mw-glas mw-detail__eckdaten">
                   <div class="mw-glas__inhalt" style="display: flex; flex-direction: column; gap: 14px;">
-                    <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.62);">Eckdaten</span>
+                    <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.62);">{{ t.keyFacts }}</span>
                     <div class="mw-detail__fakten">
                       <sc-for list="{{ detail.facts }}" as="f" hint-placeholder-count="{{ 4 }}">
                         <div style="display: flex; flex-direction: column; gap: 2px;">
@@ -995,7 +1042,7 @@
 
         <section style="position: relative; padding: 52px 32px 0;">
           <div class="mw-breit" style="display: flex; flex-direction: column; gap: 18px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie und wann gebaut</span>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.howBuilt }}</span>
             <h2 data-reveal style="margin: 0 0 6px; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ detail.buildTitle }}</h2>
             <sc-for list="{{ detail.build }}" as="b" hint-placeholder-count="{{ 3 }}">
               <p style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.80); max-width: 78ch;">{{ b }}</p>
@@ -1017,7 +1064,7 @@
 
         <section style="position: relative; padding: 56px 32px 0;">
           <div class="mw-breit">
-            <button type="button" onClick="{{ closeProject }}" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: var(--ice-100); font: var(--type-label); font-size: var(--text-sm); cursor: pointer;">← Zurück zu allen Projekten</button>
+            <button type="button" onClick="{{ closeProject }}" style="display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: var(--ice-100); font: var(--type-label); font-size: var(--text-sm); cursor: pointer;">{{ t.backToAll }}</button>
           </div>
         </section>
 
@@ -1035,9 +1082,9 @@
 
         <div style="position: relative; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.15fr .85fr; gap: 56px; align-items: center;">
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Über mich</span>
-            <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 24ch;">Kein gerader Weg, aber ein sehr genauer</h1>
-            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 50ch;">Michel Waggoner, 17, aus Deutschland. Ich habe die Schule nach der zehnten Klasse aus gesundheitlichen Gründen verlassen und gehe den Abschluss über den zweiten Bildungsweg an. Arbeiten und Entwickeln laufen seitdem parallel.</p>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.aboutEyebrow }}</span>
+            <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 24ch;">{{ t.aboutTitle }}</h1>
+            <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 50ch;">{{ t.aboutText }}</p>
           </div>
           <div style="display: grid; place-items: center;">
             <img src="assets/mascot-whale-light.png" alt="" style="width: 156px; opacity: .9;">
@@ -1048,50 +1095,50 @@
       <section style="padding: 96px 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1.15fr .85fr; gap: 32px; align-items: start;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 26px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Zeitleiste</span>
-            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Wie ich hier gelandet bin</h2>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.timeline }}</span>
+            <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ t.timelineTitle }}</h2>
           </div>
           <div style="display: flex; flex-direction: column; gap: 24px;">
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">8. Klasse</span>
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">{{ t.tl8th }}</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Praktikum bei meinem Vater</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Im Betrieb von Tobias Waggoner sitze ich zum ersten Mal ernsthaft an eigenem Code.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.tlInternTitle }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.tlInternText }}</span>
               </div>
             </div>
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
               <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">13.06.2024</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Das erste eigene Spiel</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools gab es damals noch nicht. Ab da wollte ich nur noch das.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.tlFirstGameTitle }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.tlFirstGameText }}</span>
               </div>
             </div>
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
               <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">2024 – 2025</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Schule aus gesundheitlichen Gründen beendet</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Eine chronische Erkrankung hat die zweite Hälfte meiner Schulzeit bestimmt. Nach der zehnten Klasse bin ich abgegangen — nicht geflogen. Den Abschluss gehe ich über den zweiten Bildungsweg an.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.tlSchoolTitle }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.tlSchoolText }}</span>
               </div>
             </div>
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">seit 2025</span>
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">{{ t.tlSince }}</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Arbeit im Betrieb, Entwicklung daneben</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich arbeite bei meinem Vater mit und entwickle täglich. Konzept, Umsetzung und Deployment liegen bei mir, ein erfahrener Senior-Entwickler liest gegen. So ist das XRAI Order System entstanden.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.tlWorkTitle }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.tlWorkText }}</span>
               </div>
             </div>
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
               <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">August 2025</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255,255,255,.18); padding-left: 20px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Spiele mit Struktur</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ab hier keine Experimente mehr, sondern Projekte mit Design-Dokument, Tests und Versionsverwaltung. Chromatic und Wavebreaker sind daraus geworden.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.tlStructTitle }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.tlStructText }}</span>
               </div>
             </div>
             <div style="display: grid; grid-template-columns: 104px 1fr; gap: 20px; align-items: start;">
-              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">geplant</span>
+              <span style="font: var(--type-code); font-size: var(--text-2xs); color: var(--aqua-300); padding-top: 4px;">{{ t.tlPlanned }}</span>
               <div style="display: flex; flex-direction: column; gap: 6px; border-left: 1px solid var(--aqua-300); padding-left: 20px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Ausbildung in Leipzig</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Noch nicht fest, aber der Plan. Das „le“ in miwale steht schon dafür.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.tlTrainingTitle }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.tlTrainingText }}</span>
               </div>
             </div>
           </div>
@@ -1100,8 +1147,8 @@
         <div style="display: flex; flex-direction: column; gap: 24px;">
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
             <div style="display: flex; flex-direction: column; gap: 14px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Der Name</span>
-              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">miwale, ausgeschrieben</h3>
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.nameEyebrow }}</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">{{ t.nameTitle }}</h3>
               <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 4px;">
                 <div style="display: flex; gap: 14px; align-items: baseline;">
                   <span style="font: var(--type-code); font-size: var(--text-xl); color: var(--aqua-300); min-width: 44px;">mi</span>
@@ -1121,17 +1168,17 @@
 
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
             <div style="display: flex; flex-direction: column; gap: 14px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Wie ich arbeite</span>
-              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">In Systemen denken</h3>
-              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Bevor ich baue, schreibe ich auf, wie die Teile zusammenhängen. Wenn ich später eine Kurve ändere, will ich vorher wissen, was das mit den anderen macht.</p>
-              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">Danach iterativ: Grundidee, Struktur, ein System, Balancing, das nächste. Entscheidungen bleiben stehen, bis es einen Grund gibt, sie zu kippen.</p>
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.workEyebrow }}</span>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">{{ t.workTitle }}</h3>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.work1 }}</p>
+              <p style="margin: 0; font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.work2 }}</p>
             </div>
           </x-import>
 
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
             <div style="display: flex; flex-direction: column; gap: 14px;">
               <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Stack</span>
-              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">Womit ich arbeite</h3>
+              <h3 data-reveal style="margin: 0; font: var(--type-h3); color: #fff;">{{ t.stackTitle }}</h3>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">TypeScript</x-import>
                 <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">JavaScript</x-import>
@@ -1151,8 +1198,8 @@
 
           <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" hint-size="100%,auto">
             <div style="display: flex; flex-direction: column; gap: 10px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.52);">Privat</span>
-              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Ich spiele seit über zehn Jahren und lese Spiele wie Systeme — Progressionskurven, Builds, Wirtschaft. Das ist der Grund, warum ich Design-Dokumente schreibe, bevor ich baue.</span>
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.52);">{{ t.personal }}</span>
+              <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.personalText }}</span>
               <div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 2px;">
                 <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">Crusader Kings 3</x-import>
                 <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Tag" interactive="{{ false }}" hint-size="auto,30px">World of Warcraft</x-import>
@@ -1175,33 +1222,33 @@
       <section style="position: relative; overflow: hidden; padding: 76px 32px 84px;">
 
         <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
-          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">KI-Workflow</span>
-          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 26ch;">Was die Agenten machen, und was ich mache</h1>
-          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 52ch;">KI ist Werkzeug, nicht Magie. Sie schreibt den Code und liefert erste Entwürfe. Die Entscheidungen und das Spielgefühl bleiben bei mir.</p>
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.aiEyebrow }}</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 26ch;">{{ t.aiTitle }}</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 52ch;">{{ t.aiText }}</p>
         </div>
       </section>
 
       <section style="padding: 96px 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Die Maschine</span>
-            <h2 style="margin: 0; font: var(--type-h3); color: #fff;">Claude Code und Codex</h2>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.machine }}</span>
+            <h2 style="margin: 0; font: var(--type-h3); color: #fff;">{{ t.machineTitle }}</h2>
             <div style="display: flex; flex-direction: column; gap: 14px;">
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Implementierung</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Aus meiner Spezifikation wird lauffähiger Code — ganze Module auf einmal.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.impl }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.implText }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Prüfen</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Testläufe, Code Reviews und Security-Scans laufen KI-gestützt mit.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.verify }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.verifyText }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Grafiken</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Kartenmotive, Hintergründe und Symbole entstehen zum Teil mit ChatGPT, 3D-Entwürfe über Blender.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.graphics }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.graphicsText }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Werkzeugkette</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Über MCP-Server hängen die Werkzeuge direkt am Agenten, statt fünf Programme parallel offen zu haben.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.toolchain }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.toolchainText }}</span>
               </div>
             </div>
           </div>
@@ -1209,24 +1256,24 @@
 
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 18px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Der Mensch</span>
-            <h2 style="margin: 0; font: var(--type-h3); color: #fff;">Was bei mir bleibt</h2>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.human }}</span>
+            <h2 style="margin: 0; font: var(--type-h3); color: #fff;">{{ t.humanTitle }}</h2>
             <div style="display: flex; flex-direction: column; gap: 14px;">
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Das Design-Dokument</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Mechaniken, Klassen, Kurven und ihre Wechselwirkungen. Bei Wavebreaker sechzehn Kapitel, bevor gebaut wurde.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.designDoc }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.designDocText }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Architektur</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Dass die Spielsimulation die Oberfläche nicht kennen darf, war meine Entscheidung. Ohne sie wären die automatischen Prüfungen nicht möglich.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.architecture }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.architectureText }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Balancing und Spielgefühl</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Zahlen, Tempo, Klang. Das lässt sich nicht generieren, das muss man spielen.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.balancing }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.balancingText }}</span>
               </div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Der letzte Blick</span>
-                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">Nichts geht in einen Build, das ich nicht selbst gelesen und ausprobiert habe.</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.finalCheck }}</span>
+                <span style="font: var(--type-body-sm); color: rgba(237,243,249,.72);">{{ t.finalCheckText }}</span>
               </div>
             </div>
           </div>
@@ -1238,25 +1285,25 @@
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 14px;">
-              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Was das bringt</span>
-              <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">Tempo ist das Argument</h2>
-              <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72); max-width: 46ch;">Das XRAI Order System ist in weniger als zwanzig Arbeitsstunden entstanden — von den ersten Gesprächen mit den Nutzern bis zum laufenden Betrieb. So komme ich als Einzelperson auf Ergebnisse, für die es sonst ein kleines Team braucht.</p>
+              <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.benefit }}</span>
+              <h2 data-reveal style="margin: 0; font: var(--type-h2); letter-spacing: var(--track-tight); color: #fff;">{{ t.benefitTitle }}</h2>
+              <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72); max-width: 46ch;">{{ t.benefitText }}</p>
             </div>
             <div style="display: flex; flex-direction: column; gap: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">XRAI: Idee bis Livegang</span>
-                <span style="font: var(--type-code); color: var(--aqua-200);">unter 20 h</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.statXrai }}</span>
+                <span style="font: var(--type-code); color: var(--aqua-200);">{{ t.under20 }}</span>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Wavebreaker: Design-Dokument</span>
-                <span style="font: var(--type-code); color: var(--aqua-200);">16 Kapitel</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.statWbDoc }}</span>
+                <span style="font: var(--type-code); color: var(--aqua-200);">{{ t.chapters16 }}</span>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Wavebreaker: Prüfläufe grün</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.statWbTests }}</span>
                 <span style="font: var(--type-code); color: var(--aqua-200);">692 / 692</span>
               </div>
               <div style="display: flex; justify-content: space-between; align-items: baseline; padding: 18px 20px; border-radius: 18px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); ">
-                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">Chromatic: Prüfläufe grün</span>
+                <span style="font: var(--type-label); font-size: var(--text-md); color: var(--ice-100);">{{ t.statChTests }}</span>
                 <span style="font: var(--type-code); color: var(--aqua-200);">59 / 59</span>
               </div>
             </div>
@@ -1275,8 +1322,8 @@
 
         <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px;">
           <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Devlog</span>
-          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Kommt, sobald Wavebreaker aus der Politur ist</h1>
-          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 52ch;">Hier werden Einträge stehen: was in der Woche gebaut wurde, was kaputtgegangen ist und wie sich das Balancing verschoben hat. Bis dahin steht der ehrlichste Verlauf in den Commits.</p>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">{{ t.devlogTitle }}</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 52ch;">{{ t.devlogText }}</p>
         </div>
       </section>
 
@@ -1285,13 +1332,13 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center;">
             <div style="display: flex; flex-direction: column; gap: 16px;">
               <div style="display: flex; align-items: center; gap: 12px;">
-                <h2 style="margin: 0; font: var(--type-h3); color: #fff;">Noch keine Einträge</h2>
-                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">BALD</x-import>
+                <h2 style="margin: 0; font: var(--type-h3); color: #fff;">{{ t.noEntries }}</h2>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Badge" tone="glass" hint-size="auto,24px">{{ t.soon }}</x-import>
               </div>
-              <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">Ich schreibe hier nichts hin, nur damit die Seite voll ist.</p>
+              <p data-reveal style="margin: 0; font: var(--type-body); color: rgba(237,243,249,.72);">{{ t.devlogNote }}</p>
               <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">Commits auf GitHub lesen</x-import>
-                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" variant="secondary" hint-size="auto,42px">Benachrichtigt werden</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" hint-size="auto,42px">{{ t.readCommits }}</x-import>
+                <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" variant="secondary" hint-size="auto,42px">{{ t.getNotified }}</x-import>
               </div>
             </div>
             <div style="display: grid; place-items: center;">
@@ -1311,11 +1358,11 @@
       <section style="position: relative; overflow: hidden; padding: 76px 32px 84px;">
 
         <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
-          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">Kontakt</span>
-          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">Schreib mir einfach</h1>
-          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 50ch;">Ein Projekt, ein Ausbildungsplatz, eine Frage zu einem der Repositories oder Lust, etwas zu testen — alles willkommen.</p>
+          <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.contact }}</span>
+          <h1 style="margin: 0; font: var(--type-h1); letter-spacing: var(--track-tight); color: #fff; max-width: 22ch;">{{ t.contactTitle }}</h1>
+          <p data-reveal style="margin: 0; font: var(--type-body); font-size: var(--text-lg); color: rgba(237,243,249,.8); max-width: 50ch;">{{ t.contactText }}</p>
           <div style="padding-top: 8px;">
-            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" size="lg" hint-size="auto,48px">E-Mail an michi.waggoner@gmail.com</x-import>
+            <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.Button" as="a" href="mailto:michi.waggoner@gmail.com" size="lg" hint-size="auto,48px">{{ t.emailButton }}</x-import>
           </div>
         </div>
       </section>
@@ -1323,23 +1370,23 @@
       <section style="padding: 0 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
-            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">E-Mail</span>
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.email }}</span>
             <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">michi.waggoner@gmail.com</a>
-            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Der direkteste Weg.</span>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.directWay }}</span>
           </div>
         </x-import>
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">GitHub</span>
             <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">github.com/milchinien</a>
-            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Alle Projekte offen, mit Commits und Tests.</span>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.allOpen }}</span>
           </div>
         </x-import>
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">itch.io</span>
             <a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">milchinien.itch.io</a>
-            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">Wo die spielbaren Builds landen.</span>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.playableBuilds }}</span>
           </div>
         </x-import>
         </div>
@@ -1349,41 +1396,43 @@
     </div>
   </sc-if>
 
-  <footer style="position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(1,10,17,0) 0%, rgba(1,10,17,.22) 46%, rgba(1,10,17,.44) 100%); padding: 72px 32px 48px;">
+  <footer style="position: relative; overflow: hidden; margin-top: auto; background: linear-gradient(180deg, rgba(1,10,17,0) 0%, rgba(1,10,17,.22) 46%, rgba(1,10,17,.44) 100%); padding: 72px 32px 48px;">
     <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap;">
         <img src="assets/logo-wordmark-light.png" alt="miwale" style="height: 26px; width: auto;">
         <div style="display: flex; gap: 20px;">
           <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">GitHub</a>
           <a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">itch.io</a>
-          <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">E-Mail</a>
+          <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
+            <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">{{ t.email }}</a>
+          </sc-if>
         </div>
       </div>
       <div style="padding: 20px 22px; border-radius: 24px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); display: flex; flex-direction: column; gap: 6px;">
-        <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.55);">Impressum</span>
-        <span style="font: var(--type-body-sm); color: rgba(237,243,249,.78);">Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com</span>
+        <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: rgba(237,243,249,.55);">{{ t.legal }}</span>
+        <span style="font: var(--type-body-sm); color: rgba(237,243,249,.78);">{{ t.legalText }}</span>
       </div>
-      <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">miwale · Michel Waggoner · Deutschland</span>
+      <span style="font: var(--type-body-sm); font-size: var(--text-2xs); color: rgba(237,243,249,.5);">{{ t.footerLine }}</span>
     </div>
   </footer>
   <sc-if value="{{ gameOpen }}" hint-placeholder-val="{{ false }}">
-    <div class="mw-spiel" data-mw="gameShell" role="dialog" aria-modal="true" aria-label="{{ gameName }} spielen" style="position: fixed; inset: 0; z-index: 9999; padding: 18px; background: rgba(1,10,17,.92); backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px;">
+    <div class="mw-spiel" data-mw="gameShell" role="dialog" aria-modal="true" aria-label="{{ gameAria }}" style="position: fixed; inset: 0; z-index: 9999; padding: 18px; background: rgba(1,10,17,.92); backdrop-filter: blur(16px); display: flex; flex-direction: column; gap: 10px;">
       <div class="mw-spiel__kopf" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 1500px; width: 100%; margin: 0 auto;">
         <span style="font: var(--type-h3); color: #fff;">{{ gameName }}</span>
         <button type="button" class="mw-vollbild" data-mw="gameFsBtn" onClick="{{ toggleVollbild }}">
           <span class="mw-vollbild__an" style="display: inline-flex; align-items: center; gap: 8px;">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M1 5.5V1h4.5M9.5 1H14v4.5M14 9.5V14H9.5M5.5 14H1V9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Vollbild
+            {{ t.fullscreen }}
           </span>
           <span class="mw-vollbild__aus" style="align-items: center; gap: 8px;">
             <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M5.5 1v4.5H1M14 5.5H9.5V1M9.5 14V9.5H14M1 9.5h4.5V14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Vollbild beenden
+            {{ t.exitFullscreen }}
           </span>
         </button>
-        <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 10px 18px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label); cursor: pointer;">Spiel schließen ×</button>
+        <button type="button" onClick="{{ closeGame }}" style="border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 10px 18px; background: rgba(255,255,255,.1); color: #fff; font: var(--type-label); cursor: pointer;">{{ t.closeGame }}</button>
       </div>
       <div class="mw-spiel__buehne">
-        <iframe data-mw="gameFrame" src="about:blank" title="Browserspiel" allow="autoplay; fullscreen" style="border: 1px solid rgba(127,224,238,.28); border-radius: 18px; background: #050b10;"></iframe>
+        <iframe data-mw="gameFrame" src="about:blank" title="{{ t.browserGame }}" allow="autoplay; fullscreen" style="border: 1px solid rgba(127,224,238,.28); border-radius: 18px; background: #050b10;"></iframe>
 
       </div>
     </div>
@@ -1400,8 +1449,403 @@ const PROJECTS = [
   {
     id: "dropfall", name: "Dropfall", trend: 1,
     preview: "assets/games/previews/dropfall-v1.jpg",
+    kind: "Idle incremental", status: "Playable prototype",
+    genres: ["Idle", "Strategy"], geraete: ["pc", "handy"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Balls fall through pegs and collect sparks on every contact",
+    lead: "An incremental with a run structure. Balls fall through an arena of pegs and collect sparks on every contact. The skill tree is the main view; from there you start a run, and the run ends when the life bar is empty.",
+    tags: ["TypeScript", "Skill tree", "Balancing simulation", "Playable on phone"],
+    shot: "assets/games/dropfall-main.jpg",
+    shotAlt: "Arena 1 from Dropfall with a falling ball and pegs",
+    shots: [
+      { src: "assets/games/dropfall-1.jpg", alt: "Dropfall skill tree in Outhold style" }
+    ],
+    shotsCaption: "Arena and skill tree — a circle means unlocked, a question mark means locked.",
+    buildTitle: "Proving numbers instead of guessing",
+    build: [
+      "Started in September 2026, now at 18 commits. The current version is v0.5: seals and the forge were added, the tiers in the skill tree got shorter, and the currencies got their own colors.",
+      "Four currencies separate the run from progression. Sparks drop during a run and don't survive it. Money is paid out at the end of a run and goes into the skill tree. Shards only come from direct peg hits, crowns once per mastered arena.",
+      "The life bar is measured in seconds and drains disproportionately fast — only direct contacts heal. The same number is the reward at the end: whoever plays deep into the ramp gets paid for it.",
+      "Touch controls came last: in portrait mode the HUD stacks up so the game also runs on a phone.",
+      "It comes with a headless balancing simulation. It plays entire campaigns through the real physics, so number changes are proven instead of guessed."
+    ],
+    facts: [
+      { value: "September 2026", label: "Timeframe" },
+      { value: "18", label: "Commits" },
+      { value: "v0.5", label: "Current version" },
+      { value: "4", label: "Currencies" }
+    ],
+    playId: "dropfall",
+    links: [
+      { href: "https://github.com/milchinien/Dropfall", label: "Code on GitHub" },
+      { href: "https://milchinien.github.io/Dropfall/", label: "Open in new tab" }
+    ],
+    linkNote: "Public repository, playable right in the browser."
+  },
+  {
+    id: "wavebreaker", name: "Wavebreaker", trend: 2,
+    preview: "assets/games/previews/wavebreaker-v1.jpg",
+    kind: "Idle defense", status: "In polish",
+    genres: ["Idle", "Strategy"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Modular battle station against endless waves · 692 self-tests passing",
+    lead: "A modular battle station against endless waves. The main turret fights on its own; the work is in the build-out: turrets, rarities, buff fields, prestige.",
+    tags: ["TypeScript", "DOM-free simulation", "Vite"],
+    shot: "assets/games/wavebreaker-main.jpg",
+    shotAlt: "Battle station from Wavebreaker with range circle and incoming enemies",
+    shots: [
+      { src: "assets/games/wavebreaker-1.jpg", alt: "Wavebreaker in combat during wave 3" },
+      { src: "assets/games/wb-station.svg", alt: "Battle station from Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-turret.svg", alt: "Turret from Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-boss.svg", alt: "Boss from Wavebreaker", fit: "contain" },
+      { src: "assets/games/wb-upgrade.svg", alt: "Upgrade icon from Wavebreaker", fit: "contain" }
+    ],
+    shotsCaption: "Captures from the current build, plus original artwork from the game.",
+    buildTitle: "Write sixteen chapters first, then build",
+    build: [
+      "Before the first line of code there was a sixteen-chapter design document. The first commit landed in August 2026; by September, 15 had been added.",
+      "The simulation doesn't know about the UI, and time and randomness each come from a single source. That's exactly why the game can check itself: after every change, 692 small test runs recalculate whether damage, costs and waves still add up.",
+      "All 692 pass, and the type check is clean. What's still open is game feel, sound and balancing — exactly the things no test can answer."
+    ],
+    facts: [
+      { value: "August to September 2026", label: "Timeframe" },
+      { value: "15", label: "Commits" },
+      { value: "692 / 692", label: "Self-tests passing" },
+      { value: "16", label: "Chapters in the design document" }
+    ],
+    playId: "wavebreaker",
+    links: [
+      { href: "https://github.com/milchinien/Wavebreaker", label: "Code on GitHub" },
+      { href: "games/wavebreaker/index.html", label: "Open in new tab" }
+    ],
+    linkNote: "Public repository, playable right in the browser."
+  },
+  {
+    id: "chromatic", name: "Chromatic", trend: 3,
+    preview: "assets/games/previews/chromatic-v1.jpg",
+    kind: "Roguelite deckbuilder", status: "Playable",
+    genres: ["Cards", "Strategy"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "A deckbuilder without mana · 25 cards, five colors, all the way to the final boss",
+    lead: "A roguelite deckbuilder without mana. A fixed deck of 25 cards: draw five each round, pick three blind, play two. Five colors meet five classes and create auras that can turn a fight around.",
+    tags: ["TypeScript", "Canvas", "No engine", "Vite"],
+    shot: "assets/games/chromatic-kampf-1.png",
+    shotAlt: "Battle room from Chromatic with cards along the bottom edge",
+    shots: [
+      { src: "assets/games/chromatic-kampf-2.png", alt: "Second battle room from Chromatic" },
+      { src: "assets/games/chromatic-akt-1.png", alt: "Act selection from Chromatic" },
+      { src: "assets/games/chromatic-card-1.png", alt: "Card from the Chromatic deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-2.png", alt: "Second card from the Chromatic deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-3.png", alt: "Third card from the Chromatic deck", fit: "contain" }
+    ],
+    shotsCaption: "Battle room, act selection and three cards from the 25-card deck.",
+    buildTitle: "No framework, no engine — everything by hand",
+    build: [
+      "Started in May 2026 and grown over 33 commits since. The world map is a graph of five layers with endlessly escalating acts, playable all the way to the final boss.",
+      "Built without a framework and without an engine: the UI lives in the DOM, combat runs on a canvas, and sound is generated at runtime. That was a deliberate choice — I wanted to understand what an engine normally does for me.",
+      "59 test runs cover the combat logic, and all of them pass. They're the reason I could overhaul the balancing several times later without breaking the game."
+    ],
+    facts: [
+      { value: "May to September 2026", label: "Timeframe" },
+      { value: "33", label: "Commits" },
+      { value: "59 / 59", label: "Tests passing" },
+      { value: "25", label: "Cards in the deck" }
+    ],
+    playId: "chromatic",
+    links: [
+      { href: "https://github.com/milchinien/Chromatic", label: "Code on GitHub" },
+      { href: "games/chromatic/index.html", label: "Open in new tab" }
+    ],
+    linkNote: "Public repository, playable right in the browser."
+  },
+  {
+    id: "reliktenschieber", name: "Reliktenschieber",
+    preview: "assets/games/previews/reliktenschieber-v1.jpg",
+    kind: "Idle coin pusher", status: "Playable prototype",
+    genres: ["Idle", "Experiment"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Drop coins, push the pile over the edge, recover the treasure chest",
+    lead: "A coin pusher as an idle game. You aim the drop, the pusher shoves the pile forward, and whatever falls over the edge pays out — double or nothing, depending on the slot. There is always a treasure chest on the platform, slowly creeping toward the edge.",
+    tags: ["TypeScript", "Custom physics", "Skill tree", "Balancing simulation"],
+    shot: "assets/games/reliktenschieber-main.jpg",
+    shotAlt: "Reliktenschieber with a pile of coins, the treasure chest at the edge and a cascade in progress",
+    shots: [
+      { src: "assets/games/reliktenschieber-1.jpg", alt: "Upgrade tree from Reliktenschieber in the Dropfall style" }
+    ],
+    shotsCaption: "Machine with a cascade and the upgrade tree — shape and colors come from Dropfall.",
+    buildTitle: "Next to Dropfall, on the same board",
+    build: [
+      "Started in September 2026. Design system, skill tree view and autumn decor come from Dropfall, so both games feel all of a piece.",
+      "The physics are written by hand: discs aren't pushed by forces, their overlaps are resolved directly — sorted from the pusher to the edge, so a single push travels through the whole pile in one pass.",
+      "Ten coin types change what happens: magnet coins pull clumps together, sticky coins bind neighbors into a slab, blast coins knock everything off at the edge, king coins multiply the cascade.",
+      "A bot plays the machine headless and buys its way through the tree. It found two bugs you would only have noticed after hours of play: a chest value that grew exponentially over time, and king coins that drove cascades up to ×2000."
+    ],
+    facts: [
+      { value: "September 2026", label: "Timeframe" },
+      { value: "51", label: "Nodes in the upgrade tree" },
+      { value: "10", label: "Coin types" },
+      { value: "Prototype", label: "Maturity" }
+    ],
+    playId: "reliktenschieber",
+    links: [
+      { href: "https://github.com/milchinien/Coin-Pusher", label: "Code on GitHub" },
+      { href: "games/reliktenschieber/index.html", label: "Open in new tab" }
+    ],
+    linkNote: "Public repository, playable right in the browser."
+  },
+  {
+    id: "xrai", name: "XRAI Order System",
+    preview: "assets/games/previews/xrai-v1.jpg",
+    kind: "Ordering system for restaurants", status: "In production",
+    genres: ["Application"], geraete: [],
+    art: "projekt", stand: "2026-05",
+    tagline: "QR code on the table, order, the kitchen sees it instantly — real operation",
+    lead: "Guests at the Gasthof Nüßleshof scan the QR code on their table, open the menu and order. The order shows up on an admin page where the kitchen works through it — real operation, not an exercise.",
+    tags: ["TypeScript", "Client project", "CI/CD", "Container"],
+    shot: "assets/games/ph-xrai.svg",
+    shotAlt: "Placeholder for the XRAI Order System",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "From the first conversations to launch in under twenty hours",
+    build: [
+      "Started in May 2026. From the first conversations through concept, frontend, backend and data storage to reviews, security scans, containers, CI/CD, deployment and DNS — all on my own, in under twenty working hours.",
+      "This is the only repository here that isn't public: it belongs to the client. That's why there's a placeholder here instead of screenshots from real operation.",
+      "It's the only project on this site that strangers use every day without knowing I built it."
+    ],
+    facts: [
+      { value: "May 2026", label: "Timeframe" },
+      { value: "under 20 h", label: "to launch" },
+      { value: "23", label: "Pull requests" },
+      { value: "83", label: "Commits" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "Client project — repository not public, screenshots to follow once agreed."
+  },
+  {
+    id: "runecall", name: "Runecall",
+    preview: "assets/games/previews/runecall-v1.jpg",
+    kind: "Digital trick-taking card game", status: "Playable prototype",
+    genres: ["Cards", "Strategy"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Call your tricks exactly — one too many is as bad as one too few",
+    lead: "Before each round you predict exactly how many tricks you'll win, and then you have to hit that exact number. The rules follow the public-domain trick-bidding principle, extended with the Wizard, who wins every trick, and the Jester, who wants to win none.",
+    tags: ["TypeScript", "Monorepo", "Bots", "Deterministic engine"],
+    shot: "assets/games/runecall-main.jpg",
+    shotAlt: "Runecall during bidding, with hand, trump and analysis panel",
+    shots: [
+      { src: "assets/games/runecall-1.jpg", alt: "Runecall with a trick in progress on the table" }
+    ],
+    shotsCaption: "Captures from Prototype 01, the public version on GitHub Pages.",
+    buildTitle: "Rules first, and kept separate from everything else",
+    build: [
+      "First commit in August 2026, eight commits through September. The project is a monorepo of three packages: engine, bots and client.",
+      "The engine knows neither the browser nor the network and is deterministic — the same starting position always produces the same game. That's why it runs identically in three places: in the tests, in the client and later on the server. For the same reason the bots only see their own hand; an opponent who knows every hand wouldn't be an opponent.",
+      "The plan is 3 to 6 players against computer opponents or online, separate layouts for PC and phone, 60 individually designed cards, German and English. So far only Prototype 01 is public: deal, analyze, play. The rest is in the repository and not yet released."
+    ],
+    facts: [
+      { value: "August to September 2026", label: "Timeframe" },
+      { value: "8", label: "Commits" },
+      { value: "3", label: "Packages in the monorepo" },
+      { value: "60", label: "Planned card designs" }
+    ],
+    playId: "runecall",
+    links: [
+      { href: "https://github.com/milchinien/Runecall", label: "Code on GitHub" },
+      { href: "games/runecall/index.html", label: "Open in new tab" }
+    ],
+    linkNote: "Prototype 01 is public. Sound, phone layout and networking are still missing."
+  },
+  {
+    id: "harmonics", name: "Harmonics",
+    preview: "assets/games/previews/harmonics-v1.jpg",
+    kind: "Idle prototype", status: "Playable prototype",
+    genres: ["Idle", "Experiment"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Nodes on a shared line pay out — the more at once, the more you get",
+    lead: "Nodes orbit on tracks. When several pass through the same line at the same time, they pay out — exponentially with their number. Around that sit convergences, grades and a tree of upgrades.",
+    tags: ["TypeScript", "Canvas", "Idle", "Vite"],
+    shot: "assets/games/harmonics-main.jpg",
+    shotAlt: "Harmonics with orbiting nodes and the display for the next convergence",
+    shots: [
+      { src: "assets/games/harmonics-1.jpg", alt: "Upgrade tree from Harmonics with locked nodes" }
+    ],
+    shotsCaption: "Game view and upgrade tree from the published version.",
+    buildTitle: "Split off from Dropfall",
+    build: [
+      "Harmonics started out as an alternative design inside the Dropfall repository. In September 2026 I split it off into its own repository so the two ideas wouldn't get in each other's way.",
+      "With two commits it's the newest and smallest project on this site — a prototype, not a finished game. What works runs in the browser: echo as currency, grades as progression, and a clockwork that keeps ticking while the window is closed.",
+      "The upgrade tree is in place as a scaffold; most nodes are still locked."
+    ],
+    facts: [
+      { value: "September 2026", label: "Timeframe" },
+      { value: "2", label: "Commits" },
+      { value: "Prototype", label: "Maturity" }
+    ],
+    playId: "harmonics",
+    links: [
+      { href: "https://github.com/milchinien/Harmonics", label: "Code on GitHub" },
+      { href: "games/harmonics/index.html", label: "Open in new tab" }
+    ],
+    linkNote: "Public repository, playable right in the browser."
+  },
+  {
+    id: "dnd", name: "Dungeons & Diplomas",
+    preview: "assets/games/previews/dnd-v1.jpg",
+    kind: "Educational dungeon crawler", status: "Biggest side project",
+    genres: ["Educational", "Strategy"], geraete: [],
+    art: "spiel", stand: "2026-06",
+    tagline: "Procedural dungeon with quiz enemies — 229 commits",
+    lead: "A browser dungeon crawler with procedurally generated levels, real-time combat and enemies you defeat by answering quiz questions. Plus XP, items, high scores and a custom editor tool.",
+    tags: ["TypeScript", "Next.js", "Custom canvas renderer", "Supabase"],
+    shot: "assets/games/dnd-main.jpg",
+    shotAlt: "Login screen of Dungeons & Diplomas",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "The longest project — and the one with the most detours",
+    build: [
+      "First commit in November 2025, last in June 2026. With 229 commits it's by far the largest project on my account.",
+      "It started with Phaser as the engine. What remained is a custom canvas renderer in a Next.js app — Phaser belonged to the spike phase and is no longer in it. Data storage goes through an adapter: SQLite locally, Supabase in production.",
+      "The published version currently doesn't get past the login, because the database isn't connected there. That's why the screenshot shows the login screen and not the dungeon."
+    ],
+    facts: [
+      { value: "November 2025 to June 2026", label: "Timeframe" },
+      { value: "229", label: "Commits" },
+      { value: "Next.js", label: "Foundation" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/dungeons-and-diplomas", label: "Code on GitHub" },
+      { href: "https://dungeons-and-diplomas.vercel.app", label: "Published version" }
+    ],
+    linkNote: "Without a database, the published version can't be clicked through into the game."
+  },
+  {
+    id: "mathuniverse", name: "Michis Mathe Universe",
+    preview: "assets/games/previews/mathuniverse-v1.jpg",
+    kind: "Educational game collection", status: "Live",
+    genres: ["Educational", "Experiment"], geraete: [],
+    art: "spiel", stand: "2025-09",
+    tagline: "Calculus through play — asymptotes, curves, fundamentals",
+    lead: "A collection of small browser games about the fundamentals of calculus. The entry point is Asymptote Rush, where you learn how functions behave at their edges.",
+    tags: ["JavaScript", "Educational", "GitHub Pages"],
+    shot: "assets/games/mathuniverse-main.jpg",
+    shotAlt: "Start page of Michis Mathe Universe with the game selection",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "The first project that actually went online",
+    build: [
+      "First commit in August 2025, grown to 75 commits by September 2025. That makes it the oldest project on this site.",
+      "It came out of the question of whether a math topic can be packaged so that people take it on voluntarily. The answer was half yes — the games work, the scope stayed small.",
+      "It's still public on GitHub Pages and playable without signing in."
+    ],
+    facts: [
+      { value: "August to September 2025", label: "Timeframe" },
+      { value: "75", label: "Commits" },
+      { value: "JavaScript", label: "Language" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/michi-math-universe", label: "Code on GitHub" },
+      { href: "https://milchinien.github.io/michi-math-universe/", label: "Play" }
+    ],
+    linkNote: "Public and playable without signing in."
+  },
+  {
+    id: "mindforge", name: "mindforge-playground",
+    preview: "assets/games/previews/mindforge-v1.jpg",
+    kind: "Playground", status: "Experiments",
+    genres: ["Experiment"], geraete: [],
+    art: "spiel", stand: "2026-03",
+    tagline: "Mechanics that don't have a home yet",
+    lead: "A playground for mechanics that don't belong to any project yet. Not a game, but the place where I try out ideas before they move in somewhere.",
+    tags: ["React", "Vite", "Experiments"],
+    shot: "assets/games/ph-mindforge.svg",
+    shotAlt: "Placeholder for mindforge-playground",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Unfinished on purpose",
+    build: [
+      "Started in February 2026, 43 commits through March 2026. It's based on a React template on Vite.",
+      "Nothing here is meant to be finished. What proves itself moves into its own repository; the rest stays behind and is allowed to.",
+      "There's no published version and therefore no screenshot."
+    ],
+    facts: [
+      { value: "February to March 2026", label: "Timeframe" },
+      { value: "43", label: "Commits" },
+      { value: "React", label: "Foundation" }
+    ],
+    playId: "",
+    links: [
+      { href: "https://github.com/milchinien/mindforge-playground", label: "Code on GitHub" }
+    ],
+    linkNote: "No published version — a playground, not a game."
+  },
+  {
+    id: "outpost", name: "The Last Outpost",
+    preview: "assets/games/previews/outpost-v1.jpg",
+    kind: "Design document", status: "On paper",
+    genres: ["Strategy", "Experiment"], geraete: [],
+    art: "spiel", stand: "",
+    tagline: "Auto-battles, expeditions, extraction risk — not a line of code yet",
+    lead: "A design document with auto-battles, expeditions, extraction risk, a six-person squad, a stress system and skill trees. It's the most complete idea I haven't built yet.",
+    tags: ["Design document", "Auto-battler", "Extraction"],
+    shot: "assets/games/ph-outpost.svg",
+    shotAlt: "Placeholder for The Last Outpost",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Deliberately not built yet",
+    build: [
+      "There's no repository and no prototype — just the design document.",
+      "That's intentional. Wavebreaker showed that a fully written document shortens the later work considerably. The Last Outpost is waiting until one of the current projects is finished.",
+      "Once it gets going, there'll be more here than a placeholder."
+    ],
+    facts: [
+      { value: "Not set yet", label: "Start of development" },
+      { value: "0", label: "Lines of code" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "No repository — so far the project only exists as a design document."
+  },
+  {
+    id: "flappy", name: "Flappy prototype",
+    preview: "assets/games/previews/flappy-v1.jpg",
+    kind: "My first game", status: "Not released",
+    genres: ["Experiment"], geraete: [],
+    art: "spiel", stand: "2024-06",
+    tagline: "The beginning — every line copied by hand from the chat into Unity",
+    lead: "My very first game: a Flappy Bird clone with my own assets. The code came from ChatGPT, and I copied every line into Unity by hand — AI coding tools didn't exist yet.",
+    tags: ["Unity", "Own assets", "Not released"],
+    shot: "assets/games/ph-flappy.svg",
+    shotAlt: "Placeholder for the Flappy prototype",
+    shots: [],
+    shotsCaption: "",
+    buildTitle: "Where it all started",
+    build: [
+      "The prototype was made on June 13, 2024 in Unity, with self-made assets.",
+      "There's no repository for it and no published version. It's here anyway, because without it nothing listed above would have followed.",
+      "What I took away from it: copying isn't understanding. That's exactly why today I write the document first and then check whether the code does what it says."
+    ],
+    facts: [
+      { value: "June 13, 2024", label: "Created" },
+      { value: "Unity", label: "Tool" },
+      { value: "Not released", label: "Status" }
+    ],
+    playId: "",
+    links: [],
+    linkNote: "No repository and no published version."
+  }
+];
+
+// Dieselben Projekte auf Deutsch. Ids, Genres, Geraete, Stand und Links sind
+// bewusst identisch mit PROJECTS: Filter und Adressen rechnen sprachunabhaengig.
+const PROJECTS_DE = [
+  {
+    id: "dropfall", name: "Dropfall", trend: 1,
+    preview: "assets/games/previews/dropfall-v1.jpg",
     kind: "Idle-Incremental", status: "Prototyp spielbar",
-    genres: ["Idle", "Strategie"], geraete: ["pc", "handy"],
+    genres: ["Idle", "Strategy"], geraete: ["pc", "handy"],
     art: "spiel", stand: "2026-09",
     tagline: "Kugeln fallen durch Pegs und sammeln bei jedem Kontakt Funken",
     lead: "Incremental mit Lauf-Struktur. Kugeln fallen durch eine Arena aus Pegs und sammeln bei jedem Kontakt Funken. Der Skill Tree ist die Hauptansicht, von dort startet man einen Lauf, und der Lauf endet, wenn die Lebensleiste leer ist.",
@@ -1437,7 +1881,7 @@ const PROJECTS = [
     id: "wavebreaker", name: "Wavebreaker", trend: 2,
     preview: "assets/games/previews/wavebreaker-v1.jpg",
     kind: "Idle-Verteidigung", status: "In Politur",
-    genres: ["Idle", "Strategie"], geraete: ["pc"],
+    genres: ["Idle", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Modulare Kampfstation gegen endlose Wellen · 692 Selbsttests grün",
     lead: "Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige.",
@@ -1475,7 +1919,7 @@ const PROJECTS = [
     id: "chromatic", name: "Chromatic", trend: 3,
     preview: "assets/games/previews/chromatic-v1.jpg",
     kind: "Roguelite-Deckbuilder", status: "Spielbar",
-    genres: ["Karten", "Strategie"], geraete: ["pc"],
+    genres: ["Cards", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Deckbuilder ohne Mana · 25 Karten, fünf Farben, bis zum Endboss",
     lead: "Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.",
@@ -1548,7 +1992,7 @@ const PROJECTS = [
     id: "xrai", name: "XRAI Order System",
     preview: "assets/games/previews/xrai-v1.jpg",
     kind: "Bestellsystem für die Gastronomie", status: "Im Einsatz",
-    genres: ["Anwendung"], geraete: [],
+    genres: ["Application"], geraete: [],
     art: "projekt", stand: "2026-05",
     tagline: "QR-Code am Tisch, bestellen, Küche sieht es sofort — echter Betrieb",
     lead: "Gäste im Gasthof Nüßleshof scannen den QR-Code am Tisch, öffnen die Karte und bestellen. Die Bestellung erscheint auf einer Admin-Seite, auf der die Küche sie abarbeitet — echter Betrieb, keine Übung.",
@@ -1577,7 +2021,7 @@ const PROJECTS = [
     id: "runecall", name: "Runecall",
     preview: "assets/games/previews/runecall-v1.jpg",
     kind: "Digitales Stichkartenspiel", status: "Prototyp spielbar",
-    genres: ["Karten", "Strategie"], geraete: ["pc"],
+    genres: ["Cards", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Stiche exakt ansagen — einer zu viel ist so schlecht wie einer zu wenig",
     lead: "Vor jeder Runde sagst du exakt voraus, wie viele Stiche du gewinnen wirst, und musst danach genau diese Zahl treffen. Die Regeln folgen dem gemeinfreien Stichansage-Prinzip, erweitert um den Magier, der jeden Stich gewinnt, und den Narren, der keinen gewinnen will.",
@@ -1644,7 +2088,7 @@ const PROJECTS = [
     id: "dnd", name: "Dungeons & Diplomas",
     preview: "assets/games/previews/dnd-v1.jpg",
     kind: "Lern-Dungeon-Crawler", status: "Größtes Nebenprojekt",
-    genres: ["Lernspiel", "Strategie"], geraete: [],
+    genres: ["Educational", "Strategy"], geraete: [],
     art: "spiel", stand: "2026-06",
     tagline: "Prozeduraler Dungeon mit Quizgegnern — 229 Commits",
     lead: "Ein Dungeon-Crawler im Browser mit prozedural erzeugten Ebenen, Echtzeitkampf und Gegnern, die man über Quizfragen schlägt. Dazu XP, Gegenstände, Highscores und eigenes Editor-Werkzeug.",
@@ -1675,7 +2119,7 @@ const PROJECTS = [
     id: "mathuniverse", name: "Michis Mathe Universe",
     preview: "assets/games/previews/mathuniverse-v1.jpg",
     kind: "Lernspiel-Sammlung", status: "Live",
-    genres: ["Lernspiel", "Experiment"], geraete: [],
+    genres: ["Educational", "Experiment"], geraete: [],
     art: "spiel", stand: "2025-09",
     tagline: "Analysis spielerisch — Asymptoten, Kurven, Grundlagen",
     lead: "Eine Sammlung kleiner Browserspiele rund um die Grundlagen der Analysis. Der Einstieg ist die Asymptoten-Raserei, in der man lernt, wie sich Funktionen an ihren Rändern verhalten.",
@@ -1736,7 +2180,7 @@ const PROJECTS = [
     id: "outpost", name: "The Last Outpost",
     preview: "assets/games/previews/outpost-v1.jpg",
     kind: "Design-Dokument", status: "Auf Papier",
-    genres: ["Strategie", "Experiment"], geraete: [],
+    genres: ["Strategy", "Experiment"], geraete: [],
     art: "spiel", stand: "",
     tagline: "Auto-Kampf, Expeditionen, Extraction-Risiko — noch keine Zeile Code",
     lead: "Ein Design-Dokument mit Auto-Kampf, Expeditionen, Extraction-Risiko, Sechser-Team, Stresssystem und Skilltrees. Es ist die vollständigste Idee, die ich bisher nicht gebaut habe.",
@@ -1789,34 +2233,400 @@ const PROJECTS = [
   }
 ];
 
+function projekteIn(sprache) {
+  return sprache === "de" ? PROJECTS_DE : PROJECTS;
+}
+
+// ---- Sprache -------------------------------------------------------------------
+// Englisch ist der Standard. Die Wahl bleibt im Browser gespeichert; ?lang=de in
+// der Adresse geht vor, damit sich eine Fassung gezielt verlinken laesst.
+const SPRACHEN = [
+  { code: "en", kurz: "EN", name: "English" },
+  { code: "de", kurz: "DE", name: "Deutsch" }
+];
+const SPRACH_SCHLUESSEL = "miwale-sprache";
+
+function startSprache() {
+  const gueltig = (x) => SPRACHEN.some((l) => l.code === x);
+  try {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (gueltig(q)) return q;
+  } catch (e) { /* ohne Adresse, z. B. in der Vorschau */ }
+  try {
+    const gemerkt = localStorage.getItem(SPRACH_SCHLUESSEL);
+    if (gueltig(gemerkt)) return gemerkt;
+  } catch (e) { /* Speicher gesperrt */ }
+  return "en";
+}
+
+const TEXTE = {
+  en: {
+    roleLine: "Game Developer & Software Developer",
+    heroIBuild: "I build",
+    heroIntro: "I'm Michel, 17. It started when I didn't like a game and wanted to know if I could do better. The first attempt was bad. So was the second. At some point it got better — and I haven't stopped since.",
+    heroTagline: "Built with AI, tuned by hand",
+    viewProjects: "View projects",
+    contact: "Contact",
+    quickIntro: "Quick intro",
+    nameIntro: "The name is made of three parts:",
+    nameRest: "No studio with a team behind it — it's me, a computer and a lot of evenings.",
+    heroCardText: "I design the systems myself, review every change and don't ship anything I haven't played first. If something is boring, I want to notice before you do.",
+    popularEyebrow: "Most popular right now",
+    popularTitle: "What people are playing the most",
+    popularText: "Three are doing better than the rest right now. If you only want to check out one, pick the first.",
+    whyEyebrow: "Why I do this",
+    whyTitle: "Building something someone",
+    whyHighlight: "actually uses",
+    whyText: "The difference between an exercise and real work is whether anyone notices when it breaks. One of my projects now runs every day for people who don't know me. Since then I build differently — less playful, more with the question of what happens when I'm not standing next to it.",
+    p1Title: "Write it down first",
+    p1Sub: "then type",
+    p1Text: "If I can't explain how something should feel, I don't start. The document comes before the first line.",
+    p2Title: "The AI types",
+    p2Sub: "I decide",
+    p2Text: "I set the mechanics, curves and limits. Whatever stays in at the end, I've read first — every line.",
+    p3Title: "Played myself",
+    p3Sub: "or not at all",
+    p3Text: "Tests catch bugs. No test can tell whether something is fun. I have to play it myself, and more than once.",
+    viewAllProjects: "View all projects",
+    codeOnGitHub: "Code on GitHub",
+    projectsEyebrow: "Projects",
+    projectsTitle: "Everything I've built so far",
+    projectsText: "Public on GitHub, with commits and tests. Keep scrolling to dive down.",
+    scrollToDive: "Scroll to dive",
+    bottomEyebrow: "Made it to the bottom",
+    bottomTitle: "Click a project for the full story",
+    typeAria: "Type",
+    sortBy: "Sort by",
+    sortAria: "Sort order",
+    playableOn: "Playable on",
+    resetFilters: "Reset filters",
+    nothingFound: "Nothing matches this selection. Remove a filter.",
+    viewTile: "View →",
+    allRepos: "All repositories",
+    allProjectsBack: "← All projects",
+    prevImage: "Previous image",
+    nextImage: "Next image",
+    play: "Play",
+    inBrowser: "Right in the browser",
+    keyFacts: "Key facts",
+    howBuilt: "How and when it was built",
+    backToAll: "← Back to all projects",
+    aboutEyebrow: "About me",
+    aboutTitle: "Not a straight path, but a very deliberate one",
+    aboutText: "Michel Waggoner, 17, from Germany. I left school after tenth grade for health reasons and am now working toward my diploma through adult education. Since then, work and development have run side by side.",
+    timeline: "Timeline",
+    timelineTitle: "How I got here",
+    tl8th: "8th grade",
+    tlInternTitle: "Internship with my father",
+    tlInternText: "At Tobias Waggoner's company, I sit down seriously with my own code for the first time.",
+    tlFirstGameTitle: "My first game",
+    tlFirstGameText: "A Flappy Bird clone with my own assets. The code came from ChatGPT, and I copied every line into Unity by hand — AI coding tools didn't exist yet. From then on, that's all I wanted to do.",
+    tlSchoolTitle: "Left school for health reasons",
+    tlSchoolText: "A chronic illness shaped the second half of my school years. I left after tenth grade — I wasn't kicked out. I'm working toward my diploma through adult education.",
+    tlSince: "since 2025",
+    tlWorkTitle: "Working at the company, developing alongside",
+    tlWorkText: "I work at my father's company and develop every day. Concept, implementation and deployment are on me; an experienced senior developer reviews. That's how the XRAI Order System came about.",
+    tlStructTitle: "Games with structure",
+    tlStructText: "From here on, no more experiments — projects with a design document, tests and version control. Chromatic and Wavebreaker came out of that.",
+    tlPlanned: "planned",
+    tlTrainingTitle: "Apprenticeship in Leipzig",
+    tlTrainingText: "Not settled yet, but that's the plan. The “le” in miwale already stands for it.",
+    nameEyebrow: "The name",
+    nameTitle: "miwale, spelled out",
+    workEyebrow: "How I work",
+    workTitle: "Thinking in systems",
+    work1: "Before I build, I write down how the parts fit together. If I change a curve later, I want to know beforehand what that does to the others.",
+    work2: "Then iteratively: core idea, structure, one system, balancing, the next one. Decisions stand until there's a reason to overturn them.",
+    stackTitle: "What I work with",
+    personal: "Personal",
+    personalText: "I've been playing games for over ten years and read them as systems — progression curves, builds, economies. That's why I write design documents before I build.",
+    aiEyebrow: "AI workflow",
+    aiTitle: "What the agents do, and what I do",
+    aiText: "AI is a tool, not magic. It writes the code and delivers first drafts. The decisions and the game feel stay with me.",
+    machine: "The machine",
+    machineTitle: "Claude Code and Codex",
+    impl: "Implementation",
+    implText: "My specification becomes working code — entire modules at once.",
+    verify: "Verification",
+    verifyText: "Test runs, code reviews and security scans run alongside, AI-assisted.",
+    graphics: "Graphics",
+    graphicsText: "Card art, backgrounds and icons are partly made with ChatGPT, 3D drafts in Blender.",
+    toolchain: "Toolchain",
+    toolchainText: "MCP servers plug the tools straight into the agent, instead of having five programs open side by side.",
+    human: "The human",
+    humanTitle: "What stays with me",
+    designDoc: "The design document",
+    designDocText: "Mechanics, classes, curves and how they interact. For Wavebreaker, sixteen chapters before anything was built.",
+    architecture: "Architecture",
+    architectureText: "Keeping the game simulation unaware of the UI was my decision. Without it, the automated checks wouldn't be possible.",
+    balancing: "Balancing and game feel",
+    balancingText: "Numbers, pace, sound. You can't generate that — you have to play it.",
+    finalCheck: "The final check",
+    finalCheckText: "Nothing goes into a build that I haven't read and tried myself.",
+    benefit: "What it gets me",
+    benefitTitle: "Speed is the point",
+    benefitText: "The XRAI Order System was built in under twenty working hours — from the first conversations with its users to live operation. That's how I get results on my own that would otherwise take a small team.",
+    statXrai: "XRAI: idea to launch",
+    under20: "under 20 h",
+    statWbDoc: "Wavebreaker: design document",
+    chapters16: "16 chapters",
+    statWbTests: "Wavebreaker: tests passing",
+    statChTests: "Chromatic: tests passing",
+    devlogTitle: "Coming once Wavebreaker is out of polish",
+    devlogText: "Entries will go here: what got built that week, what broke and how the balancing shifted. Until then, the most honest history is in the commits.",
+    noEntries: "No entries yet",
+    soon: "SOON",
+    devlogNote: "I'm not going to write something here just to fill the page.",
+    readCommits: "Read the commits on GitHub",
+    getNotified: "Get notified",
+    contactTitle: "Just drop me a line",
+    contactText: "A project, an apprenticeship, a question about one of the repositories, or you'd like to test something — all welcome.",
+    emailButton: "Email michi.waggoner@gmail.com",
+    email: "Email",
+    directWay: "The most direct way.",
+    allOpen: "All projects open, with commits and tests.",
+    playableBuilds: "Where the playable builds end up.",
+    legal: "Legal notice",
+    legalText: "Responsible for the content: Michel Waggoner. Contact: michi.waggoner@gmail.com",
+    footerLine: "miwale · Michel Waggoner · Germany",
+    fullscreen: "Fullscreen",
+    exitFullscreen: "Exit fullscreen",
+    closeGame: "Close game ×",
+    browserGame: "Browser game",
+    langGroup: "Language",
+    anzahl: (n) => n + (n === 1 ? " project" : " projects"),
+    ausgewaehlt: ", selected",
+    trendAria: (n) => " — number " + n + " most played",
+    bildAria: (i, n) => "Image " + i + " of " + n,
+    spielenAria: (name) => "Play " + name + " in the browser",
+    spielAria: (name) => "Play " + name,
+    treffer: (a, b) => a + " of " + b + " projects",
+    morphWords: ["games", "systems", "tools", "prototypes"],
+    typeLines: ["Michel · Waggoner · Leipzig", "one-person studio", "first line of my own: June 2024"]
+  },
+  de: {
+    roleLine: "Game Developer & Software-Entwickler",
+    heroIBuild: "Ich baue",
+    heroIntro: "Ich bin Michel, 17. Angefangen hat es damit, dass mir ein Spiel nicht gefiel und ich wissen wollte, ob ich das besser hinbekomme. Der erste Versuch war schlecht. Der zweite auch. Irgendwann wurde es besser — und seitdem höre ich nicht mehr auf.",
+    heroTagline: "Gebaut mit KI, getunt von Hand",
+    viewProjects: "Projekte ansehen",
+    contact: "Kontakt",
+    quickIntro: "Kurz zu mir",
+    nameIntro: "Der Name setzt sich aus drei Teilen zusammen:",
+    nameRest: "Kein Studio mit Team dahinter — das bin ich, ein Rechner und ziemlich viele Abende.",
+    heroCardText: "Ich entwerfe die Systeme selbst, lese jede Änderung nach und gebe nichts raus, das ich nicht vorher gespielt habe. Wenn etwas langweilig ist, soll mir das vor dir auffallen.",
+    popularEyebrow: "Gerade am beliebtesten",
+    popularTitle: "Womit im Moment am meisten gespielt wird",
+    popularText: "Drei laufen zurzeit besser als der Rest. Wenn du nur eins anschauen willst, nimm das erste.",
+    whyEyebrow: "Warum ich das mache",
+    whyTitle: "Etwas bauen, das jemand",
+    whyHighlight: "wirklich benutzt",
+    whyText: "Der Unterschied zwischen einer Übung und echter Arbeit ist, ob es jemandem auffällt, wenn es kaputtgeht. Eines meiner Projekte läuft inzwischen jeden Tag bei Leuten, die mich nicht kennen. Seitdem baue ich anders — weniger verspielt, mehr mit dem Gedanken, was passiert, wenn ich nicht danebenstehe.",
+    p1Title: "Erst aufschreiben",
+    p1Sub: "dann tippen",
+    p1Text: "Solange ich nicht erklären kann, wie sich etwas anfühlen soll, fange ich nicht an. Das Dokument steht vor der ersten Zeile.",
+    p2Title: "Die KI tippt",
+    p2Sub: "ich entscheide",
+    p2Text: "Mechanik, Kurven und Grenzen lege ich fest. Was am Ende drin bleibt, habe ich vorher gelesen — jede Zeile.",
+    p3Title: "Selbst gespielt",
+    p3Sub: "oder gar nicht",
+    p3Text: "Tests fangen Fehler. Ob etwas Spaß macht, merkt kein Test. Das muss ich selbst spielen, und zwar länger als einmal.",
+    viewAllProjects: "Alle Projekte ansehen",
+    codeOnGitHub: "Code auf GitHub",
+    projectsEyebrow: "Projekte",
+    projectsTitle: "Alles, was bisher entstanden ist",
+    projectsText: "Öffentlich auf GitHub, mit Commits und Tests. Scroll weiter, dann geht es nach unten.",
+    scrollToDive: "Scrollen, um abzutauchen",
+    bottomEyebrow: "Unten angekommen",
+    bottomTitle: "Ein Projekt anklicken, dann wird es ausführlich",
+    typeAria: "Art",
+    sortBy: "Sortieren nach",
+    sortAria: "Sortierung",
+    playableOn: "Spielbar auf",
+    resetFilters: "Filter zurücksetzen",
+    nothingFound: "Zu dieser Auswahl gibt es nichts. Nimm einen Filter weg.",
+    viewTile: "Ansehen →",
+    allRepos: "Alle Repositories",
+    allProjectsBack: "← Alle Projekte",
+    prevImage: "Vorheriges Bild",
+    nextImage: "Nächstes Bild",
+    play: "Spielen",
+    inBrowser: "Direkt im Browser",
+    keyFacts: "Eckdaten",
+    howBuilt: "Wie und wann gebaut",
+    backToAll: "← Zurück zu allen Projekten",
+    aboutEyebrow: "Über mich",
+    aboutTitle: "Kein gerader Weg, aber ein sehr genauer",
+    aboutText: "Michel Waggoner, 17, aus Deutschland. Ich habe die Schule nach der zehnten Klasse aus gesundheitlichen Gründen verlassen und gehe den Abschluss über den zweiten Bildungsweg an. Arbeiten und Entwickeln laufen seitdem parallel.",
+    timeline: "Zeitleiste",
+    timelineTitle: "Wie ich hier gelandet bin",
+    tl8th: "8. Klasse",
+    tlInternTitle: "Praktikum bei meinem Vater",
+    tlInternText: "Im Betrieb von Tobias Waggoner sitze ich zum ersten Mal ernsthaft an eigenem Code.",
+    tlFirstGameTitle: "Das erste eigene Spiel",
+    tlFirstGameText: "Ein Flappy-Bird-Klon mit eigenen Assets. Der Code kam von ChatGPT, und ich habe jede Zeile von Hand in Unity kopiert — KI-Coding-Tools gab es damals noch nicht. Ab da wollte ich nur noch das.",
+    tlSchoolTitle: "Schule aus gesundheitlichen Gründen beendet",
+    tlSchoolText: "Eine chronische Erkrankung hat die zweite Hälfte meiner Schulzeit bestimmt. Nach der zehnten Klasse bin ich abgegangen — nicht geflogen. Den Abschluss gehe ich über den zweiten Bildungsweg an.",
+    tlSince: "seit 2025",
+    tlWorkTitle: "Arbeit im Betrieb, Entwicklung daneben",
+    tlWorkText: "Ich arbeite bei meinem Vater mit und entwickle täglich. Konzept, Umsetzung und Deployment liegen bei mir, ein erfahrener Senior-Entwickler liest gegen. So ist das XRAI Order System entstanden.",
+    tlStructTitle: "Spiele mit Struktur",
+    tlStructText: "Ab hier keine Experimente mehr, sondern Projekte mit Design-Dokument, Tests und Versionsverwaltung. Chromatic und Wavebreaker sind daraus geworden.",
+    tlPlanned: "geplant",
+    tlTrainingTitle: "Ausbildung in Leipzig",
+    tlTrainingText: "Noch nicht fest, aber der Plan. Das „le“ in miwale steht schon dafür.",
+    nameEyebrow: "Der Name",
+    nameTitle: "miwale, ausgeschrieben",
+    workEyebrow: "Wie ich arbeite",
+    workTitle: "In Systemen denken",
+    work1: "Bevor ich baue, schreibe ich auf, wie die Teile zusammenhängen. Wenn ich später eine Kurve ändere, will ich vorher wissen, was das mit den anderen macht.",
+    work2: "Danach iterativ: Grundidee, Struktur, ein System, Balancing, das nächste. Entscheidungen bleiben stehen, bis es einen Grund gibt, sie zu kippen.",
+    stackTitle: "Womit ich arbeite",
+    personal: "Privat",
+    personalText: "Ich spiele seit über zehn Jahren und lese Spiele wie Systeme — Progressionskurven, Builds, Wirtschaft. Das ist der Grund, warum ich Design-Dokumente schreibe, bevor ich baue.",
+    aiEyebrow: "KI-Workflow",
+    aiTitle: "Was die Agenten machen, und was ich mache",
+    aiText: "KI ist Werkzeug, nicht Magie. Sie schreibt den Code und liefert erste Entwürfe. Die Entscheidungen und das Spielgefühl bleiben bei mir.",
+    machine: "Die Maschine",
+    machineTitle: "Claude Code und Codex",
+    impl: "Implementierung",
+    implText: "Aus meiner Spezifikation wird lauffähiger Code — ganze Module auf einmal.",
+    verify: "Prüfen",
+    verifyText: "Testläufe, Code Reviews und Security-Scans laufen KI-gestützt mit.",
+    graphics: "Grafiken",
+    graphicsText: "Kartenmotive, Hintergründe und Symbole entstehen zum Teil mit ChatGPT, 3D-Entwürfe über Blender.",
+    toolchain: "Werkzeugkette",
+    toolchainText: "Über MCP-Server hängen die Werkzeuge direkt am Agenten, statt fünf Programme parallel offen zu haben.",
+    human: "Der Mensch",
+    humanTitle: "Was bei mir bleibt",
+    designDoc: "Das Design-Dokument",
+    designDocText: "Mechaniken, Klassen, Kurven und ihre Wechselwirkungen. Bei Wavebreaker sechzehn Kapitel, bevor gebaut wurde.",
+    architecture: "Architektur",
+    architectureText: "Dass die Spielsimulation die Oberfläche nicht kennen darf, war meine Entscheidung. Ohne sie wären die automatischen Prüfungen nicht möglich.",
+    balancing: "Balancing und Spielgefühl",
+    balancingText: "Zahlen, Tempo, Klang. Das lässt sich nicht generieren, das muss man spielen.",
+    finalCheck: "Der letzte Blick",
+    finalCheckText: "Nichts geht in einen Build, das ich nicht selbst gelesen und ausprobiert habe.",
+    benefit: "Was das bringt",
+    benefitTitle: "Tempo ist das Argument",
+    benefitText: "Das XRAI Order System ist in weniger als zwanzig Arbeitsstunden entstanden — von den ersten Gesprächen mit den Nutzern bis zum laufenden Betrieb. So komme ich als Einzelperson auf Ergebnisse, für die es sonst ein kleines Team braucht.",
+    statXrai: "XRAI: Idee bis Livegang",
+    under20: "unter 20 h",
+    statWbDoc: "Wavebreaker: Design-Dokument",
+    chapters16: "16 Kapitel",
+    statWbTests: "Wavebreaker: Prüfläufe grün",
+    statChTests: "Chromatic: Prüfläufe grün",
+    devlogTitle: "Kommt, sobald Wavebreaker aus der Politur ist",
+    devlogText: "Hier werden Einträge stehen: was in der Woche gebaut wurde, was kaputtgegangen ist und wie sich das Balancing verschoben hat. Bis dahin steht der ehrlichste Verlauf in den Commits.",
+    noEntries: "Noch keine Einträge",
+    soon: "BALD",
+    devlogNote: "Ich schreibe hier nichts hin, nur damit die Seite voll ist.",
+    readCommits: "Commits auf GitHub lesen",
+    getNotified: "Benachrichtigt werden",
+    contactTitle: "Schreib mir einfach",
+    contactText: "Ein Projekt, ein Ausbildungsplatz, eine Frage zu einem der Repositories oder Lust, etwas zu testen — alles willkommen.",
+    emailButton: "E-Mail an michi.waggoner@gmail.com",
+    email: "E-Mail",
+    directWay: "Der direkteste Weg.",
+    allOpen: "Alle Projekte offen, mit Commits und Tests.",
+    playableBuilds: "Wo die spielbaren Builds landen.",
+    legal: "Impressum",
+    legalText: "Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com",
+    footerLine: "miwale · Michel Waggoner · Deutschland",
+    fullscreen: "Vollbild",
+    exitFullscreen: "Vollbild beenden",
+    closeGame: "Spiel schließen ×",
+    browserGame: "Browserspiel",
+    langGroup: "Sprache",
+    anzahl: (n) => n + (n === 1 ? " Projekt" : " Projekte"),
+    ausgewaehlt: ", ausgewählt",
+    trendAria: (n) => " — Nummer " + n + " der meistgespielten",
+    bildAria: (i, n) => "Bild " + i + " von " + n,
+    spielenAria: (name) => name + " im Browser spielen",
+    spielAria: (name) => name + " spielen",
+    treffer: (a, b) => a + " von " + b + " Projekten",
+    morphWords: ["Spiele", "Systeme", "Werkzeuge", "Prototypen"],
+    typeLines: ["Michel · Waggoner · Leipzig", "Ein-Personen-Studio", "erste eigene Zeile: Juni 2024"]
+  }
+};
+
+// Was auf der Spieleseite anders heisst. Wird ueber TEXTE gelegt.
+const SPIELE_TEXTE = {
+  en: {
+    projectsEyebrow: "Games",
+    projectsTitle: "All games by miwale",
+    projectsText: "Several of them run right here in your browser. Keep scrolling to dive down.",
+    bottomTitle: "Click a game for the full story",
+    allProjectsBack: "← All games",
+    toPortfolio: "Portfolio →",
+    treffer: (a, b) => a + " of " + b + " games",
+    anzahl: (n) => n + (n === 1 ? " game" : " games"),
+    footerLine: "miwale games"
+  },
+  de: {
+    projectsEyebrow: "Spiele",
+    projectsTitle: "Alle Spiele von miwale",
+    projectsText: "Mehrere davon laufen direkt hier im Browser. Scroll weiter, dann geht es nach unten.",
+    bottomTitle: "Ein Spiel anklicken, dann wird es ausführlich",
+    allProjectsBack: "← Alle Spiele",
+    toPortfolio: "Portfolio →",
+    treffer: (a, b) => a + " von " + b + " Spielen",
+    anzahl: (n) => n + (n === 1 ? " Spiel" : " Spiele"),
+    footerLine: "miwale games"
+  }
+};
+
 // ---- Adresse und Verlauf ----------------------------------------------------
-// Dieselbe Loesung wie in der Mobil-Fassung: der sichtbare Zustand steht in der
-// Adresse, damit die Zurueck-Taste eine Detailseite oder ein Spiel schliesst,
-// statt die Seite zu verlassen — und damit sich ein Projekt verschicken laesst.
+// Der sichtbare Zustand steht in der Adresse, damit die Zurueck-Taste eine
+// Detailseite oder ein Spiel schliesst, statt die Seite zu verlassen — und damit
+// sich ein Projekt verschicken laesst.
 const TAB_SLUG = { start: "start", games: "projekte", about: "ueber-mich", ai: "ki-workflow", devlog: "devlog", contact: "kontakt" };
 const SLUG_TAB = {};
 for (const t in TAB_SLUG) SLUG_TAB[TAB_SLUG[t]] = t;
 
+// ---- Spieleseite --------------------------------------------------------------
+// miwale.com/games liefert dieselbe Datei aus (siehe docker/nginx.conf). Dort
+// gibt es keine Reiter und nichts Persoenliches, nur die Spiele; ins Portfolio
+// fuehrt allein der Knopf in der Kopfzeile.
+const NUR_SPIELE = (() => {
+  try { return /^\/games(\/[a-z0-9-]+(\/spielen)?)?\/?$/i.test(location.pathname); } catch (e) { return false; }
+})();
+
+// Kurze Adressen: miwale.com/projekte/chromatic/spielen, auf der Spieleseite
+// miwale.com/games/chromatic. nginx liefert fuer all diese Pfade dieselbe Datei
+// aus. Der Start ist schlicht miwale.com/.
 function adresseBauen(s) {
-  let h = "#" + (TAB_SLUG[s.tab] || "start");
-  if (!s.project) return h;
-  h += "/" + s.project;
-  // Nur mit Projekt, sonst liesse sich "/spielen" beim Lesen nicht zuordnen.
-  if (s.game) h += "/spielen";
-  return h;
+  let pfad = NUR_SPIELE ? "/games" : s.tab === "start" ? "" : "/" + (TAB_SLUG[s.tab] || "");
+  if (s.project) {
+    pfad += "/" + s.project;
+    // Nur mit Projekt, sonst liesse sich "/spielen" beim Lesen nicht zuordnen.
+    if (s.game) pfad += "/spielen";
+  }
+  return (pfad || "/") + location.search;
+}
+
+function adressTeile(x) {
+  try { return decodeURIComponent(String(x || "")).split("/").filter(Boolean); } catch (e) { return []; }
 }
 
 // Liest den Zustand zurueck. Unbekanntes faellt auf den Start zurueck, damit ein
 // veralteter Link keine leere Seite zeigt.
 function adresseLesen() {
-  const teile = decodeURIComponent(String(location.hash || "").replace(/^#/, "")).split("/").filter(Boolean);
-  const tab = SLUG_TAB[teile[0]] || "start";
-  const projekt = PROJECTS.find((p) => p.id === teile[1]) || null;
+  // Aeltere Links trugen den Zustand hinter dem Doppelkreuz
+  // (/miwale%20Portfolio.dc.html#projekte/chromatic). Die gelten weiter.
+  const teile = location.hash ? adressTeile(location.hash.slice(1)) : adressTeile(location.pathname);
+  if (NUR_SPIELE) {
+    if (!location.hash) teile.shift();
+    if (teile[0] === "projekte") teile.shift();
+    teile.unshift("projekte");
+  }
+  const tab = NUR_SPIELE ? "games" : SLUG_TAB[teile[0]] || "start";
+  const projekt = PROJECTS.find((p) => p.id === teile[1] && (!NUR_SPIELE || p.art === "spiel")) || null;
   const spielt = !!(projekt && projekt.playId && teile[2] === "spielen");
   return {
     tab,
-    project: projekt ? projekt.id : null,
-    game: spielt ? { id: projekt.playId, name: projekt.name } : null,
+    project: tab === "games" && projekt ? projekt.id : null,
+    game: tab === "games" && spielt ? { id: projekt.playId, name: projekt.name } : null,
     bild: 0
   };
 }
@@ -1824,16 +2634,23 @@ function adresseLesen() {
 // Die Art teilt zuerst grob auf. "alle" ist der Standard, damit beim Aufschlagen
 // nichts fehlt — mit nur zwei Knoepfen waere immer eine Haelfte versteckt.
 const ARTEN = [
-  { wert: "alle", label: "Alle" },
-  { wert: "projekt", label: "Projekte" },
-  { wert: "spiel", label: "Spiele" }
+  { wert: "alle", label: { en: "All", de: "Alle" } },
+  { wert: "projekt", label: { en: "Projects", de: "Projekte" } },
+  { wert: "spiel", label: { en: "Games", de: "Spiele" } }
 ];
 
 const SORTIERUNGEN = [
-  { wert: "empfohlen", label: "Empfohlen" },
-  { wert: "neu", label: "Zuletzt gebaut" },
-  { wert: "name", label: "Name A–Z" }
+  { wert: "empfohlen", label: { en: "Recommended", de: "Empfohlen" } },
+  { wert: "neu", label: { en: "Recently built", de: "Zuletzt gebaut" } },
+  { wert: "name", label: { en: "Name A–Z", de: "Name A–Z" } }
 ];
+
+// Welche Spiele im Overlay laufen. Die fuenf liegen mitgeliefert unter
+// games/<id>/index.html; Dropfall steht noch auf GitHub Pages und hat darum
+// eine eigene Adresse. Alles andere bekommt kein Spielfenster.
+const EIGENE_SPIELE = ["wavebreaker", "chromatic", "runecall", "harmonics", "reliktenschieber"];
+const DROPFALL_ID = "dropfall";
+const DROPFALL_URL = "https://milchinien.github.io/Dropfall/";
 
 function passtZurArt(p, art) {
   return art === "alle" || p.art === art;
@@ -1842,9 +2659,9 @@ function passtZurArt(p, art) {
 // Sortiert eine Kopie, damit PROJECTS seine Reihenfolge behaelt: "empfohlen" ist
 // genau diese Reihenfolge, die drei mit Trend-Rang zuerst. Projekte ohne Stand
 // (noch kein Baustart) rutschen bei "neu" ans Ende statt nach vorn.
-function sortiere(liste, wie) {
+function sortiere(liste, wie, sprache) {
   if (wie === "name") {
-    return liste.slice().sort((a, b) => a.name.localeCompare(b.name, "de"));
+    return liste.slice().sort((a, b) => a.name.localeCompare(b.name, sprache));
   }
   if (wie === "neu") {
     return liste.slice().sort((a, b) => (b.stand || "").localeCompare(a.stand || ""));
@@ -1854,8 +2671,10 @@ function sortiere(liste, wie) {
 
 // ---- Filter ueber Genre und Geraet --------------------------------------------
 // Die Reihenfolge steht fest, damit die Knoepfe nicht je nach Datenlage springen.
-const GENRES = ["Idle", "Strategie", "Karten", "Lernspiel", "Experiment", "Anwendung"];
-const GERAETE = [{ wert: "handy", label: "Handy" }, { wert: "pc", label: "PC" }];
+const GENRES = ["Idle", "Strategy", "Cards", "Educational", "Experiment", "Application"];
+// Die Genre-Werte sind englische Schluessel; GENRE_NAMEN liefert nur die Anzeige.
+const GENRE_NAMEN = { de: { Strategy: "Strategie", Cards: "Karten", Educational: "Lernspiel", Application: "Anwendung" } };
+const GERAETE = [{ wert: "handy", label: { en: "Phone", de: "Handy" } }, { wert: "pc", label: { en: "PC", de: "PC" } }];
 
 // Innerhalb einer Gruppe gilt oder, zwischen den Gruppen und: „Idle oder Karten,
 // und davon nur das, was am Handy laeuft". Leere Gruppe heisst keine Einschraenkung.
@@ -1867,26 +2686,27 @@ function passtZumFilter(p, genres, geraete) {
 
 // Baut die Knopfliste inklusive Trefferzahl. Gezaehlt wird gegen die jeweils
 // andere Gruppe, damit die Zahl zeigt, was ein Klick wirklich brachte.
-function filterKnoepfe(werte, aktiv, andereGruppe, istGenre, umschalten) {
+// basis ist die Menge, in der gezaehlt wird — auf der Spieleseite nur die Spiele.
+function filterKnoepfe(basis, werte, aktiv, andereGruppe, istGenre, umschalten, t) {
   return werte.map((w) => {
-    const wert = w.wert || w;
-    const label = w.label || w;
+    const wert = w.wert;
+    const label = w.label;
     const an = aktiv.indexOf(wert) >= 0;
-    const treffer = PROJECTS.filter((p) => istGenre
+    const treffer = basis.filter((p) => istGenre
       ? passtZumFilter(p, [wert], andereGruppe)
       : passtZumFilter(p, andereGruppe, [wert])).length;
     return {
       label, treffer: String(treffer),
       cls: "mw-chip" + (an ? " mw-chip--an" : ""),
       gedrueckt: an ? "true" : "false",
-      aria: label + ", " + treffer + (treffer === 1 ? " Projekt" : " Projekte") + (an ? ", ausgewählt" : ""),
+      aria: label + ", " + t.anzahl(treffer) + (an ? t.ausgewaehlt : ""),
       umschalten: () => umschalten(wert)
     };
   });
 }
 
 class Component extends DCLogic {
-  state = { tab: "start", game: null, project: null, bild: 0, genres: [], geraete: [], art: "alle", sortierung: "empfohlen", filterOffen: false };
+  state = { tab: NUR_SPIELE ? "games" : "start", game: null, project: null, bild: 0, genres: [], geraete: [], art: NUR_SPIELE ? "spiel" : "alle", sortierung: "empfohlen", filterOffen: false, sprache: startSprache() };
 
   // Zaehlt die Eintraege, die diese Seite selbst angelegt hat. Nur solange davon
   // welche da sind, darf der Schliessen-Knopf history.back() benutzen — sonst
@@ -1906,9 +2726,10 @@ class Component extends DCLogic {
   // durch: Zustand setzen und einen Verlaufseintrag dazulegen.
   zeige(teil) {
     const next = Object.assign({ tab: this.state.tab, project: this.state.project, game: this.state.game }, teil);
-    if (adresseBauen(next) !== adresseBauen(this.state)) {
+    const ziel = adresseBauen(next);
+    if (ziel !== adresseBauen(this.state)) {
       try {
-        history.pushState(null, "", adresseBauen(next));
+        history.pushState(null, "", ziel);
         this.eigeneEintraege++;
       } catch (e) { /* z. B. Vorschau ohne eigene Adresse */ }
     }
@@ -1924,9 +2745,28 @@ class Component extends DCLogic {
     this.setState(next);
   }
 
-  // Die Ebenen werden bei jedem Frame frisch aus dem DOM geholt, damit ein
-  // Re-Render (Tabwechsel) die Anbindung nicht abreißen lässt.
-  el(name) { return document.querySelector('[data-mw="' + name + '"]'); }
+  // Nach oben, ohne Animation: eine laufende Scroll-Animation ueber eine neue,
+  // kuerzere Seite laesst den Tiefenschleier kurz zulaufen. Danach im naechsten
+  // Bild noch einmal, weil der Neuaufbau die Position sonst wieder verschiebt.
+  nachObenSpringen() {
+    try {
+      window.scrollTo(0, 0);
+      const sc = document.scrollingElement || document.documentElement;
+      if (sc) sc.scrollTop = 0;
+    } catch (e) { /* preview may block scrolling */ }
+    requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+  }
+
+  // Die Ebenen werden beim Scrollen in jedem Bild angefasst — ein gutes Dutzend
+  // Suchlaeufe je Bild waere reine Verschwendung. Darum gemerkt, aber nur so
+  // lange der gemerkte Knoten noch in der Seite haengt: ein Re-Render
+  // (Tabwechsel) tauscht ihn aus, und dann wird frisch gesucht.
+  el(name) {
+    const merker = this.ebenen || (this.ebenen = {});
+    const bekannt = merker[name];
+    if (bekannt && bekannt.isConnected) return bekannt;
+    return (merker[name] = document.querySelector('[data-mw="' + name + '"]'));
+  }
 
   // Der Verlauf liegt über die ganze Seitenhöhe: oben Oberfläche, unten Tiefsee.
   // Beim Scrollen fährt er mit, die Lichtebenen verschwinden mit zunehmender Tiefe.
@@ -1997,8 +2837,9 @@ class Component extends DCLogic {
     const dr = this.el("diveRoot");
     if (dr) {
       const r = dr.getBoundingClientRect();
-      const travel = r.height - vh;
-      if (travel > 0) dive = clamp(-r.top / travel);
+      // Eigene Strecke: der Tauchgang misst sich am eigenen Block, nicht am Ozean.
+      const strecke = r.height - vh;
+      if (strecke > 0) dive = clamp(-r.top / strecke);
       const logo = this.el("diveLogo");
       if (logo) {
         logo.style.transform = "scale(" + (1 + dive * 0.22).toFixed(3) + ") translateY(" + (dive * -30).toFixed(1) + "px)";
@@ -2090,38 +2931,37 @@ class Component extends DCLogic {
     };
     window.addEventListener("popstate", this.onPop);
 
-    // Geteilter Link: dorthin springen, wohin er zeigt.
-    if (location.hash) {
-      const anfang = adresseLesen();
-      try { history.replaceState(null, "", adresseBauen(anfang)); } catch (e) { /* egal */ }
-      this.setState(anfang);
-    }
+    // Geteilter Link: dorthin springen, wohin er zeigt. Die Adresse wird dabei
+    // auf die kurze Form gebracht, alte Doppelkreuz-Links eingeschlossen.
+    const anfang = adresseLesen();
+    try { history.replaceState(null, "", adresseBauen(anfang)); } catch (e) { /* egal */ }
+    this.setState(anfang);
 
+    document.documentElement.lang = this.state.sprache;
+    if (NUR_SPIELE) document.title = "miwale games";
     this.paintDepth();
     this.glasFilterEinsetzen();
 
     // Kachel unter dem Zeiger neigt sich leicht mit, die uebrigen treten zurueck.
     // Delegiert am Fenster, weil ein Tabwechsel die Kacheln neu aufbaut und
     // direkt gesetzte Listener dabei abreissen wuerden.
+    //
+    // Hier wird nur die Zeigerstelle gemerkt, gerechnet wird einmal je Bild:
+    // Maeuse melden Bewegungen um ein Vielfaches oefter, als der Bildschirm
+    // Bilder zeigt, und das Neigen misst die Kachel, nachdem es sie gerade
+    // verstellt hat — jede einzelne Meldung zwang den Browser damit zu einem
+    // Umbruch mitten im Ereignis. Sichtbar ist das dasselbe: was zwischen zwei
+    // Bildern liegt, kaeme ohnehin nie auf den Schirm.
     this.onZeiger = (e) => {
       if (e.pointerType && e.pointerType !== "mouse") return;
-      const kachel = e.target && e.target.closest ? e.target.closest(".mw-tile") : null;
-      if (this.geneigt && this.geneigt !== kachel) this.kachelZuruecksetzen();
-      if (!kachel) return;
-      this.geneigt = kachel;
-      kachel.classList.add("mw-tile--fokus");
-      const gitter = kachel.parentElement;
-      if (gitter) gitter.classList.add("mw-tiles--fokus");
-      if (this.reduced) return;
-      const r = kachel.getBoundingClientRect();
-      const nx = (e.clientX - r.left) / r.width;
-      const ny = (e.clientY - r.top) / r.height;
-      const MAX = 9;
-      kachel.style.setProperty("--ry", ((nx - 0.5) * 2 * MAX).toFixed(2) + "deg");
-      kachel.style.setProperty("--rx", ((0.5 - ny) * 2 * MAX).toFixed(2) + "deg");
+      this.zeigerZiel = e.target;
+      this.zeigerX = e.clientX;
+      this.zeigerY = e.clientY;
+      if (this.zeigerRaf) return;
+      this.zeigerRaf = requestAnimationFrame(() => { this.zeigerRaf = 0; this.kachelNeigen(); });
     };
     window.addEventListener("pointermove", this.onZeiger, { passive: true });
-    this.onZeigerWeg = () => this.kachelZuruecksetzen();
+    this.onZeigerWeg = () => this.zeigerVergessen();
     document.addEventListener("pointerleave", this.onZeigerWeg);
     window.addEventListener("blur", this.onZeigerWeg);
 
@@ -2139,7 +2979,7 @@ class Component extends DCLogic {
     if (document.visibilityState === "hidden") return;
 
     // Die Kachel unter dem alten Zeiger steht sonst schief da, bis man sie bewegt.
-    this.kachelZuruecksetzen();
+    this.zeigerVergessen();
 
     document.documentElement.classList.add("mw-sofort");
 
@@ -2213,6 +3053,26 @@ class Component extends DCLogic {
     document.body.appendChild(svg);
   }
 
+  // Neigt die Kachel unter dem Zeiger und laesst die Geschwister zuruecktreten.
+  // Laeuft aus dem Bildtakt heraus, nicht aus dem Zeigerereignis.
+  kachelNeigen() {
+    const ziel = this.zeigerZiel;
+    const kachel = ziel && ziel.closest ? ziel.closest(".mw-tile") : null;
+    if (this.geneigt && this.geneigt !== kachel) this.kachelZuruecksetzen();
+    if (!kachel) return;
+    this.geneigt = kachel;
+    kachel.classList.add("mw-tile--fokus");
+    const gitter = kachel.parentElement;
+    if (gitter) gitter.classList.add("mw-tiles--fokus");
+    if (this.reduced) return;
+    const r = kachel.getBoundingClientRect();
+    const nx = (this.zeigerX - r.left) / r.width;
+    const ny = (this.zeigerY - r.top) / r.height;
+    const MAX = 9;
+    kachel.style.setProperty("--ry", ((nx - 0.5) * 2 * MAX).toFixed(2) + "deg");
+    kachel.style.setProperty("--rx", ((0.5 - ny) * 2 * MAX).toFixed(2) + "deg");
+  }
+
   kachelZuruecksetzen() {
     const k = this.geneigt;
     this.geneigt = null;
@@ -2223,7 +3083,16 @@ class Component extends DCLogic {
     if (k.parentElement) k.parentElement.classList.remove("mw-tiles--fokus");
   }
 
+  // Ist der Zeiger weg, faellt auch eine noch wartende Rechnung weg — sonst
+  // neigte sie die Kachel gleich wieder zurecht, die gerade geloest wurde.
+  zeigerVergessen() {
+    if (this.zeigerRaf) { cancelAnimationFrame(this.zeigerRaf); this.zeigerRaf = 0; }
+    this.zeigerZiel = null;
+    this.kachelZuruecksetzen();
+  }
+
   componentDidUpdate() {
+    document.documentElement.lang = this.state.sprache;
     document.documentElement.style.overflowY = this.state.game ? "hidden" : "";
     const frame = this.el("gameFrame");
     if (frame) {
@@ -2253,23 +3122,24 @@ class Component extends DCLogic {
     document.removeEventListener("visibilitychange", this.onSichtbar);
     window.removeEventListener("pageshow", this.onSichtbar);
     if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.zeigerRaf) cancelAnimationFrame(this.zeigerRaf);
     if (this.sofortTimer) clearTimeout(this.sofortTimer);
     if (this.beobachter) this.beobachter.disconnect();
     document.documentElement.style.overflowY = "";
+  }
+
+  // Sprachwechsel bleibt aus dem Verlauf heraus, genau wie die Filter.
+  spracheWaehlen(code) {
+    if (code === this.state.sprache) return;
+    try { localStorage.setItem(SPRACH_SCHLUESSEL, code); } catch (e) { /* dann nur fuer diesen Besuch */ }
+    this.setState({ sprache: code });
   }
 
   go(t) {
     return () => {
       if (t === this.state.tab) return;
       this.zeige({ tab: t, project: null, game: null, bild: 0 });
-      // Sofort nach oben springen, nicht animiert: eine laufende Scroll-Animation
-      // über eine neue, kürzere Seite lässt den Tiefenschleier kurz zulaufen.
-      try {
-        window.scrollTo(0, 0);
-        const sc = document.scrollingElement || document.documentElement;
-        if (sc) sc.scrollTop = 0;
-      } catch (e) { /* preview may block scrolling */ }
-      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+      this.nachObenSpringen();
     };
   }
 
@@ -2292,28 +3162,25 @@ class Component extends DCLogic {
 
   gameUrl() {
     const id = this.state.game && this.state.game.id;
-    return id === "dropfall" ? "https://milchinien.github.io/Dropfall/" : ["wavebreaker", "chromatic", "runecall", "harmonics", "reliktenschieber"].includes(id) ? new URL("games/" + id + "/index.html", document.baseURI).href : "about:blank";
+    if (id === DROPFALL_ID) return DROPFALL_URL;
+    if (EIGENE_SPIELE.includes(id)) return new URL("games/" + id + "/index.html", document.baseURI).href;
+    return "about:blank";
   }
 
   renderVals() {
     const tab = this.state.tab;
+    const sprache = this.state.sprache;
+    // Auf der Spieleseite heisst es "Spiele" statt "Projekte"; der Rest bleibt.
+    const t = NUR_SPIELE ? Object.assign({}, TEXTE[sprache], SPIELE_TEXTE[sprache]) : TEXTE[sprache];
+    const liste = projekteIn(sprache);
+    const basis = NUR_SPIELE ? PROJECTS.filter((p) => p.art === "spiel") : PROJECTS;
     const openProject = (id) => () => {
       this.zeige({ project: id, bild: 0 });
-      try {
-        window.scrollTo(0, 0);
-        const sc = document.scrollingElement || document.documentElement;
-        if (sc) sc.scrollTop = 0;
-      } catch (e) { /* preview may block scrolling */ }
-      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+      this.nachObenSpringen();
     };
     const closeProject = () => {
       this.schliesse({ project: null, game: null, bild: 0 });
-      try {
-        window.scrollTo(0, 0);
-        const sc = document.scrollingElement || document.documentElement;
-        if (sc) sc.scrollTop = 0;
-      } catch (e) { /* preview may block scrolling */ }
-      requestAnimationFrame(() => { window.scrollTo(0, 0); this.paintDepth(); });
+      this.nachObenSpringen();
     };
 
     // Die Kacheln bekommen ihren Klickgriff hier, damit die Vorlage ohne
@@ -2322,11 +3189,11 @@ class Component extends DCLogic {
     // der Stellung im DOM: nth-child wuerde Nachbarelemente mitzaehlen.
     // Die drei mit Rang, oben auf der Startseite. Ein Klick springt in die
     // Projekte und oeffnet direkt die Detailseite.
-    const trending = PROJECTS.filter((p) => p.trend).sort((a, b) => a.trend - b.trend).map((p) => ({
+    const trending = liste.filter((p) => p.trend).sort((a, b) => a.trend - b.trend).map((p) => ({
       name: p.name, tagline: p.tagline, shot: p.preview,
       trendCls: "mw-trend",
-      trendText: "Nr. " + p.trend,
-      aria: p.name + " — Nummer " + p.trend + " der meistgespielten — " + p.tagline,
+      trendText: "#" + p.trend,
+      aria: p.name + t.trendAria(p.trend) + " — " + p.tagline,
       open: () => {
         this.zeige({ tab: "games", project: p.id, game: null, bild: 0 });
         try { window.scrollTo(0, 0); } catch (e) { /* Vorschau blockiert Scrollen evtl. */ }
@@ -2336,8 +3203,9 @@ class Component extends DCLogic {
     const gf = this.state.genres, df = this.state.geraete;
     const anzahlFilter = gf.length + df.length;
     const gefiltert = sortiere(
-      PROJECTS.filter((p) => passtZurArt(p, this.state.art) && passtZumFilter(p, gf, df)),
-      this.state.sortierung
+      liste.filter((p) => passtZurArt(p, this.state.art) && passtZumFilter(p, gf, df)),
+      this.state.sortierung,
+      sprache
     );
     const projects = gefiltert.map((p, i) => ({
       cls: [
@@ -2353,13 +3221,13 @@ class Component extends DCLogic {
       tagline: p.tagline,
       preview: p.preview,
       // Der Rang gehoert in den Vorlesetext: das Abzeichen selbst ist nur ein Bild.
-      aria: p.name + " — " + p.tagline + (p.trend ? " — Nummer " + p.trend + " der meistgespielten" : ""),
+      aria: p.name + " — " + p.tagline + (p.trend ? t.trendAria(p.trend) : ""),
       trendCls: p.trend ? "mw-trend" : "mw-trend mw-trend--aus",
-      trendText: p.trend ? "Nr. " + p.trend : "",
+      trendText: p.trend ? "#" + p.trend : "",
       open: openProject(p.id)
     }));
 
-    const current = PROJECTS.find((p) => p.id === this.state.project) || null;
+    const current = liste.find((p) => p.id === this.state.project) || null;
     // Hauptbild und Zusatzbilder bilden eine gemeinsame Galerie. Welches Bild
     // gross zu sehen ist, entscheidet this.state.bild; Pfeile und Miniaturen
     // schieben nur diesen Index.
@@ -2373,7 +3241,7 @@ class Component extends DCLogic {
       galerie: bilder.map((b, i) => ({
         src: b.src,
         fit: b.fit,
-        aria: "Bild " + (i + 1) + " von " + bilder.length + (b.alt ? ": " + b.alt : ""),
+        aria: t.bildAria(i + 1, bilder.length) + (b.alt ? ": " + b.alt : ""),
         cls: i === idx ? "mw-thumb mw-thumb--an" : "mw-thumb",
         waehlen: () => this.setState({ bild: i })
       })),
@@ -2386,7 +3254,7 @@ class Component extends DCLogic {
       bildVor: () => this.setState((z) => ({ bild: z.bild + 1 })),
       bildZurueck: () => this.setState((z) => ({ bild: z.bild - 1 })),
       canPlay: !!current.playId,
-      spielenAria: current.name + " im Browser spielen",
+      spielenAria: t.spielenAria(current.name),
       play: current.playId
         ? () => this.zeige({ game: { id: current.playId, name: current.name } })
         : () => {}
@@ -2394,15 +3262,24 @@ class Component extends DCLogic {
 
     const tabItems = [
       { value: "start", label: "Start" },
-      { value: "games", label: "Projekte" },
-      { value: "about", label: "Über mich" },
-      { value: "ai", label: "KI-Workflow" },
+      { value: "games", label: t.projectsEyebrow },
+      { value: "about", label: t.aboutEyebrow },
+      { value: "ai", label: t.aiEyebrow },
       { value: "devlog", label: "Devlog" },
-      { value: "contact", label: "Kontakt" }
+      { value: "contact", label: t.contact }
     ];
     return {
       tab,
+      t,
+      sprachKnoepfe: SPRACHEN.map((l) => ({
+        code: l.code, kurz: l.kurz, name: l.name,
+        cls: "mw-sprache__knopf" + (l.code === sprache ? " mw-sprache__knopf--an" : ""),
+        gedrueckt: l.code === sprache ? "true" : "false",
+        waehlen: () => this.spracheWaehlen(l.code)
+      })),
       tabItems,
+      nurSpiele: NUR_SPIELE,
+      vollSeite: !NUR_SPIELE,
       setTab: (v) => this.go(v)(),
       isStart: tab === "start",
       isGames: tab === "games",
@@ -2420,16 +3297,16 @@ class Component extends DCLogic {
         const treffer = PROJECTS.filter((p) => passtZurArt(p, a.wert) && passtZumFilter(p, gf, df)).length;
         const an = this.state.art === a.wert;
         return {
-          label: a.label, treffer: String(treffer),
+          label: a.label[sprache], treffer: String(treffer),
           cls: "mw-seg__knopf" + (an ? " mw-seg__knopf--an" : ""),
           gedrueckt: an ? "true" : "false",
-          aria: a.label + ", " + treffer + (treffer === 1 ? " Projekt" : " Projekte") + (an ? ", ausgewählt" : ""),
+          aria: a.label[sprache] + ", " + t.anzahl(treffer) + (an ? t.ausgewaehlt : ""),
           waehlen: () => this.setState({ art: a.wert })
         };
       }),
-      sortierLabel: SORTIERUNGEN.find((o) => o.wert === this.state.sortierung).label,
+      sortierLabel: SORTIERUNGEN.find((o) => o.wert === this.state.sortierung).label[sprache],
       sortierWerte: SORTIERUNGEN.map((o) => ({
-        label: o.label, aktiv: o.wert === this.state.sortierung ? "true" : "false",
+        label: o.label[sprache], aktiv: o.wert === this.state.sortierung ? "true" : "false",
         waehlen: (e) => {
           const menu = e.currentTarget.closest("details");
           menu.open = false;
@@ -2455,10 +3332,11 @@ class Component extends DCLogic {
       filterKnopfCls: "mw-chip" + (this.state.filterOffen ? " mw-chip--offen" : "") + (anzahlFilter ? " mw-chip--an" : ""),
       filterKnopfText: anzahlFilter ? "Filter · " + anzahlFilter : "Filter",
       filterUmschalten: () => this.setState({ filterOffen: !this.state.filterOffen }),
-      genreKnoepfe: filterKnoepfe(GENRES, gf, df, true, (w) => this.umschalten("genres", w)),
-      geraetKnoepfe: filterKnoepfe(GERAETE, df, gf, false, (w) => this.umschalten("geraete", w)),
+      // Ein Genre ohne ein einziges Spiel (Anwendung) waere dort ein toter Knopf.
+      genreKnoepfe: filterKnoepfe(basis, GENRES.filter((g) => !NUR_SPIELE || basis.some((p) => (p.genres || []).indexOf(g) >= 0)).map((g) => ({ wert: g, label: (GENRE_NAMEN[sprache] || {})[g] || g })), gf, df, true, (w) => this.umschalten("genres", w), t),
+      geraetKnoepfe: filterKnoepfe(basis, GERAETE.map((g) => ({ wert: g.wert, label: g.label[sprache] })), df, gf, false, (w) => this.umschalten("geraete", w), t),
       filterAktiv: anzahlFilter > 0,
-      trefferText: projects.length + " von " + PROJECTS.length + " Projekten",
+      trefferText: t.treffer(projects.length, basis.length),
       nichtsGefunden: projects.length === 0,
       filterLeeren: () => this.setState({ genres: [], geraete: [] }),
       projects,
@@ -2469,19 +3347,14 @@ class Component extends DCLogic {
 
       gameOpen: !!this.state.game,
       gameName: this.state.game ? this.state.game.name : "",
+      gameAria: t.spielAria(this.state.game ? this.state.game.name : ""),
       closeGame: () => this.schliesse({ game: null }),
       toggleVollbild: () => this.toggleVollbild(),
 
-      pinHover: { transform: "rotateX(7deg) rotateY(-3deg) translateY(-6px)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.24), 0 30px 68px rgba(1,10,17,.6)" },
-
       heroCardStyle: { position: "relative", display: "flex", flexDirection: "column", gap: 22 },
 
-      morphWords: ["Spiele", "Systeme", "Werkzeuge", "Prototypen"],
-      typeLines: [
-        "Michel · Waggoner · Leipzig",
-        "Ein-Personen-Studio",
-        "erste eigene Zeile: Juni 2024"
-      ]
+      morphWords: t.morphWords,
+      typeLines: t.typeLines
     };
   }
 }
