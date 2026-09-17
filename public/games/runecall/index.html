@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Runecall</title>
-    <meta name="description" content="Runecall — Stichkartenspiel für PC und Handy." />
+    <meta name="description" content="Runecall — a trick-taking card game for desktop and mobile." />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#150b28" />
-    <script type="module" crossorigin src="./assets/index-XoDmCIRD.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-JsDVS7gV.css">
+    <script type="module" crossorigin src="./assets/index-BiB4uNV8.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DwkNdY4N.css">
   </head>
   <body>
     <!--
@@ -30,17 +30,17 @@
     <section id="menu" class="menu">
       <div class="menu__panel">
         <div class="menu__masthead" aria-hidden="true"><span></span><i>R</i><span></span></div>
-        <p class="menu__eyebrow">Das Stichkarten-Spiel</p>
+        <p class="menu__eyebrow">The trick-taking card game</p>
         <h1>Runecall</h1>
-        <p class="menu__claim">Wie viele Stiche liegen heute in deiner Hand?</p>
+        <p class="menu__claim">How many tricks are in your hand today?</p>
 
         <div id="menuScreen" class="menu__body"></div>
 
         <!-- Steht nur auf dem Startbildschirm; tiefer drin zaehlt der Inhalt. -->
         <p class="menu__rules">
-          Jede Runde bekommst du eine Karte mehr. Sage vorher an, wie viele Stiche du holst — und
-          triff die Zahl genau. Ein Stich zu viel kostet so viel wie einer zu wenig. Der
-          <strong>Magier</strong> gewinnt jeden Stich, der <strong>Narr</strong> keinen.
+          Every round you get one more card. Bid how many tricks you will take — and hit
+          that number exactly. One trick too many costs as much as one too few. The
+          <strong>Wizard</strong> wins every trick, the <strong>Jester</strong> wins none.
         </p>
       </div>
     </section>
@@ -53,7 +53,7 @@
     -->
     <section id="table" class="table" hidden>
       <header class="bar">
-        <button id="btnMenu" type="button" class="ghost small">Menü</button>
+        <button id="btnMenu" type="button" class="ghost small">Menu</button>
         <span id="roundInfo" class="bar__round"></span>
       </header>
 
@@ -72,7 +72,7 @@
         Karten in einer Zeichenflaeche sind fuer Tastatur und Vorlesehilfen
         sonst nicht vorhanden.
       -->
-      <ul id="handKeys" class="handkeys" aria-label="Deine Handkarten"></ul>
+      <ul id="handKeys" class="handkeys" aria-label="Your hand"></ul>
 
       <p id="status" class="status" role="status" aria-live="polite"></p>
       <div id="actions" class="actions"></div>
