@@ -11,8 +11,7 @@ Design System und alle Bild-Assets.
 
 | Pfad | Was es ist |
 | --- | --- |
-| `miwale Portfolio.dc.html` | Desktop-Fassung der Seite, sechs Tabs |
-| `miwale Portfolio Mobil.dc.html` | Mobil-Fassung, auf vier Tabs gekürzt |
+| `miwale Portfolio.dc.html` | Gemeinsame responsive Seite für Handy und Desktop, sechs Tabs |
 | `support.js` | Laufzeit für die Canvas-Dateien |
 | `_ds/miwale-design-system-…/` | miwale Design System: Tokens, Komponenten, Styles |
 | `assets/` | Logo-Wordmarks und Wal-Maskottchen, je für hell und dunkel |
@@ -22,8 +21,10 @@ Design System und alle Bild-Assets.
 
 ## Aufbau der Seite
 
-Desktop: **Start · Projekte · Über mich · KI-Workflow · Devlog · Kontakt**
-Mobil: **Start · Projekte · Über mich · Kontakt**
+Auf allen Geräten: **Start · Projekte · Über mich · KI-Workflow · Devlog · Kontakt**.
+Auf schmalen Bildschirmen werden die Inhalte einspaltig und die Navigation
+horizontal scrollbar. Der Einstieg wählt keine separate Mobil-Datei mehr aus;
+alte Mobil-Links werden auf dem Produktionsserver zur gemeinsamen Seite umgeleitet.
 
 ### Der Projekte-Tab
 
@@ -181,10 +182,20 @@ Flappy-Prototyp. Die ersten drei sind die mit Trend-Rang.
 Der Devlog-Tab steht bewusst auf „bald" und bleibt leer, bis es echte Einträge
 gibt.
 
+## Spieleseite unter /games
+
+`miwale.com/games` zeigt dieselbe Seite ohne Persoenliches: keine Reiter, kein
+Name, kein Alter, keine E-Mail im Fuss — nur die Spiele (`art: "spiel"`). Ins
+Portfolio fuehrt allein der Knopf **Portfolio →** in der Kopfzeile. Das
+Impressum bleibt stehen. Die Seite erkennt den Modus selbst am Pfad
+(`NUR_SPIELE`).
+
 ## Adresse und Verlauf
 
-Der sichtbare Zustand steht in der Adresse: `#projekte`,
-`#projekte/chromatic`, `#projekte/chromatic/spielen`. Ohne das führte die
+Der sichtbare Zustand steht in kurzen Adressen: `miwale.com/` fuer den Start,
+`/projekte`, `/projekte/chromatic`, `/projekte/chromatic/spielen`,
+`/ueber-mich`, `/ki-workflow`, `/devlog`, `/kontakt` — und auf der Spieleseite
+`/games`, `/games/chromatic`, `/games/chromatic/spielen`. Ohne das führte die
 Zurück-Taste am Handy aus der Seite heraus, sobald eine Detailansicht oder ein
 Spiel offen war; jetzt schließt sie sie. Nebenbei lässt sich damit ein einzelnes
 Projekt verschicken.
@@ -195,7 +206,19 @@ toter Eintrag liegen bleibt. Der Zähler `eigeneEintraege` merkt sich, ob es
 überhaupt einen eigenen Eintrag gibt — bei einem direkt geteilten Link wird der
 Zustand stattdessen ersetzt, sonst verließe Schließen die Seite.
 
-Beide Fassungen benutzen dieselben Adress-Bausteine und dieselben Slugs.
+Alle diese Pfade liefern dieselbe Datei `miwale Portfolio.dc.html` aus
+(`docker/nginx.conf`, lokal `tools/games-preview.mjs`); welcher Reiter und
+welches Projekt, liest die Seite aus dem Pfad. Damit `support.js`, `_ds/` und
+`assets/` auch unter `/projekte/chromatic` gefunden werden, setzt die Datei
+`<base href="/">`.
+
+`/games/chromatic` ohne Schraegstrich ist die Detailseite, `/games/chromatic/`
+mit Schraegstrich das mitgelieferte Spiel selbst. `/games/` und `/Games` leiten
+auf `/games` um.
+
+Alte Links wie `/miwale%20Portfolio.dc.html#projekte/chromatic` gelten weiter:
+nginx leitet den Dateinamen auf `/` um, der Browser behaelt den Teil hinter dem
+Doppelkreuz, und die Seite ersetzt ihn durch die kurze Adresse.
 
 ## Mobile Grundlagen
 
@@ -232,13 +255,14 @@ keine Bilder liefert — und damit wären alle Übergänge dauerhaft tot.
 ## Lokal ansehen
 
 Die Canvas-Dateien laden ihre Styles per `fetch`, über `file://` bleibt die Seite
-deshalb leer. Ein einfacher Server im Projektordner genügt:
+deshalb leer. Der Vite-Server kennt die kurzen Adressen und die Spiele:
 
 ```bash
-python -m http.server 8000
+npm run dev
 ```
 
-Danach `http://localhost:8000/miwale%20Portfolio.dc.html` im Browser öffnen.
+Ein einfacher Server wie `python -m http.server` zeigt nur die Startseite;
+`/projekte/...` und `/games` kennt er nicht.
 
 ## Design System
 

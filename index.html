@@ -1,16 +1,15 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>miwale games</title>
-    <meta name="description" content="Spiele und Projekte von miwale — direkt im Browser spielbar." />
+    <meta name="description" content="Games and projects by miwale — playable right in the browser." />
     <script>
-      const mobile = matchMedia("(max-width: 700px)").matches;
-      location.replace(mobile ? "miwale%20Portfolio%20Mobil.dc.html" : "miwale%20Portfolio.dc.html");
+      location.replace("miwale%20Portfolio.dc.html" + location.search + location.hash);
     </script>
   </head>
   <body>
-    <p><a href="miwale%20Portfolio.dc.html">miwale öffnen</a></p>
+    <p><a href="miwale%20Portfolio.dc.html">Open miwale</a></p>
   </body>
 </html>

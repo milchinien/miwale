@@ -3,7 +3,6 @@ FROM nginx:alpine
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html /usr/share/nginx/html/index.html
 COPY ["miwale Portfolio.dc.html", "/usr/share/nginx/html/miwale Portfolio.dc.html"]
-COPY ["miwale Portfolio Mobil.dc.html", "/usr/share/nginx/html/miwale Portfolio Mobil.dc.html"]
 COPY support.js /usr/share/nginx/html/support.js
 COPY _ds /usr/share/nginx/html/_ds
 COPY assets /usr/share/nginx/html/assets

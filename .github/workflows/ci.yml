@@ -23,14 +23,34 @@ jobs:
           set -euo pipefail
           test -s index.html
           test -s "miwale Portfolio.dc.html"
-          test -s "miwale Portfolio Mobil.dc.html"
           test -s support.js
           test -d _ds
           test -d assets
           node tools/check-games.mjs
           grep -q "Chromatic und Wavebreaker" "miwale Portfolio.dc.html"
-          grep -q "Chromatic" "miwale Portfolio Mobil.dc.html"
-          grep -q "Wavebreaker" "miwale Portfolio Mobil.dc.html"
+          grep -q "Chromatic" "miwale Portfolio.dc.html"
+          grep -q "Wavebreaker" "miwale Portfolio.dc.html"
+          test ! -e "miwale Portfolio Mobil.dc.html"
 
       - name: Build container
         run: docker build -t miwale:ci .
+
+      - name: Validate nginx configuration
+        run: docker run --rm miwale:ci nginx -t
+
+      - name: Check short addresses
+        run: |
+          set -euo pipefail
+          docker run -d --name miwale-ci -p 8080:8080 miwale:ci
+          trap 'docker rm -f miwale-ci >/dev/null' EXIT
+          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz >/dev/null && break; sleep 1; done
+          status() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
+          ziel() { curl -s -o /dev/null -w '%{redirect_url}' "http://127.0.0.1:8080$1"; }
+          for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games /games/chromatic /games/wavebreaker/ /support.js; do
+            test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
+          done
+          curl -fsS http://127.0.0.1:8080/games/chromatic | grep -q '<base href="/">'
+          test "$(ziel /games/)" = "http://127.0.0.1:8080/games"
+          test "$(ziel /Games)" = "http://127.0.0.1:8080/games"
+          test "$(ziel '/miwale%20Portfolio.dc.html')" = "http://127.0.0.1:8080/"
+          test "$(status /gibtsnicht)" = 404
