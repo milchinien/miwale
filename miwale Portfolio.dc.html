@@ -1367,7 +1367,7 @@
         </div>
       </section>
 
-      <section style="padding: 0 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+      <section style="padding: 0 32px 0;"><div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
         <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
           <div style="display: flex; flex-direction: column; gap: 10px;">
             <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">{{ t.email }}</span>
@@ -1389,6 +1389,13 @@
             <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.playableBuilds }}</span>
           </div>
         </x-import>
+        <x-import component-from-global-scope="MiwaleDesignSystem_4a4112.GlassCard" tone="dark" panel="{{ true }}" hint-size="100%,auto">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font: var(--type-eyebrow); letter-spacing: var(--track-caps); text-transform: uppercase; color: var(--aqua-300);">YouTube</span>
+            <a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); font-size: var(--text-md); color: #fff;">@miwale-games</a>
+            <span style="font: var(--type-body-sm); color: rgba(237,243,249,.7);">{{ t.youtubeText }}</span>
+          </div>
+        </x-import>
         </div>
       </section>
 
@@ -1403,6 +1410,7 @@
         <div style="display: flex; gap: 20px;">
           <a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">GitHub</a>
           <a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">itch.io</a>
+          <a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer" style="font: var(--type-label); color: var(--aqua-300);">YouTube</a>
           <sc-if value="{{ vollSeite }}" hint-placeholder-val="{{ true }}">
             <a href="mailto:michi.waggoner@gmail.com" style="font: var(--type-label); color: var(--aqua-300);">{{ t.email }}</a>
           </sc-if>
@@ -2386,6 +2394,7 @@ const TEXTE = {
     directWay: "The most direct way.",
     allOpen: "All projects open, with commits and tests.",
     playableBuilds: "Where the playable builds end up.",
+    youtubeText: "Short clips from the games.",
     legal: "Legal notice",
     legalText: "Responsible for the content: Michel Waggoner. Contact: michi.waggoner@gmail.com",
     footerLine: "miwale · Michel Waggoner · Germany",
@@ -2530,6 +2539,7 @@ const TEXTE = {
     directWay: "Der direkteste Weg.",
     allOpen: "Alle Projekte offen, mit Commits und Tests.",
     playableBuilds: "Wo die spielbaren Builds landen.",
+    youtubeText: "Kurze Clips aus den Spielen.",
     legal: "Impressum",
     legalText: "Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com",
     footerLine: "miwale · Michel Waggoner · Deutschland",
