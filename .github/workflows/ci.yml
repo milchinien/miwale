@@ -35,22 +35,37 @@ jobs:
       - name: Build container
         run: docker build -t miwale:ci .
 
-      - name: Validate nginx configuration
+      # `docker build` merkt von einer kaputten nginx-Konfiguration nichts --
+      # sie wird nur hineinkopiert. Erst beim Start liest nginx sie, und dann
+      # steht die ganze Seite. Genau so ist sie am 14.09.2026 ausgefallen.
+      - name: nginx-Konfiguration lesen lassen
         run: docker run --rm miwale:ci nginx -t
 
-      - name: Check short addresses
+      # Und die Adressen einmal wirklich abrufen: dass die Ausdruecke greifen,
+      # sagt `nginx -t` naemlich nicht. Umleitungen werden am Location-Kopf
+      # selbst geprueft -- er muss ohne Schema und Host kommen, sonst schickt
+      # er Besucher auf den internen Port 8080.
+      - name: Adressen und Umleitungen abrufen
         run: |
           set -euo pipefail
           docker run -d --name miwale-ci -p 8080:8080 miwale:ci
           trap 'docker rm -f miwale-ci >/dev/null' EXIT
-          for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/healthz >/dev/null && break; sleep 1; done
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8080/healthz && break
+            sleep 1
+          done
           status() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
-          ziel() { curl -s -o /dev/null -w '%{redirect_url}' "http://127.0.0.1:8080$1"; }
-          for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games /games/chromatic /games/wavebreaker/ /support.js; do
+          umleitung() {
+            kopf="$(curl -sSI "http://127.0.0.1:8080$1" | tr -d '')"
+            echo "$kopf" | grep -q "^HTTP/1.1 $2" && echo "$kopf" | grep -qi "^location: $3\$"               || { echo "$1:"; echo "$kopf"; exit 1; }
+          }
+          for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt                       /games /games/chromatic /games/wavebreaker/ /support.js; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           curl -fsS http://127.0.0.1:8080/games/chromatic | grep -q '<base href="/">'
-          test "$(ziel /games/)" = "http://127.0.0.1:8080/games"
-          test "$(ziel /Games)" = "http://127.0.0.1:8080/games"
-          test "$(ziel '/miwale%20Portfolio.dc.html')" = "http://127.0.0.1:8080/"
           test "$(status /gibtsnicht)" = 404
+          umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
+          umleitung /games/ 301 /games
+          umleitung /Games 301 /games
+          umleitung '/miwale%20Portfolio.dc.html' 301 /
+          umleitung '/miwale%20Portfolio%20Mobil.dc.html?test=1' 301 '/?test=1'

@@ -14,5 +14,9 @@
   "harmonics": {
     "path": "games/harmonics/",
     "sha256": "e342ce48c99aa98154e6ee223240f13593e45b4a59df739e717528fc050a9e34"
+  },
+  "reliktenschieber": {
+    "path": "games/reliktenschieber/",
+    "sha256": "1c128e8f9d7567a40705718e0d2f45f7d31aa018f5273ae1fc5345fd381b8cae"
   }
 }

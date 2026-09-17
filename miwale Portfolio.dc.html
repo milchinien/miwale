@@ -1559,6 +1559,41 @@ const PROJECTS = [
     linkNote: "Public repository, playable right in the browser."
   },
   {
+    id: "reliktenschieber", name: "Reliktenschieber",
+    preview: "assets/games/previews/reliktenschieber-v1.jpg",
+    kind: "Idle coin pusher", status: "Playable prototype",
+    genres: ["Idle", "Experiment"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Drop coins, push the pile over the edge, recover the treasure chest",
+    lead: "A coin pusher as an idle game. You aim the drop, the pusher shoves the pile forward, and whatever falls over the edge pays out — double or nothing, depending on the slot. There is always a treasure chest on the platform, slowly creeping toward the edge.",
+    tags: ["TypeScript", "Custom physics", "Skill tree", "Balancing simulation"],
+    shot: "assets/games/reliktenschieber-main.jpg",
+    shotAlt: "Reliktenschieber with a pile of coins, the treasure chest at the edge and a cascade in progress",
+    shots: [
+      { src: "assets/games/reliktenschieber-1.jpg", alt: "Upgrade tree from Reliktenschieber in the Dropfall style" }
+    ],
+    shotsCaption: "Machine with a cascade and the upgrade tree — shape and colors come from Dropfall.",
+    buildTitle: "Next to Dropfall, on the same board",
+    build: [
+      "Started in September 2026. Design system, skill tree view and autumn decor come from Dropfall, so both games feel all of a piece.",
+      "The physics are written by hand: discs aren't pushed by forces, their overlaps are resolved directly — sorted from the pusher to the edge, so a single push travels through the whole pile in one pass.",
+      "Ten coin types change what happens: magnet coins pull clumps together, sticky coins bind neighbors into a slab, blast coins knock everything off at the edge, king coins multiply the cascade.",
+      "A bot plays the machine headless and buys its way through the tree. It found two bugs you would only have noticed after hours of play: a chest value that grew exponentially over time, and king coins that drove cascades up to ×2000."
+    ],
+    facts: [
+      { value: "September 2026", label: "Timeframe" },
+      { value: "51", label: "Nodes in the upgrade tree" },
+      { value: "10", label: "Coin types" },
+      { value: "Prototype", label: "Maturity" }
+    ],
+    playId: "reliktenschieber",
+    links: [
+      { href: "https://github.com/milchinien/Coin-Pusher", label: "Code on GitHub" },
+      { href: "games/reliktenschieber/index.html", label: "Open in new tab" }
+    ],
+    linkNote: "Public repository, playable right in the browser."
+  },
+  {
     id: "xrai", name: "XRAI Order System",
     preview: "assets/games/previews/xrai-v1.jpg",
     kind: "Ordering system for restaurants", status: "In production",
@@ -1915,6 +1950,41 @@ const PROJECTS_DE = [
     links: [
       { href: "https://github.com/milchinien/Chromatic", label: "Code auf GitHub" },
       { href: "games/chromatic/index.html", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
+    id: "reliktenschieber", name: "Reliktenschieber",
+    preview: "assets/games/previews/reliktenschieber-v1.jpg",
+    kind: "Idle-Münzschieber", status: "Prototyp spielbar",
+    genres: ["Idle", "Experiment"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Münzen einwerfen, den Haufen über die Kante schieben, die Schatztruhe bergen",
+    lead: "Ein Münzschieber als Idle-Spiel. Man zielt den Einwurf, der Schieber drückt den Haufen nach vorn, und was über die Kante fällt, zahlt aus — je nach Fach doppelt oder gar nicht. Immer liegt eine Schatztruhe auf der Plattform, die sich langsam der Kante nähert.",
+    tags: ["TypeScript", "Eigene Physik", "Skill Tree", "Balancing-Simulation"],
+    shot: "assets/games/reliktenschieber-main.jpg",
+    shotAlt: "Reliktenschieber mit Münzhaufen, Schatztruhe an der Kante und laufender Kaskade",
+    shots: [
+      { src: "assets/games/reliktenschieber-1.jpg", alt: "Upgrade-Baum aus dem Reliktenschieber im Dropfall-Stil" }
+    ],
+    shotsCaption: "Automat mit Kaskade und Upgrade-Baum — Form und Farben stammen aus Dropfall.",
+    buildTitle: "Neben Dropfall, auf demselben Brett",
+    build: [
+      "Angelegt im September 2026. Design System, Skill-Tree-Ansicht und Herbst-Deko kommen aus Dropfall, damit beide Spiele wie aus einem Guss wirken.",
+      "Die Physik ist selbst geschrieben: Scheiben werden nicht über Kräfte geschoben, sondern ihre Überlappungen direkt aufgelöst — vom Schieber zur Kante sortiert, damit ein Schub in einem Durchgang durch den ganzen Haufen wandert.",
+      "Zehn Münzarten verändern, was passiert: Magnetmünzen ziehen Klumpen zusammen, Klebemünzen verbinden Nachbarn zu einer Platte, Sprengmünzen stoßen an der Kante alles hinunter, Königsmünzen vervielfachen die Kaskade.",
+      "Ein Bot spielt den Automaten kopflos durch und kauft sich durch den Baum. Er hat zwei Fehler gefunden, die man beim Spielen erst nach Stunden bemerkt hätte: einen Truhenwert, der mit der Zeit exponentiell wuchs, und Königsmünzen, die Kaskaden bis ×2000 trieben."
+    ],
+    facts: [
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "51", label: "Knoten im Upgrade-Baum" },
+      { value: "10", label: "Münzarten" },
+      { value: "Prototyp", label: "Reifegrad" }
+    ],
+    playId: "reliktenschieber",
+    links: [
+      { href: "https://github.com/milchinien/Coin-Pusher", label: "Code auf GitHub" },
+      { href: "games/reliktenschieber/index.html", label: "In neuem Tab öffnen" }
     ],
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
@@ -2575,10 +2645,10 @@ const SORTIERUNGEN = [
   { wert: "name", label: { en: "Name A–Z", de: "Name A–Z" } }
 ];
 
-// Welche Spiele im Overlay laufen. Die vier liegen mitgeliefert unter
+// Welche Spiele im Overlay laufen. Die fuenf liegen mitgeliefert unter
 // games/<id>/index.html; Dropfall steht noch auf GitHub Pages und hat darum
 // eine eigene Adresse. Alles andere bekommt kein Spielfenster.
-const EIGENE_SPIELE = ["wavebreaker", "chromatic", "runecall", "harmonics"];
+const EIGENE_SPIELE = ["wavebreaker", "chromatic", "runecall", "harmonics", "reliktenschieber"];
 const DROPFALL_ID = "dropfall";
 const DROPFALL_URL = "https://milchinien.github.io/Dropfall/";
 
