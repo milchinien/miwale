@@ -5,15 +5,15 @@
   },
   "chromatic": {
     "path": "games/chromatic/",
-    "sha256": "f403123c4461b74588cc7779bbf6a3d0542d11d480f2499ceca19421109c805c"
+    "sha256": "6add4eda080703be9250ec420c11c2dc506ac5612be23131a2bb527b73241f4f"
   },
   "runecall": {
     "path": "games/runecall/",
-    "sha256": "ef4f11cf9eeffe39d5d304cb71c6d083f99890f12f6591b51ccbbf30d33dfbe0"
+    "sha256": "eaff32cd7bb8e870e4b457f056a02aded98cd487d3ce9ffb1ba48232943402f1"
   },
   "harmonics": {
     "path": "games/harmonics/",
-    "sha256": "e342ce48c99aa98154e6ee223240f13593e45b4a59df739e717528fc050a9e34"
+    "sha256": "7b0b755a1cff02eb197c556aedc859661db8ae966d0950805ed10411aa86a645"
   },
   "reliktenschieber": {
     "path": "games/reliktenschieber/",

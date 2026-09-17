@@ -1,0 +1,75 @@
+/* Bewertungen auf der Spielseite (shop/bewertungen.js). Nutzt die Farben und
+   Flaechen aus shop.css: eckig mit leichter Rundung, Aqua als Akzent. Daumen
+   runter bekommt ein warmes Orange, damit es nicht wie ein Fehler aussieht. */
+
+.sp-bew { --sp-bew-rot: #F2A58A; }
+.sp-bew__leer { margin: 0; padding: 18px; border-radius: var(--sp-radius); border: 1px dashed var(--sp-kante-hell); color: var(--sp-text-leise); font-size: 14px; text-align: center; }
+
+.sp-bew__kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-bottom: 16px; }
+.sp-bew__urteil { font-weight: 800; font-size: 17px; }
+.sp-bew__urteil--gut { color: #8BEAF3; }
+.sp-bew__urteil--mittel { color: #F3D58B; }
+.sp-bew__urteil--schlecht { color: var(--sp-bew-rot); }
+.sp-bew__zahl { color: var(--sp-text-leise); font-size: 14px; }
+.sp-bew__balken { flex: 1 0 100%; height: 6px; border-radius: 3px; overflow: hidden; background: rgba(242, 165, 138, .4); }
+.sp-bew__balken > span { display: block; height: 100%; background: var(--sp-play); }
+
+.sp-bew__form {
+  display: flex; flex-direction: column; gap: 14px; padding: 18px;
+  border-radius: var(--sp-radius); background: var(--sp-flaeche); border: 1px solid var(--sp-kante);
+}
+.sp-bew__frage { margin: 0; font-weight: 700; font-size: 16px; color: #fff; }
+.sp-bew__daumen { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 420px; }
+.sp-bew__knopf {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 8px 14px; border-radius: var(--sp-radius);
+  border: 1px solid var(--sp-kante-hell); background: rgba(255, 255, 255, .06);
+  color: var(--sp-text); font-weight: 700; font-size: 15px; cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+}
+.sp-bew__knopf svg { width: 20px; height: 20px; }
+.sp-bew__knopf:hover { background: var(--sp-flaeche-hover); }
+.sp-bew__knopf--hoch[aria-pressed="true"] { background: rgba(127, 224, 238, .2); border-color: var(--sp-akzent); color: #EAFBFF; }
+.sp-bew__knopf--runter[aria-pressed="true"] { background: rgba(242, 165, 138, .18); border-color: var(--sp-bew-rot); color: #FFF0EA; }
+
+.sp-bew__feld { display: flex; flex-direction: column; gap: 6px; }
+.sp-bew__label { font-weight: 700; font-size: 14px; color: var(--sp-text); }
+.sp-bew__hilfe { margin: 0; font-size: 13px; color: var(--sp-text-sehrleise); }
+.sp-bew__feld textarea {
+  width: 100%; min-height: 84px; resize: vertical; margin: 0; padding: 10px 12px;
+  border-radius: var(--sp-radius-klein); border: 1px solid var(--sp-kante-hell);
+  background: rgba(1, 10, 17, .45); color: #fff; font: 16px/1.5 var(--font-ui, sans-serif);
+}
+.sp-bew__feld textarea::placeholder { color: var(--sp-text-sehrleise); }
+.sp-bew__feld textarea:focus { outline: none; border-color: var(--sp-akzent); box-shadow: 0 0 0 3px rgba(127, 224, 238, .18); }
+.sp-bew__falle { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
+.sp-bew__aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.sp-bew__aktionen .sp-knopf--play { min-height: 44px; padding-inline: 20px; }
+.sp-bew__aktionen .sp-knopf--play:disabled { opacity: .55; cursor: default; transform: none; }
+.sp-bew__loeschen { min-height: 44px; padding: 8px 4px; border: 0; background: none; color: var(--sp-text-leise); font-size: 14px; text-decoration: underline; cursor: pointer; }
+.sp-bew__loeschen:hover { color: #fff; }
+.sp-bew__meldung { margin: 0; font-size: 14px; color: #8BEAF3; }
+.sp-bew__meldung--fehler { color: var(--sp-bew-rot); }
+
+.sp-bew__listentitel { margin: 28px 0 12px; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--sp-text-leise); }
+.sp-bew__liste { display: flex; flex-direction: column; gap: 10px; }
+.sp-bew__eintrag { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: var(--sp-radius); background: var(--sp-flaeche); border: 1px solid var(--sp-kante); }
+.sp-bew__eintrag--eigen { border-color: rgba(127, 224, 238, .5); }
+.sp-bew__eintragkopf { display: flex; align-items: center; gap: 12px; }
+.sp-bew__eintragkopf > span:last-child { display: flex; flex-direction: column; }
+.sp-bew__icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: var(--sp-radius-klein); flex: none; }
+.sp-bew__icon svg { width: 20px; height: 20px; }
+.sp-bew__icon--hoch { background: rgba(127, 224, 238, .18); color: #8BEAF3; }
+.sp-bew__icon--runter { background: rgba(242, 165, 138, .16); color: var(--sp-bew-rot); }
+.sp-bew__wer { font-weight: 800; font-size: 15px; color: #fff; }
+.sp-bew__wann { font-size: 12px; color: var(--sp-text-sehrleise); }
+.sp-bew__satz { margin: 0; color: var(--sp-text); font-size: 15px; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; }
+.sp-bew__antwort { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-left: 3px solid var(--sp-akzent); background: rgba(127, 224, 238, .06); border-radius: 0 var(--sp-radius-klein) var(--sp-radius-klein) 0; }
+.sp-bew__antwortwer { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--sp-akzent); }
+
+@media (max-width: 560px) {
+  .sp-bew__form { padding: 14px; }
+  .sp-bew__daumen { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-bew__knopf { transition: none; } }

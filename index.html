@@ -1,15 +1,37 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>miwale games</title>
-    <meta name="description" content="Games and projects by miwale — playable right in the browser." />
-    <script>
-      location.replace("miwale%20Portfolio.dc.html" + location.search + location.hash);
-    </script>
-  </head>
-  <body>
-    <p><a href="miwale%20Portfolio.dc.html">Open miwale</a></p>
-  </body>
+<html lang="en" translate="no">
+<head>
+<meta charset="utf-8">
+<!-- Die Seite hat einen eigenen Sprachschalter; Browser-Uebersetzung tauscht
+     sonst nach jedem Wechsel Text verzoegert aus. -->
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Dieselbe Datei laeuft auch unter /games/chromatic. Ohne Basis suchte sie
+     shop/ und assets/ dann unter /games/. -->
+<base href="/">
+<title>miwale games — play free in your browser</title>
+<meta name="description" content="Idle games, card games and roguelites by miwale. Play them right in your browser — no download, no sign-up.">
+<meta property="og:title" content="miwale games">
+<meta property="og:description" content="Play free in your browser — no download, no sign-up.">
+<meta property="og:image" content="https://miwale.com/assets/games/previews/dropfall-v1.jpg">
+<meta name="theme-color" content="#071A29">
+<link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale.png" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale-light.png" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
+<link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+<link rel="stylesheet" href="shop/shop.css">
+<link rel="stylesheet" href="shop/bewertungen.css">
+<link rel="stylesheet" href="shop/hintergrund.css">
+<script src="shop/spiele.js" defer></script>
+<script src="shop/bewertungen.js" defer></script>
+<script src="shop/klang.js" defer></script>
+<script src="shop/meldungen.js" defer></script>
+<script src="shop/shop.js" defer></script>
+<script src="shop/hintergrund.js" defer></script>
+</head>
+<body>
+<div id="app"></div>
+<noscript><p style="padding:24px">miwale games needs JavaScript. <a href="/portfolio">Portfolio</a></p></noscript>
+</body>
 </html>

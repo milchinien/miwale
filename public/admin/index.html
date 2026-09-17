@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="de" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="google" content="notranslate">
+<title>Bewertungen verwalten · miwale</title>
+<link rel="icon" type="image/png" href="/assets/favicon-whale-light.png">
+<link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
+<link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
+<link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+<!--
+  Verwaltung der Bewertungen von miwale.com/games.
+  Die Seite selbst ist nicht geheim. Jede Anfrage an die Schnittstelle traegt
+  das Passwort mit; der Dienst prueft es und bremst falsches Raten. Das Passwort
+  bleibt nur in diesem Tab (sessionStorage) und ist nach dem Schliessen weg.
+-->
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: #050A16; color: #EDF3F9; font: var(--type-body, 16px/1.5 system-ui, sans-serif); }
+  main { width: min(1100px, 100%); margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 24px; }
+  h1 { margin: 0; font: var(--type-h2, 700 28px/1.2 system-ui); color: #fff; }
+  h2 { margin: 0; font: var(--type-label, 600 16px system-ui); font-size: 18px; color: #fff; }
+  .klein { font-size: 13px; color: rgba(237,243,249,.62); }
+  .karte { padding: 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); display: flex; flex-direction: column; gap: 12px; }
+  .zeile { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  input, select, textarea { font: inherit; font-size: 15px; color: #fff; background: rgba(1,10,17,.5); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 10px 12px; }
+  textarea { width: 100%; min-height: 70px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #7FE0EE; }
+  button { font: inherit; font-size: 14px; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #EDF3F9; cursor: pointer; }
+  button:hover { background: rgba(255,255,255,.14); }
+  button:focus-visible { outline: 2px solid #7FE0EE; outline-offset: 2px; }
+  button.haupt { background: linear-gradient(180deg, #BDF3FA, #7FE0EE); color: #06303C; border: 0; font-weight: 600; }
+  button.gefahr { border-color: rgba(242,179,155,.55); color: #F7C7B4; }
+  .fehler { color: #F2B39B; }
+  .ok { color: #9BE7F2; }
+  .werte { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .wert { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
+  .wert b { display: block; color: #fff; font-size: 15px; }
+  .daumen { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; font-size: 16px; }
+  .daumen.hoch { background: rgba(127,224,238,.18); }
+  .daumen.runter { background: rgba(242,179,155,.16); }
+  .text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+  .privat { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(255,214,120,.08); border-left: 3px solid rgba(255,214,120,.6); white-space: pre-line; overflow-wrap: anywhere; }
+  .antwort { padding: 10px 12px; border-left: 3px solid #7FE0EE; background: rgba(127,224,238,.06); border-radius: 0 12px 12px 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="zeile" style="justify-content: space-between;">
+    <h1>Bewertungen verwalten</h1>
+    <a href="/games" style="color: #7FE0EE;">Zur Spieleseite →</a>
+  </div>
+
+  <form id="anmelden" class="karte" autocomplete="on">
+    <h2>Anmelden</h2>
+    <p class="klein" style="margin: 0;">Das Passwort steht auf dem Server in der Variable BEWERTUNGEN_ADMIN_PASSWORT. Lokal mit Vite ist es „dev“.</p>
+    <input type="text" name="username" value="miwale-admin" autocomplete="username" hidden>
+    <div class="zeile">
+      <input id="passwort" type="password" autocomplete="current-password" placeholder="Passwort" required style="flex: 1; min-width: 200px;">
+      <button class="haupt" type="submit">Anmelden</button>
+    </div>
+    <p id="anmeldeFehler" class="fehler" style="margin: 0;" hidden></p>
+  </form>
+
+  <div id="bereich" hidden style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="zeile" style="justify-content: space-between;">
+      <div class="zeile">
+        <label class="klein" for="spielFilter">Spiel</label>
+        <select id="spielFilter"><option value="">Alle Spiele</option></select>
+        <label class="klein"><input type="checkbox" id="nurText"> nur mit Text</label>
+      </div>
+      <div class="zeile">
+        <button type="button" id="neuLaden">Neu laden</button>
+        <button type="button" id="abmelden">Abmelden</button>
+      </div>
+    </div>
+
+    <div id="werte" class="werte"></div>
+    <p id="meldung" class="klein" style="margin: 0;" role="status" aria-live="polite"></p>
+    <div id="liste" style="display: flex; flex-direction: column; gap: 12px;"></div>
+
+    <details class="karte">
+      <summary style="cursor: pointer;"><h2 style="display: inline;">Wortsperrliste</h2></summary>
+      <p class="klein" style="margin: 0;">Ein Wort pro Zeile. Groß- und Kleinschreibung, Umlaute und Umschreibungen wie „sh1t“ oder „s h i t“ werden mit erkannt. Es zählen nur ganze Wörter.</p>
+      <textarea id="sperrliste" style="min-height: 240px; font-family: var(--font-mono, monospace); font-size: 14px;"></textarea>
+      <div class="zeile">
+        <button type="button" class="haupt" id="sperrlisteSpeichern">Liste speichern</button>
+        <span id="sperrlisteMeldung" class="klein"></span>
+      </div>
+    </details>
+  </div>
+</main>
+
+<script>
+(() => {
+  const API = "/api/bewertungen/admin/";
+  const SCHLUESSEL = "miwale-admin-passwort";
+  const $ = (id) => document.getElementById(id);
+  let passwort = sessionStorage.getItem(SCHLUESSEL) || "";
+  let daten = { spiele: [], bewertungen: [] };
+
+  async function rufen(pfad, { methode = "GET", koerper } = {}) {
+    const res = await fetch(API + pfad, {
+      method: methode,
+      headers: { authorization: "Bearer " + passwort, "content-type": "application/json" },
+      body: koerper ? JSON.stringify(koerper) : undefined
+    });
+    const inhalt = await res.json().catch(() => ({}));
+    if (res.status === 401 || res.status === 429 || res.status === 503) {
+      abmelden(res.status === 429 ? "Zu viele Versuche. Bitte einige Minuten warten."
+        : res.status === 503 ? "Auf dem Server ist kein Passwort gesetzt (BEWERTUNGEN_ADMIN_PASSWORT)."
+        : "Falsches Passwort.");
+      throw new Error("abgemeldet");
+    }
+    if (!res.ok) throw new Error(inhalt.fehler || "Fehler " + res.status);
+    return inhalt;
+  }
+
+  function abmelden(grund) {
+    passwort = "";
+    sessionStorage.removeItem(SCHLUESSEL);
+    $("bereich").hidden = true;
+    $("anmelden").hidden = false;
+    $("anmeldeFehler").hidden = !grund;
+    $("anmeldeFehler").textContent = grund || "";
+  }
+
+  async function laden() {
+    daten = await rufen("alle");
+    const liste = await rufen("sperrliste");
+    $("sperrliste").value = liste.woerter.join("\n");
+    $("anmelden").hidden = true;
+    $("bereich").hidden = false;
+    const auswahl = $("spielFilter");
+    const gewaehlt = auswahl.value;
+    auswahl.length = 1;
+    for (const s of daten.spiele) auswahl.add(new Option(s, s));
+    auswahl.value = gewaehlt;
+    zeichnen();
+  }
+
+  function el(tag, attrs = {}, ...kinder) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "on") for (const [ev, fn] of Object.entries(v)) e.addEventListener(ev, fn);
+      else if (k === "class") e.className = v;
+      else e.setAttribute(k, v);
+    }
+    for (const k of kinder) if (k != null) e.append(k);
+    return e;
+  }
+
+  function zeichnen() {
+    const spiel = $("spielFilter").value;
+    const nurText = $("nurText").checked;
+
+    // Kennzahlen je Spiel
+    const werte = $("werte");
+    werte.replaceChildren();
+    for (const s of daten.spiele) {
+      const eigene = daten.bewertungen.filter((b) => b.spiel === s);
+      if (!eigene.length) continue;
+      const hoch = eigene.filter((b) => b.daumen === "hoch").length;
+      werte.append(el("div", { class: "wert" },
+        el("b", {}, s),
+        el("span", { class: "klein" }, "👍 " + hoch + " · 👎 " + (eigene.length - hoch) + " · " + Math.round(hoch / eigene.length * 100) + " %")));
+    }
+    if (!werte.children.length) werte.append(el("p", { class: "klein" }, "Noch keine Bewertungen."));
+
+    const liste = $("liste");
+    liste.replaceChildren();
+    const sichtbar = daten.bewertungen.filter((b) => (!spiel || b.spiel === spiel) && (!nurText || b.text || b.privat));
+    for (const b of sichtbar) liste.append(eintrag(b));
+    if (!sichtbar.length) liste.append(el("p", { class: "klein" }, "Nichts gefunden."));
+  }
+
+  function eintrag(b) {
+    const zeit = new Date(b.zeit).toLocaleString("de-DE");
+    const antwortFeld = el("textarea", { placeholder: "Öffentliche Antwort als Entwickler (leer lassen = keine Antwort)", maxlength: "1000" });
+    antwortFeld.value = b.antwort ? b.antwort.text : "";
+
+    return el("article", { class: "karte" },
+      el("div", { class: "zeile" },
+        el("span", { class: "daumen " + b.daumen, "aria-label": b.daumen === "hoch" ? "Daumen hoch" : "Daumen runter" }, b.daumen === "hoch" ? "👍" : "👎"),
+        el("b", {}, b.spiel),
+        el("span", { class: "klein" }, zeit + (b.geaendert ? " · geändert " + new Date(b.geaendert).toLocaleString("de-DE") : "")),
+        el("span", { class: "klein", title: "Pruefsumme der Adresse. Gleiche Kennung heisst gleicher Anschluss." }, "Adresse #" + (b.adresse || "?"))),
+      b.text ? el("p", { class: "text" }, b.text) : el("p", { class: "klein", style: "margin:0" }, "Kein öffentlicher Text."),
+      b.privat ? el("div", {}, el("span", { class: "klein" }, "Privates Feedback"), el("p", { class: "privat" }, b.privat)) : null,
+      el("div", { class: "antwort" }, antwortFeld),
+      el("div", { class: "zeile" },
+        el("button", { type: "button", on: { click: () => aktion(() => rufen("bewertung/" + b.id + "/antwort", { methode: "PUT", koerper: { text: antwortFeld.value } }), "Antwort gespeichert.") } }, "Antwort speichern"),
+        b.text || b.privat ? el("button", { type: "button", class: "gefahr", on: { click: () => confirm("Nur den Text löschen? Der Daumen bleibt.") && aktion(() => rufen("bewertung/" + b.id + "?nur=text", { methode: "DELETE" }), "Text gelöscht.") } }, "Nur Text löschen") : null,
+        el("button", { type: "button", class: "gefahr", on: { click: () => confirm("Ganze Bewertung löschen, samt Daumen?") && aktion(() => rufen("bewertung/" + b.id, { methode: "DELETE" }), "Bewertung gelöscht.") } }, "Ganz löschen")));
+  }
+
+  async function aktion(fn, erfolg) {
+    try {
+      await fn();
+      await laden();
+      meldung(erfolg, false);
+    } catch (e) {
+      if (e.message !== "abgemeldet") meldung("Fehler: " + e.message, true);
+    }
+  }
+
+  function meldung(text, fehler) {
+    $("meldung").textContent = text;
+    $("meldung").className = "klein " + (fehler ? "fehler" : "ok");
+  }
+
+  $("anmelden").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    passwort = $("passwort").value;
+    try {
+      await laden();
+      sessionStorage.setItem(SCHLUESSEL, passwort);
+      $("passwort").value = "";
+    } catch (err) {
+      if (err.message !== "abgemeldet") abmelden("Server nicht erreichbar: " + err.message);
+    }
+  });
+  $("abmelden").addEventListener("click", () => abmelden());
+  $("neuLaden").addEventListener("click", () => aktion(async () => {}, "Aktualisiert."));
+  $("spielFilter").addEventListener("change", zeichnen);
+  $("nurText").addEventListener("change", zeichnen);
+  $("sperrlisteSpeichern").addEventListener("click", async () => {
+    try {
+      const r = await rufen("sperrliste", { methode: "PUT", koerper: { woerter: $("sperrliste").value.split("\n") } });
+      $("sperrliste").value = r.woerter.join("\n");
+      $("sperrlisteMeldung").textContent = r.woerter.length + " Wörter gespeichert.";
+    } catch (e) {
+      if (e.message !== "abgemeldet") $("sperrlisteMeldung").textContent = "Fehler: " + e.message;
+    }
+  });
+
+  if (passwort) laden().catch(() => {});
+})();
+</script>
+</body>
+</html>

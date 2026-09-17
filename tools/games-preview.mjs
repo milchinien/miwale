@@ -3,11 +3,11 @@ import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PORTFOLIO = fileURLToPath(new URL('../miwale Portfolio.dc.html', import.meta.url));
+const SPIELESEITE = fileURLToPath(new URL('../index.html', import.meta.url));
 const SEITEN = [
-  /^\/$/,
-  /^\/(start|projekte|ueber-mich|ki-workflow|devlog|kontakt)(\/[a-z0-9-]+(\/spielen)?)?\/?$/,
+  [/^\/(portfolio|start|projekte|ueber-mich|ki-workflow|devlog|kontakt)(\/[a-z0-9-]+(\/spielen)?)?\/?$/, PORTFOLIO],
   // Ohne Schraegstrich am Ende: /games/chromatic/ ist das Spiel selbst.
-  /^\/games(\/[a-z0-9-]+(\/spielen)?)?$/,
+  [/^\/games\/[a-z0-9-]+(\/spielen)?$/, SPIELESEITE],
 ];
 
 // Serve each frozen game as a static site. Vite's cached public-file index can
@@ -18,20 +18,21 @@ export function gamesPreview() {
   return {
     name: 'game-bundles',
     configureServer(server) {
-      // Kurze Seitenadressen wie in docker/nginx.conf: /, /projekte/chromatic
-      // und /games/chromatic zeigen die Portfolio-Datei, die alten Dateinamen
-      // und /games/ leiten um.
+      // Kurze Seitenadressen wie in docker/nginx.conf: /portfolio und
+      // /projekte/chromatic zeigen das Portfolio, /games/chromatic die
+      // Spieleseite; die alten Dateinamen und /games leiten um.
       server.middlewares.use((req,res,next) => {
         const url = new URL(req.url,'http://localhost');
         let path;
         try { path = decodeURIComponent(url.pathname); } catch { return next(); }
         const umleiten = (ziel) => { res.statusCode = 301; res.setHeader('Location', ziel + url.search); res.end(); };
-        if (path === '/miwale Portfolio.dc.html' || path === '/miwale Portfolio Mobil.dc.html') return umleiten('/');
-        if (/^\/games\/?$/i.test(path) && path !== '/games') return umleiten('/games');
-        if (!SEITEN.some((muster) => muster.test(path))) return next();
+        if (path === '/miwale Portfolio.dc.html' || path === '/miwale Portfolio Mobil.dc.html') return umleiten('/portfolio');
+        if (/^\/games\/?$/i.test(path)) return umleiten('/');
+        const seite = SEITEN.find(([muster]) => muster.test(path));
+        if (!seite) return next();
         res.setHeader('Content-Type','text/html; charset=utf-8');
         res.setHeader('Cache-Control','no-cache');
-        createReadStream(PORTFOLIO).on('error',() => res.destroy()).pipe(res);
+        createReadStream(seite[1]).on('error',() => res.destroy()).pipe(res);
       });
       server.middlewares.use('/games', (req,res) => {
         try {

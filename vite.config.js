@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { createServer } from "node:net";
 import { gamesPreview } from "./tools/games-preview.mjs";
+import { bewertungenDev } from "./tools/bewertungen-dev.mjs";
 
 // miwale bekommt einen eigenen Port. 5173 ist Vites Standard und damit belegt,
 // sobald parallel ein anderes Projekt laeuft — Dropfall haengt dort seine
@@ -27,7 +28,7 @@ function istFrei(port) {
 }
 
 export default defineConfig(async () => ({
-  plugins: [gamesPreview()],
+  plugins: [bewertungenDev(), gamesPreview()],
   server: {
     // Production bundles update as a unit; do not reload the page for every asset.
     watch: { ignored: ['**/public/games/**'] },
