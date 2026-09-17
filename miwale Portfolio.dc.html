@@ -1510,6 +1510,41 @@ const PROJECTS = [
     linkNote: "Öffentliches Repository, spielbar direkt im Browser."
   },
   {
+    id: "reliktenschieber", name: "Reliktenschieber",
+    preview: "assets/games/previews/reliktenschieber-v1.jpg",
+    kind: "Idle-Münzschieber", status: "Prototyp spielbar",
+    genres: ["Idle", "Experiment"], geraete: ["pc"],
+    art: "spiel", stand: "2026-09",
+    tagline: "Münzen einwerfen, den Haufen über die Kante schieben, die Schatztruhe bergen",
+    lead: "Ein Münzschieber als Idle-Spiel. Man zielt den Einwurf, der Schieber drückt den Haufen nach vorn, und was über die Kante fällt, zahlt aus — je nach Fach doppelt oder gar nicht. Immer liegt eine Schatztruhe auf der Plattform, die sich langsam der Kante nähert.",
+    tags: ["TypeScript", "Eigene Physik", "Skill Tree", "Balancing-Simulation"],
+    shot: "assets/games/reliktenschieber-main.jpg",
+    shotAlt: "Reliktenschieber mit Münzhaufen, Schatztruhe an der Kante und laufender Kaskade",
+    shots: [
+      { src: "assets/games/reliktenschieber-1.jpg", alt: "Upgrade-Baum aus dem Reliktenschieber im Dropfall-Stil" }
+    ],
+    shotsCaption: "Automat mit Kaskade und Upgrade-Baum — Form und Farben stammen aus Dropfall.",
+    buildTitle: "Neben Dropfall, auf demselben Brett",
+    build: [
+      "Angelegt im September 2026. Design System, Skill-Tree-Ansicht und Herbst-Deko kommen aus Dropfall, damit beide Spiele wie aus einem Guss wirken.",
+      "Die Physik ist selbst geschrieben: Scheiben werden nicht über Kräfte geschoben, sondern ihre Überlappungen direkt aufgelöst — vom Schieber zur Kante sortiert, damit ein Schub in einem Durchgang durch den ganzen Haufen wandert.",
+      "Zehn Münzarten verändern, was passiert: Magnetmünzen ziehen Klumpen zusammen, Klebemünzen verbinden Nachbarn zu einer Platte, Sprengmünzen stoßen an der Kante alles hinunter, Königsmünzen vervielfachen die Kaskade.",
+      "Ein Bot spielt den Automaten kopflos durch und kauft sich durch den Baum. Er hat zwei Fehler gefunden, die man beim Spielen erst nach Stunden bemerkt hätte: einen Truhenwert, der mit der Zeit exponentiell wuchs, und Königsmünzen, die Kaskaden bis ×2000 trieben."
+    ],
+    facts: [
+      { value: "September 2026", label: "Zeitraum" },
+      { value: "51", label: "Knoten im Upgrade-Baum" },
+      { value: "10", label: "Münzarten" },
+      { value: "Prototyp", label: "Reifegrad" }
+    ],
+    playId: "reliktenschieber",
+    links: [
+      { href: "https://github.com/milchinien/Coin-Pusher", label: "Code auf GitHub" },
+      { href: "games/reliktenschieber/index.html", label: "In neuem Tab öffnen" }
+    ],
+    linkNote: "Öffentliches Repository, spielbar direkt im Browser."
+  },
+  {
     id: "xrai", name: "XRAI Order System",
     preview: "assets/games/previews/xrai-v1.jpg",
     kind: "Bestellsystem für die Gastronomie", status: "Im Einsatz",
@@ -2257,7 +2292,7 @@ class Component extends DCLogic {
 
   gameUrl() {
     const id = this.state.game && this.state.game.id;
-    return id === "dropfall" ? "https://milchinien.github.io/Dropfall/" : ["wavebreaker", "chromatic", "runecall", "harmonics"].includes(id) ? new URL("games/" + id + "/index.html", document.baseURI).href : "about:blank";
+    return id === "dropfall" ? "https://milchinien.github.io/Dropfall/" : ["wavebreaker", "chromatic", "runecall", "harmonics", "reliktenschieber"].includes(id) ? new URL("games/" + id + "/index.html", document.baseURI).href : "about:blank";
   }
 
   renderVals() {
