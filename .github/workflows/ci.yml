@@ -56,10 +56,12 @@ jobs:
           done
           status() { curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:8080$1"; }
           umleitung() {
-            kopf="$(curl -sSI "http://127.0.0.1:8080$1" | tr -d '')"
-            echo "$kopf" | grep -q "^HTTP/1.1 $2" && echo "$kopf" | grep -qi "^location: $3\$"               || { echo "$1:"; echo "$kopf"; exit 1; }
+            kopf="$(curl -sSI "http://127.0.0.1:8080$1" | tr -d '\r')"
+            if ! echo "$kopf" | grep -q "^HTTP/1.1 $2" || ! echo "$kopf" | grep -qi "^location: $3\$"; then
+              echo "$1:"; echo "$kopf"; exit 1
+            fi
           }
-          for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt                       /games /games/chromatic /games/wavebreaker/ /support.js; do
+          for pfad in / /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games /games/chromatic /games/wavebreaker/ /support.js; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           curl -fsS http://127.0.0.1:8080/games/chromatic | grep -q '<base href="/">'
