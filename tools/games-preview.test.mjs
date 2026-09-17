@@ -23,7 +23,7 @@ test('game preview serves newly synced files and correct image/script types', as
   assert.equal(response.status,200);
   assert.equal(response.headers.get('content-type'),'image/svg+xml');
   assert.match(await response.text(),/<svg/);
-  for (const id of ['wavebreaker','chromatic','runecall','harmonics']) {
+  for (const id of ['wavebreaker','chromatic','runecall','harmonics','reliktenschieber']) {
     const html = readFileSync(new URL(`../public/games/${id}/index.html`,import.meta.url),'utf8');
     const script = html.match(/src="\.\/([^"]+\.js)"/)[1];
     response = await fetch(`${base}/${id}/${script}`);

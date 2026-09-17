@@ -101,8 +101,8 @@ Trefferzahl, gezaehlt gegen die jeweils andere Reihe — die Zahl zeigt also, wa
 ein Klick wirklich braechte. Findet eine Auswahl nichts, steht dort ein Hinweis
 statt einer leeren Flaeche.
 
-`geraete` steht nur an dem, was sich wirklich spielen laesst. Von den fuenf
-Browserspielen laeuft bislang allein **Dropfall** am Handy; die uebrigen vier
+`geraete` steht nur an dem, was sich wirklich spielen laesst. Von den sechs
+Browserspielen laeuft bislang allein **Dropfall** am Handy; die uebrigen fuenf
 sind auf PC gesetzt. Projekte ohne Spielfassung — das Bestellsystem, die
 Lernspiele, das Design-Dokument — tragen gar kein `geraete` und tauchen unter
 keinem der beiden Geraeteknoepfe auf. Das ist gewollt: man kann sie nirgends
@@ -174,8 +174,8 @@ Beide Fassungen lesen dieselbe Liste `PROJECTS`, die in jeder Datei einmal im
 `<script type="text/x-dc">`-Block steht. Ein neues Projekt braucht dort einen
 Eintrag — in beiden Dateien, sie werden nicht geteilt.
 
-Enthalten sind elf Projekte, in dieser Reihenfolge: Dropfall, Wavebreaker,
-Chromatic, XRAI Order System, Runecall, Harmonics, Dungeons & Diplomas,
+Enthalten sind zwoelf Projekte, in dieser Reihenfolge: Dropfall, Wavebreaker,
+Chromatic, Reliktenschieber, XRAI Order System, Runecall, Harmonics, Dungeons & Diplomas,
 Michis Mathe Universe, mindforge-playground, The Last Outpost und der
 Flappy-Prototyp. Die ersten drei sind die mit Trend-Rang.
 
@@ -256,8 +256,9 @@ Sektion, ein BorderBeam pro Screen, ein Scroll-Set-Piece pro Seite.
 
 ### Projektvorschauen
 
-Alle elf Projekte verwenden eigene Illustrationen in den Projektkacheln und auf
-der Startseite, auf Desktop und Mobil. Die Zuordnung steht im Feld `preview`;
+Elf der zwoelf Projekte verwenden eigene Illustrationen in den Projektkacheln und auf
+der Startseite, auf Desktop und Mobil. Der Reliktenschieber zeigt vorerst einen
+Screenshot aus dem Spiel, bis eine Illustration entsteht. Die Zuordnung steht im Feld `preview`;
 `shot` und `shots` behalten die bisherigen Detailbilder. Unter
 `assets/games/previews/` liegen die PNG-Originale, kompakte JPEG-Webdateien
 und die vollst?ndigen Generierungsprompts in `prompts.md`.
@@ -265,9 +266,9 @@ und die vollst?ndigen Generierungsprompts in `prompts.md`.
 
 ## Eingebettete Spiele aktualisieren
 
-Wavebreaker, Chromatic, Runecall und Harmonics werden als gepr?fte Produktionspakete aus `public/games/` gemeinsam mit dem Portfolio ausgeliefert. Die iframe-Ansicht und ?In neuem Tab ?ffnen? verwenden dieselbe Fassung. Dropfall bleibt unver?ndert extern. Der Vollbildschalter sitzt in der Kopfzeile, nicht ?ber dem Spiel.
+Wavebreaker, Chromatic, Runecall, Harmonics und der Reliktenschieber werden als gepr?fte Produktionspakete aus `public/games/` gemeinsam mit dem Portfolio ausgeliefert. Die iframe-Ansicht und ?In neuem Tab ?ffnen? verwenden dieselbe Fassung. Dropfall bleibt unver?ndert extern. Der Vollbildschalter sitzt in der Kopfzeile, nicht ?ber dem Spiel.
 
-Nach ?nderungen in den benachbarten Spiel-Repositories `npm run games:sync` ausf?hren. Das baut alle vier Spiele und ersetzt ihre Pakete einschlie?lich ?ffentlicher Symbole, Texturen und Sounds. `public/games/manifest.json` enth?lt Pr?fsummen; `npm run check:games` erkennt unvollst?ndige oder ver?nderte Pakete. Die Pakete werden mit versioniert, damit ein Portfolio-Deployment keine lokalen Nachbar-Repositories voraussetzt.
+Nach ?nderungen in den benachbarten Spiel-Repositories `npm run games:sync` (einzelne Spiele: `npm run games:sync -- reliktenschieber`) ausf?hren. Das baut alle fuenf Spiele und ersetzt ihre Pakete einschlie?lich ?ffentlicher Symbole, Texturen und Sounds. `public/games/manifest.json` enth?lt Pr?fsummen; `npm run check:games` erkennt unvollst?ndige oder ver?nderte Pakete. Die Pakete werden mit versioniert, damit ein Portfolio-Deployment keine lokalen Nachbar-Repositories voraussetzt.
 
 `npm run build` erstellt die vollst?ndige statische Seite in `dist/`, einschlie?lich beider Portfolio-Fassungen und aller Spiele. Der Docker-Build kopiert dieselben Dateien. Spielst?nde der externen GitHub-Pages-Adressen liegen auf einer anderen Origin und werden nicht automatisch ?bernommen.
 

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Reliktenschieber</title>
+    <script>
+      /* Skin VOR dem ersten Bild setzen, sonst blitzt der Vorgabe-Skin auf.
+         Schluessel und Vorgabe muessen mit src/skin.ts uebereinstimmen. */
+      try {
+        var g = JSON.parse(localStorage.getItem("reliktenschieber.grafik") || "{}");
+        document.documentElement.dataset.skin = g.skin === "klassisch" ? "klassisch" : "herbst";
+      } catch (e) {
+        document.documentElement.dataset.skin = "herbst";
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-Be9ku0IH.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BIE88VDI.css">
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <div class="hud">
+      <div class="panel panel--res">
+        <div class="res-row"><span class="coin-glyph" aria-hidden="true"></span><span id="geld">0</span></div>
+        <div class="res-row res-row--sub"><span class="glyph glyph--teal">&#9650;</span><span id="rate">0 /s</span></div>
+
+        <div class="res-label">MÜNZVORRAT</div>
+        <div class="res-row res-row--mid"><span class="stack-glyph" aria-hidden="true"></span><span id="vorrat">0 / 0</span></div>
+        <div class="refill"><div class="refill-bar" id="vorratBar"></div></div>
+
+        <div class="res-label">SCHATZTRUHE</div>
+        <div class="res-truhe" id="truhe">&hellip;</div>
+      </div>
+
+      <div class="panel panel--views">
+        <button class="view-tab is-on" id="viewAutomat">Automat</button>
+        <button class="view-tab" id="viewBaum">Upgrade-Baum<span class="view-key">Tab</span></button>
+      </div>
+
+      <button class="icon-btn" id="settings" title="Einstellungen">&#9881;</button>
+
+      <div class="panel panel--coins" id="coinPanel">
+        <div class="shop-head">
+          <span class="shop-title">MÜNZE</span>
+          <span class="shop-hint">Tasten 1&ndash;0</span>
+        </div>
+        <div class="coin-choice" id="coinChoice"></div>
+        <p class="coin-hint">
+          Klicken, halten oder <b>Leertaste</b> wirft ein. Kupfer und Silber kommen zuerst aus dem Vorrat, alles andere kostet Geld.
+        </p>
+      </div>
+
+      <div class="panel panel--shop" id="shopPanel">
+        <div class="shop-head">
+          <span class="shop-title">SCHNELLKAUF</span>
+          <span class="shop-hint">Tasten Q&ndash;R</span>
+        </div>
+        <div id="shopList"></div>
+        <button class="ghost-btn" id="openTree">Upgrade-Baum öffnen</button>
+        <div class="legend">
+          <div class="legend-row"><span class="legend-dot legend-dot--mitte"></span>Auszahlung &middot; normaler Wert</div>
+          <div class="legend-row"><span class="legend-dot legend-dot--doppel"></span>Doppelfach &middot; doppelter Wert</div>
+          <div class="legend-row"><span class="legend-dot legend-dot--abgrund"></span>Abgrund &middot; verloren</div>
+          <div class="legend-row legend-row--combo">Gleichzeitig fallend: 5&thinsp;&rarr;&thinsp;&times;2 &middot; 10&thinsp;&rarr;&thinsp;&times;4 &middot; 20&thinsp;&rarr;&thinsp;&times;8 &middot; 40&thinsp;&rarr;&thinsp;&times;16</div>
+        </div>
+      </div>
+      <div class="tree-hint hidden" id="treeHint">
+        Ziehen zum Verschieben &middot; Mausrad zum Zoomen &middot; Klick kauft &middot; Tab zurück zum Automaten
+      </div>
+    </div>
+
+    <div class="tooltip hidden" id="tooltip"></div>
+    <div class="toast hidden" id="toast"></div>
+
+    <div class="modal hidden" id="modal">
+      <div class="modal-card">
+        <h2>Einstellungen</h2>
+        <p class="modal-sub">Reliktenschieber v0.2 &middot; Prototyp</p>
+
+        <div class="setting">
+          <div class="setting-row"><span class="setting-label">Aussehen</span></div>
+          <div class="seg" role="group" aria-label="Aussehen">
+            <button class="seg-btn" data-skin="herbst">Herbst</button>
+            <button class="seg-btn" data-skin="klassisch">Klassisch</button>
+          </div>
+        </div>
+
+        <div class="setting" id="setHimmel">
+          <div class="setting-row"><span class="setting-label">Abendhimmel</span></div>
+          <div class="seg" role="group" aria-label="Abendhimmel">
+            <button class="seg-btn" data-himmel="baender">B&auml;nder</button>
+            <button class="seg-btn" data-himmel="einfarbig">Einfarbig</button>
+            <button class="seg-btn" data-himmel="verlauf">Verlauf</button>
+          </div>
+        </div>
+
+        <div class="setting" id="setLaub">
+          <div class="setting-row"><span class="setting-label">Laub</span></div>
+          <div class="seg" role="group" aria-label="Laub">
+            <button class="seg-btn" data-laub="aus">Aus</button>
+            <button class="seg-btn" data-laub="wenig">Wenig</button>
+            <button class="seg-btn" data-laub="normal">Normal</button>
+          </div>
+        </div>
+
+        <button class="ghost-btn" id="wipe">Spielstand l&ouml;schen</button>
+        <button class="ghost-btn" id="closeModal">Schlie&szlig;en</button>
+      </div>
+    </div>
+
+  </body>
+</html>

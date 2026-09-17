@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../public/games');
 const manifest = JSON.parse(readFileSync(join(root,'manifest.json'),'utf8'));
 const files = dir => readdirSync(dir,{withFileTypes:true}).flatMap(e => e.isDirectory() ? files(join(dir,e.name)) : [join(dir,e.name)]);
-for (const id of ['wavebreaker','chromatic','runecall','harmonics']) {
+for (const id of ['wavebreaker','chromatic','runecall','harmonics','reliktenschieber']) {
   const dir = join(root,id);
   const hash = createHash('sha256');
   for (const file of files(dir).sort()) hash.update(relative(dir,file).replaceAll('\\','/')).update(readFileSync(file));
