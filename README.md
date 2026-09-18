@@ -225,9 +225,11 @@ ein oeffentlicher Satz und ein privates Feedback, das nur die Verwaltung sieht.
 Die Oberflaeche steht in `shop/bewertungen.js` und `shop/bewertungen.css`;
 `shop.js` legt nur den leeren Abschnitt an und ruft sie auf.
 
-- **Ohne Account, auf Vertrauensbasis.** Jedes Geraet bekommt beim ersten
-  Besuch eine zufaellige Kennung im localStorage. Pro Spiel zaehlt eine Stimme
-  je Kennung; eine zweite Abgabe ersetzt die erste. Bewertungen erscheinen sofort.
+- **Daumen ohne, Text mit Konto.** Den Daumen und das private Feedback gibt es
+  ohne Konto: Jedes Geraet bekommt beim ersten Besuch eine zufaellige Kennung im
+  localStorage, pro Spiel zaehlt eine Stimme je Kennung. Oeffentlicher Text
+  braucht ein Konto und steht mit dessen Namen da. Wer sich anmeldet, nimmt die
+  Bewertung seines Geraets mit. Bewertungen erscheinen sofort.
 - **Schutz.** Wortsperrliste auf Englisch und Deutsch, die auch Schreibweisen
   wie `sh1t` oder `s h i t` erkennt; verstecktes Feld gegen Bots; hoechstens 20
   schreibende Anfragen je Adresse in zehn Minuten. Adressen werden nur als
@@ -279,9 +281,13 @@ Zweiter Reiter neben Home, fuer das Format "I build your game ideas in one day".
   prueft den Bildtyp am Inhalt, legt die Dateien in `/data/ideen-bilder/` und
   raeumt Bilder weg, die nach einem Tag noch keiner Idee gehoeren. Insgesamt
   hoechstens 2 GB.
+- **Einreichen nur mit Konto.** Ansehen und abstimmen kann jeder, einreichen
+  nur angemeldet. Ohne Konto steht statt des Formulars "Sign in to send a game
+  request"; der Entwurf bleibt.
 - **Schutz.** Dieselbe Wortsperrliste wie bei den Bewertungen, verstecktes Feld
-  gegen Bots, je Adresse in zehn Minuten hoechstens 8 Einreichungen, 24 Bilder
-  und 150 Stimmen, hoechstens 10 unbearbeitete Ideen je Geraet.
+  gegen Bots, je Adresse (Einreichen und Bilder auch je Konto) in zehn Minuten
+  hoechstens 8 Einreichungen, 24 Bilder und 150 Stimmen, hoechstens 10
+  unbearbeitete Ideen je Konto.
 - **Entwurf.** Der Text bleibt bis zum Absenden im localStorage; am Handy laedt
   die Seite manchmal neu, wenn man zum Bildauswaehlen in die Galerie wechselt.
   Den Rechte-Haken merkt er sich absichtlich nicht.
@@ -294,23 +300,113 @@ Zweiter Reiter neben Home, fuer das Format "I build your game ideas in one day".
 Dateien: `shop/ideen.js`, `shop/ideen.css`, `server/ideen.mjs`, Tests in
 `tools/ideen.test.mjs`.
 
-**Spaeter ein Konto.** Heute gehoeren Ideen und Stimmen einem Geraet. Das steht
-an genau zwei Stellen: `shop/identitaet.js` im Browser (welche Kennung mitgeht)
-und `besitzerVon()` in `server/gemeinsam.mjs` (gespeichert als
-`"geraet:<id>"`, bei Ideen im Feld `besitzer`, bei Stimmen als Schluessel in
-`stimmen`). Ein Konto liefert dort `"konto:<id>"` aus der Sitzung; was ein
-Geraet vorher angelegt hat, laesst sich bei der Anmeldung einmalig auf das
-Konto umschreiben. Die Bewertungen holen ihre Kennung auch schon aus
+**Wem gehoert was.** Ideen gehoeren einem Konto (`besitzer: "konto:<id>"`).
+Stimmen gehen auch ohne Konto: dann je Geraet (`"geraet:<id>"`, die Kennung aus
+`shop/identitaet.js`), angemeldet je Konto. Beides entscheidet `besitzerVon()`
+in `server/gemeinsam.mjs`.
+
+Bewertungen, Game Requests und Konten laufen in einem Node-Prozess
+(`server/start.mjs`, gestartet von `docker/40-dienste.sh`) und teilen Hilfen aus
+`server/gemeinsam.mjs`.
+
+### Konten
+
+Spielen geht immer ohne Konto. Eines braucht nur, wer eine Bewertung mit Text
+schreibt oder einen Game Request schickt. Oben rechts steht "Sign in" bzw. der
+Name; `/account` ist die Kontoseite, `/privacy` die Datenschutzerklaerung.
+Dienst in `server/konten.mjs`, Oberflaeche in `shop/konto.js` und
 `shop/identitaet.js`.
 
-Bewertungen und Game Requests laufen in einem Node-Prozess (`server/start.mjs`,
-gestartet von `docker/40-dienste.sh`) und teilen Hilfen aus `server/gemeinsam.mjs`.
+- **Anmelden nur mit Discord oder Google** (OAuth 2.0 mit PKCE, ganz auf dem
+  Server). Es gibt keine Passwoerter und keine E-Mail-Adressen. Von Discord wird
+  nur `identify`, von Google nur `openid` erfragt. Die Kennung des Anbieters
+  wird sofort mit einem Geheimnis des Servers gehasht (HMAC, Datei
+  `/data/konten-geheimnis`); gespeichert werden nur dieser Hash, der gewaehlte
+  Name, Zeitpunkte und die Bestaetigung "mindestens 13".
+- **Namen.** 3-20 Zeichen aus `A-Z a-z 0-9 _ -`, eindeutig ohne Ruecksicht auf
+  Gross/klein, nichts mit "miwale", "admin" u. ae., Wortsperrliste gilt auch hier.
+- **Sitzung.** Zufaelliges Token im Cookie `__Host-sitzung` (HttpOnly, Secure,
+  SameSite=Lax), auf dem Server nur als SHA-256. 30 Tage ab dem letzten Besuch.
+  Abmelden, auf allen Geraeten abmelden.
+- **Fremde Seiten.** Jede aendernde Anfrage an `/api/` muss `Origin:
+  https://miwale.com` tragen und darf laut `Sec-Fetch-Site` nicht von einer
+  anderen Adresse kommen (`herkunftOk()` in `server/gemeinsam.mjs`).
+- **Selbst loeschen und Auskunft.** Auf `/account`: Daten als JSON
+  herunterladen, Konto loeschen (samt Bewertungen, Game Requests und Bildern,
+  sofort).
+- **Verwaltung.** Reiter "Konten" unter `/admin/`: sperren, entsperren,
+  loeschen. Gesperrte Konten schreiben nichts mehr; loescht sich ein gesperrtes
+  Konto, bleibt nur sein Hash, damit es nicht neu anfaengt. Bei jeder Bewertung
+  und jedem Game Request steht, von welchem Konto er kommt, samt "Konto sperren".
+- **Lokal.** `npm run dev` bietet eine Test-Anmeldung an ("Test sign-in (local
+  only)"): beliebige Kennung eingeben, gleiche Kennung = gleiches Konto. Die gibt
+  es nur in `tools/dienste-dev.mjs`, nie im Container, und nur vom eigenen
+  Rechner aus (nicht vom Handy im WLAN).
+
+### Spiele unter eigener Adresse (play.miwale.com)
+
+Die Spiele laufen im iframe. Laegen sie unter `miwale.com`, haetten sie dieselben
+Rechte wie die Seite: Ein fehlerhaftes oder boeswilliges Spiel (sie kommen auch
+automatisch von GitHub) koennte im Namen eines angemeldeten Besuchers schreiben
+oder sein Konto loeschen. Darum bekommen sie eine eigene Adresse.
+`docker/nginx.conf` hat dafuer einen zweiten Server-Block `play.*`, der nur
+`/games/` ausliefert, keine Dienste und keine Verwaltung.
+
+Solange `SPIELE_ADRESSE` leer ist, laufen die Spiele wie bisher unter
+`miwale.com` -- und **Anmelden ist aus** (`server/start.mjs` bietet dann keinen
+Anbieter an). Konten gibt es erst, wenn die Spiele getrennt laufen.
+
+**Uebergang.** Solange kein Anbieter aktiv ist, laufen Bewertungen und Game
+Requests wie vor den Konten: Text und Einreichen gehen ohne Konto, je Geraet,
+der Knopf "Sign in" ist ausgeblendet (`kontenPflicht()` in
+`server/gemeinsam.mjs`, `kontenAktiv()` in `shop/identitaet.js`). Sobald
+Discord oder Google eingerichtet ist, braucht Schreiben ein Konto, und was ein
+Geraet vorher eingereicht hat, uebernimmt das Konto beim ersten Anmelden auf
+diesem Geraet. Lokal zeigt `MIWALE_OHNE_KONTEN=1 npm run dev` diesen Zustand. Mit `SPIELE_ADRESSE=https://play.miwale.com` zeigt das
+Spielfenster dorthin, und `miwale.com/games/<id>/...` leitet um
+(`docker/30-umgebung.sh`). Spielstaende im localStorage haengen an der Adresse:
+Wer schon unter `miwale.com` gespielt hat, faengt unter `play.miwale.com` neu an.
+
+### Sicherheits-Koepfe
+
+`docker/sicherheit.conf` fuer alles (nosniff, Referrer-Policy, X-Frame-Options,
+Permissions-Policy, HSTS), `docker/sicherheit-seite.conf` zusaetzlich fuer die
+Spieleseite mit einer Content-Security-Policy ohne eingebettete Skripte. Die CI
+prueft beides.
 
 **Produktion einmalig einrichten.** Auf dem Server neben
 `docker-compose.prod.yml` eine `.env` mit `BEWERTUNGEN_ADMIN_PASSWORT=...`
 anlegen und die aktualisierte Compose-Datei dorthin kopieren. Sie bindet das
 Volume `miwale-bewertungen` an `/data`. Ohne Volume sind alle Bewertungen nach
 dem naechsten Deployment weg.
+
+**Konten einrichten** (einmalig, kostenlos). Die Reihenfolge ist wichtig:
+ohne `play.miwale.com` bleibt Anmelden aus.
+
+1. **play.miwale.com:** DNS-Eintrag wie fuer `miwale.com` und im Ingress
+   (`dev-cloud-server-config`, campsite-nginx) einen Server-Block fuer
+   `play.miwale.com` mit TLS, der wie `miwale.com` an `miwale:8080` weitergibt
+   und den Host mitschickt (`proxy_set_header Host $host`). Pruefen:
+   `https://play.miwale.com/games/wavebreaker/` laedt. Dann
+   `SPIELE_ADRESSE=https://play.miwale.com` in die `.env`.
+2. **Discord:** <https://discord.com/developers/applications> -> New
+   Application -> OAuth2. Redirect `https://miwale.com/api/konto/rueckruf/discord`
+   eintragen. Client ID und Client Secret in die `.env`:
+   `DISCORD_CLIENT_ID=...`, `DISCORD_CLIENT_SECRET=...`.
+3. **Google:** <https://console.cloud.google.com/> -> neues Projekt -> "Google
+   Auth Platform" -> Branding (App-Name miwale, Support-Mail) -> Zielgruppe
+   "Extern" -> Clients -> "Webanwendung". Autorisierte Weiterleitungs-URI
+   `https://miwale.com/api/konto/rueckruf/google`. Nur der Bereich `openid`
+   wird gebraucht, dafuer ist keine Google-Pruefung noetig. In die `.env`:
+   `GOOGLE_CLIENT_ID=...`, `GOOGLE_CLIENT_SECRET=...`.
+4. `docker compose -f docker-compose.prod.yml up -d`. Fehlt ein Anbieter, bietet
+   die Seite ihn einfach nicht an.
+5. **Backup:** `/data` (Volume `miwale-bewertungen`) naechtlich sichern, z. B.
+   `docker run --rm -v miwale-bewertungen:/data -v /backup:/b alpine tar czf /b/miwale-$(date +%F).tgz -C /data .`
+   per Cron. Die Sicherung enthaelt `konten-geheimnis` -- so geschuetzt ablegen
+   wie die `.env`.
+
+Secrets gehoeren nur in die `.env` auf dem Server, nie ins Repository.
 
 ## Adresse und Verlauf
 

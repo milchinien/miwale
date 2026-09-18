@@ -7,8 +7,9 @@
 //                  dazu ein Reiter mit den eigenen (auch privaten) Ideen
 //   /requests/new  das Formular fuer eine eigene Idee
 //
-// Ohne Account: eigene Ideen und Stimmen haengen am Geraet
-// (shop/identitaet.js).
+// Ansehen und abstimmen geht ohne Konto (Stimmen dann je Geraet,
+// shop/identitaet.js). Einreichen nur mit Konto (shop/konto.js); ohne Konto
+// steht statt des Formulars der Anmeldekasten, der Entwurf bleibt erhalten.
 //
 // Bilder rechnet der Browser vor dem Hochladen klein (hoechstens 1600 px,
 // unter 900 KB) und neu. Das entfernt nebenbei Standortdaten aus Handyfotos.
@@ -36,11 +37,14 @@
       titel: "You pitch it. I build it in one day.",
       intro: "Vote for the game ideas you want to see built, or pitch your own. I pick ideas from here and from the YouTube comments, build one in a single day and put it on miwale.com.",
       einreichen: "Submit your idea",
-      ohneKonto: "No account needed.",
+      ohneKonto: "Voting works without an account. To send an idea, sign in with Discord or Google.",
+      ohneKontoUebergang: "No account needed.",
+      geraetHinweis: "No account needed. Your ideas and votes are saved on this device.",
       reiter: { top: "Top", neu: "New", meine: (n) => "Your ideas" + (n ? " (" + n + ")" : "") },
       anzahl: (n) => n === 1 ? "1 idea" : n + " ideas",
       leer: "No ideas yet. Be the first!",
-      meineLeer: "You haven't submitted an idea from this device yet.",
+      meineLeer: "You haven't submitted an idea yet.",
+      meineAnmelden: "Sign in to see the ideas you sent.",
       laedt: "Loading ideas…",
       aus: "Game requests are unavailable right now. Please try again later.",
       mehrLaden: "Show more ideas",
@@ -100,7 +104,9 @@
       senden: "Submit idea",
       sendet: "Sending…",
       bildLaedt: (i, n) => "Uploading image " + i + " of " + n + "…",
-      geraetHinweis: "No account needed. Your ideas and votes are saved on this device.",
+      angemeldetAls: (name) => "Sent as " + name + ". You'll find your ideas under \"Your ideas\".",
+      anmelden: "Please sign in first. Your text stays here.",
+      kontoGesperrt: "Your account has been blocked, so you can't send ideas or vote.",
       fehlerTitel: "Give your game a title (at least 3 characters).",
       fehlerBeschreibung: "Tell me a bit more about your idea (at least 20 characters).",
       fehlerSichtbarkeit: "Choose whether your idea is public or private.",
@@ -133,11 +139,14 @@
       titel: "Du hast die Idee. Ich baue das Spiel an einem Tag.",
       intro: "Stimm für die Spielideen ab, die du gebaut sehen willst, oder reich deine eigene ein. Ich suche Ideen von hier und aus den YouTube-Kommentaren aus, baue eine an einem einzigen Tag und stelle sie auf miwale.com.",
       einreichen: "Eigene Idee einreichen",
-      ohneKonto: "Ohne Account.",
+      ohneKonto: "Abstimmen geht ohne Konto. Zum Einreichen mit Discord oder Google anmelden.",
+      ohneKontoUebergang: "Ohne Account.",
+      geraetHinweis: "Ohne Account. Deine Ideen und Stimmen sind auf diesem Gerät gespeichert.",
       reiter: { top: "Top", neu: "Neu", meine: (n) => "Deine Ideen" + (n ? " (" + n + ")" : "") },
       anzahl: (n) => n === 1 ? "1 Idee" : n + " Ideen",
       leer: "Noch keine Ideen. Sei die erste Stimme!",
-      meineLeer: "Von diesem Gerät kam noch keine Idee.",
+      meineLeer: "Du hast noch keine Idee eingereicht.",
+      meineAnmelden: "Melde dich an, um deine eingereichten Ideen zu sehen.",
       laedt: "Ideen werden geladen …",
       aus: "Game Requests sind gerade nicht erreichbar. Bitte später noch einmal versuchen.",
       mehrLaden: "Weitere Ideen anzeigen",
@@ -196,7 +205,9 @@
       senden: "Idee einreichen",
       sendet: "Wird gesendet …",
       bildLaedt: (i, n) => "Bild " + i + " von " + n + " wird hochgeladen …",
-      geraetHinweis: "Ohne Account. Deine Ideen und Stimmen sind auf diesem Gerät gespeichert.",
+      angemeldetAls: (name) => "Wird gesendet als " + name + ". Deine Ideen findest du unter „Deine Ideen“.",
+      anmelden: "Bitte melde dich zuerst an. Dein Text bleibt hier stehen.",
+      kontoGesperrt: "Dein Konto wurde gesperrt, darum kannst du keine Ideen einreichen und nicht abstimmen.",
       fehlerTitel: "Gib deinem Spiel einen Namen (mindestens 3 Zeichen).",
       fehlerBeschreibung: "Erzähl mir etwas mehr über deine Idee (mindestens 20 Zeichen).",
       fehlerSichtbarkeit: "Wähle, ob deine Idee öffentlich oder privat sein soll.",
@@ -293,7 +304,7 @@
         "</div>" +
         '<div class="sp-ideen__heldaktion">' +
           '<a class="sp-knopf sp-knopf--play sp-knopf--gross" href="/requests/new" data-link>' + ICONS.plus + esc(t.einreichen) + "</a>" +
-          '<span class="sp-ideen__hilfe">' + esc(t.ohneKonto) + "</span>" +
+          '<span class="sp-ideen__hilfe" data-ideen-ohnekonto></span>' +
         "</div>" +
       "</section>" +
       '<p class="sp-ideen__erfolg" data-ideen-erfolg role="status" aria-live="polite" hidden></p>' +
@@ -382,6 +393,8 @@
     if (!aktuell || aktuell.ansicht !== "liste" || !aktuell.el.isConnected) return;
     const { el, t, sprache } = aktuell;
     const d = z.daten;
+    const id = window.MIWALE_IDENTITAET;
+    el.querySelector("[data-ideen-ohnekonto]").textContent = id.kontenAktiv() ? t.ohneKonto : t.ohneKontoUebergang;
 
     el.querySelector("[data-ideen-reiter]").innerHTML = ["top", "neu", "meine"].map((r) =>
       '<button type="button" data-ideen-tab="' + r + '" aria-pressed="' + (z.reiter === r) + '">' +
@@ -400,7 +413,8 @@
     const box = el.querySelector("[data-ideen-liste]");
     if (!d) box.innerHTML = '<p class="sp-bew__leer">' + esc(z.fehler ? t.aus : t.laedt) + "</p>";
     else if (!liste.length) {
-      box.innerHTML = '<div class="sp-bew__leer sp-ideen__leer"><p>' + esc(z.reiter === "meine" ? t.meineLeer : t.leer) + "</p>" +
+      const ohne = z.reiter === "meine" && id.kontenAktiv() && !id.konto();
+      box.innerHTML = '<div class="sp-bew__leer sp-ideen__leer"><p>' + esc(z.reiter === "meine" ? (ohne ? t.meineAnmelden : t.meineLeer) : t.leer) + "</p>" +
         '<a class="sp-knopf sp-knopf--play" href="/requests/new" data-link>' + ICONS.plus + esc(t.einreichen) + "</a></div>";
     } else box.innerHTML = liste.slice(0, z.sichtbar).map((i) => karte(i, t, sprache)).join("");
     el.querySelector("[data-ideen-mehrladen]").hidden = liste.length <= z.sichtbar;
@@ -428,11 +442,11 @@
     listeZeichnen();
     try {
       const r = await rufen(encodeURIComponent(id) + "/stimme", "PUT", { wert });
-      if (r.status !== 200) throw new Error(r.status);
+      if (r.status !== 200) throw Object.assign(new Error(r.status), r);
       ersetzen(r.daten.idee);
     } catch (e) {
       ersetzen(Object.assign({ id }, vorher));
-      z.hinweis = aktuell.t.stimmeFehler;
+      z.hinweis = e.daten && e.daten.fehler === "konto-gesperrt" ? aktuell.t.kontoGesperrt : aktuell.t.stimmeFehler;
     }
     listeZeichnen();
   }
@@ -586,6 +600,8 @@
       '<h1 class="sp-ideen__formtitel">' + esc(t.formTitel) + "</h1>" +
       '<div class="sp-ideen__raster">' +
         '<section class="sp-kasten sp-ideen__kasten">' +
+          // Ohne Konto steht hier der Anmeldekasten (shop/konto.js), das Formular ist versteckt.
+          '<div data-ideen-anmelden></div>' +
           '<form class="sp-ideen__form" data-ideen-form novalidate>' +
             '<label class="sp-ideen__feld"><span class="sp-ideen__label">' + esc(t.feldTitel) + ' <span class="sp-ideen__pflicht" aria-hidden="true">*</span></span>' +
               '<input type="text" name="titel" maxlength="' + G.titel + '" required autocomplete="off" placeholder="' + esc(t.titelPlatzhalter) + '"></label>' +
@@ -636,7 +652,7 @@
 
             '<div class="sp-ideen__aktionen">' +
               '<button type="submit" class="sp-knopf sp-knopf--play sp-knopf--gross" data-ideen-senden></button>' +
-              '<p class="sp-ideen__hilfe">' + esc(t.geraetHinweis) + "</p>" +
+              '<p class="sp-ideen__hilfe" data-ideen-wer></p>' +
             "</div>" +
             '<p class="sp-ideen__meldung" data-ideen-meldung role="alert" hidden></p>' +
           "</form>" +
@@ -654,7 +670,18 @@
 
   function formZeichnen() {
     if (!aktuell || aktuell.ansicht !== "neu" || !aktuell.el.isConnected) return;
-    const { el, t } = aktuell;
+    const { el, t, sprache } = aktuell;
+
+    // Formular oder Anmeldekasten. Der Kasten nur neu, wenn er sich aendert,
+    // sonst springt der Fokus.
+    const konto = window.MIWALE_IDENTITAET.konto();
+    const anmelden = el.querySelector("[data-ideen-anmelden]");
+    // Ohne eingerichtete Anmeldung (Uebergang) geht es wie vor den Konten.
+    const aktiv = window.MIWALE_IDENTITAET.kontenAktiv();
+    const kasten = konto || !aktiv || !window.MIWALE_KONTO ? "" : window.MIWALE_KONTO.anmeldeKasten(sprache, "idee", "/requests/new");
+    if (anmelden.dataset.stand !== kasten) { anmelden.innerHTML = kasten; anmelden.dataset.stand = kasten; }
+    el.querySelector("[data-ideen-form]").hidden = !konto && aktiv;
+    el.querySelector("[data-ideen-wer]").textContent = konto ? t.angemeldetAls(konto.name) : aktiv ? "" : t.geraetHinweis;
 
     const senden = el.querySelector("[data-ideen-senden]");
     senden.innerHTML = z.sendet ? esc(z.fortschritt || t.sendet) : ICONS.senden + esc(t.senden);
@@ -688,6 +715,8 @@
   }
 
   function fehlerText(status, daten, t) {
+    if (daten.fehler === "anmelden") return t.anmelden;
+    if (daten.fehler === "konto-gesperrt") return t.kontoGesperrt;
     if (status === 422 && daten.woerter) return t.gesperrt(daten.woerter);
     if (status === 413) return t.fehlerBildGross;
     if (status === 507) return t.speicherVoll;
@@ -844,6 +873,14 @@
     if (!dateien.length) return;
     e.preventDefault();
     bilderHinzufuegen(dateien);
+  });
+
+  // An- oder abgemeldet: Formular zeigen oder verstecken, eigene Ideen und
+  // Stimmen neu holen (sie gehoeren jetzt dem Konto oder dem Geraet).
+  window.addEventListener("miwale-konto", () => {
+    if (!aktuell || !aktuell.el.isConnected) return;
+    if (aktuell.ansicht === "neu") formZeichnen();
+    else laden();
   });
 
   window.MIWALE_IDEEN = { einbauen };

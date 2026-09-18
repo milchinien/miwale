@@ -20,6 +20,9 @@
       ideenTitel: "Game Requests — miwale games",
       ideenNeuTitel: "Submit your idea — miwale games",
       ideenBeschreibung: "Vote for game ideas or pitch your own — I build one in a single day and put it on miwale.com.",
+      kontoTitel: "Your account — miwale games",
+      kontoBeschreibung: "Sign in with Discord or Google to write reviews and send game requests. Playing never needs an account.",
+      datenschutz: "Privacy",
       zurueckSeite: "Back",
       vorSeite: "Forward",
       neuLaden: "Reload",
@@ -73,6 +76,9 @@
       ideenTitel: "Game Requests — miwale games",
       ideenNeuTitel: "Eigene Idee einreichen — miwale games",
       ideenBeschreibung: "Stimm für Spielideen ab oder reich deine eigene ein – ich baue eine an einem Tag und stelle sie auf miwale.com.",
+      kontoTitel: "Dein Konto — miwale games",
+      kontoBeschreibung: "Mit Discord oder Google anmelden, um Bewertungen zu schreiben und Game Requests zu schicken. Spielen geht immer ohne Konto.",
+      datenschutz: "Datenschutz",
       zurueckSeite: "Zurück",
       vorSeite: "Vor",
       neuLaden: "Neu laden",
@@ -241,6 +247,15 @@
 
   function spielHref(sp) { return "/games/" + sp.id; }
 
+  // Die Spiele selbst laufen unter einer eigenen Adresse (play.miwale.com),
+  // getrennt von Konto und Diensten dieser Seite: Ein Spiel kann so nichts im
+  // Namen eines angemeldeten Besuchers tun. Welche Adresse, sagt shop/umgebung.js
+  // (im Container aus SPIELE_ADRESSE); ohne sie laufen sie hier mit (lokal).
+  function spielAdresse(sp) {
+    const basis = (window.MIWALE_UMGEBUNG || {}).spieleAdresse || "";
+    return basis && /^\/games\//.test(sp.spielen) ? basis + sp.spielen : sp.spielen;
+  }
+
   // Leise Toene aus shop/klang.js; fehlt die Datei, bleibt die Seite still.
   function klang(sorte, richtung) {
     const k = window.MIWALE_KLANG;
@@ -258,6 +273,8 @@
     if (String(teile[0]).toLowerCase() === "requests" && (teile.length === 1 || (teile.length === 2 && teile[1] === "new"))) {
       return { seite: "ideen", neu: teile[1] === "new" };
     }
+    if (String(teile[0]).toLowerCase() === "account" && teile.length === 1) return { seite: "konto" };
+    if (/^(privacy|datenschutz)$/i.test(String(teile[0])) && teile.length === 1) return { seite: "datenschutz" };
     // Aeltere Links der Spieleseite: /games#chromatic oder /#chromatic/spielen
     const h = (location.hash || "").replace(/^#/, "").split("/").filter(Boolean);
     if (h[0] === "projekte") h.shift();
@@ -267,6 +284,8 @@
 
   function pfad(ziel) {
     if (ziel.seite === "ideen") return "/requests" + (ziel.neu ? "/new" : "");
+    if (ziel.seite === "konto") return "/account";
+    if (ziel.seite === "datenschutz") return "/privacy";
     if (ziel.seite !== "spiel") return "/";
     return "/games/" + ziel.id + (ziel.spielt ? "/spielen" : "");
   }
@@ -316,6 +335,8 @@
       '<div class="sp-kopf__aussen sp-kopf__aussen--rechts">' +
         // Gefuellt von shop/meldungen.js.
         '<div class="sp-meldungen" data-meldungen></div>' +
+        // Gefuellt von shop/konto.js: "Anmelden" oder der Name.
+        '<div class="sp-konto-platz" data-konto-knopf></div>' +
         '<a class="sp-knopf sp-knopf--glas" href="/portfolio">' + esc(t.portfolio) + ' <span aria-hidden="true">→</span></a>' +
       "</div></div></header>";
   }
@@ -333,7 +354,7 @@
   function fuss() {
     return '<footer class="sp-fuss"><div class="sp-breite">' +
       '<div class="sp-fuss__zeile"><img src="assets/logo-wordmark-light.png" alt="miwale">' +
-      '<nav><a href="/portfolio">' + esc(t.portfolio) + '</a><a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer">YouTube</a><a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer">itch.io</a><a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer">GitHub</a></nav></div>' +
+      '<nav><a href="/privacy" data-link>' + esc(t.datenschutz) + '</a><a href="/portfolio">' + esc(t.portfolio) + '</a><a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer">YouTube</a><a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer">itch.io</a><a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer">GitHub</a></nav></div>' +
       '<p class="sp-fuss__recht"><strong>' + esc(t.impressum) + "</strong> · " + esc(t.impressumText) + "</p>" +
       "</div></footer>";
   }
@@ -524,7 +545,7 @@
       '<div class="sp-spiel__kopf"><strong>' + esc(sp.name) + "</strong>" +
         '<button type="button" class="sp-knopf sp-knopf--glas" data-vollbild>' + ICONS.voll + '<span data-vollbild-text>' + esc(t.vollbild) + "</span></button>" +
         '<button type="button" class="sp-knopf sp-knopf--glas" data-schliessen>' + ICONS.zu + esc(t.schliessen) + "</button></div>" +
-      '<iframe src="' + esc(sp.spielen) + '" title="' + esc(sp.name) + '" allow="autoplay; fullscreen; gamepad"></iframe>' +
+      '<iframe src="' + esc(spielAdresse(sp)) + '" title="' + esc(sp.name) + '" allow="autoplay; fullscreen; gamepad"></iframe>' +
     "</div>";
   }
 
@@ -536,7 +557,9 @@
     const ort = adresse();
     const sp = ort.seite === "spiel" ? PER_ID.get(ort.id) : null;
     const ideen = ort.seite === "ideen";
-    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : "start";
+    const konto = ort.seite === "konto";
+    const datenschutz = ort.seite === "datenschutz";
+    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : ort.seite;
 
     // Die Seite nur neu bauen, wenn sich Seite oder Sprache geaendert haben —
     // sonst liefe beim Oeffnen des Spielfensters jeder Trailer von vorn.
@@ -544,12 +567,19 @@
       const seitenwechsel = app.dataset.seite !== seitenSchluessel;
       if (seitenwechsel) zustand.medium = 0;
       // Game Requests fuellt shop/ideen.js.
-      const inhalt = sp ? spielSeite(sp) : ideen ? '<main class="sp-ideen sp-breite" data-ideen></main>' : startSeite();
+      // Konto und Datenschutz fuellen shop/konto.js und shop/datenschutz.js.
+      const inhalt = sp ? spielSeite(sp)
+        : ideen ? '<main class="sp-ideen sp-breite" data-ideen></main>'
+        : konto ? '<main class="sp-ideen sp-konto sp-breite" data-konto></main>'
+        : datenschutz ? '<main class="sp-ideen sp-breite" data-datenschutz></main>'
+        : startSeite();
       app.innerHTML = kopf() + inhalt + fuss() + '<div data-fenster></div>';
       app.dataset.seite = seitenSchluessel;
       app.dataset.sprache = zustand.sprache;
       if (window.MIWALE_MELDUNGEN) window.MIWALE_MELDUNGEN.einbauen(app.querySelector("[data-meldungen]"), zustand.sprache);
-      document.title = sp ? sp.name + " — miwale games" : ideen ? (ort.neu ? t.ideenNeuTitel : t.ideenTitel) : t.titel;
+      if (window.MIWALE_KONTO) window.MIWALE_KONTO.knopf(app.querySelector("[data-konto-knopf]"), zustand.sprache);
+      document.title = sp ? sp.name + " — miwale games" : ideen ? (ort.neu ? t.ideenNeuTitel : t.ideenTitel) : konto ? t.kontoTitel
+        : datenschutz ? t.datenschutz + " — miwale games" : t.titel;
       if (sp) {
         // Beschreibung pro Spiel, damit geteilte Links eine Vorschau bekommen.
         setzeMeta("description", text(sp).kurz);
@@ -557,6 +587,12 @@
       } else if (ideen) {
         setzeMeta("description", t.ideenBeschreibung);
         if (window.MIWALE_IDEEN) window.MIWALE_IDEEN.einbauen(app.querySelector("[data-ideen]"), zustand.sprache, { ansicht: ort.neu ? "neu" : "liste", zurueck: ideenZurueck });
+      } else if (konto) {
+        setzeMeta("description", t.kontoBeschreibung);
+        if (window.MIWALE_KONTO) window.MIWALE_KONTO.einbauen(app.querySelector("[data-konto]"), zustand.sprache);
+      } else if (datenschutz) {
+        setzeMeta("description", t.datenschutz);
+        if (window.MIWALE_DATENSCHUTZ) window.MIWALE_DATENSCHUTZ.einbauen(app.querySelector("[data-datenschutz]"), zustand.sprache);
       } else {
         setzeMeta("description", START_BESCHREIBUNG);
         zeigeHighlight(zustand.highlight, true);
@@ -691,7 +727,7 @@
   function spielStarten(id) {
     const sp = PER_ID.get(id);
     if (!sp) return;
-    if (sp.neuerTab) { window.open(sp.spielen, "_blank", "noopener"); return; }
+    if (sp.neuerTab) { window.open(spielAdresse(sp), "_blank", "noopener"); return; }
     geheZu({ seite: "spiel", id, spielt: true });
   }
 

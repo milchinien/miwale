@@ -17,9 +17,13 @@
 // die Seite sehen Kinder aus YouTube-Shorts. Der Einsender sieht seine Bilder
 // immer.
 //
-// Ohne Account: wem eine Idee gehoert und wer abgestimmt hat, steht als
-// "geraet:<kennung>" (besitzerVon in gemeinsam.mjs). Ein spaeteres Konto
-// schreibt dort "konto:<id>" hinein, sonst aendert sich nichts.
+// Ansehen und abstimmen kann jeder, einreichen nur mit Konto (konten.mjs).
+// Wem eine Idee gehoert, steht als "konto:<id>" im Feld `besitzer`
+// (besitzerVon in gemeinsam.mjs); gesperrte Konten reichen nichts mehr ein.
+// Stimmen zaehlen je Konto, ohne Konto je Geraet ("geraet:<kennung>",
+// geraetVon). Was ein Geraet vor den Konten eingereicht hat, uebernimmt das
+// Konto, sobald sich jemand auf diesem Geraet anmeldet. Solange Anmelden nicht
+// eingerichtet ist (kontenPflicht), gehoeren neue Ideen wie frueher dem Geraet.
 //
 // Gespeichert wird ideen.json im Datenordner, die Bilder daneben in
 // ideen-bilder/. Die Bilder rechnet der Browser vorher klein und neu (ohne
@@ -40,7 +44,7 @@ import { join } from "node:path";
 import { gesperrteWoerter } from "./bewertungen.mjs";
 import {
   textPruefen, gleich, sicherSchreiben, lesen, lesenRoh, sperrlisteLesen,
-  besucherAdresse, adressKennung, tempoGrenze, besitzerVon, handlerAus
+  besucherAdresse, adressKennung, tempoGrenze, besitzerVon, geraetVon, kontenPflicht, handlerAus
 } from "./gemeinsam.mjs";
 
 export const GRENZEN = {
@@ -136,19 +140,26 @@ function zaehlen(idee) {
 }
 
 // ---- Anwendung ------------------------------------------------------------------
-// optionen: { ordner, passwort, salz, jetzt } -- jetzt nur fuer Tests.
+// optionen: { ordner, passwort, salz, konten, herkunft, jetzt }
+//   konten: der Kontendienst mit wer(req) und nameVon(id); jetzt nur fuer Tests.
 export function ideenBauen(optionen) {
   const speicher = ideenSpeicher(optionen.ordner);
   const passwort = optionen.passwort || "";
   const salz = optionen.salz || "miwale";
   const jetzt = optionen.jetzt || (() => Date.now());
   const begrenzt = tempoGrenze(jetzt);
+  const wer = (req) => (optionen.konten ? optionen.konten.wer(req) : null);
+  const nameVon = (id) => (optionen.konten ? optionen.konten.nameVon(id) : null);
 
   // Was Besucher sehen: ohne Besitzer, Adresse und Stimmen anderer. Der Name nur,
   // wenn der Einsender erwaehnt werden will. Bilder als Adressen; die eigenen
-  // tragen die Kennung mit, damit der Browser sie laden darf.
-  function sicht(idee, besitzer) {
+  // darf der Browser laden, weil er den Sitzungs-Cookie mitschickt.
+  // besitzer: das Konto ("konto:<id>") oder null; waehler: wer abstimmt (Konto
+  // oder Geraet).
+  function sicht(idee, besitzer, waehler = besitzer) {
     const eigene = !!besitzer && idee.besitzer === besitzer;
+    // Bilder laedt der Browser ohne eigene Koepfe: gehoert die Idee einem
+    // Geraet, traegt die Adresse dessen Kennung mit.
     const anhang = eigene && besitzer.startsWith("geraet:") ? "?geraet=" + encodeURIComponent(besitzer.slice(7)) : "";
     const bilderZeigen = eigene || idee.bilderFrei;
     return {
@@ -158,7 +169,7 @@ export function ideenBauen(optionen) {
       bilderInPruefung: bilderZeigen ? 0 : idee.bilder.length,
       zeit: idee.zeit, stand: idee.stand, antwort: idee.antwort, link: idee.link,
       ...zaehlen(idee),
-      meineStimme: besitzer ? idee.stimmen[besitzer] || 0 : 0,
+      meineStimme: waehler ? idee.stimmen[waehler] || 0 : 0,
       eigene,
       // Nur fuer den Einsender selbst: was er beim Einreichen gewaehlt hat.
       ...(eigene ? {
@@ -170,11 +181,11 @@ export function ideenBauen(optionen) {
 
   // Oeffentliche Liste nach Punkten, bei Gleichstand die neuere zuerst. Die
   // Seite sortiert selbst noch einmal nach "neu", wenn der Besucher das will.
-  function uebersicht(besitzer) {
+  function uebersicht(besitzer, waehler = besitzer) {
     return {
       oeffentlich: speicher.alle
         .filter(istOeffentlich)
-        .map((i) => sicht(i, besitzer))
+        .map((i) => sicht(i, besitzer, waehler))
         .sort((a, b) => b.punkte - a.punkte || b.zeit.localeCompare(a.zeit)),
       eigene: besitzer ? speicher.alle.filter((i) => i.besitzer === besitzer).sort((a, b) => b.zeit.localeCompare(a.zeit)).map((i) => sicht(i, besitzer)) : []
     };
@@ -215,7 +226,12 @@ export function ideenBauen(optionen) {
     const url = new URL(req.url, "http://lokal");
     const teile = url.pathname.replace(/^\/api\/ideen\/?/, "").split("/").filter(Boolean);
     const ip = besucherAdresse(req);
-    const besitzer = besitzerVon(req, url);
+    const konto = wer(req);
+    const geraet = geraetVon(req, url);
+    // Ohne Konto gehoert nur im Uebergang etwas dem Geraet.
+    const besitzer = besitzerVon(konto) || (kontenPflicht(optionen.konten) ? null : geraet);
+    const waehler = besitzer || geraet;
+    if (konto && geraet) uebernehmen(geraet, besitzer);
     const adminOk = () => !!passwort && gleich(String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""), passwort);
 
     // ---- Verwaltung ----
@@ -235,7 +251,7 @@ export function ideenBauen(optionen) {
             bilder: i.bilder.map((b) => "/api/ideen/bild/" + b.id), bilderInPruefung: 0,
             name: i.name, sichtbarkeit: i.sichtbarkeit, versteckt: !!i.versteckt, bilderFrei: !!i.bilderFrei,
             erwaehnen: i.erwaehnen, veroeffentlichen: i.veroeffentlichen, rechte: i.rechte,
-            adresse: i.adresse, besitzer: i.besitzer, geaendert: i.geaendert || null
+            adresse: i.adresse, besitzer: i.besitzer, konto: kontoName(i), geaendert: i.geaendert || null
           }));
         return [200, { ideen, staende: STAENDE, genres: GENRES, belegt: speicher.belegt(), speicherBytes: GRENZEN.speicherBytes }];
       }
@@ -275,8 +291,10 @@ export function ideenBauen(optionen) {
 
     // ---- Bilder ----
     if (teile[0] === "bild" && !teile[1] && req.method === "POST") {
+      if (!besitzer) return [401, { fehler: "anmelden" }];
+      if (konto && konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
       if (begrenzt("bild|" + ip, GRENZEN.bilderProFenster)) return [429, { fehler: "zu-schnell" }];
-      if (!besitzer) return [400, { fehler: "geraet" }];
+      if (konto && begrenzt("bild-konto|" + konto.id, GRENZEN.bilderProFenster)) return [429, { fehler: "zu-schnell" }];
       const daten = await lesenRoh(req, GRENZEN.bildBytes);
       const typ = bildTyp(daten);
       if (!typ) return [400, { fehler: "bild-format" }];
@@ -298,15 +316,17 @@ export function ideenBauen(optionen) {
     }
 
     // ---- Oeffentlich ----
-    if (!teile.length && req.method === "GET") return [200, uebersicht(besitzer)];
+    if (!teile.length && req.method === "GET") return [200, uebersicht(besitzer, waehler)];
 
     if (!teile.length && req.method === "POST") {
+      if (!besitzer) return [401, { fehler: "anmelden" }];
+      if (konto && konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
       if (begrenzt("einreichen|" + ip, GRENZEN.einreichenProFenster)) return [429, { fehler: "zu-schnell" }];
+      if (konto && begrenzt("einreichen-konto|" + konto.id, GRENZEN.einreichenProFenster)) return [429, { fehler: "zu-schnell" }];
       const k = await lesen(req, KOERPER_MAX);
       // Verstecktes Feld: Menschen sehen es nicht, Bots fuellen es aus. Die
       // Antwort tut so, als waere alles gut, damit der Bot nichts lernt.
       if (k.website) return [201, { idee: null, ...uebersicht(null) }];
-      if (!besitzer) return [400, { fehler: "geraet" }];
       if (k.rechte !== true) return [400, { fehler: "rechte" }];
       if (!SICHTBARKEITEN.includes(k.sichtbarkeit)) return [400, { fehler: "sichtbarkeit" }];
 
@@ -351,22 +371,24 @@ export function ideenBauen(optionen) {
       for (const b of bilder) speicher.lose.splice(speicher.lose.indexOf(b), 1);
       speicher.alle.push(idee);
       speicher.speichern();
-      return [201, { idee: sicht(idee, besitzer), ...uebersicht(besitzer) }];
+      return [201, { idee: sicht(idee, besitzer, waehler), ...uebersicht(besitzer, waehler) }];
     }
 
-    // Abstimmen: +1, -1, oder 0 zum Zuruecknehmen. Eine Stimme je Besitzer.
+    // Abstimmen: +1, -1, oder 0 zum Zuruecknehmen. Eine Stimme je Konto,
+    // ohne Konto je Geraet.
     if (teile.length === 2 && teile[1] === "stimme" && req.method === "PUT") {
       if (begrenzt("stimme|" + ip, GRENZEN.stimmenProFenster)) return [429, { fehler: "zu-schnell" }];
-      if (!besitzer) return [400, { fehler: "geraet" }];
+      if (!waehler) return [400, { fehler: "geraet" }];
+      if (konto && konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
       const idee = speicher.alle.find((i) => i.id === teile[0]);
       if (!idee || !istOeffentlich(idee)) return [404, { fehler: "nicht-gefunden" }];
-      if (idee.besitzer === besitzer) return [403, { fehler: "eigene" }];
+      if (besitzer && idee.besitzer === besitzer) return [403, { fehler: "eigene" }];
       const k = await lesen(req);
       if (![1, -1, 0].includes(k.wert)) return [400, { fehler: "wert" }];
-      if (k.wert) idee.stimmen[besitzer] = k.wert;
-      else delete idee.stimmen[besitzer];
+      if (k.wert) idee.stimmen[waehler] = k.wert;
+      else delete idee.stimmen[waehler];
       speicher.speichern();
-      return [200, { idee: sicht(idee, besitzer) }];
+      return [200, { idee: sicht(idee, besitzer, waehler) }];
     }
 
     // Eigene Idee: Sichtbarkeit nachtraeglich aendern oder zurueckziehen.
@@ -375,7 +397,7 @@ export function ideenBauen(optionen) {
       if (!idee || !besitzer || idee.besitzer !== besitzer) return [404, { fehler: "nicht-gefunden" }];
       if (req.method === "DELETE") {
         loeschen(idee);
-        return [200, uebersicht(besitzer)];
+        return [200, uebersicht(besitzer, waehler)];
       }
       if (req.method === "PUT") {
         const k = await lesen(req);
@@ -383,12 +405,57 @@ export function ideenBauen(optionen) {
         idee.sichtbarkeit = k.sichtbarkeit;
         idee.geaendert = new Date(jetzt()).toISOString();
         speicher.speichern();
-        return [200, uebersicht(besitzer)];
+        return [200, uebersicht(besitzer, waehler)];
       }
     }
 
     return [404, { fehler: "unbekannt" }];
   }
 
-  return handlerAus(verarbeiten);
+  // Vor den Konten gehoerten Ideen, Bilder und Stimmen einem Geraet. Meldet
+  // sich dort jemand an, gehoeren sie ab dann seinem Konto -- einmal, danach
+  // gibt es nichts mehr umzuschreiben.
+  function uebernehmen(geraet, besitzer) {
+    let geaendert = false;
+    for (const i of speicher.alle) {
+      if (i.besitzer === geraet) { i.besitzer = besitzer; geaendert = true; }
+      if (geraet in i.stimmen) {
+        if (!(besitzer in i.stimmen) && i.besitzer !== besitzer) i.stimmen[besitzer] = i.stimmen[geraet];
+        delete i.stimmen[geraet];
+        geaendert = true;
+      }
+    }
+    for (const b of speicher.lose) if (b.besitzer === geraet) { b.besitzer = besitzer; geaendert = true; }
+    if (geaendert) speicher.speichern();
+  }
+
+  // Name des Kontos hinter einer Idee, fuer die Verwaltung.
+  function kontoName(idee) {
+    return idee.besitzer && idee.besitzer.startsWith("konto:") ? nameVon(idee.besitzer.slice(6)) : null;
+  }
+
+  // Dazu, was der Kontendienst beim Loeschen und fuer die Auskunft braucht.
+  const handler = handlerAus(verarbeiten, { herkunft: optionen.herkunft });
+  handler.kontoLoeschen = (id) => {
+    const besitzer = "konto:" + id;
+    for (const idee of speicher.alle.filter((i) => i.besitzer === besitzer)) loeschen(idee);
+    for (const i of speicher.alle) delete i.stimmen[besitzer];
+    for (const b of speicher.lose.filter((x) => x.besitzer === besitzer)) {
+      rmSync(speicher.bildPfad(b), { force: true });
+      speicher.lose.splice(speicher.lose.indexOf(b), 1);
+    }
+    speicher.speichern();
+  };
+  handler.kontoDaten = (id) => {
+    const besitzer = "konto:" + id;
+    return {
+      ideen: speicher.alle
+        .filter((i) => i.besitzer === besitzer)
+        .map((i) => ({ ...sicht(i, besitzer), rechte: i.rechte, adresse: i.adresse })),
+      stimmen: speicher.alle
+        .filter((i) => besitzer in i.stimmen)
+        .map((i) => ({ idee: i.nummer, titel: i.titel, wert: i.stimmen[besitzer] }))
+    };
+  };
+  return handler;
 }

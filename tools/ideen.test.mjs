@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ideenBauen, GRENZEN } from "../server/ideen.mjs";
@@ -10,6 +10,16 @@ const GERAET_A = "aaaaaaaa-1111-2222-3333-444444444444";
 const GERAET_B = "bbbbbbbb-1111-2222-3333-444444444444";
 const GERAET_C = "cccccccc-1111-2222-3333-444444444444";
 const PASSWORT = "geheim-fuer-tests";
+// Wer angemeldet ist, sagt in den Tests ein Kopf statt einer Sitzung (die
+// Sitzungen selbst prueft tools/konten.test.mjs). "geraet: X" heisst in den
+// Tests: angemeldet als Konto X auf Geraet X; mit ohneKonto nur das Geraet.
+const testKonten = {
+  wer: (req) => {
+    const id = req.headers["x-test-konto"];
+    return id ? { id, name: "Name-" + id, gesperrt: id.startsWith("gesperrt") } : null;
+  },
+  nameVon: (id) => "Name-" + id
+};
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(64, 7)]);
 const IDEE = {
   titel: "Tower of Toast",
@@ -25,18 +35,23 @@ const IDEE = {
 
 async function starten(t, jetzt) {
   const ordner = mkdtempSync(join(tmpdir(), "miwale-ideen-"));
-  const server = http.createServer(ideenBauen({ ordner, passwort: PASSWORT, jetzt }));
+  const ideen = ideenBauen({ ordner, passwort: PASSWORT, jetzt, konten: testKonten });
+  const server = http.createServer(ideen);
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   t.after(() => { server.close(); rmSync(ordner, { recursive: true, force: true }); });
-  const basis = "http://127.0.0.1:" + server.address().port + "/api/ideen/";
-  const rufen = async (pfad, { methode = "GET", koerper, roh, geraet, auth, ip = "203.0.113.7" } = {}) => {
+  const herkunft = "http://127.0.0.1:" + server.address().port;
+  const basis = herkunft + "/api/ideen/";
+  const rufen = async (pfad, { methode = "GET", koerper, roh, geraet, ohneKonto, auth, ip = "203.0.113.7", kopf } = {}) => {
     const res = await fetch(basis + pfad, {
       method: methode,
       headers: {
         "content-type": roh ? "application/octet-stream" : "application/json",
         "x-forwarded-for": ip,
+        origin: herkunft,
         ...(geraet ? { "x-miwale-geraet": geraet } : {}),
-        ...(auth ? { authorization: "Bearer " + auth } : {})
+        ...(geraet && !ohneKonto ? { "x-test-konto": geraet } : {}),
+        ...(auth ? { authorization: "Bearer " + auth } : {}),
+        ...(kopf || {})
       },
       body: roh || (koerper ? JSON.stringify(koerper) : undefined)
     });
@@ -44,7 +59,7 @@ async function starten(t, jetzt) {
     return { status: res.status, typ, daten: typ.startsWith("application/json") ? await res.json() : Buffer.from(await res.arrayBuffer()) };
   };
   const pfadVon = (adresse) => adresse.replace("/api/ideen/", "");
-  return { rufen, ordner, pfadVon };
+  return { rufen, ordner, pfadVon, ideen };
 }
 
 test("oeffentliche Idee steht sofort in der Liste, ihre Bilder erst nach Freigabe", async (t) => {
@@ -61,7 +76,7 @@ test("oeffentliche Idee steht sofort in der Liste, ihre Bilder erst nach Freigab
   assert.equal(JSON.stringify(r.daten).includes("besitzer"), false);
 
   // Der Einsender sieht sein Bild, andere sehen die Idee, aber noch kein Bild.
-  const eigenesBild = await rufen(pfadVon(r.daten.idee.bilder[0]));
+  const eigenesBild = await rufen(pfadVon(r.daten.idee.bilder[0]), { geraet: GERAET_A });
   assert.equal(eigenesBild.status, 200);
   assert.equal(eigenesBild.typ, "image/png");
   assert.deepEqual(eigenesBild.daten, PNG);
@@ -195,10 +210,12 @@ test("eigene Idee zurueckziehen loescht auch die Bilder", async (t) => {
 
 test("ungueltige Einreichungen werden abgewiesen", async (t) => {
   const { rufen } = await starten(t);
-  // Jede Anfrage von einer eigenen Adresse, sonst greift das Tempolimit.
+  // Jede Anfrage von einer eigenen Adresse und einem eigenen Konto, sonst
+  // greift das Tempolimit.
   let n = 0;
-  const senden = (koerper, geraet = GERAET_A) => rufen("", { methode: "POST", geraet, koerper, ip: "192.0.2." + ++n });
-  assert.equal((await senden(IDEE, null)).status, 400);
+  const kontoNr = (i) => "aaaaaaaa-0000-0000-0000-" + String(i).padStart(12, "0");
+  const senden = (koerper, geraet = kontoNr(n + 1)) => rufen("", { methode: "POST", geraet, koerper, ip: "192.0.2." + ++n });
+  assert.equal((await senden(IDEE, null)).status, 401);
   assert.equal((await senden({ ...IDEE, rechte: false })).daten.fehler, "rechte");
   assert.equal((await senden({ ...IDEE, sichtbarkeit: undefined })).daten.fehler, "sichtbarkeit");
   assert.equal((await senden({ ...IDEE, titel: "ab" })).daten.fehler, "titel");
@@ -220,15 +237,19 @@ test("ungueltige Einreichungen werden abgewiesen", async (t) => {
   // Verstecktes Feld: scheinbar Erfolg, gespeichert wird nichts.
   const bot = await senden({ ...IDEE, website: "http://spam" });
   assert.equal(bot.status, 201);
-  assert.equal((await rufen("", { geraet: GERAET_A })).daten.eigene.length, 0);
+  assert.equal((await rufen("", { geraet: kontoNr(n) })).daten.eigene.length, 0);
 });
 
-test("Tempolimit je Adresse und hoechstens zehn offene Ideen je Geraet", async (t) => {
-  const { rufen } = await starten(t);
+test("Tempolimit je Adresse und Konto, hoechstens zehn offene Ideen je Konto", async (t) => {
+  let uhr = Date.parse("2026-09-18T12:00:00Z");
+  const { rufen } = await starten(t, () => uhr);
   for (let i = 0; i < GRENZEN.einreichenProFenster; i++) {
     assert.equal((await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE, ip: "198.51.100.1" })).status, 201);
   }
   assert.equal((await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE, ip: "198.51.100.1" })).status, 429);
+  // Eine neue Adresse hilft nicht: das Konto ist auch begrenzt.
+  assert.equal((await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE, ip: "198.51.100.2" })).status, 429);
+  uhr += 11 * 60 * 1000;
   for (let i = 0; i < GRENZEN.offenJeBesitzer - GRENZEN.einreichenProFenster; i++) {
     assert.equal((await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE, ip: "198.51.100.2" })).status, 201);
   }
@@ -257,4 +278,93 @@ test("liegen gebliebene Bilder raeumt der Dienst nach einem Tag weg", async (t) 
   await rufen("bild", { methode: "POST", roh: PNG, geraet: GERAET_A });
   assert.equal(existsSync(pfad), false);
   assert.equal((await rufen("", { methode: "POST", geraet: GERAET_A, koerper: { ...IDEE, bilder: [alt.daten.id] } })).daten.fehler, "bild-fehlt");
+});
+
+test("ohne Konto ansehen und abstimmen, aber nichts einreichen", async (t) => {
+  const { rufen } = await starten(t);
+  await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE });
+  const ohne = await rufen("", { geraet: GERAET_B, ohneKonto: true });
+  assert.equal(ohne.daten.oeffentlich.length, 1);
+  assert.deepEqual(ohne.daten.eigene, []);
+  assert.equal((await rufen("", { methode: "POST", geraet: GERAET_B, ohneKonto: true, koerper: IDEE })).daten.fehler, "anmelden");
+  assert.equal((await rufen("bild", { methode: "POST", roh: PNG, geraet: GERAET_B, ohneKonto: true })).status, 401);
+  const id = ohne.daten.oeffentlich[0].id;
+  const stimme = await rufen(id + "/stimme", { methode: "PUT", geraet: GERAET_B, ohneKonto: true, koerper: { wert: 1 } });
+  assert.equal(stimme.status, 200);
+  assert.equal(stimme.daten.idee.meineStimme, 1);
+  // Gesperrte Konten reichen nichts ein und stimmen nicht ab.
+  assert.equal((await rufen("", { methode: "POST", geraet: "gesperrt-xxxxxxxxxxxxxx", koerper: IDEE })).status, 403);
+  assert.equal((await rufen(id + "/stimme", { methode: "PUT", geraet: "gesperrt-xxxxxxxxxxxxxx", koerper: { wert: 1 } })).status, 403);
+});
+
+test("wer sich anmeldet, bekommt Ideen und Stimmen seines Geraets", async (t) => {
+  const { rufen, ordner } = await starten(t);
+  // Wie vor den Konten: eine Idee, die einem Geraet gehoert.
+  await rufen("", { methode: "POST", geraet: GERAET_C, koerper: IDEE });
+  const datei = join(ordner, "ideen.json");
+  const alt = JSON.parse(readFileSync(datei, "utf8"));
+  alt.ideen[0].besitzer = "geraet:" + GERAET_A;
+  writeFileSync(datei, JSON.stringify(alt));
+  // Neuer Dienst auf demselben Ordner liest die alte Datei.
+  const ideen2 = ideenBauen({ ordner, passwort: PASSWORT, konten: testKonten });
+  const server = http.createServer(ideen2);
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  t.after(() => server.close());
+  const basis = "http://127.0.0.1:" + server.address().port;
+  const holen = (kopf) => fetch(basis + "/api/ideen/", { headers: kopf }).then((r) => r.json());
+  // Ohne Anmeldung gehoert sie niemandem, den die Seite kennt.
+  assert.equal((await holen({ "x-miwale-geraet": GERAET_A })).eigene.length, 0);
+  // Angemeldet auf dem Geraet: jetzt gehoert sie dem Konto, auch auf anderen Geraeten.
+  assert.equal((await holen({ "x-miwale-geraet": GERAET_A, "x-test-konto": "konto-neu" })).eigene.length, 1);
+  assert.equal((await holen({ "x-test-konto": "konto-neu" })).eigene.length, 1);
+  assert.equal(JSON.parse(readFileSync(datei, "utf8")).ideen[0].besitzer, "konto:konto-neu");
+});
+
+test("fremde Seiten koennen nichts einreichen und nicht abstimmen", async (t) => {
+  const { rufen } = await starten(t);
+  const r = await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE });
+  const id = r.daten.idee.id;
+  assert.equal((await rufen("", { methode: "POST", geraet: GERAET_A, koerper: IDEE, kopf: { origin: "https://boese.example" } })).status, 403);
+  // Ein Spiel unter play.miwale.com ist fuer den Browser "same-site", nicht "same-origin".
+  assert.equal((await rufen(id + "/stimme", { methode: "PUT", geraet: GERAET_B, koerper: { wert: 1 }, kopf: { "sec-fetch-site": "same-site" } })).status, 403);
+  assert.equal((await rufen(id, { methode: "DELETE", geraet: GERAET_A, kopf: { origin: "https://boese.example" } })).status, 403);
+  assert.equal((await rufen("", { geraet: GERAET_A })).daten.eigene.length, 1);
+});
+
+test("Konto loeschen nimmt Ideen, Bilder, lose Bilder und Stimmen mit", async (t) => {
+  const { rufen, ordner, ideen } = await starten(t);
+  const bild = await rufen("bild", { methode: "POST", roh: PNG, geraet: GERAET_A });
+  await rufen("", { methode: "POST", geraet: GERAET_A, koerper: { ...IDEE, bilder: [bild.daten.id] } });
+  await rufen("bild", { methode: "POST", roh: PNG, geraet: GERAET_A });
+  const b = await rufen("", { methode: "POST", geraet: GERAET_B, koerper: IDEE, ip: "198.51.100.4" });
+  await rufen(b.daten.idee.id + "/stimme", { methode: "PUT", geraet: GERAET_A, koerper: { wert: 1 } });
+  const daten = ideen.kontoDaten(GERAET_A);
+  assert.equal(daten.ideen.length, 1);
+  assert.equal(daten.stimmen.length, 1);
+
+  ideen.kontoLoeschen(GERAET_A);
+  assert.equal((await rufen("", { geraet: GERAET_A })).daten.eigene.length, 0);
+  const fremd = await rufen("", { geraet: GERAET_B });
+  assert.equal(fremd.daten.eigene.length, 1);
+  assert.equal(fremd.daten.eigene[0].punkte, 0);
+  assert.deepEqual(readdirSync(join(ordner, "ideen-bilder")), []);
+});
+
+test("Uebergang: ohne eingerichtete Anmeldung reichen Geraete ein wie vor den Konten", async (t) => {
+  const ordner = mkdtempSync(join(tmpdir(), "miwale-ideen-"));
+  const server = http.createServer(ideenBauen({ ordner, passwort: PASSWORT, konten: { ...testKonten, aktiv: () => false } }));
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  t.after(() => { server.close(); rmSync(ordner, { recursive: true, force: true }); });
+  const herkunft = "http://127.0.0.1:" + server.address().port;
+  const kopf = { origin: herkunft, "x-miwale-geraet": GERAET_A };
+  const bild = await fetch(herkunft + "/api/ideen/bild", { method: "POST", headers: { ...kopf, "content-type": "application/octet-stream" }, body: PNG });
+  assert.equal(bild.status, 201);
+  const { id } = await bild.json();
+  const r = await fetch(herkunft + "/api/ideen/", { method: "POST", headers: { ...kopf, "content-type": "application/json" }, body: JSON.stringify({ ...IDEE, bilder: [id] }) });
+  assert.equal(r.status, 201);
+  const d = await r.json();
+  assert.equal(d.eigene.length, 1);
+  // Das eigene Bild traegt die Geraetekennung in der Adresse, wie frueher.
+  assert.match(d.idee.bilder[0], /\?geraet=/);
+  assert.equal((await fetch(herkunft + d.idee.bilder[0])).status, 200);
 });

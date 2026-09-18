@@ -39,7 +39,10 @@ jobs:
           node --check shop/bewertungen.js
           node --check shop/identitaet.js
           node --check shop/ideen.js
-          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs
+          node --check shop/konto.js
+          node --check shop/datenschutz.js
+          node --check shop/umgebung.js
+          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs
           node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
@@ -78,7 +81,7 @@ jobs:
               echo "$1:"; echo "$kopf"; exit 1
             fi
           }
-          for pfad in / /requests /requests/new /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js; do
+          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
@@ -100,6 +103,32 @@ jobs:
           # Game Requests hinter nginx
           test "$(status /api/ideen/)" = 200
           test "$(status /api/ideen/admin/alle)" = 503
+          # Konten hinter nginx. Ohne Discord-/Google-Zugang: niemand angemeldet,
+          # kein Anbieter, und fremde Seiten koennen nichts aendern.
+          test "$(status /api/konto/ich)" = 200
+          grep -q '"anbieter":\[\]' <<< "$(curl -fsS http://127.0.0.1:8080/api/konto/ich)"
+          test "$(status /api/konto/anmelden/discord)" = 404
+          test "$(status /api/konto/admin/alle)" = 503
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/konto/abmelden)" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/bewertungen/chromatic)" = 403
+          # Sicherheitskoepfe: ueberall, die Content-Security-Policy auf der Spieleseite.
+          for pfad in / /games/chromatic /requests /account /admin/ /portfolio /shop/shop.js /api/konto/ich; do
+            kopf="$(curl -sSI "http://127.0.0.1:8080$pfad" | tr -d '\r')"
+            grep -qi '^x-content-type-options: nosniff' <<< "$kopf" || { echo "$pfad ohne nosniff"; echo "$kopf"; exit 1; }
+            grep -qi '^x-frame-options: SAMEORIGIN' <<< "$kopf" || { echo "$pfad ohne X-Frame-Options"; echo "$kopf"; exit 1; }
+          done
+          for pfad in / /index.html /games/chromatic /account /privacy; do
+            curl -sSI "http://127.0.0.1:8080$pfad" | tr -d '\r' | grep -qi "^content-security-policy: default-src 'self'; script-src 'self';" || { echo "$pfad ohne CSP"; exit 1; }
+          done
+          curl -sSI http://127.0.0.1:8080/admin/ | tr -d '\r' | grep -qi "^content-security-policy: default-src 'self'; script-src 'self';"
+          test "$(status /admin/verwaltung.js)" = 200
+          # play.miwale.com: nur Spiele, sonst nichts -- und einbetten nur von miwale.com.
+          spiel() { curl -s -o /dev/null -w '%{http_code}' -H 'Host: play.miwale.com' "http://127.0.0.1:8080$1"; }
+          test "$(spiel /games/wavebreaker/)" = 200
+          test "$(spiel /)" = 404
+          test "$(spiel /api/konto/ich)" = 404
+          test "$(spiel /admin/)" = 404
+          curl -sSI -H 'Host: play.miwale.com' http://127.0.0.1:8080/games/wavebreaker/ | tr -d '\r' | grep -qi '^content-security-policy: frame-ancestors https://miwale.com'
           umleitung /admin 301 /admin/
           umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
           umleitung /games 301 /
@@ -107,3 +136,22 @@ jobs:
           umleitung /Games 301 /
           umleitung '/miwale%20Portfolio.dc.html' 301 /portfolio
           umleitung '/miwale%20Portfolio%20Mobil.dc.html?test=1' 301 '/portfolio?test=1'
+
+      # Mit SPIELE_ADRESSE laufen die Spiele nur noch dort: Spieldateien leiten
+      # um, die Seiten /games/<id> bleiben, und die Seite kennt die Adresse.
+      - name: Spiele unter eigener Adresse
+        run: |
+          set -euo pipefail
+          docker run -d --name miwale-spiele -p 8081:8080 -e SPIELE_ADRESSE=https://play.miwale.com miwale:ci
+          trap 'docker rm -f miwale-spiele >/dev/null' EXIT
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8081/healthz && break
+            sleep 1
+          done
+          kopf="$(curl -sSI http://127.0.0.1:8081/games/wavebreaker/index.html | tr -d '\r')"
+          echo "$kopf" | grep -q '^HTTP/1.1 301' && echo "$kopf" | grep -qi '^location: https://play.miwale.com/games/wavebreaker/index.html$' || { echo "$kopf"; exit 1; }
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/games/wavebreaker)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/games/wavebreaker/spielen)" = 200
+          grep -q 'spieleAdresse: "https://play.miwale.com"' <<< "$(curl -fsS http://127.0.0.1:8081/shop/umgebung.js)"
+          # Eine kaputte Adresse bricht den Start ab, statt in nginx zu landen.
+          ! docker run --rm -e 'SPIELE_ADRESSE=https://x.com"; evil' miwale:ci nginx -t

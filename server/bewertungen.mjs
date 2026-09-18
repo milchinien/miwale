@@ -1,10 +1,10 @@
 // Bewertungsdienst fuer miwale.com/games.
 //
-// Pro Spiel gibt jedes Geraet genau eine Bewertung ab: Daumen hoch oder runter,
-// dazu freiwillig ein oeffentlicher Satz und ein privates Feedback, das nur die
-// Verwaltungsseite zeigt. Ohne Account und auf Vertrauensbasis: Bewertungen
-// erscheinen sofort, der Wortfilter haelt das Grobe fern, der Rest wird im
-// Nachhinein geloescht.
+// Pro Spiel gibt jedes Geraet (oder Konto) genau eine Bewertung ab: Daumen hoch
+// oder runter, dazu freiwillig ein oeffentlicher Satz (nur mit Konto) und ein
+// privates Feedback, das nur die Verwaltungsseite zeigt. Bewertungen erscheinen
+// sofort, der Wortfilter haelt das Grobe fern, der Rest wird im Nachhinein
+// geloescht, Konten lassen sich sperren.
 //
 // Keine Abhaengigkeiten. Gespeichert wird eine JSON-Datei im Datenordner; bei
 // ein paar hundert Bewertungen ist das schneller und robuster als jede Datenbank.
@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { START_SPERRLISTE } from "./sperrliste.mjs";
 import {
   GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen,
-  besucherAdresse, adressKennung, tempoGrenze, handlerAus
+  besucherAdresse, adressKennung, tempoGrenze, kontenPflicht, handlerAus
 } from "./gemeinsam.mjs";
 
 // Bewertet werden nur Spiele aus dem Katalog der Spieleseite (shop/spiele.js).
@@ -106,17 +106,30 @@ export function speicherOeffnen(ordner) {
   };
 }
 
-// ---- Hilfen ---------------------------------------------------------------------
-// Oeffentliche Sicht: ohne Geraet, ohne Adresse, ohne privates Feedback.
-function oeffentlich(b, geraet) {
+/// ---- Hilfen ---------------------------------------------------------------------
+// Oeffentliche Sicht: ohne Geraet, Konto, Adresse und privates Feedback. Der
+// Name kommt bei jeder Anfrage frisch aus dem Konto; wer ihn aendert, steht
+// ueberall mit dem neuen da, wer sein Konto loescht, ist ganz weg.
+function oeffentlich(b, istEigene, nameVon) {
   return {
     id: b.id, daumen: b.daumen, text: b.text, zeit: b.zeit, geaendert: b.geaendert || null,
-    antwort: b.antwort || null, eigene: !!geraet && b.geraet === geraet
+    name: b.konto ? nameVon(b.konto) : null,
+    antwort: b.antwort || null, eigene: istEigene(b)
   };
 }
 
 // ---- Anwendung ------------------------------------------------------------------
-// optionen: { ordner, passwort, salz, spiele, jetzt } -- jetzt nur fuer Tests.
+// optionen: { ordner, passwort, salz, spiele, konten, herkunft, jetzt }
+//   konten: der Kontendienst (konten.mjs) mit wer(req) und nameVon(id). Ohne
+//   ihn ist niemand angemeldet. jetzt nur fuer Tests.
+//
+// Den Daumen gibt es ohne Konto, je Geraet einer. Oeffentlicher Text braucht
+// ein Konto: Er steht mit Namen da, und wer Unfug schreibt, laesst sich sperren.
+// Das private Feedback sieht nur die Verwaltung; das geht weiter ohne Konto.
+// Solange Anmelden nicht eingerichtet ist (kontenPflicht), geht auch Text ohne.
+//
+// Wer sich anmeldet, nimmt die Bewertung seines Geraets mit: Sie gehoert ab dann
+// dem Konto (Feld `konto`) und nicht mehr dem Geraet.
 export function anwendungBauen(optionen) {
   const speicher = speicherOeffnen(optionen.ordner);
   const SPIELE = optionen.spiele || spieleAusKatalog(KATALOG);
@@ -125,11 +138,19 @@ export function anwendungBauen(optionen) {
   const salz = optionen.salz || "miwale";
   const jetzt = optionen.jetzt || (() => Date.now());
   const begrenzt = tempoGrenze(jetzt);
+  const wer = (req) => (optionen.konten ? optionen.konten.wer(req) : null);
+  const nameVon = (id) => (optionen.konten ? optionen.konten.nameVon(id) : null);
 
-  function zusammenfassung(spiel, geraet) {
+  // Gehoert die Bewertung diesem Besucher? Angemeldet zaehlt nur das Konto,
+  // sonst das Geraet -- aber nur fuer Bewertungen, die noch keinem Konto gehoeren.
+  const gehoert = (konto, geraet) => (b) =>
+    konto ? b.konto === konto.id : !!geraet && !b.konto && b.geraet === geraet;
+
+  function zusammenfassung(spiel, konto, geraet) {
     const liste = speicher.alle.filter((b) => b.spiel === spiel);
     const hoch = liste.filter((b) => b.daumen === "hoch").length;
-    const eigene = geraet ? liste.find((b) => b.geraet === geraet) : null;
+    const istEigene = gehoert(konto, geraet);
+    const eigene = liste.find(istEigene);
     return {
       spiel,
       hoch,
@@ -138,7 +159,7 @@ export function anwendungBauen(optionen) {
       liste: liste
         .filter((b) => b.text)
         .sort((a, b) => b.zeit.localeCompare(a.zeit))
-        .map((b) => oeffentlich(b, geraet)),
+        .map((b) => oeffentlich(b, istEigene, nameVon)),
       eigene: eigene ? { daumen: eigene.daumen, text: eigene.text, privat: eigene.privat } : null
     };
   }
@@ -164,7 +185,7 @@ export function anwendungBauen(optionen) {
         const bewertungen = speicher.alle
           .slice()
           .sort((a, b) => b.zeit.localeCompare(a.zeit))
-          .map((b) => ({ ...oeffentlich(b), spiel: b.spiel, privat: b.privat, adresse: b.adresse }));
+          .map((b) => ({ ...oeffentlich(b, () => false, nameVon), spiel: b.spiel, privat: b.privat, adresse: b.adresse, konto: b.konto || null }));
         return [200, { spiele: SPIELE, bewertungen }];
       }
       if (teile[1] === "sperrliste") {
@@ -204,47 +225,73 @@ export function anwendungBauen(optionen) {
     if (!spiel || !SPIELE.includes(spiel) || teile.length > 1) return [404, { fehler: "spiel" }];
     const geraetQ = url.searchParams.get("geraet") || "";
     const geraet = GERAET_RE.test(geraetQ) ? geraetQ : null;
+    const konto = wer(req);
 
-    if (req.method === "GET") return [200, zusammenfassung(spiel, geraet)];
+    if (req.method === "GET") return [200, zusammenfassung(spiel, konto, geraet)];
+
+    if (konto && konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
 
     if (req.method === "PUT") {
       if (begrenzt("schreiben|" + ip, GRENZEN.schreibenProFenster)) return [429, { fehler: "zu-schnell" }];
+      if (konto && begrenzt("konto|" + konto.id, GRENZEN.schreibenProFenster)) return [429, { fehler: "zu-schnell" }];
       const k = await lesen(req);
       // Verstecktes Feld: Menschen sehen es nicht, Bots fuellen es aus. Die
       // Antwort tut so, als waere alles gut, damit der Bot nichts lernt.
-      if (k.website) return [200, zusammenfassung(spiel, null)];
+      if (k.website) return [200, zusammenfassung(spiel, null, null)];
       if (typeof k.geraet !== "string" || !GERAET_RE.test(k.geraet)) return [400, { fehler: "geraet" }];
       if (k.daumen !== "hoch" && k.daumen !== "runter") return [400, { fehler: "daumen" }];
       const text = textPruefen(k.text, GRENZEN.oeffentlich);
       const privat = textPruefen(k.privat, GRENZEN.privat);
       if (text === null || privat === null) return [400, { fehler: "zu-lang" }];
+      // Oeffentlicher Text nur mit Konto. Ohne Konto bleibt ein alter Text
+      // (aus der Zeit vor den Konten) stehen, wie er war.
+      const pflicht = kontenPflicht(optionen.konten);
+      if (text && !konto && pflicht) return [401, { fehler: "anmelden" }];
       const treffer = gesperrteWoerter(text + "\n" + privat, speicher.sperrliste);
       if (treffer.length) return [422, { fehler: "gesperrt", woerter: treffer }];
 
       const zeit = new Date(jetzt()).toISOString();
-      const alt = speicher.alle.find((b) => b.spiel === spiel && b.geraet === k.geraet);
+      const adresse = adressKennung(salz, ip);
+      let alt = speicher.alle.find((b) => b.spiel === spiel && gehoert(konto, k.geraet)(b));
+      // Erste Bewertung mit Konto: die des Geraets uebernehmen, statt doppelt zu zaehlen.
+      if (!alt && konto) {
+        alt = speicher.alle.find((b) => b.spiel === spiel && gehoert(null, k.geraet)(b));
+        if (alt) alt.konto = konto.id;
+      }
+      const neuerText = konto || !pflicht ? text : alt ? alt.text : "";
       if (alt) {
         // Wer den Text aendert, dessen alte Antwort passt womoeglich nicht mehr;
         // sie bleibt trotzdem stehen, loeschen kann sie nur die Verwaltung.
-        Object.assign(alt, { daumen: k.daumen, text, privat, geaendert: zeit, adresse: adressKennung(salz, ip) });
+        Object.assign(alt, { daumen: k.daumen, text: neuerText, privat, geaendert: zeit, adresse });
       } else {
-        speicher.alle.push({ id: randomUUID(), spiel, geraet: k.geraet, daumen: k.daumen, text, privat, zeit, adresse: adressKennung(salz, ip), antwort: null });
+        speicher.alle.push({ id: randomUUID(), spiel, geraet: k.geraet, konto: konto ? konto.id : null, daumen: k.daumen, text: neuerText, privat, zeit, adresse, antwort: null });
       }
       speicher.speichern();
-      return [200, zusammenfassung(spiel, k.geraet)];
+      return [200, zusammenfassung(spiel, konto, k.geraet)];
     }
 
     if (req.method === "DELETE") {
-      if (!geraet) return [400, { fehler: "geraet" }];
-      const alt = speicher.alle.find((b) => b.spiel === spiel && b.geraet === geraet);
+      if (!konto && !geraet) return [400, { fehler: "geraet" }];
+      const alt = speicher.alle.find((b) => b.spiel === spiel && gehoert(konto, geraet)(b));
       if (alt) { speicher.alle.splice(speicher.alle.indexOf(alt), 1); speicher.speichern(); }
-      return [200, zusammenfassung(spiel, geraet)];
+      return [200, zusammenfassung(spiel, konto, geraet)];
     }
 
     return [405, { fehler: "methode" }];
   }
 
   // Als Node-Handler nutzbar: im Container ueber server/start.mjs, lokal als
-  // Vite-Middleware (tools/dienste-dev.mjs).
-  return handlerAus(verarbeiten);
+  // Vite-Middleware (tools/dienste-dev.mjs). Dazu, was der Kontendienst beim
+  // Loeschen und fuer die Auskunft braucht.
+  const handler = handlerAus(verarbeiten, { herkunft: optionen.herkunft });
+  handler.kontoLoeschen = (id) => {
+    const bleiben = speicher.alle.filter((b) => b.konto !== id);
+    if (bleiben.length === speicher.alle.length) return;
+    speicher.alle.splice(0, speicher.alle.length, ...bleiben);
+    speicher.speichern();
+  };
+  handler.kontoDaten = (id) => speicher.alle
+    .filter((b) => b.konto === id)
+    .map((b) => ({ spiel: b.spiel, daumen: b.daumen, text: b.text, privat: b.privat, zeit: b.zeit, geaendert: b.geaendert || null, antwort: b.antwort || null }));
+  return handler;
 }
