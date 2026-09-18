@@ -17,7 +17,7 @@
 import http from "node:http";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdirSync, readFileSync, renameSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { START_SPERRLISTE } from "./sperrliste.mjs";
 
@@ -27,8 +27,11 @@ import { START_SPERRLISTE } from "./sperrliste.mjs";
 // zweiten Eintrag hier bewertbar ist.
 export const KATALOG = fileURLToPath(new URL("../shop/spiele.js", import.meta.url));
 
+// Neben dem Katalog liegt spiele-auto.js mit den Spielen, die tools/sync-games.mjs
+// selbst von GitHub aufgenommen hat; die gehoeren dazu.
 export function spieleAusKatalog(pfad) {
-  const quelle = readFileSync(pfad, "utf8");
+  const auto = join(dirname(pfad), "spiele-auto.js");
+  const quelle = readFileSync(pfad, "utf8") + (existsSync(auto) ? "\n" + readFileSync(auto, "utf8") : "");
   return [...new Set([...quelle.matchAll(/^ {4}"id": "([a-z0-9-]+)"/gm)].map((m) => m[1]))];
 }
 

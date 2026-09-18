@@ -144,6 +144,8 @@ test("Spieleliste kommt vollstaendig aus dem Katalog der Spieleseite", () => {
   // Der Katalog selbst im Browser: jedes Spiel mit id muss gefunden werden.
   const fenster = {};
   new Function("window", readFileSync(KATALOG, "utf8"))(fenster);
+  // Dazu die automatisch aufgenommenen, in derselben Reihenfolge wie im Browser.
+  new Function("window", readFileSync(KATALOG.replace(/spiele\.js$/, "spiele-auto.js"), "utf8"))(fenster);
   assert.deepEqual(spiele, fenster.MIWALE_SPIELE.map((s) => s.id));
   for (const id of ["dropfall", "chromatic", "runecall"]) assert.ok(spiele.includes(id), id);
 });

@@ -206,8 +206,9 @@ YouTube-Short kommen. Aufgebaut wie ein Spieleshop, aber ohne Preise:
 
 Dateien: `index.html` (Rahmen), `shop/shop.js` (Seite), `shop/shop.css`,
 `shop/spiele.js` (Katalog). Der Katalog ist bewusst getrennt von `PROJECTS` im
-Portfolio: dort stehen technische Texte, hier Texte fuer Spieler. Ein neues
-Spiel braucht einen Eintrag in beiden. Nicht im Katalog stehen Projekte, die man
+Portfolio: dort stehen technische Texte, hier Texte fuer Spieler. Neue Spiele
+von GitHub kommen von selbst dazu (`shop/spiele-auto.js`, siehe "Spiele von
+GitHub"); ein handgeschriebener Eintrag hier ersetzt den automatischen. Nicht im Katalog stehen Projekte, die man
 nicht spielen kann (Bestellsystem, Dungeons & Diplomas mit kaputter Anmeldung,
 mindforge, The Last Outpost, Flappy).
 
@@ -346,11 +347,68 @@ Screenshot aus dem Spiel, bis eine Illustration entsteht. Die Zuordnung steht im
 und die vollst?ndigen Generierungsprompts in `prompts.md`.
 
 
-## Eingebettete Spiele aktualisieren
+## Spiele von GitHub (automatisch)
 
-Wavebreaker, Chromatic, Runecall, Harmonics und der Reliktenschieber werden als gepr?fte Produktionspakete aus `public/games/` gemeinsam mit dem Portfolio ausgeliefert. Die iframe-Ansicht und ?In neuem Tab ?ffnen? verwenden dieselbe Fassung. Dropfall bleibt unver?ndert extern. Der Vollbildschalter sitzt in der Kopfzeile, nicht ?ber dem Spiel.
+Jedes oeffentliche Repository von `milchinien` auf GitHub wird automatisch zum
+Spiel auf miwale.com, sobald es einen **spielbaren Kern** hat. Das erledigt
+`tools/sync-games.mjs`, jeden Tag um 03:17 UTC als GitHub Action
+(`.github/workflows/spiele.yml`) und von Hand mit `npm run games:sync`.
 
-Nach ?nderungen in den benachbarten Spiel-Repositories `npm run games:sync` (einzelne Spiele: `npm run games:sync -- reliktenschieber`) ausf?hren. Das baut alle fuenf Spiele und ersetzt ihre Pakete einschlie?lich ?ffentlicher Symbole, Texturen und Sounds. `public/games/manifest.json` enth?lt Pr?fsummen; `npm run check:games` erkennt unvollst?ndige oder ver?nderte Pakete. Die Pakete werden mit versioniert, damit ein Portfolio-Deployment keine lokalen Nachbar-Repositories voraussetzt.
+Fuer jedes Repository: klonen, Abhaengigkeiten installieren (pnpm, npm oder
+yarn, je nach Lockfile), bauen, dann die **Kern-Pruefung**
+(`tools/kern-pruefung.mjs`) in Chromium. Spielbar heisst:
+
+1. Die Seite laedt unter `/games/<id>/`, und keine eigene Datei fehlt.
+2. Kein unbehandelter Fehler, weder beim Laden noch beim Spielen.
+3. Es ist etwas zu sehen, das Bild ist nicht einfarbig.
+4. Es gibt etwas zum Anfassen: Zeichenflaeche, Knoepfe oder Eingabefelder.
+5. Das Spiel reagiert: nach Klick auf "Start/Play", Tippen ins Bild und ein paar
+   Tasten sieht es anders aus.
+
+Dasselbe laeuft danach hochkant mit Touch. Besteht ein Spiel auch das, steht es
+als "am Handy spielbar" auf der Seite. Von Hand pruefen:
+`node tools/kern-pruefung.mjs public/games/chromatic chromatic`.
+
+Was besteht, wird unter `public/games/<id>/` eingefroren (Pruefsumme und Commit
+in `public/games/manifest.json`). Faellt eine neue Fassung durch, bleibt die alte
+online. Unveraenderte Repositories (gleicher Commit) werden uebersprungen.
+
+**Zwei Arten von Eintraegen.** Spiele mit handgeschriebenem Eintrag in
+`shop/spiele.js` werden nur neu gebaut; Texte, Trailer und Bilder bleiben. Alle
+anderen bekommen einen generierten Eintrag in `shop/spiele-auto.js` (nicht von
+Hand bearbeiten) mit Bildern aus der Pruefung (`assets/games/auto/`). Sobald ein
+Spiel einen Eintrag in `shop/spiele.js` bekommt, gilt der. Spiele mit externer
+Adresse in `shop/spiele.js` (Dropfall, Mathe Universe auf GitHub Pages) fasst die
+Automatik nicht an.
+
+**Texte fuer neue Spiele.** Ohne weiteres nimmt die Automatik die Beschreibung des
+Repositorys, sonst den ersten Absatz der README, fuer beide Sprachen gleich.
+Besser: eine `miwale.json` im Spiel-Repository.
+
+```json
+{
+  "name": "Idlekin",
+  "status": { "en": "Early prototype", "de": "Frueher Prototyp" },
+  "texte": {
+    "en": { "kurz": "...", "tags": ["Idle"], "ueber": ["..."], "features": ["..."], "steuerung": "..." },
+    "de": { "kurz": "...", "tags": ["Idle"], "ueber": ["..."], "features": ["..."], "steuerung": "..." }
+  }
+}
+```
+
+Weitere Felder in `miwale.json` (oder fuer fremde Repositories in
+`tools/spiele-quellen.json`): `"aufnehmen": false` haelt ein Repository heraus;
+`app`, `build`, `dist` legen fest, wo und wie gebaut wird, wenn die Erkennung
+danebenliegt; `fertig` zeigt auf einen eingecheckten fertigen Web-Build. Das ist
+der Weg fuer Unity (WebGL) und Godot (Web-Export), die sich ohne Lizenz und
+Vorlagen nicht in der Action bauen lassen.
+
+**Was die Action tut.** Hat sich etwas geaendert, committet sie auf den Branch
+`automatisch/spiele`, laesst dort dieselbe CI laufen wie bei einem PR und spult
+bei Gruen `main` vor; danach startet sie Publish. Ein Pushen mit dem
+`GITHUB_TOKEN` loest sonst keine anderen Workflows aus. Der Bericht (welches
+Repository warum durchgefallen ist) steht in der Zusammenfassung des Laufs und
+lokal in `.spiele-cache/bericht.md`. Private Repositories bleiben aussen vor.
 
 `npm run build` erstellt die vollst?ndige statische Seite in `dist/`, einschlie?lich beider Portfolio-Fassungen und aller Spiele. Der Docker-Build kopiert dieselben Dateien. Spielst?nde der externen GitHub-Pages-Adressen liegen auf einer anderen Origin und werden nicht automatisch ?bernommen.
 

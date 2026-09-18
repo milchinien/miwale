@@ -4,9 +4,16 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Die Spiele-Aktualisierung (spiele.yml) prueft damit ihren Stand, bevor er
+  # auf main geht.
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,6 +24,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Validate restored portfolio
         run: |
@@ -29,7 +38,7 @@ jobs:
           node --check shop/shop.js
           node --check shop/bewertungen.js
           node --test tools/bewertungen.test.mjs
-          node -e 'global.window={}; require("./shop/spiele.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
+          node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
           node tools/check-games.mjs
