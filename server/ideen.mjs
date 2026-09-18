@@ -22,7 +22,8 @@
 // (besitzerVon in gemeinsam.mjs); gesperrte Konten reichen nichts mehr ein.
 // Stimmen zaehlen je Konto, ohne Konto je Geraet ("geraet:<kennung>",
 // geraetVon). Was ein Geraet vor den Konten eingereicht hat, uebernimmt das
-// Konto, sobald sich jemand auf diesem Geraet anmeldet.
+// Konto, sobald sich jemand auf diesem Geraet anmeldet. Solange Anmelden nicht
+// eingerichtet ist (kontenPflicht), gehoeren neue Ideen wie frueher dem Geraet.
 //
 // Gespeichert wird ideen.json im Datenordner, die Bilder daneben in
 // ideen-bilder/. Die Bilder rechnet der Browser vorher klein und neu (ohne
@@ -43,7 +44,7 @@ import { join } from "node:path";
 import { gesperrteWoerter } from "./bewertungen.mjs";
 import {
   textPruefen, gleich, sicherSchreiben, lesen, lesenRoh, sperrlisteLesen,
-  besucherAdresse, adressKennung, tempoGrenze, besitzerVon, geraetVon, handlerAus
+  besucherAdresse, adressKennung, tempoGrenze, besitzerVon, geraetVon, kontenPflicht, handlerAus
 } from "./gemeinsam.mjs";
 
 export const GRENZEN = {
@@ -157,11 +158,14 @@ export function ideenBauen(optionen) {
   // oder Geraet).
   function sicht(idee, besitzer, waehler = besitzer) {
     const eigene = !!besitzer && idee.besitzer === besitzer;
+    // Bilder laedt der Browser ohne eigene Koepfe: gehoert die Idee einem
+    // Geraet, traegt die Adresse dessen Kennung mit.
+    const anhang = eigene && besitzer.startsWith("geraet:") ? "?geraet=" + encodeURIComponent(besitzer.slice(7)) : "";
     const bilderZeigen = eigene || idee.bilderFrei;
     return {
       id: idee.id, nummer: idee.nummer, titel: idee.titel, beschreibung: idee.beschreibung,
       genre: idee.genre, plattform: idee.plattform, name: idee.erwaehnen ? idee.name : "",
-      bilder: bilderZeigen ? idee.bilder.map((b) => "/api/ideen/bild/" + b.id) : [],
+      bilder: bilderZeigen ? idee.bilder.map((b) => "/api/ideen/bild/" + b.id + anhang) : [],
       bilderInPruefung: bilderZeigen ? 0 : idee.bilder.length,
       zeit: idee.zeit, stand: idee.stand, antwort: idee.antwort, link: idee.link,
       ...zaehlen(idee),
@@ -223,8 +227,9 @@ export function ideenBauen(optionen) {
     const teile = url.pathname.replace(/^\/api\/ideen\/?/, "").split("/").filter(Boolean);
     const ip = besucherAdresse(req);
     const konto = wer(req);
-    const besitzer = besitzerVon(konto);
     const geraet = geraetVon(req, url);
+    // Ohne Konto gehoert nur im Uebergang etwas dem Geraet.
+    const besitzer = besitzerVon(konto) || (kontenPflicht(optionen.konten) ? null : geraet);
     const waehler = besitzer || geraet;
     if (konto && geraet) uebernehmen(geraet, besitzer);
     const adminOk = () => !!passwort && gleich(String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""), passwort);
@@ -287,9 +292,9 @@ export function ideenBauen(optionen) {
     // ---- Bilder ----
     if (teile[0] === "bild" && !teile[1] && req.method === "POST") {
       if (!besitzer) return [401, { fehler: "anmelden" }];
-      if (konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
+      if (konto && konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
       if (begrenzt("bild|" + ip, GRENZEN.bilderProFenster)) return [429, { fehler: "zu-schnell" }];
-      if (begrenzt("bild-konto|" + konto.id, GRENZEN.bilderProFenster)) return [429, { fehler: "zu-schnell" }];
+      if (konto && begrenzt("bild-konto|" + konto.id, GRENZEN.bilderProFenster)) return [429, { fehler: "zu-schnell" }];
       const daten = await lesenRoh(req, GRENZEN.bildBytes);
       const typ = bildTyp(daten);
       if (!typ) return [400, { fehler: "bild-format" }];
@@ -315,9 +320,9 @@ export function ideenBauen(optionen) {
 
     if (!teile.length && req.method === "POST") {
       if (!besitzer) return [401, { fehler: "anmelden" }];
-      if (konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
+      if (konto && konto.gesperrt) return [403, { fehler: "konto-gesperrt" }];
       if (begrenzt("einreichen|" + ip, GRENZEN.einreichenProFenster)) return [429, { fehler: "zu-schnell" }];
-      if (begrenzt("einreichen-konto|" + konto.id, GRENZEN.einreichenProFenster)) return [429, { fehler: "zu-schnell" }];
+      if (konto && begrenzt("einreichen-konto|" + konto.id, GRENZEN.einreichenProFenster)) return [429, { fehler: "zu-schnell" }];
       const k = await lesen(req, KOERPER_MAX);
       // Verstecktes Feld: Menschen sehen es nicht, Bots fuellen es aus. Die
       // Antwort tut so, als waere alles gut, damit der Bot nichts lernt.

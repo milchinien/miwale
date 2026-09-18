@@ -348,3 +348,12 @@ test("volle Liste offener Anmeldungen sperrt niemanden aus, IPv6 zaehlt je Netz"
   // Ein anderes Netz ist davon nicht betroffen.
   assert.equal((await b.rufen("/api/konto/anmelden/discord", { kopf: { "x-forwarded-for": "2001:db8:9:9::1" } })).status, 302);
 });
+
+test("aktiv() sagt, ob es ueberhaupt eine Anmeldung gibt", () => {
+  const ordner = mkdtempSync(join(tmpdir(), "miwale-konten-"));
+  try {
+    assert.equal(kontenBauen({ ordner, geheimnis: "x".repeat(40), anbieter: {} }).aktiv(), false);
+    assert.equal(kontenBauen({ ordner, geheimnis: "x".repeat(40), anbieter: { discord: { id: "", secret: "" } } }).aktiv(), false);
+    assert.equal(kontenBauen({ ordner, geheimnis: "x".repeat(40), anbieter: { discord: DISCORD } }).aktiv(), true);
+  } finally { rmSync(ordner, { recursive: true, force: true }); }
+});

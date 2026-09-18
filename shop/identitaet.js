@@ -77,6 +77,8 @@
     konto: () => (stand ? stand.konto : null),
     stand: () => stand || LEER,
     geladen: () => !!stand,
+    // Ist Anmelden eingerichtet? Ohne (Uebergang) geht alles wie vor den Konten.
+    kontenAktiv: () => !!stand && stand.anbieter.length > 0,
     bereit: () => bereit,
     neuLaden: () => (bereit = laden()),
     setzen,

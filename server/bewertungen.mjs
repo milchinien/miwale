@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { START_SPERRLISTE } from "./sperrliste.mjs";
 import {
   GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen,
-  besucherAdresse, adressKennung, tempoGrenze, handlerAus
+  besucherAdresse, adressKennung, tempoGrenze, kontenPflicht, handlerAus
 } from "./gemeinsam.mjs";
 
 // Bewertet werden nur Spiele aus dem Katalog der Spieleseite (shop/spiele.js).
@@ -126,6 +126,7 @@ function oeffentlich(b, istEigene, nameVon) {
 // Den Daumen gibt es ohne Konto, je Geraet einer. Oeffentlicher Text braucht
 // ein Konto: Er steht mit Namen da, und wer Unfug schreibt, laesst sich sperren.
 // Das private Feedback sieht nur die Verwaltung; das geht weiter ohne Konto.
+// Solange Anmelden nicht eingerichtet ist (kontenPflicht), geht auch Text ohne.
 //
 // Wer sich anmeldet, nimmt die Bewertung seines Geraets mit: Sie gehoert ab dann
 // dem Konto (Feld `konto`) und nicht mehr dem Geraet.
@@ -244,7 +245,8 @@ export function anwendungBauen(optionen) {
       if (text === null || privat === null) return [400, { fehler: "zu-lang" }];
       // Oeffentlicher Text nur mit Konto. Ohne Konto bleibt ein alter Text
       // (aus der Zeit vor den Konten) stehen, wie er war.
-      if (text && !konto) return [401, { fehler: "anmelden" }];
+      const pflicht = kontenPflicht(optionen.konten);
+      if (text && !konto && pflicht) return [401, { fehler: "anmelden" }];
       const treffer = gesperrteWoerter(text + "\n" + privat, speicher.sperrliste);
       if (treffer.length) return [422, { fehler: "gesperrt", woerter: treffer }];
 
@@ -256,7 +258,7 @@ export function anwendungBauen(optionen) {
         alt = speicher.alle.find((b) => b.spiel === spiel && gehoert(null, k.geraet)(b));
         if (alt) alt.konto = konto.id;
       }
-      const neuerText = konto ? text : alt ? alt.text : "";
+      const neuerText = konto || !pflicht ? text : alt ? alt.text : "";
       if (alt) {
         // Wer den Text aendert, dessen alte Antwort passt womoeglich nicht mehr;
         // sie bleibt trotzdem stehen, loeschen kann sie nur die Verwaltung.

@@ -155,6 +155,8 @@
     if (!knopfEl || !knopfEl.isConnected) return;
     const t = texte(knopfSprache);
     const konto = ID().konto();
+    // Ohne eingerichtete Anmeldung (Uebergang) gibt es nichts anzumelden.
+    if (!konto && !ID().kontenAktiv()) { knopfEl.innerHTML = ""; return; }
     knopfEl.innerHTML = '<a class="sp-knopf sp-knopf--glas sp-konto-knopf" href="/account" data-link' +
       (konto ? ' title="' + esc(t.angemeldetAls + " " + konto.name) + '"' : "") + ">" + ICON_PERSON +
       '<span class="sp-konto-knopf__text">' + esc(konto ? konto.name : t.anmelden) + "</span></a>";

@@ -219,3 +219,19 @@ test("Konto loeschen entfernt seine Bewertungen, Auskunft listet sie", async (t)
   assert.equal(r.daten.hoch, 1);
   assert.deepEqual(r.daten.liste.map((b) => b.text), ["Other"]);
 });
+
+test("Uebergang: ohne eingerichtete Anmeldung geht Text wie vor den Konten", async (t) => {
+  const ordner = mkdtempSync(join(tmpdir(), "miwale-bew-"));
+  const server = http.createServer(anwendungBauen({ ordner, passwort: PASSWORT, konten: { ...testKonten, aktiv: () => false } }));
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  t.after(() => { server.close(); rmSync(ordner, { recursive: true, force: true }); });
+  const herkunft = "http://127.0.0.1:" + server.address().port;
+  const r = await fetch(herkunft + "/api/bewertungen/chromatic", {
+    method: "PUT", headers: { "content-type": "application/json", origin: herkunft },
+    body: JSON.stringify({ geraet: GERAET_A, daumen: "hoch", text: "Still works without accounts" })
+  });
+  assert.equal(r.status, 200);
+  const d = await r.json();
+  assert.equal(d.liste[0].text, "Still works without accounts");
+  assert.equal(d.liste[0].name, null);
+});

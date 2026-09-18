@@ -69,7 +69,9 @@ export function diensteDev() {
         sicher: false,
         zusatzAnbieter: TEST_ANBIETER,
         holen,
-        anbieter: {
+        // MIWALE_OHNE_KONTEN=1 zeigt die Seite wie live, solange Anmelden noch
+        // nicht eingerichtet ist (Uebergang): alles ohne Konto.
+        anbieter: process.env.MIWALE_OHNE_KONTEN === '1' ? {} : {
           test: { id: 'dev', secret: 'dev' },
           discord: { id: process.env.DISCORD_CLIENT_ID, secret: process.env.DISCORD_CLIENT_SECRET },
           google: { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET },

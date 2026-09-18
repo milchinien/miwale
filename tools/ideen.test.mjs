@@ -349,3 +349,22 @@ test("Konto loeschen nimmt Ideen, Bilder, lose Bilder und Stimmen mit", async (t
   assert.equal(fremd.daten.eigene[0].punkte, 0);
   assert.deepEqual(readdirSync(join(ordner, "ideen-bilder")), []);
 });
+
+test("Uebergang: ohne eingerichtete Anmeldung reichen Geraete ein wie vor den Konten", async (t) => {
+  const ordner = mkdtempSync(join(tmpdir(), "miwale-ideen-"));
+  const server = http.createServer(ideenBauen({ ordner, passwort: PASSWORT, konten: { ...testKonten, aktiv: () => false } }));
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  t.after(() => { server.close(); rmSync(ordner, { recursive: true, force: true }); });
+  const herkunft = "http://127.0.0.1:" + server.address().port;
+  const kopf = { origin: herkunft, "x-miwale-geraet": GERAET_A };
+  const bild = await fetch(herkunft + "/api/ideen/bild", { method: "POST", headers: { ...kopf, "content-type": "application/octet-stream" }, body: PNG });
+  assert.equal(bild.status, 201);
+  const { id } = await bild.json();
+  const r = await fetch(herkunft + "/api/ideen/", { method: "POST", headers: { ...kopf, "content-type": "application/json" }, body: JSON.stringify({ ...IDEE, bilder: [id] }) });
+  assert.equal(r.status, 201);
+  const d = await r.json();
+  assert.equal(d.eigene.length, 1);
+  // Das eigene Bild traegt die Geraetekennung in der Adresse, wie frueher.
+  assert.match(d.idee.bilder[0], /\?geraet=/);
+  assert.equal((await fetch(herkunft + d.idee.bilder[0])).status, 200);
+});

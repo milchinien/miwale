@@ -27,6 +27,7 @@
       runter: "No",
       textLabel: "Your review",
       textHilfe: (name) => "Optional and public, shown with your name " + name + ". Up to 500 characters.",
+      textHilfeAnonym: "Optional and public, shown without your name. Up to 500 characters.",
       textPlatzhalter: "What did you like, what didn't work for you?",
       privatLabel: "Private feedback for the developer",
       privatHilfe: "Optional. Only the developer sees this.",
@@ -67,6 +68,7 @@
       runter: "Nein",
       textLabel: "Deine Bewertung",
       textHilfe: (name) => "Freiwillig und öffentlich, erscheint mit deinem Namen " + name + ". Höchstens 500 Zeichen.",
+      textHilfeAnonym: "Freiwillig und öffentlich, erscheint ohne Namen. Höchstens 500 Zeichen.",
       textPlatzhalter: "Was hat dir gefallen, was nicht?",
       privatLabel: "Privates Feedback an den Entwickler",
       privatHilfe: "Freiwillig. Das sieht nur der Entwickler.",
@@ -139,6 +141,8 @@
     function zeichnen(formNeu) {
       const d = z.daten;
       const konto = window.MIWALE_IDENTITAET.konto();
+      // Text mit Konto -- oder ohne, solange Anmelden nicht eingerichtet ist.
+      const textErlaubt = !!konto || !window.MIWALE_IDENTITAET.kontenAktiv();
       // Die Textfelder nur neu anlegen, wenn es noetig ist: sonst verlieren sie
       // beim Wechsel des Daumens, was schon getippt war.
       if (formNeu || !el.querySelector("[data-bew-form]")) {
@@ -152,10 +156,10 @@
               '<button type="button" class="sp-bew__knopf sp-bew__knopf--hoch" data-bew-daumen="hoch">' + ICON_HOCH + "<span>" + esc(t.hoch) + "</span></button>" +
               '<button type="button" class="sp-bew__knopf sp-bew__knopf--runter" data-bew-daumen="runter">' + ICON_RUNTER + "<span>" + esc(t.runter) + "</span></button>" +
             "</div>" +
-            (konto
+            (textErlaubt
               ? '<label class="sp-bew__feld"><span class="sp-bew__label">' + esc(t.textLabel) + "</span>" +
                 '<textarea data-bew-text maxlength="500" placeholder="' + esc(t.textPlatzhalter) + '">' + esc(d.eigene ? d.eigene.text : "") + "</textarea>" +
-                '<span class="sp-bew__hilfe">' + esc(t.textHilfe(konto.name)) + "</span></label>"
+                '<span class="sp-bew__hilfe">' + esc(konto ? t.textHilfe(konto.name) : t.textHilfeAnonym) + "</span></label>"
               : window.MIWALE_KONTO ? window.MIWALE_KONTO.anmeldeKasten(sprache, "bewertung") : "") +
             '<label class="sp-bew__feld"><span class="sp-bew__label">' + esc(t.privatLabel) + "</span>" +
               '<textarea data-bew-privat maxlength="1000" placeholder="' + esc(t.privatPlatzhalter) + '">' + esc(d.eigene ? d.eigene.privat : "") + "</textarea>" +

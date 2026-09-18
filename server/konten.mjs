@@ -507,5 +507,9 @@ export function kontenBauen(optionen) {
   const handler = handlerAus(verarbeiten, { herkunft: optionen.herkunft });
   handler.wer = wer;
   handler.nameVon = nameVon;
+  // Gibt es ueberhaupt eine Anmeldung? Ohne (Uebergang, solange Discord/Google
+  // nicht eingerichtet sind) laufen Bewertungen und Game Requests wie vor den
+  // Konten, je Geraet.
+  handler.aktiv = () => Object.keys(zugaenge).length > 0;
   return handler;
 }

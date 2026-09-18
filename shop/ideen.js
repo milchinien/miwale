@@ -38,6 +38,8 @@
       intro: "Vote for the game ideas you want to see built, or pitch your own. I pick ideas from here and from the YouTube comments, build one in a single day and put it on miwale.com.",
       einreichen: "Submit your idea",
       ohneKonto: "Voting works without an account. To send an idea, sign in with Discord or Google.",
+      ohneKontoUebergang: "No account needed.",
+      geraetHinweis: "No account needed. Your ideas and votes are saved on this device.",
       reiter: { top: "Top", neu: "New", meine: (n) => "Your ideas" + (n ? " (" + n + ")" : "") },
       anzahl: (n) => n === 1 ? "1 idea" : n + " ideas",
       leer: "No ideas yet. Be the first!",
@@ -138,6 +140,8 @@
       intro: "Stimm für die Spielideen ab, die du gebaut sehen willst, oder reich deine eigene ein. Ich suche Ideen von hier und aus den YouTube-Kommentaren aus, baue eine an einem einzigen Tag und stelle sie auf miwale.com.",
       einreichen: "Eigene Idee einreichen",
       ohneKonto: "Abstimmen geht ohne Konto. Zum Einreichen mit Discord oder Google anmelden.",
+      ohneKontoUebergang: "Ohne Account.",
+      geraetHinweis: "Ohne Account. Deine Ideen und Stimmen sind auf diesem Gerät gespeichert.",
       reiter: { top: "Top", neu: "Neu", meine: (n) => "Deine Ideen" + (n ? " (" + n + ")" : "") },
       anzahl: (n) => n === 1 ? "1 Idee" : n + " Ideen",
       leer: "Noch keine Ideen. Sei die erste Stimme!",
@@ -300,7 +304,7 @@
         "</div>" +
         '<div class="sp-ideen__heldaktion">' +
           '<a class="sp-knopf sp-knopf--play sp-knopf--gross" href="/requests/new" data-link>' + ICONS.plus + esc(t.einreichen) + "</a>" +
-          '<span class="sp-ideen__hilfe">' + esc(t.ohneKonto) + "</span>" +
+          '<span class="sp-ideen__hilfe" data-ideen-ohnekonto></span>' +
         "</div>" +
       "</section>" +
       '<p class="sp-ideen__erfolg" data-ideen-erfolg role="status" aria-live="polite" hidden></p>' +
@@ -389,6 +393,8 @@
     if (!aktuell || aktuell.ansicht !== "liste" || !aktuell.el.isConnected) return;
     const { el, t, sprache } = aktuell;
     const d = z.daten;
+    const id = window.MIWALE_IDENTITAET;
+    el.querySelector("[data-ideen-ohnekonto]").textContent = id.kontenAktiv() ? t.ohneKonto : t.ohneKontoUebergang;
 
     el.querySelector("[data-ideen-reiter]").innerHTML = ["top", "neu", "meine"].map((r) =>
       '<button type="button" data-ideen-tab="' + r + '" aria-pressed="' + (z.reiter === r) + '">' +
@@ -407,7 +413,7 @@
     const box = el.querySelector("[data-ideen-liste]");
     if (!d) box.innerHTML = '<p class="sp-bew__leer">' + esc(z.fehler ? t.aus : t.laedt) + "</p>";
     else if (!liste.length) {
-      const ohne = z.reiter === "meine" && !window.MIWALE_IDENTITAET.konto();
+      const ohne = z.reiter === "meine" && id.kontenAktiv() && !id.konto();
       box.innerHTML = '<div class="sp-bew__leer sp-ideen__leer"><p>' + esc(z.reiter === "meine" ? (ohne ? t.meineAnmelden : t.meineLeer) : t.leer) + "</p>" +
         '<a class="sp-knopf sp-knopf--play" href="/requests/new" data-link>' + ICONS.plus + esc(t.einreichen) + "</a></div>";
     } else box.innerHTML = liste.slice(0, z.sichtbar).map((i) => karte(i, t, sprache)).join("");
@@ -670,10 +676,12 @@
     // sonst springt der Fokus.
     const konto = window.MIWALE_IDENTITAET.konto();
     const anmelden = el.querySelector("[data-ideen-anmelden]");
-    const kasten = konto || !window.MIWALE_KONTO ? "" : window.MIWALE_KONTO.anmeldeKasten(sprache, "idee", "/requests/new");
+    // Ohne eingerichtete Anmeldung (Uebergang) geht es wie vor den Konten.
+    const aktiv = window.MIWALE_IDENTITAET.kontenAktiv();
+    const kasten = konto || !aktiv || !window.MIWALE_KONTO ? "" : window.MIWALE_KONTO.anmeldeKasten(sprache, "idee", "/requests/new");
     if (anmelden.dataset.stand !== kasten) { anmelden.innerHTML = kasten; anmelden.dataset.stand = kasten; }
-    el.querySelector("[data-ideen-form]").hidden = !konto;
-    el.querySelector("[data-ideen-wer]").textContent = konto ? t.angemeldetAls(konto.name) : "";
+    el.querySelector("[data-ideen-form]").hidden = !konto && aktiv;
+    el.querySelector("[data-ideen-wer]").textContent = konto ? t.angemeldetAls(konto.name) : aktiv ? "" : t.geraetHinweis;
 
     const senden = el.querySelector("[data-ideen-senden]");
     senden.innerHTML = z.sendet ? esc(z.fortschritt || t.sendet) : ICONS.senden + esc(t.senden);

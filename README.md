@@ -354,7 +354,15 @@ oder sein Konto loeschen. Darum bekommen sie eine eigene Adresse.
 
 Solange `SPIELE_ADRESSE` leer ist, laufen die Spiele wie bisher unter
 `miwale.com` -- und **Anmelden ist aus** (`server/start.mjs` bietet dann keinen
-Anbieter an). Konten gibt es erst, wenn die Spiele getrennt laufen. Mit `SPIELE_ADRESSE=https://play.miwale.com` zeigt das
+Anbieter an). Konten gibt es erst, wenn die Spiele getrennt laufen.
+
+**Uebergang.** Solange kein Anbieter aktiv ist, laufen Bewertungen und Game
+Requests wie vor den Konten: Text und Einreichen gehen ohne Konto, je Geraet,
+der Knopf "Sign in" ist ausgeblendet (`kontenPflicht()` in
+`server/gemeinsam.mjs`, `kontenAktiv()` in `shop/identitaet.js`). Sobald
+Discord oder Google eingerichtet ist, braucht Schreiben ein Konto, und was ein
+Geraet vorher eingereicht hat, uebernimmt das Konto beim ersten Anmelden auf
+diesem Geraet. Lokal zeigt `MIWALE_OHNE_KONTEN=1 npm run dev` diesen Zustand. Mit `SPIELE_ADRESSE=https://play.miwale.com` zeigt das
 Spielfenster dorthin, und `miwale.com/games/<id>/...` leitet um
 (`docker/30-umgebung.sh`). Spielstaende im localStorage haengen an der Adresse:
 Wer schon unter `miwale.com` gespielt hat, faengt unter `play.miwale.com` neu an.
