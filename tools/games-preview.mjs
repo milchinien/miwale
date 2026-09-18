@@ -8,6 +8,8 @@ const SEITEN = [
   [/^\/(portfolio|start|projekte|ueber-mich|ki-workflow|devlog|kontakt)(\/[a-z0-9-]+(\/spielen)?)?\/?$/, PORTFOLIO],
   // Ohne Schraegstrich am Ende: /games/chromatic/ ist das Spiel selbst.
   [/^\/games\/[a-z0-9-]+(\/spielen)?$/, SPIELESEITE],
+  // Game Requests, eigener Reiter der Spieleseite.
+  [/^\/requests(\/new)?\/?$/i, SPIELESEITE],
 ];
 
 // Serve each frozen game as a static site. Vite's cached public-file index can

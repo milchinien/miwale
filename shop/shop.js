@@ -16,6 +16,10 @@
       spiele: "Games",
       portfolio: "Portfolio",
       home: "Home",
+      ideen: "Game Requests",
+      ideenTitel: "Game Requests — miwale games",
+      ideenNeuTitel: "Submit your idea — miwale games",
+      ideenBeschreibung: "Vote for game ideas or pitch your own — I build one in a single day and put it on miwale.com.",
       zurueckSeite: "Back",
       vorSeite: "Forward",
       neuLaden: "Reload",
@@ -65,6 +69,10 @@
       spiele: "Spiele",
       portfolio: "Portfolio",
       home: "Home",
+      ideen: "Game Requests",
+      ideenTitel: "Game Requests — miwale games",
+      ideenNeuTitel: "Eigene Idee einreichen — miwale games",
+      ideenBeschreibung: "Stimm für Spielideen ab oder reich deine eigene ein – ich baue eine an einem Tag und stelle sie auf miwale.com.",
       zurueckSeite: "Zurück",
       vorSeite: "Vor",
       neuLaden: "Neu laden",
@@ -125,6 +133,7 @@
   let t = TEXTE[zustand.sprache];
   let highlightTimer = null;
   const app = document.getElementById("app");
+  const START_BESCHREIBUNG = (document.querySelector('meta[name="description"]') || {}).content || "";
 
   // ---- Hilfen -----------------------------------------------------------------
 
@@ -245,6 +254,10 @@
     if (teile[0] === "games" && PER_ID.has(teile[1])) {
       return { seite: "spiel", id: teile[1], spielt: teile[2] === "spielen" };
     }
+    // Game Requests: /requests ist die Liste, /requests/new das Formular.
+    if (String(teile[0]).toLowerCase() === "requests" && (teile.length === 1 || (teile.length === 2 && teile[1] === "new"))) {
+      return { seite: "ideen", neu: teile[1] === "new" };
+    }
     // Aeltere Links der Spieleseite: /games#chromatic oder /#chromatic/spielen
     const h = (location.hash || "").replace(/^#/, "").split("/").filter(Boolean);
     if (h[0] === "projekte") h.shift();
@@ -253,6 +266,7 @@
   }
 
   function pfad(ziel) {
+    if (ziel.seite === "ideen") return "/requests" + (ziel.neu ? "/new" : "");
     if (ziel.seite !== "spiel") return "/";
     return "/games/" + ziel.id + (ziel.spielt ? "/spielen" : "");
   }
@@ -269,9 +283,11 @@
   // ---- Kopf und Fuss -------------------------------------------------------------
 
   // Kopfzeile wie im Steam-Client, in drei Spalten: Die Mitte ist genau so
-  // breit wie der Inhalt darunter (Home links, Suche rechts buendig). Verlauf
+  // breit wie der Inhalt darunter (Reiter links, Suche rechts buendig). Verlauf
   // und Logo stehen links davor, Benachrichtigungen und Portfolio rechts daneben.
   function kopf() {
+    const seite = adresse().seite;
+    const reiter = (href, name, aktiv, extra) => '<a class="sp-home' + (extra || "") + '" href="' + href + '" data-link' + (aktiv ? ' aria-current="page"' : "") + ">" + name + "</a>";
     return '<header class="sp-kopf"><div class="sp-kopf__innen">' +
       '<div class="sp-kopf__aussen sp-kopf__aussen--links">' +
         '<nav class="sp-verlauf" aria-label="' + esc(t.zurueckSeite) + " / " + esc(t.vorSeite) + '">' +
@@ -282,7 +298,11 @@
         '<a class="sp-marke" href="/" data-link aria-label="miwale games"><img src="assets/logo-wordmark-light.png" alt="miwale"></a>' +
       "</div>" +
       '<div class="sp-kopf__mitte">' +
-        '<a class="sp-home" href="/" data-link' + (adresse().seite === "start" ? ' aria-current="page"' : "") + ">" + esc(t.home) + "</a>" +
+        '<nav class="sp-reiterkopf" aria-label="miwale games">' +
+          reiter("/", esc(t.home), seite === "start", " sp-home--start") +
+          // Schmal steht nur "Requests"; das "Game" davor faellt weg.
+          reiter("/requests", esc(t.ideen).replace(/^(Game )/, '<span class="sp-home__vorsilbe">$1</span>'), seite === "ideen") +
+        "</nav>" +
         '<div class="sp-kopf__werkzeuge">' +
         '<div class="sp-sprache" role="group" aria-label="' + esc(t.sprachgruppe) + '">' +
           ["en", "de"].map((c) => '<button type="button" data-sprache="' + c + '" aria-pressed="' + (c === zustand.sprache) + '" lang="' + c + '">' + c.toUpperCase() + "</button>").join("") +
@@ -515,23 +535,30 @@
     document.documentElement.lang = zustand.sprache;
     const ort = adresse();
     const sp = ort.seite === "spiel" ? PER_ID.get(ort.id) : null;
-    const seitenSchluessel = sp ? "spiel:" + sp.id : "start";
+    const ideen = ort.seite === "ideen";
+    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : "start";
 
     // Die Seite nur neu bauen, wenn sich Seite oder Sprache geaendert haben —
     // sonst liefe beim Oeffnen des Spielfensters jeder Trailer von vorn.
     if (app.dataset.seite !== seitenSchluessel || app.dataset.sprache !== zustand.sprache) {
       const seitenwechsel = app.dataset.seite !== seitenSchluessel;
       if (seitenwechsel) zustand.medium = 0;
-      app.innerHTML = kopf() + (sp ? spielSeite(sp) : startSeite()) + fuss() + '<div data-fenster></div>';
+      // Game Requests fuellt shop/ideen.js.
+      const inhalt = sp ? spielSeite(sp) : ideen ? '<main class="sp-ideen sp-breite" data-ideen></main>' : startSeite();
+      app.innerHTML = kopf() + inhalt + fuss() + '<div data-fenster></div>';
       app.dataset.seite = seitenSchluessel;
       app.dataset.sprache = zustand.sprache;
       if (window.MIWALE_MELDUNGEN) window.MIWALE_MELDUNGEN.einbauen(app.querySelector("[data-meldungen]"), zustand.sprache);
-      document.title = sp ? sp.name + " — miwale games" : t.titel;
+      document.title = sp ? sp.name + " — miwale games" : ideen ? (ort.neu ? t.ideenNeuTitel : t.ideenTitel) : t.titel;
       if (sp) {
         // Beschreibung pro Spiel, damit geteilte Links eine Vorschau bekommen.
         setzeMeta("description", text(sp).kurz);
         if (window.MIWALE_BEWERTUNGEN) window.MIWALE_BEWERTUNGEN.einbauen(app.querySelector("[data-bewertungen]"), sp, zustand.sprache);
+      } else if (ideen) {
+        setzeMeta("description", t.ideenBeschreibung);
+        if (window.MIWALE_IDEEN) window.MIWALE_IDEEN.einbauen(app.querySelector("[data-ideen]"), zustand.sprache, { ansicht: ort.neu ? "neu" : "liste", zurueck: ideenZurueck });
       } else {
+        setzeMeta("description", START_BESCHREIBUNG);
         zeigeHighlight(zustand.highlight, true);
         zeigeReiheSeite(zustand.reiheSeite, true);
         zeigeVorschau(zustand.vorschau || (sortiert(zustand.sortierung)[0] || {}).id);
@@ -666,6 +693,13 @@
     if (!sp) return;
     if (sp.neuerTab) { window.open(sp.spielen, "_blank", "noopener"); return; }
     geheZu({ seite: "spiel", id, spielt: true });
+  }
+
+  // Vom Formular zurueck zur Liste der Game Requests: wie beim Spielfenster
+  // ueber den Verlauf, wenn die Seite den Eintrag selbst angelegt hat.
+  function ideenZurueck() {
+    if (zustand.eigeneEintraege > 0) { try { history.back(); return; } catch (e) { /* dann ersetzen */ } }
+    geheZu({ seite: "ideen", neu: false }, true);
   }
 
   function spielSchliessen() {

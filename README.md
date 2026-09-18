@@ -236,7 +236,7 @@ Die Oberflaeche steht in `shop/bewertungen.js` und `shop/bewertungen.css`;
   nur Prozent und Anzahl.
 - **Dienst.** `server/bewertungen.mjs`, ohne Abhaengigkeiten, laeuft im selben
   Container neben nginx auf `127.0.0.1:8081` (gestartet von
-  `docker/40-bewertungen.sh`, startet sich nach einem Absturz selbst neu). nginx
+  `server/start.mjs` aus `docker/40-dienste.sh`, startet sich nach einem Absturz selbst neu). nginx
   reicht `/api/bewertungen/` durch. Welche Spiele bewertet werden duerfen, liest
   der Dienst beim Start aus `shop/spiele.js`. Gespeichert wird in `/data`.
 - **Verwaltung unter `/admin/`.** Alle Bewertungen samt privatem Feedback,
@@ -245,6 +245,66 @@ Die Oberflaeche steht in `shop/bewertungen.js` und `shop/bewertungen.css`;
   die Variable bleibt die Verwaltung gesperrt.
 - **Lokal.** `npm run dev` bedient auch die Bewertungen; sie landen in
   `.bewertungen-dev/`, das Passwort fuer `/admin/` ist `dev`.
+
+### Game Requests
+
+Zweiter Reiter neben Home, fuer das Format "I build your game ideas in one day".
+
+- **`/requests`** zeigt zuerst die oeffentlichen Ideen anderer, jede mit Pfeil
+  hoch und runter. Reiter *Top* (nach Punkten), *New* und *Your ideas* (die
+  eigenen, auch private, mit Stand und Nachricht von miwale; dort laesst sich
+  eine Idee privat oder oeffentlich schalten oder zurueckziehen). Nach dem
+  Abstimmen bleibt die Reihenfolge stehen, bis man neu laedt oder den Reiter
+  wechselt, damit keine Karte unter dem Finger wegspringt. Oben rechts der
+  Knopf **Submit your idea**.
+- **`/requests/new`** ist das Formular: Name, Genre, Plattform, Beschreibung,
+  bis zu vier Skizzen oder Screenshots. Dann ohne Vorauswahl **oeffentlich**
+  (alle sehen die Idee und stimmen ab) oder **privat** (nur die Verwaltung).
+  Drei Haken: erwaehnt werden (nur dann fragt das Formular nach Name oder
+  @Handle, und nur dann wird er gespeichert), das fertige Spiel darf auf
+  miwale.com erscheinen, und Pflicht: Idee und Spiel gehoeren miwale, nicht
+  dem Einsender. Den Zeitpunkt dieser Bestaetigung speichert der Dienst.
+  Eigene Adresse, damit die Zurueck-Taste am Handy das Formular schliesst.
+- **Abstimmen.** Eine Stimme je Geraet und Idee, nochmal tippen nimmt sie
+  zurueck, fuer die eigene Idee geht es nicht. Wer wie gestimmt hat, sieht
+  niemand.
+- **Oeffentlich heisst sofort sichtbar**, wie bei den Bewertungen. Nur die
+  **Bilder** oeffentlicher Ideen erscheinen erst, wenn die Verwaltung sie
+  freigibt; bis dahin steht "images waiting for review" da. Der Einsender sieht
+  seine Bilder immer.
+- **Bilder.** Der Browser rechnet sie vor dem Hochladen klein (hoechstens
+  1600 px, unter 900 KB, WebP oder JPEG) und neu, das entfernt auch
+  Standortdaten aus Handyfotos. Jedes Bild geht einzeln an
+  `POST /api/ideen/bild`, damit keine Anfrage 1 MB ueberschreitet. Der Dienst
+  prueft den Bildtyp am Inhalt, legt die Dateien in `/data/ideen-bilder/` und
+  raeumt Bilder weg, die nach einem Tag noch keiner Idee gehoeren. Insgesamt
+  hoechstens 2 GB.
+- **Schutz.** Dieselbe Wortsperrliste wie bei den Bewertungen, verstecktes Feld
+  gegen Bots, je Adresse in zehn Minuten hoechstens 8 Einreichungen, 24 Bilder
+  und 150 Stimmen, hoechstens 10 unbearbeitete Ideen je Geraet.
+- **Entwurf.** Der Text bleibt bis zum Absenden im localStorage; am Handy laedt
+  die Seite manchmal neu, wenn man zum Bildauswaehlen in die Galerie wechselt.
+  Den Rechte-Haken merkt er sich absichtlich nicht.
+- **Verwaltung.** Reiter "Game Requests" unter `/admin/`, dasselbe Passwort:
+  Stand setzen, oeffentliche Ideen ausblenden, Bilder freigeben (Kachel
+  "Bilder zu prüfen" und Filter), Nachricht an den Einsender, Link zum Video
+  oder Spiel, loeschen. Private Ideen kann die Verwaltung nicht oeffentlich
+  machen. Zu jeder Idee stehen die drei Haken des Einsenders dabei.
+
+Dateien: `shop/ideen.js`, `shop/ideen.css`, `server/ideen.mjs`, Tests in
+`tools/ideen.test.mjs`.
+
+**Spaeter ein Konto.** Heute gehoeren Ideen und Stimmen einem Geraet. Das steht
+an genau zwei Stellen: `shop/identitaet.js` im Browser (welche Kennung mitgeht)
+und `besitzerVon()` in `server/gemeinsam.mjs` (gespeichert als
+`"geraet:<id>"`, bei Ideen im Feld `besitzer`, bei Stimmen als Schluessel in
+`stimmen`). Ein Konto liefert dort `"konto:<id>"` aus der Sitzung; was ein
+Geraet vorher angelegt hat, laesst sich bei der Anmeldung einmalig auf das
+Konto umschreiben. Die Bewertungen holen ihre Kennung auch schon aus
+`shop/identitaet.js`.
+
+Bewertungen und Game Requests laufen in einem Node-Prozess (`server/start.mjs`,
+gestartet von `docker/40-dienste.sh`) und teilen Hilfen aus `server/gemeinsam.mjs`.
 
 **Produktion einmalig einrichten.** Auf dem Server neben
 `docker-compose.prod.yml` eine `.env` mit `BEWERTUNGEN_ADMIN_PASSWORT=...`
