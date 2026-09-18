@@ -9,3 +9,6 @@ dist/
 
 # Lokale Bewertungen aus dem Vite-Server
 .bewertungen-dev/
+
+# Klone und Baustelle von tools/sync-games.mjs
+.spiele-cache/

@@ -1,22 +1,37 @@
 {
   "wavebreaker": {
     "path": "games/wavebreaker/",
-    "sha256": "c9b7462c670377bb399bda91aaacaf7f3680bdc966e7db17e35ae742a56b04a9"
+    "sha256": "c9b7462c670377bb399bda91aaacaf7f3680bdc966e7db17e35ae742a56b04a9",
+    "repo": "milchinien/Wavebreaker",
+    "commit": "e94e9befd34d7f0588df01b0fe76107be76e5a5f",
+    "handy": true
   },
   "chromatic": {
     "path": "games/chromatic/",
-    "sha256": "c80e45069df2989735986f7e61e70c9e7b19585b9f4bde17a2f3b0dea2181084"
-  },
-  "runecall": {
-    "path": "games/runecall/",
-    "sha256": "0d4081ebbd6ac0266c818ab760df9147135496ae80e014b309f9608580aa011b"
-  },
-  "harmonics": {
-    "path": "games/harmonics/",
-    "sha256": "5d10f51417b255a51ac4e4d1c80c787f0145c17403aa487f0494d47dafcff2f1"
+    "sha256": "75c877b01b9058df2b4f65b5975ab7edfd5ace3008dcd60683a685a1fa906ada",
+    "repo": "milchinien/Chromatic",
+    "commit": "9c37f28db2901d20e6b2731e466bc9c905bf5a15",
+    "handy": true
   },
   "reliktenschieber": {
     "path": "games/reliktenschieber/",
-    "sha256": "36d2aef6736607a5cec40a65e9780e15308dfd257a0d47d0e474352e9bdc1196"
+    "sha256": "b267d4ff7632c6c0260dd389fe03ded2d66d122ce12667342768cee815835627",
+    "repo": "milchinien/Coin-Pusher",
+    "commit": "6721790b492538e2ac836a0be42c43b50d7ea051",
+    "handy": true
+  },
+  "runecall": {
+    "path": "games/runecall/",
+    "sha256": "b2ddcf6f87eed137235ddd0919cc4b3d9b077501cb2c5089a960f97a19b08a28",
+    "repo": "milchinien/Runecall",
+    "commit": "2ab284ae436079d3b0913a82ae85e5902a0ad0db",
+    "handy": true
+  },
+  "harmonics": {
+    "path": "games/harmonics/",
+    "sha256": "2e65dae98a15f28eccaeb46d99d05e1925c0d4a459ad8672e1f09110f4737e39",
+    "repo": "milchinien/Harmonics",
+    "commit": "6b249fe3e23dfc56160900df7a741d92d784ea1b",
+    "handy": true
   }
 }

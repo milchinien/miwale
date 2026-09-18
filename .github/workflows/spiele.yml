@@ -1,0 +1,112 @@
+name: Spiele von GitHub
+
+# Holt jeden Tag alle oeffentlichen Spiele-Repositories, baut sie und prueft
+# ihren spielbaren Kern (tools/sync-games.mjs). Hat sich etwas geaendert, laeuft
+# dieselbe CI wie bei einem PR ueber den neuen Stand; erst wenn die gruen ist,
+# geht er auf main und wird veroeffentlicht.
+#
+# Ein Pushen mit dem GITHUB_TOKEN loest keine anderen Workflows aus. Darum ruft
+# dieser hier CI selbst auf und startet danach Publish von Hand.
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # jeden Tag, vor dem Short um 20:00
+  workflow_dispatch:
+    inputs:
+      spiele:
+        description: "Nur diese ids (mit Leerzeichen getrennt), leer = alle"
+        required: false
+        default: ""
+      alle_neu:
+        description: "Auch unveraenderte Repositories neu bauen"
+        type: boolean
+        default: false
+
+concurrency:
+  group: spiele-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Spiele holen, bauen, pruefen
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    outputs:
+      geaendert: ${{ steps.festhalten.outputs.geaendert }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: pnpm und Playwright
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Spiele holen, bauen und pruefen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+          SPIELE: ${{ inputs.spiele }}
+          ALLE_NEU: ${{ inputs.alle_neu && '--alle-neu' || '' }}
+        run: node tools/sync-games.mjs $SPIELE $ALLE_NEU
+
+      - name: Pruefen und festhalten
+        id: festhalten
+        run: |
+          set -euo pipefail
+          node tools/check-games.mjs
+          git add -A public/games shop/spiele-auto.js assets/games/auto
+          if git diff --cached --quiet; then
+            echo "Nichts Neues."
+            echo "geaendert=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          {
+            echo "Spiele von GitHub aktualisiert"
+            echo
+            grep -E '\| (aufgenommen|aktualisiert) \|' .spiele-cache/bericht.md || true
+          } > /tmp/nachricht
+          git commit -q -F /tmp/nachricht
+          git push --force origin HEAD:refs/heads/automatisch/spiele
+          echo "geaendert=true" >> "$GITHUB_OUTPUT"
+
+  pruefen:
+    name: CI ueber den neuen Stand
+    needs: sync
+    if: needs.sync.outputs.geaendert == 'true'
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: automatisch/spiele
+
+  veroeffentlichen:
+    name: Auf main und veroeffentlichen
+    needs: pruefen
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: automatisch/spiele
+          fetch-depth: 0
+
+      # Nur vorspulen: hat jemand inzwischen auf main gepusht, schlaegt das fehl
+      # und der naechste Lauf baut auf dem neuen Stand auf.
+      - name: main vorspulen
+        run: git push origin HEAD:main
+
+      - name: Publish starten
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run publish.yml --ref main

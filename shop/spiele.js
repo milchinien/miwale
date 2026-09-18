@@ -2,7 +2,8 @@
 //
 // Bewusst getrennt von PROJECTS im Portfolio: dort stehen technische Texte
 // fuer Leute, die sich fuer den Bau interessieren, hier Texte fuer Spieler.
-// Ein neues Spiel braucht also einen Eintrag hier UND im Portfolio.
+// Spiele von GitHub ohne Eintrag hier nimmt tools/sync-games.mjs selbst auf
+// (shop/spiele-auto.js); ein Eintrag hier ersetzt den automatischen.
 //
 // Reihenfolge = "Beliebt". trend setzt die Flamme, neu das Abzeichen "Neu".
 // spielen: Adresse, die im Spielfenster geladen wird.
