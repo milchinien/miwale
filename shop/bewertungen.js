@@ -2,10 +2,11 @@
 // Daumen hoch oder runter, dazu freiwillig ein oeffentlicher Satz und ein
 // privates Feedback, das nur die Verwaltung (/admin/) sieht.
 //
-// Ohne Account und auf Vertrauensbasis: jedes Geraet bekommt beim ersten Besuch
-// eine zufaellige Kennung (shop/identitaet.js), pro Spiel zaehlt eine Stimme je
-// Kennung. Der Dienst
-// dahinter ist server/bewertungen.mjs.
+// Den Daumen und das private Feedback gibt es ohne Konto: jedes Geraet bekommt
+// beim ersten Besuch eine zufaellige Kennung (shop/identitaet.js), pro Spiel
+// zaehlt eine Stimme je Kennung. Oeffentlicher Text braucht ein Konto und steht
+// mit dessen Namen da (shop/konto.js). Der Dienst dahinter ist
+// server/bewertungen.mjs.
 //
 // shop.js baut die Spielseite als HTML-Text und ruft danach
 // MIWALE_BEWERTUNGEN.einbauen(element, spiel, sprache) auf. Alles Weitere
@@ -25,7 +26,7 @@
       hoch: "Yes",
       runter: "No",
       textLabel: "Your review",
-      textHilfe: "Optional and public, shown without your name. Up to 500 characters.",
+      textHilfe: (name) => "Optional and public, shown with your name " + name + ". Up to 500 characters.",
       textPlatzhalter: "What did you like, what didn't work for you?",
       privatLabel: "Private feedback for the developer",
       privatHilfe: "Optional. Only the developer sees this.",
@@ -36,6 +37,10 @@
       loeschen: "Delete my review",
       loeschenFrage: "Delete your review for this game?",
       hinweis: "One review per game on this device. You can change or delete it anytime.",
+      hinweisKonto: "One review per game for your account. You can change or delete it anytime.",
+      spieler: "Player",
+      anmelden: "Please sign in to write a public review.",
+      kontoGesperrt: "Your account has been blocked, so you can't post reviews.",
       listeTitel: "Player reviews",
       listeLeer: "No written reviews yet.",
       entwickler: "Developer response",
@@ -61,7 +66,7 @@
       hoch: "Ja",
       runter: "Nein",
       textLabel: "Deine Bewertung",
-      textHilfe: "Freiwillig und öffentlich, erscheint ohne Namen. Höchstens 500 Zeichen.",
+      textHilfe: (name) => "Freiwillig und öffentlich, erscheint mit deinem Namen " + name + ". Höchstens 500 Zeichen.",
       textPlatzhalter: "Was hat dir gefallen, was nicht?",
       privatLabel: "Privates Feedback an den Entwickler",
       privatHilfe: "Freiwillig. Das sieht nur der Entwickler.",
@@ -72,6 +77,10 @@
       loeschen: "Meine Bewertung löschen",
       loeschenFrage: "Deine Bewertung für dieses Spiel löschen?",
       hinweis: "Eine Bewertung pro Spiel auf diesem Gerät. Du kannst sie jederzeit ändern oder löschen.",
+      hinweisKonto: "Eine Bewertung pro Spiel für dein Konto. Du kannst sie jederzeit ändern oder löschen.",
+      spieler: "Spieler",
+      anmelden: "Bitte melde dich an, um eine öffentliche Bewertung zu schreiben.",
+      kontoGesperrt: "Dein Konto wurde gesperrt, darum kannst du keine Bewertungen schreiben.",
       listeTitel: "Bewertungen von Spielern",
       listeLeer: "Noch keine geschriebenen Bewertungen.",
       entwickler: "Antwort vom Entwickler",
@@ -129,6 +138,7 @@
 
     function zeichnen(formNeu) {
       const d = z.daten;
+      const konto = window.MIWALE_IDENTITAET.konto();
       // Die Textfelder nur neu anlegen, wenn es noetig ist: sonst verlieren sie
       // beim Wechsel des Daumens, was schon getippt war.
       if (formNeu || !el.querySelector("[data-bew-form]")) {
@@ -142,9 +152,11 @@
               '<button type="button" class="sp-bew__knopf sp-bew__knopf--hoch" data-bew-daumen="hoch">' + ICON_HOCH + "<span>" + esc(t.hoch) + "</span></button>" +
               '<button type="button" class="sp-bew__knopf sp-bew__knopf--runter" data-bew-daumen="runter">' + ICON_RUNTER + "<span>" + esc(t.runter) + "</span></button>" +
             "</div>" +
-            '<label class="sp-bew__feld"><span class="sp-bew__label">' + esc(t.textLabel) + "</span>" +
-              '<textarea data-bew-text maxlength="500" placeholder="' + esc(t.textPlatzhalter) + '">' + esc(d.eigene ? d.eigene.text : "") + "</textarea>" +
-              '<span class="sp-bew__hilfe">' + esc(t.textHilfe) + "</span></label>" +
+            (konto
+              ? '<label class="sp-bew__feld"><span class="sp-bew__label">' + esc(t.textLabel) + "</span>" +
+                '<textarea data-bew-text maxlength="500" placeholder="' + esc(t.textPlatzhalter) + '">' + esc(d.eigene ? d.eigene.text : "") + "</textarea>" +
+                '<span class="sp-bew__hilfe">' + esc(t.textHilfe(konto.name)) + "</span></label>"
+              : window.MIWALE_KONTO ? window.MIWALE_KONTO.anmeldeKasten(sprache, "bewertung") : "") +
             '<label class="sp-bew__feld"><span class="sp-bew__label">' + esc(t.privatLabel) + "</span>" +
               '<textarea data-bew-privat maxlength="1000" placeholder="' + esc(t.privatPlatzhalter) + '">' + esc(d.eigene ? d.eigene.privat : "") + "</textarea>" +
               '<span class="sp-bew__hilfe">' + esc(t.privatHilfe) + "</span></label>" +
@@ -155,7 +167,7 @@
               '<button type="button" class="sp-bew__loeschen" data-bew-loeschen>' + esc(t.loeschen) + "</button>" +
             "</div>" +
             '<p class="sp-bew__meldung" data-bew-meldung role="status" aria-live="polite"></p>' +
-            '<p class="sp-bew__hilfe">' + esc(t.hinweis) + "</p>" +
+            '<p class="sp-bew__hilfe">' + esc(konto ? t.hinweisKonto : t.hinweis) + "</p>" +
           "</div>" +
           '<h3 class="sp-bew__listentitel">' + esc(t.listeTitel) + "</h3>" +
           '<div class="sp-bew__liste" data-bew-liste></div>');
@@ -185,7 +197,7 @@
           '<div class="sp-bew__eintragkopf">' +
             '<span class="sp-bew__icon sp-bew__icon--' + r.daumen + '">' + (r.daumen === "hoch" ? ICON_HOCH : ICON_RUNTER) + "</span>" +
             '<span><span class="sp-bew__wer">' + esc(r.daumen === "hoch" ? t.empfohlen : t.nichtEmpfohlen) + "</span>" +
-            '<span class="sp-bew__wann">' + (r.eigene ? esc(t.du) + " · " : "") + esc(datum(r.zeit, sprache)) + (r.geaendert ? " · " + esc(t.geaendert) : "") + "</span></span>" +
+            '<span class="sp-bew__wann"><span class="sp-bew__name">' + esc(r.name || t.spieler) + "</span> · " + (r.eigene ? esc(t.du) + " · " : "") + esc(datum(r.zeit, sprache)) + (r.geaendert ? " · " + esc(t.geaendert) : "") + "</span></span>" +
           "</div>" +
           '<p class="sp-bew__satz">' + esc(r.text) + "</p>" +
           (r.antwort && r.antwort.text ? '<div class="sp-bew__antwort"><span class="sp-bew__antwortwer">' + esc(t.entwickler) + '</span><p class="sp-bew__satz">' + esc(r.antwort.text) + "</p></div>" : "") +
@@ -227,7 +239,8 @@
             text: wert("[data-bew-text]"), privat: wert("[data-bew-privat]"), website: wert("[data-bew-falle]")
           });
           if (status === 200) { z.daten = daten; zwischenspeicher.set(sp.id, daten); melden(false, t.danke); }
-          else melden(true, status === 422 && daten.woerter ? t.gesperrt(daten.woerter) : status === 429 ? t.zuSchnell : t.fehler);
+          else melden(true, status === 422 && daten.woerter ? t.gesperrt(daten.woerter) : status === 429 ? t.zuSchnell
+            : daten.fehler === "anmelden" ? t.anmelden : daten.fehler === "konto-gesperrt" ? t.kontoGesperrt : t.fehler);
         } catch (err) { melden(true, t.fehler); }
         z.sendet = false;
         if (aktiv()) zeichnen(false);
@@ -250,22 +263,34 @@
       }
     });
 
+    // Nach An- oder Abmelden ist "eigene" eine andere Bewertung, und das
+    // Textfeld kommt oder geht: dann alles frisch.
+    function laden(kontoNeu) {
+      rufen("GET")
+        .then(({ status, daten }) => {
+          if (status !== 200) throw new Error(status);
+          zwischenspeicher.set(sp.id, daten);
+          if (!aktiv()) return;
+          const neu = !z.daten || kontoNeu;
+          z.daten = daten;
+          if (neu) z.daumen = daten.eigene ? daten.eigene.daumen : null;
+          zeichnen(neu);
+        })
+        .catch(() => {
+          if (!aktiv() || z.daten) return;
+          z.fehler = true;
+          zeichnen(true);
+        });
+    }
+
+    function kontoGeaendert() {
+      if (!aktiv()) { window.removeEventListener("miwale-konto", kontoGeaendert); return; }
+      laden(true);
+    }
+    window.addEventListener("miwale-konto", kontoGeaendert);
+
     zeichnen(true);
-    rufen("GET")
-      .then(({ status, daten }) => {
-        if (status !== 200) throw new Error(status);
-        zwischenspeicher.set(sp.id, daten);
-        if (!aktiv()) return;
-        const warLeer = !z.daten;
-        z.daten = daten;
-        if (warLeer) z.daumen = daten.eigene ? daten.eigene.daumen : null;
-        zeichnen(warLeer);
-      })
-      .catch(() => {
-        if (!aktiv() || z.daten) return;
-        z.fehler = true;
-        zeichnen(true);
-      });
+    laden(false);
   }
 
   window.MIWALE_BEWERTUNGEN = { einbauen };

@@ -1,10 +1,11 @@
 FROM nginx:alpine
 
-# Node fuer die Dienste (server/: Bewertungen und Game Requests). Ohne npm:
+# Node fuer die Dienste (server/: Bewertungen, Game Requests, Konten). Ohne npm:
 # sie haben keine Abhaengigkeiten.
 RUN apk add --no-cache nodejs
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/sicherheit.conf docker/sicherheit-seite.conf docker/spiele-umleitung.conf docker/spiele-einbetten.conf /etc/nginx/miwale/
 COPY index.html /usr/share/nginx/html/index.html
 COPY ["miwale Portfolio.dc.html", "/usr/share/nginx/html/miwale Portfolio.dc.html"]
 COPY support.js /usr/share/nginx/html/support.js
@@ -14,17 +15,24 @@ COPY assets /usr/share/nginx/html/assets
 COPY public /usr/share/nginx/html
 
 COPY server /srv/dienste
+COPY docker/30-umgebung.sh /docker-entrypoint.d/30-umgebung.sh
 COPY docker/40-dienste.sh /docker-entrypoint.d/40-dienste.sh
-RUN chmod +x /docker-entrypoint.d/40-dienste.sh \
+RUN chmod +x /docker-entrypoint.d/30-umgebung.sh /docker-entrypoint.d/40-dienste.sh \
  && mkdir -p /data && chown nginx:nginx /data
 
-# Bewertungen, Game Requests samt Bildern und Wortliste. In Produktion ein
+# Bewertungen, Game Requests samt Bildern, Konten und Wortliste. In Produktion ein
 # benanntes Volume, sonst sind sie
 # nach dem naechsten Deployment weg (deploy/docker-compose.prod.yml). Welche
 # Spiele bewertet werden duerfen, liest der Dienst aus dem Katalog der Seite.
 VOLUME /data
+# MIWALE_ADRESSE: nur von dort nehmen die Dienste aendernde Anfragen an, und
+# dorthin kehren Discord und Google nach dem Anmelden zurueck. SPIELE_ADRESSE
+# (z. B. https://play.miwale.com) trennt die Spiele von der Seite; siehe
+# docker/30-umgebung.sh.
 ENV BEWERTUNGEN_ORDNER=/data \
-    BEWERTUNGEN_KATALOG=/usr/share/nginx/html/shop/spiele.js
+    BEWERTUNGEN_KATALOG=/usr/share/nginx/html/shop/spiele.js \
+    MIWALE_ADRESSE=https://miwale.com \
+    SPIELE_ADRESSE=
 
 EXPOSE 8080
 

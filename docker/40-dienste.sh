@@ -1,5 +1,5 @@
 #!/bin/sh
-# Startet die Dienste der Seite (Bewertungen und Game Requests, server/start.mjs)
+# Startet die Dienste der Seite (Bewertungen, Game Requests, Konten; server/start.mjs)
 # neben nginx. Das Einstiegsskript des nginx-Images fuehrt alles in
 # /docker-entrypoint.d/ vor nginx aus; der Dienst laeuft darum im Hintergrund
 # weiter. Stuerzt er ab, startet die Schleife ihn nach kurzer Pause neu, damit

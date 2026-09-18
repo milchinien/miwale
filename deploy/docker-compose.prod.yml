@@ -17,9 +17,20 @@ services:
     # Bewertungen auf den Spielseiten. Das Passwort fuer miwale.com/admin steht
     # in einer .env neben dieser Datei (BEWERTUNGEN_ADMIN_PASSWORT=...), nie im
     # Repository. Ohne Passwort laufen die Bewertungen, nur die Verwaltung ist zu.
+    #
+    # Ebenso dort: die Zugaenge fuer "Anmelden mit Discord/Google" (siehe
+    # README, Abschnitt Konten). Fehlt einer, wird er einfach nicht angeboten.
+    # SPIELE_ADRESSE erst setzen, wenn play.miwale.com im DNS und im Ingress
+    # steht -- sonst laden die Spiele nicht.
     environment:
       BEWERTUNGEN_ADMIN_PASSWORT: ${BEWERTUNGEN_ADMIN_PASSWORT:-}
-    # Ohne das Volume waeren alle Bewertungen nach dem naechsten Deployment weg.
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      SPIELE_ADRESSE: ${SPIELE_ADRESSE:-}
+    # Ohne das Volume waeren alle Bewertungen und Konten nach dem naechsten
+    # Deployment weg. Es gehoert ins naechtliche Backup (README, Abschnitt Konten).
     volumes:
       - miwale-bewertungen:/data
     healthcheck:

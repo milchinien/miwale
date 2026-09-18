@@ -1,0 +1,71 @@
+/* Konto: Knopf in der Kopfzeile, Seite /account, Anmeldekasten in Bewertungen
+   und Game Requests, Datenschutzseite. Farben und Flaechen aus shop.css. */
+
+.sp-konto-platz { display: contents; }
+.sp-konto-knopf svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.sp-konto-knopf__text { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sp-konto__raster { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 28px; align-items: start; margin-top: 18px; }
+.sp-konto__haupt { display: flex; flex-direction: column; gap: 16px; padding: 22px; }
+.sp-konto__haupt .sp-ueberschrift { margin: 0; }
+.sp-konto__info { color: var(--sp-text-leise); font-size: 14px; }
+.sp-konto__info p { margin: 14px 0 0; }
+
+.sp-konto__hilfe { margin: 0; color: var(--sp-text-leise); font-size: 15px; line-height: 1.55; }
+.sp-konto__klein { margin: 0; color: var(--sp-text-sehrleise); font-size: 13px; }
+.sp-konto__name { margin: 2px 0; font: 700 24px/1.2 var(--font-brand, sans-serif); color: #fff; overflow-wrap: anywhere; }
+
+.sp-konto__anbieter { display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+.sp-konto__mit {
+  display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 18px;
+  border-radius: var(--sp-radius); font-weight: 700; font-size: 15px; border: 1px solid transparent;
+  transition: filter .15s ease, transform .15s ease;
+}
+.sp-konto__mit:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.sp-konto__mit--discord { background: #5865F2; color: #fff; }
+.sp-konto__mit--google { background: #fff; color: #1F1F1F; border-color: #DADCE0; }
+.sp-konto__mit--test { background: rgba(255, 255, 255, .1); color: var(--sp-text); border: 1px dashed var(--sp-kante-hell); }
+
+.sp-konto__karte { display: flex; align-items: center; gap: 16px; }
+.sp-konto__bild { display: grid; place-items: center; width: 56px; height: 56px; flex: none; border-radius: 50%; background: rgba(127, 224, 238, .14); color: var(--sp-akzent); }
+.sp-konto__bild svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+.sp-konto__form { display: flex; flex-direction: column; gap: 14px; }
+.sp-konto__form input:not([type="checkbox"]) {
+  width: 100%; min-width: 0; margin: 0; padding: 10px 12px; border-radius: var(--sp-radius-klein); border: 1px solid var(--sp-kante-hell);
+  background: rgba(1, 10, 17, .45); color: #fff; font: 16px/1.5 var(--font-ui, sans-serif);
+}
+.sp-konto__form input:focus { outline: none; border-color: var(--sp-akzent); box-shadow: 0 0 0 3px rgba(127, 224, 238, .18); }
+.sp-konto__zeile { display: flex; gap: 10px; }
+.sp-konto__aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sp-konto__gefahr { padding-top: 12px; border-top: 1px solid var(--sp-kante); }
+.sp-konto__gefahr .sp-bew__loeschen { color: #F2A58A; }
+
+.sp-konto__meldung { margin: 0; padding: 10px 12px; border-radius: var(--sp-radius-klein); background: rgba(127, 224, 238, .08); color: #8BEAF3; font-size: 14px; }
+.sp-konto__meldung--fehler { background: rgba(242, 165, 138, .1); color: #F2A58A; }
+
+/* Kasten "zum Schreiben anmelden" in Bewertungen und Game Requests. */
+.sp-konto__kasten {
+  display: flex; flex-direction: column; gap: 12px; padding: 18px;
+  border-radius: var(--sp-radius); border: 1px dashed var(--sp-kante-hell); background: rgba(127, 224, 238, .04);
+}
+.sp-konto__kastentitel { margin: 0; font-weight: 700; font-size: 16px; color: #fff; }
+.sp-konto__angemeldet { margin: 0; font-size: 13px; color: var(--sp-text-sehrleise); }
+.sp-konto__angemeldet strong { color: var(--sp-text); }
+
+/* Datenschutzseite: Lesetext. */
+.sp-recht { max-width: 72ch; }
+.sp-recht section { margin-top: 26px; }
+.sp-recht p { margin: 0 0 10px; color: var(--sp-text-leise); line-height: 1.65; }
+
+/* Namen an Bewertungen. */
+.sp-bew__name { font-weight: 700; color: var(--sp-text); }
+
+@media (max-width: 900px) {
+  .sp-konto__raster { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .sp-konto-knopf__text { display: none; }
+  .sp-konto__haupt { padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-konto__mit { transition: none; } }
