@@ -5,6 +5,9 @@ name: Publish
 on:
   push:
     branches: [main]
+  # Pushes der Spiele-Aktualisierung (spiele.yml) loesen kein push-Ereignis
+  # aus, sie startet die Veroeffentlichung darum selbst.
+  workflow_dispatch:
 
 concurrency:
   group: publish-main

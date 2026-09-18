@@ -93,6 +93,9 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .sp-symbol:disabled { color: rgba(237, 243, 249, .22); cursor: default; }
 .sp-symbol svg { width: 19px; height: 19px; }
 .sp-marke { display: flex; align-items: center; color: var(--sp-text); flex: none; margin-left: 6px; }
+.sp-reiterkopf { display: flex; align-items: center; gap: 26px; flex: none; }
+/* Im Flex-Reiter faellt das Leerzeichen nach "Game" weg; der Abstand ersetzt es. */
+.sp-home__vorsilbe { margin-right: .4em; }
 .sp-home {
   position: relative; display: flex; align-items: center; height: var(--sp-kopfhoehe); flex: none;
   font: 700 14px/1 var(--font-brand, sans-serif); letter-spacing: .12em; text-transform: uppercase; color: var(--sp-text-leise);
@@ -445,6 +448,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .sp-kopf__innen { width: calc(100% - 20px); column-gap: 8px; }
   .sp-kopf__mitte { gap: 8px; }
   .sp-home { font-size: 12px; }
+  .sp-reiterkopf { gap: 14px; }
+  .sp-home__vorsilbe { display: none; }
   .sp-kopf__werkzeuge, .sp-kopf__aussen--rechts { gap: 6px; }
   .sp-meldungen__knopf { width: 34px; height: 34px; }
   .sp-meldungen__feld { position: fixed; top: calc(var(--sp-kopfhoehe) + 6px); left: 12px; right: 12px; width: auto; max-width: none; }
@@ -469,8 +474,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   .sp-spiel iframe { border-radius: 0; border: 0; }
 }
 @media (max-width: 420px) {
-  /* Sehr schmal reicht der Platz nicht fuer beides; das Logo fuehrt ebenfalls nach Hause. */
-  .sp-home { display: none; }
+  /* Sehr schmal reicht der Platz nicht fuer alles; das Logo fuehrt ebenfalls nach Hause. */
+  .sp-home--start { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

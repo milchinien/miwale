@@ -1,0 +1,219 @@
+/* Game Requests (shop/ideen.js). Farben und Flaechen aus shop.css, Felder wie
+   bei den Bewertungen (bewertungen.css), deren Antwort- und Leer-Kaesten hier
+   mitbenutzt werden. */
+
+.sp-ideen { padding: 28px 0 56px; --sp-ideen-rot: #F2A58A; }
+
+/* ---- Kopf der Liste: Titel links, Einreichen rechts ---- */
+.sp-ideen__held {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px 32px; flex-wrap: wrap;
+  margin-bottom: 20px; padding: 24px 28px; border-radius: var(--sp-radius);
+  border: 1px solid rgba(127, 224, 238, .35);
+  background:
+    radial-gradient(600px 260px at 88% 0%, rgba(127, 224, 238, .22), rgba(127, 224, 238, 0) 70%),
+    linear-gradient(120deg, rgba(23, 169, 196, .24), rgba(11, 110, 134, .10));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+.sp-ideen__heldtext { flex: 1 1 460px; min-width: 0; }
+.sp-ideen__heldaktion { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.sp-ideen__kicker {
+  display: inline-block; margin: 0 0 10px; padding: 4px 9px; border-radius: var(--sp-radius-klein); background: var(--sp-flamme);
+  color: #2A0F00; font: 800 11px/1.1 var(--font-ui, sans-serif); letter-spacing: .08em; text-transform: uppercase;
+}
+.sp-ideen__titel { margin: 0 0 8px; font: 700 clamp(26px, 3.4vw, 40px)/1.08 var(--font-brand, sans-serif); letter-spacing: -.02em; color: #fff; }
+.sp-ideen__intro { margin: 0; max-width: 70ch; color: var(--sp-text); font-size: 15px; line-height: 1.6; }
+.sp-ideen__heldaktion .sp-knopf svg, .sp-ideen__leer .sp-knopf svg { width: 20px; height: 20px; }
+
+.sp-ideen__erfolg {
+  margin: 0 0 16px; padding: 12px 14px; border-radius: var(--sp-radius); border: 1px solid rgba(127, 224, 238, .5);
+  background: rgba(127, 224, 238, .12); color: #EAFBFF; font-weight: 600;
+}
+
+/* ---- Liste ---- */
+.sp-ideen__leiste { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: -6px 0 14px; border-bottom: 1px solid var(--sp-kante); }
+.sp-ideen__reiter { margin: 0; border-bottom: 0; flex-wrap: wrap; }
+.sp-ideen__anzahl { padding-bottom: 10px; font-size: 13px; color: var(--sp-text-sehrleise); white-space: nowrap; }
+.sp-ideen__liste { display: flex; flex-direction: column; gap: 10px; }
+.sp-ideen__leer { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 28px 18px; }
+.sp-ideen__leer p { margin: 0; }
+.sp-ideen__mehrladen { display: flex; margin: 16px auto 0; }
+.sp-ideen__meldung { margin: 0 0 12px; font-size: 14px; color: var(--sp-ideen-rot); }
+.sp-ideen__form .sp-ideen__meldung { margin: 0; }
+
+.sp-idee {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; min-width: 0; padding: 14px 16px 14px 10px;
+  border-radius: var(--sp-radius); background: var(--sp-flaeche); border: 1px solid var(--sp-kante);
+}
+.sp-idee--eigen { border-color: rgba(127, 224, 238, .45); }
+
+/* Abstimmen: Pfeil hoch, Punkte, Pfeil runter. */
+.sp-idee__stimmen { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sp-idee__stimme {
+  display: grid; place-items: center; width: 40px; height: 36px; padding: 0; border: 1px solid transparent;
+  border-radius: var(--sp-radius-klein); background: transparent; color: var(--sp-text-leise); cursor: pointer;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.sp-idee__stimme svg { width: 22px; height: 22px; stroke-width: 2.6; }
+.sp-idee__stimme:hover:not(:disabled) { background: rgba(255, 255, 255, .08); color: #fff; }
+.sp-idee__stimme--hoch[aria-pressed="true"] { background: rgba(127, 224, 238, .2); border-color: var(--sp-akzent); color: #BFF1F7; }
+.sp-idee__stimme--runter[aria-pressed="true"] { background: rgba(242, 165, 138, .18); border-color: var(--sp-ideen-rot); color: #FFD9CB; }
+.sp-idee__stimme:disabled { opacity: .35; cursor: default; }
+.sp-idee__punkte { font: 800 16px/1.2 var(--font-ui, sans-serif); color: var(--sp-text); font-variant-numeric: tabular-nums; }
+.sp-idee__punkte--plus { color: #8BEAF3; }
+.sp-idee__punkte--minus { color: var(--sp-ideen-rot); }
+
+.sp-idee__inhalt { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sp-idee__kopf { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sp-idee__nr { font: 800 13px/1 var(--font-ui, sans-serif); color: var(--sp-text-sehrleise); font-variant-numeric: tabular-nums; }
+.sp-idee__stand, .sp-idee__marke {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: var(--sp-radius-klein); font: 800 10px/1.2 var(--font-ui, sans-serif); letter-spacing: .08em; text-transform: uppercase;
+  background: rgba(255, 255, 255, .08); border: 1px solid var(--sp-kante-hell); color: var(--sp-text-leise);
+}
+.sp-idee__marke svg { width: 12px; height: 12px; }
+.sp-idee__stand--shortlist { background: rgba(243, 213, 139, .14); border-color: rgba(243, 213, 139, .45); color: #F3D58B; }
+.sp-idee__stand--in-arbeit { background: var(--sp-flamme); border-color: transparent; color: #2A0F00; }
+.sp-idee__stand--fertig { background: var(--sp-akzent); border-color: transparent; color: #062A33; }
+.sp-idee__stand--nicht-gewaehlt { color: var(--sp-text-sehrleise); }
+.sp-idee__marke--oeffentlich { border-color: rgba(127, 224, 238, .45); color: var(--sp-akzent); }
+.sp-idee__marke--versteckt { border-color: rgba(242, 165, 138, .5); color: var(--sp-ideen-rot); }
+.sp-idee__titel { margin: 0; font: 700 18px/1.25 var(--font-brand, sans-serif); color: #fff; overflow-wrap: anywhere; }
+.sp-idee__daten { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0; font-size: 12px; color: var(--sp-text-sehrleise); }
+.sp-idee__daten svg { width: 14px; height: 14px; }
+.sp-idee__von { color: var(--sp-akzent); font-weight: 700; }
+.sp-idee__text { margin: 0; color: var(--sp-text); font-size: 14px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.sp-idee__text--zu { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.sp-idee__mehr { align-self: flex-start; padding: 2px 0; border: 0; background: none; color: var(--sp-akzent); font-size: 13px; font-weight: 700; cursor: pointer; }
+.sp-idee__mehr:hover { color: #fff; }
+.sp-idee__minis { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-idee__minis a { display: block; width: 132px; aspect-ratio: 4 / 3; border-radius: var(--sp-radius-klein); overflow: hidden; border: 1px solid var(--sp-kante); background: #03101A; }
+.sp-idee__minis a:hover { border-color: var(--sp-akzent); }
+.sp-idee__minis img { width: 100%; height: 100%; object-fit: cover; }
+.sp-idee__link { align-self: flex-start; }
+.sp-idee__link svg { width: 14px; height: 14px; }
+.sp-idee__aktionen { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.sp-idee__aktionen .sp-bew__loeschen { min-height: 32px; padding: 4px 0; font-size: 13px; }
+
+/* ---- Formular ---- */
+.sp-ideen .sp-pfad a { display: inline-flex; align-items: center; gap: 6px; }
+.sp-ideen .sp-pfad svg { width: 16px; height: 16px; }
+.sp-ideen__formtitel { margin: 8px 0 18px; font: 700 clamp(28px, 3.6vw, 40px)/1.1 var(--font-brand, sans-serif); letter-spacing: -.02em; color: #fff; }
+.sp-ideen__raster { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+.sp-ideen__kasten { padding: 20px 22px 22px; }
+.sp-ideen__seite { display: flex; flex-direction: column; gap: 26px; position: sticky; top: calc(var(--sp-kopfhoehe) + 16px); }
+.sp-ideen__tipps .sp-features { font-size: 14px; color: var(--sp-text-leise); }
+.sp-ideen__schritte { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sp-ideen__schritte li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: var(--sp-radius); background: var(--sp-flaeche); border: 1px solid var(--sp-kante); font-size: 14px; color: var(--sp-text-leise); line-height: 1.45; }
+.sp-ideen__schritte strong { display: block; margin-bottom: 2px; color: #fff; font-size: 15px; }
+.sp-ideen__zahl { display: inline-grid; place-items: center; flex: none; width: 30px; height: 30px; border-radius: var(--sp-radius-klein); background: var(--sp-play); color: #062A33; font: 800 14px/1 var(--font-ui, sans-serif); }
+
+.sp-ideen__form { display: flex; flex-direction: column; gap: 18px; }
+.sp-ideen__zeile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.sp-ideen__feld { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.sp-ideen__label { padding: 0; font-weight: 700; font-size: 14px; color: var(--sp-text); }
+.sp-ideen__pflicht { color: var(--sp-akzent); }
+.sp-ideen__hilfe { margin: 0; font-size: 13px; color: var(--sp-text-sehrleise); }
+.sp-ideen__zaehler { align-self: flex-end; font-variant-numeric: tabular-nums; }
+.sp-ideen__feld input[type="text"], .sp-ideen__feld select, .sp-ideen__feld textarea {
+  width: 100%; margin: 0; padding: 10px 12px; border-radius: var(--sp-radius-klein); border: 1px solid var(--sp-kante-hell);
+  background: rgba(1, 10, 17, .45); color: #fff; font: 16px/1.5 var(--font-ui, sans-serif);
+}
+.sp-ideen__feld select { min-height: 46px; }
+.sp-ideen__feld select option { background: #0A2A3C; color: #fff; }
+.sp-ideen__feld textarea { min-height: 170px; resize: vertical; }
+.sp-ideen__feld input::placeholder, .sp-ideen__feld textarea::placeholder { color: var(--sp-text-sehrleise); }
+.sp-ideen__feld input:focus, .sp-ideen__feld select:focus, .sp-ideen__feld textarea:focus { outline: none; border-color: var(--sp-akzent); box-shadow: 0 0 0 3px rgba(127, 224, 238, .18); }
+.sp-ideen [aria-invalid="true"] { border-color: var(--sp-ideen-rot) !important; }
+
+.sp-ideen__chips { display: flex; gap: 6px; }
+.sp-ideen__chips label { flex: 1; position: relative; }
+.sp-ideen__chips input, .sp-ideen__sicht input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.sp-ideen__chips span {
+  display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 8px 10px;
+  border-radius: var(--sp-radius-klein); border: 1px solid var(--sp-kante-hell); background: rgba(255, 255, 255, .06);
+  color: var(--sp-text-leise); font-weight: 700; font-size: 14px; cursor: pointer; transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.sp-ideen__chips label:hover span { background: var(--sp-flaeche-hover); color: #fff; }
+.sp-ideen__chips input:checked + span { background: rgba(127, 224, 238, .2); border-color: var(--sp-akzent); color: #EAFBFF; }
+.sp-ideen__chips input:focus-visible + span, .sp-ideen__sicht input:focus-visible + span { outline: 2px solid var(--sp-akzent); outline-offset: 2px; }
+
+/* Oeffentlich oder privat: zwei grosse Karten. */
+.sp-ideen__sicht { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sp-ideen__sicht label { position: relative; }
+.sp-ideen__sicht span {
+  display: flex; flex-direction: column; gap: 4px; height: 100%; padding: 14px 16px; border-radius: var(--sp-radius);
+  border: 1px solid var(--sp-kante-hell); background: rgba(255, 255, 255, .05); color: var(--sp-text-leise); font-size: 13px; line-height: 1.45;
+  cursor: pointer; transition: background .16s ease, border-color .16s ease;
+}
+.sp-ideen__sicht svg { width: 22px; height: 22px; color: var(--sp-akzent); margin-bottom: 4px; }
+.sp-ideen__sicht strong { color: #fff; font-size: 16px; }
+.sp-ideen__sicht label:hover span { background: var(--sp-flaeche-hover); }
+.sp-ideen__sicht input:checked + span { background: rgba(127, 224, 238, .16); border-color: var(--sp-akzent); box-shadow: 0 0 0 1px var(--sp-akzent) inset; }
+[data-ideen-sichtbarkeit][aria-invalid="true"] .sp-ideen__sicht span { border-color: var(--sp-ideen-rot); }
+
+/* Bilder: Vorschauen und das Feld zum Waehlen in einer Reihe. */
+.sp-ideen__ablage {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; padding: 10px;
+  border-radius: var(--sp-radius); border: 1px dashed var(--sp-kante-hell); background: rgba(1, 10, 17, .3);
+  transition: border-color .16s ease, background .16s ease;
+}
+.sp-ideen__ablage--drueber { border-color: var(--sp-akzent); background: rgba(127, 224, 238, .08); }
+.sp-ideen__bilder { display: contents; }
+.sp-ideen__bild { position: relative; aspect-ratio: 4 / 3; border-radius: var(--sp-radius-klein); overflow: hidden; background: #03101A; border: 1px solid var(--sp-kante); }
+.sp-ideen__bild img { width: 100%; height: 100%; object-fit: cover; }
+.sp-ideen__bild--laedt { display: grid; place-items: center; padding: 8px; text-align: center; font-size: 12px; color: var(--sp-text-leise); animation: spIdeenPuls 1.2s ease-in-out infinite alternate; }
+@keyframes spIdeenPuls { from { opacity: .55; } to { opacity: 1; } }
+.sp-ideen__weg {
+  position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 50%; background: rgba(1, 8, 14, .78); color: #fff; cursor: pointer;
+}
+.sp-ideen__weg:hover { background: rgba(242, 165, 138, .9); color: #2A0F00; }
+.sp-ideen__weg svg { width: 16px; height: 16px; }
+.sp-ideen__waehlen {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  aspect-ratio: 4 / 3; padding: 10px; border-radius: var(--sp-radius-klein); background: rgba(255, 255, 255, .05);
+  border: 1px solid var(--sp-kante); color: var(--sp-text-leise); font-size: 13px; text-align: center; line-height: 1.35; cursor: pointer;
+  transition: background .16s ease, color .16s ease;
+}
+.sp-ideen__waehlen:hover, .sp-ideen__waehlen:focus-within { background: var(--sp-flaeche-hover); color: #fff; }
+.sp-ideen__waehlen:focus-within { outline: 2px solid var(--sp-akzent); outline-offset: 2px; }
+.sp-ideen__waehlen svg { width: 26px; height: 26px; color: var(--sp-akzent); }
+.sp-ideen__waehlen strong { display: block; color: #fff; }
+.sp-ideen__waehlen input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+/* Ohne Bilder nimmt das Waehlfeld die ganze Breite ein. */
+.sp-ideen__bilder:empty + .sp-ideen__waehlen { grid-column: 1 / -1; aspect-ratio: auto; min-height: 110px; flex-direction: row; gap: 12px; }
+
+/* Haken: erwaehnen (mit Namensfeld), veroeffentlichen, Rechte. */
+.sp-ideen__haken-gruppe { display: flex; flex-direction: column; gap: 14px; padding: 16px; border-radius: var(--sp-radius); background: rgba(1, 10, 17, .3); border: 1px solid var(--sp-kante); }
+.sp-ideen__haken { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.5; color: var(--sp-text); cursor: pointer; }
+.sp-ideen__haken input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: #3FC6DC; cursor: pointer; }
+.sp-ideen__haken input[aria-invalid="true"] { outline: 2px solid var(--sp-ideen-rot); outline-offset: 2px; }
+.sp-ideen__name { margin: -4px 0 0 32px; max-width: 360px; }
+.sp-ideen__pflichtmarke {
+  display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: var(--sp-radius-klein); vertical-align: 1px;
+  background: rgba(127, 224, 238, .14); color: var(--sp-akzent); font: 800 10px/1.4 var(--font-ui, sans-serif); letter-spacing: .06em; text-transform: uppercase;
+}
+
+.sp-ideen__aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.sp-ideen__aktionen .sp-knopf--play:disabled { opacity: .6; cursor: default; transform: none; }
+
+/* ---- Kleinere Schirme ---- */
+@media (max-width: 1080px) {
+  .sp-ideen__raster { grid-template-columns: 1fr; }
+  .sp-ideen__seite { position: static; }
+}
+@media (max-width: 640px) {
+  .sp-ideen { padding-top: 18px; }
+  .sp-ideen__held { padding: 20px 18px; }
+  .sp-ideen__heldaktion { width: 100%; }
+  .sp-ideen__heldaktion .sp-knopf, .sp-ideen__aktionen .sp-knopf--gross { width: 100%; }
+  .sp-ideen__kasten { padding: 14px; }
+  .sp-ideen__zeile, .sp-ideen__sicht { grid-template-columns: 1fr; }
+  .sp-ideen__ablage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-ideen__anzahl { display: none; }
+  .sp-idee { grid-template-columns: 42px minmax(0, 1fr); gap: 10px; padding-left: 6px; }
+  .sp-idee__stimme { width: 36px; }
+  .sp-idee__minis a { width: calc(50% - 4px); }
+  .sp-ideen__name { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-ideen__bild--laedt { animation: none; } }

@@ -4,9 +4,16 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Die Spiele-Aktualisierung (spiele.yml) prueft damit ihren Stand, bevor er
+  # auf main geht.
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -17,6 +24,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Validate restored portfolio
         run: |
@@ -28,8 +37,10 @@ jobs:
           test -s shop/spiele.js
           node --check shop/shop.js
           node --check shop/bewertungen.js
-          node --test tools/bewertungen.test.mjs
-          node -e 'global.window={}; require("./shop/spiele.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
+          node --check shop/identitaet.js
+          node --check shop/ideen.js
+          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs
+          node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
           node tools/check-games.mjs
@@ -67,7 +78,7 @@ jobs:
               echo "$1:"; echo "$kopf"; exit 1
             fi
           }
-          for pfad in / /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js; do
+          for pfad in / /requests /requests/new /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
@@ -86,6 +97,9 @@ jobs:
           test "$(status /api/bewertungen/gibtsnicht)" = 404
           test "$(status /api/bewertungen/admin/alle)" = 503
           test "$(status /admin/)" = 200
+          # Game Requests hinter nginx
+          test "$(status /api/ideen/)" = 200
+          test "$(status /api/ideen/admin/alle)" = 503
           umleitung /admin 301 /admin/
           umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
           umleitung /games 301 /

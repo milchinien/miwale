@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="google" content="notranslate">
-<title>Bewertungen verwalten · miwale</title>
+<title>Verwaltung · miwale</title>
 <link rel="icon" type="image/png" href="/assets/favicon-whale-light.png">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
 <!--
-  Verwaltung der Bewertungen von miwale.com/games.
+  Verwaltung der Bewertungen von miwale.com/games und der Game Requests
+  von miwale.com/requests.
   Die Seite selbst ist nicht geheim. Jede Anfrage an die Schnittstelle traegt
   das Passwort mit; der Dienst prueft es und bremst falsches Raten. Das Passwort
   bleibt nur in diesem Tab (sessionStorage) und ist nach dem Schliessen weg.
@@ -45,14 +46,26 @@
   .text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
   .privat { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(255,214,120,.08); border-left: 3px solid rgba(255,214,120,.6); white-space: pre-line; overflow-wrap: anywhere; }
   .antwort { padding: 10px 12px; border-left: 3px solid #7FE0EE; background: rgba(127,224,238,.06); border-radius: 0 12px 12px 0; }
+  .reiter { display: flex; gap: 6px; }
+  .reiter button[aria-pressed="true"] { background: rgba(127,224,238,.2); border-color: #7FE0EE; color: #fff; }
+  .nr { font-weight: 800; color: rgba(237,243,249,.62); }
+  .stand { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.08); }
+  .stand.shortlist { background: rgba(243,213,139,.18); color: #F3D58B; }
+  .stand.in-arbeit { background: rgba(255,150,80,.25); color: #FFC9A3; }
+  .stand.fertig { background: rgba(127,224,238,.25); color: #BFF1F7; }
+  .stand.nicht-gewaehlt { opacity: .6; }
+  .bilder { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bilder a { display: block; width: 160px; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: #03101A; border: 1px solid rgba(255,255,255,.12); }
+  .bilder img { width: 100%; height: 100%; object-fit: cover; }
+  label.feld { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 180px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main>
   <div class="zeile" style="justify-content: space-between;">
-    <h1>Bewertungen verwalten</h1>
-    <a href="/games" style="color: #7FE0EE;">Zur Spieleseite →</a>
+    <h1>Verwaltung</h1>
+    <a href="/" style="color: #7FE0EE;">Zur Spieleseite →</a>
   </div>
 
   <form id="anmelden" class="karte" autocomplete="on">
@@ -66,17 +79,22 @@
     <p id="anmeldeFehler" class="fehler" style="margin: 0;" hidden></p>
   </form>
 
+  <div id="reiter" class="zeile" style="justify-content: space-between;" hidden>
+    <div class="reiter" role="group" aria-label="Bereich">
+      <button type="button" data-reiter="bereich" aria-pressed="true">Bewertungen</button>
+      <button type="button" data-reiter="ideenBereich" aria-pressed="false">Game Requests</button>
+    </div>
+    <div class="zeile">
+      <button type="button" id="neuLaden">Neu laden</button>
+      <button type="button" id="abmelden">Abmelden</button>
+    </div>
+  </div>
+
   <div id="bereich" hidden style="display: flex; flex-direction: column; gap: 24px;">
-    <div class="zeile" style="justify-content: space-between;">
-      <div class="zeile">
-        <label class="klein" for="spielFilter">Spiel</label>
-        <select id="spielFilter"><option value="">Alle Spiele</option></select>
-        <label class="klein"><input type="checkbox" id="nurText"> nur mit Text</label>
-      </div>
-      <div class="zeile">
-        <button type="button" id="neuLaden">Neu laden</button>
-        <button type="button" id="abmelden">Abmelden</button>
-      </div>
+    <div class="zeile">
+      <label class="klein" for="spielFilter">Spiel</label>
+      <select id="spielFilter"><option value="">Alle Spiele</option></select>
+      <label class="klein"><input type="checkbox" id="nurText"> nur mit Text</label>
     </div>
 
     <div id="werte" class="werte"></div>
@@ -93,18 +111,36 @@
       </div>
     </details>
   </div>
+
+  <!-- Game Requests: eingereichte Spielideen von miwale.com/requests. Neue sieht
+       nur diese Seite; "Auf der Seite zeigen" macht eine Idee samt Bildern und
+       Namen fuer alle sichtbar. -->
+  <div id="ideenBereich" hidden style="display: flex; flex-direction: column; gap: 24px;">
+    <div class="zeile">
+      <label class="klein" for="standFilter">Stand</label>
+      <select id="standFilter"><option value="">Alle</option></select>
+      <label class="klein" for="sichtFilter">Sichtbarkeit</label>
+      <select id="sichtFilter"><option value="">Alle</option><option value="oeffentlich">Öffentlich</option><option value="privat">Privat</option></select>
+      <label class="klein"><input type="checkbox" id="nurPruefen"> nur Bilder zu prüfen</label>
+    </div>
+    <div id="ideenWerte" class="werte"></div>
+    <p id="ideenMeldung" class="klein" style="margin: 0;" role="status" aria-live="polite"></p>
+    <div id="ideenListe" style="display: flex; flex-direction: column; gap: 12px;"></div>
+  </div>
 </main>
 
 <script>
 (() => {
   const API = "/api/bewertungen/admin/";
+  const IDEEN_API = "/api/ideen/admin/";
   const SCHLUESSEL = "miwale-admin-passwort";
   const $ = (id) => document.getElementById(id);
   let passwort = sessionStorage.getItem(SCHLUESSEL) || "";
   let daten = { spiele: [], bewertungen: [] };
+  let ideen = { ideen: [], staende: [] };
 
-  async function rufen(pfad, { methode = "GET", koerper } = {}) {
-    const res = await fetch(API + pfad, {
+  async function rufen(pfad, { methode = "GET", koerper, basis = API } = {}) {
+    const res = await fetch(basis + pfad, {
       method: methode,
       headers: { authorization: "Bearer " + passwort, "content-type": "application/json" },
       body: koerper ? JSON.stringify(koerper) : undefined
@@ -124,6 +160,8 @@
     passwort = "";
     sessionStorage.removeItem(SCHLUESSEL);
     $("bereich").hidden = true;
+    $("ideenBereich").hidden = true;
+    $("reiter").hidden = true;
     $("anmelden").hidden = false;
     $("anmeldeFehler").hidden = !grund;
     $("anmeldeFehler").textContent = grund || "";
@@ -133,8 +171,16 @@
     daten = await rufen("alle");
     const liste = await rufen("sperrliste");
     $("sperrliste").value = liste.woerter.join("\n");
+    ideen = await rufen("alle", { basis: IDEEN_API });
     $("anmelden").hidden = true;
-    $("bereich").hidden = false;
+    $("reiter").hidden = false;
+    zeigeReiter(sessionStorage.getItem("miwale-admin-reiter") || "bereich");
+    const standWahl = $("standFilter");
+    const standGewaehlt = standWahl.value;
+    standWahl.length = 1;
+    for (const s of ideen.staende) standWahl.add(new Option(STAENDE[s] || s, s));
+    standWahl.value = standGewaehlt;
+    ideenZeichnen();
     const auswahl = $("spielFilter");
     const gewaehlt = auswahl.value;
     auswahl.length = 1;
@@ -209,8 +255,115 @@
   }
 
   function meldung(text, fehler) {
-    $("meldung").textContent = text;
-    $("meldung").className = "klein " + (fehler ? "fehler" : "ok");
+    for (const id of ["meldung", "ideenMeldung"]) {
+      $(id).textContent = text;
+      $(id).className = "klein " + (fehler ? "fehler" : "ok");
+    }
+  }
+
+  function zeigeReiter(id) {
+    for (const b of document.querySelectorAll("[data-reiter]")) {
+      const an = b.dataset.reiter === id;
+      b.setAttribute("aria-pressed", String(an));
+      $(b.dataset.reiter).hidden = !an;
+    }
+    sessionStorage.setItem("miwale-admin-reiter", id);
+  }
+
+  // ---- Game Requests ----
+  const STAENDE = { neu: "Neu", shortlist: "Shortlist", "in-arbeit": "In Arbeit", fertig: "Fertig", "nicht-gewaehlt": "Nicht gewählt" };
+  const GENRES = { action: "Action", puzzle: "Puzzle", idle: "Idle / Clicker", karten: "Kartenspiel", roguelike: "Roguelike", "jump-and-run": "Jump ’n’ Run", strategie: "Strategie / Tower Defense", simulation: "Simulation / Tycoon", rennen: "Rennspiel", horror: "Horror", musik: "Rhythmus / Musik", party: "Party / Mehrspieler", anderes: "Etwas anderes" };
+  const PLATTFORMEN = { pc: "PC", handy: "Handy", beides: "PC und Handy" };
+
+  // Bilder noch nicht sichtbarer Ideen liefert der Dienst nur mit Passwort;
+  // ein <img> kann das nicht mitschicken. Also selbst laden, einmal je Bild.
+  const bildCache = new Map();
+  function bildLaden(src) {
+    if (!bildCache.has(src)) {
+      bildCache.set(src, fetch(src, { headers: { authorization: "Bearer " + passwort } })
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .then((b) => URL.createObjectURL(b))
+        .catch(() => { bildCache.delete(src); return ""; }));
+    }
+    return bildCache.get(src);
+  }
+
+  // Oeffentliche Idee mit Bildern, die noch niemand freigegeben hat.
+  const bilderOffen = (i) => i.sichtbarkeit === "oeffentlich" && !i.versteckt && i.bilder.length && !i.bilderFrei;
+
+  function ideenZeichnen() {
+    const stand = $("standFilter").value;
+    const sicht = $("sichtFilter").value;
+    const nurPruefen = $("nurPruefen").checked;
+
+    const werte = $("ideenWerte");
+    werte.replaceChildren();
+    for (const s of ideen.staende) {
+      const n = ideen.ideen.filter((i) => i.stand === s).length;
+      werte.append(el("div", { class: "wert" }, el("b", {}, STAENDE[s] || s), el("span", { class: "klein" }, n + (n === 1 ? " Idee" : " Ideen"))));
+    }
+    const offen = ideen.ideen.filter(bilderOffen).length;
+    werte.append(el("div", { class: "wert" }, el("b", { class: offen ? "fehler" : "" }, "Bilder zu prüfen"), el("span", { class: "klein" }, offen + (offen === 1 ? " Idee" : " Ideen"))));
+    if (ideen.speicherBytes) {
+      werte.append(el("div", { class: "wert" }, el("b", {}, "Bilder"),
+        el("span", { class: "klein" }, (ideen.belegt / 1048576).toFixed(1) + " von " + Math.round(ideen.speicherBytes / 1048576) + " MB")));
+    }
+
+    const liste = $("ideenListe");
+    liste.replaceChildren();
+    const sichtbar = ideen.ideen.filter((i) => (!stand || i.stand === stand) && (!sicht || i.sichtbarkeit === sicht) && (!nurPruefen || bilderOffen(i)));
+    for (const i of sichtbar) liste.append(ideeEintrag(i));
+    if (!sichtbar.length) liste.append(el("p", { class: "klein" }, ideen.ideen.length ? "Nichts gefunden." : "Noch keine Game Requests."));
+  }
+
+  function ideeEintrag(i) {
+    const zeit = new Date(i.zeit).toLocaleString("de-DE");
+    const standWahl = el("select", {});
+    for (const s of ideen.staende) standWahl.add(new Option(STAENDE[s] || s, s));
+    standWahl.value = i.stand;
+    const oeff = i.sichtbarkeit === "oeffentlich";
+    const versteckt = el("input", { type: "checkbox" });
+    versteckt.checked = !!i.versteckt;
+    const bilderFrei = el("input", { type: "checkbox" });
+    bilderFrei.checked = !!i.bilderFrei;
+    const antwort = el("textarea", { placeholder: "Nachricht an den Einsender. Er sieht sie bei seinen Ideen; ist die Idee öffentlich, sehen sie alle.", maxlength: "1000" });
+    antwort.value = i.antwort ? i.antwort.text : "";
+    const link = el("input", { type: "url", placeholder: "https://… (Video oder Spiel, sobald es fertig ist)", maxlength: "300" });
+    link.value = i.link || "";
+
+    const bilder = el("div", { class: "bilder" });
+    for (const src of i.bilder) {
+      const img = el("img", { alt: "" });
+      const a = el("a", { target: "_blank", rel: "noopener", title: "Groß öffnen" }, img);
+      bilder.append(a);
+      bildLaden(src).then((url) => { if (url) { img.src = url; a.href = url; } });
+    }
+
+    const eckdaten = [i.genre ? GENRES[i.genre] || i.genre : "kein Genre", PLATTFORMEN[i.plattform] || i.plattform, zeit].join(" · ");
+    return el("article", { class: "karte" },
+      el("div", { class: "zeile" },
+        el("span", { class: "nr" }, "#" + i.nummer),
+        el("b", {}, i.titel),
+        el("span", { class: "stand " + i.stand }, STAENDE[i.stand] || i.stand),
+        el("span", { class: "klein " + (oeff && !i.versteckt ? "ok" : "") }, oeff ? (i.versteckt ? "öffentlich, aber ausgeblendet" : "öffentlich") : "privat"),
+        oeff ? el("span", { class: "klein" }, "▲ " + i.hoch + " · ▼ " + i.runter + " · " + i.punkte + " Punkte") : null),
+      el("div", { class: "zeile klein" },
+        el("span", {}, eckdaten),
+        el("span", {}, i.erwaehnen ? "Erwähnen als: " + i.name : "nicht erwähnen" + (i.name ? " (" + i.name + ")" : "")),
+        el("span", { class: i.veroeffentlichen ? "ok" : "fehler" }, i.veroeffentlichen ? "Spiel darf auf miwale.com" : "Spiel NICHT auf miwale.com veröffentlichen"),
+        el("span", { title: "Zeitpunkt, zu dem der Einsender bestätigt hat, dass Idee und Spiel miwale gehören" }, "Rechte bestätigt " + (i.rechte ? new Date(i.rechte).toLocaleString("de-DE") : "–")),
+        el("span", { title: "Pruefsumme der Adresse. Gleiche Kennung heisst gleicher Anschluss." }, "Adresse #" + (i.adresse || "?"))),
+      el("p", { class: "text" }, i.beschreibung),
+      i.bilder.length ? bilder : null,
+      el("div", { class: "zeile" },
+        el("label", { class: "feld klein" }, "Stand", standWahl),
+        oeff ? el("label", { class: "klein" }, versteckt, " Aus der öffentlichen Liste ausblenden") : null,
+        oeff && i.bilder.length ? el("label", { class: "klein" + (bilderOffen(i) ? " fehler" : "") }, bilderFrei, " Bilder öffentlich zeigen (geprüft)") : null),
+      el("label", { class: "feld klein" }, "Link zum Video oder Spiel", link),
+      el("div", { class: "antwort" }, antwort),
+      el("div", { class: "zeile" },
+        el("button", { type: "button", class: "haupt", on: { click: () => aktion(() => rufen("idee/" + i.id, { basis: IDEEN_API, methode: "PUT", koerper: { stand: standWahl.value, versteckt: versteckt.checked, bilderFrei: bilderFrei.checked, antwort: antwort.value, link: link.value } }), "#" + i.nummer + " gespeichert.") } }, "Speichern"),
+        el("button", { type: "button", class: "gefahr", on: { click: () => confirm("Game Request #" + i.nummer + " samt Bildern löschen?") && aktion(() => rufen("idee/" + i.id, { basis: IDEEN_API, methode: "DELETE" }), "#" + i.nummer + " gelöscht.") } }, "Löschen")));
   }
 
   $("anmelden").addEventListener("submit", async (e) => {
@@ -228,6 +381,10 @@
   $("neuLaden").addEventListener("click", () => aktion(async () => {}, "Aktualisiert."));
   $("spielFilter").addEventListener("change", zeichnen);
   $("nurText").addEventListener("change", zeichnen);
+  $("standFilter").addEventListener("change", ideenZeichnen);
+  $("sichtFilter").addEventListener("change", ideenZeichnen);
+  $("nurPruefen").addEventListener("change", ideenZeichnen);
+  for (const b of document.querySelectorAll("[data-reiter]")) b.addEventListener("click", () => zeigeReiter(b.dataset.reiter));
   $("sperrlisteSpeichern").addEventListener("click", async () => {
     try {
       const r = await rufen("sperrliste", { methode: "PUT", koerper: { woerter: $("sperrliste").value.split("\n") } });

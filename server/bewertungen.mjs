@@ -11,15 +11,18 @@
 // Geschrieben wird ueber eine Zwischendatei und rename, damit ein Absturz mitten
 // im Schreiben nie eine halbe Datei hinterlaesst.
 //
-// Laeuft im selben Container wie nginx auf 127.0.0.1:8081; nginx reicht
-// /api/bewertungen/ hierher durch (docker/nginx.conf).
+// Laeuft im selben Container wie nginx auf 127.0.0.1:8081 (server/start.mjs);
+// nginx reicht /api/bewertungen/ hierher durch (docker/nginx.conf).
 
-import http from "node:http";
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { START_SPERRLISTE } from "./sperrliste.mjs";
+import {
+  GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen,
+  besucherAdresse, adressKennung, tempoGrenze, handlerAus
+} from "./gemeinsam.mjs";
 
 // Bewertet werden nur Spiele aus dem Katalog der Spieleseite (shop/spiele.js).
 // Sonst liesse sich der Speicher mit erfundenen Spielnamen vollschreiben. Die
@@ -27,8 +30,11 @@ import { START_SPERRLISTE } from "./sperrliste.mjs";
 // zweiten Eintrag hier bewertbar ist.
 export const KATALOG = fileURLToPath(new URL("../shop/spiele.js", import.meta.url));
 
+// Neben dem Katalog liegt spiele-auto.js mit den Spielen, die tools/sync-games.mjs
+// selbst von GitHub aufgenommen hat; die gehoeren dazu.
 export function spieleAusKatalog(pfad) {
-  const quelle = readFileSync(pfad, "utf8");
+  const auto = join(dirname(pfad), "spiele-auto.js");
+  const quelle = readFileSync(pfad, "utf8") + (existsSync(auto) ? "\n" + readFileSync(auto, "utf8") : "");
   return [...new Set([...quelle.matchAll(/^ {4}"id": "([a-z0-9-]+)"/gm)].map((m) => m[1]))];
 }
 
@@ -39,12 +45,10 @@ export const GRENZEN = {
   // Schreibende Anfragen je Adresse im Zeitfenster. Ein Mensch bewertet ein paar
   // Spiele und korrigiert sich vielleicht einmal; ein Skript will hunderte.
   schreibenProFenster: 20,
-  fensterMs: 10 * 60 * 1000,
+  fensterMs: FENSTER_MS,
   // Falsche Passwoerter je Adresse im Zeitfenster.
   loginVersuche: 10
 };
-
-const GERAET_RE = /^[a-zA-Z0-9-]{16,64}$/;
 
 // ---- Wortfilter ---------------------------------------------------------------
 // Vergleicht ganze Woerter nach einer Vereinfachung: klein, Umlaute ausgeschrieben,
@@ -92,72 +96,23 @@ export function speicherOeffnen(ordner) {
   const daten = existsSync(datei) ? JSON.parse(readFileSync(datei, "utf8")) : { bewertungen: [] };
   let sperrliste = existsSync(listeDatei) ? JSON.parse(readFileSync(listeDatei, "utf8")) : START_SPERRLISTE.slice();
 
-  const schreiben = (pfad, inhalt) => {
-    const zwischen = pfad + ".tmp";
-    writeFileSync(zwischen, JSON.stringify(inhalt, null, 2));
-    renameSync(zwischen, pfad);
-  };
-  if (!existsSync(listeDatei)) schreiben(listeDatei, sperrliste);
+  if (!existsSync(listeDatei)) sicherSchreiben(listeDatei, sperrliste);
 
   return {
     get alle() { return daten.bewertungen; },
     get sperrliste() { return sperrliste; },
-    speichern() { schreiben(datei, daten); },
-    sperrlisteSetzen(neu) { sperrliste = neu; schreiben(listeDatei, sperrliste); }
+    speichern() { sicherSchreiben(datei, daten); },
+    sperrlisteSetzen(neu) { sperrliste = neu; sicherSchreiben(listeDatei, sperrliste); }
   };
 }
 
 // ---- Hilfen ---------------------------------------------------------------------
-// Liefert null, wenn der Wert kein Text oder zu lang ist.
-function textPruefen(wert, max) {
-  if (wert == null) return "";
-  if (typeof wert !== "string") return null;
-  const t = wert
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-  return t.length > max ? null : t;
-}
-
-function gleich(a, b) {
-  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
-  return x.length === y.length && timingSafeEqual(x, y);
-}
-
 // Oeffentliche Sicht: ohne Geraet, ohne Adresse, ohne privates Feedback.
 function oeffentlich(b, geraet) {
   return {
     id: b.id, daumen: b.daumen, text: b.text, zeit: b.zeit, geaendert: b.geaendert || null,
     antwort: b.antwort || null, eigene: !!geraet && b.geraet === geraet
   };
-}
-
-function lesen(req) {
-  return new Promise((resolve, reject) => {
-    let groesse = 0;
-    let abgebrochen = false;
-    const teile = [];
-    req.on("data", (c) => {
-      if (abgebrochen) return;
-      groesse += c.length;
-      if (groesse > 16 * 1024) {
-        abgebrochen = true;
-        const e = new Error("zu-gross"); e.status = 413; reject(e);
-        return;
-      }
-      teile.push(c);
-    });
-    req.on("end", () => {
-      if (abgebrochen) return;
-      try {
-        const k = JSON.parse(Buffer.concat(teile).toString("utf8") || "{}");
-        if (!k || typeof k !== "object" || Array.isArray(k)) throw new Error("json");
-        resolve(k);
-      } catch { const e = new Error("json"); e.status = 400; reject(e); }
-    });
-    req.on("error", reject);
-  });
 }
 
 // ---- Anwendung ------------------------------------------------------------------
@@ -169,23 +124,7 @@ export function anwendungBauen(optionen) {
   const passwort = optionen.passwort || "";
   const salz = optionen.salz || "miwale";
   const jetzt = optionen.jetzt || (() => Date.now());
-  const zaehler = new Map();
-
-  // Adressen werden nie im Klartext gespeichert, nur als Pruefsumme mit Salz.
-  // Die reicht, um in der Verwaltung Stimmen von derselben Adresse zu erkennen.
-  const adressKennung = (ip) => createHash("sha256").update(salz + "|" + ip).digest("hex").slice(0, 12);
-
-  function begrenzt(schluessel, max) {
-    const t = jetzt();
-    const eintrag = zaehler.get(schluessel);
-    if (!eintrag || t - eintrag.start > GRENZEN.fensterMs) {
-      if (zaehler.size > 5000) for (const [k, v] of zaehler) if (t - v.start > GRENZEN.fensterMs) zaehler.delete(k);
-      zaehler.set(schluessel, { start: t, n: 1 });
-      return false;
-    }
-    eintrag.n++;
-    return eintrag.n > max;
-  }
+  const begrenzt = tempoGrenze(jetzt);
 
   function zusammenfassung(spiel, geraet) {
     const liste = speicher.alle.filter((b) => b.spiel === spiel);
@@ -207,11 +146,7 @@ export function anwendungBauen(optionen) {
   async function verarbeiten(req) {
     const url = new URL(req.url, "http://lokal");
     const teile = url.pathname.replace(/^\/api\/bewertungen\/?/, "").split("/").filter(Boolean);
-    // nginx im Container setzt X-Real-IP auf die Adresse, von der die Anfrage
-    // kam. Davor sitzt der Ingress, der die Besucheradresse als letzten Eintrag
-    // an X-Forwarded-For haengt; ohne Ingress (lokal) gilt X-Real-IP.
-    const weiter = String(req.headers["x-forwarded-for"] || "").split(",").map((s) => s.trim()).filter(Boolean);
-    const ip = weiter[weiter.length - 1] || String(req.headers["x-real-ip"] || "") || req.socket.remoteAddress || "unbekannt";
+    const ip = besucherAdresse(req);
 
     if (teile[0] === "healthz") return [200, { ok: true }];
 
@@ -291,9 +226,9 @@ export function anwendungBauen(optionen) {
       if (alt) {
         // Wer den Text aendert, dessen alte Antwort passt womoeglich nicht mehr;
         // sie bleibt trotzdem stehen, loeschen kann sie nur die Verwaltung.
-        Object.assign(alt, { daumen: k.daumen, text, privat, geaendert: zeit, adresse: adressKennung(ip) });
+        Object.assign(alt, { daumen: k.daumen, text, privat, geaendert: zeit, adresse: adressKennung(salz, ip) });
       } else {
-        speicher.alle.push({ id: randomUUID(), spiel, geraet: k.geraet, daumen: k.daumen, text, privat, zeit, adresse: adressKennung(ip), antwort: null });
+        speicher.alle.push({ id: randomUUID(), spiel, geraet: k.geraet, daumen: k.daumen, text, privat, zeit, adresse: adressKennung(salz, ip), antwort: null });
       }
       speicher.speichern();
       return [200, zusammenfassung(spiel, k.geraet)];
@@ -309,36 +244,7 @@ export function anwendungBauen(optionen) {
     return [405, { fehler: "methode" }];
   }
 
-  // Als Node-Handler nutzbar: im Container ueber http.createServer, lokal als
-  // Vite-Middleware (tools/bewertungen-dev.mjs).
-  return async function handler(req, res) {
-    let status, inhalt;
-    try {
-      [status, inhalt] = await verarbeiten(req);
-    } catch (e) {
-      status = e.status || 500;
-      inhalt = { fehler: e.status ? e.message : "server" };
-      if (!e.status) console.error(e);
-    }
-    res.writeHead(status, {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff"
-    });
-    res.end(JSON.stringify(inhalt));
-  };
-}
-
-// Direkt gestartet: node server/bewertungen.mjs
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const port = Number(process.env.BEWERTUNGEN_PORT || 8081);
-  const passwort = process.env.BEWERTUNGEN_ADMIN_PASSWORT || "";
-  if (!passwort) console.warn("BEWERTUNGEN_ADMIN_PASSWORT fehlt: die Verwaltungsseite bleibt gesperrt.");
-  const handler = anwendungBauen({
-    ordner: process.env.BEWERTUNGEN_ORDNER || "/data",
-    spiele: spieleAusKatalog(process.env.BEWERTUNGEN_KATALOG || KATALOG),
-    passwort,
-    salz: process.env.BEWERTUNGEN_SALZ || passwort || "miwale"
-  });
-  http.createServer(handler).listen(port, "127.0.0.1", () => console.log("Bewertungen auf 127.0.0.1:" + port));
+  // Als Node-Handler nutzbar: im Container ueber server/start.mjs, lokal als
+  // Vite-Middleware (tools/dienste-dev.mjs).
+  return handlerAus(verarbeiten);
 }

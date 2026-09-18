@@ -1,0 +1,24 @@
+{
+  "_erklaerung": [
+    "Woher tools/sync-games.mjs die Spiele holt. Jedes oeffentliche Repository des Kontos wird gebaut und geprueft;",
+    "wer die Kern-Pruefung besteht, landet auf miwale.com. Hier steht nur, was davon abweicht.",
+    "repos: Repository-Name -> id (Adresse /games/<id>), app (Ordner mit index.html), build (Befehl), dist (Ausgabe, relativ zum Repository).",
+    "ausgeschlossen: Repository-Name -> Grund. Diese werden nie gebaut.",
+    "Ein Spiel-Repository kann das alles auch selbst in einer miwale.json festlegen, samt Texten fuer die Seite (siehe README)."
+  ],
+  "konto": "milchinien",
+  "repos": {
+    "Dropfall": { "id": "dropfall" },
+    "Wavebreaker": { "id": "wavebreaker" },
+    "Chromatic": { "id": "chromatic" },
+    "Runecall": { "id": "runecall", "app": "packages/client" },
+    "Harmonics": { "id": "harmonics" },
+    "Coin-Pusher": { "id": "reliktenschieber" },
+    "michi-math-universe": { "id": "mathuniverse" }
+  },
+  "ausgeschlossen": {
+    "miwale": "die Seite selbst",
+    "dungeons-and-diplomas": "Anmeldung kaputt, braucht Supabase",
+    "mindforge-playground": "Werkzeug, kein Spiel"
+  }
+}

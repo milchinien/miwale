@@ -3,7 +3,8 @@
 // privates Feedback, das nur die Verwaltung (/admin/) sieht.
 //
 // Ohne Account und auf Vertrauensbasis: jedes Geraet bekommt beim ersten Besuch
-// eine zufaellige Kennung, pro Spiel zaehlt eine Stimme je Kennung. Der Dienst
+// eine zufaellige Kennung (shop/identitaet.js), pro Spiel zaehlt eine Stimme je
+// Kennung. Der Dienst
 // dahinter ist server/bewertungen.mjs.
 //
 // shop.js baut die Spielseite als HTML-Text und ruft danach
@@ -13,8 +14,6 @@
   "use strict";
 
   const API = "/api/bewertungen/";
-  const GERAET_SCHLUESSEL = "miwale-geraet";
-  const GERAET_RE = /^[a-zA-Z0-9-]{16,64}$/;
 
   const TEXTE = {
     en: {
@@ -102,19 +101,9 @@
     return String(x == null ? "" : x).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   }
 
+  // Die Kennung des Geraets kommt aus shop/identitaet.js.
   function geraetKennung() {
-    try {
-      let id = localStorage.getItem(GERAET_SCHLUESSEL);
-      if (!id || !GERAET_RE.test(id)) {
-        id = crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
-        localStorage.setItem(GERAET_SCHLUESSEL, id);
-      }
-      return id;
-    } catch (e) {
-      // Speicher gesperrt: fuer diesen Besuch eine Kennung im Speicher halten.
-      if (!geraetKennung.fluechtig) geraetKennung.fluechtig = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-      return geraetKennung.fluechtig;
-    }
+    return window.MIWALE_IDENTITAET.geraet();
   }
 
   // Stufen wie bei Steam. Unter fuenf Stimmen gibt es kein Urteil, nur die Zahl:

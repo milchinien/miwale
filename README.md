@@ -206,8 +206,9 @@ YouTube-Short kommen. Aufgebaut wie ein Spieleshop, aber ohne Preise:
 
 Dateien: `index.html` (Rahmen), `shop/shop.js` (Seite), `shop/shop.css`,
 `shop/spiele.js` (Katalog). Der Katalog ist bewusst getrennt von `PROJECTS` im
-Portfolio: dort stehen technische Texte, hier Texte fuer Spieler. Ein neues
-Spiel braucht einen Eintrag in beiden. Nicht im Katalog stehen Projekte, die man
+Portfolio: dort stehen technische Texte, hier Texte fuer Spieler. Neue Spiele
+von GitHub kommen von selbst dazu (`shop/spiele-auto.js`, siehe "Spiele von
+GitHub"); ein handgeschriebener Eintrag hier ersetzt den automatischen. Nicht im Katalog stehen Projekte, die man
 nicht spielen kann (Bestellsystem, Dungeons & Diplomas mit kaputter Anmeldung,
 mindforge, The Last Outpost, Flappy).
 
@@ -235,7 +236,7 @@ Die Oberflaeche steht in `shop/bewertungen.js` und `shop/bewertungen.css`;
   nur Prozent und Anzahl.
 - **Dienst.** `server/bewertungen.mjs`, ohne Abhaengigkeiten, laeuft im selben
   Container neben nginx auf `127.0.0.1:8081` (gestartet von
-  `docker/40-bewertungen.sh`, startet sich nach einem Absturz selbst neu). nginx
+  `server/start.mjs` aus `docker/40-dienste.sh`, startet sich nach einem Absturz selbst neu). nginx
   reicht `/api/bewertungen/` durch. Welche Spiele bewertet werden duerfen, liest
   der Dienst beim Start aus `shop/spiele.js`. Gespeichert wird in `/data`.
 - **Verwaltung unter `/admin/`.** Alle Bewertungen samt privatem Feedback,
@@ -244,6 +245,66 @@ Die Oberflaeche steht in `shop/bewertungen.js` und `shop/bewertungen.css`;
   die Variable bleibt die Verwaltung gesperrt.
 - **Lokal.** `npm run dev` bedient auch die Bewertungen; sie landen in
   `.bewertungen-dev/`, das Passwort fuer `/admin/` ist `dev`.
+
+### Game Requests
+
+Zweiter Reiter neben Home, fuer das Format "I build your game ideas in one day".
+
+- **`/requests`** zeigt zuerst die oeffentlichen Ideen anderer, jede mit Pfeil
+  hoch und runter. Reiter *Top* (nach Punkten), *New* und *Your ideas* (die
+  eigenen, auch private, mit Stand und Nachricht von miwale; dort laesst sich
+  eine Idee privat oder oeffentlich schalten oder zurueckziehen). Nach dem
+  Abstimmen bleibt die Reihenfolge stehen, bis man neu laedt oder den Reiter
+  wechselt, damit keine Karte unter dem Finger wegspringt. Oben rechts der
+  Knopf **Submit your idea**.
+- **`/requests/new`** ist das Formular: Name, Genre, Plattform, Beschreibung,
+  bis zu vier Skizzen oder Screenshots. Dann ohne Vorauswahl **oeffentlich**
+  (alle sehen die Idee und stimmen ab) oder **privat** (nur die Verwaltung).
+  Drei Haken: erwaehnt werden (nur dann fragt das Formular nach Name oder
+  @Handle, und nur dann wird er gespeichert), das fertige Spiel darf auf
+  miwale.com erscheinen, und Pflicht: Idee und Spiel gehoeren miwale, nicht
+  dem Einsender. Den Zeitpunkt dieser Bestaetigung speichert der Dienst.
+  Eigene Adresse, damit die Zurueck-Taste am Handy das Formular schliesst.
+- **Abstimmen.** Eine Stimme je Geraet und Idee, nochmal tippen nimmt sie
+  zurueck, fuer die eigene Idee geht es nicht. Wer wie gestimmt hat, sieht
+  niemand.
+- **Oeffentlich heisst sofort sichtbar**, wie bei den Bewertungen. Nur die
+  **Bilder** oeffentlicher Ideen erscheinen erst, wenn die Verwaltung sie
+  freigibt; bis dahin steht "images waiting for review" da. Der Einsender sieht
+  seine Bilder immer.
+- **Bilder.** Der Browser rechnet sie vor dem Hochladen klein (hoechstens
+  1600 px, unter 900 KB, WebP oder JPEG) und neu, das entfernt auch
+  Standortdaten aus Handyfotos. Jedes Bild geht einzeln an
+  `POST /api/ideen/bild`, damit keine Anfrage 1 MB ueberschreitet. Der Dienst
+  prueft den Bildtyp am Inhalt, legt die Dateien in `/data/ideen-bilder/` und
+  raeumt Bilder weg, die nach einem Tag noch keiner Idee gehoeren. Insgesamt
+  hoechstens 2 GB.
+- **Schutz.** Dieselbe Wortsperrliste wie bei den Bewertungen, verstecktes Feld
+  gegen Bots, je Adresse in zehn Minuten hoechstens 8 Einreichungen, 24 Bilder
+  und 150 Stimmen, hoechstens 10 unbearbeitete Ideen je Geraet.
+- **Entwurf.** Der Text bleibt bis zum Absenden im localStorage; am Handy laedt
+  die Seite manchmal neu, wenn man zum Bildauswaehlen in die Galerie wechselt.
+  Den Rechte-Haken merkt er sich absichtlich nicht.
+- **Verwaltung.** Reiter "Game Requests" unter `/admin/`, dasselbe Passwort:
+  Stand setzen, oeffentliche Ideen ausblenden, Bilder freigeben (Kachel
+  "Bilder zu prüfen" und Filter), Nachricht an den Einsender, Link zum Video
+  oder Spiel, loeschen. Private Ideen kann die Verwaltung nicht oeffentlich
+  machen. Zu jeder Idee stehen die drei Haken des Einsenders dabei.
+
+Dateien: `shop/ideen.js`, `shop/ideen.css`, `server/ideen.mjs`, Tests in
+`tools/ideen.test.mjs`.
+
+**Spaeter ein Konto.** Heute gehoeren Ideen und Stimmen einem Geraet. Das steht
+an genau zwei Stellen: `shop/identitaet.js` im Browser (welche Kennung mitgeht)
+und `besitzerVon()` in `server/gemeinsam.mjs` (gespeichert als
+`"geraet:<id>"`, bei Ideen im Feld `besitzer`, bei Stimmen als Schluessel in
+`stimmen`). Ein Konto liefert dort `"konto:<id>"` aus der Sitzung; was ein
+Geraet vorher angelegt hat, laesst sich bei der Anmeldung einmalig auf das
+Konto umschreiben. Die Bewertungen holen ihre Kennung auch schon aus
+`shop/identitaet.js`.
+
+Bewertungen und Game Requests laufen in einem Node-Prozess (`server/start.mjs`,
+gestartet von `docker/40-dienste.sh`) und teilen Hilfen aus `server/gemeinsam.mjs`.
 
 **Produktion einmalig einrichten.** Auf dem Server neben
 `docker-compose.prod.yml` eine `.env` mit `BEWERTUNGEN_ADMIN_PASSWORT=...`
@@ -346,11 +407,68 @@ Screenshot aus dem Spiel, bis eine Illustration entsteht. Die Zuordnung steht im
 und die vollst?ndigen Generierungsprompts in `prompts.md`.
 
 
-## Eingebettete Spiele aktualisieren
+## Spiele von GitHub (automatisch)
 
-Wavebreaker, Chromatic, Runecall, Harmonics und der Reliktenschieber werden als gepr?fte Produktionspakete aus `public/games/` gemeinsam mit dem Portfolio ausgeliefert. Die iframe-Ansicht und ?In neuem Tab ?ffnen? verwenden dieselbe Fassung. Dropfall bleibt unver?ndert extern. Der Vollbildschalter sitzt in der Kopfzeile, nicht ?ber dem Spiel.
+Jedes oeffentliche Repository von `milchinien` auf GitHub wird automatisch zum
+Spiel auf miwale.com, sobald es einen **spielbaren Kern** hat. Das erledigt
+`tools/sync-games.mjs`, jeden Tag um 03:17 UTC als GitHub Action
+(`.github/workflows/spiele.yml`) und von Hand mit `npm run games:sync`.
 
-Nach ?nderungen in den benachbarten Spiel-Repositories `npm run games:sync` (einzelne Spiele: `npm run games:sync -- reliktenschieber`) ausf?hren. Das baut alle fuenf Spiele und ersetzt ihre Pakete einschlie?lich ?ffentlicher Symbole, Texturen und Sounds. `public/games/manifest.json` enth?lt Pr?fsummen; `npm run check:games` erkennt unvollst?ndige oder ver?nderte Pakete. Die Pakete werden mit versioniert, damit ein Portfolio-Deployment keine lokalen Nachbar-Repositories voraussetzt.
+Fuer jedes Repository: klonen, Abhaengigkeiten installieren (pnpm, npm oder
+yarn, je nach Lockfile), bauen, dann die **Kern-Pruefung**
+(`tools/kern-pruefung.mjs`) in Chromium. Spielbar heisst:
+
+1. Die Seite laedt unter `/games/<id>/`, und keine eigene Datei fehlt.
+2. Kein unbehandelter Fehler, weder beim Laden noch beim Spielen.
+3. Es ist etwas zu sehen, das Bild ist nicht einfarbig.
+4. Es gibt etwas zum Anfassen: Zeichenflaeche, Knoepfe oder Eingabefelder.
+5. Das Spiel reagiert: nach Klick auf "Start/Play", Tippen ins Bild und ein paar
+   Tasten sieht es anders aus.
+
+Dasselbe laeuft danach hochkant mit Touch. Besteht ein Spiel auch das, steht es
+als "am Handy spielbar" auf der Seite. Von Hand pruefen:
+`node tools/kern-pruefung.mjs public/games/chromatic chromatic`.
+
+Was besteht, wird unter `public/games/<id>/` eingefroren (Pruefsumme und Commit
+in `public/games/manifest.json`). Faellt eine neue Fassung durch, bleibt die alte
+online. Unveraenderte Repositories (gleicher Commit) werden uebersprungen.
+
+**Zwei Arten von Eintraegen.** Spiele mit handgeschriebenem Eintrag in
+`shop/spiele.js` werden nur neu gebaut; Texte, Trailer und Bilder bleiben. Alle
+anderen bekommen einen generierten Eintrag in `shop/spiele-auto.js` (nicht von
+Hand bearbeiten) mit Bildern aus der Pruefung (`assets/games/auto/`). Sobald ein
+Spiel einen Eintrag in `shop/spiele.js` bekommt, gilt der. Spiele mit externer
+Adresse in `shop/spiele.js` (Dropfall, Mathe Universe auf GitHub Pages) fasst die
+Automatik nicht an.
+
+**Texte fuer neue Spiele.** Ohne weiteres nimmt die Automatik die Beschreibung des
+Repositorys, sonst den ersten Absatz der README, fuer beide Sprachen gleich.
+Besser: eine `miwale.json` im Spiel-Repository.
+
+```json
+{
+  "name": "Idlekin",
+  "status": { "en": "Early prototype", "de": "Frueher Prototyp" },
+  "texte": {
+    "en": { "kurz": "...", "tags": ["Idle"], "ueber": ["..."], "features": ["..."], "steuerung": "..." },
+    "de": { "kurz": "...", "tags": ["Idle"], "ueber": ["..."], "features": ["..."], "steuerung": "..." }
+  }
+}
+```
+
+Weitere Felder in `miwale.json` (oder fuer fremde Repositories in
+`tools/spiele-quellen.json`): `"aufnehmen": false` haelt ein Repository heraus;
+`app`, `build`, `dist` legen fest, wo und wie gebaut wird, wenn die Erkennung
+danebenliegt; `fertig` zeigt auf einen eingecheckten fertigen Web-Build. Das ist
+der Weg fuer Unity (WebGL) und Godot (Web-Export), die sich ohne Lizenz und
+Vorlagen nicht in der Action bauen lassen.
+
+**Was die Action tut.** Hat sich etwas geaendert, committet sie auf den Branch
+`automatisch/spiele`, laesst dort dieselbe CI laufen wie bei einem PR und spult
+bei Gruen `main` vor; danach startet sie Publish. Ein Pushen mit dem
+`GITHUB_TOKEN` loest sonst keine anderen Workflows aus. Der Bericht (welches
+Repository warum durchgefallen ist) steht in der Zusammenfassung des Laufs und
+lokal in `.spiele-cache/bericht.md`. Private Repositories bleiben aussen vor.
 
 `npm run build` erstellt die vollst?ndige statische Seite in `dist/`, einschlie?lich beider Portfolio-Fassungen und aller Spiele. Der Docker-Build kopiert dieselben Dateien. Spielst?nde der externen GitHub-Pages-Adressen liegen auf einer anderen Origin und werden nicht automatisch ?bernommen.
 

@@ -10,4 +10,4 @@ rmSync(output,{recursive:true,force:true});
 mkdirSync(output,{recursive:true});
 for (const file of ['index.html','shop','miwale Portfolio.dc.html','support.js','_ds','assets']) cpSync(join(root,file),join(output,file),{recursive:true});
 cpSync(join(root,'public'),output,{recursive:true});
-console.log('Built games page, responsive portfolio, assets and five games.');
+console.log('Built games page, responsive portfolio, assets and all frozen games.');
