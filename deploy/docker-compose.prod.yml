@@ -21,7 +21,8 @@ services:
     # Ebenso dort: die Zugaenge fuer "Anmelden mit Discord/Google" (siehe
     # README, Abschnitt Konten). Fehlt einer, wird er einfach nicht angeboten.
     # SPIELE_ADRESSE erst setzen, wenn play.miwale.com im DNS und im Ingress
-    # steht -- sonst laden die Spiele nicht.
+    # steht -- sonst laden die Spiele nicht. Ohne SPIELE_ADRESSE bleibt Anmelden
+    # aus: Spiele unter derselben Adresse wie die Konten waeren nicht sicher.
     environment:
       BEWERTUNGEN_ADMIN_PASSWORT: ${BEWERTUNGEN_ADMIN_PASSWORT:-}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}

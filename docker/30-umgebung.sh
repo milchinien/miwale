@@ -12,14 +12,18 @@
 # eine schlichte https-Adresse aussieht; alles andere bricht den Start ab.
 set -eu
 
-ADRESSE_RE='^https://[a-z0-9.-]+$'
 MIWALE_ADRESSE="${MIWALE_ADRESSE:-https://miwale.com}"
 SPIELE_ADRESSE="${SPIELE_ADRESSE:-}"
 
-if ! echo "$MIWALE_ADRESSE" | grep -Eq "$ADRESSE_RE"; then
+# grep prueft Zeile fuer Zeile; ein Zeilenumbruch im Wert schluepfte sonst
+# mit einer passenden Zeile durch. Darum zuerst: gar keiner.
+adresse_ok() {
+  [ "$(printf '%s' "$1" | tr -d '\n')" = "$1" ] && printf '%s' "$1" | grep -Eqx 'https://[a-z0-9.-]+'
+}
+if ! adresse_ok "$MIWALE_ADRESSE"; then
   echo "MIWALE_ADRESSE ist keine https-Adresse: $MIWALE_ADRESSE" >&2; exit 1
 fi
-if [ -n "$SPIELE_ADRESSE" ] && ! echo "$SPIELE_ADRESSE" | grep -Eq "$ADRESSE_RE"; then
+if [ -n "$SPIELE_ADRESSE" ] && ! adresse_ok "$SPIELE_ADRESSE"; then
   echo "SPIELE_ADRESSE ist keine https-Adresse: $SPIELE_ADRESSE" >&2; exit 1
 fi
 

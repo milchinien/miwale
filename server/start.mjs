@@ -19,10 +19,16 @@ const salz = process.env.BEWERTUNGEN_SALZ || passwort || "miwale";
 const adresse = (process.env.MIWALE_ADRESSE || "https://miwale.com").replace(/\/+$/, "");
 if (!passwort) console.warn("BEWERTUNGEN_ADMIN_PASSWORT fehlt: die Verwaltungsseite bleibt gesperrt.");
 
-const anbieter = {
+// Konten nur, wenn die Spiele unter eigener Adresse laufen (SPIELE_ADRESSE,
+// docker/30-umgebung.sh). Laufen sie unter derselben Adresse wie die Seite,
+// koennte jedes Spiel im Namen eines angemeldeten Besuchers handeln -- die
+// Pruefung auf fremde Seiten haelt es nicht auf, es IST ja die eigene Seite.
+const spieleGetrennt = !!process.env.SPIELE_ADRESSE;
+const anbieter = spieleGetrennt ? {
   discord: { id: process.env.DISCORD_CLIENT_ID, secret: process.env.DISCORD_CLIENT_SECRET },
   google: { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET }
-};
+} : {};
+if (!spieleGetrennt) console.warn("Anmelden ist aus: SPIELE_ADRESSE fehlt, die Spiele laufen unter der Adresse der Seite.");
 for (const [name, z] of Object.entries(anbieter)) {
   if (!z.id || !z.secret) console.warn("Anmelden mit " + name + " ist aus: " + name.toUpperCase() + "_CLIENT_ID/_SECRET fehlen.");
 }

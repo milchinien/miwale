@@ -117,9 +117,11 @@ jobs:
             grep -qi '^x-content-type-options: nosniff' <<< "$kopf" || { echo "$pfad ohne nosniff"; echo "$kopf"; exit 1; }
             grep -qi '^x-frame-options: SAMEORIGIN' <<< "$kopf" || { echo "$pfad ohne X-Frame-Options"; echo "$kopf"; exit 1; }
           done
-          for pfad in / /games/chromatic /account /privacy; do
+          for pfad in / /index.html /games/chromatic /account /privacy; do
             curl -sSI "http://127.0.0.1:8080$pfad" | tr -d '\r' | grep -qi "^content-security-policy: default-src 'self'; script-src 'self';" || { echo "$pfad ohne CSP"; exit 1; }
           done
+          curl -sSI http://127.0.0.1:8080/admin/ | tr -d '\r' | grep -qi "^content-security-policy: default-src 'self'; script-src 'self';"
+          test "$(status /admin/verwaltung.js)" = 200
           # play.miwale.com: nur Spiele, sonst nichts -- und einbetten nur von miwale.com.
           spiel() { curl -s -o /dev/null -w '%{http_code}' -H 'Host: play.miwale.com' "http://127.0.0.1:8080$1"; }
           test "$(spiel /games/wavebreaker/)" = 200

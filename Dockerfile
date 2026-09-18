@@ -5,7 +5,7 @@ FROM nginx:alpine
 RUN apk add --no-cache nodejs
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY docker/sicherheit.conf docker/sicherheit-seite.conf docker/spiele-umleitung.conf docker/spiele-einbetten.conf /etc/nginx/miwale/
+COPY docker/sicherheit.conf docker/sicherheit-seite.conf docker/sicherheit-admin.conf docker/spiele-umleitung.conf docker/spiele-einbetten.conf /etc/nginx/miwale/
 COPY index.html /usr/share/nginx/html/index.html
 COPY ["miwale Portfolio.dc.html", "/usr/share/nginx/html/miwale Portfolio.dc.html"]
 COPY support.js /usr/share/nginx/html/support.js

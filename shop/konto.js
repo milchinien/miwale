@@ -180,7 +180,7 @@
 
   function zurueckAusAdresse() {
     const z = new URLSearchParams(location.search).get("zurueck") || "";
-    return /^\/(?![\/\\])[A-Za-z0-9\-._~\/]{0,200}$/.test(z) ? z : "/";
+    return /^\/(?![\/\\])[A-Za-z0-9\-._~\/]{0,200}$/.test(z) && !z.includes("//") && !z.includes("/.") ? z : "/";
   }
 
   function meldungHtml() {

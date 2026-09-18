@@ -189,7 +189,7 @@ test("state: nur aus demselben Browser, nur einmal, nie ein fremdes Ziel", async
   assert.equal((await opfer.rufen("/api/konto/rueckruf/discord?code=code-777&state=" + st2)).ziel, "/account?fehler=abgelaufen");
 
   // Offene Weiterleitung: nur Pfade dieser Seite.
-  for (const boese of ["//evil.example/x", "https://evil.example", "/\\evil.example", "javascript:alert(1)"]) {
+  for (const boese of ["//evil.example/x", "https://evil.example", "/\\evil.example", "javascript:alert(1)", "/.//evil.example", "/..//evil.example", "/games//evil.example"]) {
     const b = browser();
     await b.anmelden("5555");
     await b.rufen("/api/konto/registrieren", { methode: "POST", koerper: { name: "Boese" + Math.floor(Math.random() * 1e6), alter: true } });
@@ -334,4 +334,17 @@ test("Tempolimit fuer Anmeldungen und Namenswechsel", async (t) => {
   for (let i = 0; i < GRENZEN.anmeldenProFenster; i++) assert.equal((await b.rufen("/api/konto/anmelden/discord")).status, 302);
   const zuViel = await b.rufen("/api/konto/anmelden/discord");
   assert.equal(zuViel.ziel, "/account?fehler=zu-schnell");
+});
+
+test("volle Liste offener Anmeldungen sperrt niemanden aus, IPv6 zaehlt je Netz", async (t) => {
+  const { browser } = await starten(t);
+  const b = browser();
+  // Viele Adressen aus einem /64-Netz zaehlen zusammen.
+  for (let i = 0; i < GRENZEN.anmeldenProFenster; i++) {
+    assert.equal((await b.rufen("/api/konto/anmelden/discord", { kopf: { "x-forwarded-for": "2001:db8:1:2::" + i.toString(16) } })).status, 302);
+  }
+  const zuViel = await b.rufen("/api/konto/anmelden/discord", { kopf: { "x-forwarded-for": "2001:db8:1:2::ffff" } });
+  assert.equal(zuViel.ziel, "/account?fehler=zu-schnell");
+  // Ein anderes Netz ist davon nicht betroffen.
+  assert.equal((await b.rufen("/api/konto/anmelden/discord", { kopf: { "x-forwarded-for": "2001:db8:9:9::1" } })).status, 302);
 });

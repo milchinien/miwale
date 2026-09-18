@@ -340,7 +340,8 @@ Dienst in `server/konten.mjs`, Oberflaeche in `shop/konto.js` und
   und jedem Game Request steht, von welchem Konto er kommt, samt "Konto sperren".
 - **Lokal.** `npm run dev` bietet eine Test-Anmeldung an ("Test sign-in (local
   only)"): beliebige Kennung eingeben, gleiche Kennung = gleiches Konto. Die gibt
-  es nur in `tools/dienste-dev.mjs`, nie im Container.
+  es nur in `tools/dienste-dev.mjs`, nie im Container, und nur vom eigenen
+  Rechner aus (nicht vom Handy im WLAN).
 
 ### Spiele unter eigener Adresse (play.miwale.com)
 
@@ -352,7 +353,8 @@ oder sein Konto loeschen. Darum bekommen sie eine eigene Adresse.
 `/games/` ausliefert, keine Dienste und keine Verwaltung.
 
 Solange `SPIELE_ADRESSE` leer ist, laufen die Spiele wie bisher unter
-`miwale.com`. Mit `SPIELE_ADRESSE=https://play.miwale.com` zeigt das
+`miwale.com` -- und **Anmelden ist aus** (`server/start.mjs` bietet dann keinen
+Anbieter an). Konten gibt es erst, wenn die Spiele getrennt laufen. Mit `SPIELE_ADRESSE=https://play.miwale.com` zeigt das
 Spielfenster dorthin, und `miwale.com/games/<id>/...` leitet um
 (`docker/30-umgebung.sh`). Spielstaende im localStorage haengen an der Adresse:
 Wer schon unter `miwale.com` gespielt hat, faengt unter `play.miwale.com` neu an.
@@ -370,26 +372,27 @@ anlegen und die aktualisierte Compose-Datei dorthin kopieren. Sie bindet das
 Volume `miwale-bewertungen` an `/data`. Ohne Volume sind alle Bewertungen nach
 dem naechsten Deployment weg.
 
-**Konten einrichten** (einmalig, kostenlos):
+**Konten einrichten** (einmalig, kostenlos). Die Reihenfolge ist wichtig:
+ohne `play.miwale.com` bleibt Anmelden aus.
 
-1. **Discord:** <https://discord.com/developers/applications> -> New
+1. **play.miwale.com:** DNS-Eintrag wie fuer `miwale.com` und im Ingress
+   (`dev-cloud-server-config`, campsite-nginx) einen Server-Block fuer
+   `play.miwale.com` mit TLS, der wie `miwale.com` an `miwale:8080` weitergibt
+   und den Host mitschickt (`proxy_set_header Host $host`). Pruefen:
+   `https://play.miwale.com/games/wavebreaker/` laedt. Dann
+   `SPIELE_ADRESSE=https://play.miwale.com` in die `.env`.
+2. **Discord:** <https://discord.com/developers/applications> -> New
    Application -> OAuth2. Redirect `https://miwale.com/api/konto/rueckruf/discord`
    eintragen. Client ID und Client Secret in die `.env`:
    `DISCORD_CLIENT_ID=...`, `DISCORD_CLIENT_SECRET=...`.
-2. **Google:** <https://console.cloud.google.com/> -> neues Projekt -> "Google
+3. **Google:** <https://console.cloud.google.com/> -> neues Projekt -> "Google
    Auth Platform" -> Branding (App-Name miwale, Support-Mail) -> Zielgruppe
    "Extern" -> Clients -> "Webanwendung". Autorisierte Weiterleitungs-URI
    `https://miwale.com/api/konto/rueckruf/google`. Nur der Bereich `openid`
    wird gebraucht, dafuer ist keine Google-Pruefung noetig. In die `.env`:
    `GOOGLE_CLIENT_ID=...`, `GOOGLE_CLIENT_SECRET=...`.
-3. `docker compose -f docker-compose.prod.yml up -d`. Fehlt ein Anbieter, bietet
+4. `docker compose -f docker-compose.prod.yml up -d`. Fehlt ein Anbieter, bietet
    die Seite ihn einfach nicht an.
-4. **play.miwale.com:** DNS-Eintrag wie fuer `miwale.com` und im Ingress
-   (`dev-cloud-server-config`, campsite-nginx) einen Server-Block fuer
-   `play.miwale.com` mit TLS, der wie `miwale.com` an `miwale:8080` weitergibt
-   und den Host mitschickt (`proxy_set_header Host $host`). Pruefen:
-   `https://play.miwale.com/games/wavebreaker/` laedt. Erst dann
-   `SPIELE_ADRESSE=https://play.miwale.com` in die `.env` und neu starten.
 5. **Backup:** `/data` (Volume `miwale-bewertungen`) naechtlich sichern, z. B.
    `docker run --rm -v miwale-bewertungen:/data -v /backup:/b alpine tar czf /b/miwale-$(date +%F).tgz -C /data .`
    per Cron. Die Sicherung enthaelt `konten-geheimnis` -- so geschuetzt ablegen

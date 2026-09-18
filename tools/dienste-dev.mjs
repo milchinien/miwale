@@ -81,6 +81,12 @@ export function diensteDev() {
       const ideen = ideenBauen({ ...optionen, konten });
       server.middlewares.use((req, res, next) => {
         const pfad = req.url.split('?')[0];
+        // Der Dev-Server ist auch im WLAN erreichbar (Handy). Die Test-Anmeldung
+        // nicht: sonst meldete sich dort jeder als jeder an.
+        if (/^\/api\/(konto-test\/|konto\/(anmelden|rueckruf)\/test)/.test(pfad) && !/^(::1|127\.|::ffff:127\.)/.test(req.socket.remoteAddress || '')) {
+          res.statusCode = 403;
+          return res.end('Test-Anmeldung nur auf diesem Rechner');
+        }
         if (pfad === '/api/konto-test/anmelden') return testSeite(req, res);
         if (pfad === '/api/konto' || pfad.startsWith('/api/konto/')) return konten(req, res);
         if (pfad.startsWith('/api/bewertungen/')) return bewertungen(req, res);

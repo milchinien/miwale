@@ -46,7 +46,8 @@ export const GRENZEN = {
   anmeldungMs: 10 * 60 * 1000,
   // Zeit, um nach der ersten Anmeldung einen Namen zu waehlen.
   registrierungMs: 30 * 60 * 1000,
-  // Offene Anmeldungen im Speicher; mehr gleichzeitig ist ein Angriff.
+  // Offene Anmeldungen im Speicher. Sind es mehr, faellt die aelteste raus --
+  // abweisen hiesse, dass ein Angreifer mit vielen Adressen alle aussperrt.
   offenMax: 5000,
   // Je Adresse im Zeitfenster (10 min).
   anmeldenProFenster: 30,
@@ -69,7 +70,14 @@ const RESERVIERT = [
 const RESERVIERT_TEIL = ["miwale", "admin", "moderator"];
 
 const KENNUNG_RE = /^[A-Za-z0-9_-]{1,255}$/;
+// Rueckkehr nach dem Anmelden: nur ein Pfad dieser Seite. Kein "//" und kein
+// "/." -- sonst waere aus "/.//evil.example" eine fremde Adresse zu basteln.
 const ZIEL_RE = /^\/(?![\/\\])[A-Za-z0-9\-._~\/]{0,200}$/;
+const zielOk = (z) => ZIEL_RE.test(z) && !z.includes("//") && !z.includes("/.");
+
+// Tempolimit je Anschluss: IPv6-Adressen gibt es je Anschluss zu Milliarden
+// (ein /64-Netz), also zaehlt das Netz, nicht die einzelne Adresse.
+const anschluss = (ip) => (ip.includes(":") ? ip.split(":").slice(0, 4).join(":") + "::/64" : ip);
 
 export const ANBIETER = {
   discord: {
@@ -184,6 +192,8 @@ export function kontenBauen(optionen) {
   function aufraeumen(karte) {
     const t = jetzt();
     for (const [schl, v] of karte) if (v.ablauf < t) karte.delete(schl);
+    // Map behaelt die Reihenfolge: vorne stehen die aeltesten.
+    while (karte.size >= GRENZEN.offenMax) karte.delete(karte.keys().next().value);
   }
 
   const schluesselVon = (anbieter, kennung) => createHmac("sha256", geheimnis).update(anbieter + ":" + kennung).digest("hex");
@@ -287,14 +297,13 @@ export function kontenBauen(optionen) {
   // ---- Anmeldung beim Anbieter ----
   function anmeldenStarten(req, url, anbieter, ip) {
     const zugang = zugaenge[anbieter];
-    if (begrenzt("anmelden|" + ip, GRENZEN.anmeldenProFenster)) return weiter(fehlerZiel("zu-schnell"));
+    if (begrenzt("anmelden|" + anschluss(ip), GRENZEN.anmeldenProFenster)) return weiter(fehlerZiel("zu-schnell"));
     aufraeumen(anmeldungen);
-    if (anmeldungen.size >= GRENZEN.offenMax) return weiter(fehlerZiel("zu-schnell"));
 
     const zurueck = url.searchParams.get("zurueck") || "/";
     const state = zufall();
     const verifier = zufall();
-    anmeldungen.set(state, { anbieter, verifier, zurueck: ZIEL_RE.test(zurueck) ? zurueck : "/", ablauf: jetzt() + GRENZEN.anmeldungMs });
+    anmeldungen.set(state, { anbieter, verifier, zurueck: zielOk(zurueck) ? zurueck : "/", ablauf: jetzt() + GRENZEN.anmeldungMs });
 
     const a = ALLE[anbieter];
     const ziel = new URL(a.autorisieren, rueckrufAdresse(req, anbieter));
@@ -357,7 +366,6 @@ export function kontenBauen(optionen) {
     }
     // Neu: erst einen Namen waehlen. Bis dahin gibt es kein Konto.
     aufraeumen(registrierungen);
-    if (registrierungen.size >= GRENZEN.offenMax) return weiter(fehlerZiel("zu-schnell"), [aus]);
     const token = zufall();
     registrierungen.set(hash(token), { anbieter, schluessel, zurueck: offen.zurueck, ablauf: jetzt() + GRENZEN.registrierungMs });
     return weiter("/account?neu=1&zurueck=" + encodeURIComponent(offen.zurueck), [aus, cookie(COOKIE.registrierung, token, GRENZEN.registrierungMs)]);
@@ -422,7 +430,7 @@ export function kontenBauen(optionen) {
         return [200, ich(req), kopf([cookieWeg(COOKIE.registrierung)])];
       }
       if (teile[1]) return [404, { fehler: "unbekannt" }];
-      if (begrenzt("registrieren|" + ip, GRENZEN.registrierenProFenster)) return [429, { fehler: "zu-schnell" }];
+      if (begrenzt("registrieren|" + anschluss(ip), GRENZEN.registrierenProFenster)) return [429, { fehler: "zu-schnell" }];
       if (!r) return [401, { fehler: "abgelaufen" }];
       const k = await lesen(req);
       if (k.alter !== true) return [400, { fehler: "alter" }];
