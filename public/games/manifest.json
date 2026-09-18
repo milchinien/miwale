@@ -1,22 +1,22 @@
 {
   "wavebreaker": {
     "path": "games/wavebreaker/",
-    "sha256": "3d7f385c1b40d6ddba889f37649137cb062112d76f913552dfe5dc5f6fcec283"
+    "sha256": "c9b7462c670377bb399bda91aaacaf7f3680bdc966e7db17e35ae742a56b04a9"
   },
   "chromatic": {
     "path": "games/chromatic/",
-    "sha256": "6add4eda080703be9250ec420c11c2dc506ac5612be23131a2bb527b73241f4f"
+    "sha256": "c80e45069df2989735986f7e61e70c9e7b19585b9f4bde17a2f3b0dea2181084"
   },
   "runecall": {
     "path": "games/runecall/",
-    "sha256": "eaff32cd7bb8e870e4b457f056a02aded98cd487d3ce9ffb1ba48232943402f1"
+    "sha256": "0d4081ebbd6ac0266c818ab760df9147135496ae80e014b309f9608580aa011b"
   },
   "harmonics": {
     "path": "games/harmonics/",
-    "sha256": "7b0b755a1cff02eb197c556aedc859661db8ae966d0950805ed10411aa86a645"
+    "sha256": "5d10f51417b255a51ac4e4d1c80c787f0145c17403aa487f0494d47dafcff2f1"
   },
   "reliktenschieber": {
     "path": "games/reliktenschieber/",
-    "sha256": "1c128e8f9d7567a40705718e0d2f45f7d31aa018f5273ae1fc5345fd381b8cae"
+    "sha256": "36d2aef6736607a5cec40a65e9780e15308dfd257a0d47d0e474352e9bdc1196"
   }
 }

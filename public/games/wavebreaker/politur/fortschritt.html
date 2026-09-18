@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>WAVEBREAKER — Politur läuft</title>
+<title>WAVEBREAKER — Polish in progress</title>
 <style>
   :root {
     --grund: #05070f;
@@ -72,27 +72,27 @@
 </style>
 </head>
 <body>
-  <h1>WAVEBREAKER — POLITUR</h1>
+  <h1>WAVEBREAKER — POLISH</h1>
   <div class="unterzeile">
-    <span class="puls"></span>Die Latte: <b>The Tower — Idle Tower Defense</b> für Feld, HUD und Wucht ·
-    <b>Orc Incremental</b> für Laden, Upgrades und Basis
+    <span class="puls"></span>The benchmark: <b>The Tower — Idle Tower Defense</b> for field, HUD and impact ·
+    <b>Orc Incremental</b> for shop, upgrades and base
   </div>
 
-  <h2>Harte Bedingungen</h2>
+  <h2>Hard requirements</h2>
   <div class="reihe" id="messlatte"></div>
 
-  <h2>Stücke</h2>
+  <h2>Pieces</h2>
   <div id="stuecke"></div>
 
-  <h2>Verlauf</h2>
+  <h2>History</h2>
   <div class="log" id="log"></div>
 
   <footer id="stand">…</footer>
 
 <script>
-const bewertung = { gewonnen: ['gewonnen', 'gut', 'unseres gewinnt'],
-                    verloren: ['verloren', 'weg', 'Latte gewinnt'],
-                    laeuft:   ['laeuft', 'roh', 'läuft'] };
+const bewertung = { gewonnen: ['gewonnen', 'gut', 'ours wins'],
+                    verloren: ['verloren', 'weg', 'the benchmark wins'],
+                    laeuft:   ['laeuft', 'roh', 'in progress'] };
 
 function zeichne (d) {
   const m = document.getElementById('messlatte');
@@ -106,17 +106,17 @@ function zeichne (d) {
     <div class="stueck ${s.stand}">
       <div class="kopf">
         <span class="titel">${s.titel}</span>
-        <span class="runde">RUNDE ${s.runde ?? '–'}</span>
+        <span class="runde">ROUND ${s.runde ?? '–'}</span>
         <span class="urteil ${s.stand}">${s.urteil ?? ''}</span>
       </div>
-      ${s.luecke ? `<div class="luecke"><b>Größte Lücke:</b> ${s.luecke}</div>` : ''}
-    </div>`).join('') || '<div class="luecke">Die Stücke werden gerade geschnitten …</div>';
+      ${s.luecke ? `<div class="luecke"><b>Biggest gap:</b> ${s.luecke}</div>` : ''}
+    </div>`).join('') || '<div class="luecke">The pieces are being cut right now …</div>';
 
   document.getElementById('log').innerHTML = (d.log || []).slice().reverse()
     .map(z => `<div><span class="zeit">${z.zeit}</span>${z.text}</div>`).join('');
 
   document.getElementById('stand').textContent =
-    `Stand: ${d.stand || '—'} · aktualisiert ${d.aktualisiert || '—'} · Seite lädt alle 3 s neu`;
+    `Status: ${d.stand || '—'} · updated ${d.aktualisiert || '—'} · page reloads every 3 s`;
 }
 
 async function hole () {

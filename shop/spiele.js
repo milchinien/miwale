@@ -471,7 +471,7 @@ window.MIWALE_SPIELE = [
   },
   {
     "id": "mathuniverse",
-    "name": "Michis Mathe Universe",
+    "name": "Michi's Math Universe",
     "veroeffentlicht": "2025-08-15",
     "geraete": [
       "pc"
@@ -505,19 +505,19 @@ window.MIWALE_SPIELE = [
           "Puzzle"
         ],
         "ueber": [
-          "Michis Mathe Universe turns calculus topics into quick arcade games. In Asymptoten-Raserei your car drives along a function graph on its own – brake, speed up and jump over gaps while asymptotes give you a boost.",
-          "In Polstellen-Panik function monsters close in on you: shoot only the dangerous ones with a pole at x = 0, and catch the disguised ones for power-ups. In Funktions-Graffiti you build a function from numerator and denominator and spray its graph through the target points.",
+          "Michi's Math Universe turns calculus topics into quick arcade games. In Asymptote Rush your car drives along a function graph on its own – brake, speed up and jump over gaps while asymptotes give you a boost.",
+          "In Pole Panic function monsters close in on you: shoot only the dangerous ones with a pole at x = 0, and catch the disguised ones for power-ups. In Function Graffiti you build a function from numerator and denominator and spray its graph through the target points.",
           "Made for students in the German school system – all games are in German. Free to play, no sign-up."
         ],
         "features": [
           "Three games in one collection, straight in the browser",
-          "Asymptoten-Raserei: a graph racer with levels, lives and boosts",
-          "Polstellen-Panik: tell real poles from removable gaps – under pressure",
-          "Funktions-Graffiti: build functions and hit targets while avoiding no-go zones",
+          "Asymptote Rush: a graph racer with levels, lives and boosts",
+          "Pole Panic: tell real poles from removable gaps – under pressure",
+          "Function Graffiti: build functions and hit targets while avoiding no-go zones",
           "Hints and solutions when you get stuck",
           "No sign-up needed"
         ],
-        "steuerung": "Depends on the game: arrow keys and Space in Asymptoten-Raserei, mouse aim and click in Polstellen-Panik, mouse clicks in Funktions-Graffiti."
+        "steuerung": "Depends on the game: arrow keys and Space in Asymptote Rush, mouse aim and click in Pole Panic, mouse clicks in Function Graffiti."
       },
       "de": {
         "kurz": "Drei kleine Browserspiele rund um die Analysis – rase über Asymptoten, schieß Polstellen-Monster ab und sprüh Funktionsgraphen.",
@@ -528,19 +528,19 @@ window.MIWALE_SPIELE = [
           "Knobelspiel"
         ],
         "ueber": [
-          "Michis Mathe Universe macht aus Analysis-Themen kurze Arcade-Spiele. In der Asymptoten-Raserei fährt dein Wagen von allein über einen Funktionsgraphen – du bremst, gibst Gas und springst über Lücken, während Asymptoten dir einen Boost geben.",
-          "In der Polstellen-Panik rücken Funktions-Monster an: Schieß nur die gefährlichen mit Polstelle bei x = 0 ab, die getarnten mit hebbarer Lücke bringen Power-ups. Im Funktions-Graffiti baust du aus Zähler und Nenner eine Funktion und sprühst ihren Graphen durch die Zielpunkte.",
+          "Michi's Math Universe macht aus Analysis-Themen kurze Arcade-Spiele. In Asymptote Rush fährt dein Wagen von allein über einen Funktionsgraphen – du bremst, gibst Gas und springst über Lücken, während Asymptoten dir einen Boost geben.",
+          "In Pole Panic rücken Funktions-Monster an: Schieß nur die gefährlichen mit Polstelle bei x = 0 ab, die getarnten mit hebbarer Lücke bringen Power-ups. In Function Graffiti baust du aus Zähler und Nenner eine Funktion und sprühst ihren Graphen durch die Zielpunkte.",
           "Gedacht für Schülerinnen und Schüler der Oberstufe. Kostenlos, ohne Anmeldung."
         ],
         "features": [
           "Drei Spiele in einer Sammlung, direkt im Browser",
-          "Asymptoten-Raserei: Graphen-Rennen mit Levels, Leben und Boosts",
-          "Polstellen-Panik: Polstelle oder hebbare Lücke – unter Zeitdruck erkennen",
-          "Funktions-Graffiti: Funktionen bauen, Ziele treffen, Sperrzonen meiden",
+          "Asymptote Rush: Graphen-Rennen mit Levels, Leben und Boosts",
+          "Pole Panic: Polstelle oder hebbare Lücke – unter Zeitdruck erkennen",
+          "Function Graffiti: Funktionen bauen, Ziele treffen, Sperrzonen meiden",
           "Hinweise und Lösungen, wenn du nicht weiterkommst",
           "Keine Anmeldung nötig"
         ],
-        "steuerung": "Je nach Spiel: Pfeiltasten und Leertaste in der Asymptoten-Raserei, mit der Maus zielen und klicken in der Polstellen-Panik, Mausklicks im Funktions-Graffiti."
+        "steuerung": "Je nach Spiel: Pfeiltasten und Leertaste in Asymptote Rush, mit der Maus zielen und klicken in Pole Panic, Mausklicks in Function Graffiti."
       }
     }
   }
