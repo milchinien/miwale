@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Musik nachgemessen</title>
+<html lang="en"><head><meta charset="utf-8"><title>WAVEBREAKER — Music, measured</title>
 <style>
  body{background:#070a18;color:#cfe4ff;font:14px/1.55 ui-monospace,monospace;padding:26px;max-width:980px;margin:auto}
  h1{color:#46c8ff;font-size:19px;letter-spacing:.08em}
@@ -16,30 +16,30 @@
         padding:9px 14px;font:inherit;cursor:pointer;margin:6px 0}
  button:hover{background:#1d3f8f}
 </style></head><body>
-<h1>Musik nachgemessen</h1>
-<p>Sechs Fragen, sechs Zahlen. Sind die drei Lagen wirklich verschieden? Knackt es an der
-Wiederholstelle? Ueberblendet der Wechsel, oder schneidet er? Laeuft mit Musik auf null noch
-irgendetwas? Was kostet das Ganze je Bild? Und — die Frage, an der diese Musik einmal
-gescheitert ist — haelt der <b>Aufbau</b> das Bild an?</p>
-<p class="mute">Alles laeuft gegen dieselben Dateien wie das Spiel — <code>src/app/musicplan.ts</code>,
+<h1>Music, measured</h1>
+<p>Six questions, six numbers. Are the three moods really different? Does it click at the
+loop point? Does the change crossfade, or does it cut? Does anything still run with music at
+zero? What does it all cost per frame? And — the question this music once failed on — does the
+<b>setup</b> freeze the frame?</p>
+<p class="mute">Everything runs against the same files as the game — <code>src/app/musicplan.ts</code>,
 <code>src/app/musicbed.ts</code>, <code>src/app/mixer.ts</code>, <code>src/app/audio.ts</code>.
-Die Klangszenen werden in einem <code>OfflineAudioContext</code> gerechnet, schneller als in
-Echtzeit und ohne dass jemand zuhoert. Die Baender werden mit echten
-<code>BiquadFilterNode</code>-Bandpaessen gemessen und nicht mit einer nachgebauten
-Fouriertransformation: Der Selbsttest rechnet dieselbe Frage mit einer FFT, und zwei
-verschiedene Wege, die dasselbe sagen, sind mehr wert als einer, der zweimal laeuft.</p>
+The sound scenes are computed in an <code>OfflineAudioContext</code>, faster than real time and
+without anyone having to listen. The bands are measured with real
+<code>BiquadFilterNode</code> band-pass filters rather than a hand-rolled Fourier transform:
+the self-test answers the same question with an FFT, and two different methods that agree are
+worth more than one method run twice.</p>
 
-<div id="offline">rechnet …</div>
+<div id="offline">computing …</div>
 
-<h2>6 · Gegenprobe im Echtzeitbetrieb</h2>
-<p class="mute">Alles oben laeuft im <code>OfflineAudioContext</code> und braucht deshalb
-weder Ohr noch Klick. Hier steht dieselbe Frage noch einmal am echten Apparat: durch
-<code>mountAudio</code>, mit einem <code>AudioContext</code>, den der Browser erst nach einer
-Beruehrung der Seite freigibt. Gemessen wird zusaetzlich die Bilddauer mit laufender Musik
-gegen die Bilddauer mit Musik auf null, jeweils ueber 240 Bilder — das faengt auch ein, was
-eine reine Offline-Rechnung nicht sieht.</p>
-<button id="start">Echtzeitmessung starten</button>
-<div id="live" class="mute">noch nicht gemessen</div>
+<h2>6 · Cross-check in real time</h2>
+<p class="mute">Everything above runs in an <code>OfflineAudioContext</code> and therefore needs
+neither ears nor a click. Here the same question is asked again of the real engine: through
+<code>mountAudio</code>, with an <code>AudioContext</code> that the browser only unlocks after
+you interact with the page. In addition, the frame time with music playing is measured against
+the frame time with music at zero, over 240 frames each — this also catches what a pure offline
+calculation cannot see.</p>
+<button id="start">Start real-time measurement</button>
+<div id="live" class="mute">not measured yet</div>
 
 <script type="module">
 import { createMixer } from '/src/app/mixer.ts'
@@ -235,20 +235,20 @@ for (let i = 0; i < MOODS.length; i++) {
       if (d > db) { db = d; wo = MITTEN[k] + ' Hz' }
     }
     kleinsterAbstand = Math.min(kleinsterAbstand, db)
-    paare.push([`${MOODS[i]} gegen ${MOODS[j]}`, zahl(db, 1) + ' dB', wo])
+    paare.push([`${MOODS[i]} vs ${MOODS[j]}`, zahl(db, 1) + ' dB', wo])
   }
 }
 
 teile.push(
-  '<h2>1 · Drei unterscheidbare Lagen</h2>' +
-  '<p class="mute">Effektivwert hinter je einem Bandpass (Q&nbsp;=&nbsp;3), gemessen ueber eine ' +
-  'volle Schleife nach der Einblendung. Rechts der Gesamtpegel derselben Szene.</p>' +
-  tabelle(['Lage', ...MITTEN.map((m) => m + ' Hz'), 'RMS', 'Spitze'], zeilen) +
-  '<p class="mute">Der groesste Bandabstand je Paar — er ist die Zahl, die "unterscheidbar" ' +
-  'bedeutet:</p>' +
-  tabelle(['Paar', 'groesster Abstand', 'in welchem Band'], paare) +
-  `<p class="${marke(kleinsterAbstand >= 6)}">Das aehnlichste Paar liegt ${zahl(kleinsterAbstand, 1)} dB ` +
-  `auseinander (verlangt: mindestens 6 dB, also der vierfache Energieanteil).</p>`,
+  '<h2>1 · Three distinguishable moods</h2>' +
+  '<p class="mute">RMS behind one band-pass each (Q&nbsp;=&nbsp;3), measured over one ' +
+  'full loop after the fade-in. On the right, the overall level of the same scene.</p>' +
+  tabelle(['Mood', ...MITTEN.map((m) => m + ' Hz'), 'RMS', 'Peak'], zeilen) +
+  '<p class="mute">The largest band difference per pair — this is the number that "distinguishable" ' +
+  'means:</p>' +
+  tabelle(['Pair', 'largest difference', 'in which band'], paare) +
+  `<p class="${marke(kleinsterAbstand >= 6)}">The most similar pair is ${zahl(kleinsterAbstand, 1)} dB ` +
+  `apart (required: at least 6 dB, i.e. four times the energy share).</p>`,
 )
 
 /* === 2. Die Wiederholstelle ================================================ */
@@ -264,24 +264,24 @@ for (const id of LAYERS) {
     for (let n = 1; n <= letzte; n++) innen = Math.max(innen, Math.abs(daten[n] - daten[n - 1]))
     groessteNaht = Math.max(groessteNaht, naht)
     nahtZeilen.push([
-      `${id} / ${kanal === 0 ? 'links' : 'rechts'}`,
+      `${id} / ${kanal === 0 ? 'left' : 'right'}`,
       naht.toExponential(2),
       innen.toExponential(2),
       zahl(naht / innen, 3),
-      `<span class="${marke(naht < 0.01 && naht <= innen)}">${naht < 0.01 ? 'ok' : 'zu gross'}</span>`,
+      `<span class="${marke(naht < 0.01 && naht <= innen)}">${naht < 0.01 ? 'ok' : 'too large'}</span>`,
     ])
   }
 }
 
 teile.push(
-  '<h2>2 · Die Wiederholstelle</h2>' +
-  '<p class="mute">Gemessen an genau den Abtastwerten, die der Klangapparat in seine Puffer ' +
-  'legt — <code>renderScore</code> ist dieselbe Funktion. "Innen" ist der groesste ' +
-  'gewoehnliche Schritt von einem Abtastwert zum naechsten. Solange die Naht darunter liegt, ' +
-  'ist sie kein Sprung, sondern ein Schritt wie jeder andere.</p>' +
-  tabelle(['Schicht / Kanal', 'Naht', 'groesster Schritt innen', 'Verhaeltnis', ''], nahtZeilen) +
-  `<p class="${marke(groessteNaht < 0.01)}">Groesste Naht: ${groessteNaht.toExponential(2)} ` +
-  `(verlangt: unter 0,01).</p>`,
+  '<h2>2 · The loop point</h2>' +
+  '<p class="mute">Measured on exactly the samples the audio engine puts into its buffers ' +
+  '— <code>renderScore</code> is the same function. "Inside" is the largest ' +
+  'ordinary step from one sample to the next. As long as the seam stays below it, ' +
+  'it is not a jump but a step like any other.</p>' +
+  tabelle(['Layer / channel', 'Seam', 'largest step inside', 'Ratio', ''], nahtZeilen) +
+  `<p class="${marke(groessteNaht < 0.01)}">Largest seam: ${groessteNaht.toExponential(2)} ` +
+  `(required: below 0.01).</p>`,
 )
 
 /* === 3. Der Uebergang ====================================================== */
@@ -376,29 +376,29 @@ const leiseste = voll.reduce((a, p) => Math.min(a, p.wert), Infinity)
 const mittel = voll.reduce((a, p) => a + p.wert, 0) / voll.length
 
 teile.push(
-  '<h2>3 · Der Uebergang</h2>' +
-  `<p class="mute">Gefecht bis Sekunde ${WECHSEL}, dann Boss. Das Blendmass wird aus drei ` +
-  'Szenen zurueckgerechnet — nur Gefecht, nur Boss, und der Wechsel — und ist damit die ' +
-  'Blende selbst, nicht ihr Abbild in einem Filter. Darunter die volle Szene: Wenn irgendwo ' +
-  'ein Loch waere, stuende es in der leisesten Zeile.</p>' +
+  '<h2>3 · The transition</h2>' +
+  `<p class="mute">Combat until second ${WECHSEL}, then boss. The blend factor is recovered from three ` +
+  'scenes — combat only, boss only, and the change — and is therefore the ' +
+  'crossfade itself, not its image in a filter. Below that, the full scene: if there were a gap ' +
+  'anywhere, it would show up in the quietest row.</p>' +
   tabelle(
-    ['Groesse', 'Wert', 'verlangt'],
+    ['Quantity', 'Value', 'required'],
     [
-      ['Blendzeit laut Partitur', zahl(FADE_SECONDS, 2) + ' s', '&ge; 0,50 s'],
-      ['<b>gemessen, 10 % bis 90 %</b>', '<b>' + zahl(dauer, 2) + ' s</b>', '&ge; 0,50 s'],
-      ['Blendmass vor dem Wechsel', zahl(vorher, 4), '&asymp; 0'],
-      ['Blendmass nach dem Wechsel', zahl(nachher, 4), '&asymp; 1'],
-      ['groesster Sprung des Blendmasses je 20 ms', zahl(groessterSchritt, 4), '&lt; 0,10'],
-      ['leisestes 20-ms-Fenster der vollen Szene', zahl(leiseste, 5), '&gt; 0'],
-      ['mittleres 20-ms-Fenster', zahl(mittel, 5), '—'],
-      ['leisestes zu mittlerem', zahl(leiseste / mittel, 3), '&gt; 0,10'],
+      ['Fade time per score', zahl(FADE_SECONDS, 2) + ' s', '&ge; 0.50 s'],
+      ['<b>measured, 10% to 90%</b>', '<b>' + zahl(dauer, 2) + ' s</b>', '&ge; 0.50 s'],
+      ['Blend factor before the change', zahl(vorher, 4), '&asymp; 0'],
+      ['Blend factor after the change', zahl(nachher, 4), '&asymp; 1'],
+      ['largest jump of the blend factor per 20 ms', zahl(groessterSchritt, 4), '&lt; 0.10'],
+      ['quietest 20 ms window of the full scene', zahl(leiseste, 5), '&gt; 0'],
+      ['average 20 ms window', zahl(mittel, 5), '—'],
+      ['quietest to average', zahl(leiseste / mittel, 3), '&gt; 0.10'],
     ],
   ) +
   `<p class="${marke(dauer >= 0.5 && leiseste > 0.1 * mittel && groessterSchritt < 0.1)}">` +
-  `Der Wechsel dauert ${zahl(dauer, 2)} s, geht in Schritten von hoechstens ` +
-  `${zahl(groessterSchritt, 4)} je 20 ms und faellt an keiner Stelle unter ` +
-  `${zahl((leiseste / mittel) * 100, 1)} % des mittleren Pegels — er blendet, er schneidet ` +
-  'nicht, und er hat kein Loch.</p>',
+  `The change takes ${zahl(dauer, 2)} s, moves in steps of at most ` +
+  `${zahl(groessterSchritt, 4)} per 20 ms and never drops below ` +
+  `${zahl((leiseste / mittel) * 100, 1)}% of the average level — it crossfades, it does not ` +
+  'cut, and it has no gap.</p>',
 )
 
 /* === 4. Kein Ton ohne Zuhoerer ============================================= */
@@ -440,29 +440,29 @@ const restPegel = spitze(stillPuffer, Math.round(RATE * 4.4), stillPuffer.length
 const vorherPegel = spitze(stillPuffer, Math.round(RATE * 2), Math.round(RATE * 3.9))
 
 teile.push(
-  '<h2>4 · Musik auf null</h2>' +
-  '<p class="mute">Die Musik laeuft, und bei Sekunde 4 geht der Regler auf null. Danach ' +
-  'darf nicht nur nichts mehr zu hoeren sein — es darf auch nichts mehr laufen. Beides wird ' +
-  'getrennt gezaehlt: die Quellen am Kontext, der Rest am Ausgang.</p>' +
+  '<h2>4 · Music at zero</h2>' +
+  '<p class="mute">The music is playing, and at second 4 the slider goes to zero. After that ' +
+  'nothing may be audible any more — and nothing may still be running either. Both are ' +
+  'counted separately: the sources at the context, the rest at the output.</p>' +
   tabelle(
-    ['Groesse', 'Wert', 'verlangt'],
+    ['Quantity', 'Value', 'required'],
     [
-      ['laufende Schleifen vor dem Abschalten', laufendVorher, '3'],
-      ['laufende Schleifen nach dem Abschalten', laufendNachher, '0'],
-      ['am Kontext gezaehlt: gestartet / angehalten', `${gestartet} / ${gestoppt}`, '3 / 3'],
-      ['Spitzenpegel vor dem Abschalten', zahl(vorherPegel, 5), '&gt; 0'],
-      ['<b>Spitzenpegel danach</b>', '<b>' + restPegel.toExponential(2) + '</b>', 'genau 0'],
+      ['running loops before switching off', laufendVorher, '3'],
+      ['running loops after switching off', laufendNachher, '0'],
+      ['counted at the context: started / stopped', `${gestartet} / ${gestoppt}`, '3 / 3'],
+      ['peak level before switching off', zahl(vorherPegel, 5), '&gt; 0'],
+      ['<b>peak level afterwards</b>', '<b>' + restPegel.toExponential(2) + '</b>', 'exactly 0'],
     ],
   ) +
   `<p class="${marke(laufendNachher === 0 && gestoppt === 3 && restPegel === 0)}">` +
-  `Nach dem Abschalten laufen ${laufendNachher} Schleifen, und aus dem Ausgang kommt ` +
-  `${restPegel === 0 ? 'exakt nichts' : 'noch ' + restPegel}. ` +
-  'Kein Oszillator, keine Quelle, keine Rechenzeit — und keine Behauptung, sondern zwei ' +
-  'Zaehlungen, die einander nicht kennen.</p>' +
-  '<p class="mute">Angeschlossen ist das Ganze am Ereignisbus, und zwar an genau diesen ' +
-  'Meldungen (<code>MOOD_OF_EVENT</code>):</p>' +
+  `After switching off, ${laufendNachher} loops are running, and the output delivers ` +
+  `${restPegel === 0 ? 'exactly nothing' : 'still ' + restPegel}. ` +
+  'No oscillator, no source, no CPU time — and not a claim, but two ' +
+  'counts that know nothing of each other.</p>' +
+  '<p class="mute">The whole thing is hooked up to the event bus, to exactly these ' +
+  'events (<code>MOOD_OF_EVENT</code>):</p>' +
   tabelle(
-    ['Meldung', 'Lage', 'Zuhoerer vor mountAudio'],
+    ['Event', 'Mood', 'Listeners before mountAudio'],
     Object.entries(MOOD_OF_EVENT).map(([name, mood]) => [name, mood, listenerCount(name)]),
   ),
 )
@@ -482,50 +482,50 @@ const WECHSEL_JE_WELLE = 2
 const jeBild = (WECHSEL_JE_WELLE * proWechsel) / BILDER
 
 teile.push(
-  '<h2>5 · Was die Musik je Bild kostet</h2>' +
-  '<p class="mute">Die Musik haengt an keiner Bildschleife und an keinem Zeitgeber — es gibt ' +
-  'keine Stelle, an der je Bild etwas gerechnet wuerde. Was die Schleifen wiederholt, ist der ' +
-  '<code>loop</code>-Schalter der Quelle, und der laeuft im Klangfaden des Browsers. Ihre ' +
-  'einzige Arbeit im laufenden Spiel ist der Lagenwechsel: hoechstens zwei je Welle, wenn die ' +
-  'Welle beginnt und wenn der Boss erscheint.</p>' +
+  '<h2>5 · What the music costs per frame</h2>' +
+  '<p class="mute">The music is not tied to any frame loop or timer — there is ' +
+  'no place where anything is computed per frame. What repeats the loops is the ' +
+  '<code>loop</code> flag of the source, and that runs on the browser\'s audio thread. Its ' +
+  'only work during a running game is the mood change: at most two per wave, when the ' +
+  'wave starts and when the boss appears.</p>' +
   tabelle(
-    ['Groesse', 'Wert', 'verlangt'],
+    ['Quantity', 'Value', 'required'],
     [
-      ['Aufbau der drei Schleifen <b>am Stueck</b>', zahl(bauZeit, 1) + ' ms', '—'],
-      ['Schritte, in die derselbe Aufbau zerfaellt', plan.size, '—'],
-      ['breitester einzelner Schritt', breitesterSchritt.toLocaleString('de') + ' Werte', `&le; ${SLICE_SAMPLES.toLocaleString('de')}`],
-      ['Portionen', portionsZeiten.length, '—'],
-      ['<b>laengste einzelne Portion</b>', '<b>' + zahl(laengstePortion, 1) + ' ms</b>', '&lt; 50 ms'],
-      ['Summe aller Portionen', zahl(summePortionen, 1) + ' ms', '&asymp; Aufbau am Stueck'],
-      [`ein Lagenwechsel, Mittel aus ${RUNDEN}`, zahl(proWechsel, 4) + ' ms', '—'],
-      ['ein Lagenwechsel, Mitte', zahl(mittlererWechsel, 4) + ' ms', '—'],
-      ['<b>ein Lagenwechsel, 99. Perzentil</b>', '<b>' + zahl(p99Wechsel, 3) + ' ms</b>', '&lt; 1 ms'],
-      ['der langsamste einzelne von allen', zahl(schlimmsterWechsel, 3) + ' ms', '—'],
-      [`Bilder je Welle (${WELLE_SEKUNDEN} s bei 60/s)`, BILDER, '—'],
-      ['Lagenwechsel je Welle', WECHSEL_JE_WELLE, '—'],
-      ['<b>Kosten je Bild, ueber eine Welle</b>', '<b>' + jeBild.toExponential(2) + ' ms</b>', '&lt; 1 ms'],
+      ['Setup of the three loops <b>in one go</b>', zahl(bauZeit, 1) + ' ms', '—'],
+      ['Steps the same setup splits into', plan.size, '—'],
+      ['widest single step', breitesterSchritt.toLocaleString('en') + ' samples', `&le; ${SLICE_SAMPLES.toLocaleString('en')}`],
+      ['Chunks', portionsZeiten.length, '—'],
+      ['<b>longest single chunk</b>', '<b>' + zahl(laengstePortion, 1) + ' ms</b>', '&lt; 50 ms'],
+      ['Sum of all chunks', zahl(summePortionen, 1) + ' ms', '&asymp; setup in one go'],
+      [`one mood change, mean of ${RUNDEN}`, zahl(proWechsel, 4) + ' ms', '—'],
+      ['one mood change, median', zahl(mittlererWechsel, 4) + ' ms', '—'],
+      ['<b>one mood change, 99th percentile</b>', '<b>' + zahl(p99Wechsel, 3) + ' ms</b>', '&lt; 1 ms'],
+      ['the slowest single one of all', zahl(schlimmsterWechsel, 3) + ' ms', '—'],
+      [`Frames per wave (${WELLE_SEKUNDEN} s at 60/s)`, BILDER, '—'],
+      ['Mood changes per wave', WECHSEL_JE_WELLE, '—'],
+      ['<b>Cost per frame, over one wave</b>', '<b>' + jeBild.toExponential(2) + ' ms</b>', '&lt; 1 ms'],
     ],
   ) +
-  `<p class="${marke(jeBild < 1 && p99Wechsel < 1)}">Ueber eine Welle gerechnet kostet ` +
-  `die Musik ${jeBild.toExponential(2)} ms je Bild. Auch die haertere Lesart haelt: Das eine ` +
-  'Bild, in dem der Boss erscheint, kostet ' +
-  `${zahl(p99Wechsel, 3)} ms — und die ${BILDER - WECHSEL_JE_WELLE} Bilder davor und ` +
-  'danach kosten nichts, weil dort nichts gerechnet wird.</p>' +
-  `<p class="mute">Der langsamste einzelne Wechsel von dreihundert lag bei ` +
-  `${zahl(schlimmsterWechsel, 3)} ms, das Mittel bei ${zahl(proWechsel, 4)} ms. Ein einzelner ` +
-  'Ausreisser um das Hundertfache ist keine Eigenschaft dieser vier Zeilen Code, sondern der ' +
-  'Muellsammler des Browsers, der irgendwo laufen muss - deshalb steht oben das 99. Perzentil ' +
-  'und nicht der Groesstwert. Beide stehen da.</p>' +
-  `<p class="${marke(laengstePortion < 50)}">Der Aufbau der Schleifen faellt einmal an, und ` +
-  'zwar kurz nachdem der Spieler gedrueckt hat — mitten in der Startblende, in dem Augenblick, ' +
-  'in dem er zum ersten Mal hinsieht. Am Stueck gerechnet stuende der Hauptfaden dabei ' +
-  `${zahl(bauZeit, 1)} ms still; in ${portionsZeiten.length} Portionen zerlegt ist die ` +
-  `laengste davon ${zahl(laengstePortion, 1)} ms. Gerechnet wird beide Male dasselbe — die ` +
-  `Summe der Portionen ist ${zahl(summePortionen, 1)} ms —, nur eben nicht am Stueck. Dass ` +
-  'dabei Abtastwert fuer Abtastwert dasselbe herauskommt, prueft der Selbsttest ' +
+  `<p class="${marke(jeBild < 1 && p99Wechsel < 1)}">Averaged over a wave, ` +
+  `the music costs ${jeBild.toExponential(2)} ms per frame. The stricter reading holds too: the one ` +
+  'frame in which the boss appears costs ' +
+  `${zahl(p99Wechsel, 3)} ms — and the ${BILDER - WECHSEL_JE_WELLE} frames before and ` +
+  'after it cost nothing, because nothing is computed there.</p>' +
+  `<p class="mute">The slowest single change out of three hundred took ` +
+  `${zahl(schlimmsterWechsel, 3)} ms, the mean ${zahl(proWechsel, 4)} ms. A single ` +
+  'outlier a hundred times larger is not a property of these four lines of code but of the ' +
+  'browser\'s garbage collector, which has to run somewhere - which is why the 99th percentile ' +
+  'is shown above rather than the maximum. Both are listed.</p>' +
+  `<p class="${marke(laengstePortion < 50)}">Setting up the loops happens once, ` +
+  'shortly after the player has pressed start — in the middle of the intro fade, at the moment ' +
+  'they look at the screen for the first time. Computed in one go, the main thread would stall for ' +
+  `${zahl(bauZeit, 1)} ms; split into ${portionsZeiten.length} chunks, the ` +
+  `longest of them takes ${zahl(laengstePortion, 1)} ms. The same work is done both times — the ` +
+  `sum of the chunks is ${zahl(summePortionen, 1)} ms — just not in one go. That ` +
+  'the result is identical sample for sample is checked by the self-test ' +
   '(<code>selftest/suites/musik.ts</code>).</p>' +
-  '<p class="mute">Danach nie wieder: Auch wer den Musikregler zehnmal auf null und zurueck ' +
-  'zieht, bekommt dieselben Puffer wieder.</p>',
+  '<p class="mute">And never again after that: even moving the music slider to zero and back ten ' +
+  'times gets the same buffers back.</p>',
 )
 
 out.innerHTML = teile.join('')
@@ -534,7 +534,7 @@ out.innerHTML = teile.join('')
 
 document.getElementById('start').addEventListener('click', async () => {
   const feld = document.getElementById('live')
-  feld.textContent = 'misst … (rund zehn Sekunden)'
+  feld.textContent = 'measuring … (about ten seconds)'
 
   /*
    * Ein AudioContext, der mitzaehlt.
@@ -640,35 +640,35 @@ document.getElementById('start').addEventListener('click', async () => {
   const unterschied = Math.abs(mitMusik - ohneMusik)
   feld.innerHTML =
     tabelle(
-      ['Groesse', 'Wert', 'verlangt'],
+      ['Quantity', 'Value', 'required'],
       [
-        ['<b>Kosten des Reglerzugs, der den Aufbau anstoesst</b>', '<b>' + zahl(bauZeit[0], 1) + ' ms</b>', '&lt; 50 ms'],
-        ['bis die Musik wirklich laeuft', bereitNach === null ? 'nie' : zahl(bereitNach, 0) + ' ms', '—'],
-        ['lange Aufgaben (&gt; 50 ms) waehrend der Messung', langeAufgaben.length, '0'],
-        ['laengste davon', laengsteAufgabe === 0 ? 'keine' : zahl(laengsteAufgabe, 0) + ' ms', '—'],
-        ['laufende Quellen bei Musik 0,5', laufend, '3'],
-        ['laufende Quellen bei Musik 0 (nach 0,6 s)', stillLaufend, '0'],
-        ['von aussen gezaehlt: gestartet / angehalten', `${gestartet} / ${gestoppt}`, 'gleich'],
-        ['laufende Quellen nach dem Wiedereinschalten', wiederAn, '3'],
-        ['Kosten eines Reglerzugs', zahl(abschalten, 3) + ' ms', '—'],
-        ['Kosten eines Lagenwechsels', zahl(wechselKosten, 3) + ' ms', '—'],
-        ['Bilddauer mit Musik (Median)', zahl(mitMusik, 3) + ' ms', '—'],
-        ['Bilddauer ohne Musik (Median)', zahl(ohneMusik, 3) + ' ms', '—'],
-        ['Unterschied je Bild', zahl(unterschied, 3) + ' ms', '&lt; 1 ms'],
+        ['<b>Cost of the slider move that triggers the setup</b>', '<b>' + zahl(bauZeit[0], 1) + ' ms</b>', '&lt; 50 ms'],
+        ['until the music is actually playing', bereitNach === null ? 'never' : zahl(bereitNach, 0) + ' ms', '—'],
+        ['long tasks (&gt; 50 ms) during the measurement', langeAufgaben.length, '0'],
+        ['longest of them', laengsteAufgabe === 0 ? 'none' : zahl(laengsteAufgabe, 0) + ' ms', '—'],
+        ['running sources with music at 0.5', laufend, '3'],
+        ['running sources with music at 0 (after 0.6 s)', stillLaufend, '0'],
+        ['counted from outside: started / stopped', `${gestartet} / ${gestoppt}`, 'equal'],
+        ['running sources after switching back on', wiederAn, '3'],
+        ['Cost of one slider move', zahl(abschalten, 3) + ' ms', '—'],
+        ['Cost of one mood change', zahl(wechselKosten, 3) + ' ms', '—'],
+        ['Frame time with music (median)', zahl(mitMusik, 3) + ' ms', '—'],
+        ['Frame time without music (median)', zahl(ohneMusik, 3) + ' ms', '—'],
+        ['Difference per frame', zahl(unterschied, 3) + ' ms', '&lt; 1 ms'],
       ],
     ) +
-    `<p class="${marke(bauZeit[0] < 50 && langeAufgaben.length === 0)}">Der Reglerzug, der ` +
-    `den Klangapparat anlegt, kostet ${zahl(bauZeit[0], 1)} ms — er rechnet keinen einzigen ` +
-    'Abtastwert, er stellt die Rechnung nur an. Die Musik laeuft ' +
-    `${bereitNach === null ? 'nicht' : zahl(bereitNach, 0) + ' ms'} spaeter an, in Portionen ` +
-    'gerechnet, zwischen denen der Browser seine Bilder zeichnet. Waehrend der ganzen ' +
-    `Messung wurden ${langeAufgaben.length} Aufgaben ueber fuenfzig Millisekunden gemeldet.</p>` +
-    `<p class="${marke(stillLaufend === 0 && gestoppt >= 3)}">Mit Musik auf null laufen ` +
-    `${stillLaufend} Quellen — von aussen gezaehlt wurden ${gestartet} gestartet und ` +
-    `${gestoppt} angehalten.</p>` +
-    `<p class="${marke(unterschied < 1)}">Die Musik kostet ${zahl(unterschied, 3)} ms je Bild. ` +
-    'Das ist kein Zufall: Sie haengt an keiner Bildschleife und an keinem Zeitgeber — sie tut ' +
-    'etwas, wenn sich die Lage aendert, und sonst nie. Was die Schleifen wiederholt, ist der ' +
-    '<code>loop</code>-Schalter der Quelle, und der laeuft im Klangfaden des Browsers.</p>'
+    `<p class="${marke(bauZeit[0] < 50 && langeAufgaben.length === 0)}">The slider move that ` +
+    `creates the audio engine costs ${zahl(bauZeit[0], 1)} ms — it does not compute a single ` +
+    'sample, it only kicks off the computation. The music starts ' +
+    `${bereitNach === null ? 'never' : zahl(bereitNach, 0) + ' ms later'}, computed in chunks ` +
+    'between which the browser draws its frames. During the whole ' +
+    `measurement, ${langeAufgaben.length} tasks longer than fifty milliseconds were reported.</p>` +
+    `<p class="${marke(stillLaufend === 0 && gestoppt >= 3)}">With music at zero, ` +
+    `${stillLaufend} sources are running — counted from outside, ${gestartet} were started and ` +
+    `${gestoppt} stopped.</p>` +
+    `<p class="${marke(unterschied < 1)}">The music costs ${zahl(unterschied, 3)} ms per frame. ` +
+    'That is no accident: it is not tied to any frame loop or timer — it does ' +
+    'something when the mood changes, and never otherwise. What repeats the loops is the ' +
+    '<code>loop</code> flag of the source, and that runs on the browser\'s audio thread.</p>'
 })
 </script></body></html>

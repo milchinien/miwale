@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
@@ -14,7 +14,7 @@
         document.documentElement.dataset.skin = "herbst";
       }
     </script>
-    <script type="module" crossorigin src="./assets/index-Be9ku0IH.js"></script>
+    <script type="module" crossorigin src="./assets/index-DdzfKIEW.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-BIE88VDI.css">
   </head>
   <body>
@@ -25,48 +25,48 @@
         <div class="res-row"><span class="coin-glyph" aria-hidden="true"></span><span id="geld">0</span></div>
         <div class="res-row res-row--sub"><span class="glyph glyph--teal">&#9650;</span><span id="rate">0 /s</span></div>
 
-        <div class="res-label">MÜNZVORRAT</div>
+        <div class="res-label">COIN SUPPLY</div>
         <div class="res-row res-row--mid"><span class="stack-glyph" aria-hidden="true"></span><span id="vorrat">0 / 0</span></div>
         <div class="refill"><div class="refill-bar" id="vorratBar"></div></div>
 
-        <div class="res-label">SCHATZTRUHE</div>
+        <div class="res-label">TREASURE CHEST</div>
         <div class="res-truhe" id="truhe">&hellip;</div>
       </div>
 
       <div class="panel panel--views">
-        <button class="view-tab is-on" id="viewAutomat">Automat</button>
-        <button class="view-tab" id="viewBaum">Upgrade-Baum<span class="view-key">Tab</span></button>
+        <button class="view-tab is-on" id="viewAutomat">Machine</button>
+        <button class="view-tab" id="viewBaum">Upgrade Tree<span class="view-key">Tab</span></button>
       </div>
 
-      <button class="icon-btn" id="settings" title="Einstellungen">&#9881;</button>
+      <button class="icon-btn" id="settings" title="Settings" aria-label="Settings">&#9881;</button>
 
       <div class="panel panel--coins" id="coinPanel">
         <div class="shop-head">
-          <span class="shop-title">MÜNZE</span>
-          <span class="shop-hint">Tasten 1&ndash;0</span>
+          <span class="shop-title">COINS</span>
+          <span class="shop-hint">Keys 1&ndash;0</span>
         </div>
         <div class="coin-choice" id="coinChoice"></div>
         <p class="coin-hint">
-          Klicken, halten oder <b>Leertaste</b> wirft ein. Kupfer und Silber kommen zuerst aus dem Vorrat, alles andere kostet Geld.
+          Click, hold or press <b>Space</b> to drop. Copper and Silver come from your supply first; everything else costs cash.
         </p>
       </div>
 
       <div class="panel panel--shop" id="shopPanel">
         <div class="shop-head">
-          <span class="shop-title">SCHNELLKAUF</span>
-          <span class="shop-hint">Tasten Q&ndash;R</span>
+          <span class="shop-title">QUICK BUY</span>
+          <span class="shop-hint">Keys Q&ndash;R</span>
         </div>
         <div id="shopList"></div>
-        <button class="ghost-btn" id="openTree">Upgrade-Baum öffnen</button>
+        <button class="ghost-btn" id="openTree">Open Upgrade Tree</button>
         <div class="legend">
-          <div class="legend-row"><span class="legend-dot legend-dot--mitte"></span>Auszahlung &middot; normaler Wert</div>
-          <div class="legend-row"><span class="legend-dot legend-dot--doppel"></span>Doppelfach &middot; doppelter Wert</div>
-          <div class="legend-row"><span class="legend-dot legend-dot--abgrund"></span>Abgrund &middot; verloren</div>
-          <div class="legend-row legend-row--combo">Gleichzeitig fallend: 5&thinsp;&rarr;&thinsp;&times;2 &middot; 10&thinsp;&rarr;&thinsp;&times;4 &middot; 20&thinsp;&rarr;&thinsp;&times;8 &middot; 40&thinsp;&rarr;&thinsp;&times;16</div>
+          <div class="legend-row"><span class="legend-dot legend-dot--mitte"></span>Payout &middot; normal value</div>
+          <div class="legend-row"><span class="legend-dot legend-dot--doppel"></span>Double Slot &middot; double value</div>
+          <div class="legend-row"><span class="legend-dot legend-dot--abgrund"></span>Gutter &middot; lost</div>
+          <div class="legend-row legend-row--combo">Falling together: 5&thinsp;&rarr;&thinsp;&times;2 &middot; 10&thinsp;&rarr;&thinsp;&times;4 &middot; 20&thinsp;&rarr;&thinsp;&times;8 &middot; 40&thinsp;&rarr;&thinsp;&times;16</div>
         </div>
       </div>
       <div class="tree-hint hidden" id="treeHint">
-        Ziehen zum Verschieben &middot; Mausrad zum Zoomen &middot; Klick kauft &middot; Tab zurück zum Automaten
+        Drag to pan &middot; Scroll to zoom &middot; Click to buy &middot; Tab back to the machine
       </div>
     </div>
 
@@ -75,39 +75,39 @@
 
     <div class="modal hidden" id="modal">
       <div class="modal-card">
-        <h2>Einstellungen</h2>
-        <p class="modal-sub">Reliktenschieber v0.2 &middot; Prototyp</p>
+        <h2>Settings</h2>
+        <p class="modal-sub">Reliktenschieber v0.2 &middot; Prototype</p>
 
         <div class="setting">
-          <div class="setting-row"><span class="setting-label">Aussehen</span></div>
-          <div class="seg" role="group" aria-label="Aussehen">
-            <button class="seg-btn" data-skin="herbst">Herbst</button>
-            <button class="seg-btn" data-skin="klassisch">Klassisch</button>
+          <div class="setting-row"><span class="setting-label">Look</span></div>
+          <div class="seg" role="group" aria-label="Look">
+            <button class="seg-btn" data-skin="herbst">Autumn</button>
+            <button class="seg-btn" data-skin="klassisch">Classic</button>
           </div>
         </div>
 
         <div class="setting" id="setHimmel">
-          <div class="setting-row"><span class="setting-label">Abendhimmel</span></div>
-          <div class="seg" role="group" aria-label="Abendhimmel">
-            <button class="seg-btn" data-himmel="baender">B&auml;nder</button>
-            <button class="seg-btn" data-himmel="einfarbig">Einfarbig</button>
-            <button class="seg-btn" data-himmel="verlauf">Verlauf</button>
+          <div class="setting-row"><span class="setting-label">Evening sky</span></div>
+          <div class="seg" role="group" aria-label="Evening sky">
+            <button class="seg-btn" data-himmel="baender">Bands</button>
+            <button class="seg-btn" data-himmel="einfarbig">Solid</button>
+            <button class="seg-btn" data-himmel="verlauf">Gradient</button>
           </div>
         </div>
 
         <div class="setting" id="setLaub">
-          <div class="setting-row"><span class="setting-label">Laub</span></div>
-          <div class="seg" role="group" aria-label="Laub">
-            <button class="seg-btn" data-laub="aus">Aus</button>
-            <button class="seg-btn" data-laub="wenig">Wenig</button>
+          <div class="setting-row"><span class="setting-label">Leaves</span></div>
+          <div class="seg" role="group" aria-label="Leaves">
+            <button class="seg-btn" data-laub="aus">Off</button>
+            <button class="seg-btn" data-laub="wenig">Few</button>
             <button class="seg-btn" data-laub="normal">Normal</button>
           </div>
         </div>
 
-        <button class="ghost-btn" id="wipe">Spielstand l&ouml;schen</button>
-        <button class="ghost-btn" id="closeModal">Schlie&szlig;en</button>
+        <button class="ghost-btn" id="wipe">Delete save</button>
+        <button class="ghost-btn" id="closeModal">Close</button>
       </div>
     </div>
-
+
   </body>
 </html>
