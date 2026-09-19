@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>WAVEBREAKER — Standbild</title>
+<title>WAVEBREAKER — Still frame</title>
 <style>
   body { margin: 0; background: #05070f; color: #cfe0ff; font: 13px/1.5 system-ui, sans-serif; }
   #leinwand { display: block; margin: 0 auto; }
@@ -11,7 +11,7 @@
 </head>
 <body>
 <canvas id="leinwand"></canvas>
-<div id="meldung">bereit — window.standbild({ wave, sekunden, name })</div>
+<div id="meldung">ready — window.standbild({ wave, sekunden, name })</div>
 
 <script type="module">
 /*
@@ -295,7 +295,7 @@ window.standbild = async function standbild (opt = {}) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name: o.name, bild: leinwand.toDataURL('image/png') }),
   })
-  bericht.abgelegt = antwort.ok ? (await antwort.json()).pfad : `FEHLER ${antwort.status}`
+  bericht.abgelegt = antwort.ok ? (await antwort.json()).pfad : `ERROR ${antwort.status}`
 
   meldung.textContent = JSON.stringify(bericht, null, 2)
   return bericht

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Mischpult nachgerechnet</title>
+<html lang="en"><head><meta charset="utf-8"><title>WAVEBREAKER — Mixer, recalculated</title>
 <style>
  body{background:#070a18;color:#cfe4ff;font:14px/1.55 ui-monospace,monospace;padding:26px;max-width:900px;margin:auto}
  h1{color:#46c8ff;font-size:19px;letter-spacing:.08em}
@@ -13,10 +13,10 @@
  .bad{color:#ff6b6b}
  pre{white-space:pre-wrap}
 </style></head><body>
-<h1>Mischpult nachgerechnet</h1>
-<p>Alles hier laeuft im <code>OfflineAudioContext</code> und benutzt <code>createMixer</code> aus
-<code>src/app/mixer.ts</code> — dieselbe Funktion, die im Spiel den Klang aufbaut.</p>
-<div id="out">rechnet …</div>
+<h1>Mixer, recalculated</h1>
+<p>Everything here runs in an <code>OfflineAudioContext</code> and uses <code>createMixer</code> from
+<code>src/app/mixer.ts</code> — the same function that builds the audio chain in the game.</p>
+<div id="out">computing …</div>
 
 <script type="module">
 import { createMixer, softClip, CEILING } from '/src/app/mixer.ts'
@@ -142,12 +142,12 @@ async function run() {
   const beforeHalf = await renderBefore(SCENE, 0.5)
   const afterHalf = await renderAfter(SCENE, half)
 
-  lines.push('<h2>(a) Bosstod plus 15 weitere Stimmen, alle gleichzeitig</h2>')
-  lines.push('<table><tr><th>Reglerstellung</th><th>vorher (Master-Gain)</th><th>nachher (Pult)</th></tr>')
-  lines.push(`<tr><td>alle auf 100 %</td>
+  lines.push('<h2>(a) Boss death plus 15 more voices, all at once</h2>')
+  lines.push('<table><tr><th>Slider position</th><th>before (master gain)</th><th>after (mixer)</th></tr>')
+  lines.push(`<tr><td>all at 100%</td>
     <td class="${before < 1 ? 'ok' : 'bad'}">${f(before)} (${db(before)} dBFS)</td>
     <td class="${after < 1 ? 'ok' : 'bad'}">${f(after)} (${db(after)} dBFS)</td></tr>`)
-  lines.push(`<tr><td>alle auf 50 % (Startstellung)</td>
+  lines.push(`<tr><td>all at 50% (default)</td>
     <td class="${beforeHalf < 1 ? 'ok' : 'bad'}">${f(beforeHalf)} (${db(beforeHalf)} dBFS)</td>
     <td class="${afterHalf < 1 ? 'ok' : 'bad'}">${f(afterHalf)} (${db(afterHalf)} dBFS)</td></tr>`)
   lines.push('</table>')
@@ -171,9 +171,9 @@ async function run() {
   const reference = {}
   for (const group of buses) reference[group] = await renderAfter(groups[group], full)
 
-  lines.push('<h2>(b) Ein Regler auf 50 %, die anderen zwei auf 100 % — Spitze je Gruppe</h2>')
-  lines.push('<table><tr><th>Regler auf 50 %</th><th>Gruppe music</th><th>Gruppe sfx</th><th>Gruppe ui</th></tr>')
-  lines.push(`<tr><td>keiner (Bezug)</td>${buses.map((g) => `<td>${f(reference[g])}</td>`).join('')}</tr>`)
+  lines.push('<h2>(b) One slider at 50%, the other two at 100% — peak per group</h2>')
+  lines.push('<table><tr><th>Slider at 50%</th><th>Group music</th><th>Group sfx</th><th>Group ui</th></tr>')
+  lines.push(`<tr><td>none (reference)</td>${buses.map((g) => `<td>${f(reference[g])}</td>`).join('')}</tr>`)
   let isolated = true
   for (const slider of buses) {
     const cells = buses.map((group) => {
@@ -186,21 +186,21 @@ async function run() {
     lines.push(`<tr><td>${slider}</td>${cells.join('')}</tr>`)
   }
   lines.push('</table>')
-  lines.push(`<p class="${isolated ? 'ok' : 'bad'}">Diagonale &times;0,5000, alles daneben &times;1,0000: ${isolated ? 'ja' : 'NEIN'}</p>`)
+  lines.push(`<p class="${isolated ? 'ok' : 'bad'}">Diagonal &times;0.5000, everything else &times;1.0000: ${isolated ? 'yes' : 'NO'}</p>`)
 
   // === (c) Regler auf null macht wirklich still ===============================
   const silent = await renderAfter(SCENE, { music: 0, sfx: 0, ui: 0 })
   const onlyUi = await renderAfter(SCENE, { music: 0, sfx: 0, ui: 1 })
-  lines.push('<h2>(c) Randstellungen</h2>')
-  lines.push(`<pre>alle drei auf 0 %          Spitze ${f(silent)}
-music/sfx 0 %, ui 100 %    Spitze ${f(onlyUi)}</pre>`)
+  lines.push('<h2>(c) Extreme positions</h2>')
+  lines.push(`<pre>all three at 0%            peak ${f(silent)}
+music/sfx 0%, ui 100%      peak ${f(onlyUi)}</pre>`)
 
   // === (d) Die Kennlinie selbst ==============================================
   let curvePeak = 0
   for (let i = 0; i <= 20000; i++) curvePeak = Math.max(curvePeak, Math.abs(softClip(i / 100 - 100)))
-  lines.push('<h2>(d) Die Kennlinie der Bremse</h2>')
-  lines.push(`<pre>groesster Ausgang ueber -100 .. +100 am Eingang: ${f(curvePeak)}   (Decke ${CEILING})
-Spitze bei Vollaussteuerung am Eingang (x = 1):  ${f(softClip(1))}</pre>`)
+  lines.push('<h2>(d) The limiter curve</h2>')
+  lines.push(`<pre>largest output for input -100 .. +100:          ${f(curvePeak)}   (ceiling ${CEILING})
+peak at full-scale input (x = 1):               ${f(softClip(1))}</pre>`)
 
   // === (e) Was der Anschluss im Spiel wirklich baut ===========================
   // Bis hierher wurde `createMixer` geprueft. Diese Sektion prueft, dass `mountAudio` es
@@ -240,16 +240,16 @@ Spitze bei Vollaussteuerung am Eingang (x = 1):  ${f(softClip(1))}</pre>`)
                 (afterMount.bufferSource + afterMount.oscillator)
   const silentOk = afterSilent.oscillator === beforeSilent.oscillator &&
                    afterSilent.bufferSource === beforeSilent.bufferSource
-  lines.push('<h2>(e) Was <code>mountAudio</code> wirklich baut</h2>')
-  lines.push(`<pre class="${wiredOk ? 'ok' : 'bad'}">beim Anlegen      ${afterMount.gain} GainNodes (drei Busse + Summenpunkt), ${afterMount.shaper} WaveShaper, ${afterMount.compressor} Kompressor
-am Ereignisbus    ${zuhoerer} Zuhoerer auf "boss.killed"
-nach 2 Meldungen  ${heard} neue Stimmen (${afterEvents.bufferSource} Aufnahme, ${afterEvents.oscillator} gerechnet)</pre>`)
-  lines.push(`<p class="${silentOk ? 'ok' : 'bad'}">Bus auf 0 % baut keine Stimme mehr auf: ${silentOk ? 'ja' : 'NEIN'}</p>`)
+  lines.push('<h2>(e) What <code>mountAudio</code> actually builds</h2>')
+  lines.push(`<pre class="${wiredOk ? 'ok' : 'bad'}">on setup          ${afterMount.gain} GainNodes (three buses + summing point), ${afterMount.shaper} WaveShaper, ${afterMount.compressor} compressor
+on the event bus  ${zuhoerer} listener(s) on "boss.killed"
+after 2 events    ${heard} new voices (${afterEvents.bufferSource} recorded, ${afterEvents.oscillator} synthesized)</pre>`)
+  lines.push(`<p class="${silentOk ? 'ok' : 'bad'}">A bus at 0% no longer builds any voice: ${silentOk ? 'yes' : 'NO'}</p>`)
 
   // === Rohmaterial: wie laut ist eine einzelne Aufnahme? ======================
   const rows = []
-  for (const v of SCENE) rows.push(`${v.name.padEnd(9)} ${v.bus.padEnd(6)} Gain ${v.gain.toFixed(2)}  Aufnahmespitze ${samplePeak(await load(v.name)).toFixed(3)}`)
-  lines.push('<h2>Rohmaterial</h2><pre>' + rows.join('\n') + '</pre>')
+  for (const v of SCENE) rows.push(`${v.name.padEnd(9)} ${v.bus.padEnd(6)} Gain ${v.gain.toFixed(2)}  recording peak ${samplePeak(await load(v.name)).toFixed(3)}`)
+  lines.push('<h2>Raw material</h2><pre>' + rows.join('\n') + '</pre>')
 
   out.innerHTML = lines.join('\n')
   window.__ergebnis = {
@@ -259,5 +259,5 @@ nach 2 Meldungen  ${heard} neue Stimmen (${afterEvents.bufferSource} Aufnahme, $
   window.__fertig = true
 }
 
-run().catch((e) => { out.textContent = 'Fehler: ' + e; window.__fertig = true; window.__fehler = String(e) })
+run().catch((e) => { out.textContent = 'Error: ' + e; window.__fertig = true; window.__fehler = String(e) })
 </script></body></html>

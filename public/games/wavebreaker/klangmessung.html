@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><title>WAVEBREAKER — Klang nachgemessen</title>
+<html lang="en"><head><meta charset="utf-8"><title>WAVEBREAKER — Sound, measured</title>
 <style>
  body{background:#070a18;color:#cfe4ff;font:14px/1.55 ui-monospace,monospace;padding:26px;max-width:940px;margin:auto}
  h1{color:#46c8ff;font-size:19px;letter-spacing:.08em}
@@ -14,19 +14,19 @@
  .mute{color:#5f7397}
  pre{white-space:pre-wrap}
 </style></head><body>
-<h1>Klang nachgemessen</h1>
-<p>Vier Fragen, vier Zahlen: Wie viele Ereignisse haben einen Zuhoerer? Haelt die
-Wiederholsperre auch am laufenden Klangapparat? Wie hoch steigt der Pegel in einer dichten
-Sekunde? Und bleibt die Bedienung unter dem, was sie quittiert?</p>
-<p class="mute">Die letzte Frage wird an der <b>Lautheit</b> gemessen und nicht am Pegel. Der
-Unterschied ist nicht akademisch: Alle 56 Aufnahmen sind auf dieselbe Spitze ausgesteuert
-(0,89), also sagt ein Vergleich zweier <code>gain</code>-Werte ueber die Lautstaerke nichts —
-er hat diese Zusage gruen gemeldet, waehrend sie gebrochen war.</p>
-<p class="mute">Alles laeuft gegen dieselben Dateien wie das Spiel — <code>src/core/events.ts</code>,
+<h1>Sound, measured</h1>
+<p>Four questions, four numbers: How many events have a listener? Does the repeat throttle
+also hold on the running audio engine? How high does the level climb in a dense second? And do
+the UI sounds stay below the things they acknowledge?</p>
+<p class="mute">The last question is measured by <b>loudness</b>, not by peak level. The
+difference is not academic: all 56 recordings are normalised to the same peak (0.89), so
+comparing two <code>gain</code> values says nothing about how loud they are — that comparison
+reported this promise as green while it was actually broken.</p>
+<p class="mute">Everything runs against the same files as the game — <code>src/core/events.ts</code>,
 <code>src/app/soundplan.ts</code>, <code>src/app/audio.ts</code>, <code>src/app/mixer.ts</code>.
-Die Pegel werden in einem <code>OfflineAudioContext</code> gerechnet, schneller als in
-Echtzeit und ohne dass jemand zuhoert.</p>
-<div id="out">rechnet … (rund zehn Sekunden, die Sperren wollen in Echtzeit gemessen werden)</div>
+The levels are computed in an <code>OfflineAudioContext</code>, faster than real time and
+without anyone having to listen.</p>
+<div id="out">computing … (about ten seconds, the throttles have to be measured in real time)</div>
 
 <script type="module">
 import { mountAudio } from '/src/app/audio.ts'
@@ -52,7 +52,7 @@ const out = document.getElementById('out')
 async function importiert(url, teil) {
   const text = await (await fetch(url)).text()
   const treffer = text.match(new RegExp(`from\\s*["']([^"']*${teil}[^"']*)["']`))
-  if (!treffer) throw new Error(`${url} importiert kein ${teil}`)
+  if (!treffer) throw new Error(`${url} does not import ${teil}`)
   return treffer[1]
 }
 const planUrl = await importiert('/src/app/audio.ts', 'soundplan\\.ts')
@@ -89,12 +89,12 @@ async function run() {
   }
   const stummOhneGrund = stumm.filter((name) => !(name in SILENT_EVENTS))
 
-  lines.push('<h2>(a) Abdeckung: Zuhoerer je Ereignistyp</h2>')
-  lines.push(`<pre>Ereignistypen in core/events.ts        ${EVENT_NAMES.length}
-davon mit Zuhoerer                     <b class="${gehoert >= 38 ? 'ok' : 'bad'}">${gehoert}</b>
-davon begruendet stumm                 ${stumm.length}
-davon stumm <b>ohne</b> Begruendung           <span class="${stummOhneGrund.length === 0 ? 'ok' : 'bad'}">${stummOhneGrund.length}${stummOhneGrund.length ? ': ' + stummOhneGrund.join(', ') : ''}</span></pre>`)
-  lines.push('<p class="mute">Stumm und begruendet: ' + stumm.join(', ') + '</p>')
+  lines.push('<h2>(a) Coverage: listeners per event type</h2>')
+  lines.push(`<pre>Event types in core/events.ts          ${EVENT_NAMES.length}
+of these with a listener               <b class="${gehoert >= 38 ? 'ok' : 'bad'}">${gehoert}</b>
+of these silent with a reason          ${stumm.length}
+of these silent <b>without</b> a reason       <span class="${stummOhneGrund.length === 0 ? 'ok' : 'bad'}">${stummOhneGrund.length}${stummOhneGrund.length ? ': ' + stummOhneGrund.join(', ') : ''}</span></pre>`)
+  lines.push('<p class="mute">Silent with a reason: ' + stumm.join(', ') + '</p>')
 
   /* === (b) Haelt die Sperre am laufenden Apparat? =========================== */
 
@@ -133,7 +133,7 @@ davon stumm <b>ohne</b> Begruendung           <span class="${stummOhneGrund.leng
 
   const messungen = []
   messungen.push({
-    was: 'tower.fired, davon jeder fuenfte kritisch',
+    was: 'tower.fired, every fifth one critical',
     art: 'shot',
     ...(await burst('tower.fired', (i) => ({ uid: 'a', defId: 'autocannon', crit: i % 5 === 0 }))),
   })
@@ -156,8 +156,8 @@ davon stumm <b>ohne</b> Begruendung           <span class="${stummOhneGrund.leng
   P.createBufferSource = orig.createBufferSource
   P.createOscillator = orig.createOscillator
 
-  lines.push('<h2>(b) Hundert Meldungen im Abstand von 10 ms gegen die Wiederholsperre</h2>')
-  lines.push('<table><tr><th>Meldung</th><th>Sperre</th><th>Dauer</th><th>erlaubt</th><th>gebaute Stimmen</th></tr>')
+  lines.push('<h2>(b) A hundred events 10 ms apart against the repeat throttle</h2>')
+  lines.push('<table><tr><th>Event</th><th>Throttle</th><th>Duration</th><th>allowed</th><th>voices built</th></tr>')
   let sperreHaelt = true
   for (const messung of messungen) {
     const gap = THROTTLE[messung.art]
@@ -168,7 +168,7 @@ davon stumm <b>ohne</b> Begruendung           <span class="${stummOhneGrund.leng
       <td>${erlaubt}</td><td class="${ok ? 'ok' : 'bad'}">${messung.toene}</td></tr>`)
   }
   lines.push('</table>')
-  lines.push(`<p class="${sperreHaelt ? 'ok' : 'bad'}">Kein Klang kam oefter, als seine Sperre erlaubt: ${sperreHaelt ? 'ja' : 'NEIN'}</p>`)
+  lines.push(`<p class="${sperreHaelt ? 'ok' : 'bad'}">No sound played more often than its throttle allows: ${sperreHaelt ? 'yes' : 'NO'}</p>`)
 
   audio.detach()
 
@@ -239,9 +239,9 @@ davon stumm <b>ohne</b> Begruendung           <span class="${stummOhneGrund.leng
   const dichtHalb = await rechne(dicht, halb)
   const dichtVoll = await rechne(dicht, voll)
 
-  lines.push(`<h2>(c) Eine dichte Sekunde: ${dicht.length} Stimmen</h2>`)
-  lines.push(`<pre>Regler in Startstellung (50 %)   Spitze <span class="${dichtHalb < 1 ? 'ok' : 'bad'}">${f(dichtHalb)}</span>  (${db(dichtHalb)} dBFS)
-Regler ganz auf (100 %)          Spitze <span class="${dichtVoll < 1 ? 'ok' : 'bad'}">${f(dichtVoll)}</span>  (${db(dichtVoll)} dBFS)</pre>`)
+  lines.push(`<h2>(c) One dense second: ${dicht.length} voices</h2>`)
+  lines.push(`<pre>Sliders at default (50%)         peak <span class="${dichtHalb < 1 ? 'ok' : 'bad'}">${f(dichtHalb)}</span>  (${db(dichtHalb)} dBFS)
+Sliders all the way up (100%)    peak <span class="${dichtVoll < 1 ? 'ok' : 'bad'}">${f(dichtVoll)}</span>  (${db(dichtVoll)} dBFS)</pre>`)
 
   const alleUiCues = alleCues.filter(({ cue }) => busOfCue(cue) === 'ui')
   const uiSzene = alleUiCues.map((eintrag, index) => ({
@@ -263,11 +263,11 @@ Regler ganz auf (100 %)          Spitze <span class="${dichtVoll < 1 ? 'ok' : 'b
   const feldSpitze = await rechne(feldSzene, halb)
   const musikSpitze = await rechne(musikSzene, halb)
 
-  lines.push('<h2>(d) Bleibt die Quittung unter dem, was sie quittiert?</h2>')
-  lines.push(`<table><tr><th>Gruppe</th><th>Stimmen</th><th>Spitze bei 50 %</th></tr>
-<tr><td>Bedienung (ui), alle Klaenge hintereinander</td><td>${uiSzene.length}</td><td>${f(uiSpitze)}</td></tr>
-<tr><td>Feld (sfx), eine dichte Sekunde</td><td>${feldSzene.length}</td><td>${f(feldSpitze)}</td></tr>
-<tr><td>Zaesuren (music), alle hintereinander</td><td>${musikSzene.length}</td><td>${f(musikSpitze)}</td></tr></table>`)
+  lines.push('<h2>(d) Do the UI sounds stay below what they acknowledge?</h2>')
+  lines.push(`<table><tr><th>Group</th><th>Voices</th><th>Peak at 50%</th></tr>
+<tr><td>UI (ui), all sounds in sequence</td><td>${uiSzene.length}</td><td>${f(uiSpitze)}</td></tr>
+<tr><td>Field (sfx), one dense second</td><td>${feldSzene.length}</td><td>${f(feldSpitze)}</td></tr>
+<tr><td>Milestones (music), all in sequence</td><td>${musikSzene.length}</td><td>${f(musikSpitze)}</td></tr></table>`)
 
   /*
    * Und jetzt die Zahl, um die es geht.
@@ -358,8 +358,8 @@ Regler ganz auf (100 %)          Spitze <span class="${dichtVoll < 1 ? 'ok' : 'b
     ...gemessen.map((e) => Math.abs(20 * Math.log10(e.wert / e.erwartet))),
   )
 
-  lines.push('<h3>Gemessene Lautheit je Klang (400-ms-Fenster, durch das echte Pult)</h3>')
-  lines.push('<table><tr><th>Ereignis</th><th>Aufnahme</th><th>Gruppe</th><th>gain</th><th>gemessen</th><th>dB</th><th>aus LOUDNESS</th><th>Abweichung</th></tr>')
+  lines.push('<h3>Measured loudness per sound (400 ms window, through the real mixer)</h3>')
+  lines.push('<table><tr><th>Event</th><th>Recording</th><th>Group</th><th>gain</th><th>measured</th><th>dB</th><th>from LOUDNESS</th><th>Deviation</th></tr>')
   for (const e of [...gemessen].sort((a, b) => b.wert - a.wert)) {
     const ab = 20 * Math.log10(e.wert / e.erwartet)
     lines.push(`<tr><td>${e.name}</td><td>${e.sample}</td><td>${e.bus}</td><td>${e.gain.toFixed(2)}</td>
@@ -367,11 +367,11 @@ Regler ganz auf (100 %)          Spitze <span class="${dichtVoll < 1 ? 'ok' : 'b
       <td class="${Math.abs(ab) < TOLERANZ ? 'ok' : 'bad'}">${ab >= 0 ? '+' : ''}${ab.toFixed(2)} dB</td></tr>`)
   }
   lines.push('</table>')
-  lines.push(`<pre>lauteste Quittung   ${lauteste.name} (${lauteste.sample})   ${f(lauteste.wert)}   ${db(lauteste.wert)}
-leiseste Zaesur     ${leiseste.name} (${leiseste.sample})   ${f(leiseste.wert)}   ${db(leiseste.wert)}
-Abstand             <b>${abstand.toFixed(2)} dB</b></pre>`)
-  lines.push(`<p class="${abstand > 0 ? 'ok' : 'bad'}">Keine Quittung uebertoent die leiseste Zaesur: ${abstand > 0 ? 'ja' : 'NEIN'}</p>`)
-  lines.push(`<p class="${groessteAbweichung < TOLERANZ ? 'ok' : 'bad'}">Groesste Abweichung zwischen Browser und <code>LOUDNESS</code> im Quelltext: ${groessteAbweichung.toFixed(2)} dB — erlaubt sind ${TOLERANZ.toFixed(1)} dB, so viel kostet der Abtastratenwandler an der obersten Oktave.</p>`)
+  lines.push(`<pre>loudest UI sound    ${lauteste.name} (${lauteste.sample})   ${f(lauteste.wert)}   ${db(lauteste.wert)}
+quietest milestone  ${leiseste.name} (${leiseste.sample})   ${f(leiseste.wert)}   ${db(leiseste.wert)}
+Gap                 <b>${abstand.toFixed(2)} dB</b></pre>`)
+  lines.push(`<p class="${abstand > 0 ? 'ok' : 'bad'}">No UI sound drowns out the quietest milestone: ${abstand > 0 ? 'yes' : 'NO'}</p>`)
+  lines.push(`<p class="${groessteAbweichung < TOLERANZ ? 'ok' : 'bad'}">Largest deviation between the browser and <code>LOUDNESS</code> in the source: ${groessteAbweichung.toFixed(2)} dB — ${TOLERANZ.toFixed(1)} dB is allowed, that is what the sample-rate converter costs in the top octave.</p>`)
 
   const lautesteQuittung = lauteste.wert
   const leiseZaesur = leiseste.wert
@@ -402,7 +402,7 @@ Abstand             <b>${abstand.toFixed(2)} dB</b></pre>`)
 }
 
 run().catch((fehler) => {
-  out.textContent = 'Fehler: ' + fehler
+  out.textContent = 'Error: ' + fehler
   window.__fehler = String(fehler)
   window.__fertig = true
 })
