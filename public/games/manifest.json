@@ -33,5 +33,12 @@
     "repo": "milchinien/Harmonics",
     "commit": "6b249fe3e23dfc56160900df7a741d92d784ea1b",
     "handy": true
+  },
+  "chromatic-2": {
+    "path": "games/chromatic-2/",
+    "sha256": "be3f325aca61d84052d59d2cfdf30cb9e021eae3f3d1a6da7807dbd33f46c245",
+    "repo": "milchinien/Chromatic-2",
+    "commit": "d94a1e7e4f59bcaea159e864140e38658a922226",
+    "handy": true
   }
 }
