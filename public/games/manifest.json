@@ -36,9 +36,9 @@
   },
   "chromatic-2": {
     "path": "games/chromatic-2/",
-    "sha256": "cf3c014ca2921ece31dbe6f97c495b5f1af5d62a73439f13652aef35d52a0fa6",
+    "sha256": "9c837ec2df249645216f8f7f377b05bf9846257567d8f9c262bdc4382da2983e",
     "repo": "milchinien/Chromatic-2",
-    "commit": "093f3450ef2cd77a1c365adbfe7e6ec24187be66",
+    "commit": "f99a75ce439de8858b3a1df6609b8700ec20de52",
     "handy": true
   }
 }
