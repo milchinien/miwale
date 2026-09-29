@@ -69,7 +69,7 @@ jobs:
         run: |
           set -euo pipefail
           docker network create glut-ci-net
-          docker run -d --name glut-ci --network glut-ci-net -e GLUT_PASSWORD=test-password ghcr.io/milchinien/glut:latest
+          docker run -d --name glut-ci --network glut-ci-net --network-alias glut -e GLUT_PASSWORD=test-password ghcr.io/milchinien/glut:latest
           docker run -d --name miwale-ci --network glut-ci-net -p 8080:8080 miwale:ci
           trap 'docker rm -f miwale-ci glut-ci >/dev/null; docker network rm glut-ci-net >/dev/null' EXIT
           for _ in $(seq 1 30); do
