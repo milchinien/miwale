@@ -167,22 +167,23 @@ window.MIWALE_SPIELE = [
   },
   {
     "id": "chromatic",
-    "name": "Chromatic",
+    "name": "Chromatic 2",
     "trend": 3,
-    "veroeffentlicht": "2026-05-22",
+    "veroeffentlicht": "2026-09-29",
     "geraete": [
-      "pc"
+      "pc",
+      "handy"
     ],
     "status": {
       "en": "Playable",
       "de": "Spielbar"
     },
     "spielen": "/games/chromatic/index.html",
-    "bild": "assets/games/previews/chromatic-v1.jpg",
+    "bild": "assets/games/previews/chromatic-v2.jpg",
     "bilder": [
-      "assets/games/chromatic-kampf-1.png",
-      "assets/games/chromatic-kampf-2.png",
-      "assets/games/chromatic-akt-1.png"
+      "assets/games/shop/chromatic-4.jpg",
+      "assets/games/shop/chromatic-3.jpg",
+      "assets/games/shop/chromatic-2.jpg"
     ],
     "medien": {
       "trailer": "assets/games/shop/chromatic-trailer.webm",
@@ -196,50 +197,50 @@ window.MIWALE_SPIELE = [
     },
     "texte": {
       "en": {
-        "kurz": "A roguelite deckbuilder without mana: draw five, pick three blind, play two – and let matching colors and classes turn the battle.",
+        "kurz": "Build an army from your cards and send hundreds of pixel troops into real-time mass battles across four worlds.",
         "tags": [
           "Roguelite",
           "Deckbuilder",
-          "Card game",
+          "Mass battles",
           "Strategy"
         ],
         "ueber": [
-          "Your deck is fixed at 25 cards – five colors, five classes. Each round you draw five, pick three blind and play two. Your troops march onto the battlefield and fight in real time. When cards share a color or a class, they power each other up, and those auras can decide the fight.",
-          "Pick your path across the world map through battles, treasure rooms, shops and spell shrines. Upgrade your cards, choose permanent perks, beat the act boss – and the next act gets harder.",
-          "Choose a commander, set a difficulty grade and add mutators for a higher rank. Achievements, stats and a card gallery keep track of your runs. The game's text is currently in German."
+          "Choose three factions and reveal a ten-card starting deck. Each round you draw three cards, place two in front and back, then watch hundreds of troops clash in real time.",
+          "Matching factions and classes unlock powerful army bonuses. Position, troop count, upgrades and card synergies decide whether your survivors reach the enemy castle.",
+          "Travel through four worlds with branching battles, treasure, shops, enchantments and pyres. Chromatic 2 plays in English on desktop and mobile."
         ],
         "features": [
-          "No mana: 5 cards drawn, 3 picked blind, 2 played every round",
-          "Combos from shared colors and classes power up your whole army",
-          "Branching world map with battles, treasure, shop, perks and bosses",
-          "Before each act, pick which color boss you want to face",
-          "Commanders, difficulty grades and mutators for ranked runs",
-          "Achievements, statistics and a card gallery"
+          "Three-card draw: choose a front and back line every round",
+          "Real-time pixel battles with hundreds of individually simulated units",
+          "Seven factions and class combos with distinct army bonuses",
+          "Four branching worlds with battles, treasure, shops, enchantments and bosses",
+          "Card upgrades, persistent runs and escalating castle sieges",
+          "Responsive desktop and portrait-mobile layouts"
         ],
-        "steuerung": "Mouse: pick your route on the map and choose your cards; Esc pauses, M toggles sound."
+        "steuerung": "Mouse or touch: choose routes and cards; Space starts or pauses a battle, M toggles sound."
       },
       "de": {
-        "kurz": "Ein Roguelite-Deckbuilder ohne Mana: fünf ziehen, drei blind wählen, zwei spielen – und passende Farben und Klassen drehen den Kampf.",
+        "kurz": "Baue aus deinen Karten eine Armee und schicke Hunderte Pixeltruppen durch vier Welten in Echtzeit-Massenschlachten.",
         "tags": [
           "Roguelite",
           "Deckbuilder",
-          "Kartenspiel",
+          "Massenschlachten",
           "Strategie"
         ],
         "ueber": [
-          "Dein Deck steht fest: 25 Karten, fünf Farben, fünf Klassen. Jede Runde ziehst du fünf, wählst drei blind und spielst zwei. Deine Truppen marschieren aufs Feld und kämpfen in Echtzeit. Teilen Karten Farbe oder Klasse, stärken sie sich gegenseitig – und diese Auren entscheiden oft das Gefecht.",
-          "Auf der Weltkarte wählst du deinen Weg durch Kämpfe, Schatzkammern, Shops und Zauber-Heiligtümer. Verbessere deine Karten, sichere dir dauerhafte Perks, besiege den Boss des Akts – und der nächste wird härter.",
-          "Wähle einen Kommandanten, stell den Schwierigkeitsgrad ein und leg Mutatoren drauf, um einen höheren Rang zu holen. Erfolge, Statistiken und eine Kartengalerie halten deine Runs fest."
+          "Wähle drei Fraktionen und decke dein Startdeck aus zehn Karten auf. Pro Runde ziehst du drei Karten, stellst zwei vorne und hinten auf und siehst Hunderten Truppen beim Echtzeitkampf zu.",
+          "Gleiche Fraktionen und Klassen schalten starke Armeeboni frei. Aufstellung, Truppenzahl, Verbesserungen und Kartensynergien entscheiden, ob Überlebende die gegnerische Burg erreichen.",
+          "Reise durch vier verzweigte Welten mit Kämpfen, Schätzen, Shops, Verzauberungen und Pyren. Chromatic 2 läuft auf PC und im Handy-Hochformat."
         ],
         "features": [
-          "Kein Mana: pro Runde 5 ziehen, 3 blind wählen, 2 spielen",
-          "Combos aus gleicher Farbe oder Klasse stärken deine ganze Armee",
-          "Verzweigte Weltkarte mit Kämpfen, Schätzen, Shop, Perks und Bossen",
-          "Vor jedem Akt wählst du, gegen welchen Farb-Boss du antrittst",
-          "Kommandanten, Schwierigkeitsgrade und Mutatoren für gewertete Runs",
-          "Erfolge, Statistiken und Kartengalerie"
+          "Drei Karten ziehen und jede Runde Front- und Hinterreihe wählen",
+          "Echtzeit-Pixelschlachten mit Hunderten einzeln simulierten Einheiten",
+          "Sieben Fraktionen und Klassen-Combos mit eigenen Armeeboni",
+          "Vier verzweigte Welten mit Kämpfen, Schätzen, Shops, Verzauberungen und Bossen",
+          "Kartenverbesserungen, gespeicherte Runs und eskalierende Belagerungen",
+          "Angepasste Oberflächen für Desktop und Handy-Hochformat"
         ],
-        "steuerung": "Maus: Route auf der Karte wählen und Karten aussuchen; Esc pausiert, M schaltet den Ton um."
+        "steuerung": "Maus oder Touch: Route und Karten wählen; Leertaste startet oder pausiert den Kampf, M schaltet den Ton um."
       }
     }
   },

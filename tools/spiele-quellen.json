@@ -10,7 +10,7 @@
   "repos": {
     "Dropfall": { "id": "dropfall" },
     "Wavebreaker": { "id": "wavebreaker" },
-    "Chromatic": { "id": "chromatic" },
+    "Chromatic-2": { "id": "chromatic" },
     "Runecall": { "id": "runecall", "app": "packages/client" },
     "Harmonics": { "id": "harmonics" },
     "Coin-Pusher": { "id": "reliktenschieber" },
@@ -18,6 +18,7 @@
   },
   "ausgeschlossen": {
     "miwale": "die Seite selbst",
+    "Chromatic": "durch Chromatic-2 ersetzt",
     "dungeons-and-diplomas": "Anmeldung kaputt, braucht Supabase",
     "mindforge-playground": "Werkzeug, kein Spiel"
   }

@@ -8,9 +8,9 @@
   },
   "chromatic": {
     "path": "games/chromatic/",
-    "sha256": "c80e45069df2989735986f7e61e70c9e7b19585b9f4bde17a2f3b0dea2181084",
-    "repo": "milchinien/Chromatic",
-    "commit": "9c37f28db2901d20e6b2731e466bc9c905bf5a15",
+    "sha256": "9d323420da4f1fff06d628d2602605301d5a127236025246481436b4890547fb",
+    "repo": "milchinien/Chromatic-2",
+    "commit": "f979818f7ba60d3d22e3231e331e5c302767066f",
     "handy": true
   },
   "reliktenschieber": {
@@ -32,13 +32,6 @@
     "sha256": "e94df79239752afb18e8e40af078d112d5e3589aa62a3f0e7579019150866b1b",
     "repo": "milchinien/Harmonics",
     "commit": "6b249fe3e23dfc56160900df7a741d92d784ea1b",
-    "handy": true
-  },
-  "chromatic-2": {
-    "path": "games/chromatic-2/",
-    "sha256": "9c837ec2df249645216f8f7f377b05bf9846257567d8f9c262bdc4382da2983e",
-    "repo": "milchinien/Chromatic-2",
-    "commit": "f99a75ce439de8858b3a1df6609b8700ec20de52",
     "handy": true
   }
 }
