@@ -44,9 +44,32 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
 
+  glut:
+    image: ghcr.io/milchinien/glut:latest
+    container_name: glut
+    restart: unless-stopped
+    networks:
+      - campsite-net
+    environment:
+      GLUT_PASSWORD: ${GLUT_PASSWORD:-}
+      GLUT_ORIGIN: https://miwale.com
+    volumes:
+      - glut-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4318/usage/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
 volumes:
   miwale-bewertungen:
     name: miwale-bewertungen
+  glut-data:
+    name: glut-data
 
 networks:
   campsite-net:

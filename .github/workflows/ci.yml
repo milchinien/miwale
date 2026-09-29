@@ -68,8 +68,10 @@ jobs:
       - name: Adressen und Umleitungen abrufen
         run: |
           set -euo pipefail
-          docker run -d --name miwale-ci -p 8080:8080 miwale:ci
-          trap 'docker rm -f miwale-ci >/dev/null' EXIT
+          docker network create glut-ci-net
+          docker run -d --name glut-ci --network glut-ci-net --network-alias glut -e GLUT_PASSWORD=test-password ghcr.io/milchinien/glut:latest
+          docker run -d --name miwale-ci --network glut-ci-net -p 8080:8080 miwale:ci
+          trap 'docker rm -f miwale-ci glut-ci >/dev/null; docker network rm glut-ci-net >/dev/null' EXIT
           for _ in $(seq 1 30); do
             curl -fsS -o /dev/null http://127.0.0.1:8080/healthz && break
             sleep 1
@@ -93,6 +95,10 @@ jobs:
           grep -q '<base href="/">' <<< "$seite"
           grep -q '<x-dc>' <<< "$seite"
           test "$(status /gibtsnicht)" = 404
+          # Glut ist eine eigene, nicht verlinkte Seite und schuetzt die API.
+          test "$(status /usage/)" = 200
+          test "$(status /usage/api/stats)" = 401
+          umleitung /usage 301 /usage/
           # Bewertungsdienst hinter nginx
           for _ in $(seq 1 15); do curl -fsS -o /dev/null http://127.0.0.1:8080/api/bewertungen/healthz && break; sleep 1; done
           test "$(status /api/bewertungen/healthz)" = 200
