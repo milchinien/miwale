@@ -1,0 +1,20 @@
+Generated with the built-in image_gen tool. woodland-atlas-source.png preserves
+the original image. tools/center-icons.ps1 extracts the complete motifs using the
+actual gutters and centers their visible bounds in 160px tiles without scaling.
+woodland-atlas.png is the rebuilt uniform atlas used by the game. The 64 PNG
+tiles share its alignment. No AI runtime is needed.
+
+Use case: logo-brand.
+Asset type: ONE production UI icon atlas sprite sheet for a cozy lumberjack idle browser game with wooden panels.
+Create a square transparent PNG atlas, exactly 8 columns and 8 rows of equally sized cells, 64 minimalist icons total. Each icon centered within its own cell with generous identical 18% inset. All cells align exactly on a regular invisible grid. No grid lines, no labels, no text, no background tiles.
+Style: original clean flat pictograms, bold simple silhouettes, softly rounded corners, very restrained internal detail, consistent thick dark chocolate outlines, cream highlights, muted forest green, warm oak brown and antique gold, occasional muted slate metal. Legible at 20px, charming crafted woodland aesthetic, not emoji, not glossy, no 3D bevels, no shadows outside shapes.
+Exact icon order left to right:
+Row 1: axe; broadleaf oak tree; pointed pine tree; young two-leaf sapling; cut wood log; two stacked planks; wooden storage chest; gold coin.
+Row 2: worker bust wearing simple work cap; small timber hut; map of four plots; clipboard orders; paper scroll; settings gear; sun; crescent moon.
+Row 3: five-point star; heart; padlock; check mark; close X; warning triangle; up arrow; right arrow.
+Row 4: circular repeat arrows; speaker with sound waves; muted speaker; save disk; export arrow leaving tray; import arrow entering tray; trash bin; trophy cup.
+Row 5: hand saw; water droplet; water sprinkler; fountain; soil patch; pair of leaves; seed acorn; camp tent.
+Row 6: sturdy boots; backpack; open book; small clock; lightning bolt; gift box; crown; crossed smith tools.
+Row 7: handshake; loaf of bread; sailing boat; teddy bear; fish; soup bowl; lantern; wooden market stall.
+Row 8: computer mouse; hand pointer; flag; dice; magnifier; feather; musical note; mountain.
+Constraints: true alpha transparency, one atlas, perfectly even 8 by 8 grid, all 64 cells occupied once, no lettering or numbers anywhere.

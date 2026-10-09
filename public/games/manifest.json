@@ -1,4 +1,11 @@
 {
+  "timberline-idle": {
+    "path": "games/timberline-idle/",
+    "sha256": "eed0ef8fb5c33c451dcb5a019d251ae482d8dd021b52d5beb16be48c301128ec",
+    "repo": "milchinien/Timberline-Idle",
+    "commit": "cf80a14554bed683e4f377f14d4fc40cbb730345",
+    "handy": true
+  },
   "wavebreaker": {
     "path": "games/wavebreaker/",
     "sha256": "c9b7462c670377bb399bda91aaacaf7f3680bdc966e7db17e35ae742a56b04a9",
@@ -32,6 +39,13 @@
     "sha256": "e94df79239752afb18e8e40af078d112d5e3589aa62a3f0e7579019150866b1b",
     "repo": "milchinien/Harmonics",
     "commit": "6b249fe3e23dfc56160900df7a741d92d784ea1b",
+    "handy": true
+  },
+  "castle-scaremore": {
+    "path": "games/castle-scaremore/",
+    "sha256": "3997186a28c8640b8927e1b17e591d0ce44880b7fc8c7cd77dccf229025cb0b4",
+    "repo": "milchinien/Castle-Scaremore",
+    "commit": "204dac23b8a75d0215178172796235bbfe154fb9",
     "handy": true
   }
 }

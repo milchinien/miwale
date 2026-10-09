@@ -14,12 +14,16 @@
     "Runecall": { "id": "runecall", "app": "packages/client" },
     "Harmonics": { "id": "harmonics" },
     "Coin-Pusher": { "id": "reliktenschieber" },
-    "michi-math-universe": { "id": "mathuniverse" }
+    "michi-math-universe": { "id": "mathuniverse" },
+    "Timberline-Idle": { "id": "timberline-idle" },
+    "Castle-Scaremore": { "id": "castle-scaremore" }
   },
   "ausgeschlossen": {
     "miwale": "die Seite selbst",
     "Chromatic": "durch Chromatic-2 ersetzt",
     "dungeons-and-diplomas": "Anmeldung kaputt, braucht Supabase",
-    "mindforge-playground": "Werkzeug, kein Spiel"
+    "mindforge-playground": "Werkzeug, kein Spiel",
+    "Idlekin": "braucht den eigenen Server (Anmeldung, Spielstand), laeuft nicht als reine Webseite",
+    "glut": "Werkzeug, kein Spiel"
   }
 }

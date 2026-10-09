@@ -1,0 +1,93 @@
+﻿/* Only the comparison control lives outside the original game UI.
+   All game chrome, phone styling and scene dimensions remain in style.css. */
+body { flex-direction: column; justify-content: flex-start; gap: 12px; padding: 8px 0 12px; overflow-y: auto; }
+#app { flex-shrink: 0; }
+.design-lab { position: relative; z-index: 20; flex-shrink: 0; display: flex; justify-content: center; color: #ede6d8; }
+.design-lab-title { display: none; }
+.design-switch { display: flex; padding: 2px; border: 1px solid #ede6d81a; border-radius: 20px; background: #111015; }
+.design-switch button { height: 30px; padding: 0 14px; font-size: 11px; border-radius: 18px; color: #9b94a3; }
+.design-switch button[aria-pressed="true"] { background: #e8b25c; color: #231807; }
+.design-switch button:focus-visible { outline: 2px solid #ede6d8; outline-offset: 2px; }
+/* The toolbar scrolls with the page, never over the unchanged phone. */
+body[data-design="moonlit"] #scene .hud svg { width: 18px; height: 18px; color: #e8c78d; }
+body[data-design="moonlit"] #scene .scene-pill svg { width: 18px; height: 18px; color: #f1d19a; }
+body[data-design="moonlit"] #scene .scene-hud .hud { gap: 6px; }
+body[data-design="moonlit"] #scene .scene-center:has(.tutorial.show) { top: auto; bottom: 38px; }
+body[data-design="moonlit"] #scene .tutorial { height: 24px; font-size: 10px; padding: 0 8px; }
+@media (prefers-reduced-motion: reduce) {
+  body[data-design="moonlit"] #scene *, body[data-design="moonlit"] #scene::before { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Moonlit title screen. The original SVG intro remains intact in its own stage. */
+body[data-design="original"] .sp-stage-moonlit,
+body[data-design="moonlit"] .sp-stage-original { display: none; }
+
+.sp-stage-moonlit { isolation: isolate; background: #080b20; }
+.sp-stage-moonlit .ml-layer { position: absolute; inset: 0; transform-origin: 50% 84%; will-change: transform; }
+.sp-stage-moonlit .ml-layer > img { width: 100%; height: 100%; object-fit: fill; display: block; }
+
+/* The same camera move as the original, with stronger travel on nearer planes. */
+.ml-background { animation: mlArrive 4.8s cubic-bezier(.16,.84,.24,1) both; --ml-from: scale(1.025); }
+.ml-castle { animation: mlArrive 4.8s cubic-bezier(.16,.84,.24,1) both; --ml-from: scale(1.07); }
+.ml-foreground { animation: mlArrive 4.8s cubic-bezier(.16,.84,.24,1) both; --ml-from: scale(1.16); }
+@keyframes mlArrive { from { transform: var(--ml-from); } to { transform: none; } }
+
+/* Moonlight is a code layer so it can breathe without repainting the artwork. */
+.ml-moonwash {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: radial-gradient(circle at 77% 15%, rgba(255,246,210,.18), rgba(165,183,255,.055) 18%, transparent 42%);
+  mix-blend-mode: screen; animation: mlMoon 12s ease-in-out infinite;
+}
+@keyframes mlMoon { 0%,100% { opacity: .7; } 50% { opacity: 1; } }
+.ml-stars { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.ml-stars i { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff9db; box-shadow: 0 0 7px #fff2b6; animation: mlTwinkle 4s ease-in-out infinite; }
+.ml-stars i:nth-child(1) { left: 13%; top: 10%; animation-delay: -1s; }
+.ml-stars i:nth-child(2) { left: 37%; top: 17%; animation-delay: -2.4s; }
+.ml-stars i:nth-child(3) { left: 61%; top: 8%; animation-delay: -.5s; }
+.ml-stars i:nth-child(4) { left: 89%; top: 27%; animation-delay: -3.2s; }
+.ml-stars i:nth-child(5) { left: 20%; top: 34%; animation-delay: -1.8s; }
+.ml-stars i:nth-child(6) { left: 72%; top: 39%; animation-delay: -2.8s; }
+@keyframes mlTwinkle { 0%,100% { opacity: .25; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.45); } }
+
+/* Ravens cross entirely off-screen; their reset is therefore invisible and loop-safe. */
+.ml-raven { position: absolute; z-index: 3; width: 6%; left: 0; top: 0; color: #070918; will-change: transform; }
+.ml-raven svg { display: block; width: 100%; fill: currentColor; animation: mlFlap .4s ease-in-out infinite; }
+.ml-raven.r1 { animation: mlRavenOne 24s linear -3s infinite; }
+.ml-raven.r2 { width: 4%; opacity: .75; animation: mlRavenTwo 24s linear -13s infinite; }
+@keyframes mlFlap { 0%,100% { transform: scaleY(.45); } 50% { transform: scaleY(1); } }
+@keyframes mlRavenOne { 0% { transform: translate(1850%,760%); } 45% { transform: translate(850%,470%); } 100% { transform: translate(-250%,640%); } }
+@keyframes mlRavenTwo { 0% { transform: translate(2700%,1150%) scale(.8); } 50% { transform: translate(1300%,850%) scale(.9); } 100% { transform: translate(-350%,1050%) scale(.8); } }
+
+.ml-title-back { z-index: 4; animation: spTitle 1.6s cubic-bezier(.2,.8,.2,1) 2s both; }
+.ml-ghost { z-index: 5; opacity: .68; filter: drop-shadow(0 0 12px rgba(159,227,198,.5)); animation: mlGhost 12s ease-in-out -2s infinite; }
+.ml-castle { z-index: 6; }
+.ml-window-lights { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.ml-window-lights i {
+  position: absolute; left: var(--x); top: var(--y); width: 4%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,222,140,.62), rgba(255,170,70,.2) 35%, transparent 70%);
+  mix-blend-mode: screen; animation: mlFlicker 4s steps(1,end) var(--d) infinite;
+}
+@keyframes mlFlicker { 0%,100% { opacity: .82; } 12% { opacity: .54; } 18% { opacity: .9; } 43% { opacity: .7; } 48% { opacity: .96; } 74% { opacity: .64; } 82% { opacity: .88; } }
+@keyframes mlGhost { 0%,100% { transform: translate(1%,2%) rotate(1deg); opacity: .18; } 22%,58% { transform: translate(-5%,0) rotate(-3deg); opacity: .72; } 36% { transform: translate(-6%,-1.2%) rotate(-1deg); opacity: .82; } 72% { transform: translate(1%,2%) rotate(1deg); opacity: .18; } }
+
+.ml-fog { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ml-fog i { position: absolute; border-radius: 50%; filter: blur(9px); will-change: transform; }
+.ml-fog-back { z-index: 8; }
+.ml-fog-back i { width: 105%; height: 8%; top: 83%; background: radial-gradient(closest-side, rgba(132,146,189,.22), transparent 72%); animation: mlFogBack 24s ease-in-out infinite; }
+.ml-fog-back i:first-child { left: -38%; }
+.ml-fog-back i:last-child { left: 34%; top: 87%; animation-delay: -12s; }
+@keyframes mlFogBack { 0%,100% { transform: translateX(-4%) scaleX(1); opacity: .5; } 50% { transform: translateX(8%) scaleX(1.08); opacity: .8; } }
+.ml-foreground { z-index: 9; }
+.ml-fog-front { z-index: 10; }
+.ml-fog-front i { width: 120%; height: 11%; top: 88%; left: -40%; background: radial-gradient(closest-side, rgba(181,190,216,.4), transparent 72%); animation: mlFogFront 24s ease-in-out infinite; }
+.ml-fog-front i:nth-child(2) { left: 22%; top: 92%; animation-delay: -14s; animation-duration: 24s; }
+.ml-fog-front i:nth-child(3) { left: -5%; top: 96%; opacity: .5; animation-delay: -7s; animation-duration: 24s; }
+@keyframes mlFogFront { 0%,100% { transform: translateX(-5%) scaleX(1); } 50% { transform: translateX(9%) scaleX(1.1); } }
+
+.ml-title-front { z-index: 11; animation: spTitle 1.6s cubic-bezier(.2,.8,.2,1) 2.5s both; }
+.ml-vignette { z-index: 13; pointer-events: none; background: radial-gradient(115% 85% at 50% 44%, transparent 48%, rgba(2,4,14,.58)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-stage-moonlit * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .ml-window-lights i { opacity: .85; }
+}

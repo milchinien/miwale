@@ -1,0 +1,18 @@
+/* Only generated chest artwork and its reveal. No changes to surrounding UI. */
+scaremore-chest { display: block; width: 100%; height: 100%; contain: layout; }
+scaremore-chest canvas { display: block; width: 100%; height: 100%; }
+.chest-open[data-art="storybook"] .chest-big { width: 196px; height: 196px; margin-top: 32px; animation: none; }
+.chest-open[data-art="storybook"] .chest-stage { perspective: 700px; }
+.chest-open[data-art="storybook"] .tap-open { min-height: 44px; padding: 0 20px; border-radius: 24px; border: 1px solid var(--hair-2); color: var(--text); }
+.chest-open[data-art="storybook"] .tap-open:disabled { pointer-events: none; opacity: 0; transition: opacity .12s; }
+.chest-open[data-art="storybook"].shaking .chest-glow { opacity: .24; transform: scale(.65); transition: opacity .2s .2s, transform .3s .2s; }
+.chest-open[data-art="storybook"] .chest-glow { width: 240px; height: 240px; margin: -120px; top: 58%; }
+.chest-open[data-art="storybook"].opened .chest-glow { opacity: .8; transform: scale(1); transition: transform .55s var(--spring-soft), opacity .3s; }
+.chest-open[data-art="storybook"] .loot { top: -24px; transform: translateY(104px) scale(.28); filter: brightness(1.35); }
+.chest-open[data-art="storybook"].opened .loot { transform: none; filter: none; transition: transform .62s cubic-bezier(.16,1.35,.32,1), opacity .14s, filter .35s; }
+.chest-open[data-art="storybook"].opened .loot-info { transition: transform .4s var(--ease-out) .23s, opacity .25s .23s; }
+.chest-open[data-art="storybook"] .reveal-actions .btn { animation: storybookAction .3s var(--ease-out) both .24s; }
+@keyframes storybookAction { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .chest-open[data-art="storybook"] *, .chest-open[data-art="storybook"] *::before { animation: none !important; transition: none !important; }
+}
