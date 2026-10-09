@@ -135,6 +135,14 @@ jobs:
           test "$(spiel /api/konto/ich)" = 404
           test "$(spiel /admin/)" = 404
           curl -sSI -H 'Host: play.miwale.com' http://127.0.0.1:8080/games/wavebreaker/ | tr -d '\r' | grep -qi '^content-security-policy: frame-ancestors https://miwale.com'
+          # Style-Galerie: erreichbar, aber nicht fuer Suchmaschinen.
+          test "$(status /styles/)" = 200
+          test "$(status /styles/play.html)" = 200
+          test "$(status /styles/js/core/game.js)" = 200
+          umleitung /styles 301 /styles/
+          umleitung /Styles 301 /styles
+          umleitung /Styles/ 301 /styles/
+          curl -sSI http://127.0.0.1:8080/styles/ | tr -d '\r' | grep -qi '^x-robots-tag: noindex, nofollow'
           umleitung /admin 301 /admin/
           umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
           umleitung /games 301 /

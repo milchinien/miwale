@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jack vs. the Turnip Ancestors – Style Test</title>
+  <link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="xp"><div class="xp-fill"></div><span class="lvl">Lv 1</span></div>
+    <div class="topline">
+      <div class="hp">
+        <canvas class="hp-icon" width="48" height="48"></canvas>
+        <div class="hp-bar"><div class="hp-fill"></div></div>
+        <span class="hp-text">100/100</span>
+      </div>
+      <div class="clock"><span class="clock-time">22:00</span><span class="clock-label">bis Mitternacht</span></div>
+      <div class="kills"><canvas class="kills-icon" width="48" height="48"></canvas><span class="kills-num">0</span></div>
+    </div>
+  </div>
+
+  <div id="stylebar">
+    <span class="style-family"></span>
+    <span class="style-name" title="Style-Liste (Tab)"></span>
+    <span class="style-hint">Q / E Style wechseln · Tab Liste · WASD laufen · Leertaste Dash · <span class="auto">B Autopilot</span> · H HUD</span>
+  </div>
+  <div id="stylemenu" class="hidden"></div>
+
+  <div id="levelup" class="hidden">
+    <div class="lu-title">Level Up!</div>
+    <div class="lu-cards"></div>
+    <div class="lu-hint">Wähle mit 1 · 2 · 3 oder Klick</div>
+  </div>
+
+  <div id="gameover" class="hidden">
+    <div class="go-title">Jack ist verwelkt</div>
+    <div class="go-stats"></div>
+    <div class="go-hint">R – Neustart</div>
+  </div>
+
+  <div id="pausebox">Pause</div>
+  <pre id="errors"></pre>
+
+  <script src="js/core/util.js"></script>
+  <script src="js/core/styles.js"></script>
+  <script src="js/core/effort.js"></script>
+  <script src="js/core/ground.js"></script>
+  <script src="js/core/game.js"></script>
+  <script src="js/core/render.js"></script>
+  <script src="js/core/hud.js"></script>
+  <!-- styles (order = order in menu) -->
+  <script src="js/styles/dev.js"></script>
+  <script src="js/styles/harvest16.js"></script>
+  <script src="js/styles/kuerbisboy.js"></script>
+  <script src="js/styles/gothic.js"></script>
+  <script src="js/styles/dusk.js"></script>
+  <script src="js/styles/cartoon.js"></script>
+  <script src="js/styles/paper.js"></script>
+  <script src="js/styles/watercolor.js"></script>
+  <script src="js/styles/neon.js"></script>
+  <script src="js/styles/lowpoly.js"></script>
+  <script src="js/styles/linocut.js"></script>
+  <script src="js/styles/nes8bit.js"></script>
+  <script src="js/styles/stainedglass.js"></script>
+  <script src="js/styles/clay.js"></script>
+  <script src="js/styles/chalk.js"></script>
+  <script src="js/styles/candy.js"></script>
+  <script src="js/styles/crossstitch.js"></script>
+  <script src="js/styles/popart.js"></script>
+  <script src="js/styles/vangogh.js"></script>
+  <script src="js/styles/shadow.js"></script>
+  <script src="js/styles/voxel.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
