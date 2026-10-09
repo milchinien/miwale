@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Timberline Idle</title>
+    <meta name="description" content="Timberline Idle: a cozy idle game about felling trees, replanting the forest and growing your timber empire." />
+    <script type="module" crossorigin src="./assets/index-Dirur1b-.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DDPr8TLH.css">
+  </head>
+  <body>
+    <div id="menu"></div>
+    <div id="app">
+      <header id="topbar">
+        <div class="hud-box" id="hud-money"><span class="hud-icon"><img class="game-icon icon-coin" src="./icons/coin.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></span><span class="hud-label">Coins</span><span class="hud-value" id="money-value">0</span></div>
+        <div class="hud-box" id="hud-wood"><span class="hud-icon"><img class="game-icon icon-chest" src="./icons/chest.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></span><span class="hud-label">Chest</span><span class="hud-value" id="wood-value">0 / 0</span></div>
+        <button class="hud-box" id="hud-trees" type="button"><span class="hud-icon"><img class="game-icon icon-oak" src="./icons/oak.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></span><span class="hud-label">Trees</span><span class="hud-value" id="trees-value">0 / 0</span><span class="hud-badge" id="trees-badge" hidden>+1</span></button>
+        <div class="hud-box" id="hud-time">
+          <span class="hud-icon" id="time-icon"><img class="game-icon icon-sun" src="./icons/sun.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></span>
+          <span class="hud-label">Time</span>
+          <span class="hud-value" id="time-value">Day 1 · 08:00</span>
+          <span class="speed-group" id="speed-group"></span>
+        </div>
+        <div class="hud-box" id="hud-workers"><span class="hud-icon"><img class="game-icon icon-worker" src="./icons/worker.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></span><span class="hud-label">Workers</span><span class="hud-value" id="worker-value">0 / 0</span></div>
+        <button class="speed-btn gear-btn" id="settings-btn" aria-label="Settings" title="Settings"><img class="game-icon icon-settings" src="./icons/settings.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></button>
+      </header>
+
+      <div class="beam beam-h" id="beam-top"></div>
+      <div class="beam beam-v" id="beam-left-a"></div>
+      <div class="beam beam-h" id="beam-mid"></div>
+      <div class="beam beam-v" id="beam-left-b"></div>
+      <div class="beam-plate" id="plate-top"></div>
+      <div class="beam-plate" id="plate-mid"></div>
+
+      <nav id="side-tabs"></nav>
+
+      <main id="stage">
+        <div id="viewport"></div>
+        <div id="floaters"></div>
+        <section id="window" class="wood-window" hidden>
+          <header class="window-head">
+            <h2 id="window-title"></h2>
+            <button id="window-close" class="window-close" aria-label="Close"><img class="game-icon icon-close" src="./icons/close.png" width="24" height="24" alt="" aria-hidden="true" draggable="false"></button>
+          </header>
+          <div id="window-body"></div>
+        </section>
+      </main>
+
+      <nav id="tree-tabs"></nav>
+
+      <section id="skilltree">
+        <div id="tree-scroll">
+          <div id="tree-canvas"></div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

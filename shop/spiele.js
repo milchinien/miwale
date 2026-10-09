@@ -11,9 +11,88 @@
 // texte: kurz (neben dem Bild), tags, ueber (Absaetze), features, steuerung.
 window.MIWALE_SPIELE = [
   {
+    "id": "timberline-idle",
+    "name": "Timberline Idle",
+    "trend": 1,
+    "veroeffentlicht": "2026-10-09",
+    "geraete": [
+      "pc"
+    ],
+    "status": {
+      "en": "Playable prototype",
+      "de": "Spielbarer Prototyp"
+    },
+    "spielen": "/games/timberline-idle/index.html",
+    "bild": "assets/games/shop/timberline-preview.jpg",
+    "bilder": [
+      "assets/games/shop/timberline-1.jpg",
+      "assets/games/shop/timberline-2.jpg"
+    ],
+    "medien": {
+      "trailer": "assets/games/shop/timberline-trailer.webm",
+      "poster": "assets/games/shop/timberline-trailer.jpg",
+      "screens": [
+        "assets/games/shop/timberline-1.jpg",
+        "assets/games/shop/timberline-2.jpg",
+        "assets/games/shop/timberline-3.jpg",
+        "assets/games/shop/timberline-4.jpg"
+      ]
+    },
+    "texte": {
+      "en": {
+        "kurz": "Fell trees, carry the timber to your chest, replant the forest and watch your little woodland grow – even while you are away.",
+        "tags": [
+          "Idle",
+          "Management",
+          "Incremental",
+          "Skill tree"
+        ],
+        "ueber": [
+          "A small meadow surrounded by fog. Lumberjacks chop trees, carry the logs to a chest in the middle and plant new saplings. Sell the timber, buy new plots of land, hire workers and invest in skills.",
+          "Workers have colourful traits and levels, and you can set their priorities yourself. A day and night cycle opens up different builds: night owls and early birds work better at different times.",
+          "Your forest keeps growing while you are away, up to an upgradable offline cap. Early prototype – more is coming."
+        ],
+        "features": [
+          "Hire workers from a notice board with rare and legendary candidates",
+          "Traits that help or hurt, and a level system up to 10",
+          "Expand your land plot by plot as the fog recedes",
+          "Day and night cycle for different playstyles",
+          "Skill trees for your clicks, your workers and your economy",
+          "Achievements and offline progress",
+          "Three save slots, saved in your browser"
+        ],
+        "steuerung": "Mouse: click trees and the chest yourself, drag to move the camera, scroll to zoom."
+      },
+      "de": {
+        "kurz": "Fälle Bäume, bring das Holz zur Truhe, pflanze den Wald neu und sieh zu, wie dein kleiner Forst wächst – auch wenn du nicht da bist.",
+        "tags": [
+          "Idle",
+          "Management",
+          "Incremental",
+          "Skill Tree"
+        ],
+        "ueber": [
+          "Eine kleine Wiese im Nebel. Holzfäller fällen Bäume, tragen die Stämme zur Truhe in der Mitte und pflanzen neue Setzlinge. Verkaufe das Holz, kaufe neues Land, stelle Worker ein und investiere in Skills.",
+          "Worker haben farbige Werte und Eigenschaften, und du legst ihre Prioritäten selbst fest. Ein Tag-und-Nacht-System eröffnet verschiedene Builds: Nachteulen und Frühaufsteher arbeiten zu unterschiedlichen Zeiten besser.",
+          "Dein Wald wächst auch weiter, wenn du weg bist, bis zu einem verbesserbaren Offline-Limit. Frühe Version – es kommt noch mehr."
+        ],
+        "features": [
+          "Worker vom Schwarzen Brett anheuern, mit seltenen und legendären Kandidaten",
+          "Eigenschaften, die helfen oder schaden, und ein Level-System bis 10",
+          "Land Plot für Plot erweitern, während der Nebel zurückweicht",
+          "Tag-und-Nacht-Zyklus für verschiedene Spielstile",
+          "Skill Trees für Klicks, Worker und Wirtschaft",
+          "Achievements und Offline-Fortschritt",
+          "Drei Speicherstände, im Browser gespeichert"
+        ],
+        "steuerung": "Maus: Bäume und Truhe selbst anklicken, ziehen zum Verschieben der Kamera, Mausrad zum Zoomen."
+      }
+    }
+  },
+  {
     "id": "dropfall",
     "name": "Dropfall",
-    "trend": 1,
+    "trend": 2,
     "veroeffentlicht": "2026-09-04",
     "geraete": [
       "pc",
@@ -91,7 +170,7 @@ window.MIWALE_SPIELE = [
   {
     "id": "wavebreaker",
     "name": "Wavebreaker",
-    "trend": 2,
+    "trend": 3,
     "veroeffentlicht": "2026-08-04",
     "geraete": [
       "pc"
@@ -168,7 +247,7 @@ window.MIWALE_SPIELE = [
   {
     "id": "chromatic",
     "name": "Chromatic 2",
-    "trend": 3,
+    "trend": 4,
     "veroeffentlicht": "2026-09-29",
     "geraete": [
       "pc",

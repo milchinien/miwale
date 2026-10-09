@@ -321,7 +321,13 @@ for (const repo of repos.sort((a, b) => a.name.localeCompare(b.name))) {
     }
     const ziel = spielOrdner(id);
     rmSync(ziel, { recursive: true, force: true });
-    renameSync(bau, ziel);
+    // Unter Windows haelt der gerade beendete Browser den Ordner manchmal noch
+    // kurz fest; dann kopieren statt verschieben.
+    try { renameSync(bau, ziel); } catch (e) {
+      if (e.code !== 'EPERM' && e.code !== 'EBUSY') throw e;
+      cpSync(bau, ziel, { recursive: true });
+      rmSync(bau, { recursive: true, force: true });
+    }
     manifest[id] = { path: `games/${id}/`, sha256: pruefsumme(ziel), repo: repo.full_name, commit, handy: pruefung.handy };
     if (!kur) auto.set(id, autoEintrag({ id, repo, klon, mj, pruefung }));
     melden(repo.name, id, alt[id] ? 'aktualisiert' : 'aufgenommen', `${commit.slice(0, 7)}, ${mb.toFixed(1)} MB${pruefung.handy ? ', auch am Handy' : ', nur PC: ' + pruefung.handyGruende.join('; ')}`);

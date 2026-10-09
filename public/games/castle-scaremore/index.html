@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#111015">
+<title>Castle Scaremore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,500..700,100;1,9..144,500..700,100&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="moonlit.css">
+<link rel="stylesheet" href="storybook.css">
+</head>
+<body>
+
+<!-- ICONS: one consistent line style, 24px grid, 1.8 stroke -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-ghost" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 20.5V11a6.5 6.5 0 0 1 13 0v9.5l-2.2-1.6-2.1 1.6-2.2-1.6-2.2 1.6-2.1-1.6z"/><circle cx="9.8" cy="11" r=".9" fill="currentColor"/><circle cx="14.2" cy="11" r=".9" fill="currentColor"/></symbol>
+    <symbol id="i-castle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 21V9h3v2H9V4h2v2h2V4h2v7h2.5V9h3v12z"/><path d="M10 21v-3a2 2 0 0 1 4 0v3"/></symbol>
+    <symbol id="i-cards" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="10" height="14" rx="2" transform="rotate(-10 8.5 12)"/><rect x="10" y="4.5" width="10.5" height="15" rx="2" transform="rotate(7 15.25 12)"/></symbol>
+    <symbol id="i-shop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 8.5h15l-1.2 11.3a1.5 1.5 0 0 1-1.5 1.2H7.2a1.5 1.5 0 0 1-1.5-1.2z"/><path d="M9 11V7a3 3 0 0 1 6 0v4"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h11L21 9l-9 11L3 9z" fill="currentColor" fill-opacity=".22"/><path d="M3 9h18M12 20 8.5 9l2-5M12 20l3.5-11-2-5"/></symbol>
+    <symbol id="i-fright" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8c1.8 3 6.2 5 6.2 10.4a6.2 6.2 0 0 1-12.4 0c0-2.6 1.2-4.2 2.5-5.3.1 1.6.7 2.6 1.7 3.1-.1-3.4 1-6.1 2-8.2z" fill="currentColor" fill-opacity=".22"/><circle cx="10.3" cy="14" r=".8" fill="currentColor"/><circle cx="13.7" cy="14" r=".8" fill="currentColor"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.2"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M17.5 14.3A6 6 0 0 1 21 20"/></symbol>
+    <symbol id="i-group" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7.5" r="2.7"/><circle cx="5.5" cy="9.5" r="2"/><circle cx="18.5" cy="9.5" r="2"/><path d="M7.5 20a4.5 4.5 0 0 1 9 0M2.5 18.5a3.3 3.3 0 0 1 4.2-3.2M21.5 18.5a3.3 3.3 0 0 0-4.2-3.2"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 14h6.2l-1 7L18.5 10h-6.2z"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-candle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1.4 1.7 2 2.7 2 3.7a2 2 0 0 1-4 0c0-1 .6-2 2-3.7zM12 8.7V11"/><rect x="8.5" y="11" width="7" height="10" rx="1"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.2c0 4.4 2.9 8.2 7 9.8 4.1-1.6 7-5.4 7-9.8V6z"/><path d="m12 8.3 1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.3-2.3 1.3.5-2.5-1.8-1.7 2.5-.3z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.6 4.6 3.9 7.9 8.5 8.5-4.6.6-7.9 3.9-8.5 8.5-.6-4.6-3.9-7.9-8.5-8.5C8.1 10.9 11.4 7.6 12 3z"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6.5 8.5H3.5v7h3L11 19z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.5 6a8.5 8.5 0 0 1 0 12"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+    <symbol id="i-vibrate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3.5" width="8" height="17" rx="2"/><path d="M4 8.5v7M20 8.5v7"/></symbol>
+    <symbol id="i-crown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8 8 12l4-6.5 4 6.5 4.5-4-2 11h-13z"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7.5M12 8.5V21"/><path d="M12 8.5C10.5 5 7 4.8 7 6.8c0 1.4 2 1.7 5 1.7zM12 8.5c1.5-3.5 5-3.7 5-1.7 0 1.4-2 1.7-5 1.7z"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 14.5A7.8 7.8 0 1 1 9.5 4.5a6.2 6.2 0 0 0 10 10z"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V10a6 6 0 0 1 12 0v11M4 21h16"/><circle cx="14.5" cy="14.5" r=".8" fill="currentColor"/></symbol>
+    <symbol id="i-chain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8.5" width="9" height="7" rx="3.5" transform="rotate(-35 7.5 12)"/><rect x="12" y="8.5" width="9" height="7" rx="3.5" transform="rotate(-35 16.5 12)"/></symbol>
+    <symbol id="i-tower" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 7.5 9h9z"/><path d="M8.5 9v12h7V9M6 21h12"/><path d="M12 13v2"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-ecto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3 4.2 6 7.4 6 11a6 6 0 0 1-12 0c0-3.6 3-6.8 6-11z" fill="currentColor" fill-opacity=".2"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/></symbol>
+    <symbol id="i-potion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5.5L5.6 16.8A2.8 2.8 0 0 0 8.1 21h7.8a2.8 2.8 0 0 0 2.5-4.2L14 8.5V3"/><path d="M7.2 14h9.6l1.6 2.8A2.8 2.8 0 0 1 15.9 21H8.1a2.8 2.8 0 0 1-2.5-4.2z" fill="currentColor" fill-opacity=".35" stroke="none"/><circle cx="11" cy="17" r=".9" fill="currentColor"/><circle cx="13.5" cy="15.8" r=".6" fill="currentColor"/></symbol>
+    <symbol id="i-skullp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a8 8 0 0 0-5 14.2V20a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.8A8 8 0 0 0 12 3z"/><circle cx="9" cy="11.5" r="1.8" fill="currentColor"/><circle cx="15" cy="11.5" r="1.8" fill="currentColor"/><path d="M12 14.5v1.5M10 21v-2M14 21v-2"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-tap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0v4a6.5 6.5 0 0 1-6.5 6.5h-.6a6 6 0 0 1-4.7-2.3L4.3 16a1.5 1.5 0 0 1 2.3-1.9L9 16.5"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <div class="wisps" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-row">
+    <div class="currency" id="cur-frights" data-kind="frights">
+      <svg class="cur-icon"><use href="#i-fright"/></svg>
+      <span class="cur-val">0</span>
+    </div>
+    <div class="currency" id="cur-gems" data-kind="gems">
+      <svg class="cur-icon"><use href="#i-gem"/></svg>
+      <span class="cur-val">0</span>
+      <button class="cur-plus press" id="btn-gem-plus" aria-label="Get gems"><svg><use href="#i-plus"/></svg></button>
+    </div>
+    <button class="icon-btn press" id="btn-settings" aria-label="Settings"><svg><use href="#i-settings"/></svg></button>
+    </div>
+    <button class="level" id="level" style="--p:0" aria-label="Level">
+      <span class="lv-badge"><b id="lv-num">1</b></span>
+      <span class="lv-track"><i></i></span>
+      <span class="lv-text" id="lv-text">0 / 15 XP</span>
+    </button>
+    <div class="buffs" id="buffs"></div>
+  </header>
+
+  <!-- PAGES -->
+  <main class="pages" id="pages">
+
+    <section class="page" data-page="shop">
+      <header class="page-head stagger" style="--i:0">
+        <h1>Shop</h1>
+        <p>Spend gems on lasting upgrades.</p>
+      </header>
+      <div id="shop-content"></div>
+    </section>
+
+    <section class="page" data-page="cards">
+      <header class="page-head stagger" style="--i:0">
+        <h1>Cards</h1>
+        <p>Permanent buffs. Duplicates stack at full strength.</p>
+      </header>
+      <div id="cards-content"></div>
+    </section>
+
+    <section class="page haunt active" data-page="haunt">
+      <div class="scene stagger" id="scene" style="--i:0">
+        <canvas id="scene-canvas"></canvas>
+        <div class="scene-hud top">
+          <span class="hud"><svg><use href="#i-castle"/></svg><span id="scene-room">Entrance Hall</span></span>
+          <span class="hud"><svg><use href="#i-clock"/></svg><span id="scene-rate" class="num">–</span></span>
+        </div>
+        <div class="scene-center">
+          <div class="scene-pill tutorial" id="tutorial"><svg><use href="#i-tap"/></svg>Tap when a visitor reaches the armor</div>
+          <div class="scene-pill combo" id="combo-pill">Combo <b id="scene-combo">×2</b><span id="scene-combo-bonus">+20%</span></div>
+          <div class="scene-pill haunt-btn" id="haunt-btn"><svg><use href="#i-moon"/></svg><span id="haunt-label">Haunting Hour</span></div>
+        </div>
+        <div class="fear" id="fear"><span class="fear-label">Fear</span><div class="fear-bar"><i></i></div></div>
+      </div>
+
+      <div class="upgrades stagger" style="--i:1">
+        <div class="upgrades-head">
+          <div class="panel-tabs" id="panel-tabs">
+            <button class="on" data-panel="upgrades">Upgrades</button>
+            <button data-panel="quests">Quests<i class="qdot" id="quest-dot"></i></button>
+          </div>
+          <div class="segmented" id="buy-mode" style="--seg:0">
+            <span class="seg-thumb"></span>
+            <button data-mode="0">×1</button>
+            <button data-mode="1">×10</button>
+            <button data-mode="2">Max</button>
+          </div>
+        </div>
+        <div class="upgrade-list" id="upgrade-list"></div>
+        <div class="upgrade-list" id="quest-list" hidden></div>
+      </div>
+    </section>
+
+    <section class="page" data-page="ghosts">
+      <header class="page-head stagger" style="--i:0">
+        <h1>Ghosts</h1>
+        <p id="ghost-count">Collect and train your haunting crew.</p>
+      </header>
+      <div id="ghosts-content"></div>
+    </section>
+
+    <section class="page" data-page="castle">
+      <header class="page-head stagger" style="--i:0">
+        <h1>The Castle</h1>
+        <p>Every room you haunt pays better.</p>
+      </header>
+      <div id="castle-content"></div>
+    </section>
+  </main>
+
+  <!-- TAB BAR -->
+  <nav class="tabbar" id="tabbar" style="--idx:2">
+    <span class="tab-pill"><span></span></span>
+    <button class="tab" data-tab="shop"><span class="tab-icon"><svg><use href="#i-shop"/></svg><i class="badge"></i></span><span class="tab-label">Shop</span></button>
+    <button class="tab" data-tab="cards"><span class="tab-icon"><svg><use href="#i-cards"/></svg><i class="badge"></i></span><span class="tab-label">Cards</span></button>
+    <button class="tab active" data-tab="haunt"><span class="tab-icon"><svg><use href="#i-ghost"/></svg><i class="badge"></i></span><span class="tab-label">Haunt</span></button>
+    <button class="tab" data-tab="ghosts"><span class="tab-icon"><svg><use href="#i-crown"/></svg><i class="badge"></i></span><span class="tab-label">Ghosts</span></button>
+    <button class="tab" data-tab="castle"><span class="tab-icon"><svg><use href="#i-castle"/></svg><i class="badge"></i></span><span class="tab-label">Castle</span></button>
+  </nav>
+
+  <div id="fx-layer"></div>
+  <div id="toast-root"></div>
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <p class="splash-tap">Tap to begin</p>
+  </div>
+</div>
+
+<script src="moonlit.js"></script>
+<script src="puppet-motion.js"></script>
+<script src="puppet-visitors.js"></script>
+<script src="storybook.js"></script>
+<script src="app.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
