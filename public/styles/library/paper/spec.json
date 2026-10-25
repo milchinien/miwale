@@ -1,0 +1,313 @@
+{
+  "id": "paper",
+  "name": "Paper World",
+  "originalName": "Papierwelt",
+  "family": "Papercraft · Cut-paper diorama",
+  "tags": [
+    "papercraft",
+    "cut paper",
+    "diorama",
+    "handmade",
+    "felt",
+    "puppet",
+    "cozy",
+    "autumn"
+  ],
+  "summary": "A handmade craft-table diorama: cut construction-paper puppets with white sticker rims and brass split pins on layered kraft, felt and newsprint.",
+  "description": "Everything looks cut from real craft materials and laid on a table under a warm top-left lamp: kraft paper, corrugated cardboard, green felt, a carpet of cut paper leaves and torn newspaper scraps. Characters are jointed paper puppets built from separate cut pieces, each piece with a white sticker rim, paper grain and its own soft drop shadow, held together by brass split pins. There are no ink outlines at all; edges are read through the white rim, the side thickness of sheets and warm brown offset shadows. Impacts shred figures into tumbling paper scraps and confetti.",
+  "mood": [
+    "cozy",
+    "handmade",
+    "playful",
+    "warm",
+    "storybook"
+  ],
+  "bestFor": [
+    "top-down action games",
+    "cozy adventure and farming games",
+    "puzzle and board-game adaptations",
+    "kids' and family games",
+    "seasonal or holiday themes"
+  ],
+  "avoidFor": [
+    "bullet-hell shooters with hundreds of tiny projectiles",
+    "grim realism or horror that should feel threatening",
+    "sci-fi / neon tech settings"
+  ],
+  "difficulty": {
+    "stars": 6,
+    "why": "Every new asset is a puppet of many separate cut pieces, each needing its own rim, grain, light gradient, offset shadow and split pins, plus baked frames per facing; new ground materials need per-pixel signed-distance shading and are performance-hungry."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native resolution with smoothing. Sprite pieces are baked at 4 canvas px per world unit (K = 4), ground decals at 6 px/unit, ground materials at 2.5 texels/unit and the ground chunk raster is capped at 2.5 px/unit (groundResMax).",
+    "summary": "Every visible object is a stack of baked 'cut pieces': a flat-coloured shape, dilated into a cream sticker rim, multiplied with a paper-grain texture and a top-left light gradient, then composed with a blurred brown copy of itself offset right-down. Layering these pieces with offset shadows is what produces the physical paper depth.",
+    "linework": "No dark outlines. Silhouettes are separated by a cream rim (#fbf6ea) 0.3–0.6 world units wide made by morphological dilation, plus soft brown offset shadows. Fine 'pencil' details only: rgba(120,45,10,0.28) or rgba(120,90,50,0.35) strokes 0.18–0.22 units, round caps/joins; dashed stitch lines 0.2 units [0.55, 0.45].",
+    "shading": "Flat fills per piece. Volume comes from stacking several flat layers that each cast a 0.3/0.4-unit offset shadow (rgba(70,25,5,0.28)) on the layer below, a darker lower half on leaves, a lighter front panel on clothing, and a diagonal source-atop gradient per piece: rgba(255,250,232,a) at 0, transparent at 0.45, rgba(50,25,10,1.2a) at 1 (a ≈ 0.1).",
+    "lighting": "One warm lamp at the top-left. All shadows fall right-down: pieces inside a puppet (0.42, 0.55) units, whole puppets (0.9, 1.1) blur 0.7, ground sheets (1.0–1.7, 1.3–2.2) blur 1.1–1.9, upright props get a skewed projected cast shadow. Carved faces glow through cut-out holes with additive orange light. Warm brown vignette at the screen edges.",
+    "texture": "Procedural paper grain on every piece (256 px tile: 50/50 cream and brown noise at alpha ≤ 22/255 plus 520 short curved fibres), kraft fibres running horizontally, curly felt hairs, cardboard corrugation ridges every 3.2 units, newspaper columns with word bars and halftone pictures."
+  },
+  "palette": [
+    {
+      "name": "Kraft ground",
+      "hex": "#a87c54",
+      "role": "Base table surface / kraft paper (~25% of the screen)"
+    },
+    {
+      "name": "Cardboard",
+      "hex": "#c49c6c",
+      "role": "Corrugated cardboard sheets, fences, cardboard golem body"
+    },
+    {
+      "name": "Felt green",
+      "hex": "#607c46",
+      "role": "Felt meadow sheets (~25%)"
+    },
+    {
+      "name": "Moss felt",
+      "hex": "#868440",
+      "role": "Smaller olive felt patches with a running stitch"
+    },
+    {
+      "name": "Newsprint",
+      "hex": "#ddd5c0",
+      "role": "Torn newspaper scraps"
+    },
+    {
+      "name": "Paper core",
+      "hex": "#f6eedc",
+      "role": "White fibre core exposed at torn edges"
+    },
+    {
+      "name": "Sticker rim",
+      "hex": "#fbf6ea",
+      "role": "Cream rim around every cut piece, text outlines, HUD borders"
+    },
+    {
+      "name": "Ink brown",
+      "hex": "#3b2a26",
+      "role": "Text and the darkest drawn details (never pure black)"
+    },
+    {
+      "name": "Shadow brown",
+      "hex": "#301a0c",
+      "role": "All shadows, used at 0.2–0.6 alpha"
+    },
+    {
+      "name": "Pumpkin",
+      "hex": "#e57d2c",
+      "role": "Main character head, accents, key badges"
+    },
+    {
+      "name": "Pumpkin light",
+      "hex": "#f59c4c",
+      "role": "Lit lobe of round fruit"
+    },
+    {
+      "name": "Pumpkin deep",
+      "hex": "#9c4618",
+      "role": "Back lobe / shade of round fruit"
+    },
+    {
+      "name": "Aubergine",
+      "hex": "#6e3c6d",
+      "role": "Main character tunic, creature caps (the dominant creature colour)"
+    },
+    {
+      "name": "Aubergine light",
+      "hex": "#9c629a",
+      "role": "Front panels, brush streaks on caps"
+    },
+    {
+      "name": "Mustard",
+      "hex": "#d6a43a",
+      "role": "Buttons, cuffs, warm accents"
+    },
+    {
+      "name": "Leaf green",
+      "hex": "#76a54e",
+      "role": "Paper leaves, scarf, sprouts"
+    },
+    {
+      "name": "Leaf dark",
+      "hex": "#4d7a35",
+      "role": "Back leaves, scarf stripes"
+    },
+    {
+      "name": "Tomato red",
+      "hex": "#c4432f",
+      "role": "Main bar fill, emphasised numbers, buttons"
+    },
+    {
+      "name": "Teal",
+      "hex": "#36a596",
+      "role": "Collectible gems, secondary bar stripes"
+    },
+    {
+      "name": "Brass",
+      "hex": "#d4ac4a",
+      "role": "Split pins (gradient #fff0b0 → #d4ac4a → #8f6d24)"
+    }
+  ],
+  "paletteRules": [
+    "Muted, slightly dusty craft-paper colours; nothing neon. Saturation tops out at pumpkin #e57d2c and teal #36a596.",
+    "Ground is ~80% warm browns, tans and felt greens; characters supply the saturated accents (pumpkin, aubergine, mustard).",
+    "Shadows are always warm brown rgb(48,26,12) at partial alpha, never black or grey.",
+    "Every cut piece carries the cream rim #fbf6ea; the rim colour is the brightest common value on screen.",
+    "Darkest value is ink brown #3b2a26 / aubergine deep #2e1530; pure #000 never appears.",
+    "Glow colours (#fffbe0 → #ffe066 → #ffa21e) only appear inside cut-out holes and as additive halos."
+  ],
+  "typography": [
+    {
+      "family": "Patrick Hand",
+      "weights": [
+        400
+      ],
+      "role": "Body text, labels, descriptions",
+      "source": "Google Fonts",
+      "sample": "till midnight",
+      "css": "font: 400 19px/26px 'Patrick Hand', 'Gochi Hand', cursive; color: #3b2a26;"
+    },
+    {
+      "family": "Gochi Hand",
+      "weights": [
+        400
+      ],
+      "role": "Numbers, card titles, floating numbers, counters",
+      "source": "Google Fonts",
+      "sample": "100/100",
+      "css": "font: 400 22px/1 'Gochi Hand', cursive; color: #3b2a26; background: #fbf6ea; padding: 0 9px; transform: rotate(-2deg); box-shadow: 2px 3px 4px rgba(48,26,12,.4);"
+    },
+    {
+      "family": "Caveat Brush",
+      "weights": [
+        400
+      ],
+      "role": "Big titles, clock, style name",
+      "source": "Google Fonts",
+      "sample": "Well done!",
+      "css": "font: 400 74px/1 'Caveat Brush', cursive; color: #e57d2c; transform: rotate(-3deg); text-shadow: -3px -3px 0 #fbf6ea, 3px -3px 0 #fbf6ea, -3px 3px 0 #fbf6ea, 3px 3px 0 #fbf6ea, 0 4px 0 #fbf6ea, 7px 10px 6px rgba(20,10,5,.55);"
+    }
+  ],
+  "world": {
+    "summary": "A craft table seen from above: large organic sheets of different materials stacked on a kraft-paper base. Each sheet casts a soft brown shadow on what lies beneath and shows a darker side thickness at its lower edge. Regions are defined by noise fields turned into signed distances, so outlines are smooth blobs with slight wobble; newspaper edges are torn and show a white fibre core.",
+    "layers": [
+      "Kraft paper base #a87c54 → #b4885c (two tints mixed by low-frequency noise), mottled, horizontal fibres, dark and light specks",
+      "Corrugated cardboard sheets #c49c6c with ridges every 3.2 units, thickness 1.0, shadow offset (1.4, 1.8) soft 1.5 alpha 0.40; side face shows flutes",
+      "Felt sheets #607c46 → #768442 (noise mix), curly hair texture, thickness 1.4, shadow (1.7, 2.2) soft 1.9 alpha 0.42",
+      "Moss felt patches #868440, thickness 0.9, shadow (1.2, 1.6), cream running-stitch checker 1.55–2.15 units inside the edge",
+      "Leaf carpet: ~2100 rasterised cut leaves (oval, maple, wavy) in autumn reds/oranges/ochres, each shadowing the leaves under it by (0.6, 0.75); edge made of whole leaves",
+      "Newspaper scraps #ddd5c0 on top: printed columns, headlines, halftone pictures, a 0.55–1.0 unit white torn core #f6eedc, thickness 0.35",
+      "Decals baked into the chunk: punched paper flowers, sewing buttons, felt grass fringes, glued pebbles, masking tape, staples, lace doily, coffee rings, folds, dashed cut lines with tiny scissors, confetti dots",
+      "Ground decal sprites at 6 px/unit, grain 0.9, light 0.08, shadow offset (0.45, 0.55) at alpha 0.34; scattered on 24-unit (small) and 170-unit (big) cells by region",
+      "Compositing: colour × (0.93 + 0.13·noise), warm per-channel shadow from upper layers ×(1−0.86k, 1−0.97k, 1−k), extra ambient-occlusion darkening within 2.4 units outside each sheet edge"
+    ]
+  },
+  "characters": {
+    "summary": "Jointed paper puppets: the main character and all creatures. Each body part (legs, torso, arms, head, stem, scarf) is a separate baked cut piece with rim, grain and light, rotated around its own pivot and drawn back-to-front; every piece drops a blurred shadow (0.42, 0.55 units, alpha 0.34) onto the pieces below. Brass split pins mark the visible joints. Whole frames are pre-baked (main character: 8 walk + 8 throw-pose + 4 idle per facing; creatures 6) with a final puppet shadow (0.9, 1.1, blur 0.7, alpha 0.3) and a white flash copy.",
+    "rules": [
+      "Main character ~18 units wide and ~30 tall (frame 34 × 42 units, feet at 17, 38), drawn at 1.08 scale: a puppet in an aubergine tunic #6e3c6d with a green striped scarf and a big round carved pumpkin head (~19 units), storybook proportions.",
+      "Faces are cut-out holes (triangle eyes, jagged mouth) showing glowing paper: dark #3a1408 base, radial gradient #fffbe0 → #ffe066 → #ffa21e shifted (0.32, 0.45) so the dark cut edge shows top-left.",
+      "Round forms are 3–5 stacked ellipse 'lobes' in deep/dark/mid/light of one hue, each with its own small shadow rgba(70,25,5,0.28) offset (0.3, 0.4).",
+      "Clothing gets a second paper layer (front panel in the lighter tint) and a dashed stitch line rgba(250,236,210,0.7).",
+      "Faces shift ~1.7–1.9 units toward the facing side (three-quarter view); mirror the whole frame for the other facing but draw pins unmirrored so the brass highlight stays top-left.",
+      "Small creature: a cream root bulb (#efe2b8 → #dcc68a) with a torn aubergine cap over a white paper core, three upright leaves, glowing orange cut eyes and angry paper-strip brows; frame 30 × 36.",
+      "Fast creature: a translucent tissue-paper ghost of two sheets at alpha 0.62 and 0.72 with a semi-transparent white rim, hollow eyes and no hard shadow.",
+      "Large creature: a cardboard golem with a torn top liner exposing a corrugated band, masking-tape patches, staples, tube arms and a glowing jagged core hole; puppet shadow (1.4, 1.7).",
+      "Every piece has a rim (0.35–0.45 thin, 0.55–0.6 large); give each creature type one dominant colour and a distinct silhouette so crowds don't merge into a white mass."
+    ]
+  },
+  "props": {
+    "summary": "Stand-up cut-outs on a kraft fold tab, composed like puppet frames (part shadows (0.55, 0.7)) and each casting a skewed, blurred projected shadow that falls right-down from the foot: autumn round trees, felt pines, a bare tree, pumpkins, gravestones, picket fences, hay mounds and spinning pinwheels.",
+    "rules": [
+      "Every prop stands on a fold tab: a trapezoid of #c9a275 (grey #b3aebb for stones) with a darker crease band.",
+      "Cast shadow: silhouette skewed with setTransform(1, 0, −0.42, −0.26), faded 1 → 0.45 with distance, blurred 1.4 units, a dark contact blob rgba(48,26,12,0.55) at the foot; drawn at alpha 0.78.",
+      "Round trees: tapered trunk #76503a with cut branches and a shaded right half, three scalloped crowns (11/9/8 bumps, depth 0.18–0.22) in autumn triplets such as #9a6a2a / #c8962e / #e2be5a, brass pin on the front crown.",
+      "Pines: four zig-zag felt tiers from #445e34 to #859a4e; bare tree: dark trunk #5e4034 with five hanging paper leaves.",
+      "Pumpkins: five concentric ellipses alternating tones (orange, mustard or cream colourways) with a stem #6a7a38 and a leaf, placed in small clusters.",
+      "Gravestones: grey #9b97a3, arched or cross-shaped, inner border, small emblem, scribbled text lines and a moss-felt scallop at the base.",
+      "Picket fences: card pickets alternating #c49c6c / #cba574 on #96714a rails, held with masking tape; hay mounds: 140 straw strokes; pinwheels: striped cream stick, four coloured blades, brass hub pin, spinning 1.2–2.8 rad/s.",
+      "Props are y-sorted together with the characters and chosen by ground region (felt: trees, pumpkins, hay, pinwheels; leaves: bare trees, gravestones; card: fences)."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Paper scrap burst",
+      "how": "On impact spawn small irregular 5–7-gon scraps in the source figure's colours (1–2 on a small impact, 8–18 when a figure tears apart). They fly with gravity 70, drag 2.2, spin ±6 rad/s, and flip: y-scale = max(0.18, |cos(rot·1.7)|), showing the back colour (×0.72) when cos < 0. Each scrap has a 0.16-unit cream edge and a tiny ground shadow while airborne."
+    },
+    {
+      "name": "Confetti",
+      "how": "Dots and strips in #e57d2c #d6a43a #36a596 #c4432f #9c629a #f2e7cf #76a54e, gravity 120, drag 2.4, flutter sideways with sin(age·7)·0.6. A celebration fountain fires 46 pieces."
+    },
+    {
+      "name": "Tear-apart",
+      "how": "A disappearing figure is clipped into two halves along a fixed 8-point zig-zag tear path; the halves slide apart (±0.7·width·k), rotate ±0.7·k rad, rise 3 units and fade with 1−k², with a 0.9-unit cream line along the tear. Large cardboard figures add 6 kraft dust puffs #d8c4a0."
+    },
+    {
+      "name": "Seed projectile",
+      "how": "A cut seed piece (#f4e8c6, brown rim #8a5a24) spinning, with a cream streak rgba(251,246,234,0.5) 1.6 wide and a thinner pumpkin streak 0.7 wide trailing 3–13 units behind."
+    },
+    {
+      "name": "Glow halos",
+      "how": "96 px radial sprite rgba(255,214,110,0.95) → rgba(255,170,60,0.45) @0.25 → rgba(240,110,30,0.12) @0.6 → 0, drawn with 'lighter' at alpha ~0.3 with two-sine flicker over carved faces and lanterns."
+    },
+    {
+      "name": "Collectible glint + gem turn",
+      "how": "Origami foil gems (4 triangular facets, teal #bff3e8 #5cc3b2 #36a596 #1d6d68 or gold, light top-left) bob 0.9 units and fake a paper turn by scaling x by 0.35 + 0.65·|cos(t·2.2)|; an 8-point star glint (radius 4.5 / 7) flashes additively when collected and 12% of the time on its own."
+    },
+    {
+      "name": "Orbiting lantern",
+      "how": "Vellum root-bulb lanterns (radial #fff3c4 → #f5d690 → #c9a0c8) with glowing cut faces, bobbing 1.2 units and swinging ±0.12 rad at 5 rad/s."
+    },
+    {
+      "name": "White flash + motion trail",
+      "how": "A pre-baked copy of the frame tinted #fffaf0 at 95% (source-atop) is drawn over the sprite with alpha = flash. A dash trail is five pale #e6d6b4 discs (alpha 0.5·life, growing radius) plus three sprite copies 7 units apart at alpha 0.21/0.14/0.07."
+    }
+  ],
+  "atmosphere": {
+    "summary": "One warm lamp at the top-left. Every shadow is warm brown rgb(48,26,12), falls right-down and grows with layer height. Glow exists only as additive halos over carved faces, lanterns and cores. A warm brown vignette frames the screen; there is no colour grading, bloom or blur post-processing.",
+    "rules": [
+      "Shadow offsets by height: puppet parts (0.42, 0.55), prop parts (0.55, 0.7), decals (0.45, 0.55), carpet leaves (0.6, 0.75), whole puppets (0.9, 1.1) blur 0.7 alpha 0.3, ground sheets (1.0–1.7, 1.3–2.2) blur 1.1–1.9.",
+      "Shadows are never black or grey; partial alpha 0.2–0.6 and warm per-channel multipliers (R × 0.86, G × 0.97, B × 1.0).",
+      "Contact blob under each character: radial rgba(48,26,12,0.62) → 0.36 @0.55 → 0, offset (+1.2, +0.6), alpha 0.75; sizes 9×3.6 (main character), 8.5×3.2 (small), 19×6 (large), 6.5×2.4 at 0.55 (ghost).",
+      "Per-piece light: diagonal source-atop gradient rgba(255,250,232,a) → transparent @0.45 → rgba(50,25,10,1.2a), a ≈ 0.1.",
+      "Glow halos: 96 px radial sprite rgba(255,214,110,0.95) → rgba(255,170,60,0.45) @0.25 → rgba(240,110,30,0.12) @0.6 → 0, composited 'lighter' at ~0.3 with a two-sine flicker.",
+      "Vignette: radial gradient centred at (0.45 W, 0.42 H), rgba(255,236,200,0.05) from 0.35R, rgba(70,40,20,0) at 0.6, rgba(60,30,15,0.36) at R (half the diagonal); cached per screen size.",
+      "Modal overlay: radial-gradient(ellipse at center, rgba(60,35,20,.35), rgba(40,22,12,.72)).",
+      "No colour grading, bloom or post blur; the warmth lives in the palette and shadows."
+    ]
+  },
+  "ui": {
+    "summary": "The HUD is more craft material: bars are paper strips with a 3px cream rim and a warm offset shadow, slightly rotated (±0.4–2°), with a torn zig-zag right edge on the fill (main bar tomato red with cream polka dots, secondary bar diagonal teal stripes). Counters sit on cream sticker labels, the timer on lined notebook paper pinned with a brass split pin, cards on lined paper with striped washi tape at the top. Icons are small cut-paper pieces. Fonts are hand-lettered.",
+    "css": ".hud-bar { width: 240px; height: 22px; background: #c9a275; border-radius: 2px; transform: rotate(0.6deg); overflow: hidden;\n  box-shadow: 0 0 0 3px #fbf6ea, 3px 5px 6px rgba(48,26,12,.45);\n  background-image: repeating-linear-gradient(0deg, rgba(90,60,30,.12) 0 1px, transparent 1px 4px); }\n.hud-bar > .fill { height: 100%; background: radial-gradient(circle at 5px 5px, rgba(255,240,220,.55) 1.6px, transparent 2px) 0 0/10px 10px, #c4432f;\n  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 25%, 100% 50%, calc(100% - 4px) 75%, 100% 100%, 0 100%); }\n.hud-bar2 > .fill { background: repeating-linear-gradient(-45deg, #36a596 0 9px, #5cc3b2 9px 18px); }\n.hud-label { font: 400 22px 'Gochi Hand', cursive; color: #3b2a26; background: #fbf6ea; padding: 0 9px; border-radius: 2px; transform: rotate(-2deg); box-shadow: 2px 3px 4px rgba(48,26,12,.4); }\n.hud-note { position: relative; background: #fffdf6; padding: 6px 26px 4px; transform: rotate(-1.5deg); border-radius: 2px;\n  background-image: linear-gradient(transparent 13px, rgba(196,67,47,.5) 13px 15px, transparent 15px), repeating-linear-gradient(transparent 0 19px, rgba(79,111,149,.28) 19px 20px);\n  box-shadow: 3px 6px 8px rgba(48,26,12,.45); font: 400 40px/1 'Caveat Brush', cursive; color: #3b2a26; }\n.hud-note::before { content: ''; position: absolute; left: 50%; top: -6px; width: 15px; height: 15px; margin-left: -7px; border-radius: 50%;\n  background: radial-gradient(circle at 35% 35%, #fff0b0, #d4ac4a 50%, #8f6d24); box-shadow: 1px 2px 2px rgba(48,26,12,.5); }"
+  },
+  "motion": [
+    "Puppet animation is rotation of rigid pieces around pivots, never morphing: legs ±0.55 rad, arms ±0.55 rad, head tilt ±0.06 rad, hip bob 0.45 units.",
+    "Main character walk: 8 baked frames per facing over one stride (frame = floor(anim/2.4·8) & 7); idle: 4 frames at 3 fps; throw pose: same walk with the front arm raised to −2.15 rad.",
+    "Small creatures: 6 frames, body wobble ±0.12 rad, hop bob 0.9 units, leaves sway with sin(2·phase); large creature: 6 frames at rate 0.22, bob 1.4, tilt ±0.05.",
+    "Ghosts: 6 frames at ~7 fps cycling the hem flutter, plus a vertical bob of 2.5 ± 1.6 units at 3.1 rad/s.",
+    "Appearing: y-scale grows with easeOutBack from 0.06 while x-scale shrinks from 1.3 to 1 (a paper piece popping up); each creature is scaled 0.93 + seed·0.14 with a random phase.",
+    "Celebration squash: sy = 1 + sin(t·14)·t·0.12, sx = 2 − sy.",
+    "Face glow flickers: alpha 0.3 + 0.05·sin(9t) + 0.04·sin(23.7t); pinwheels spin at 1.2–2.8 rad/s; orbiting lanterns swing ±0.12 rad."
+  ],
+  "do": [
+    "Build every object from separate flat cut pieces and give each one the cream rim, grain, top-left light and its own offset shadow.",
+    "Keep all shadows warm brown and offset to the right-down; layer depth = shadow offset size.",
+    "Use real craft materials as vocabulary: kraft, felt, corrugated card, newsprint, tissue, tape, staples, buttons, split pins.",
+    "Show material edges: torn white fibre cores, sheet side thickness, corrugation flutes, stitch lines.",
+    "Pre-bake every animation frame and ground chunk; per-frame work is only drawImage.",
+    "Put brass split pins on visible joints and in the centre of round props.",
+    "Let faces be cut-out holes with warm light behind them."
+  ],
+  "dont": [
+    "Don't draw black or dark ink outlines — the cream rim and shadows separate shapes.",
+    "Don't use smooth 3D gradients for volume; stack flat layers instead.",
+    "Don't use grey or black shadows, or shadows pointing in different directions.",
+    "Don't morph or squash body parts in walk cycles; paper puppets only rotate rigid parts.",
+    "Don't use saturated neon colours or glossy highlights.",
+    "Don't leave pieces without grain — clean vector fills immediately look digital.",
+    "Don't blur or rim per frame at runtime; it is far too expensive."
+  ],
+  "performance": "All pieces (dilated rim, grain, light, blurred shadow) and all animation frames are baked once at init: about 90 puppet frames plus props and decals. The ground is the hot spot: per-pixel shading over 5 signed-distance layers with shadow look-ups, baked into 256-unit chunks asynchronously with generator yields and capped at 2.5 px/unit; textures are 512² lookup tables built at init (~1 s total). Per frame only drawImage of chunks and sprites, a few additive glows and particles."
+}

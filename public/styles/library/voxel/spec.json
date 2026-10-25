@@ -1,0 +1,298 @@
+{
+  "id": "voxel",
+  "name": "Voxel Cube World",
+  "originalName": "Voxel-Würfelwelt",
+  "family": "3D Look · Voxel",
+  "tags": [
+    "voxel",
+    "magicavoxel",
+    "isometric",
+    "3d look",
+    "autumn",
+    "toy",
+    "bright"
+  ],
+  "summary": "A bright MagicaVoxel-style miniature world: every object is a real 3D cube grid, baked to sprites under one warm afternoon sun.",
+  "description": "Characters, props, collectibles, particles and even HUD icons are small 3D voxel grids that a tiny software renderer turns into sprites once at startup: 3/4 orthographic view at 46 degrees, three face tones, per-voxel colour jitter and ambient occlusion. The ground is a flat field of 4x4-unit voxel tiles with one-voxel height steps whose side faces and lit edges show, plus blocky blurred sun shadows. It reads like a tabletop toy diorama: saturated autumn colours, chunky shapes, no outlines.",
+  "mood": [
+    "cheerful",
+    "toy-like",
+    "cozy",
+    "crisp",
+    "sunny"
+  ],
+  "bestFor": [
+    "top-down arena and action games",
+    "farming and village sims",
+    "tactics games",
+    "builder and puzzle games",
+    "casual mobile games"
+  ],
+  "avoidFor": [
+    "dark horror with heavy lighting",
+    "smooth organic or realistic characters",
+    "projects needing many free-rotating 3D camera angles"
+  ],
+  "difficulty": {
+    "stars": 3,
+    "why": "New assets are 3D cube grids that can be described very precisely in code with a few box() and blob() calls; the renderer adds light, ambient occlusion and shadows automatically. Effort grows only for very large or many-frame models, which take longer to build and bake."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets) with a built-in software voxel renderer that bakes sprites at init",
+    "pixelArt": false,
+    "resolution": "Native resolution. Sprites are baked at K = round(screenH/360*4)/4 (clamped 1.5–4) sprite px per world unit, with PPV = max(3, round(K*1.9)) px per voxel, so one voxel is ~1.9–2 world units. Ground chunks are rendered per pixel at up to 2.5 px per unit; blits are snapped to whole screen pixels.",
+    "summary": "Every object is a Uint16 voxel grid (x right, y toward the viewer, z up). At init each grid is rotated by a yaw (±0.6 rad for characters), projected orthographically with a 46° pitch, its exposed faces sorted back-to-front and filled as quads with 3 tones, jitter and AO, giving MagicaVoxel-looking sprites for 2 facings × all animation frames.",
+    "linework": "No outlines at all. Form is separated purely by face tones (top 1.0, sun-facing side ~0.88, shadow side ~0.68) and by dark 'carved' voxels painted on the front surface (e.g. #8a3412 rim around a glowing face). Faces are grown by 0.8 sprite px to hide hairline seams.",
+    "shading": "Three flat face tones per voxel: top = 1.0 and warmed (r×1.035, g×1.015, b×0.965); side tone = 0.76 − 0.15 × (screen-x of the rotated normal), so the left-facing side is ~0.88 and the right-facing side ~0.68, and sides are cooled toward blue. Each voxel's brightness is jittered ±4.5% by a hash. Each solid neighbour around an open face subtracts 7.5% (AO); side faces of the bottom layer get ×0.9.",
+    "lighting": "One fixed warm sun from the upper left (west). Cast shadows are blocky footprints sheared by (0.62, 0.26) per unit of height toward the lower right, blurred 0.16×PPV px, drawn at 42% alpha. Emissive voxels (carved faces, cracks, eyes, lamps) skip shading and get an additive radial glow sprite. A purple radial vignette and a faint warm top gradient finish the frame.",
+    "texture": "No texture maps. Variation comes from per-voxel hash jitter, random colour picks per voxel inside a material (2–4 shades), and on the ground per-tile colour picks from 4–7 shades plus a 1-px lit/dark tile bevel."
+  },
+  "palette": [
+    {
+      "name": "Meadow Grass",
+      "hex": "#6da548",
+      "role": "Main ground tiles (5 more shades #689f45…#75ad4d), ~40% of the screen"
+    },
+    {
+      "name": "Flagstone",
+      "hex": "#94949a",
+      "role": "Stone plaza / graveyard tiles, with moss tiles #82905f"
+    },
+    {
+      "name": "Sand Path",
+      "hex": "#cfa86e",
+      "role": "Paths and pond shores (shore #dcbd86)"
+    },
+    {
+      "name": "Ploughed Field",
+      "hex": "#8e5d3a",
+      "role": "Field tiles, alternating furrow rows with #7b4f31, one step lower than grass"
+    },
+    {
+      "name": "Leaf Litter",
+      "hex": "#b47643",
+      "role": "Autumn forest floor (#a8673e, #bf8a4c, #935538 …)"
+    },
+    {
+      "name": "Pond Blue",
+      "hex": "#4aa6dc",
+      "role": "Water, deepening to #3784c2, glints #e8f8ff"
+    },
+    {
+      "name": "Step Side",
+      "hex": "#7e5536",
+      "role": "Side face of raised grass tiles (stone side #63646e)"
+    },
+    {
+      "name": "Pumpkin",
+      "hex": "#f7842a",
+      "role": "Main character head and pumpkin props; ribs #e86f22, top #fb9036"
+    },
+    {
+      "name": "Carved Glow",
+      "hex": "#ffd84a",
+      "role": "Emissive face of the main character and lanterns; hot core #fff1a2"
+    },
+    {
+      "name": "Night Cloak",
+      "hex": "#36325f",
+      "role": "Main character clothing (dark #27234a, light #4c4787)"
+    },
+    {
+      "name": "Teal Scarf",
+      "hex": "#22b8a2",
+      "role": "Main character accent colour"
+    },
+    {
+      "name": "Root Purple",
+      "hex": "#9b54d2",
+      "role": "Small creature body top (dark #7a3db2, light #b672e2)"
+    },
+    {
+      "name": "Root Cream",
+      "hex": "#f4e9cc",
+      "role": "Small creature body bottom; leaves #5fbe3b, eyes #ff4a2c (emissive)"
+    },
+    {
+      "name": "Ghost White",
+      "hex": "#f6faff",
+      "role": "Fast floating creature, fading to ice #b8d6f3 and #94bfea at the tail, holes #1c2044"
+    },
+    {
+      "name": "Plum",
+      "hex": "#6c3e88",
+      "role": "Large creature top with root brown #946a42 below and emissive cracks #ff9a2a / #ffd36a"
+    },
+    {
+      "name": "Gem Mint",
+      "hex": "#5df0b6",
+      "role": "Small collectible gems (light #b6ffe0, dark #2fc596); large collectibles gold #ffc43a"
+    },
+    {
+      "name": "Pine Green",
+      "hex": "#2f6e4c",
+      "role": "Conifer props; autumn crowns #f08a2c, #df4c34, #f0c03e"
+    },
+    {
+      "name": "HUD Panel",
+      "hex": "#2b2446",
+      "role": "HUD panels and cards"
+    },
+    {
+      "name": "HUD Edge",
+      "hex": "#151024",
+      "role": "3 px panel border, hard drop edge and text shadows"
+    },
+    {
+      "name": "HUD Gold",
+      "hex": "#ffc23e",
+      "role": "Titles, big counters, emphasised numbers"
+    }
+  ],
+  "paletteRules": [
+    "Bright, saturated mid-tones only: no pure black anywhere in the world; the darkest world colours are carved/hole voxels (#1c2044, #24122c, #2c221e).",
+    "Every material is 2–4 close shades picked per voxel by a hash, never one flat colour.",
+    "Warm sunlit tops, cool bluish sides: shading shifts hue, not just brightness.",
+    "Glowing parts (faces, cracks, eyes, lamps) are emissive voxels in yellow/orange plus an additive glow; they are the only things that glow.",
+    "Creatures are purple/white against a green/grey/brown world; the main character is orange + navy + teal so it pops on every ground type.",
+    "UI uses a separate dark-purple family (#2b2446 / #151024) with gold text so it never blends into the bright world."
+  ],
+  "typography": [
+    {
+      "family": "Bungee",
+      "weights": [
+        400
+      ],
+      "role": "HUD numbers, big counters, titles, floating numbers, card names",
+      "source": "Google Fonts",
+      "sample": "STAGE 07",
+      "css": "font: 400 34px/1.05 'Bungee', 'Chakra Petch', system-ui, sans-serif; color: #ffc23e; letter-spacing: 2px; text-shadow: 0 2px 0 #d9741c, 0 4px 0 #a2470f, 0 6px 0 #151024;"
+    },
+    {
+      "family": "Chakra Petch",
+      "weights": [
+        500,
+        600,
+        700
+      ],
+      "role": "Labels, descriptions, hints, small caps captions",
+      "source": "Google Fonts",
+      "sample": "AUTUMN FAIR",
+      "css": "font: 700 11px/1 'Chakra Petch', system-ui, sans-serif; color: #b7a9e6; letter-spacing: 3px;"
+    }
+  ],
+  "world": {
+    "summary": "A flat infinite voxel terrain baked per 256-unit chunk, pixel by pixel: 4×4-unit tiles, each with a material (grass, leaf litter, field, stone, path, water) and a height (-1 water, 0 field/path, 1 normal, 2 raised). Where the tile to the north is higher, its side face is painted into the top of the lower tile, so the world looks like a stepped voxel diorama seen from above.",
+    "layers": [
+      "Base: per-tile colour from the material's shade list (noise + hash pick), ×(0.95–1.05) macro brightness noise",
+      "Tile bevel: top/left 0.42-unit strip ×1.035/×1.015, bottom/right ×0.95/×0.965 (stone joints ×0.86 / ×1.05)",
+      "Height steps: lit top edge (north colour ×1.14 + 6), grass lip (×0.8, 1.05 units), side face band of 1.9 units per height step in the material's side colour fading ×0.98→0.78, then a 0.9-unit contact shadow ×0.84",
+      "Sun shadow of west neighbours: 1.5-unit strip ×0.8 on lower tiles east of a higher tile",
+      "Decals on a 7-unit jittered grid: tiny voxel grass tufts, flowers, pebbles, leaves, twigs, sprouts, cracks, lily pads, reeds (each a 2-rect mini cube with its own shadow)",
+      "Per frame: blinking water glints (#e8f8ff), a warm additive light pool (60×30 units, alpha 0.14) under the main character"
+    ]
+  },
+  "characters": {
+    "summary": "Characters are voxel grids at ~2 world units per voxel, built from boxes and super-ellipsoid blobs, with faces painted onto the front-most voxel of each column. The main character is a pumpkin-headed figure in a navy cloak and teal scarf (10×9×18 voxels); the creatures are a purple-and-cream root creature with a leafy top (small, 10×10×15), a white floating ghost with a tapering disc tail (fast, 11×9×15) and a big plum root creature with glowing orange cracks (large, 19×16×25). Each grid is baked for yaw +0.6 (facing right) and -0.6 (facing left) and for every animation frame (main character: idle + 4 walk, creatures: 4), so the 3D model really turns instead of being mirrored.",
+    "rules": [
+      "Big head, short body: the main character's pumpkin head is 10×9×8 voxels on a 6-voxel body; creatures are mostly one big blob with tiny legs.",
+      "Animation is done by rebuilding the grid per frame: legs shift ±1 voxel in y, the body lifts 1 voxel, arms counter-swing, leaves sway ±1 voxel.",
+      "Faces are 1-voxel pixels on the front surface: emissive yellow with a dark carved rim (#8a3412) for a warm glowing face, emissive red eyes (#ff4a2c) and dark brows for menacing creatures, dark holes (#1c2044) for ghosts.",
+      "Each character has one dominant colour family and a contrasting light underside (cream, white) so silhouettes read on any ground.",
+      "No outlines and no mirroring; separate yaw renders keep the light from the left on both facings.",
+      "Every character casts a blocky blurred shadow to the lower right (alpha 0.42; floating figures 0.22, drawn at alpha 0.84 and 2.5 ± 1.5 units above the ground)."
+    ]
+  },
+  "props": {
+    "summary": "Scenery objects are voxel grids with the same 2-unit voxel and the same upper-left sun as the characters, each baked at one fixed yaw (−0.4 to 0.6) with its own blocky shadow and y-sorted with the characters: autumn trees, pines, pumpkins, hay bales, crates, gravestones, lamp posts, fences, bushes, mossy rocks and mushrooms.",
+    "rules": [
+      "Deciduous tree 15×15×24: 3×3 bark trunk (#7a5236 / #5f3f29), crown of one big p=3.2 blob + 4 random p=3 blobs + a top blob, in orange (#f08a2c…), red (#df4c34…) or yellow (#f0c03e…) colour sets of 4 shades.",
+      "Pine 13×13×25: 5 stacked tiers of p=2.6 discs shrinking upward (radii 6.2→1.5), #2f6e4c with #255a3e tier bottoms and 20% #3d8659 speckle.",
+      "Small props: pumpkin 8×8×8 / 11×11×10 (optionally carved with an emissive face and a small glow), hay bale 10×9×9 (#ebc75c), crate 6×6×6 (#b07a46 with #7c5230 edges where ≥ 2 coordinates are on the border), gravestone 7×3×10 with engraved cross and moss, lamp post 5×5×15 with emissive glass #ffcf5a, fence 13×1×6, bush with 7% red berry voxels #e2423a, mossy rock, red-capped mushroom.",
+      "Every prop uses 2–4 hashed shades per material and the ±4.5% jitter, never one flat colour; no outlines.",
+      "Props cast the same sheared sun shadow as characters, drawn at alpha 0.40.",
+      "Props stand only where the tile and the tile to the south share material and height — never on steps, water or paths.",
+      "Tall props (trees, pines) fade to alpha 0.45 when the main character is behind them.",
+      "Glowing props (lamp posts, carved pumpkins) add a warm additive glow (radius 14 / 7 units, alpha 0.5 ± 0.08)."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Cube debris",
+      "how": "Impacts and bursts spawn 2–34 tiny 1-voxel cubes (pre-rendered in 6 yaw frames at 2K px per unit, no AO) in the palette of the object that bursts; they fly with vz 60–140, gravity 320, drag 1.4, tumble through the 6 frames and leave a small square shadow when on the ground. Ghost cubes use negative gravity and float up."
+    },
+    {
+      "name": "Square rings",
+      "how": "Shockwaves are axis-aligned rectangles squashed by sin(46°) (strokeRect), radius easing outQuad 10→48 units (or 8→54), line width 3·k+0.4, alpha 0.85·k, colours #fff1c8 / #ffd84a – never circles."
+    },
+    {
+      "name": "Rising appearance",
+      "how": "Creatures rise out of the ground: the sprite is cropped from the bottom and revealed in whole voxel layers (PPV·cos46° px) while 4 dirt cubes (#8c5b37, #a87a4c, #6fae46) pop around them."
+    },
+    {
+      "name": "Impact flash and squash",
+      "how": "A white silhouette copy (source-atop tint) at alpha ≤0.58; before a burst the sprite scales x 1+0.35t, y 1−0.6t over 0.28 s with a fading white overlay, then cubes burst."
+    },
+    {
+      "name": "Emissive bloom",
+      "how": "Additive (lighter) radial gradient sprite (0.9 → 0.35 → 0 alpha) over carved faces (alpha 0.34 ± 0.06 flicker at 9 rad/s), lamps, lanterns and glowing cracks."
+    },
+    {
+      "name": "Seed projectile trail",
+      "how": "A spinning 3×2×4 voxel seed with three trailing squares 3.2 units apart, sizes 1.75/1.3/0.85, alphas 0.41/0.27/0.13 in #fff6dc / #ffe2a8."
+    },
+    {
+      "name": "Collectibles",
+      "how": "Stepped voxel octahedra (5×5×7 mint, 7×7×10 gold) in 8 spin frames, hovering 2.4 ± 0.9 units, with a mint (or gold) additive glow and a flat dark square shadow."
+    },
+    {
+      "name": "Orbiting lanterns",
+      "how": "Small 8×8×11 purple-and-cream root lanterns with an emissive carved face, 8 spin frames picked from the orbit angle, hovering 9 ± 1.2 units with a warm glow."
+    }
+  ],
+  "atmosphere": {
+    "summary": "One warm afternoon sun from the upper left is baked into every voxel face and every shadow; the only runtime light is additive glow on emissive parts. A soft purple radial vignette and a faint warm wash at the top frame the bright diorama. No bloom pass, no grading, no grain.",
+    "rules": [
+      "Face tones: top 1.0 warmed (r×1.035, b×0.965); sides 0.76 − 0.15·R(n).x and cooled toward blue; AO −7.5% per solid neighbour around an open face.",
+      "Cast shadows: voxel footprints at z and z+1 sheared (0.62, 0.26) per unit of height to the lower right, filled black, blurred 0.16·PPV px, 0.62 layer alpha + 0.55 contact layer for z ≤ 1.5; drawn at 0.42 (characters), 0.40 (props), 0.22 (floating figures).",
+      "Small collectibles, orbiting objects and projectiles use a flat dark #1d2a14 rectangle at 0.22–0.28 alpha instead of a baked shadow.",
+      "Ground steps: lit top edge ×1.14 + 6, side bands darkening ×0.98 → ×0.78, 0.9-unit contact strip ×0.84, 1.5-unit sun shadow ×0.8 east of higher tiles.",
+      "Glow sprite: 64 px radial gradient (0.9 → 0.35 → 0 alpha) in warm rgb(255,190,80), mint rgb(120,255,200), gold rgb(255,200,80) or hot rgb(255,150,50), drawn with lighter compositing; only emissive voxels glow.",
+      "Ground light: only a 60×30-unit warm pool under the main character (alpha 0.14) and blinking water glints #e8f8ff.",
+      "Vignette: radial gradient centred at (w/2, 0.48h), inner radius 0.32h, outer 0.62w, rgba(30,20,60,0) → 0.6: rgba(30,20,60,.12) → rgba(24,14,50,.42); plus a warm wash rgba(255,236,190,.10) at the top fading out by 35%.",
+      "Overlay screens dim the world with radial-gradient(ellipse at 50% 45%, rgba(40,30,80,.35), rgba(16,10,34,.78)).",
+      "No outlines, bloom pass, colour grading or film grain; darker moods come from more emissive voxels and glows, not a darker renderer."
+    ]
+  },
+  "ui": {
+    "summary": "Chunky 'voxel slab' UI: flat dark-purple panels with a 3 px near-black edge, a hard 6 px drop edge below and inset hard highlights/shadows instead of gradients. Bars are segmented with 3 px dark gaps every 18 px and have 3 hard colour bands (highlight / main / shade). Bungee numbers carry stacked hard drop shadows that look extruded; icons are the same voxel models rendered at icon size (fitted to 84% of the box) with a dark offset silhouette shadow; cards use a two-tone #3d335f / #30284c background and gold split number keys.",
+    "css": ".panel { background: #2b2446; border-radius: 3px; padding: 7px 14px; color: #fff; font: 600 15px/1.3 'Chakra Petch', system-ui, sans-serif;\n  box-shadow: inset 0 3px 0 rgba(255,255,255,.16), inset 3px 0 0 rgba(255,255,255,.07), inset 0 -4px 0 rgba(0,0,0,.38), inset -3px 0 0 rgba(0,0,0,.22), 0 0 0 3px #151024, 0 6px 0 3px #151024, 0 10px 18px rgba(10,6,24,.35); }\n.bar { width: 216px; height: 22px; background: #160f22; border-radius: 2px; overflow: hidden; box-shadow: inset 0 3px 0 rgba(0,0,0,.55), 0 0 0 2px #0e0a18; }\n.bar > .fill { height: 100%; background: repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 15px, rgba(50,8,16,.8) 15px 18px), linear-gradient(180deg, #ffb09a 0 22%, #f0443a 22% 70%, #b3242a 70% 100%); }\n.bar.mint > .fill { background: repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 15px, rgba(16,40,40,.75) 15px 18px), linear-gradient(180deg, #c8ffee 0 20%, #57e6b4 20% 68%, #26a888 68% 100%); }\n.big-number { font: 400 34px/1.05 'Bungee', sans-serif; color: #ffc23e; letter-spacing: 2px; text-shadow: 0 2px 0 #d9741c, 0 4px 0 #a2470f, 0 6px 0 #151024; }"
+  },
+  "motion": [
+    "Main character walk: 4 baked frames (plus 1 idle), frame = 1 + floor(anim·1.6) mod 4; idle hops up to 0.6 units with max(0, sin(t·2.6)).",
+    "Small creature: 4 frames at anim·1.8; large creature: 4 frames at anim·1.3; ghost: 4 frames at 6 fps, floats 2.5 ± 1.5 units (sin t·2.8) at alpha 0.84.",
+    "Collectibles spin through 8 yaw frames (1.6 turns of the set per second) and bob ±0.9 units at 3 rad/s; orbiting lanterns pick their spin frame from the orbit angle and hover 9 ± 1.2 units.",
+    "All motion is stepped by whole frames and blits are snapped to screen pixels – nothing rotates or scales smoothly except the squash before a burst and particles.",
+    "Glows flicker with small sines (±0.02–0.12 alpha at 4–11 rad/s); water glints blink when sin(t·1.7 + phase) > 0.55.",
+    "Floating numbers pop 0.6→1.15 scale in the first 12% of life, then settle; emphasised numbers get a '!' and gold colour."
+  ],
+  "do": [
+    "Model everything — props, collectibles, particles, icons — as voxel grids and bake them through the same renderer so lighting is identical.",
+    "Keep one voxel ≈ 2 world units and the main character ≈ 10 voxels wide so all assets share one cube size.",
+    "Bake two yaws (±0.6 rad) per character instead of mirroring, so the sun stays on the left.",
+    "Use 2–4 hashed shades per material and the ±4.5% per-voxel jitter; it is what makes it look like MagicaVoxel.",
+    "Paint faces and markings onto the front-most voxel (paintFront) and use emissive colours plus an additive glow for anything that should shine.",
+    "Give every object the blocky sheared sun shadow to the lower right.",
+    "Make the ground out of 4×4-unit tiles with visible 1-voxel steps and lit edges."
+  ],
+  "dont": [
+    "Don't add outlines or black strokes – voxel faces define the forms.",
+    "Don't use smooth gradients or soft round shapes on characters and props; only glows and the vignette are soft.",
+    "Don't rotate or scale baked sprites at runtime (except the squash before a burst) – re-bake a new yaw/frame instead.",
+    "Don't mix voxel sizes: a 1-unit-voxel prop next to 2-unit-voxel characters breaks the miniature scale.",
+    "Don't use circular rings or round particles; effects are square rings and little cubes.",
+    "Don't light from multiple directions or add dynamic light to the ground beyond a faint warm pool.",
+    "Don't use muted/dark palettes for the world; the look depends on bright, sunlit toy colours."
+  ],
+  "performance": "All voxel rendering happens once in init(): ~5 main-character frames + 3×4 creature frames × 2 yaws, 8-frame spin sets, ~15 props, 1-voxel debris cubes in 6 frames and shadows — a few hundred ms at most. Per frame everything is plain drawImage of cached canvases (tinted flash copies are cached per frame/colour). The expensive part is the ground: per-pixel chunk rendering with several noise calls per tile, done as a generator over multiple frames; on-screen cost is just chunk blits. Crowds of 300+ figures are cheap because each one is 2–3 drawImage calls."
+}

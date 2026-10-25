@@ -1,0 +1,233 @@
+{
+  "id": "kuerbisboy",
+  "name": "Pumpkin Boy",
+  "originalName": "Kürbis-Boy",
+  "family": "Pixel Art · 4 Colours",
+  "tags": [
+    "pixel art",
+    "4 colours",
+    "handheld",
+    "lcd",
+    "dithering",
+    "sepia",
+    "retro",
+    "autumn"
+  ],
+  "summary": "A pumpkin-tinted handheld LCD: exactly four shades, Bayer dithering, crisp outlined mini sprites at 2 world units per pixel.",
+  "description": "The whole world is drawn with four warm shades - ink brown, rust, pumpkin orange and cream - like a monochrome handheld console with an orange screen tint. Volume, transparency and shadows exist only as ordered dither and checkerboards, every sprite is a tiny text grid with an automatic dark outline, and a faint LCD cell grid plus vignette sits over the upscaled image. The HUD uses the same four colours in double-bordered windows set in Press Start 2P.",
+  "mood": [
+    "nostalgic",
+    "cosy-spooky",
+    "autumnal",
+    "crisp",
+    "toy-like"
+  ],
+  "bestFor": [
+    "crowded top-down arena games",
+    "top-down adventures and zelda-likes",
+    "farming or harvest games with a spooky twist",
+    "quick prototypes with a strict palette",
+    "monster-collecting RPGs"
+  ],
+  "avoidFor": [
+    "projects where many creature types must be told apart by colour",
+    "photorealistic or painterly worlds",
+    "colour-coded puzzle games (match-3, team colours)"
+  ],
+  "difficulty": {
+    "stars": 4,
+    "why": "New assets are quick: each sprite is a tiny text grid of four palette digits that gets its outline automatically. The hard part is variety - with one hue and four values every new character or prop has to be told apart by silhouette and value mass alone."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": {
+      "scale": 2
+    },
+    "resolution": "Low-res buffer at 1 art pixel = 2 world units (180 art px visible vertically), upscaled by an integer factor with imageSmoothingEnabled = false; LCD overlay and HUD drawn at display resolution.",
+    "summary": "Every sprite and ground chunk is an index grid of palette indices 0..3, written straight into ImageData as one of four 32-bit colours; all shading is ordered 4x4 Bayer dither, checkerboards and patterns, never alpha.",
+    "linework": "Auto-generated 1 art px (2 world units) 4-neighbour outline in ink #2a1712 around every sprite; the main character additionally gets a second 1 px cream #f6d7a1 halo outline. Ground borders are 1 px rust/pumpkin edges, no strokes or anti-aliasing anywhere.",
+    "shading": "Four flat bands per form (cream highlight, pumpkin mid, rust shadow, ink core) with 1-row checkerboard transitions between bands; light from the upper left (L = -0.62*nx - 0.78*ny on trees).",
+    "lighting": "No real lights: lit objects (lanterns, carved pumpkins, lamp posts) swap to a brighter sprite frame and get a dithered pumpkin-orange halo ring; flicker = frame swap driven by two summed sines.",
+    "texture": "Ground is per-pixel pattern logic: staggered 'v' grass tufts, 4x4 tall-grass motif, furrow rows every 6 px, road speckle; plus 1-bit-ish decal glyphs (flowers, stones, small pumpkins). A faint LCD cell grid (every upscaled pixel) overlays the image."
+  },
+  "palette": [
+    {
+      "name": "Ink",
+      "hex": "#2a1712",
+      "role": "Index 0. Outlines, eyes, cracks, HUD borders and text. Never used on the open ground."
+    },
+    {
+      "name": "Rust",
+      "hex": "#7c3a1e",
+      "role": "Index 1. Shadow band, bodies of dark characters (main character torso, small creature), checker shadows, furrow edges, tree trunks."
+    },
+    {
+      "name": "Pumpkin",
+      "hex": "#e0812c",
+      "role": "Index 2. Mid tone: pumpkin heads, roads, grass tufts, furrows, halos, bar fills (~25% of the screen)."
+    },
+    {
+      "name": "Cream",
+      "hex": "#f6d7a1",
+      "role": "Index 3. Screen backplane: open meadow (~60% of the screen), highlights, ghost bodies, HUD window fill, floating numbers."
+    },
+    {
+      "name": "LCD gap",
+      "hex": "#fae4b4",
+      "role": "Overlay only: 1 display px grid lines at 20% alpha between upscaled art pixels (only when the upscale factor is >= 3)."
+    },
+    {
+      "name": "Vignette / bezel",
+      "hex": "#2a1712",
+      "role": "Overlay only: ink at 0-16% alpha in a radial vignette, 30% / 24% top and left bezel gradients, 3.5% dark cell edge."
+    }
+  ],
+  "paletteRules": [
+    "Every pixel of the world, the sprites and the HUD is exactly one of the four shades #2a1712, #7c3a1e, #e0812c, #f6d7a1 - no fifth colour, no alpha blending inside the art buffer.",
+    "The only exceptions are display-resolution overlays drawn after upscaling: the LCD cell grid (rgba(250,228,180,0.2) and rgba(42,23,18,0.035)), the ink vignette (0 -> 0.16 alpha) and the recessed bezel gradients.",
+    "The ground uses only indices 1-3; ink (0) is reserved for outlines and character details so characters and props always pop.",
+    "Screen ratio roughly 60% cream, 25% pumpkin, 12% rust, 3% ink.",
+    "Transparency, fades, shadows and glows are faked with Bayer 4x4 thresholds or (x+y)&1 checkerboards, never with globalAlpha.",
+    "Flash frames = palette inversion (0<->3, 1<->2), not a white overlay.",
+    "Colours from other systems (particles, icons) are snapped to the nearest of the four shades."
+  ],
+  "typography": [
+    {
+      "family": "Press Start 2P",
+      "weights": [
+        400
+      ],
+      "role": "All HUD text: clock, counters, tags, cards, menus; sizes are multiples of 8 px (8 / 16 / 24 / 32).",
+      "source": "Google Fonts",
+      "sample": "22:09 PUMPKIN",
+      "css": "font: 400 32px/36px 'Press Start 2P', monospace; color: #2a1712; text-shadow: 4px 4px 0 #e0812c; letter-spacing: 0;"
+    },
+    {
+      "family": "3x5 bitmap digits (built in)",
+      "weights": [
+        400
+      ],
+      "role": "Numbers floating in the world: 3x5 glyph grid, cream (emphasised: pumpkin + '!') with ink outline and a rust underline row.",
+      "source": "Procedural (text grid in the module)",
+      "sample": "34 120!",
+      "css": "image-rendering: pixelated;"
+    }
+  ],
+  "world": {
+    "summary": "A procedural autumn farmland seen from straight above, painted only in rust, pumpkin and cream (never ink), baked per 256-unit chunk (128x128 art px) directly into ImageData: warped Voronoi road net, Voronoi patchwork of furrowed pumpkin fields, noise blobs of tall grass, plazas with flagstones, then 1-bit decals.",
+    "layers": [
+      "Cream #f6d7a1 meadow with staggered 'v' grass tufts in pumpkin (6x5 px cells, density 0.06 + 0.5 * macro noise)",
+      "Roads on the edges of a domain-warped Voronoi net (cell 1150 world units): pumpkin fill with rust speckle every 4 px, 12.5 world units half-width (footpaths 7), checkerboard-dithered 1 px fringe",
+      "Fields: furrow rows every 6 art px in one of 4 orientations (rows, columns, '/', '\\'), rust clods, crisp 1 px border (rust on the bottom edge, pumpkin elsewhere)",
+      "Tall grass: 4x4 motif (rows staggered by 2) with a rust bottom edge and a pumpkin top/side edge",
+      "Plazas on road junctions: Worley flagstones 6.5 x 4.6 art px with pumpkin joints (graveyards or village squares)",
+      "Dithered checker drop shadow on meadow pixels directly below a field or tall-grass edge",
+      "Decals stamped from text glyphs: flowers, daisies, stones, pebbles, mini pumpkins, leaves, mushrooms, bones, cracks; field pumpkins snapped onto furrows"
+    ]
+  },
+  "characters": {
+    "summary": "All characters are 10-26 px wide text grids (chars '0'-'3' = palette index, '.' = empty), composed from parts (head + body rows), then given an automatic 1 px ink outline. The main character is a 12x14 pumpkin-headed figure with an extra cream halo outline (16x18 art px = 32x36 world units); creatures are a small rust root bulb with a leafy crown, a cream floating ghost and a large banded root colossus.",
+    "rules": [
+      "Main character: big round pumpkin-orange head with cream carved eyes and grin and rust ribs/stem over a small rust body with cream collar buttons; double outline (ink then cream) so it reads on every ground and is the only figure with a light rim.",
+      "Small creature (10x12): dark rust body, pumpkin leaf crown that sways 1 px, cream belly band, ink/cream eyes, 4 leg frames.",
+      "Fast creature (11x14 ghost): cream body with ink eyes, 3 tail frames; lower rows dissolve with a Bayer threshold (rows < 9 100%, 9-10 75%, 11-12 50%, 13+ 30%); hovers 3-4 px above its shadow.",
+      "Large creature (26x27): procedural ellipse rx 8.8 / ry 8.6 with banded dither (rust top, pumpkin middle, cream bottom), a darker right flank, a checkered rim light on the upper left, ink cracks and brows, a pulsing cream chest core, root arms and a leaf crown.",
+      "Silhouette and value mass, not hue, separate the creature types (dark blob, light blob with dither tail, huge banded oval).",
+      "Every sprite exists as right, left (mirrored) and palette-inverted copies (flash frame).",
+      "Feet anchor at the bottom centre; sprites are snapped to whole art pixels when blitted and sit 1 px below their logical position so they stand on their shadow.",
+      "Animation is frame swapping only: 2 idle, 4 walk, 4 small-creature, 3 ghost, 4 stomp frames; a 1 px vertical bob on odd frames."
+    ]
+  },
+  "props": {
+    "summary": "Y-sorted text-grid props with a 1 px ink outline (fences without), each on a rust checkerboard shadow: round autumn trees, dead trees, bushes, rocks, stumps, pumpkins, carved glowing pumpkins, scarecrows, fences, graves, lamp posts and signs.",
+    "rules": [
+      "Round trees (24x27 or 18x21) are unions of blobs lit from the upper left with L = -0.62*nx - 0.78*ny in four bands with checker transitions, staggered darker leaf-clump arcs every 4 rows / 5 columns, a rust rim along the canopy bottom and a trunk with a pumpkin left and ink right column; a dark variant shifts all indices by -1.",
+      "Small props are short text grids: bush 10x6, rock 8x5, stump 6x4, ribbed pumpkin 9x7, dead tree 18x16 bare rust branches.",
+      "Carved pumpkins (cream eyes and grin) and lamp posts (10x17, 2 px rust pole with a hanging lamp) have a lit and an unlit frame and a dithered pumpkin halo when lit.",
+      "Scarecrow 10x16 (rust hat, pumpkin face with cream eyes, 10 px rust crossbar, 2 px pole); signs 11x9 cream board on a 2 px rust post; graves are three cream headstone grids (rounded stone, cross, slab) with rust inscription lines.",
+      "Fences are 14x5 tiles of rust posts every 7 px with two pumpkin rails, no outline, no shadow, placed along upper field borders with gaps.",
+      "Shadows by size: big tree 20x5 and small tree 14x4 (+2 px right), dead tree 12x3, scarecrow 10x3, lamp post / sign 8x3, other props 10x3 (+1 px right).",
+      "Keep props within ~26 px and on the four shades so they read at the same scale as the characters."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Impact flash",
+      "how": "Draw the palette-inverted sprite copy (0<->3, 1<->2) while flash > 0.4; plus 3 single-pixel sparks in ink and cream flying out at speed 40-80 for 0.22 s."
+    },
+    {
+      "name": "Vanish puff",
+      "how": "The inverted frame for 0.22 s, then a 4-frame pixel puff (one blob, five blobs, ring of six, ring of seven loose pumpkin dots; cream with pumpkin underside, ink outline) scaled 0.6 / 1 / 1.7 by creature size, plus 5-16 pixel particles in all four shades with gravity 260."
+    },
+    {
+      "name": "Emerge from the ground",
+      "how": "Sprite is clipped at the feet and pushed up by its height * outQuad(t); a small puff plays at the feet. Ghosts instead fade in through 3 Bayer dither masks (25 / 50 / 75%)."
+    },
+    {
+      "name": "Projectile seeds",
+      "how": "4 rotation frames of a tiny outlined seed (cream/pumpkin), with a 2-pixel trail: rust at 2.4 x and pumpkin at 1.2 x the velocity times 16 ms behind."
+    },
+    {
+      "name": "Orbiting lanterns",
+      "how": "7x8 lantern grids with a lit and an unlit frame plus a dithered pumpkin halo ring (haloSprite r0 3..5, r1 7..8.5); flicker when sin(t*11)+sin(t*27) > -0.6."
+    },
+    {
+      "name": "Collectible gems",
+      "how": "3x3 or 5x7 outlined gems with a two-frame blink (pumpkin-edged vs. all-cream) at 3 fps, a rust 2x1 drop dot underneath and a pop-in hop of sin(pop * PI) * 4 px; big gems emit a 3x3 cream star."
+    },
+    {
+      "name": "Dash afterimage",
+      "how": "Two copies of the dash frame filled with a pumpkin checkerboard, offset 9 and 18 world units back along the dash direction, plus 3 puffs."
+    },
+    {
+      "name": "Ring burst and blink",
+      "how": "6 cream 3x3 stars orbit the main character on a ring expanding 12 -> 28 units; an alert ring of 10 2x2 ink/rust particles, then the sprite blinks by skipping every other 1/15 s step."
+    }
+  ],
+  "atmosphere": {
+    "summary": "No light system, no blur, no alpha in the art: shadows are rust checkerboard ellipses locked to the pixel grid, glow is a dithered pumpkin halo ring plus a lit sprite frame, and a display-resolution LCD cell grid, ink vignette and recessed bezel frame the upscaled image.",
+    "rules": [
+      "Shadows: rust (x+y)&1 checkerboard ellipses with two pre-baked phases chosen by (px+py)&1 so the checker never crawls; main character 11x3 px, small creature 9x2, ghost 6x2, large creature 20x4.",
+      "Meadow pixels directly below a field or tall-grass edge become a pumpkin/cream checkerboard drop-shadow row.",
+      "Glow: haloSprite(r0, r1, density) keeps pixels with r0 < d < r1 and bayer < density * (1 - 0.6 * (d - r0)/(r1 - r0)); lamp post (4, 8, 0.62), carved pumpkin (5, 8.5, 0.5), small lantern (3, 7, 0.45).",
+      "Flicker by frame swap only: lamp posts lit when sin(t*9 + ph) + sin(t*23 + ph*3) > -0.5, carved pumpkins when sin(t*7 + ph) > -0.7, lanterns when sin(t*11) + sin(t*27) > -0.6.",
+      "LCD cell grid after upscaling (only if the upscale factor >= 3): 1 px rgba(250,228,180,0.2) lines at every multiple of the factor and rgba(42,23,18,0.035) at factor - 1.",
+      "Vignette: radial gradient from 0.42 * min(W,H) to 0.58 * hypot(W,H), ink 0 -> 0.16 alpha.",
+      "Recessed bezel: top linear gradient ink 0.30 -> 0 over max(4, 2 * factor) px, left gradient 0.24 -> 0.",
+      "Modal screens dim the scene with a 10x10 px ink checkerboard, never a translucent fill; no bloom, blur or colour grading."
+    ]
+  },
+  "ui": {
+    "summary": "Handheld-style windows: cream fill, 4 px ink border, 4 px cream gap, 4 px ink outer ring, square corners. Bars are segmented (12 px on, 4 px cream gap) with a lighter top stripe. All text in Press Start 2P, sizes in multiples of 8, no blur shadows - only a hard 4 px pumpkin offset shadow on big numbers. The alert state inverts a window (ink fill, cream text); modal screens use an ink checkerboard overlay and cards a blinking triangle cursor.",
+    "css": ".win{background:#f6d7a1;border:4px solid #2a1712;border-radius:0;box-shadow:0 0 0 4px #f6d7a1,0 0 0 8px #2a1712;font-family:'Press Start 2P',monospace;color:#2a1712;}\n.bar{width:208px;height:24px;background:#f6d7a1;border:4px solid #2a1712;border-radius:0;}\n.bar-fill{height:100%;background:repeating-linear-gradient(90deg,transparent 0 8px,#f6d7a1 8px 12px),linear-gradient(#e0812c 0 4px,#7c3a1e 4px);transition:none;}\n.bar-wide-fill{background:repeating-linear-gradient(90deg,transparent 0 12px,#f6d7a1 12px 16px),linear-gradient(#f6d7a1 0 4px,#e0812c 4px 16px,#7c3a1e 16px);}\n.big-number{font-size:32px;line-height:36px;text-shadow:4px 4px 0 #e0812c;}\n.label{font-size:8px;color:#7c3a1e;text-transform:uppercase;}\n.tag{background:#2a1712;color:#f6d7a1;font-size:16px;padding:0 10px;}\n.alert .win{background:#2a1712;color:#f6d7a1;}\n.overlay{background:repeating-conic-gradient(#2a1712 0 25%,transparent 0 50%) 0 0/10px 10px;}\n@keyframes blink{0%{opacity:1}60%{opacity:0}}"
+  },
+  "motion": [
+    "No tweening of position on the art grid: everything snaps to whole art pixels (2 world units).",
+    "Main character idle: 2 frames (head drops 1 px) at 2.2 fps; walk: 4 leg frames, frame = floor(anim * 0.9) & 3, 1 px up-bob on odd frames; a throw frame and a dash frame with afterimages.",
+    "Small creature: 4 frames at anim * 1.1, leaves on the head sway 1 px on frames 1 and 3; large creature: 4 stomp frames at anim * 0.6 with alternating legs lifted 2 px, body bob 1 px and arms swinging 1 px.",
+    "Ghost: 3 tail frames at 6 fps, hovers 3-4 px above its shadow with a 1 px bob at 3 fps.",
+    "Collectibles blink between 2 frames at 3 fps, bob 1 px at 2 fps and hop by sin(pop * PI) * 4 px when they appear.",
+    "Floating numbers rise, are 1 px higher in the first 20% of life and blink out at 20 Hz in the last 25%.",
+    "Lights flicker by frame swap (lit / unlit), never by alpha; UI blinks use steps(1)."
+  ],
+  "do": [
+    "Keep every art-buffer pixel on one of the four palette indices; write sprites as text grids.",
+    "Auto-outline every sprite with 1 px ink (and give the main character an extra cream halo).",
+    "Fake shadows, transparency and glow with Bayer dither or checkerboards locked to the world grid.",
+    "Render at 2 world units per pixel into a small buffer and upscale by an integer with smoothing off.",
+    "Separate creature types by silhouette and value (dark rust body vs. cream ghost vs. big banded oval).",
+    "Reserve ink for outlines and details - the ground uses only rust, pumpkin and cream.",
+    "Use palette inversion for flash frames and frame swaps for flicker.",
+    "Keep the ground busy but low-contrast (mostly cream with pumpkin marks) so ink-outlined characters and props pop."
+  ],
+  "dont": [
+    "No fifth colour, no gradients and no globalAlpha inside the art buffer.",
+    "No sub-pixel positions, rotation or scaling of sprites - rotate by switching pre-drawn frames.",
+    "No image smoothing when upscaling, no anti-aliased canvas paths in the world.",
+    "No ink on large ground areas - it destroys the contrast with outlined characters.",
+    "No blurred glows or soft drop shadows - halos are dithered rings, shadows are checkered ellipses.",
+    "Don't make sprites much bigger than 26 px; detail comes from economy, not resolution.",
+    "Don't rely on hue to distinguish groups - there is only one hue."
+  ],
+  "performance": "Very cheap per frame: sprites (all frames, mirrored and inverted copies, shadows, halos, number sprites) are baked once into small canvases and blitted with drawImage at integer positions. Ground chunks (128x128 art px) are generated per pixel into Uint32 ImageData by a generator that yields every 16 rows; the noise field is sampled on a coarse 4 px grid and bilinearly interpolated. The LCD overlay is rebuilt only on resize. Hot spot: the per-pixel ground generation when the camera moves fast."
+}

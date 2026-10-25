@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Style stage – miwale Game Style Library</title>
+  <meta name="description" content="Live preview of the design elements of an art style from the miwale Game Style Library.">
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    /* Only the UI view shows the HUD markup – as a kit of parts. */
+    body:not(.view-ui) #hud, body:not(.view-ui) #stylebar, body:not(.view-ui) #levelup { display: none !important; }
+    body.view-ui #stylebar .style-hint { display: none; }
+    body.view-ui #levelup { pointer-events: none; }
+    #labels { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+    #labels span { position: absolute; transform: translate(-50%, 0); padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+      background: rgba(7, 12, 26, .74); color: #e4f8fb; font: 600 11px/1.2 Manrope, system-ui, sans-serif; letter-spacing: .04em;
+      border: 1px solid rgba(255, 255, 255, .16); }
+    #hint { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); pointer-events: none; transition: opacity .4s;
+      padding: 7px 14px; border-radius: 999px; background: rgba(7, 12, 26, .66); color: #e4f8fb;
+      font: 600 12px/1.2 Manrope, system-ui, sans-serif; border: 1px solid rgba(255, 255, 255, .18); }
+    body:not(.view-scene):not(.view-atmosphere) #hint, body.walking #hint { opacity: 0; }
+    #atmo-toggle { position: fixed; right: 12px; top: 12px; z-index: 60; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+      background: rgba(7, 12, 26, .74); color: #e4f8fb; font: 700 12px/1.2 Manrope, system-ui, sans-serif; border: 1px solid rgba(255, 255, 255, .25); }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- UI kit (only in view=ui): the HUD parts of the style, re-skinned by its CSS -->
+  <div id="hud">
+    <div class="xp"><div class="xp-fill"></div><span class="lvl">07</span></div>
+    <div class="topline">
+      <div class="hp">
+        <canvas class="hp-icon" width="48" height="48"></canvas>
+        <div class="hp-bar"><div class="hp-fill"></div></div>
+        <span class="hp-text">72/100</span>
+      </div>
+      <div class="clock"><span class="clock-time">12:30</span><span class="clock-label">title</span></div>
+      <div class="kills"><canvas class="kills-icon" width="48" height="48"></canvas><span class="kills-num">128</span></div>
+    </div>
+  </div>
+  <div id="stylebar"><span class="style-family"></span><span class="style-name"></span><span class="style-hint"></span><span class="auto" hidden></span></div>
+  <div id="levelup" class="hidden"><div class="lu-title"></div><div class="lu-cards"></div><div class="lu-hint"></div></div>
+  <div id="gameover" class="hidden"><div class="go-title"></div><div class="go-stats"></div><div class="go-hint"></div></div>
+  <div id="pausebox"></div>
+
+  <div id="labels"></div>
+  <div id="hint">Click, then WASD to walk around</div>
+  <button id="atmo-toggle" type="button" aria-pressed="true" hidden>Atmosphere: on</button>
+  <pre id="errors"></pre>
+
+  <script src="js/core/util.js"></script>
+  <script src="js/core/styles.js"></script>
+  <script src="js/core/ground.js"></script>
+  <script src="js/core/game.js"></script>
+  <script src="js/core/render.js"></script>
+  <script src="js/core/hud.js"></script>
+  <script src="js/stage.js"></script>
+</body>
+</html>

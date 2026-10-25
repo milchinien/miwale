@@ -1,0 +1,302 @@
+{
+  "id": "popart",
+  "name": "Pop-Art Comic",
+  "originalName": "Pop-Art Comic",
+  "family": "Comic · Pop-Art print",
+  "tags": [
+    "comic",
+    "halftone",
+    "ben-day dots",
+    "ink outline",
+    "misregistration",
+    "onomatopoeia",
+    "retro print",
+    "pop art"
+  ],
+  "summary": "A printed 1960s comic book come alive: brush-ink outlines, flat process colours, Ben-Day dots and slipped colour plates.",
+  "description": "Every sprite looks like it was printed on cheap newsprint: thick black brush outlines that get heavier on the shadow side, flat CMYK-ish process colours, halftone dot crescents instead of gradients, a solid spot-black rim on the shadow edge and a cyan or magenta colour plate that is slightly out of register. The ground is warm newsprint where every region gets its own rotated dot screen, separated by inked contour lines. Big moments explode into jagged yellow bursts with POW!/ZONK! balloons in Bangers.",
+  "mood": [
+    "loud",
+    "playful",
+    "punchy",
+    "retro",
+    "spooky-fun"
+  ],
+  "bestFor": [
+    "top-down arena action with crowds of figures",
+    "beat-'em-ups and brawlers",
+    "superhero or Halloween party games",
+    "B-movie and pulp-comic themes",
+    "card and shop screens with strong UI"
+  ],
+  "avoidFor": [
+    "photoreal or atmospheric horror",
+    "calm cozy projects that need soft lighting",
+    "pixel-perfect retro art",
+    "projects needing many dark night scenes"
+  ],
+  "difficulty": {
+    "stars": 5,
+    "why": "Every new asset has to be built from primitive parts and run through the part painter: flat fill, a dot screen in a darker sister colour, a shade crescent, a spot-black crescent, the doubled brush outline and a misregistered plate. Each new colour needs its own dot sister, and characters additionally need 4 walk frames plus a flash copy. New ground regions are cheap to define (paper tint + dot screen) but expensive to render."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native resolution. Sprites are baked once at K = clamp(round(screenPx/360 × 1.4), 3, 5) pixels per world unit and drawn scaled; ground is computed per pixel at up to 2.5 px/unit in 256-unit chunks.",
+    "summary": "A 'part painter' builds each sprite from simple shapes: clip -> flat process colour -> optional Ben-Day dot overlay -> halftone shade crescent (shape minus shape shifted toward the light) -> solid black spot crescent -> details -> white shine ellipses -> double brush stroke outline. Afterwards a cyan or magenta silhouette is drawn behind the sprite offset by 0.5 units (misregistered plate).",
+    "linework": "Ink #1b1620, 1.0 world unit default (0.6–1.45 depending on part size; head 1.15, large creature body 1.45), round caps and joins. Each outline is stroked twice: once at width w, once at 0.85 w shifted (+0.3 w, +0.36 w) so the stroke is heavier at bottom-right. Interior ink lines (folds, mouths, cracks) are 0.4–0.6 units. Ground contours are 0.84–2.08 units wide, varying with noise like a brush.",
+    "shading": "No gradients. Shade = a dot screen in a darker sister colour (dot radius factor 0.45–0.62) inside a crescent on the shadow side; a smaller solid-black crescent hugs the very edge. Light comes from top-left, so crescents use negative offsets (e.g. [-2.3, -1.9]) and sit at the bottom-right. Some parts get a light Ben-Day overlay (rf 0.3–0.42) of a complementary colour over the flat fill.",
+    "lighting": "Top-left key light only, expressed by shade crescents and white shine ellipses at top-left. Glows are not blurred: a lantern or character light is a hex grid of yellow dots whose radius falls off as (1-d)^0.7. Shadows are two concentric ellipses of ink dots. Screen corners get a vignette of big ink dots.",
+    "texture": "Newsprint paper with per-pixel grain (±2.3 % hash noise plus faint fibres), slight large-scale yellowing (±4 %), rotated anti-aliased dot screens whose dot size follows a tone noise field."
+  },
+  "palette": [
+    {
+      "name": "Ink",
+      "hex": "#1b1620",
+      "role": "All outlines, spot blacks, shadow dots, text strokes, panel frame"
+    },
+    {
+      "name": "Newsprint",
+      "hex": "#f4ecd4",
+      "role": "Paper, panel gutter, UI bar backgrounds"
+    },
+    {
+      "name": "Meadow paper",
+      "hex": "#ede9c7",
+      "role": "Base ground (~50 % of the screen) under green dots #68b062"
+    },
+    {
+      "name": "Process Yellow",
+      "hex": "#ffe23a",
+      "role": "Bursts, glow dots, carved faces, HUD timer panel, big title text"
+    },
+    {
+      "name": "Process Red",
+      "hex": "#e8262c",
+      "role": "Primary bar fill, burst dots, sound-word text, scarecrow shirt"
+    },
+    {
+      "name": "Process Cyan",
+      "hex": "#2ec4ef",
+      "role": "Misregistered plate, secondary bar fill, small collectibles, ghost eyes, card header"
+    },
+    {
+      "name": "Process Magenta",
+      "hex": "#e0338f",
+      "role": "Second misregistered plate, creature dots, large collectibles"
+    },
+    {
+      "name": "Pumpkin Orange",
+      "hex": "#ff8a1c",
+      "role": "Main character's pumpkin head and pumpkin props (shade dots #e0301e, ribs #d8561a)"
+    },
+    {
+      "name": "Cape Blue",
+      "hex": "#2c6ad0",
+      "role": "Main character's cape/arms (dots #0f2f80)"
+    },
+    {
+      "name": "Scarf Red",
+      "hex": "#ea2a33",
+      "role": "Main character's scarf (dots #8a0c22)"
+    },
+    {
+      "name": "Leaf Green",
+      "hex": "#3fae49",
+      "role": "Leaf crowns, bushes (dots #1a6a2c)"
+    },
+    {
+      "name": "Root Magenta",
+      "hex": "#d4308c",
+      "role": "Small creature top half, variant A (cyan dots, shade #5a0c48)"
+    },
+    {
+      "name": "Root Violet",
+      "hex": "#8a3cc0",
+      "role": "Small creature top half, variant B (magenta dots, shade #2a0a50)"
+    },
+    {
+      "name": "Root Cream",
+      "hex": "#fdeabb",
+      "role": "Small creature bottom half (orange dots #f08a3c)"
+    },
+    {
+      "name": "Ghost White",
+      "hex": "#fcfbf4",
+      "role": "Ghost body, puffs (shade dots #1aa0d8)"
+    },
+    {
+      "name": "Plum",
+      "hex": "#8a3a86",
+      "role": "Large creature top half; bottom clay #c98545, shade #3a1030, limbs #9a5a30"
+    },
+    {
+      "name": "Autumn paper",
+      "hex": "#fad880",
+      "role": "Autumn field region under orange-red dots #e8623e"
+    },
+    {
+      "name": "Night paper",
+      "hex": "#c8d2e8",
+      "role": "Night region under blue dots #5668b2"
+    },
+    {
+      "name": "Graveyard paper",
+      "hex": "#e0d3de",
+      "role": "Graveyard region under violet dots #8660a0; stones #bdb8cc"
+    },
+    {
+      "name": "Flash Yellow",
+      "hex": "#ffe94a",
+      "role": "Impact flash frame fill (shade dots #ff7a1a)"
+    }
+  ],
+  "paletteRules": [
+    "Every colour has a darker 'dot' sister used only as halftone dots for shading (orange #ff8a1c -> #e0301e, cape #2c6ad0 -> #0f2f80). Never shade by darkening the fill itself.",
+    "Black is always the warm ink #1b1620, never #000. Outlines, spot blacks and shadow dots share it.",
+    "Ground regions are pale (paper tint) with mid-saturation dots; characters are fully saturated process colours so they pop off the floor.",
+    "Misregistered plates are only cyan #2ec4ef or magenta #e0338f (props use pink #ff3d6e at 45 %), drawn behind the sprite at 60–70 % alpha.",
+    "Complementary dot overlays are encouraged (cyan dots on magenta, magenta on violet, yellow on magenta).",
+    "No gradients, no blur, no soft glows anywhere; tone is always dot size or dot density."
+  ],
+  "typography": [
+    {
+      "family": "Bangers",
+      "weights": [
+        400
+      ],
+      "role": "Sound words (POW!, ZONK!), pop-up numbers, HUD counters, titles, card names",
+      "source": "Google Fonts",
+      "sample": "POW! 34",
+      "css": "font: 400 38px/1 'Bangers', Impact, sans-serif; letter-spacing: 2px; color: #1b1620; text-shadow: 2px 2px 0 #e8262c;"
+    },
+    {
+      "family": "Comic Neue",
+      "weights": [
+        700
+      ],
+      "role": "Body text, labels, card descriptions, hints (often uppercase)",
+      "source": "Google Fonts",
+      "sample": "TAKE ONE CARD …",
+      "css": "font: 700 16px/1.25 'Comic Neue', 'Comic Sans MS', sans-serif; letter-spacing: 1px; text-transform: uppercase; color: #1b1620;"
+    }
+  ],
+  "world": {
+    "summary": "Warm newsprint split into large organic regions (meadow, autumn field, night, graveyard) crossed by winding paths. Each region has its own paper tint and its own rotated dot screen (angle 15°–60°, spacing 2.8–3.3 units, dot radius 15–36 % of spacing modulated by a tone noise). Regions are separated by brush-ink contours 0.84–2.08 units wide, paths get diagonal speed hatching along their edges, and small ink decals (grass tufts, flowers, leaves, cracks, splats) are scattered on top. Computed per pixel in world space so dots never swim.",
+    "layers": [
+      "Paper tint per region (meadow #ede9c7, autumn #fad880, night #c8d2e8, graveyard #e0d3de, path #f9e9aa) × large-scale yellowing (±4 %)",
+      "Rotated anti-aliased dot screen per region, multiply-blended, radius from tone noise (paths have none)",
+      "Paper grain (hash noise ±2.3 % plus faint fibres)",
+      "Ink contour lines between regions (half-width 0.42–1.04 units, varying with noise) + diagonal hatching within 14 units of path edges",
+      "Ink decals every ~15 units: 3-blade grass tufts, 5-petal white/pink flowers, red/yellow leaves, white glints, cracks, pebbles, rare ink splats"
+    ]
+  },
+  "characters": {
+    "summary": "Chunky, readable cartoon figures built from 10–20 primitive parts (ellipses, capsules, polygons, superellipses, bezier blobs). Main character: a round orange pumpkin head with a carved glowing yellow face, blue cape, red scarf, ~21 × 34 units (baked at 1.12×). Small creature: a two-tone magenta or violet root creature with a leafy crown and angry yellow eyes, ~17 × 28 (0.92×). Fast creature: a floating white ghost sheet with cyan-dot shade and a wavy tail, ~25 × 26. Large creature: a plum-and-clay root colossus with a glowing yellow star core, ~48 × 66. Parts are painted back-to-front (back leg, back arm, body, front leg, front arm, head). Four walk frames (idle, contact A, passing, contact B) plus a yellow flash copy of every frame, both facings.",
+    "rules": [
+      "Outline everything; the outline is the silhouette. Heads/bodies get thicker outlines (1.1–1.45) than limbs (0.8–0.85).",
+      "Each part has exactly one shade crescent on the bottom-right and one thinner spot-black crescent inside it.",
+      "Two-tone bodies: top colour above a wavy ink line, bottom colour below, each with its own dot screen.",
+      "Faces are carved holes (black rim + yellow #ffe23a inside shifted down-right) or solid ink shapes with tiny white or cyan catchlights.",
+      "Every figure type gets a different dominant colour and a different silhouette (round pumpkin head, teardrop root body, wavy-tailed ghost, huge colossus).",
+      "A cyan plate behind solid figures, a magenta plate behind ghosts – this fringe sells the print look.",
+      "Bake once facing right and mirror for left; the face is offset +1.4 units toward the facing."
+    ]
+  },
+  "props": {
+    "summary": "Scenery baked with the same part painter as the characters but with a weaker pink #ff3d6e plate at 45 % so figures pop in front: leafy trees (green #56b04a or autumn orange #f07a2a crowns from circle unions), bare dead trees #6a4a52, berry bushes with red berries, stone rocks #bdb8cc, wooden fences and signposts #d39a58, pumpkins (plain or carved and lit), a scarecrow with a red blue-dot plaid shirt and sack head, hay bales #f2c94c, and three kinds of gravestones.",
+    "rules": [
+      "Same pipeline as figures: flat fill, darker-sister dot shade crescent, spot-black crescent, doubled ink outline ~1 unit, white shine top-left.",
+      "Circle-union shapes (tree crowns, bushes, puffs) are converted to one polygon (ray-cast outline, 144 samples) so the even-odd crescent works.",
+      "Pink #ff3d6e plate at 45 % instead of cyan at 65 % – props sit visually behind the characters.",
+      "Each prop casts a halftone contact shadow sized to its footprint (tree 15, fence 17, bush/pumpkin 11, rock 9 units half-width); gravestones sit on a dotted base ellipse instead.",
+      "Fine ink detail lines 0.4–0.7 units: bark marks, rock cracks, straw strokes, inscriptions, stitched faces.",
+      "Trees sway by a horizontal skew of ±0.02 at 1.2 rad/s; all other props are static and randomly mirrored.",
+      "Props follow the region: meadow trees/bushes/rocks/fences/signs, autumn pumpkins/scarecrows/hay, night dead trees and lit pumpkins, graveyard dense gravestones."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Impact burst",
+      "how": "8-point yellow star (r 6.5/2.4) with red Ben-Day dots and a white inner star, plus 7 black tapered speed-line wedges radiating out; the struck figure is overdrawn with its baked yellow flash frame at alpha = min(0.9, flash × 1.4) and squashed (sx +18 %, sy −14 %)."
+    },
+    {
+      "name": "Big burst",
+      "how": "12-point jagged star (r 10/5.6, jitter 0.38) filled with yellow, white or orange, two dot rings (rf 0.62 out to r 6.2, rf 0.95 inside r 3.6) in red/cyan, ink outline 0.9. Pops in with outBack in 16 % of its 0.34 s life, then slowly grows and fades the last 40 %; covers a vanishing figure."
+    },
+    {
+      "name": "Onomatopoeia balloon",
+      "how": "Bangers 11 units text centered in a 13-point jagged star balloon (inner 0.72) with a darker offset plate (-0.8, +0.7, 70 %), dot rim outside 62 % of the radius, 1.0 ink outline, text with a 0.9-unit hard drop shadow, 0.2 × font-size ink stroke. Max 3 on screen, at most one every 1.3 s, 30 % chance per big burst; always on large-creature bursts."
+    },
+    {
+      "name": "Pop-up number",
+      "how": "Bangers 9.5 units white (13 units yellow when emphasised) with a 0.22 × font-size ink stroke and a magenta (emphasised: cyan) copy offset (-0.7, +0.6). Emphasised numbers sit in a white 11-point star balloon and get red halftone in the lower half of the letters."
+    },
+    {
+      "name": "Chunks and ink drops",
+      "how": "A vanishing figure throws 4–9 baked polygon chunks in its colours (with spot-black crescent) and 2–6 round ink droplets on gravity arcs; ghosts drop cyan droplets."
+    },
+    {
+      "name": "Motion smear",
+      "how": "Two copies of the main character tinted cyan and magenta at 60 % alpha, offset 6 and 12 units behind the movement direction, plus 4 black speed lines 16–24 units long."
+    },
+    {
+      "name": "Appear burst",
+      "how": "Creatures erupt from a flattened (y × 0.45) yellow 12-point star with red dots and a black hole, scaled by outBack, while their sprite grows with outElastic."
+    },
+    {
+      "name": "Projectile",
+      "how": "Cream seed sprite with orange halftone shade, magenta plate, spinning via y-squash (0.6–1.0), trailed by three black triangular streaks (15/10/11 units long)."
+    },
+    {
+      "name": "Collectibles and orbiting lantern",
+      "how": "Small collectible = cyan teardrop gem with #0a5a9a dot shade, large = magenta 5-point star with yellow dots; both bob ±1 unit over a tiny dot shadow with a magenta plate. Orbiting object = a small purple root-shaped lantern with a leaf crown and a carved glowing face, bobbing ±1.4 units over a flickering yellow dot glow."
+    }
+  ],
+  "atmosphere": {
+    "summary": "Bright printed daylight with no light sources rendered as gradients: light only exists as top-left shine and bottom-right dot crescents. Shadows are halftone dot ellipses, glows are grids of yellow dots, a halftone ink-dot vignette darkens the corners and a hand-inked black comic-panel frame with a paper gutter surrounds the view.",
+    "rules": [
+      "Key light is always top-left, expressed only by shade-crescent placement and white shine ellipses.",
+      "Contact shadow = two concentric ellipses of ink dots (outer 9.6 × 3.5 units rf 0.5, inner 6.4 × 2.3 rf 0.95, spacing 1.15) at 55 % alpha (main character 65 %, ghost 35 %).",
+      "Glow = hex grid of yellow #ffe23a dots (spacing 1.6) within radius 15, dot radius (1 − d)^0.7, squashed 1.5 × 0.62 on the floor at 80 % alpha; orbiting lanterns use it at 0.8 scale with flickering alpha.",
+      "Misregistered plates (cyan/magenta 65 %, pink 45 % on props) are part of the atmosphere – keep them on everything.",
+      "Screen vignette: hex grid of ink dots (spacing max(7, H/100) px) growing with smoothstep(0.9, 1.42, distance from centre) at 42 % alpha.",
+      "Frame: paper gutter of max(4, 0.6 % H) px and a black panel border of the same width drawn as jittered 24-segment strokes (width ×0.9–1.2).",
+      "No blur, no bloom, no colour grading, no darkness."
+    ]
+  },
+  "ui": {
+    "summary": "Hard-edged comic panels: newsprint or process-colour fills, 3 px ink borders, zero radius, solid 4–8 px offset drop shadows in ink, skewed bars (skewX −10°) filled with dotted colour, Bangers numbers with a 16-direction ink text outline, a speech-bubble counter, a starburst big title, slightly rotated cards with dotted colour headers.",
+    "css": ".hud-panel { background: #ffe23a; border: 3px solid #1b1620; border-radius: 0; box-shadow: 5px 5px 0 #1b1620; padding: 4px 18px 5px; transform: rotate(-1deg); font-family: 'Bangers', Impact, sans-serif; font-size: 38px; letter-spacing: 2px; color: #1b1620; text-shadow: 2px 2px 0 #e8262c; }\n.bar { width: 250px; height: 28px; background: radial-gradient(circle, rgba(27,22,32,.22) 1.1px, transparent 1.6px) 0 0/6px 6px, #f4ecd4; border: 3px solid #1b1620; border-radius: 0; box-shadow: 4px 4px 0 #1b1620; transform: skewX(-10deg); overflow: hidden; }\n.bar-fill-red { height: 100%; background: radial-gradient(circle, #8a0c22 1.8px, transparent 2.3px) 0 0/6px 6px, #e8262c; border-right: 3px solid #1b1620; }\n.bar-fill-cyan { height: 100%; background: radial-gradient(circle, #1474b8 1.7px, transparent 2.2px) 0 0/6px 6px, #2ec4ef; border-right: 3px solid #1b1620; }\n.card { background: #fbf5e2; border: 4px solid #1b1620; box-shadow: 8px 8px 0 #1b1620; transform: rotate(-1.5deg); }"
+  },
+  "motion": [
+    "Walk: frames 1,2,3,2 (contact A, passing, contact B, passing; frame 0 = idle) at anim × 0.4 cycles; body lifts sin(f·π) × 1.8 units and tilts ±0.05 rad per step.",
+    "Idle: breathing squash sy = 1 + 0.025·sin(3.2 t), sx = 1 − 0.018·sin(3.2 t).",
+    "Small creature: 4 frames at anim × 0.85, waddle rotation sin × 0.09 rad, hop 1.2 units, 5 % squash at ground contact.",
+    "Large creature: 4 frames at anim × 0.32, contact squash (1 − up)^3 × 7 %, rotation ±0.03 rad – heavy and slow.",
+    "Ghost: 4 frames at 7 fps (tail wave), floats 4.5 units up and bobs ±1.6 at 2.6 rad/s, leans into velocity ±0.14 rad.",
+    "Pops use overshoot easing (outBack / outElastic); numbers pop 0.3 -> 1.35 -> 1.0 scale in the first 24 % of life.",
+    "Impact flash decays quickly; vanishing = 0.2 s inflate to 1.25× in the yellow flash frame, then shrink to 0 by 0.42 s while the burst takes over.",
+    "HUD shake: 0.22 s steps(3) jitter of ±4 px and ±1.5°."
+  ],
+  "do": [
+    "Draw every part through one painter routine so fill, dots, shade crescent, spot black and double outline are always consistent.",
+    "Bake sprites once (both facings + a flash frame) and only blit at runtime.",
+    "Shade with dot size: bigger dots = darker; use the colour's darker sister for the dots.",
+    "Slip a cyan or magenta plate 0.5 units down-left behind every sprite.",
+    "Keep characters fully saturated and the ground pale so crowds read against the floor.",
+    "Use jagged star balloons + Bangers for every loud moment, but rate-limit them (max 3 at once).",
+    "Use hard offset drop shadows (no blur) on all UI panels.",
+    "Keep the light top-left for every object, including UI icons."
+  ],
+  "dont": [
+    "Don't use gradients, blur, shadowBlur or soft glows – everything is dots or flat.",
+    "Don't use pure #000 black or thin hairline outlines; ink is #1b1620 and at least 0.4 units.",
+    "Don't align dot screens of different regions at the same angle and spacing – each needs its own screen.",
+    "Don't fill the screen with onomatopoeia; more than 3 balloons turns into noise.",
+    "Don't give creatures the same dominant colour as the ground region they walk on.",
+    "Don't round UI corners or use translucent glassy panels.",
+    "Don't draw per-pixel halftone for sprites every frame – bake it."
+  ],
+  "performance": "All figures (4 frames × normal/flash × 2 facings), props, bursts, chunks, shadows and glows are baked once in init at 3–5 px per unit; runtime is pure drawImage, so 300+ figures are fine. Text sprites are cached per value (cleared above 600 entries). The hot spot is the ground: every pixel evaluates up to 4 region distances (bilinear from a 4-unit noise grid with gradient-based signed distance), 1 rotated dot screen, grain and hatching – done per 256-unit chunk as a generator that yields every 2 rows, resolution capped at 2.5 px/unit. The screen overlay is baked once per resolution and only non-empty tiles are blitted."
+}

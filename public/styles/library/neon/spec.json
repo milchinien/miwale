@@ -1,0 +1,332 @@
+{
+  "id": "neon",
+  "name": "Neon Midnight",
+  "originalName": "Neon Mitternacht",
+  "family": "Vector · Neon",
+  "tags": [
+    "synthwave",
+    "neon",
+    "glow",
+    "line art",
+    "vector",
+    "dark",
+    "holographic",
+    "additive"
+  ],
+  "summary": "Glowing neon tube line-art with baked halos on a near-black holographic floor of circuit, hex and halftone regions.",
+  "description": "Every character and prop is a drawing of glowing tubes: a saturated coloured line with a near-white hot core, sitting on a soft pre-blurred halo and a near-black tinted glass fill. The floor is a dark midnight board split into noise-shaped regions, each with its own faint additive pattern (violet grid, teal hex cells, magenta halftone dots, copper circuit traces, blue water scanlines), separated by thin glowing contour lines. It reads like a Halloween rave at 23:59: black, electric and crisp, with scanlines, vignette and chromatic glitches on top.",
+  "mood": [
+    "electric",
+    "nocturnal",
+    "synthwave",
+    "rave",
+    "crisp"
+  ],
+  "bestFor": [
+    "arcade shooters",
+    "twin-stick and bullet-hell games",
+    "rhythm and music games",
+    "retro-futuristic puzzle games",
+    "top-down arena action with crowded screens"
+  ],
+  "avoidFor": [
+    "cozy farming or life sims",
+    "painterly story games",
+    "daylight or naturalistic settings",
+    "projects that need material textures (wood, cloth, skin)"
+  ],
+  "difficulty": {
+    "stars": 3,
+    "why": "New assets are just closed paths with a few line widths run through one shared glow bake: a new creature is a strong silhouette, 2–3 protrusions and glowing eyes; a new prop is an outline, a dark fill and an offset back edge. The hard part is restraint – too many hues or effects quickly turn the screen into a colourful mess."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native display resolution; sprites baked once at 4 px per world unit (K = 4) and drawn scaled; ground chunks of 256 units baked at up to 2.5 px/unit.",
+    "summary": "Each sprite is drawn twice with the same paths: a 'full' pass (sharp tubes, dark fills) and a 'glow' pass (1.8x fat strokes, glowing fills). The glow pass is blurred once at bake time (blur 2.2 u at 70 % + blur 0.6 u at 60 %) and the sharp pass is stamped on top, so per-frame cost is a single drawImage.",
+    "linework": "Round caps and joins everywhere. Outer silhouettes 1.15–1.4 world units, limbs 0.95–1.05 u, details 0.3–0.7 u. Every primary line gets a hot core stroke at 36 % width in the line colour mixed 62 % towards white; secondary/detail lines skip the core. Glow strokes are 1.8x the line width (1.2–3x for special cases).",
+    "shading": "No shading gradients on bodies: shapes are filled with near-black tinted glass (alpha 0.95–0.97, e.g. rgba(32,4,34,.96)); volume comes from a few dim interior lines (facets, ribs, a wavy 'liquid' cap at 42 % alpha) and from radial gradients only on light sources (carved faces, cores).",
+    "lighting": "Light is emissive only: halos, additive ('lighter') floor glows under the main character and light sources, coloured contact pools (dark core + coloured rim) instead of shadows. Ambient is pitch black; a violet radial vignette darkens the edges.",
+    "texture": "None on actors. The floor carries faint procedural patterns (grid, hex, halftone dots, circuit traces, water scanlines) plus sparse star-dust squares; the screen gets 1 px scanlines every 3 px."
+  },
+  "palette": [
+    {
+      "name": "Void",
+      "hex": "#05040d",
+      "role": "Background / page and canvas base, ~60 % of the screen"
+    },
+    {
+      "name": "Midnight floor",
+      "hex": "#06050f",
+      "role": "Ground fallback colour under the region tints"
+    },
+    {
+      "name": "Character orange",
+      "hex": "#ff7a1a",
+      "role": "Main character head outline, its floor light and dissolve fragments"
+    },
+    {
+      "name": "Amber",
+      "hex": "#ffae35",
+      "role": "Main character body and limbs, celebration ring, lanterns"
+    },
+    {
+      "name": "Scarf yellow",
+      "hex": "#ffe14a",
+      "role": "Main character accent (scarf), projectile sparks"
+    },
+    {
+      "name": "Stem green",
+      "hex": "#9cff4a",
+      "role": "Small organic accents (stems)"
+    },
+    {
+      "name": "Magenta",
+      "hex": "#ff3ad6",
+      "role": "Small creature outline, counter glow"
+    },
+    {
+      "name": "Violet",
+      "hex": "#b066ff",
+      "role": "Creature leaves and secondary lines"
+    },
+    {
+      "name": "Root lilac",
+      "hex": "#d77bff",
+      "role": "Creature legs / roots"
+    },
+    {
+      "name": "Cyan",
+      "hex": "#6ff4ff",
+      "role": "Fast floating creature, HUD labels, frames"
+    },
+    {
+      "name": "Ice",
+      "hex": "#eaffff",
+      "role": "Highlights on cyan subjects"
+    },
+    {
+      "name": "Acid violet",
+      "hex": "#b44dff",
+      "role": "Large creature outline"
+    },
+    {
+      "name": "Acid dark",
+      "hex": "#7a38d6",
+      "role": "Large creature facet lines"
+    },
+    {
+      "name": "Toxic green",
+      "hex": "#8dff2a",
+      "role": "Large creature core, cracks, eyes, footfall rings"
+    },
+    {
+      "name": "Lime",
+      "hex": "#c6ff3a",
+      "role": "Small collectible gems, badge"
+    },
+    {
+      "name": "Gem cyan",
+      "hex": "#45f4ff",
+      "role": "Large collectible gems"
+    },
+    {
+      "name": "Seed orange",
+      "hex": "#ff9a2e",
+      "role": "Projectile"
+    },
+    {
+      "name": "Lavender",
+      "hex": "#c3b5ff",
+      "role": "Props: gravestones, fences"
+    },
+    {
+      "name": "Lavender dark",
+      "hex": "#6a5ad0",
+      "role": "Prop back edges / extrusion lines"
+    },
+    {
+      "name": "Pink sign",
+      "hex": "#ff4fd8",
+      "role": "Props: pylons, sign frames; bar border"
+    },
+    {
+      "name": "Flash pink",
+      "hex": "#ff2a7a",
+      "role": "Impact flash, chroma split red channel, glitch tint"
+    }
+  ],
+  "paletteRules": [
+    "Black first: at least 60 % of the screen is near-black (#05040d to #1e0416). Colour only exists as light.",
+    "One hue family per subject type: main character = orange/amber/yellow, small creature = magenta/violet, fast creature = cyan, large creature = acid violet + toxic green, collectibles = lime/cyan, props = lavender/pink/teal. Never swap them between types.",
+    "Every primary line is a pair: saturated colour + its own colour mixed 62 % to white as the core. Never pure white outlines, never dark outlines.",
+    "Fills are the line hue darkened to almost black (rgb ≈ 20–32) at alpha 0.95; never fill a body with a saturated colour.",
+    "Floor colours stay below ~15 % brightness (bases like rgb(8,8,32), rgb(3,15,21), rgb(30,4,22), rgb(14,9,15)) and patterns stay below ~0.5 alpha so characters always outshine the ground.",
+    "No browns, greys, beiges or desaturated mid-tones anywhere."
+  ],
+  "typography": [
+    {
+      "family": "Orbitron",
+      "weights": [
+        500,
+        700,
+        900
+      ],
+      "role": "HUD numbers, timer, labels, floating digits, card titles",
+      "source": "Google Fonts",
+      "sample": "23:59",
+      "css": "font: 900 38px/1.05 'Orbitron', sans-serif; letter-spacing: 3px; background: linear-gradient(180deg,#fff7e0 0%,#ffd36b 36%,#ff7a1a 62%,#ff2bd0 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 5px rgba(255,90,40,.8)) drop-shadow(0 0 16px rgba(255,43,208,.55));"
+    },
+    {
+      "family": "Monoton",
+      "weights": [
+        400
+      ],
+      "role": "Big screen titles (MIDNIGHT, PAUSE) – multi-line neon tube lettering",
+      "source": "Google Fonts",
+      "sample": "MIDNIGHT",
+      "css": "font: 400 68px/1 'Monoton', cursive; color: #ffd36b; letter-spacing: 6px; text-shadow: 0 0 6px #ff8a1f, 0 0 18px #ff3ad6, 0 0 42px rgba(255,43,208,.7);"
+    },
+    {
+      "family": "Audiowide",
+      "weights": [
+        400
+      ],
+      "role": "Style / brand name plate",
+      "source": "Google Fonts",
+      "sample": "Neon Midnight",
+      "css": "font: 400 17px 'Audiowide', sans-serif; color: #fff; letter-spacing: 1px; text-shadow: 0 0 6px #ff7a1a, 0 0 16px rgba(255,43,208,.75);"
+    },
+    {
+      "family": "Rajdhani",
+      "weights": [
+        500,
+        600,
+        700
+      ],
+      "role": "Body text, card descriptions, menus",
+      "source": "Google Fonts",
+      "sample": "Glow intensity +20 %",
+      "css": "font: 600 17px 'Rajdhani', sans-serif; color: #b8f6ff; text-shadow: 0 0 6px rgba(40,200,255,.45);"
+    }
+  ],
+  "world": {
+    "summary": "A near-black floor divided by low-frequency domain-warped noise into four 'districts' plus water. Each district has a dark tinted base and its own additive pattern; borders are seamless marching-squares contours drawn as 3-stroke glowing lines. Sparse star dust and faint glyph/landmark line art are sprinkled on top. Districts are 300–800 u across, so a screen shows 2–3 of them.",
+    "layers": [
+      "Base: per-4-unit cell colour blended by softmax (temperature 0.012) of 4 fbm fields; bases violet rgb(8,8,32), teal rgb(3,15,21), magenta rgb(30,4,22), copper rgb(14,9,15), water rgb(2,9,30); brightness x(0.7..1.3) from a slow fbm. Fallback ground #06050f.",
+      "Region patterns, each masked by its region weight and composited with 'lighter': violet square grid (8 u minor at 16 %, 32 u major at 50 % with a 4 px wide 10 % halo, crosses every 64 u), teal hex grid (radius 9 u, 34 %, 7.5 % lit cells with inner hex), magenta halftone dots (6 u staggered grid, radius 0.42–1.67 u by noise, 52 %), copper circuit traces (26 u cells, 42 % chance, 2–3 segments of 8–26 u with 45° turns, pads r 1.2, vias r 0.7, chips 10–16 u with pins), water (horizontal 1 px lines every 2 u at 24 % + moonlight glints).",
+      "Decals ('lighter'): star-dust squares 0.3–0.75 u (one per ~11 u cell at 22–55 %), small line glyphs (cross, moon, star, diamond, rune, bat, small pumpkin) 1.8–3.2 u stroked 2.2 u at 16 % + 0.5 u at full, rare landmarks (target rings, clock faces at 23:59, moons with stars) 18–28 u radius at up to 42 %.",
+      "Contours: marching squares on (region field − max of other fields) and on the water field; each stroked 3 times additively: 6 u at 5 %, 2 u at 15 %, 1.15 px at 62 % (colour mixed 35 % to white). Water gets a second inner contour at 45 %."
+    ]
+  },
+  "characters": {
+    "summary": "Characters are outline drawings made of neon tubes over near-black glass fills. The main character is a stick-limbed figure about 18 u wide and 30 u tall with a round carved pumpkin head (15 u wide) in orange #ff7a1a, an amber #ffae35 body and a trailing yellow #ffe14a scarf. Creatures: a small magenta bulb root creature with violet leaves (~18x27 u), a fast translucent cyan floating sheet spirit (~22x30 u) and a large faceted acid-violet crystal golem with a toxic-green core (~40x52 u). Faces are carved holes filled with bright gradients that also glow. Animation is fully baked: 8 walk frames (6 for floaters), idle and dash poses, each in two facings plus white, magenta and cyan silhouette copies.",
+    "rules": [
+      "One dominant outline colour per type (1.15–1.4 u) with a hot near-white core at 36 % width; interior details are thinner (0.3–0.7 u) and skip the core; round caps and joins.",
+      "Silhouette first: big, simple closed shapes (pumpkin, bulb, sheet, crystal) with 2–3 protruding features (leaves, stem, arms) so each type is identifiable as a glowing outline alone.",
+      "Bodies are filled with almost-black glass of their own hue (main character rgba(26,10,3,.96), small creature rgba(32,4,34,.96), large creature rgba(22,6,38,.97); only the floating creature is translucent at rgba(6,26,44,.58)) so overlapping characters occlude each other cleanly instead of turning into line soup.",
+      "Volume comes only from a few dim interior lines: ribs on the pumpkin head, a wavy 'liquid level' cap at 42 % on the small creature, 11 facet lines in #7a38d6 on the large creature.",
+      "Eyes and faces are the brightest point of a character (filled #ffeafb / #d8feff / gradient #fffbe2→#ffe08a→#ffa526) and glow in the glow pass.",
+      "Back limbs: darker shade (#c8761c behind #ffae35); scarves/tails trail behind and sway on a 2x frequency.",
+      "Facing is a mirrored copy, never a redraw; impact flash and chroma split are white/#ff2a7a/#2ae8ff silhouette copies of the sharp pass.",
+      "Never draw characters with 'lighter' – halos are baked at alpha ≤ 0.7 so 100 overlapping sprites don't white out.",
+      "Size classes: small creature ~18x27 u, fast creature ~22x30 u, large creature ~40x52 u, collectibles 5–8 u."
+    ]
+  },
+  "props": {
+    "summary": "Scenery sprites drawn with the same tube + dark glass logic as characters, but in their own dimmer hues (lavender #c3b5ff, pink #ff4fd8, teal #38f5d6, cyan-blue #7fd8ff) and never in creature colours: gravestones, crosses, fences, street lamps, glowing carved pumpkins, pylons, recursive holo trees, sign posts with icons, and hologram shrines. Each is baked with a coloured floor pool and a faint glossy reflection.",
+    "rules": [
+      "Closed outline 0.85–1.0 u with hot core, near-black fill rgba(12,8,30,.95), detail lines 0.35–0.6 u without core.",
+      "Fake 3D: a copy of the outline offset about (1.9, -1.4) u in the dark back colour (#6a5ad0, pylons #9b3a9a) at 0.5 u, plus short edges linking the front corners.",
+      "Floor pool: a baked radial glow ellipse in the prop's hue (y-scale 0.34, stops 100 % / 40 % at 0.45 / 0), e.g. lavender #9d8cff r 12 at 0.3, lamp #ffb84a r 18 at 0.42.",
+      "Reflection: the sprite flipped vertically at 36 % scale (25–30 % for trees, shrines, fences, lamps), faded from 30 % alpha to 0.",
+      "Holograms (trees, shrines): 0.55 u gaps punched out every 2.2 u at 55 % with destination-out; they breathe between 86 and 100 % alpha.",
+      "Holo tree: recursive teal branches, depth 4, trunk 13 u, line width 0.35 + depth*0.22, small glowing orange fruit (#ffcf6a / #ff9a2e) on 28 % of tips.",
+      "Sign posts: 19x12 u board with pink frame + cyan inner frame and one icon (pumpkin + arrow, moon + stars, warning triangle); pylons: tapered 7.2x32 u pink spire with three cyan bands and a glowing tip orb.",
+      "Light props flicker: signs, lamps and pylons drop to 55 % on 3.5 % of 1/13 s ticks; pumpkins flicker 90 ± 10 %.",
+      "Keep props sparse (one candidate per ~118 u, 45 % kept) and dimmer than characters; pick them per district (graves/fences on the grid, trees/pylons on hex, pumpkins/signs on halftone, pylons/signs/shrines on circuit)."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Projectile with light trail",
+      "how": "Baked trail sprite 24x2.4 u: linear gradient rgba(255,90,20,0) → rgba(255,150,50,.95) wedge + white inner wedge, blurred 0.9 u and re-stamped sharp; drawn rotated with 'lighter', length grows from 15 % to 100 % over the first 0.1 s. The small seed sprite (#ff9a2e) flips (scaleY 0.65–1) to fake spin; 2 launch sparks in #ff9a2e / #ffe14a."
+    },
+    {
+      "name": "Impact flash + chroma split",
+      "how": "On impact, the target's white silhouette is added ('lighter') at alpha = flash*1.2; when flash > 0.5, magenta (#ff2a7a) and cyan (#2ae8ff) silhouettes are added 1.4 u left/right. 4 short line sparks (2 white, 2 in the target's colour) and a 1.5→7 u white ring in 0.14 s."
+    },
+    {
+      "name": "Dissolve burst",
+      "how": "7–20 line fragments (length 3.6–6.5 u by size class) in the source's two colours (68 % primary) with gravity 170, plus 5–10 white sparks, plus a floor ring growing 0.6r→3.2r squashed to 42 % height. The sprite scales to 1.35x, sinks 3 u and fades. All particles are batched by colour/alpha bucket and stroked twice: 3.2x width at 28 % alpha, then 1x at full alpha, all additive."
+    },
+    {
+      "name": "Warp-in",
+      "how": "Squashed ring (42 %) shrinks from 2.4r to r while the sprite is revealed from the feet upward by cropping its source rect; a 0.7 u bright scan line sits on the build edge with a 25 % colour column below it."
+    },
+    {
+      "name": "Collectible gems",
+      "how": "4-vertex octahedra in 8 rotation frames over 90°: front faces only with translucent fills (30–75 %), a 0.6 u outline with a pure white core and a white 0.5 u specular dot; lime #c6ff3a small, cyan #45f4ff large; drawn additively with a baked floor glow. Collecting one spawns a ring 3→11 u (18 u large) and 2–6 rising dots."
+    },
+    {
+      "name": "Orbiting lanterns",
+      "how": "Small carved pumpkin lanterns (#ffb84a outline, gradient face) baked with an extra-wide halo (3.0 u / 0.8 u, glowA 1.5), swinging ±0.18 rad, with an additive amber light arc behind them."
+    },
+    {
+      "name": "After-images and glitch frames",
+      "how": "Fast creatures leave 2 additive after-images at 22 % and 10 % alpha offset by -0.07/-0.14 s of velocity; 5 % of frames swap in a pre-baked glitch frame (bands 5–16 px shifted ±10 px with a magenta or cyan copy at 60 %). A dash leaves 4 copies at 0.34/0.26/0.18/0.10, 7 u apart, plus an orange ring 4→24 u and 8 orange/yellow sparks."
+    },
+    {
+      "name": "Celebration beam",
+      "how": "Vertical additive beam sprite 18x92 u (amber rgba(255,190,80,.9) at the bottom fading to transparent magenta, horizontally masked to a soft centre), plus an amber ring 6→70 u, a lime ring 4→46 u and 22 rising lime/amber/yellow sparks."
+    }
+  ],
+  "atmosphere": {
+    "summary": "Pitch-black ambient: all light is emitted. No drop shadows – coloured contact pools and additive floor light under light sources. The glow is baked into every sprite. A cached display overlay adds 1 px scanlines, a violet radial vignette and a magenta-left / cyan-right lens fringe; short horizontal glitches punctuate strong moments.",
+    "rules": [
+      "Contact pools instead of shadows: radial sprite with a dark core (rgba(0,0,0,darkA) to 38 %) fading into a coloured rim at 62 %, drawn as a 2rw x 0.8rw ellipse; main character orange dark 0.55 / rim 0.22 / rw 13, small creature magenta 0.5/0.2, floating creature cyan 0.22/0.16, large creature toxic 0.55/0.2; radius = creature radius x 1.45 (floater 1.3).",
+      "Light spill: additive radial glows (stops 100 % / 45 % at 0.35 / 12 % at 0.7 / 0), squashed vertically, under the main character (#ff8a2a at 34 %, 116x52 u) and each lantern (30 %).",
+      "Glow is baked once per sprite (blur 2.2 u at 70 % + 0.6 u at 60 % of a 1.8x fat-stroke pass); never shadowBlur or ctx.filter at runtime.",
+      "Glossy floor: props carry a coloured floor pool and a 36 % flipped reflection fading from 30 % alpha.",
+      "Scanlines: 1 px black lines every 3 px (4 px above 1100 px height) at 12 %.",
+      "Vignette: radial from 32 % of the short side to 56 % of the diagonal: rgba(6,0,18,0) → rgba(6,0,18,.3) at 62 % → rgba(2,0,8,.78).",
+      "Lens fringe: additive in the outer 9 % of the width, magenta rgba(255,40,200,.10) on the left, cyan rgba(40,220,255,.09) on the right.",
+      "Glitch: 3–6 horizontal strips of the frame (4–28 px high) redrawn shifted ±18 px plus a 6 % #ff2a7a additive wash, for 0.12–0.4 s on strong impacts only.",
+      "Flicker: neon props dim to 55 % on 3.5 % of 1/13 s ticks; holograms breathe 86–100 %."
+    ]
+  },
+  "ui": {
+    "summary": "Thin 1 px neon borders with box-shadow glow, near-black translucent panels, skewed segmented bars with hot gradients, Orbitron numbers with gradient fills and drop-shadow glow, Monoton for big titles, corner-bracket cards on a perspective synthwave grid.",
+    "css": ".hud-panel{background:linear-gradient(90deg,rgba(30,6,40,.88),rgba(6,10,30,.88));border:1px solid rgba(255,79,216,.75);border-radius:2px;box-shadow:0 0 14px rgba(255,60,200,.35),inset 0 0 10px rgba(80,220,255,.15);font:600 13px 'Rajdhani',sans-serif;color:#d8f8ff}\n.bar{position:relative;width:250px;height:15px;transform:skewX(-22deg);background:rgba(22,4,26,.82);border:1px solid #ff4fd8;box-shadow:0 0 12px rgba(255,60,200,.6),inset 0 0 8px rgba(0,0,0,.9)}\n.bar-fill{height:100%;background:linear-gradient(90deg,#ff2bd0,#ff5a6a 45%,#ff8a1f 80%,#ffc23a);box-shadow:0 0 14px rgba(255,100,60,.9)}\n.bar::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 23px,rgba(10,2,14,.85) 23px 25px)}\n.meter{position:relative;height:12px;background:rgba(8,4,22,.8);border:1px solid rgba(180,120,255,.7);border-radius:2px;box-shadow:0 0 10px rgba(160,80,255,.5),inset 0 0 6px rgba(0,0,0,.9)}\n.meter-fill{height:100%;background:linear-gradient(90deg,#2af0ff 0%,#7dffb0 60%,#c6ff3a 100%);box-shadow:0 0 12px rgba(120,255,200,.8)}\n.counter{font:800 24px 'Orbitron',sans-serif;color:#ffe6fb;text-shadow:0 0 8px #ff3ad6,0 0 18px rgba(255,58,214,.55)}"
+  },
+  "motion": [
+    "Main character walk: 8 baked frames per cycle, body bob -|sin|*1.1 u, legs swing ±3.5 u, feet lift 1.7 u, arm swing 0.75 rad; idle bobs sin(t*3.2)*0.5 u; dash pose rotates the body 0.26 rad.",
+    "Small creature: 8 frames, bob 1.2 u, body rocks ±0.09 rad, leaves sway 0.1 rad, feet lift 1.9 u.",
+    "Fast creature: 6 frames of wavy sheet hem (3 sines 2.1 rad apart) at 1.7 cycles/s, hovers 2.5 u up with sin(t*2.6)*1.3 u float; frost sparkles twinkle at 2x frequency.",
+    "Large creature: 8 frames, heavy bob 1.5 u, feet lift 3 u, core radius pulses 4.3 ± 0.35 u; a squashed toxic ring 14→30 u expands on each footfall.",
+    "Gems: 8 rotation frames over a quarter turn, played at 1.6 cycles/s, bob 0.7 u.",
+    "Light flicker: signs/lamps/pylons drop to 55 % alpha on 3.5 % of 1/13 s ticks; holograms breathe 86–100 %; pumpkins flicker 90 ± 10 %.",
+    "Dissolve: sprite scales up to 1.35x, drifts down 3 u, fades out over ~0.6 s while white flash and magenta/cyan copies drift apart by 2 + 4t u.",
+    "Floating numbers pop in with scale 1 + max(0, life - 0.78)*2.6; easing is ease-out quad for rings, linear for fades; no squash-and-stretch."
+  ],
+  "do": [
+    "Bake glow once per sprite (blurred fat-stroke pass + sharp pass) and only ever drawImage at runtime.",
+    "Give every primary line a near-white hot core at 36 % width.",
+    "Fill bodies with near-black glass of their own hue so crowded scenes stay readable.",
+    "Use 'lighter' compositing for all light: halos, particles, rings, floor glows, gems.",
+    "Keep the floor dark and patterned at low alpha; let region borders be thin glowing contours.",
+    "Assign one hue family per subject type and keep it consistent in sprites, particles and floor pools.",
+    "Finish with scanlines, a violet vignette and a subtle magenta-left / cyan-right lens fringe."
+  ],
+  "dont": [
+    "Don't use shadowBlur or ctx.filter per frame on many sprites – it destroys performance.",
+    "Don't draw dark or black outlines; outlines are always light.",
+    "Don't leave shapes unfilled (wireframes overlap into noise) or fill them with bright colour.",
+    "Don't use soft gradients or textures on characters; volume comes from a few interior lines.",
+    "Don't brighten the ground; patterns above ~0.5 alpha compete with characters.",
+    "Don't mix too many hues in one effect – a burst is the source's own two colours plus white.",
+    "Don't use daylight colours, browns or greys.",
+    "Don't draw characters with 'lighter' compositing – crowds would white out."
+  ],
+  "performance": "All sprites (main character 8 walk + idle + dash, small creature 8, fast creature 6 + 2 glitch, large creature 8, gems 2x8, projectile, lantern, ~14 props) are baked at init at 4 px/unit with two blur passes each; each also gets flipped and white/magenta/cyan tinted copies. Ground is baked per 256-unit chunk incrementally (generator with yields). Per frame: one drawImage per sprite plus particles batched into a handful of additive strokes by colour/alpha bucket, floating digits from a baked digit atlas, and one cached full-screen overlay image. Hot spots: the blur filters at bake time and the chunk mask compositing; never blur at runtime."
+}

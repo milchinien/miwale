@@ -1,0 +1,154 @@
+{
+  "id": "candy",
+  "name": "Trick or Treat",
+  "originalName": "Süßes oder Saures",
+  "family": "Rendered Cartoon · Candy Gloss",
+  "tags": ["candy", "glossy", "halloween", "cute", "gradients", "sprinkles", "food"],
+  "summary": "A glossy Halloween candy world: hard-candy shine, gummy jelly, matte marshmallow and chocolate on a melting chocolate floor.",
+  "description": "Everything in the world is edible and rendered like a premium candy ad: every shape gets a top-left radial gradient, sharp white speculars, a lower-right rim light and one soft cocoa-plum silhouette outline. Characters are hard candy, licorice, two-layer gummies, marshmallow and dark chocolate with glowing caramel cracks. The floor is a milk-chocolate bar grid with caramel pools, pink sugar-sand, mint frosting and dark cookie-crumb paths, strewn with sprinkles. Cute, saturated and sticky-sweet, but never flat vector.",
+  "mood": ["sweet", "playful", "glossy", "festive", "cheeky"],
+  "bestFor": [
+    "cute top-down action games with many figures",
+    "casual arcade games",
+    "match/puzzle games with characters",
+    "holiday events",
+    "kids-friendly action"
+  ],
+  "avoidFor": ["grim or realistic settings", "low-colour retro games", "UIs that need a calm neutral palette"],
+  "difficulty": {
+    "stars": 6,
+    "why": "Every new asset needs a real candy material (hard candy, gummy, licorice, marshmallow, chocolate) built from a light/mid/dark gradient triple plus clipped material passes, rim light and placed speculars; making the gloss convincing takes iterations, and each added asset pushes the screen closer to candy chaos, so new colours must reuse the existing triples and sprinkle set."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native resolution. Sprites baked once at K = clamp(round(S*1.25), 3, 6) px per world unit (S = screen px per unit, 360 units tall); ground decals at 4 px/unit; ground chunks per-pixel at up to 2.5 px/unit.",
+    "summary": "Each body part is a path filled with a top-left radial gradient (light, mid at 50%, dark), then layered with clipped material passes (jelly edge, rim light, stripes, ribs) and sharp white speculars; the finished sprite gets a soft cocoa outline by stamping a tinted copy 12 times around itself.",
+    "linework": "No internal ink lines. One outer silhouette outline in cocoa-plum #3a1424, 0.5 world units wide (0.45 on marshmallow figures in #5a3a66, 0.6 on the large creature, 0.4 on collectibles, 0.18 on sprinkles), produced by drawing a solid-tinted copy offset in 12 (16 if > 2.5 px) directions. Inner detail is done with colour and translucent strokes (0.35-0.7 units, round caps/joins).",
+    "shading": "Rendered, not cel: radial gradient centred at (cx - 0.38r, cy - 0.45r) from r*0.05 to r*1.18 with stops light / mid @0.5 / dark @1. Materials add clipped passes: hard candy = inner warm glow + ribs + rim; gummy = milky core, 0.42r saturated edge band, subsurface glow lower-right; marshmallow = soft white-to-lilac gradient without sharp specs; chocolate = dark brown gradient + peach rim light.",
+    "lighting": "One key light from the top-left on everything. Sharp white specular ellipses at the upper-left (alpha 0.9-0.95), a tiny dot specular above, a weak secondary reflection lower-left or lower-right (alpha 0.45-0.55). Rim light on the lower-right edge via a clipped diagonal gradient stroke. Warm caramel glow (additive) behind the main character's head and inside carved faces. Plum radial vignette on screen.",
+    "texture": "Material textures only: sugar crystals (0.45-unit white squares), candy stripes, licorice twist grooves, piped frosting ridges, sprinkles. Ground: per-texel hash grain on sugar-sand, Worley crumb cells on cookie paths, sine ridges on frosting, sine gloss streaks on caramel."
+  },
+  "palette": [
+    { "name": "Milk chocolate", "hex": "#7e4c32", "role": "Ground base / bar grid (~45% of the screen)" },
+    { "name": "Choc groove", "hex": "#5d3825", "role": "0.9-unit grooves of the 34-unit chocolate bar grid" },
+    { "name": "Caramel edge", "hex": "#ec9c3a", "role": "Caramel pool edge band and bright lip" },
+    { "name": "Caramel deep", "hex": "#b25a1a", "role": "Caramel pool interior" },
+    { "name": "Strawberry sugar", "hex": "#f4acc2", "role": "Pink sugar-sand meadows" },
+    { "name": "Mint frosting", "hex": "#a0dab8", "role": "Mint frosting meadows with piped ridges" },
+    { "name": "Cookie crumb", "hex": "#543226", "role": "Dark cookie-crumb paths" },
+    { "name": "Cocoa outline", "hex": "#3a1424", "role": "Universal silhouette outline, HUD borders, text outline, shadow hue" },
+    { "name": "Candy orange", "hex": "#ff8d1e", "role": "Main character's round hard-candy head, mid tone (light #ffd08a, dark #d24e0b)" },
+    { "name": "Caramel glow", "hex": "#ffe07a", "role": "Light inside carved faces, glowing cracks, warm halos" },
+    { "name": "Licorice", "hex": "#2c1a2a", "role": "Main character's limbs/body (light #6a4a66, dark #120810)" },
+    { "name": "Mint scarf", "hex": "#3fd6c1", "role": "Main character's accent, white-striped (dark #1fa596)" },
+    { "name": "Gummy purple", "hex": "#9443d8", "role": "Small gummy creature variant (hi #d9a2ff, dark #56168f)" },
+    { "name": "Gummy pink", "hex": "#d83a8e", "role": "Small gummy creature variant (hi #ffa6d2, dark #86104f)" },
+    { "name": "Gummy blue", "hex": "#5b52e0", "role": "Small gummy creature variant (hi #b8b0ff, dark #262092)" },
+    { "name": "Jelly leaf", "hex": "#55cc48", "role": "Leaves and stems (light #c9ff9e, dark #22852e)" },
+    { "name": "Marshmallow", "hex": "#fbf5fb", "role": "Fast floating creature body (edge #dccbe4)" },
+    { "name": "Dark chocolate", "hex": "#55291a", "role": "Large creature body (light #9a5e3e, dark #2a120a)" },
+    { "name": "Hot pink", "hex": "#ff5c9e", "role": "Impact-star outline, stripes on numbers, UI accents" },
+    { "name": "Sugar flash", "hex": "#fff3f8", "role": "Flash tint of sprites" }
+  ],
+  "paletteRules": [
+    "Every hue appears as a light/mid/dark triple inside one radial gradient; never fill a body with a single flat colour.",
+    "Highlights are pure white (#ffffff), shadows and outlines are the warm cocoa-plum #3a1424 / rgba(45,12,22,...) - never black or grey.",
+    "Ground stays mid-value and warm (chocolate, caramel, pastel pink and mint) so the saturated, high-contrast characters pop on top.",
+    "Sprinkles use the fixed set #ff4f8b #ffd23a #4fd6ff #7ee26a #b88cff #ff9a3a #ffffff and are the only place where all hues mix.",
+    "Glowing elements (carved faces, cracks, lanterns) use the caramel ramp #fffbd6 -> #ffe07a -> #ffa12a -> #e2650e.",
+    "Creature variants differ by gummy hue (purple, pink, blue) while sharing the milky white bottom layer and green jelly leaves."
+  ],
+  "typography": [
+    { "family": "Chewy", "weights": [400], "role": "HUD numbers, timer, titles, floating numbers, card names", "source": "Google Fonts", "sample": "22:09", "css": "font: 400 38px/1.1 'Chewy', cursive; letter-spacing: 2px; color: #fff; text-shadow: 2.5px 0 0 #3a1424, -2.5px 0 0 #3a1424, 0 2.5px 0 #3a1424, 0 -2.5px 0 #3a1424, 0 4.5px 0 #3a1424;" },
+    { "family": "Sniglet", "weights": [400, 800], "role": "Labels, descriptions, hints, body text", "source": "Google Fonts", "sample": "SWEET TREATS", "css": "font: 800 12px/1 'Sniglet', sans-serif; letter-spacing: 1.6px; color: #fff3e0; text-shadow: 0 1px 0 rgba(120,30,0,.8);" }
+  ],
+  "world": {
+    "summary": "A per-pixel distance-field ground: a milk-chocolate floor (34-unit bar grid that fades into glossy melted swirls) with four material layers from fBm noise - sunken caramel pools, pink strawberry sugar-sand, raised mint frosting with dripping glossy rims, and dark cookie-crumb paths - each with antialiased edges, contact shadows and rim highlights, plus baked candy decals.",
+    "layers": [
+      "Milk chocolate #7e4c32: bar grid (34 units, 0.9-unit groove at -26%, +11% bevel on top/left 3.2 units, -9% on bottom/right) blended with sine gloss bands where the grid mask is off",
+      "Caramel pools (sunken): edge #ec9c3a to deep #b25a1a, dark inner lip on the upper edge, light lip rgb(255,226,160) on the lower edge, thin sine gloss streaks",
+      "Pink sugar-sand #f4acc2: +/-3.5% grain per 0.5-unit texel, 0.3% pure white sparkle grains #fff6fa, soft drop shadow 2.6 units",
+      "Mint frosting #a0dab8 (raised): piped sine ridges, white gloss line 0.9 units inside the top edge, darker edge, drop shadow 5 units, drips up to 9 units on down-facing edges every 4.2 units",
+      "Cookie-crumb paths #543226: Worley crumb cells lit from top-left, crumbly noisy edge, sunken darker border",
+      "Decals (baked into chunks, each with a soft rgba(50,15,20,.25) ellipse shadow): chocolate chips, sprinkles, candy corn, mini marshmallows, mini gourds on chocolate; glints, hearts, mini lollipops, gumdrops on sugar; frosting dollops on mint; crumbs on paths"
+    ]
+  },
+  "characters": {
+    "summary": "Chunky toy-like figures ~18-28 units wide built from glossy primitives (ellipses, capsules, bezier blobs). Main character: a big round hard-candy orange head with a carved caramel face on a licorice body with a striped mint scarf. Creatures: two-layer gummy root bulbs (coloured top over a milky bottom), a matte marshmallow floating sheet, and a large dark-chocolate creature with glowing caramel cracks. Each part gets a material treatment; the whole sprite gets one soft cocoa silhouette outline. 4 baked walk frames per character plus a flash-tinted copy and mirrored copies; motion is mostly squash, stretch, bob and rotation at draw time.",
+    "rules": [
+      "Head-heavy proportions: the main character's head is a 22x18-unit hard-candy gourd on a 9-unit licorice body.",
+      "Every part: top-left radial gradient, then at least one white specular ellipse upper-left, then a rim light lower-right.",
+      "Faces are carved holes that glow caramel (dark #7a2406 fill, then the same shape offset (0.2, 0.55) filled with a hot radial gradient) or glossy dark ellipses with yellow and white catchlights.",
+      "Material encodes the creature type: gummy = small creature, marshmallow = fast floating creature (semi-transparent at the hem), dark chocolate with glowing caramel cracks = large creature.",
+      "Outline 0.5 units #3a1424 around the whole silhouette only (0.45 #5a3a66 on marshmallow, 0.6 on the large creature); never ink inner shapes.",
+      "Keep shapes readable at 18-30 units: few large forms, small details only as speculars and stripes."
+    ]
+  },
+  "props": {
+    "summary": "Candy-shop scenery built with the same gloss recipe and a 0.45-unit cocoa outline (0.55 on lollipops and cupcake houses): lollipop trees, gumdrop bushes, candy-cane fences, wrapped-candy boulders, chocolate gravestones, candy buckets and cupcake houses, each with a warm soft shadow sized to the prop and y-sorted with the characters.",
+    "rules": [
+      "Lollipop tree: 40-unit stick with a ribbon bow, swirl disc r 13.5 with spiral bands, inner shading, rim light and 3 speculars.",
+      "Gumdrop bush: 3 sugared gumdrops with 26 white sugar-crystal dots.",
+      "Candy-cane fence: red licorice rails, striped posts with dashed hooks.",
+      "Wrapped-candy boulders; chocolate gravestones with piped frosting 'R.I.P.' and a bead border; orange gourd-shaped candy buckets.",
+      "Cupcake house: pleated liner, 3-tier frosting roof, sprinkles, a cherry and warm glowing windows.",
+      "Props are chosen by ground material and keep the top-left key light, white specs and lower-right rim of the characters."
+    ]
+  },
+  "effects": [
+    { "name": "Seed projectile", "how": "Glossy candy-seed sprite (gloss + 1.6x0.55 spec) flipping scaleY 0.6-1.0 with |cos(spin)|, behind it a 13-unit white gradient streak (1.6 wide) with two thin pink side streaks rgba(255,140,190,.9)." },
+    { "name": "Impact star", "how": "8-point rounded star (r 5.6/2.4) filled white -> #fff4fa -> #ffb3d6 with a hot-pink #ff5c9e outline 0.35, life 0.14 s, scale 0.5 -> 1.2 -> 0.3; plus a few sprinkles and an additive sugar sparkle." },
+    { "name": "Sprinkle burst", "how": "Capsule sprinkles (2.3x0.9 units, white top highlight line, dark bottom line, 0.18 outline) in 7 colours, thrown with vz 50-120, gravity 300, drag 1.4, spinning ±8 rad/s; shrink in the last 20% of life." },
+    { "name": "Candy pop-out", "how": "A disappearing figure squashes up to 1.25x with a 44 rad/s wobble, flashes white, gone after 0.42 s. Gummies burst into 6 gummy chunks, the large creature into chocolate shards, caramel drops, candy corn, cream puffs and a striped shock ring; marshmallow figures burst into 5 marshmallow puffs." },
+    { "name": "Wrapper reveal", "how": "Ground figures pop out of an unwrapping candy wrapper decal (zig-zag edge, white-banded gradient, dark centre) with outElastic scale-in and confetti; the wrapper fades after 70% of the reveal time." },
+    { "name": "Collectibles", "how": "Wrapped candies: glossy body, 3-arm spiral swirl (width 0.28r), cellophane ends with white crease lines, spec at (-0.38r, -0.42r). Small = blue #2fb8ff r 2.4, large = orange #ffb11f with a pink swirl r 3.6." },
+    { "name": "Orbiting lantern", "how": "A small two-layer gummy bulb (cream bottom, purple top) with a caramel-hole face and an additive warm glow." },
+    { "name": "Sugar sparkles", "how": "Additive ('lighter') 4-point sparkle (quadratic star, tip 3.6) over a soft coloured radial glow, twinkling with sin(t*2.2); also drift slowly in the air in one per 140-unit cell." },
+    { "name": "Celebration ring", "how": "Ellipse ring (ry = 0.45 rx) expanding with outQuad, stroked cocoa (w+1.2), then white, then a dashed [2.2, 2.6] pink line; plus 22 sprinkles, 14 flipping confetti rectangles and 8 sparkles." }
+  ],
+  "atmosphere": {
+    "summary": "Studio candy-ad lighting: one key light from the top-left on everything, warm cocoa-plum soft shadows, additive caramel glows behind light sources, drifting sugar sparkles in the air and a plum radial vignette – never black.",
+    "rules": [
+      "Key light top-left everywhere (gradient centre offset -0.38r, -0.45r); speculars always upper-left, rim light lower-right.",
+      "Shadows: a 64x32 baked radial ellipse rgba(45,12,22,.42) -> .3 @55% -> 0, stretched per figure: main character 9x3.2 (shrinking while airborne), small creature 9x3.2, floating creature 6.2x2.2 at 70%, large creature 20x6, collectibles 3.2x1.3, projectiles 2.6x1 offset 6 down.",
+      "Glows: additive radial glow sprite (36 units; rgba(255,200,90,.8) -> rgba(255,160,60,.32) @35% -> 0) behind the main character's head (alpha 0.32 ± 0.06) and lanterns; shadowBlur glow baked into caramel cracks and glowing eyes.",
+      "Ambient sugar sparkles: one per 140-unit cell (60% of cells), drifting and twinkling, additive.",
+      "Vignette: radial from (50%, 46%), inner r 0.35h to outer 0.62w: rgba(60,10,50,0) -> .16 @70% -> rgba(50,8,40,.42). Plum, not black.",
+      "Full-screen overlays tint rgba(70,20,60,.62) with a pink glow and a rotating sunburst; a sombre variant desaturates."
+    ]
+  },
+  "ui": {
+    "summary": "Chunky candy-shop HUD: thick #3a1424 borders with a 4-5 px solid drop below (like a pressed candy button), glossy top-half white gloss overlay on everything, peppermint-striped bars in dark chocolate troughs, an orange wrapped-candy timer badge, a pink pill counter with sprinkle dots, Chewy numbers with a 16-direction cocoa outline.",
+    "css": ".hud-panel { font-family: 'Sniglet', 'Chewy', system-ui, sans-serif; color: #fff; padding: 6px 22px; border: 3px solid #3a1424; border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,.12) 45%, rgba(255,255,255,0) 55%, rgba(60,0,30,.18) 100%), radial-gradient(ellipse at 50% 120%, #ffb347 0%, #ff8a1a 45%, #e8590c 100%); box-shadow: 0 5px 0 #3a1424, inset 0 -4px 0 rgba(140,40,0,.25); }\n.hud-panel .num { font: 400 38px/1.1 'Chewy', cursive; letter-spacing: 2px; text-shadow: 2.5px 0 0 #3a1424, -2.5px 0 0 #3a1424, 0 2.5px 0 #3a1424, 0 -2.5px 0 #3a1424, 1.8px 1.8px 0 #3a1424, -1.8px 1.8px 0 #3a1424, 1.8px -1.8px 0 #3a1424, -1.8px -1.8px 0 #3a1424, 0 4.5px 0 #3a1424; }\n.bar { position: relative; width: 260px; height: 30px; background: linear-gradient(180deg, #3d1a14, #6a3624); border: 3px solid #3a1424; border-radius: 16px; box-shadow: 0 4px 0 #3a1424, inset 0 4px 6px rgba(0,0,0,.45); overflow: hidden; }\n.bar-fill { position: relative; height: 100%; background: linear-gradient(180deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,.12) 45%, rgba(255,255,255,0) 55%, rgba(60,0,30,.18) 100%), repeating-linear-gradient(-55deg, #ff2f55 0 12px, #fff5f7 12px 22px); border-radius: 0 13px 13px 0; box-shadow: inset 0 -3px 0 rgba(120,0,30,.25), inset -3px 0 0 rgba(255,255,255,.45); }\n.bar-fill::after { content: ''; position: absolute; left: 9px; right: 12px; top: 4px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.75); }\n.bar-fill.mint { background: linear-gradient(180deg, rgba(255,255,255,.6) 0%, rgba(255,255,255,.12) 45%, rgba(255,255,255,0) 55%, rgba(60,0,30,.18) 100%), repeating-linear-gradient(-55deg, #35d0c0 0 11px, #effffb 11px 20px); }"
+  },
+  "motion": [
+    "Main character hop-walk: phase = anim*0.42 per hop, lift = sin(f*PI)*3.2 units, squash on contact (sx +12%, sy -13%), stretch in air (sy +7%), tilt 0.07 rad toward facing; frames 1/3 on contact, 2 in air, 0 idle.",
+    "Idle breathing: sy = 1 + 0.03*sin(t*3.2), sx = 1 - 0.022*sin(t*3.2).",
+    "Gummy creatures: 4 frames, jelly wobble sx = 1 + 0.07*(1-|sin|), sy = 1 - 0.08*(1-|sin|) + 0.04*|sin|, rotation 0.1*sin, bob 1.3 units.",
+    "Marshmallow floating creatures: hover 4.5 units up, bob 1.6 units at 2.6 rad/s, frames at 6 fps, wavy hem; alpha 0.9; tilt with velocity up to 0.14 rad.",
+    "Large creature: slow 4-frame stomp, contact squash 8% with a cubic contact curve, rotation 0.035*sin.",
+    "Impact: squash sx +18%, sy -15% and a white flash overlay (max alpha 0.55; 0.45 for the large creature).",
+    "Collectibles bob 1.2 +/- 0.9 units at 4 rad/s with a slight 5% squash and +/-0.18 rad sway; collected ones pop with outBack.",
+    "Appearing: outElastic scale-in from a wrapper; UI uses overshooting cubic-bezier(.3,1.7,.5,1) pops and a 0.25 s squash wobble on alerts."
+  ],
+  "do": [
+    "Fill every shape with the top-left radial gradient (light, mid @0.5, dark) and add a white specular ellipse at about (-0.4r, -0.45r).",
+    "Add a lower-right rim light (clipped stroke, gradient transparent until 60%) to round, glossy parts.",
+    "Choose a real candy material per object (hard candy, gummy, licorice, marshmallow, chocolate, frosting) and stay consistent with it.",
+    "Wrap each finished sprite in one soft 0.5-unit cocoa #3a1424 outline.",
+    "Make faces glow: carved caramel holes or glossy dark eyes with yellow and white catchlights.",
+    "Use sprinkles, sugar sparkles and confetti for every impact, collectible and pop-out.",
+    "Keep shadows warm cocoa-plum and soft (radial ellipse, 0.42 alpha centre)."
+  ],
+  "dont": [
+    "Do not use flat fills or hard cel bands - that turns it into generic vector cartoon.",
+    "Do not use black outlines or inner ink lines.",
+    "Do not light from different directions per object; the highlight is always top-left.",
+    "Do not use grey or blue shadows; everything warm.",
+    "Do not saturate the ground as much as the characters - the floor must stay calmer.",
+    "Do not add more than ~7 hues on screen per material group; candy chaos ruins readability in large groups of figures.",
+    "Do not draw gradients per frame for every figure - bake sprites."
+  ],
+  "performance": "All characters, props, collectibles and particles are baked once into canvases at K px/unit (4 walk frames + flash tint + mirrored copies), so a frame is mostly drawImage calls plus a few additive glows. The ground is the hot spot: per-pixel distance fields over a 4-unit grid with bilinear interpolation, computed in a generator in 256-unit chunks and capped at 2.5 px/unit; decals are stamped into the chunk afterwards. Floating numbers are cached per value (max 400). The vignette is a 320 px sprite stretched over the screen."
+}

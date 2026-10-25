@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Starter preview – miwale Game Style Library</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; }
+    #err { position: fixed; left: 8px; bottom: 8px; right: 8px; margin: 0; color: #ff8a8a; font: 12px/1.4 monospace; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <pre id="err"></pre>
+  <script>
+    /* Runs library/<id>/starter.js on its own: ?style=<id>[&t=<seconds>] (t freezes time, used for checks). */
+    (function () {
+      'use strict';
+      const params = new URLSearchParams(location.search);
+      const id = (params.get('style') || '').replace(/[^a-z0-9_-]/gi, '');
+      const frozen = params.has('t') ? +params.get('t') : null;
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+      const errors = [];
+      const report = (e) => {
+        errors.push(String((e && e.stack) || e));
+        document.getElementById('err').textContent = errors.slice(-3).join('\n');
+      };
+      window.addEventListener('error', (ev) => report(ev.error || ev.message));
+      window.__starter = { ready: false, errors };
+
+      const s = document.createElement('script');
+      s.src = '../' + id + '/starter.js';
+      s.onerror = () => report('starter.js not found for "' + id + '"');
+      s.onload = () => {
+        const st = window.StyleStarters && window.StyleStarters[id];
+        if (!st) return report('starter.js did not register StyleStarters["' + id + '"]');
+        for (const f of st.fonts || []) {
+          const l = document.createElement('link');
+          l.rel = 'stylesheet';
+          l.href = 'https://fonts.googleapis.com/css2?family=' + f.replace(/ /g, '+') + '&display=swap';
+          document.head.appendChild(l);
+        }
+        const fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+        Promise.race([fontsReady, new Promise((r) => setTimeout(r, 1200))]).then(() => start(st));
+      };
+      document.head.appendChild(s);
+
+      function size() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = Math.max(2, Math.round(innerWidth * dpr)), h = Math.max(2, Math.round(innerHeight * dpr));
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      }
+      function paint(st, t) {
+        size();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.imageSmoothingEnabled = true;
+        ctx.filter = 'none';
+        try { st.draw(ctx, canvas.width, canvas.height, t); } catch (e) { report(e); return false; }
+        return true;
+      }
+      function start(st) {
+        if (frozen !== null) {
+          // a few warm-up calls so cached sprites exist, then the frame that counts
+          for (let i = 0; i < 3; i++) paint(st, frozen);
+          const t0 = performance.now();
+          for (let i = 0; i < 10; i++) paint(st, frozen + i / 60);
+          window.__starter.frameMs = (performance.now() - t0) / 10;
+          paint(st, frozen);
+          window.__starter.ready = true;
+          return;
+        }
+        const t0 = performance.now();
+        let alive = true;
+        const loop = () => {
+          if (!alive) return;
+          if (!document.hidden) alive = paint(st, (performance.now() - t0) / 1000);
+          requestAnimationFrame(loop);
+        };
+        window.__starter.ready = true;
+        loop();
+      }
+    })();
+  </script>
+</body>
+</html>

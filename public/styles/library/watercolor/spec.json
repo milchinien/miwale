@@ -1,0 +1,305 @@
+{
+  "id": "watercolor",
+  "name": "Watercolor Storybook",
+  "originalName": "Aquarell-Märchenbuch",
+  "family": "Illustrated · Watercolor",
+  "tags": [
+    "watercolor",
+    "storybook",
+    "ink line",
+    "paper",
+    "painterly",
+    "cozy",
+    "autumn"
+  ],
+  "summary": "Transparent watercolour washes and loose, broken ink lines on warm cold-pressed paper: a living illustrated fairy-tale book.",
+  "description": "The whole image looks like a page from an illustrated children's book. The ground is a per-pixel pigment simulation over cream paper (absorbance mixing, darker pooled wash edges, bare paper gaps, granulation, pale dapples), dotted with inked grass tufts and tiny flowers. Characters and props are layered washes with wet-in-wet colour blooms and a misregistered, variable-width sepia ink contour that is deliberately broken in 2-3 places. A deckled bare-paper margin frames the screen like a book page.",
+  "mood": [
+    "cozy",
+    "whimsical",
+    "autumnal",
+    "handmade",
+    "gentle"
+  ],
+  "bestFor": [
+    "fairy-tale top-down action games",
+    "cozy adventure and farming games",
+    "story-driven RPGs and visual-novel maps",
+    "board-game or storybook map screens"
+  ],
+  "avoidFor": [
+    "fast neon arcade shooters",
+    "gritty realistic or sci-fi projects",
+    "projects that need hundreds of unique animated sprites generated at runtime"
+  ],
+  "difficulty": {
+    "stars": 8,
+    "why": "Every new asset is assembled from hand-tuned wash shapes (base + 2-3 wet-in-wet blobs + highlight + rim) and broken ink contours and needs several iterations before it reads as painterly; each one must also be baked in several boil variants, and the bake makes the style take 1-3 s to load."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native resolution, smooth scaling. Sprites baked at 3 px per world unit (collectibles 4, small FX 4-6); ground chunks rendered per pixel at up to 2.5 px per world unit (256-unit chunks).",
+    "summary": "Every colour is laid down as a transparent wash: either per pixel in absorbance space (paper * exp(-absorbance)) for the ground, or on a scratch canvas (fill + blurred blobs + rim + grain multiply, clipped) for sprites, then overlaid with tapered sepia ink lines that are offset from the wash by ~0.45/0.35 units.",
+    "linework": "Sepia ink #2a1b14 (blue-black #252c46 for ghost creatures and forest grass). Lines are filled ribbons, not strokes: width 0.7-0.95 units for body contours, 1.5 for the large creature, 0.3-0.45 for details; tapered at both ends (first 12-30 %, last 16-40 %), pressure wobble 0.6*sin(s*0.8)+0.4*sin(s*2.1) at 30 %, thicker on the side away from the upper-left light (light factor 0.45-0.6). Contours are broken into 2-3 pieces with small overshoots. Round caps and joins.",
+    "shading": "Wet-in-wet: blurred ellipses of lighter (top-left) and darker (bottom-right) pigment inside each shape (blur 0.5-2.6 units, alpha 0.4-0.95), a radial paper-white highlight at 30 %/26 % of the bbox, and a blurred darker rim stroke (1-1.8 units, alpha 0.5-0.65) imitating pigment pooling at the wash edge. Hatching only on the shadow side of boulders and the large creature.",
+    "lighting": "Light from the upper left (direction -0.6, -0.8). Shadows are one shared indigo glaze rgba(50,54,92,0.2) per frame (union Path2D), lighter 0.11 for floating creatures. Carved faces, cracks and lanterns glow with warm yellow washes plus an additive radial glow sprite (alpha ~0.3, flickering).",
+    "texture": "Cold-pressed paper tooth, pigment granulation (multiplied grain canvas), wash-flow noise for edges and dapples, pale backrun bloom rings and pigment splatter baked into the ground; deckled bare-paper page margin on screen."
+  },
+  "palette": [
+    {
+      "name": "Paper",
+      "hex": "#f5eede",
+      "role": "Cold-pressed paper: the white of the image, page margin, highlights, HUD panels"
+    },
+    {
+      "name": "Sepia ink",
+      "hex": "#2a1b14",
+      "role": "All contours, grass tufts, text"
+    },
+    {
+      "name": "Blue-black ink",
+      "hex": "#252c46",
+      "role": "Ink for ghost creatures and grass inside forests"
+    },
+    {
+      "name": "Meadow cool",
+      "hex": "#b2c6a2",
+      "role": "Meadow wash, cool end (~55 % of the ground)"
+    },
+    {
+      "name": "Meadow sap",
+      "hex": "#c2cc96",
+      "role": "Meadow wash, mid hue"
+    },
+    {
+      "name": "Meadow ochre",
+      "hex": "#dace98",
+      "role": "Meadow wash, warm end"
+    },
+    {
+      "name": "Forest payne",
+      "hex": "#8e9c92",
+      "role": "Forest wash (cool grey-green)"
+    },
+    {
+      "name": "Forest indigo",
+      "hex": "#828aa2",
+      "role": "Forest wash, indigo variant"
+    },
+    {
+      "name": "Field ochre",
+      "hex": "#e9ce88",
+      "role": "Golden stubble-field wash"
+    },
+    {
+      "name": "Path earth",
+      "hex": "#d8b894",
+      "role": "Dirt path wash (granulates strongly)"
+    },
+    {
+      "name": "Pumpkin",
+      "hex": "#e8832f",
+      "role": "Main character head base wash (light #f6b45e, shade #bf531b, rim #93380f)"
+    },
+    {
+      "name": "Coat indigo",
+      "hex": "#41528a",
+      "role": "Main character coat (light #6677ad, shade #29345e)"
+    },
+    {
+      "name": "Scarf red",
+      "hex": "#b4432f",
+      "role": "Main character scarf, accent"
+    },
+    {
+      "name": "Root violet",
+      "hex": "#7a4a8c",
+      "role": "Small creature crown wash (light #a77ab5, dark #4e2a5c); alt #8b3d6d"
+    },
+    {
+      "name": "Root cream",
+      "hex": "#eee0ba",
+      "role": "Small creature body base"
+    },
+    {
+      "name": "Leaf green",
+      "hex": "#6c8a38",
+      "role": "Leaves, bushes (light #a7bd68, dark #46602a)"
+    },
+    {
+      "name": "Ghost frost",
+      "hex": "#d3dbe3",
+      "role": "Fast floating creature body (shade #8fa0bb, rim #6f80a2)"
+    },
+    {
+      "name": "Umber",
+      "hex": "#b06a3a",
+      "role": "Large creature body (crown violet #6b4a7d, cracks glow #ffc548)"
+    },
+    {
+      "name": "Glow yellow",
+      "hex": "#ffcf55",
+      "role": "Carved eyes/mouths (core #fff6cf, rim #e0661f)"
+    },
+    {
+      "name": "Gold",
+      "hex": "#e6a92f",
+      "role": "Small collectible wash (light #fbe39c, rim #9a5a14), top bar #dca23a"
+    },
+    {
+      "name": "Alizarin red",
+      "hex": "#c23b2b",
+      "role": "Red bar, heart icon, accent counters #9e2a1c, red edge tint"
+    }
+  ],
+  "paletteRules": [
+    "The paper is always the lightest value; never use pure white #ffffff except tiny specular dots (rgba 255,253,244).",
+    "Ground stays mid-light and low-chroma (meadow ~55 %, path ~10 %, fields/forest the rest) so the saturated characters (pumpkin orange, violet, indigo) pop.",
+    "Mix ground colours in absorbance space (subtractive), not by alpha-blending RGB: overlapping washes get darker and richer, never greyer.",
+    "Every shape has a lighter top-left and darker bottom-right pigment blob of a neighbouring hue (orange -> yellow-ochre / burnt sienna, violet -> lilac / plum).",
+    "Ink is warm sepia #2a1b14, never pure black; cold subjects (ghost creatures, forest) switch to blue-black #252c46.",
+    "Shadows are indigo glazes (50,54,92), never black or grey."
+  ],
+  "typography": [
+    {
+      "family": "IM Fell English SC",
+      "weights": [
+        400
+      ],
+      "role": "Titles, clock, big numbers, card names (old book small caps)",
+      "source": "Google Fonts",
+      "sample": "22:09",
+      "css": "font: 400 40px/1 'IM Fell English SC', 'IM Fell English', Georgia, serif; letter-spacing: 1.5px; color: #2a1b14;"
+    },
+    {
+      "family": "Cormorant Garamond",
+      "weights": [
+        500,
+        600
+      ],
+      "role": "Body text, descriptions (italic 600)",
+      "source": "Google Fonts",
+      "sample": "Once upon a time",
+      "css": "font: italic 600 18px/1.2 'Cormorant Garamond', Georgia, serif; color: #5b3a24;"
+    },
+    {
+      "family": "Caveat",
+      "weights": [
+        500,
+        700
+      ],
+      "role": "Handwritten labels, small tags, floating counters, key hints",
+      "source": "Google Fonts",
+      "sample": "until midnight",
+      "css": "font: 700 20px 'Caveat', 'Segoe Print', cursive; color: #8a3a1e;"
+    }
+  ],
+  "world": {
+    "summary": "A per-pixel watercolour shader paints terrain washes (meadow, forest, golden field, dirt path) over paper in absorbance space, with pooled dark edges, bare-paper gaps, granulation and pale dapples; ink and small-wash decals are then scattered on top. Everything is baked into 256-unit chunks.",
+    "layers": [
+      "Paper base #f5eede modulated by paper tooth (0.95 + 0.075 * noise)",
+      "Terrain washes from domain-warped fbm fields (forest scale 820, field 640, path 560 units) with signed-distance edges perturbed by flow noise (edge softness 0.45-5.45 units in wet-in-wet zones)",
+      "Edge pooling (density up to x1.85 within 2.6 units inside an edge) and 0.75-unit paper gaps between neighbouring washes",
+      "Granulation (pigment specks) and pale dapples / backrun rings",
+      "Decals: backrun blooms (r 5-16), pigment splatter, path stones, leaf litter, stubble rows, inked grass tufts (3-5 blades, 2.2-5.6 units), tiny flowers, twigs and mushrooms"
+    ]
+  },
+  "characters": {
+    "summary": "Characters are assembled from wash shapes (spline outlines with 0.12-0.28 unit jitter) + broken ink contours, baked once per animation pose and boil variant: the main character has 4 walk poses x 3 boils + 3 idle, creatures 4 poses x 2 boils. The main character is a pumpkin-headed child in an indigo coat and red scarf, ~18 units wide and ~30 tall (head rx 8.5, ry 6.9, body 10 units), feet at the sprite anchor. Creatures: a small violet-crowned root creature with a leafy top (r 9, cream body #eee0ba), a fast frosty floating ghost sheet (r 7, #d3dbe3, feathered edge, 90 % alpha) and a large cracked umber root creature (r 17, 34x37 units, #b06a3a, glowing #ffc548 cracks).",
+    "rules": [
+      "Big round head (about half the height), small body, stubby legs: storybook proportions.",
+      "Each part = wash (base + 2-3 wet-in-wet blobs + highlight + rim + granulation) followed by a 2-3 piece broken ink outline; draw back limbs first, front arm last.",
+      "Faces are carved glowing shapes (warm yellow wash, white core, orange rim, thin ink) or ink dots with heavy tapered brows; readable at 3 px per unit.",
+      "The ink contour is thicker on the shadow side (bottom-right), so silhouettes read against the busy ground.",
+      "Re-jitter strokes per boil frame (different seeds) and cycle boils at 5-6 fps so the linework lives.",
+      "Every actor stands on an indigo glaze shadow ellipse (main character 7.6 x 2.8 units, creatures r*0.95 x r*0.34).",
+      "Give each creature type its own hue family (violet, frost-blue, umber) so groups stay distinguishable.",
+      "Ghost creatures use lost-and-found blue-black ink on only 3 arcs of the outline and a feathered (blurred-clip) edge; the large creature adds two hatching passes on the shadow side, 4 glowing cracks and an additive pulsing core glow."
+    ]
+  },
+  "props": {
+    "summary": "25 prop sprites baked once with the same wash + broken-outline toolkit, mirrored by flipping: autumn deciduous trees (64x98 units, 4 palettes), firs (40x92, 5 zigzag tiers), bushes (30x22) with optional red berries, pumpkins (orange, amber, pale cream, one carved and glowing), haystacks (26 straw strokes), fences (intact/broken), dry-stone walls, signposts with scribbled lettering and a crow, scarecrows and hatched boulders.",
+    "rules": [
+      "Same light as everything else: lighter blob top-left, darker blob and an indigo multiply glaze bottom-right.",
+      "Trees: trunk wash + 4 branch strokes + 7 overlapping crown glazes, scallop strokes along the shadow edge, falling leaves; crowns fade to 42 % alpha while a character is behind them.",
+      "Autumn tree palettes: #d9a443/#c26a31/#8a8a3a, #9aa648/#d0a046/#6f7f3a, #e08a3a/#b8452c/#d6aa4c, #c49a3e/#8f8a3a/#b5602e.",
+      "Outlines are partial and broken like on characters; hatching only on the shadow side of boulders.",
+      "Every prop has its own indigo glaze shadow ellipse in the shared shadow path (tree 21x6.5, fir 13x4.5, bush 10x3.2, haystack 13x4, fence 16x2.6, wall 17x3, boulder 11x3.4 units).",
+      "Y-sorted together with characters and drawn as baked sprites (drawImage only)."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Paint splatter impact",
+      "how": "A baked splat sprite (central blot r 3.4 + 9 radiating droplets, ink or orange) flashes for 0.17 s at alpha 0.7 at the impact point; 3 paint-drop particles in the creature colours fly out with gravity and land as flattened stains on the ground layer."
+    },
+    {
+      "name": "Dissolve-out",
+      "how": "4 pre-baked dissolve frames per creature: pixels drip downwards by a per-column random amount and disappear where wash noise < threshold, fading towards paper colour; plus a tinted bloom ring on the ground (1.0-1.4 s) and 10-22 paint drops."
+    },
+    {
+      "name": "Appear stain",
+      "how": "Creatures appear as a soft (4 px blurred) copy over a spreading wash puddle in their colour; the sharp sprite fades in from 0.35 of the appear time with a vertical squash 0.75 -> 1."
+    },
+    {
+      "name": "Seed projectile",
+      "how": "A small cream seed wash (6.8 x 3.8 units) with ink outline, preceded by an 18-unit dry-brush trail: tapered ribbon with an orange gradient and 5 streak gaps cut out (destination-out)."
+    },
+    {
+      "name": "Collectible sparkle and gold bloom",
+      "how": "Golden 4-point ink-outlined star sprites (4.5-7 units); the gold bloom adds a ring (radial white ring tinted gold, scaled 10 -> 44 units over 1.2 s) and 14 radiating stars."
+    },
+    {
+      "name": "Motion smear",
+      "how": "Two 22 %/11 % alpha echo copies of the main character along the movement plus an indigo dry-brush smear sprite of 9 tapered strokes and 4 umber drops."
+    },
+    {
+      "name": "Floating counters",
+      "how": "Caveat 700, 10.5 px (accent 15 px, #9e2a1c on a faint red splat), paper-coloured 2.4-3 px stroke behind, rotated +-0.14 rad, pop-in scale 0.55 -> 1.15."
+    }
+  ],
+  "atmosphere": {
+    "summary": "No colour grading, bloom or vignette shader: light is painted into the washes (upper left), shadows are one indigo glaze, warm additive glows appear only on carved faces, cracks and lanterns, and a deckled bare-paper page margin frames the screen.",
+    "rules": [
+      "Light from the upper left (-0.6, -0.8): highlight blob at 30 %/26 % of each bbox, dark blob bottom-right, ink thicker on the shadow side.",
+      "Shadows: one union Path2D of ellipses offset (+0.8, +0.4) units, filled once per frame in rgba(50,54,92,0.2); floating subjects in a second path at 0.11. Never black or grey.",
+      "Glow sprite: radial rgba(255,226,140,.95) -> rgba(255,196,90,.5) at 35 % -> 0, composited lighter at 0.22-0.38 alpha with sine flicker (0.3 + 0.08 sin 11t + 0.05 sin 23t); lantern light pools on the ground at 0.55.",
+      "Page margin (~2.4 % of height, corner radius 7 %): smoothstep paper fade (32 %), a sienna rim line rgb(120,82,58) at 22 % 3.5 units inside the edge, then opaque paper; the edge is perturbed by (WA-0.5)*22 + (PAP-0.5)*3 px into a torn deckle. Built once per screen size, drawn as 4 edge strips (11 % band).",
+      "Red edge tint: an alizarin wash rgb(178,44,34) replaces the margin and creeps in from the edges.",
+      "Night: darken with an indigo multiply glaze over the ground and keep the carved-glow light sources; never switch the ink to black."
+    ]
+  },
+  "ui": {
+    "summary": "HUD elements are painted wash strokes inside hand-inked frames on paper: an ochre wash bar across the top, a red wash bar with a ragged right edge and a heart icon, a feathered paper plaque behind the clock with an ink swash ornament, and deckle-edged paper cards (224x292, slightly rotated) for choice screens.",
+    "css": ".hud-bar { position: relative; height: 22px; background: rgba(245,238,222,.62); border: 1.5px solid rgba(42,27,20,.9); border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px; }\n.hud-bar > .fill { height: 100%; background: linear-gradient(90deg, #c23b2b, #d8483a 40%, #9a2418); filter: url(#wash); }\n.hud-text { font: 400 19px 'IM Fell English SC', Georgia, serif; color: #2a1b14; text-shadow: 0 0 3px #f5eede, 0 0 7px #f5eede, 0 0 12px rgba(245,238,222,.8); }\n.hud-label { font: 700 20px 'Caveat', 'Segoe Print', cursive; color: #8a3a1e; }\n.panel { background: #f5eede; color: #2a1b14; border: 1.5px solid rgba(42,27,20,.85); border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px; box-shadow: 0 3px 12px rgba(60,40,20,.3); }\n.card { background: #f5eede; filter: drop-shadow(0 8px 10px rgba(30,18,8,.45)); transform: rotate(-1.4deg); }"
+  },
+  "motion": [
+    "Main character walk: 4 poses, phase = distance-based anim * 0.8; vertical bob -0.9 * |cos(phase * pi/2)| units; idle bob sin(t * 2.4) * 0.35.",
+    "Line boil: the main character cycles 3 baked variants at 6 fps, creatures 2 variants at 5 fps (offset by a per-creature seed).",
+    "Small creature walk 4 poses at anim * 0.7, ghost creature 0.35, large creature 0.45; ghosts float -2.2 + sin(t * 3) * 1.3 units and are drawn at 90 % alpha.",
+    "Carved face glow flickers: alpha 0.3 + 0.08 sin(11t) + 0.05 sin(23t), additive.",
+    "Collectibles cycle 3 baked variants at 4 fps; large stars bob 1 unit at 3 rad/s.",
+    "Impact splats live 0.17 s, bloom rings 1.0-1.4 s, paint drops 0.9-1.7 s with gravity 260 and drag 1.6.",
+    "Props in front of a character (tree crowns) fade to 42 % alpha while the character is behind them."
+  ],
+  "do": [
+    "Mix ground colour per pixel in absorbance space and darken wash edges (pooling).",
+    "Draw every coloured shape as wash first, ink second, with the wash offset ~0.45/0.35 units from the ink.",
+    "Break contours into 2-3 tapered pieces and make them thicker on the shadow side.",
+    "Use wet-in-wet blobs of neighbouring hues (warm light top-left, cool/dark bottom-right) inside each shape.",
+    "Keep the ground light and low-chroma; let characters carry the saturated colour.",
+    "Bake all sprite frames and boil variants once; per frame only drawImage.",
+    "Frame the screen with a deckled bare-paper margin and use storybook serif + handwriting fonts."
+  ],
+  "dont": [
+    "Don't use hard flat fills with uniform black strokes (that turns it into cartoon vector art).",
+    "Don't use pure black or neutral grey: no #000 ink, no grey shadows.",
+    "Don't alpha-blend ground terrain washes in RGB (muddy grey transitions).",
+    "Don't draw continuous perfect outlines or constant line widths.",
+    "Don't generate washes per frame with canvas blur filters: it costs milliseconds per sprite.",
+    "Don't add glossy specular highlights, neon glows or saturated full-screen effects.",
+    "Don't fill the paper margin with the world: the page frame is part of the look."
+  ],
+  "performance": "Expensive at init (1-3 s): 6 noise textures (1024 px wash flow, 256 px paper/grain) by repeated box blur, ~60 character frames, ~25 prop sprites, FX sprites and HUD textures, each wash using canvas blur filters. Ground chunks (256 units, per-pixel shader + decals, up to 2.5 px/unit) are built by a generator that yields every 1-2 rows, so a chunk is spread over frames (5 ms budget). Per frame: chunk blits, one shadow Path2D fill, y-sorted sprite drawImage, a few additive glows and the cached page-margin strips (only the 11 % edge bands are redrawn). No per-frame filters or getImageData."
+}

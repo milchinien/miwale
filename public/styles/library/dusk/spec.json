@@ -1,0 +1,312 @@
+{
+  "id": "dusk",
+  "name": "Dusk Grove",
+  "originalName": "Dämmerwald",
+  "family": "Pixel Art · Modern HD-2D",
+  "tags": [
+    "pixel art",
+    "hd-2d",
+    "rim light",
+    "bloom",
+    "enchanted forest",
+    "golden hour",
+    "cozy-dark"
+  ],
+  "summary": "Modern HD-2D pixel art: an enchanted forest clearing at golden-to-violet dusk, rim-lit sprites, banded glows, bloom and long shadows.",
+  "description": "Low-resolution pixel art (1 world unit = 1 art pixel, nearest-neighbour upscaled) that is lit like a modern 3D scene. Every sprite is shaded per pixel from a light vector, gets a warm sun rim on its left/top edges, a cool violet bounce on the right and a selective outline tinted from its own colours. Emissive faces, mushrooms and lanterns throw additive banded glows, shadows are sheared long towards the upper right, and the whole low-res buffer is colour-graded peach-to-violet with soft bloom and a violet vignette. It feels magical, warm and slightly melancholic: the last golden minute before night.",
+  "mood": [
+    "enchanted",
+    "warm",
+    "melancholic",
+    "cozy",
+    "mysterious"
+  ],
+  "bestFor": [
+    "top-down action games",
+    "cozy adventure RPGs",
+    "fairy-tale exploration games",
+    "farming/forest games with a day-night cycle",
+    "Halloween and harvest-festival projects"
+  ],
+  "avoidFor": [
+    "bright midday/sunny looks",
+    "sci-fi or urban settings",
+    "projects that need flat, icon-like readability at tiny sizes",
+    "very fast bullet-hell scenes with hundreds of sprites"
+  ],
+  "difficulty": {
+    "stars": 7,
+    "why": "The most detailed pixel style: every new asset has to be painted pixel by pixel from shaded primitives into hue-shifted ramps, then get the two-tone rim, the tinted selective outline, a sheared shadow, often an emissive glow and both facings – keeping new assets consistent at this level of quality is a lot of work."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": {
+      "scale": 1
+    },
+    "resolution": "Low-res buffer with 360 art pixels of height (1 world unit = 1 art pixel), upscaled by an integer factor (round(displayHeight/360)) with imageSmoothingEnabled = false. Sprites are painted pixel by pixel into RGBA buffers and baked once.",
+    "summary": "Sprites are built from shaded ellipsoids/cylinders whose N·L value indexes a hand-picked, hue-shifted colour ramp; a finishing pass adds a two-tone rim light and a selective outline. Post-processing (multiply tint, bloom, sun glow, vignette, tilt-shift) runs on the low-res buffer before upscaling, so even soft light stays pixel-crisp.",
+    "linework": "Selective 1-art-pixel outline drawn outside the silhouette (sprite canvas grows by 1 px per side). Outline colour is derived from the neighbouring sprite pixel: on the shadow side (pixel to the left/top is solid) mix(colour*0.32, ink #150c29, 0.55); on the lit side mix(colour*0.55, plum #4a2c62, 0.45). Pixels flagged NOOUT get no outline; ghosts use outline alpha 0.55 and blue outline colours (#141640 / #3a4a9a). Never pure black.",
+    "shading": "Per-pixel Lambert-style shading: v = (n·L)*0.5 + 0.5 (+bias, +texture term) with L = normalize(-0.62, -0.5, 0.6) (upper-left, towards viewer), mapped to floor(v*rampLength) of an 8–14 step hue-shifted ramp. No smooth gradients inside sprites, only ramp steps; seams between two materials are broken with a 1-pixel checkerboard.",
+    "lighting": "Low warm sun from the upper left: rim #ffcfa2 (leaves #ffd08a) at 0.42 alpha (trees 0.5) on left edges, 0.75 strength on top edges; cool sky bounce #8d86ea at 0.22 on right edges. Shadows are the sprite silhouette sheared kx 0.8 / ky 0.3 towards the upper right, colour #1a1034, alpha bands 0.18/0.34/0.5. Emissive pixels (faces, eyes, gills, runes, lantern flame) skip rim and get additive banded glows (warm, amber, cyan, ice, pink, eye). Colour grade on screen: multiply gradient #fff0dc -> #f0dce0 -> #b8a6d4 -> #8a76c0 (left-top to right-bottom), screen-blended bloom, radial sun glow from the upper left, violet vignette #5c4a8a.",
+    "texture": "Posterised painterly ground: 3 octaves of tileable fbm quantised into 5 steps of the grass ramp, plus pixel blade tufts, blossom pixels in meadows, fallen leaves/petals in forest earth, brick-joint stone with moss. Leaf canopies use small Worley cells (4.6 x 3.6 px) each with a lit top row and dark seams."
+  },
+  "palette": [
+    {
+      "name": "Ink",
+      "hex": "#150c29",
+      "role": "Shadow-side outline base, deepest dark; never use pure black"
+    },
+    {
+      "name": "Plum",
+      "hex": "#4a2c62",
+      "role": "Lit-side outline tint"
+    },
+    {
+      "name": "Dusk Shadow",
+      "hex": "#1a1034",
+      "role": "Cast shadows and decal shadows (alpha 0.18–0.5)"
+    },
+    {
+      "name": "Grass",
+      "hex": "#246248",
+      "role": "Main ground mid-tone (grass ramp #0a1d2a … #62a056), ~55% of the screen"
+    },
+    {
+      "name": "Meadow",
+      "hex": "#589250",
+      "role": "Lighter meadow patches with blossom pixels"
+    },
+    {
+      "name": "Forest Earth",
+      "hex": "#36273a",
+      "role": "Forest floor (earth ramp #150f1d … #6b4b50) under trees"
+    },
+    {
+      "name": "Ruin Stone",
+      "hex": "#504a69",
+      "role": "Cobble ruins, pillars, rocks (stone ramp #141127 … #b3a2b0)"
+    },
+    {
+      "name": "Pond",
+      "hex": "#1e3e68",
+      "role": "Water (ramp #131a3c … #43878d) with pink sky-reflection ripples"
+    },
+    {
+      "name": "Sun Rim",
+      "hex": "#ffcfa2",
+      "role": "Warm rim light on left/top sprite edges"
+    },
+    {
+      "name": "Sky Bounce",
+      "hex": "#8d86ea",
+      "role": "Cool rim on right sprite edges"
+    },
+    {
+      "name": "Pumpkin",
+      "hex": "#f79a3e",
+      "role": "Main character pumpkin head (ramp #3a1428 … #ffe08c); the warmest focal colour"
+    },
+    {
+      "name": "Teal Cape",
+      "hex": "#1f6076",
+      "role": "Main character cloth (ramp #0c1430 … #6ab8a4)"
+    },
+    {
+      "name": "Root Violet",
+      "hex": "#7426a0",
+      "role": "Small root creatures (ramp #1a0d33 … #eea0d6) over a cream/ochre belly"
+    },
+    {
+      "name": "Ghost Ice",
+      "hex": "#7ab3e4",
+      "role": "Floating ghost creature body (ramp #1a2252 … #f0fcff), translucent"
+    },
+    {
+      "name": "Mushroom Cyan",
+      "hex": "#7ee0cc",
+      "role": "Emissive mushrooms, runes, large-creature eyes, cyan glow"
+    },
+    {
+      "name": "Amber",
+      "hex": "#ffaa48",
+      "role": "Small collectible shards, projectile glow, embers"
+    },
+    {
+      "name": "Gold Trim",
+      "hex": "#e8b85a",
+      "role": "UI borders, diamonds, labels, gold ring bursts"
+    },
+    {
+      "name": "Blossom Pink",
+      "hex": "#e58bb4",
+      "role": "Flowers, petals (pink #a24f7e/#e58bb4/#ffc4dc)"
+    },
+    {
+      "name": "Lavender",
+      "hex": "#9a7fe0",
+      "role": "Flowers, lupines (#5d47a2/#9a7fe0/#cfbfff)"
+    },
+    {
+      "name": "Candle Cream",
+      "hex": "#fff4dc",
+      "role": "UI headline text, hottest glow cores"
+    }
+  ],
+  "paletteRules": [
+    "Every material is a hand-picked ramp of 5–14 steps that hue-shifts: darks drift to blue/indigo/violet, lights drift to warm yellow-green or peach. Never darken by mixing with black.",
+    "The world is cool (teal-greens, violets, indigo); warmth comes only from light: rim light, pumpkin, flames, amber collectibles, sun grade.",
+    "Emissive colours (#fff6c4, #ffd05a, #ff9a2e for carved lantern faces; #ff4f7a for creature eyes; #7ee0cc/#d0fff2 for mushrooms and runes) are the only fully saturated light colours and always come with a glow.",
+    "Ground stays mid-to-dark (values of the grass ramp indices 3–8) so rim-lit sprites pop; ~55% grass, ~20% meadow/flowers, the rest forest earth, stone ruins, ponds.",
+    "Flowers are tiny 3–5 pixel motifs in pink, lavender, white, peach and gold with a #ffcf4e centre; they are sprinkled, never large.",
+    "Colours are finally multiplied by the peach-to-violet screen tint, so author sprites slightly brighter and warmer than they should look on screen."
+  ],
+  "typography": [
+    {
+      "family": "Cinzel",
+      "weights": [
+        500,
+        700,
+        900
+      ],
+      "role": "Clock, titles, overlay headlines, card names, labels (engraved storybook serif)",
+      "source": "Google Fonts",
+      "sample": "22:09",
+      "css": "font-family: 'Cinzel', serif; font-weight: 900; font-size: 32px; color: #fff4dc; letter-spacing: 3px; text-shadow: 0 0 14px rgba(255,170,110,.65), 0 2px 0 #1a0f24;"
+    },
+    {
+      "family": "Pixelify Sans",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
+      "role": "Body text, bar values, counters, card descriptions (pixel-grid sans that matches the art)",
+      "source": "Google Fonts",
+      "sample": "100/100",
+      "css": "font-family: 'Pixelify Sans', system-ui, sans-serif; font-weight: 600; font-size: 15px; color: #ffe8c8; text-shadow: 0 1px 0 #1a0f24, 0 0 8px rgba(255,150,80,.5);"
+    }
+  ],
+  "world": {
+    "summary": "An endless top-down forest clearing baked into 256x256-unit chunks at 1 px per unit: four materials (grass, forest earth, stone ruins, water) chosen per pixel from domain-warped fbm fields, each drawn from a 256x256 tileable pixel texture, with height-based edge shading (bluish cast shadows below taller materials, sunlit lips), decals and warm/cool light pools. Ground stays mid-to-dark so rim-lit sprites pop.",
+    "layers": [
+      "Base fill #1e4a44 (ground colour while chunks build)",
+      "Material map per pixel from fbm fields (forest warped /760, meadow /520, ruins /600, water /420) with fine noise jitter and 1-px island despeckle; heights grass 3, stone 2, forest 1, water 0",
+      "Material textures: posterised grass (two variants), meadow grass with blossom-pixel map, forest earth with fallen leaves/petals/twigs and moss, brick-course cobbles (rows 12–20 px, stones 14–40 px) with cracks and moss joints, water ramp by depth with sky-reflection bands and ripple dashes",
+      "Edge pass: grass tips spilling over lower materials, cast shadow (factor 0.62, bluish) under higher neighbours above/left, dark lip on the lower edge, light sunlit lip on the upper edge, pale foam line at water edges",
+      "Macro light: dappled warm pools (r*1.17, g*1.07, b*0.95) and cool shade (r*0.9, g*0.93, b*1.06) from a /230 fbm field",
+      "Baked decals per 15-unit jittered cell: grass tufts, mixed flowers, lavender spikes, daisies, clover, pebbles, ferns, moss, lily pads, tiny glowing mushrooms; forest roots as pixel strokes; each decal has a 1-px shadow to the right",
+      "Per-frame ground overlay: additive flat light pools (main character 50 px warm + 16 px amber, lanterns, mushrooms, orbiting objects, projectiles) and 5-frame swaying grass/flower/fern sprites near the camera that lean away from the main character"
+    ]
+  },
+  "characters": {
+    "summary": "Characters are 24–60 px tall pixel sprites built in code from shaded primitives (ellipsoid blobs, cylinder-shaded cones and legs, 2-px leaf strokes) on a 1-px grid, then finished with the rim/outline pass and mirrored for left-facing. The main character is 26x32 px: a ribbed pumpkin head (rx 7.6, ry 6.4) with an emissive carved face, a teal hooded cape with a magenta lining, satchel, dark pants and leather boots; walk = 6 frames, idle = 4 frames, each also as a white flash copy. Creatures: a small violet root creature with a leafy crown and cream belly (24x28), a fast translucent icy ghost with a dithered tail (26x30), and a large mossy old-violet colossus with root arms, glowing cyan eyes and a belly rune (60x58).",
+    "rules": [
+      "Head-heavy chibi proportions: head ~40% of total height, body a short cone, 2-px wide legs.",
+      "Faces are emissive pixel patterns (eyes as 3–4 px triangles, jagged grin) with a darker carved rim around them, plus an additive glow sprite at the face (warm r14, alpha 0.3, flickering).",
+      "Every creature type owns one ramp family: violet root creature, icy ghost blue, old-violet + ochre colossus with moss; small creatures glow pink-red eyes (#ff4f7a, core #ffe2ec), the large creature glows cyan (#6ff5e0).",
+      "Light always comes from the upper left: lit side via ramp + warm rim, right side via cool bounce; shadows fall to the upper right with a contact ellipse (radius 6, large creature 14) at alpha 0.5.",
+      "Silhouettes must read at 1x: big round heads/bulbs, leaf crowns, clear legs; never more than ~4 colour steps visible in a 3x3 area.",
+      "Translucent figures (ghosts) use alpha 225–230 at the head fading to ~75 at the tail, with the tail dissolving through a Bayer 8x8 dither, a white-cyan rim #f4ffff and outline alpha 0.55.",
+      "Mirror the unfinished pixels for the left-facing version and finish that again, so the warm rim always stays on the left."
+    ]
+  },
+  "props": {
+    "summary": "Scenery is painted with the same ramp shading, finish pass and long sheared shadow (kx 0.78, ky 0.28, alpha 0.3) as the characters: round oaks 104x106 with 30 leaf-cluster canopies, pink blossom trees, birches 70x112, mossy rocks, ruined pillars with ivy and optional cyan runes, stone arches 76x70, stone lanterns 16x31 with an emissive flame window, glowing mushroom clusters 26x22, berry/rose/white-flower bushes 30x21, lupines 16x26 and big ferns 30x18.",
+    "rules": [
+      "Tree canopies are leaf clusters r 8–14 lit by the whole crown normal (0.42 - gx*0.24 - gy*0.3), with darker undersides and small leaf cells (4.6 x 3.6 px) each with a lit top row and a dark seam; trunks are cylinder-shaded bark with moss and spreading roots.",
+      "Trees use the leaf rim #ffd08a at 0.5 (cool bounce 0.26); everything else uses the standard rim #ffcfa2 at 0.42.",
+      "Stone props (pillars, arches, rocks, lanterns) use the stone ramp #141127 … #b3a2b0 with lit top rows, a lit left column, dark right/bottom edges, moss on tops and ivy climbing.",
+      "Emissive props carry their own light: stone lantern warm r16 at 0.6 with a ground pool r34 (flickering), mushrooms cyan r14 at 0.3 with a ground pool r30 (pulsing), runes cyan r12 at 0.4.",
+      "Props are anchored at their base and y-sorted with the characters; trees fade to 55% opacity when the main character walks behind them.",
+      "Only organic materials: bark, leaves, moss, weathered stone, flowers – no hard-surface or metal props."
+    ]
+  },
+  "effects": [
+    {
+      "name": "Additive banded glow",
+      "how": "Cached sprite per (colour, radius, flat): 3–5 concentric bands (r<5: 3, r<12: 4, else 5), colour ramp from hot core to tinted rim, alpha (1-band/bands)^1.6, band edges broken by Bayer dither; drawn with globalCompositeOperation 'lighter'. Flat variant (ry = 0.55r) is used for light pools on the ground."
+    },
+    {
+      "name": "Seed projectile + ember trail",
+      "how": "9x9 seed sprite in 16 rotations x 3 spin widths, amber glow r5 at 0.45, a 5-pixel trail behind it (#ffe9a0, #ffc35a, #ff9a4a, #f06a6a, #c04a8a, alpha 0.8-i*0.14) and a 2x1 ground shadow 7 px below."
+    },
+    {
+      "name": "Impact and dissolve petals",
+      "how": "3x3-pixel petal sprites (4 shapes) in flower/leaf/ice/moss/ember sets thrown upward with gravity 160–220 and drag ~2; an impact adds a short pink/ice bloom glow and a 7x7 four-point star; a dissolve burst adds 8–26 petals, rising light motes and a gold ring for large creatures."
+    },
+    {
+      "name": "Dissolve flash",
+      "how": "White flash sprite scaled sx 1+0.3t, sy squashes to 0.1 after t 0.3, alpha 1-0.8t, plus a fading glow (pink, ice or cyan) — creatures dissolve into light, no gore."
+    },
+    {
+      "name": "Emerge sprout",
+      "how": "Ground creatures rise out of the soil (only the top k of the sprite drawn) above a 2-row soil mound (#2a1d2e / #4a3540) while pink/white petals swirl outward; ghosts stretch in (sx 0.6 -> 1, sy 1.6 -> 1)."
+    },
+    {
+      "name": "Collectibles",
+      "how": "Small amber shard 5x7 (shaded blob, emissive sparkle pixel, 2-frame twinkle) and large rose crystal 9x11 (faceted, 4 flat values by quadrant); both bob ±1.2 px with a flat glow under and a round glow on them; collecting releases a rising amber/rose mote, large ones add a ring."
+    },
+    {
+      "name": "Orbiting lanterns",
+      "how": "14x17 mini violet bulbs with a carved emissive face (#ffc040, #ff8a2a, #fff2b0) and a leaf on top, circling the main character with a warm glow r13 and a hot frame switching on sin(11t) > 0.2."
+    },
+    {
+      "name": "Dash afterimages",
+      "how": "3 violet-tinted (#c88cf0) silhouette copies of the main character at 7-unit steps, alpha 0.16/0.32/0.48, plus lavender dust puffs (ramp #6a5a8a … #efe2e6) and petals."
+    },
+    {
+      "name": "Gold ring burst",
+      "how": "Elliptical pixel rings (y squashed 0.62) in gold #ffe08e with an inner #c48a3a line, expanding to 80 and 44 px, plus 18 rising amber motes and 14 petals."
+    },
+    {
+      "name": "Fireflies and drifting petals",
+      "how": "World overlay: 2 fireflies per 120-unit cell drifting on sines, a 1-px #f6ffd0 core with a 'fly' glow r5 pulsing via max(0, sin); 14 screen-wrapped petals blowing to the lower right."
+    }
+  ],
+  "atmosphere": {
+    "summary": "One low warm sun from the upper left/front (L = normalize(-0.62, -0.5, 0.6)) drives every rim and shadow; emissive objects add coloured additive light pools; the whole low-res buffer is then graded with tilt-shift strips, a peach-to-violet multiply tint, a squared 1/5-size bloom, an upper-left sun glow with god rays and a violet vignette before the integer upscale.",
+    "rules": [
+      "Rim: empty left neighbour lerps to #ffcfa2 by 0.42, empty top 0.75 of that, empty top-left diagonal 0.3; otherwise empty right lerps to #8d86ea by 0.22 (0.4 strength if only diagonals are empty); emissive pixels skip it.",
+      "Shadows are the silhouette sheared kx 0.8 / ky 0.3 (props 0.78 / 0.28) towards the upper right, colour #1a1034, alpha bands 0.18 / 0.34 / 0.5, plus a contact ellipse under characters.",
+      "Coloured light: additive flat pools on the ground (warm r50 at 0.42 + amber r16 at 0.35 around the main character, lanterns r34, mushrooms cyan r30, projectiles r7), drawn with 'lighter'.",
+      "Tilt-shift: top and bottom 16% strips downsampled 2x, upsampled and masked back with a 0.95 -> 0 gradient.",
+      "Tint (multiply): linear gradient (0, 0.1H) -> (W, 0.9H): #fff0dc 0, #f0dce0 0.4, #b8a6d4 0.75, #8a76c0 1.",
+      "Bloom: downsample to 1/5, multiply the small image with itself twice so only highlights survive, draw back with 'screen' at alpha 0.7 with smoothing on.",
+      "Sun glow: radial gradient from (-0.05W, -0.1H), r 0.75W, rgba(255,170,110,.55) -> rgba(255,140,120,.22) at 0.35 -> 0, plus 7 soft god-ray bands (0.42 rad, alpha 0.05–0.12), drawn at 0.9 + 0.1 sin(0.35t).",
+      "Vignette (multiply, alpha 0.9): elliptical radial #ffffff at 0.22W -> #e4dcf0 -> #5c4a8a at 0.72W; deepen with a #4a3a8a multiply over time for a later hour; a full-screen #ff6a8a multiply flash when the main character is hit."
+    ]
+  },
+  "ui": {
+    "summary": "Storybook-at-dusk HUD: translucent deep-indigo panels (rgba(22,12,42,.72)) with thin gold #e8b85a borders, gold 45°-rotated diamond end caps, Cinzel engraved headlines with a warm glow and a 1–3 px dark drop line (#1a0f24), Pixelify Sans for numbers. Bars: a progress bar with a teal-to-cream fill (#3fb0ae -> #7ee0cc -> #ffd08a -> #fff2c4) and a teal glow, and a sunset-orange bar (#ffb36a -> #f07a3a -> #c2402c) next to a pixel heart icon. Cards are violet-to-navy gradient panels with a gold frame, a dark 4 px moat and a 5 px faint gold outer ring. Icons are 18x18 pixel sprites with the same rim/outline pass, scaled by integer factors.",
+    "css": ".hud { font-family: 'Pixelify Sans', system-ui, sans-serif; color: #f4e6ff; }\n.panel { background: linear-gradient(90deg, rgba(22,12,42,.72), rgba(22,12,42,.25)); border-left: 2px solid #e8b85a; border-radius: 2px 18px 18px 2px; padding: 6px 14px 6px 8px; }\n.bar { position: relative; height: 12px; border-radius: 2px; background: rgba(18,8,30,.85); border: 1px solid rgba(232,184,90,.7); box-shadow: 0 0 0 1px rgba(10,5,20,.8); }\n.bar::before, .bar::after { content: ''; position: absolute; top: 50%; width: 9px; height: 9px; background: #e8b85a; transform: translateY(-50%) rotate(45deg); box-shadow: 0 0 8px rgba(255,200,120,.7); }\n.bar::before { left: -6px; } .bar::after { right: -6px; }\n.bar.warm > i { display: block; height: 100%; background: linear-gradient(#ffb36a 0%, #f07a3a 40%, #c2402c 100%); box-shadow: 0 0 10px rgba(255,120,60,.6), inset 0 1px 0 rgba(255,236,190,.6); }\n.bar.teal > i { display: block; height: 100%; background: linear-gradient(90deg, #3fb0ae 0%, #7ee0cc 45%, #ffd08a 85%, #fff2c4 100%); box-shadow: 0 0 12px rgba(126,224,204,.55), inset 0 -3px 0 rgba(20,60,80,.35), inset 0 1px 0 rgba(255,255,255,.45); }\n.title { font-family: 'Cinzel', serif; font-weight: 900; color: #fff2c4; letter-spacing: 6px; text-shadow: 0 0 22px rgba(255,170,90,.75), 0 3px 0 #2a1238; }\n.label { font-family: 'Cinzel', serif; font-weight: 700; font-size: 10px; color: #e8b85a; letter-spacing: 4px; border-top: 1px solid rgba(232,184,90,.55); padding-top: 3px; }\n.card { background: linear-gradient(180deg, rgba(48,28,82,.94) 0%, rgba(26,16,50,.96) 60%, rgba(18,30,46,.96) 100%); border: 1px solid #e8b85a; border-radius: 4px; box-shadow: 0 0 0 4px rgba(20,10,34,.85), 0 0 0 5px rgba(232,184,90,.35), 0 14px 30px rgba(0,0,0,.5), inset 0 0 30px rgba(126,224,204,.08); }"
+  },
+  "motion": [
+    "Main character walk: 6 frames at anim*1.5 (≈ 9 fps at normal speed) with body bob [1,0,0,1,0,0], head bob, leg lift and a 3-px cape hem flutter; idle: 4 frames at 3.2 fps with a 1-px breathing bob.",
+    "Small creature waddle: 6 frames (anim*2.2), the bulb shears left/right (tilt [0,1,1,0,-1,-1]) and the leaf crown sways ±0.15 rad.",
+    "Ghost: 6 frames at 9 fps, tail S-curve phase per frame, floats 4 ±1.5 px above its shadow on sin(t*3); large creature: 6 frames (anim*2.4) with a 2-px stomp bob.",
+    "Squash and stretch: throw pose sx 1+0.07, sy 1-0.06; hit squash sx +0.1, sy -0.08 with a white flash above 0.55; celebration stretch sy +0.12; creature hit reaction sx 1+0.14*flash.",
+    "Light flicker: lanterns 0.82 + 0.12 sin(9t) + 0.06 sin(23t); main-character light pool 0.9 + 0.06 sin(7.3t) + 0.04 sin(17.1t); mushrooms pulse 0.75 + 0.25 sin(1.6t).",
+    "All positions are rounded to whole art pixels before drawing; no sub-pixel motion is ever visible."
+  ],
+  "do": [
+    "Render at 360 art pixels of height and upscale with an integer factor and smoothing off.",
+    "Shade every sprite pixel from the light vector (-0.62, -0.5, 0.6) into a hue-shifted ramp.",
+    "Run the finish pass on every sprite: warm rim left/top, cool bounce right, selective tinted outline.",
+    "Give every emissive pixel an additive banded glow and keep glows pixel-banded, not smooth.",
+    "Cast long sheared shadows to the upper right in #1a1034 with banded alpha.",
+    "Apply the grade (multiply tint, bloom, sun glow, vignette) on the low-res buffer, before upscaling.",
+    "Sprinkle tiny 3–5 px flowers, petals and fireflies everywhere for life.",
+    "Bake all sprites, shadows and ground chunks once; per frame only blit."
+  ],
+  "dont": [
+    "Don't use pure black outlines or uniform outline colours.",
+    "Don't use smooth canvas gradients or anti-aliased shapes inside sprites.",
+    "Don't light from the right or put shadows below/left — the sun is fixed at the upper left.",
+    "Don't draw at sub-pixel positions or rotate sprites freely (pre-bake rotations instead).",
+    "Don't use bright, saturated daylight greens or a flat unlit ground.",
+    "Don't let the UI become flat modern material design — keep gold trim, indigo glass and Cinzel.",
+    "Don't add glow to everything: emissives are rare focal accents (faces, eyes, mushrooms, lanterns, collectibles)."
+  ],
+  "performance": "All characters (2 facings x all frames + flash copies), props, shadows, glows (cached by colour/radius), petals and digits are baked once at init (~100–300 ms). Ground chunks (256x256 px) are built incrementally via generators with a ~5 ms per-frame budget. Per frame: chunk blits, y-sorted sprite blits, additive glows, ~50 sway sprites, and the screen grade on the low-res buffer (one multiply, a 1/5-size bloom, two screen layers, vignette, tilt-shift strips) — cheap because the buffer is only ~640x360. Hot spots: many simultaneous glows and the full-buffer composites; keep glow radii small and counts bounded."
+}
