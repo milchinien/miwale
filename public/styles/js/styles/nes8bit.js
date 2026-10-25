@@ -900,7 +900,7 @@ ${B} #hud .xp::before { content: 'EP'; position: absolute; left: -56px; top: 0; 
 ${B} #hud .xp-fill { background: repeating-linear-gradient(90deg, #3cbcfc 0 8px, #0058f8 8px 12px, #000 12px 16px); transition: none; }
 ${B} #hud .lvl { right: -146px; font: 16px ${F}; color: #fcfcfc; text-shadow: none; }
 ${B} #hud .hp { display: grid; grid-template-columns: auto auto; column-gap: 16px; row-gap: 8px; align-items: center; }
-${B} #hud .hp::before { content: '-LEBEN-'; grid-column: 1 / 3; font: 16px ${F}; color: #f83800; }
+${B} #hud .hp::before { content: '-LIFE-'; grid-column: 1 / 3; font: 16px ${F}; color: #f83800; }
 ${B} #hud .hp-icon { display: none; }
 ${B} #hud .hp-bar { width: 240px; height: 21px; border: 0; border-radius: 0; background: ${HEART_EMPTY} 0 0 / 24px 21px repeat-x; }
 ${B} #hud .hp-fill { background: ${HEART_FULL} 0 0 / 24px 21px repeat-x; transition: none; }
@@ -919,7 +919,7 @@ ${B} #stylebar .style-hint { font: 8px ${F}; color: #bcbcbc; opacity: 1; }
 ${B} #stylebar .auto.on { color: #f8b800; }
 ${B} #levelup { ${DITHER} inset: 112px 0 0 0; gap: 28px; }
 ${B} #levelup .lu-title { font-size: 0; text-shadow: none; ${WIN} padding: 22px 36px; }
-${B} #levelup .lu-title::after { content: 'NEUE STUFE!'; font: 32px ${F}; color: #f8b800; letter-spacing: 2px; }
+${B} #levelup .lu-title::after { content: 'BONUS!'; font: 32px ${F}; color: #f8b800; letter-spacing: 2px; }
 ${B} #levelup .lu-cards { gap: 48px; }
 ${B} #levelup .card { ${WIN} width: 272px; min-height: 300px; padding: 30px 20px 22px; gap: 16px; transition: none; justify-content: center; }
 ${B} #levelup .card:hover { transform: none; }

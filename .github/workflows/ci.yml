@@ -42,7 +42,7 @@ jobs:
           node --check shop/konto.js
           node --check shop/datenschutz.js
           node --check shop/umgebung.js
-          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs
+          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs
           node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
@@ -142,6 +142,7 @@ jobs:
           test "$(status /styles/neon/)" = 200
           test "$(status /styles/mix/)" = 200
           test "$(status /styles/design/)" = 200
+          test "$(status /api/stimmen/)" = 200
           test "$(status /styles/js/core/game.js)" = 200
           test "$(status /styles/llms.txt)" = 200
           test "$(status /styles/llms-full.txt)" = 200

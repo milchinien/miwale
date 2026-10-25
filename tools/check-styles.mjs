@@ -12,10 +12,12 @@ import { readStyle, styleIds, validate, root } from './styles-lib.mjs';
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.md': 'text/markdown', '.txt': 'text/plain', '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
 /** Static server for public/ (+ /_ds) so pages behave like on miwale.com. */
-export function serve() {
+export function serve(options = {}) {
   const pub = join(root, 'public');
+  // options.api: a request handler for /api/stimmen/ (e.g. stimmenBauen() with a temp folder)
   const server = createServer((req, res) => {
     let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (options.api && path.startsWith('/api/stimmen')) return options.api(req, res);
     const base = /^\/(_ds|assets)\//.test(path) ? root : pub;
     let file = normalize(join(base, path));
     if (!file.startsWith(base)) { res.writeHead(403); return res.end(); }

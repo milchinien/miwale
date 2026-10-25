@@ -2005,7 +2005,7 @@ ${B} #stylebar .style-hint { font-style: italic; color: #a8afc2; }
 ${B} #stylemenu { border-radius: 0; background: rgba(9,10,16,.96); border: 2px solid #3d4152; }
 ${B} #levelup { gap: 18px; background: radial-gradient(ellipse at 50% 50%, rgba(14,10,26,.55) 0, rgba(4,4,9,.9) 75%); }
 ${B} #levelup .lu-title { font-size: 0; text-shadow: none; }
-${B} #levelup .lu-title::after { content: 'Ziehe dein Schicksal'; font: 400 62px/1 ${BL}; color: #f4e6c4; letter-spacing: 1px;
+${B} #levelup .lu-title::after { content: 'Choose your path'; font: 400 62px/1 ${BL}; color: #f4e6c4; letter-spacing: 1px;
   text-shadow: 4px 4px 0 #000, 0 0 22px rgba(255,140,40,.45); }
 ${B} #levelup .lu-cards { gap: 26px; }
 ${B} #levelup .card { width: 206px; min-height: 300px; padding: 38px 18px 22px; gap: 8px; border-radius: 0; image-rendering: pixelated;

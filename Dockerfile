@@ -31,6 +31,7 @@ VOLUME /data
 # docker/30-umgebung.sh.
 ENV BEWERTUNGEN_ORDNER=/data \
     BEWERTUNGEN_KATALOG=/usr/share/nginx/html/shop/spiele.js \
+    STIMMEN_KATALOG=/usr/share/nginx/html/styles/styles.json \
     MIWALE_ADRESSE=https://miwale.com \
     SPIELE_ADRESSE=
 

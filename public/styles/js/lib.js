@@ -183,6 +183,108 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
+  /* ---------- votes: thumbs up/down per device, ranked by the Wilson lower bound (server/stimmen.mjs) ---------- */
+  const API = '/api/stimmen/';
+  function geraet() {
+    // same device id as the rest of miwale.com (shop/identitaet.js)
+    const KEY = 'miwale-geraet', RE = /^[a-zA-Z0-9-]{16,64}$/;
+    try {
+      let id = localStorage.getItem(KEY);
+      if (!id || !RE.test(id)) { id = crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem(KEY, id); }
+      return id;
+    } catch (e) { return (geraet.f = geraet.f || (crypto.randomUUID ? crypto.randomUUID() : 'fluechtig-' + Date.now().toString(36) + 'xxxxxxxx')); }
+  }
+  function wilson(hoch, runter) {
+    const n = hoch + runter;
+    if (!n) return 0;
+    const z = 1.96, p = hoch / n;
+    return (p + z * z / (2 * n) - z * Math.sqrt((p * (1 - p) + z * z / (4 * n)) / n)) / (1 + z * z / n);
+  }
+  const votes = {
+    data: { ziele: {}, eigene: {}, mixe: [] },
+    offline: false,
+    p: null,
+    load() {
+      return (votes.p = votes.p || fetch(API + '?geraet=' + encodeURIComponent(geraet()))
+        .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then((d) => { votes.data = { ziele: d.ziele || {}, eigene: d.eigene || {}, mixe: d.mixe || [] }; return votes.data; })
+        .catch(() => { votes.offline = true; return votes.data; }));
+    },
+    count: (ziel) => votes.data.ziele[ziel] || { hoch: 0, runter: 0 },
+    mine: (ziel) => votes.data.eigene[ziel] || 0,
+    score: (ziel) => { const c = votes.count(ziel); return wilson(c.hoch, c.runter); },
+    async cast(ziel, wert) {
+      if (votes.offline) { toast('Voting is not available right now'); return; }
+      const before = votes.mine(ziel), prev = Object.assign({}, votes.count(ziel)), c = Object.assign({}, prev);
+      const next = before === wert ? 0 : wert;
+      // optimistic: show the vote at once, correct it with the server's answer
+      if (before > 0) c.hoch--; if (before < 0) c.runter--;
+      if (next > 0) c.hoch++; if (next < 0) c.runter++;
+      votes.data.ziele[ziel] = c;
+      if (next) votes.data.eigene[ziel] = next; else delete votes.data.eigene[ziel];
+      votes.refresh(ziel);
+      try {
+        const r = await fetch(API + encodeURIComponent(ziel), { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ geraet: geraet(), wert: next }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.fehler || r.status);
+        votes.data.ziele[ziel] = { hoch: d.hoch, runter: d.runter };
+      } catch (e) {
+        // not saved: back to what the server knows
+        votes.data.ziele[ziel] = prev;
+        if (before) votes.data.eigene[ziel] = before; else delete votes.data.eigene[ziel];
+        toast(String(e.message) === 'zu-schnell' ? 'Slow down a little – too many votes' : 'Vote could not be saved');
+      }
+      votes.refresh(ziel);
+      window.dispatchEvent(new CustomEvent('miwale-votes', { detail: { ziel } }));
+    },
+    /** Re-renders every vote widget for this target. */
+    refresh(ziel) {
+      document.querySelectorAll('.vote[data-ziel="' + CSS.escape(ziel) + '"]').forEach((el) => { el.outerHTML = voteWidget(ziel, el.dataset.size); });
+    },
+    async publish(d) {
+      const r = await fetch(API + 'mixe', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ geraet: geraet(), name: d.name, picks: d.picks, website: '' }) });
+      const k = await r.json();
+      if (!r.ok) throw new Error(k.fehler || String(r.status));
+      votes.data.mixe = [k.mix].concat(votes.data.mixe.filter((m) => m.id !== k.mix.id));
+      if (!k.vorhanden) { votes.data.ziele['mix:' + k.mix.id] = { hoch: 1, runter: 0 }; votes.data.eigene['mix:' + k.mix.id] = 1; }
+      return k;
+    },
+    /** Community mixes, best first. */
+    mixes() { return votes.data.mixe.slice().sort((a, b) => votes.score('mix:' + b.id) - votes.score('mix:' + a.id) || b.zeit.localeCompare(a.zeit)); },
+  };
+  /** Thumbs up / down with counts. size: '' | 'sm'. */
+  function voteWidget(ziel, size) {
+    const c = votes.count(ziel), mine = votes.mine(ziel), n = c.hoch + c.runter;
+    const pct = n ? Math.round((100 * c.hoch) / n) + '%' : 'New';
+    return '<span class="vote' + (size ? ' vote-' + size : '') + '" data-ziel="' + esc(ziel) + '" data-size="' + (size || '') + '">' +
+      '<button type="button" data-v="1" aria-pressed="' + (mine > 0) + '" title="Like" aria-label="Like (' + c.hoch + ')">▲ <b>' + c.hoch + '</b></button>' +
+      '<span class="vote-pct" title="' + n + ' vote' + (n === 1 ? '' : 's') + '">' + pct + '</span>' +
+      '<button type="button" data-v="-1" aria-pressed="' + (mine < 0) + '" title="Dislike" aria-label="Dislike (' + c.runter + ')">▼ <b>' + c.runter + '</b></button></span>';
+  }
+  /** Card of a design (saved or community mix). o: { nameOf, community, editable } */
+  function mixCard(x, o) {
+    const q = toQuery(x) + (o.community ? '&m=' + encodeURIComponent(x.id) : '');
+    const href = 'design/?' + q;
+    return '<article class="card mine-card">' +
+      '<a class="card-media" href="' + href + '">' + collage(x) + '</a>' +
+      '<div class="card-body"><p class="eyebrow">' + (o.community ? 'Community' : 'My design') + ' · ' + sources(x).length + ' styles</p>' +
+      '<h3><a href="' + href + '">' + esc(x.name) + '</a></h3>' +
+      '<p class="card-sum">' + ELEMENTS.map((e) => '<b>' + e.name + '</b> ' + esc(o.nameOf(x.picks[e.key]))).join(' · ') + '</p>' +
+      '<div class="card-meta">' + (o.community ? voteWidget('mix:' + x.id, 'sm') : '') +
+      '<span class="card-acts"><a class="btn btn-small" href="mix/?' + toQuery(x) + '">' + (o.community ? 'Remix' : 'Edit') + '</a>' +
+      (o.editable ? '<button class="btn btn-small" type="button" data-del="' + esc(x.id) + '">Delete</button>' : '') + '</span></div></div></article>';
+  }
+
+  // one listener for every vote widget on the page (also inside links: voting must not navigate)
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest('.vote button');
+    if (!b) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    votes.cast(b.closest('.vote').dataset.ziel, +b.dataset.v);
+  }, true);
+
   window.Lib = { SITE, ELEMENTS, byKey, catalog, style, text, single, isSingle, sources, toQuery, fromQuery, stageUrl, designUrl, saved,
-    stylePrompt, mixPrompt, esc, toast, copy, loadFont, meter, collage, download };
+    stylePrompt, mixPrompt, esc, toast, copy, loadFont, meter, collage, download, votes, voteWidget, wilson, mixCard };
 })();

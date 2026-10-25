@@ -26,11 +26,15 @@ export const ORDER = [
   'nes8bit', 'stainedglass', 'clay', 'chalk', 'candy', 'crossstitch', 'popart', 'vangogh', 'shadow', 'voxel',
 ];
 
+/** Styles made especially for the library (not drawn for an earlier project). Shown as "New". */
+export const ORIGINALS = ['blueprint', 'ukiyoe', 'thermal', 'terminal', 'origami'];
+
 export function styleIds() {
   const found = readdirSync(libraryDir, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
     .map((d) => d.name);
-  const rank = (id) => (ORDER.includes(id) ? ORDER.indexOf(id) : ORDER.length);
+  const all = ORDER.concat(ORIGINALS);
+  const rank = (id) => (all.includes(id) ? all.indexOf(id) : all.length);
   return found.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
 }
 

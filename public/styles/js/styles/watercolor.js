@@ -2161,7 +2161,7 @@ ${S} #stylemenu .sm-name { font: 400 17px ${fell}; }
 ${S} #stylemenu .sm-fam { font: 700 14px ${cav}; color: #8a3a1e; opacity: 1; }
 ${S} #levelup { background: radial-gradient(ellipse at 50% 46%, rgba(245,238,222,.28), rgba(58,40,26,.68) 78%); gap: 24px; }
 ${S} #levelup .lu-title { font-size: 0; text-shadow: none; padding: 20px 80px 26px; background: url(${T.banner}) center / 100% 100% no-repeat; }
-${S} #levelup .lu-title::after { content: 'Ein neues Kapitel!'; font: 400 52px ${fell}; color: ${INK}; letter-spacing: 1px; }
+${S} #levelup .lu-title::after { content: 'A new chapter!'; font: 400 52px ${fell}; color: ${INK}; letter-spacing: 1px; }
 ${S} #levelup .lu-cards { gap: 30px; }
 ${S} #levelup .card { width: 224px; min-height: 292px; padding: 34px 24px 28px; gap: 8px; background: url(${T.card}) center / 100% 100% no-repeat; border: 0; border-radius: 0; color: ${INK}; filter: drop-shadow(0 8px 10px rgba(30,18,8,.45)); transition: transform .15s; }
 ${S} #levelup .card:nth-child(1) { transform: rotate(-1.4deg); }

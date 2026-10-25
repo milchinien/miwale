@@ -1539,7 +1539,7 @@ ${S} #stylemenu .sm-item.active { border-color: #ffd84a; }
 ${S} #stylemenu .sm-fam { font: 400 15px ${brush}; color: #9fd0f0; opacity: 1; }
 ${S} #levelup { background: radial-gradient(ellipse at 50% 45%, rgba(20,28,70,.35), rgba(6,6,20,.82) 75%); gap: 26px; }
 ${S} #levelup .lu-title { font-size: 0; text-shadow: none; padding: 20px 70px 24px; background: url(${T.banner}) center / 100% 100% no-repeat; box-shadow: 0 10px 24px rgba(0,0,0,.6); }
-${S} #levelup .lu-title::after { content: 'Ein neues Meisterwerk!'; font: 800 44px ${cin}; color: #ffe27a; letter-spacing: 2px; text-shadow: 0 3px 0 #3a2408, 0 0 18px rgba(255,200,80,.5); }
+${S} #levelup .lu-title::after { content: 'A new masterpiece!'; font: 800 44px ${cin}; color: #ffe27a; letter-spacing: 2px; text-shadow: 0 3px 0 #3a2408, 0 0 18px rgba(255,200,80,.5); }
 ${S} #levelup .lu-cards { gap: 30px; }
 ${S} #levelup .card { width: 232px; min-height: 304px; padding: 36px 26px 30px; gap: 8px; background: url(${T.card}) center / 100% 100% no-repeat; border: 0; border-radius: 0; color: #f6e6b0; box-shadow: 0 12px 26px rgba(0,0,0,.65); transition: transform .15s; }
 ${S} #levelup .card:hover { transform: translateY(-8px) scale(1.02); }
