@@ -1,0 +1,136 @@
+{
+  "id": "harvest16",
+  "name": "Harvest 16-Bit",
+  "originalName": "Herbsternte 16-Bit",
+  "family": "Pixel Art · SNES 16-bit",
+  "tags": ["pixel art", "16-bit", "snes", "autumn", "cozy", "farm", "warm"],
+  "summary": "Cozy SNES-era autumn farmland: warm hue-shifted pixel sprites, leaf-litter carpets, furrowed fields and wooden HUD panels.",
+  "description": "A sunny autumn afternoon on the farm in true 16-bit pixel art: one art pixel per world unit, chunky 1-px coloured outlines, hue-shifted ramps that go plum in the shadows and butter-yellow in the light. Meadows in three greens, sunken dirt paths and furrowed soil fields, round orange/red/gold trees standing on carpets of fallen leaves. Every sprite is painted procedurally into a pixel grid with one shared top-left light, so the whole world reads like a hand-pixelled SNES farming RPG.",
+  "mood": ["cozy", "warm", "nostalgic", "harvest-time", "gently spooky"],
+  "bestFor": ["top-down action / survivor games", "farming and life sims", "cozy RPGs", "Halloween / harvest themed games", "roguelites with readable hordes"],
+  "avoidFor": ["sci-fi or neon settings", "photo-real or painterly games", "grim high-contrast horror", "huge zoomed-out strategy maps"],
+  "difficulty": { "stars": 5, "why": "Detailed 16-bit sprites with 4 walk frames as text grids are painstaking detail work, especially for large bosses." },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": { "scale": 1 },
+    "resolution": "Low-res buffer at 1 art pixel = 1 world unit (360 units of height ≈ 360 or fewer buffer rows, integer upscale = round(screenH / 360)), nearest-neighbour upscale to the display.",
+    "summary": "Every sprite is computed into a small pixel grid at init: shapes are ellipses/tapered leaves whose sphere normals are lit by one fixed light (-0.5, -0.6, 0.62) and quantised into 3–5 step hue-shifted ramps, then an automatic 1-px outline is added using the darkened average colour of the neighbouring pixels. The ground is baked per 256-unit chunk as a material map (grass, golden grass, clover, soil, path) with pixel edge rules, stamped tufts and leaves, and decals.",
+    "linework": "1-px outline on every sprite, never black: each empty pixel next to a filled one gets the average colour of its 4-neighbours mixed 58–84 % toward ink plum #24162a (brighter colours get darker outlines). Ghosts use a fixed cool outline #33406c, gems #6a2a1a, seeds #5e3a2a. No anti-aliasing, no sub-pixel lines, no canvas strokes.",
+    "shading": "Quantised Lambert: ramp index = how many thresholds the light value passes (typical thresholds [-0.22, 0.14, 0.5, 0.8]). Ramps are hue-shifted (pumpkin #74282a → #ffc76c, turnip purple #2c1740 → #bf80c8). Pumpkin ribs are 1-px curves one ramp step darker; tree canopies add value noise (±0.15) for leafy clumping; no smooth gradients inside sprites.",
+    "lighting": "One warm light from the top-left-front for every sprite. Glows are additive stepped discs (3 hard alpha rings) for gems, lanterns and carved faces. A full-screen soft-light grade (warm orange top-left → cool blue bottom-right, 50 %) plus a multiply plum vignette (#966e96 at the corners) sets the afternoon mood.",
+    "texture": "Pixel-level only: grass tufts (5 stamp shapes), clover trefoils, leaf-litter stamps, furrow stripes every 6 px in soil, per-pixel hashed light/dark specks on paths and soil, and a ±4.5 % macro warm/cool colour drift."
+  },
+  "palette": [
+    { "name": "Meadow Green", "hex": "#77963b", "role": "Base grass, ~45 % of the screen" },
+    { "name": "Tuft Shade", "hex": "#617f38", "role": "Dark stem pixels of grass tufts" },
+    { "name": "Tuft Light", "hex": "#8ea945", "role": "Lit tuft tips; #a6bd55 is the brightest tip" },
+    { "name": "Golden Grass", "hex": "#9a9d45", "role": "Dry yellow-green meadow patches" },
+    { "name": "Clover Green", "hex": "#5b893f", "role": "Deep green clover patches with trefoils" },
+    { "name": "Furrow Soil", "hex": "#8a5a3c", "role": "Ploughed field stripes (6-step furrow ramp #a26e44 … #50332f)" },
+    { "name": "Dirt Path", "hex": "#b08a5a", "role": "Sunken dirt paths, ruts #9e7a50" },
+    { "name": "Path Shadow", "hex": "#755244", "role": "Shadow band where grass overhangs paths" },
+    { "name": "Leaf Litter", "hex": "#7c3531", "role": "Ground between fallen leaves under trees" },
+    { "name": "Rust Leaf", "hex": "#bc5a2f", "role": "Fallen leaves, mid tone (red #a33b31, orange #d88437)" },
+    { "name": "Gold Leaf", "hex": "#d6a944", "role": "Golden fallen leaves and golden canopies" },
+    { "name": "Pumpkin Orange", "hex": "#de6e2c", "role": "Hero head, pumpkins, orange canopies" },
+    { "name": "Cloak Green", "hex": "#336046", "role": "Hero cape (teal-green ramp #1b3236 … #5c9652)" },
+    { "name": "Mustard Scarf", "hex": "#cc842e", "role": "Hero scarf / accent cloth" },
+    { "name": "Turnip Purple", "hex": "#713488", "role": "Enemy crowns (magenta variant #86325e)" },
+    { "name": "Turnip Cream", "hex": "#dcc290", "role": "Enemy bulb flesh, root legs #a2845e" },
+    { "name": "Ghost Ice", "hex": "#a6bee2", "role": "Translucent ghosts and cold vapour" },
+    { "name": "Ember Glow", "hex": "#ffc640", "role": "Carved-face glow, eyes, XP gems, sparkles" },
+    { "name": "Ink Plum", "hex": "#24162a", "role": "Outline target colour, darkest pixels, HUD text outline family" },
+    { "name": "HUD Wood", "hex": "#8f5c34", "role": "Wooden HUD panels (border #2b170f, text #fff3d6)" }
+  ],
+  "paletteRules": [
+    "Every material is a 3–5 step hue-shifted ramp: shadows drift toward purple/plum, highlights toward yellow/cream. Never darken by mixing with black.",
+    "The ground is ~85 % greens (#77963b, #9a9d45, #5b893f) and warm browns; saturated orange/red/gold comes from trees and leaf carpets (~15–30 % of the screen).",
+    "Characters are warmer and more saturated than the ground: pumpkin orange, turnip purple, cream, ember yellow. Ghosts are the only cool colour on screen.",
+    "Glow colours (#f2902a, #ffc640, #fff2a8) appear only in carved faces, eyes, gems, lanterns and sparkles.",
+    "No pure black and no pure white except 1-px sparkle centres and the white hit-flash silhouette.",
+    "Outlines are always tinted versions of the object's own colour (mixed toward #24162a), never a uniform black line."
+  ],
+  "typography": [
+    {
+      "family": "Pixelify Sans",
+      "weights": [400, 500, 600, 700],
+      "role": "Titles, card names, descriptions, labels",
+      "source": "Google Fonts",
+      "sample": "Neue Stufe!",
+      "css": "font: 700 60px 'Pixelify Sans', monospace; color: #ffd36a; letter-spacing: 3px; text-shadow: 4px 0 #3b1d10, -4px 0 #3b1d10, 0 4px #3b1d10, 0 -4px #3b1d10, 4px 4px #3b1d10, -4px 4px #3b1d10, 4px -4px #3b1d10, -4px -4px #3b1d10, 0 8px #3b1d10;"
+    },
+    {
+      "family": "Silkscreen",
+      "weights": [400, 700],
+      "role": "HUD numbers: HP text, kill counter, clock, level, key hints",
+      "source": "Google Fonts",
+      "sample": "22:09",
+      "css": "font: 400 34px 'Silkscreen', monospace; letter-spacing: 2px; color: #ffe08a; text-shadow: 3px 0 #2b170f, -3px 0 #2b170f, 0 3px #2b170f, 0 -3px #2b170f, 3px 3px #2b170f, -3px 3px #2b170f, 3px -3px #2b170f, -3px -3px #2b170f, 0 6px #2b170f;"
+    }
+  ],
+  "background": {
+    "summary": "An endless autumn farmland baked per 256×256-unit chunk at 1 px per unit: noise-driven meadow patches in three greens, a winding sunken dirt path, rounded-rectangle ploughed fields with furrows and crop rows, and leaf-litter carpets under the trees, finished with pixel decals (flowers, mushrooms, pebbles, pumpkins, twigs).",
+    "layers": [
+      "Material map per pixel: PATH (domain-warped Perlin iso-line, half width 8.5–14.5 units), SOIL (rounded-rectangle fields 150–290 × 96–190 units), else CLOVER / GOLD / GRASS from two fbm fields (scales 360 and 430 units) with a 64×64 tileable jitter so borders are ragged.",
+      "Pixel cleanup: remove 1-px spurs between height classes so edges are clean pixel art.",
+      "Detail stamps: grass tufts on a 7×6 grid (density driven by a 52-unit mottle noise), clover trefoils on a 5×4 grid, leaf stamps on a 3×3 grid whose survival depends on leaf density (organic carpet edges).",
+      "Colour pass with edge rules: bright rim on grass below a raised edge, dark lip above a drop, 2-px dithered shadow band where soil/path meet grass from above, furrow stripes (period 6) in soil, ruts and specks on paths.",
+      "Macro tint: multiply each pixel by 0.955–1.045 with a slight warm/cool shift from a 1100-unit noise.",
+      "Decals stamped deterministically across chunk borders: flowers (5 colours), tiny flowers, mushrooms near leaves, mini pumpkins and rocks in meadows, twigs, pebbles and edge stones on paths, sprout/turnip crop rows in fields. 's' pixels multiply the ground as a 1-px shadow.",
+      "Y-sorted props on top: autumn trees (56×65 / 68×80), hay bales, fences, scarecrows, stumps, wheelbarrows, crates."
+    ]
+  },
+  "characters": {
+    "summary": "Chibi 16-bit sprites about 22×30 px (hero) built in code: a big round head (about half the height) on a short body, ellipse forms lit by the shared light and quantised into hue-shifted ramps, details placed pixel by pixel, and an automatic coloured 1-px outline. Sprites face right; the left version is a mirrored copy. 4 walk frames (bob 0/-1, legs ±2 px, arm swing, cape/scarf flap) and 2 idle frames.",
+    "rules": [
+      "Head-heavy chibi proportions: head ≈ 14 px tall on a 30 px sprite, legs 2 px wide, boots 3 px.",
+      "Every sprite gets the automatic coloured outline; never draw outlines by hand.",
+      "Faces glow: carved triangle eyes and jagged grins use the 3-step glow ramp with a 1-px dark cut lip above each hole.",
+      "Anchor every sprite at its feet (bottom centre) and draw it at integer coordinates.",
+      "Each enemy type owns one hue family: purple/magenta turnips, cold blue ghosts, ochre/purple brutes.",
+      "Paint every sprite facing right with the light from the top-left; the left-facing version is a plain mirrored copy (the light flips with it, which is invisible at this size)."
+    ]
+  },
+  "effects": [
+    { "name": "Seed projectile", "how": "5×3 cream seed sprite (4 rotation frames, outline #5e3a2a) plus two trailing 1-px dots #fff2c8 at 4 and 6 units behind with alpha 0.55 and 0.28." },
+    { "name": "Hit flash + sparkle", "how": "Enemy swaps to a pre-baked white silhouette while flash > 0.45; a 5×5 plus-shaped sparkle (#ffe9a0/#ffc84a/#ffffff) shrinks through 3 frames; leaves (2×2 particle frames) flutter off." },
+    { "name": "Death burst", "how": "8 (brute: 16) square 2–3 px chunks in the enemy's ramp colours with a 1-px highlight, thrown up with gravity 200, plus 3–6 fluttering leaves, 2–5 dust puffs and an expanding 1-px pixel ring #fff4d0." },
+    { "name": "Spawn from soil", "how": "Enemies rise out of the ground: the sprite is cropped from the top (eased outQuad) above a 12×3 dirt mound sprite; dirt chunks #6e4632/#9a663f fly out. Ghosts instead fade in and sink 8 units with vapour puffs." },
+    { "name": "XP gem", "how": "3×5 amber gem (big: 5×7 teal) bobbing 1 unit, over a tiny pixel shadow, with an additive stepped glow disc (r 3, #ff9030) pulsing 0.5±0.15 and a sparkle every ~1.25 s." },
+    { "name": "Dash smear", "how": "3 afterimages tinted #ffc36a, spaced 7 units back along the dash, alpha 0.16/0.32/0.48, plus dust puffs." },
+    { "name": "Falling leaves", "how": "2–3 px leaf frames (4 rotations) drift from visible tree canopies and 9 wind-blown leaves wrap across the view (16–27 units/s right, 7 units/s down)." },
+    { "name": "Level-up ring", "how": "A 1-px pixel ring #ffd25a squashed to half height grows from radius 6 to 40 around the hero, plus 14 radial sparkles and 6 leaves." }
+  ],
+  "ui": {
+    "summary": "Nailed wooden planks: #8f5c34 panels with horizontal grain lines, 3 px dark border #2b170f, bevel (inset light #b97f4b / dark #5e3820), four 3×3 cream nail heads in the corners and a hard 4 px drop shadow. Bars are inset dark troughs with banded flat fills (no gradients). Text is pixel fonts with chunky 8-direction text-shadow outlines. Level-up cards are parchment (#f6e6bc → #ead096) with a red pin.",
+    "css": ".panel { background-color: #8f5c34; background-image: linear-gradient(#efe4cc,#efe4cc) 5px 5px/3px 3px no-repeat, linear-gradient(#efe4cc,#efe4cc) calc(100% - 8px) 5px/3px 3px no-repeat, linear-gradient(#efe4cc,#efe4cc) 5px calc(100% - 8px)/3px 3px no-repeat, linear-gradient(#efe4cc,#efe4cc) calc(100% - 8px) calc(100% - 8px)/3px 3px no-repeat, repeating-linear-gradient(180deg, rgba(0,0,0,0) 0 5px, rgba(58,30,16,.38) 5px 6px, rgba(0,0,0,0) 6px 11px, rgba(255,214,150,.14) 11px 12px, rgba(0,0,0,0) 12px 17px, rgba(58,30,16,.22) 17px 18px); border: 3px solid #2b170f; box-shadow: inset 3px 3px 0 #b97f4b, inset -3px -3px 0 #5e3820, 0 4px 0 rgba(26,12,6,.6); color: #fff3d6; font-family: 'Pixelify Sans', monospace; }\n.hp-bar { width: 220px; height: 22px; border: 3px solid #2b170f; background: #3a1c18; box-shadow: inset 0 3px 0 #200e0c, 0 3px 0 #c58a54; }\n.hp-fill { height: 100%; background: linear-gradient(180deg, #ffa58a 0 3px, #ee4f36 3px 9px, #c0302c 9px 13px, #8e1f2a 13px); }\n.xp-fill { background: linear-gradient(180deg, #fff0a0 0 3px, #ffc94a 3px 8px, #f19434 8px 12px, #c8621f 12px); }\n.hud-num { font: 700 24px 'Silkscreen', monospace; color: #fff3d6; text-shadow: 2px 0 #2b170f, -2px 0 #2b170f, 0 2px #2b170f, 0 -2px #2b170f, 2px 2px #2b170f, -2px 2px #2b170f, 2px -2px #2b170f, -2px -2px #2b170f, 0 4px #2b170f; }\n.hud-icon { width: 48px; height: 48px; image-rendering: pixelated; }"
+  },
+  "motion": [
+    "Hero walk: 4 frames, advance 1 frame per 10 world units moved (≈ 9 fps at 92 units/s); idle: 2 frames at 2.2 fps (head bob 1 px, scarf flap).",
+    "Small enemy walk: 4 frames at anim × 1.6 (≈ 6 fps); fast ghost: 4 frames at 6 fps, hovers 3 ± 1.5 units on a 3 rad/s sine, drawn at 86 % opacity; brute: 4 frames at ≈ 2.6 fps with a dust puff on each foot-fall.",
+    "Bob and offsets are whole pixels only (Math.round); everything snaps to the art-pixel grid, including the camera.",
+    "Hurt: white silhouette while hurtT > 0.55, then 18 Hz blink at 35 % alpha during invulnerability.",
+    "Carved face glow flickers: a noise(t × 9) > 0.62 switches to the brighter glow ramp for a frame or two.",
+    "Damage numbers: 3×5 (crit 5×6) bitmap digits with 1-px outline + drop row, pop up 2–3 px for 0.08 s then fade."
+  ],
+  "do": [
+    "Render everything into a low-res buffer at 1 art pixel per world unit and upscale by an integer factor with imageSmoothingEnabled = false.",
+    "Build sprites procedurally into a pixel grid: ellipse/leaf primitives lit by the one shared light, quantised into hue-shifted ramps.",
+    "Let the baker add a 1-px outline coloured from the neighbouring pixels, darkened toward #24162a.",
+    "Give the ground height: grass edges get a bright rim or dark lip, paths and soil a 2-px dithered shadow band under the grass.",
+    "Scatter leaf-litter carpets in the tree's own colour under every tree; use fbm noise so meadows show three greens.",
+    "Use stepped (3-ring) additive glow discs instead of radial gradients.",
+    "Finish with the warm soft-light grade and the plum multiply vignette.",
+    "Keep pixel decals tiny (1–7 px) and give them 1-px multiply shadow pixels."
+  ],
+  "dont": [
+    "Don't use smooth gradients, blur, or canvas strokes/arcs on sprites — it breaks the pixel grid.",
+    "Don't draw at fractional coordinates or upscale by non-integer factors.",
+    "Don't use black outlines or pure black shadows; shadows are plum (40,22,56) at 36 %/24 % alpha.",
+    "Don't light sprites from different directions; every ramp assumes top-left light.",
+    "Don't cover the ground with flat colour; without tufts, rims and specks it looks like a placeholder.",
+    "Don't add neon or cold saturated colours outside the ghost/ice family.",
+    "Don't mix pixel scales (e.g. 2× sprites over 1× ground)."
+  ],
+  "performance": "All sprites (hero 2 glow variants × 4 walk + 2 idle × 2 facings, enemies, flash silhouettes, trees, props, icons, digits) are baked once in init into small canvases; per frame only drawImage blits happen at integer positions into the low-res buffer, then one nearest-neighbour upscale. The ground is the hot spot: each 256×256 chunk evaluates several fbm fields on a 4-unit grid (bilinear), a per-pixel material map with SDF fields and stamps, so it is built as a generator that yields every 32 rows and is cached. The screen overlays (grade + vignette) are pre-rendered once per buffer size."
+}

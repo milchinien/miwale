@@ -1,0 +1,1784 @@
+{
+  "name": "miwale Game Style Library",
+  "description": "Complete, playable art styles for games, documented so AIs can copy and adapt them.",
+  "url": "https://miwale.com/styles/",
+  "llms": "https://miwale.com/styles/llms.txt",
+  "license": "Free to copy and adapt for your own games. Credit appreciated: miwale.com/styles",
+  "howToUse": [
+    "Pick a style whose mood and genre fit your game.",
+    "Give your AI the STYLE.md of that style (or the \"Copy prompt\" text from the page) together with your game idea.",
+    "Let it start from starter.js, which already contains the palette and the core drawing techniques."
+  ],
+  "styles": [
+    {
+      "id": "harvest16",
+      "name": "Harvest 16-Bit",
+      "family": "Pixel Art · SNES 16-bit",
+      "group": "Pixel art",
+      "tags": [
+        "pixel art",
+        "16-bit",
+        "snes",
+        "autumn",
+        "cozy",
+        "farm",
+        "warm"
+      ],
+      "summary": "Cozy SNES-era autumn farmland: warm hue-shifted pixel sprites, leaf-litter carpets, furrowed fields and wooden HUD panels.",
+      "mood": [
+        "cozy",
+        "warm",
+        "nostalgic",
+        "harvest-time",
+        "gently spooky"
+      ],
+      "bestFor": [
+        "top-down action / survivor games",
+        "farming and life sims",
+        "cozy RPGs",
+        "Halloween / harvest themed games",
+        "roguelites with readable hordes"
+      ],
+      "difficulty": 5,
+      "pixelArt": true,
+      "palette": [
+        "#77963b",
+        "#617f38",
+        "#8ea945",
+        "#9a9d45",
+        "#5b893f",
+        "#8a5a3c",
+        "#b08a5a",
+        "#755244",
+        "#7c3531",
+        "#bc5a2f",
+        "#d6a944",
+        "#de6e2c",
+        "#336046",
+        "#cc842e",
+        "#713488",
+        "#dcc290",
+        "#a6bee2",
+        "#ffc640",
+        "#24162a",
+        "#8f5c34"
+      ],
+      "fonts": [
+        "Pixelify Sans",
+        "Silkscreen"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/harvest16/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/harvest16/spec.json",
+        "starter": "https://miwale.com/styles/library/harvest16/starter.js",
+        "module": "https://miwale.com/styles/js/styles/harvest16.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/harvest16.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/harvest16_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/harvest16_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/harvest16_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/harvest16_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=harvest16",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=harvest16&mode=sheet",
+      "page": "https://miwale.com/styles/#harvest16"
+    },
+    {
+      "id": "kuerbisboy",
+      "name": "Pumpkin Boy",
+      "family": "Pixel Art · 4 Colours",
+      "group": "Pixel art",
+      "tags": [
+        "pixel art",
+        "4 colours",
+        "handheld",
+        "lcd",
+        "dithering",
+        "sepia",
+        "retro",
+        "autumn"
+      ],
+      "summary": "A pumpkin-tinted handheld LCD: exactly four shades, Bayer dithering, crisp outlined mini sprites at 2 world units per pixel.",
+      "mood": [
+        "nostalgic",
+        "cosy-spooky",
+        "autumnal",
+        "crisp",
+        "toy-like"
+      ],
+      "bestFor": [
+        "survivor-likes and arena shooters",
+        "top-down adventure / zelda-likes",
+        "farming or harvest games with a spooky twist",
+        "game jams with a strict palette",
+        "monster-collecting RPGs"
+      ],
+      "difficulty": 4,
+      "pixelArt": true,
+      "palette": [
+        "#2a1712",
+        "#7c3a1e",
+        "#e0812c",
+        "#f6d7a1",
+        "#fae4b4",
+        "#2a1712"
+      ],
+      "fonts": [
+        "Press Start 2P",
+        "3x5 bitmap digits (built in)"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/kuerbisboy/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/kuerbisboy/spec.json",
+        "starter": "https://miwale.com/styles/library/kuerbisboy/starter.js",
+        "module": "https://miwale.com/styles/js/styles/kuerbisboy.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/kuerbisboy.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/kuerbisboy_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/kuerbisboy_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/kuerbisboy_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/kuerbisboy_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=kuerbisboy",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=kuerbisboy&mode=sheet",
+      "page": "https://miwale.com/styles/#kuerbisboy"
+    },
+    {
+      "id": "gothic",
+      "name": "Gothic Night",
+      "family": "Pixel Art · Dark",
+      "group": "Pixel art",
+      "tags": [
+        "pixel art",
+        "dark",
+        "gothic",
+        "horror",
+        "night",
+        "lighting",
+        "graveyard",
+        "halloween"
+      ],
+      "summary": "Moonlit cursed churchyard in detailed pixel art: a banded light map darkens a cold world; only faces, lanterns and candles glow warm.",
+      "mood": [
+        "eerie",
+        "melancholic",
+        "atmospheric",
+        "cozy-spooky",
+        "nocturnal"
+      ],
+      "bestFor": [
+        "top-down action / survivor games",
+        "horror roguelites",
+        "dungeon crawlers",
+        "Halloween-themed games",
+        "stealth or light-radius games"
+      ],
+      "difficulty": 6,
+      "pixelArt": true,
+      "palette": [
+        "#0b0910",
+        "#12151e",
+        "#687cb2",
+        "#36292e",
+        "#2a422b",
+        "#4d5464",
+        "#666d7f",
+        "#3a5530",
+        "#7a4428",
+        "#bd5314",
+        "#ffcc4a",
+        "#271f40",
+        "#74244a",
+        "#6c2a76",
+        "#b09c6a",
+        "#6ee03a",
+        "#8aa0c0",
+        "#4ae8ff",
+        "#ff8a1c",
+        "#36d6c0",
+        "#d8343c",
+        "#a8874c"
+      ],
+      "fonts": [
+        "UnifrakturMaguntia",
+        "Silkscreen",
+        "Pirata One",
+        "IM Fell English"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/gothic/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/gothic/spec.json",
+        "starter": "https://miwale.com/styles/library/gothic/starter.js",
+        "module": "https://miwale.com/styles/js/styles/gothic.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/gothic.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/gothic_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/gothic_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/gothic_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/gothic_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=gothic",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=gothic&mode=sheet",
+      "page": "https://miwale.com/styles/#gothic"
+    },
+    {
+      "id": "dusk",
+      "name": "Dusk Grove",
+      "family": "Pixel Art · Modern HD-2D",
+      "group": "Pixel art",
+      "tags": [
+        "pixel art",
+        "hd-2d",
+        "rim light",
+        "bloom",
+        "enchanted forest",
+        "golden hour",
+        "cozy-dark"
+      ],
+      "summary": "Modern HD-2D pixel art: an enchanted forest clearing at golden-to-violet dusk, rim-lit sprites, banded glows, bloom and long shadows.",
+      "mood": [
+        "enchanted",
+        "warm",
+        "melancholic",
+        "cozy",
+        "mysterious"
+      ],
+      "bestFor": [
+        "top-down action roguelites",
+        "survivor-likes",
+        "cozy adventure RPGs",
+        "fairy-tale exploration games",
+        "farming/forest games with a night cycle"
+      ],
+      "difficulty": 7,
+      "pixelArt": true,
+      "palette": [
+        "#150c29",
+        "#4a2c62",
+        "#1a1034",
+        "#246248",
+        "#589250",
+        "#36273a",
+        "#504a69",
+        "#1e3e68",
+        "#ffcfa2",
+        "#8d86ea",
+        "#f79a3e",
+        "#1f6076",
+        "#7426a0",
+        "#7ab3e4",
+        "#7ee0cc",
+        "#ffaa48",
+        "#e8b85a",
+        "#e58bb4",
+        "#9a7fe0",
+        "#fff4dc"
+      ],
+      "fonts": [
+        "Cinzel",
+        "Pixelify Sans"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/dusk/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/dusk/spec.json",
+        "starter": "https://miwale.com/styles/library/dusk/starter.js",
+        "module": "https://miwale.com/styles/js/styles/dusk.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/dusk.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/dusk_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/dusk_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/dusk_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/dusk_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=dusk",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=dusk&mode=sheet",
+      "page": "https://miwale.com/styles/#dusk"
+    },
+    {
+      "id": "cartoon",
+      "name": "Brotato Cartoon",
+      "family": "Vector · Cartoon",
+      "group": "Illustrated",
+      "tags": [
+        "cartoon",
+        "vector",
+        "thick outline",
+        "cel shading",
+        "squash and stretch",
+        "bright",
+        "hd"
+      ],
+      "summary": "Candy-bright HD vector cartoon: thick deep-plum outlines, one cel-shade crescent, one white gloss and bouncy squash & stretch.",
+      "mood": [
+        "cheerful",
+        "bouncy",
+        "toy-like",
+        "punchy",
+        "friendly"
+      ],
+      "bestFor": [
+        "horde survival / bullet-heaven games",
+        "top-down arena shooters",
+        "casual mobile action",
+        "party and co-op games",
+        "kid-friendly adventure"
+      ],
+      "difficulty": 3,
+      "pixelArt": false,
+      "palette": [
+        "#3a2240",
+        "#9ec671",
+        "#79ae5a",
+        "#c8b6da",
+        "#ebd3a0",
+        "#daa070",
+        "#ff952b",
+        "#ffd43f",
+        "#2f9c95",
+        "#86cf4c",
+        "#9b5cd0",
+        "#f8eacb",
+        "#efd49e",
+        "#f6f8ff",
+        "#7b3f99",
+        "#74e690",
+        "#ef5a52",
+        "#fff4de",
+        "#45d6ad",
+        "#321e48"
+      ],
+      "fonts": [
+        "Lilita One",
+        "Fredoka"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/cartoon/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/cartoon/spec.json",
+        "starter": "https://miwale.com/styles/library/cartoon/starter.js",
+        "module": "https://miwale.com/styles/js/styles/cartoon.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/cartoon.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/cartoon_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/cartoon_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/cartoon_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/cartoon_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=cartoon",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=cartoon&mode=sheet",
+      "page": "https://miwale.com/styles/#cartoon"
+    },
+    {
+      "id": "paper",
+      "name": "Paper World",
+      "family": "Papercraft · Cut-paper diorama",
+      "group": "Handcrafted",
+      "tags": [
+        "papercraft",
+        "cut paper",
+        "diorama",
+        "handmade",
+        "felt",
+        "puppet",
+        "cozy",
+        "autumn"
+      ],
+      "summary": "A handmade craft-table diorama: cut construction-paper puppets with white sticker rims and brass split pins on layered kraft, felt and newsprint.",
+      "mood": [
+        "cozy",
+        "handmade",
+        "playful",
+        "warm",
+        "storybook"
+      ],
+      "bestFor": [
+        "top-down action / survivor games",
+        "cozy adventure and farming games",
+        "puzzle and board-game adaptations",
+        "kids' and family games",
+        "seasonal or holiday themes"
+      ],
+      "difficulty": 6,
+      "pixelArt": false,
+      "palette": [
+        "#a87c54",
+        "#c49c6c",
+        "#607c46",
+        "#868440",
+        "#ddd5c0",
+        "#f6eedc",
+        "#fbf6ea",
+        "#3b2a26",
+        "#301a0c",
+        "#e57d2c",
+        "#f59c4c",
+        "#9c4618",
+        "#6e3c6d",
+        "#9c629a",
+        "#d6a43a",
+        "#76a54e",
+        "#4d7a35",
+        "#c4432f",
+        "#36a596",
+        "#d4ac4a"
+      ],
+      "fonts": [
+        "Patrick Hand",
+        "Gochi Hand",
+        "Caveat Brush"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/paper/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/paper/spec.json",
+        "starter": "https://miwale.com/styles/library/paper/starter.js",
+        "module": "https://miwale.com/styles/js/styles/paper.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/paper.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/paper_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/paper_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/paper_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/paper_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=paper",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=paper&mode=sheet",
+      "page": "https://miwale.com/styles/#paper"
+    },
+    {
+      "id": "watercolor",
+      "name": "Watercolor Storybook",
+      "family": "Illustrated · Watercolor",
+      "group": "Painterly",
+      "tags": [
+        "watercolor",
+        "storybook",
+        "ink line",
+        "paper",
+        "painterly",
+        "cozy",
+        "autumn"
+      ],
+      "summary": "Transparent watercolour washes and loose, broken ink lines on warm cold-pressed paper: a living illustrated fairy-tale book.",
+      "mood": [
+        "cozy",
+        "whimsical",
+        "autumnal",
+        "handmade",
+        "gentle"
+      ],
+      "bestFor": [
+        "top-down survivor / action games with a fairy-tale theme",
+        "cozy adventure and farming games",
+        "story-driven RPGs and visual-novel maps",
+        "board-game or storybook map screens"
+      ],
+      "difficulty": 8,
+      "pixelArt": false,
+      "palette": [
+        "#f5eede",
+        "#2a1b14",
+        "#252c46",
+        "#b2c6a2",
+        "#c2cc96",
+        "#dace98",
+        "#8e9c92",
+        "#828aa2",
+        "#e9ce88",
+        "#d8b894",
+        "#e8832f",
+        "#41528a",
+        "#b4432f",
+        "#7a4a8c",
+        "#eee0ba",
+        "#6c8a38",
+        "#d3dbe3",
+        "#b06a3a",
+        "#ffcf55",
+        "#e6a92f",
+        "#c23b2b"
+      ],
+      "fonts": [
+        "IM Fell English SC",
+        "Cormorant Garamond",
+        "Caveat"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/watercolor/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/watercolor/spec.json",
+        "starter": "https://miwale.com/styles/library/watercolor/starter.js",
+        "module": "https://miwale.com/styles/js/styles/watercolor.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/watercolor.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/watercolor_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/watercolor_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/watercolor_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/watercolor_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=watercolor",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=watercolor&mode=sheet",
+      "page": "https://miwale.com/styles/#watercolor"
+    },
+    {
+      "id": "neon",
+      "name": "Neon Midnight",
+      "family": "Vector · Neon",
+      "group": "Graphic",
+      "tags": [
+        "synthwave",
+        "neon",
+        "glow",
+        "line art",
+        "vector",
+        "dark",
+        "holographic",
+        "additive"
+      ],
+      "summary": "Glowing neon tube line-art with baked halos on a near-black holographic floor of circuit, hex and halftone regions.",
+      "mood": [
+        "electric",
+        "nocturnal",
+        "synthwave",
+        "rave",
+        "crisp"
+      ],
+      "bestFor": [
+        "arcade shooters and survivor-likes",
+        "twin-stick and bullet-hell games",
+        "rhythm and music games",
+        "retro-futuristic puzzle games",
+        "top-down action with many enemies"
+      ],
+      "difficulty": 3,
+      "pixelArt": false,
+      "palette": [
+        "#05040d",
+        "#06050f",
+        "#ff7a1a",
+        "#ffae35",
+        "#ffe14a",
+        "#9cff4a",
+        "#ff3ad6",
+        "#b066ff",
+        "#d77bff",
+        "#6ff4ff",
+        "#eaffff",
+        "#b44dff",
+        "#7a38d6",
+        "#8dff2a",
+        "#c6ff3a",
+        "#45f4ff",
+        "#ff9a2e",
+        "#c3b5ff",
+        "#6a5ad0",
+        "#ff2a7a"
+      ],
+      "fonts": [
+        "Orbitron",
+        "Monoton",
+        "Audiowide",
+        "Rajdhani"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/neon/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/neon/spec.json",
+        "starter": "https://miwale.com/styles/library/neon/starter.js",
+        "module": "https://miwale.com/styles/js/styles/neon.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/neon.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/neon_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/neon_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/neon_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/neon_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=neon",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=neon&mode=sheet",
+      "page": "https://miwale.com/styles/#neon"
+    },
+    {
+      "id": "lowpoly",
+      "name": "Low-Poly Diorama",
+      "family": "3D Look · Low Poly",
+      "group": "3D look",
+      "tags": [
+        "low poly",
+        "flat shading",
+        "diorama",
+        "tilt-shift",
+        "autumn",
+        "pastel",
+        "pseudo 3d",
+        "cozy"
+      ],
+      "summary": "A toy-like autumn miniature world of flat-shaded triangle facets in soft afternoon light, with tilt-shift blur at the screen edges.",
+      "mood": [
+        "cozy",
+        "toy-like",
+        "sunny",
+        "autumnal",
+        "playful"
+      ],
+      "bestFor": [
+        "top-down survivor / horde games",
+        "cozy farming or village sims",
+        "tactics and strategy maps",
+        "casual puzzle-adventure",
+        "idle / builder games"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#9cb876",
+        "#c98e57",
+        "#e2cb9c",
+        "#f48a2c",
+        "#e27526",
+        "#ffc43a",
+        "#4b68a3",
+        "#f3e6c8",
+        "#d65d42",
+        "#a77ccf",
+        "#8661b4",
+        "#f3e5bb",
+        "#80b25c",
+        "#c6def6",
+        "#ffa63a",
+        "#4e8d6e",
+        "#4fe3b0",
+        "#2c3263",
+        "#3e3a58",
+        "#fffaf2"
+      ],
+      "fonts": [
+        "Baloo 2",
+        "Nunito"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/lowpoly/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/lowpoly/spec.json",
+        "starter": "https://miwale.com/styles/library/lowpoly/starter.js",
+        "module": "https://miwale.com/styles/js/styles/lowpoly.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/lowpoly.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/lowpoly_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/lowpoly_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/lowpoly_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/lowpoly_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=lowpoly",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=lowpoly&mode=sheet",
+      "page": "https://miwale.com/styles/#lowpoly"
+    },
+    {
+      "id": "linocut",
+      "name": "Linocut",
+      "family": "Printmaking · Linocut",
+      "group": "Graphic",
+      "tags": [
+        "linocut",
+        "woodcut",
+        "print",
+        "ink",
+        "two-color",
+        "folk",
+        "monochrome"
+      ],
+      "summary": "A moving linocut print: cream paper, carbon-black key plate, one misregistered pumpkin-orange spot plate and a sparing teal.",
+      "mood": [
+        "folkloric",
+        "bold",
+        "graphic",
+        "eerie",
+        "handmade"
+      ],
+      "bestFor": [
+        "top-down action and survivor games",
+        "folk-horror and fairy-tale games",
+        "card and board games",
+        "narrative / visual-novel art",
+        "puzzle games with strong silhouettes"
+      ],
+      "difficulty": 6,
+      "pixelArt": false,
+      "palette": [
+        "#f0e7d2",
+        "#1b1715",
+        "#ea6820",
+        "#2e7674",
+        "#e2d6ba",
+        "#0d0b0a"
+      ],
+      "fonts": [
+        "Rye",
+        "Alfa Slab One",
+        "Special Elite"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/linocut/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/linocut/spec.json",
+        "starter": "https://miwale.com/styles/library/linocut/starter.js",
+        "module": "https://miwale.com/styles/js/styles/linocut.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/linocut.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/linocut_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/linocut_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/linocut_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/linocut_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=linocut",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=linocut&mode=sheet",
+      "page": "https://miwale.com/styles/#linocut"
+    },
+    {
+      "id": "nes8bit",
+      "name": "8-Bit Arcade",
+      "family": "Pixel Art · NES 8-bit",
+      "group": "Pixel art",
+      "tags": [
+        "pixel art",
+        "8-bit",
+        "nes",
+        "famicom",
+        "retro",
+        "arcade",
+        "tiles",
+        "black outline"
+      ],
+      "summary": "A lost NES cartridge: strict 2C02 palette, black-outlined 3-colour sprites, tile-language meadows and checker-flicker ghosts.",
+      "mood": [
+        "nostalgic",
+        "punchy",
+        "playful",
+        "arcade",
+        "crisp"
+      ],
+      "bestFor": [
+        "top-down action / survivor games",
+        "arcade shooters",
+        "retro platformers and Zelda-likes",
+        "game jams with strict rules",
+        "chiptune rhythm or score-attack games"
+      ],
+      "difficulty": 3,
+      "pixelArt": true,
+      "palette": [
+        "#000000",
+        "#005800",
+        "#00A800",
+        "#58D854",
+        "#503000",
+        "#AC7C00",
+        "#F0D0B0",
+        "#FCE0A8",
+        "#E45C10",
+        "#F8D878",
+        "#F8B800",
+        "#F83800",
+        "#881400",
+        "#0078F8",
+        "#0000BC",
+        "#0058F8",
+        "#3CBCFC",
+        "#FCFCFC",
+        "#BCBCBC",
+        "#7C7C7C",
+        "#940084",
+        "#D800CC"
+      ],
+      "fonts": [
+        "Press Start 2P"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/nes8bit/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/nes8bit/spec.json",
+        "starter": "https://miwale.com/styles/library/nes8bit/starter.js",
+        "module": "https://miwale.com/styles/js/styles/nes8bit.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/nes8bit.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/nes8bit_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/nes8bit_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/nes8bit_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/nes8bit_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=nes8bit",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=nes8bit&mode=sheet",
+      "page": "https://miwale.com/styles/#nes8bit"
+    },
+    {
+      "id": "stainedglass",
+      "name": "Cathedral Glass",
+      "family": "Mosaic · Stained Glass",
+      "group": "Graphic",
+      "tags": [
+        "stained glass",
+        "mosaic",
+        "lead lines",
+        "jewel tones",
+        "voronoi",
+        "gothic",
+        "backlit"
+      ],
+      "summary": "A living cathedral window: jewel-tone glass pieces in dark lead came, lit from behind by warm light and coloured rays.",
+      "mood": [
+        "luminous",
+        "sacred",
+        "festive",
+        "handcrafted",
+        "storybook"
+      ],
+      "bestFor": [
+        "top-down survivor / horde games",
+        "fairy-tale action RPGs",
+        "puzzle and match games",
+        "holiday or harvest-themed arcade games",
+        "card and board game UIs"
+      ],
+      "difficulty": 7,
+      "pixelArt": false,
+      "palette": [
+        "#17131c",
+        "#544e60",
+        "#2a6e48",
+        "#5f7a33",
+        "#a23a4e",
+        "#c28a38",
+        "#304296",
+        "#646e8a",
+        "#ff8a22",
+        "#ffd23a",
+        "#f2c040",
+        "#2a6e40",
+        "#c4283e",
+        "#9351c8",
+        "#f4e2b4",
+        "#ff5a26",
+        "#e9e9fb",
+        "#7e5a3c",
+        "#e3203c",
+        "#3ac6c6",
+        "#d9ad4e"
+      ],
+      "fonts": [
+        "Cinzel Decorative",
+        "Cinzel"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/stainedglass/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/stainedglass/spec.json",
+        "starter": "https://miwale.com/styles/library/stainedglass/starter.js",
+        "module": "https://miwale.com/styles/js/styles/stainedglass.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/stainedglass.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/stainedglass_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/stainedglass_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/stainedglass_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/stainedglass_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=stainedglass",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=stainedglass&mode=sheet",
+      "page": "https://miwale.com/styles/#stainedglass"
+    },
+    {
+      "id": "clay",
+      "name": "Clay World",
+      "family": "Claymation · Stop-motion plasticine",
+      "group": "Handcrafted",
+      "tags": [
+        "claymation",
+        "plasticine",
+        "stop motion",
+        "soft 3d",
+        "miniature",
+        "cozy",
+        "outline-free"
+      ],
+      "summary": "Stop-motion plasticine miniature set: soft gradient-built clay figures with fingerprints, warm studio light and 12 fps boil.",
+      "mood": [
+        "cozy",
+        "handmade",
+        "playful",
+        "tactile",
+        "warm"
+      ],
+      "bestFor": [
+        "top-down survivor / action games",
+        "cozy adventures and farming",
+        "puzzle and party games",
+        "family-friendly platformers seen from above",
+        "casual mobile games"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#76a454",
+        "#8cac5a",
+        "#66507e",
+        "#986c4a",
+        "#d6a262",
+        "#7ebad2",
+        "#ee7a22",
+        "#3c62a6",
+        "#68ae48",
+        "#f8e0ba",
+        "#8650ac",
+        "#f4e8cc",
+        "#eaf0fc",
+        "#7e5a68",
+        "#ffd458",
+        "#4e1606",
+        "#401a34",
+        "#fffbf0",
+        "#f5ddb8",
+        "#ffca40"
+      ],
+      "fonts": [
+        "Chewy",
+        "Baloo 2"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/clay/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/clay/spec.json",
+        "starter": "https://miwale.com/styles/library/clay/starter.js",
+        "module": "https://miwale.com/styles/js/styles/clay.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/clay.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/clay_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/clay_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/clay_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/clay_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=clay",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=clay&mode=sheet",
+      "page": "https://miwale.com/styles/#clay"
+    },
+    {
+      "id": "chalk",
+      "name": "Chalkboard",
+      "family": "Traditional media · Chalk",
+      "group": "Painterly",
+      "tags": [
+        "chalk",
+        "blackboard",
+        "hand-drawn",
+        "pastel",
+        "hatching",
+        "doodle",
+        "school"
+      ],
+      "summary": "Drawn live with pastel chalk on a slate-green school board: broken grainy strokes, loose hatching, eraser smears and doodles.",
+      "mood": [
+        "playful",
+        "handmade",
+        "nostalgic",
+        "cozy-spooky",
+        "doodly"
+      ],
+      "bestFor": [
+        "top-down survivor / horde games",
+        "kids and educational games",
+        "cozy Halloween games",
+        "puzzle and board-game adaptations",
+        "sketchbook-themed platformers"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#25332d",
+        "#1c2823",
+        "#eeeee5",
+        "#f89c52",
+        "#de6c34",
+        "#c2acec",
+        "#98deb2",
+        "#70bc7e",
+        "#f9e58c",
+        "#f7a8c6",
+        "#9eccf0",
+        "#f4e8ce",
+        "#b08058",
+        "#93663f",
+        "#5c3b22"
+      ],
+      "fonts": [
+        "Cabin Sketch",
+        "Fredericka the Great",
+        "Architects Daughter",
+        "Rock Salt"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/chalk/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/chalk/spec.json",
+        "starter": "https://miwale.com/styles/library/chalk/starter.js",
+        "module": "https://miwale.com/styles/js/styles/chalk.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/chalk.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/chalk_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/chalk_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/chalk_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/chalk_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=chalk",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=chalk&mode=sheet",
+      "page": "https://miwale.com/styles/#chalk"
+    },
+    {
+      "id": "candy",
+      "name": "Trick or Treat",
+      "family": "Rendered Cartoon · Candy Gloss",
+      "group": "Handcrafted",
+      "tags": [
+        "candy",
+        "glossy",
+        "halloween",
+        "cute",
+        "gradients",
+        "sprinkles",
+        "food"
+      ],
+      "summary": "A glossy Halloween candy world: hard-candy shine, gummy jelly, matte marshmallow and chocolate on a melting chocolate floor.",
+      "mood": [
+        "sweet",
+        "playful",
+        "glossy",
+        "festive",
+        "cheeky"
+      ],
+      "bestFor": [
+        "cute horde survivors",
+        "casual arcade games",
+        "match/puzzle games with characters",
+        "holiday events",
+        "kids-friendly action"
+      ],
+      "difficulty": 6,
+      "pixelArt": false,
+      "palette": [
+        "#7e4c32",
+        "#5d3825",
+        "#ec9c3a",
+        "#b25a1a",
+        "#f4acc2",
+        "#a0dab8",
+        "#543226",
+        "#3a1424",
+        "#ff8d1e",
+        "#ffe07a",
+        "#2c1a2a",
+        "#3fd6c1",
+        "#9443d8",
+        "#d83a8e",
+        "#5b52e0",
+        "#55cc48",
+        "#fbf5fb",
+        "#55291a",
+        "#ff5c9e",
+        "#fff3f8"
+      ],
+      "fonts": [
+        "Chewy",
+        "Sniglet"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/candy/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/candy/spec.json",
+        "starter": "https://miwale.com/styles/library/candy/starter.js",
+        "module": "https://miwale.com/styles/js/styles/candy.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/candy.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/candy_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/candy_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/candy_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/candy_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=candy",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=candy&mode=sheet",
+      "page": "https://miwale.com/styles/#candy"
+    },
+    {
+      "id": "crossstitch",
+      "name": "Cross-Stitch Sampler",
+      "family": "Textile · Cross-stitch embroidery",
+      "group": "Pixel art",
+      "tags": [
+        "embroidery",
+        "cross-stitch",
+        "textile",
+        "grid",
+        "cozy",
+        "handmade",
+        "procedural",
+        "folk"
+      ],
+      "summary": "The whole game is a living cross-stitch sampler on Aida cloth: every cell is a real thread X, contours are backstitched.",
+      "mood": [
+        "cozy",
+        "handmade",
+        "nostalgic",
+        "whimsical",
+        "autumnal"
+      ],
+      "bestFor": [
+        "top-down survivors / arena games",
+        "cozy farming or adventure games",
+        "puzzle and board-like games on a grid",
+        "seasonal or holiday games",
+        "roguelites with small readable sprites"
+      ],
+      "difficulty": 3,
+      "pixelArt": false,
+      "palette": [
+        "#dccaa5",
+        "#2b1d1d",
+        "#e2701f",
+        "#ffd23c",
+        "#55843a",
+        "#7c4a2b",
+        "#83479a",
+        "#f3e6bf",
+        "#d5e6f2",
+        "#c3312b",
+        "#1d3f55",
+        "#a24f2a",
+        "#c99a3e",
+        "#43729e",
+        "#9f9a93",
+        "#e58ca2",
+        "#28160c"
+      ],
+      "fonts": [
+        "Grandstander",
+        "Mali"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/crossstitch/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/crossstitch/spec.json",
+        "starter": "https://miwale.com/styles/library/crossstitch/starter.js",
+        "module": "https://miwale.com/styles/js/styles/crossstitch.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/crossstitch.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/crossstitch_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/crossstitch_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/crossstitch_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/crossstitch_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=crossstitch",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=crossstitch&mode=sheet",
+      "page": "https://miwale.com/styles/#crossstitch"
+    },
+    {
+      "id": "popart",
+      "name": "Pop-Art Comic",
+      "family": "Comic · Pop-Art print",
+      "group": "Graphic",
+      "tags": [
+        "comic",
+        "halftone",
+        "ben-day dots",
+        "ink outline",
+        "misregistration",
+        "onomatopoeia",
+        "retro print",
+        "pop art"
+      ],
+      "summary": "A printed 1960s comic book come alive: brush-ink outlines, flat process colours, Ben-Day dots and slipped colour plates.",
+      "mood": [
+        "loud",
+        "playful",
+        "punchy",
+        "retro",
+        "spooky-fun"
+      ],
+      "bestFor": [
+        "arena survivors / bullet heaven",
+        "beat-'em-ups and brawlers",
+        "top-down action with big hordes",
+        "superhero or Halloween party games",
+        "card/upgrade screens with strong UI"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#1b1620",
+        "#f4ecd4",
+        "#ede9c7",
+        "#ffe23a",
+        "#e8262c",
+        "#2ec4ef",
+        "#e0338f",
+        "#ff8a1c",
+        "#2c6ad0",
+        "#ea2a33",
+        "#3fae49",
+        "#d4308c",
+        "#8a3cc0",
+        "#fdeabb",
+        "#fcfbf4",
+        "#8a3a86",
+        "#fad880",
+        "#c8d2e8",
+        "#e0d3de",
+        "#ffe94a"
+      ],
+      "fonts": [
+        "Bangers",
+        "Comic Neue"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/popart/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/popart/spec.json",
+        "starter": "https://miwale.com/styles/library/popart/starter.js",
+        "module": "https://miwale.com/styles/js/styles/popart.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/popart.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/popart_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/popart_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/popart_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/popart_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=popart",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=popart&mode=sheet",
+      "page": "https://miwale.com/styles/#popart"
+    },
+    {
+      "id": "vangogh",
+      "name": "Starry Night",
+      "family": "Traditional media · Impasto oil painting",
+      "group": "Painterly",
+      "tags": [
+        "oil painting",
+        "impasto",
+        "post-impressionist",
+        "brush strokes",
+        "night",
+        "swirls",
+        "painterly"
+      ],
+      "summary": "A living Van Gogh night painting: every surface is thick, swirling impasto brush strokes in ultramarine, viridian and cadmium yellow.",
+      "mood": [
+        "dreamy",
+        "vibrant",
+        "nocturnal",
+        "restless",
+        "artful"
+      ],
+      "bestFor": [
+        "top-down action / survivor games",
+        "atmospheric adventure games",
+        "art-themed or museum games",
+        "cozy night exploration",
+        "short arthouse games"
+      ],
+      "difficulty": 8,
+      "pixelArt": false,
+      "palette": [
+        "#141c30",
+        "#111733",
+        "#2e5944",
+        "#70944e",
+        "#142a20",
+        "#866c2a",
+        "#bc9a3e",
+        "#3d4180",
+        "#26579c",
+        "#26409a",
+        "#4a76cc",
+        "#d86c1e",
+        "#c8341e",
+        "#ffd040",
+        "#ffe070",
+        "#fff6c8",
+        "#763896",
+        "#e2d09a",
+        "#a2d0d2",
+        "#d8aa48"
+      ],
+      "fonts": [
+        "Cinzel",
+        "Caveat Brush",
+        "Alegreya"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/vangogh/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/vangogh/spec.json",
+        "starter": "https://miwale.com/styles/library/vangogh/starter.js",
+        "module": "https://miwale.com/styles/js/styles/vangogh.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/vangogh.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/vangogh_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/vangogh_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/vangogh_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/vangogh_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=vangogh",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=vangogh&mode=sheet",
+      "page": "https://miwale.com/styles/#vangogh"
+    },
+    {
+      "id": "shadow",
+      "name": "Shadow Theatre",
+      "family": "Silhouette · Paper Shadow Puppets",
+      "group": "Graphic",
+      "tags": [
+        "silhouette",
+        "shadow puppet",
+        "cut paper",
+        "backlit",
+        "lace",
+        "halloween",
+        "gothic fairy tale",
+        "glow"
+      ],
+      "summary": "Backlit paper shadow-puppet theatre: indigo-black cut-paper silhouettes over glowing teal, violet, crimson and amber light fields.",
+      "mood": [
+        "fairy-tale gothic",
+        "warm",
+        "mysterious",
+        "theatrical",
+        "cosy-spooky"
+      ],
+      "bestFor": [
+        "survivor-likes and hordes with many enemies",
+        "halloween or folklore action games",
+        "puzzle-platformers with silhouette art",
+        "storybook adventures",
+        "rhythm games with a stage theme"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#0b0510",
+        "#16081c",
+        "#ffc662",
+        "#ea7a2c",
+        "#fff0c4",
+        "#f26a52",
+        "#b02a42",
+        "#b682dc",
+        "#6840a2",
+        "#76ccc6",
+        "#2c748c",
+        "#fffbe2",
+        "#ffd65e",
+        "#ff6a10",
+        "#ffb24a",
+        "#d8ff62",
+        "#ff5ad2",
+        "#dcefff",
+        "#1c0f36",
+        "#3fe0d8",
+        "#2a0a20",
+        "#ffd98a"
+      ],
+      "fonts": [
+        "Cinzel",
+        "IM Fell English SC",
+        "Cormorant Garamond"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/shadow/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/shadow/spec.json",
+        "starter": "https://miwale.com/styles/library/shadow/starter.js",
+        "module": "https://miwale.com/styles/js/styles/shadow.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/shadow.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/shadow_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/shadow_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/shadow_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/shadow_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=shadow",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=shadow&mode=sheet",
+      "page": "https://miwale.com/styles/#shadow"
+    },
+    {
+      "id": "voxel",
+      "name": "Voxel Cube World",
+      "family": "3D Look · Voxel",
+      "group": "3D look",
+      "tags": [
+        "voxel",
+        "magicavoxel",
+        "isometric",
+        "3d look",
+        "autumn",
+        "toy",
+        "bright"
+      ],
+      "summary": "A bright MagicaVoxel-style miniature world: every actor is a real 3D cube grid, baked to sprites under one warm afternoon sun.",
+      "mood": [
+        "cheerful",
+        "toy-like",
+        "cozy",
+        "crisp",
+        "sunny"
+      ],
+      "bestFor": [
+        "top-down survivor / arena games",
+        "farming and village sims",
+        "tactics and roguelikes",
+        "builder and puzzle games",
+        "casual mobile action"
+      ],
+      "difficulty": 3,
+      "pixelArt": false,
+      "palette": [
+        "#6da548",
+        "#94949a",
+        "#cfa86e",
+        "#8e5d3a",
+        "#b47643",
+        "#4aa6dc",
+        "#7e5536",
+        "#f7842a",
+        "#ffd84a",
+        "#36325f",
+        "#22b8a2",
+        "#9b54d2",
+        "#f4e9cc",
+        "#f6faff",
+        "#6c3e88",
+        "#5df0b6",
+        "#2f6e4c",
+        "#2b2446",
+        "#151024",
+        "#ffc23e"
+      ],
+      "fonts": [
+        "Bungee",
+        "Chakra Petch"
+      ],
+      "files": {
+        "spec": "https://miwale.com/styles/library/voxel/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/voxel/spec.json",
+        "starter": "https://miwale.com/styles/library/voxel/starter.js",
+        "module": "https://miwale.com/styles/js/styles/voxel.js"
+      },
+      "screenshots": [
+        {
+          "label": "Gameplay",
+          "url": "https://miwale.com/styles/shots/voxel.webp"
+        },
+        {
+          "label": "Late game",
+          "url": "https://miwale.com/styles/shots/voxel_late.webp"
+        },
+        {
+          "label": "World map",
+          "url": "https://miwale.com/styles/shots/voxel_map.webp"
+        },
+        {
+          "label": "Level-up screen",
+          "url": "https://miwale.com/styles/shots/voxel_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/voxel_zoom.webp"
+        }
+      ],
+      "demo": "https://miwale.com/styles/sandbox.html?style=voxel",
+      "assetSheet": "https://miwale.com/styles/sandbox.html?style=voxel&mode=sheet",
+      "page": "https://miwale.com/styles/#voxel"
+    }
+  ]
+}

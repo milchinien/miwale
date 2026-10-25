@@ -1,0 +1,127 @@
+{
+  "id": "nes8bit",
+  "name": "8-Bit Arcade",
+  "originalName": "8-Bit Arcade",
+  "family": "Pixel Art · NES 8-bit",
+  "tags": ["pixel art", "8-bit", "nes", "famicom", "retro", "arcade", "tiles", "black outline"],
+  "summary": "A lost NES cartridge: strict 2C02 palette, black-outlined 3-colour sprites, tile-language meadows and checker-flicker ghosts.",
+  "description": "Looks like a game from a forgotten NES/Famicom cartridge. Every colour comes from the NES PPU palette, every sprite has at most three colours plus a 1-px black outline, and the world is built from flat colour areas with hard tile-style edges: dark-green meadow with light-green lips, brown forest floor behind black cliff lines, ochre dirt roads, navy ponds, grey brick graveyards. There is no anti-aliasing, no gradient and no alpha anywhere in the world; transparency is a checkerboard and invulnerability is sprite flicker, so the screen reads like real 1986 hardware.",
+  "mood": ["nostalgic", "punchy", "playful", "arcade", "crisp"],
+  "bestFor": ["top-down action / survivor games", "arcade shooters", "retro platformers and Zelda-likes", "game jams with strict rules", "chiptune rhythm or score-attack games"],
+  "avoidFor": ["moody atmospheric horror", "painterly or soft cozy games", "games needing subtle lighting or many similar unit types", "high-resolution UI-heavy strategy"],
+  "difficulty": { "stars": 3, "why": "Small sprites as text grids; the strict NES rules actually help, because there are fewer decisions to make." },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": { "scale": 1.5 },
+    "resolution": "1 art pixel = 1.5 world units, so the 360-unit-tall view is a 240-row art buffer (NES height). Display scale up = max(1, round(screenH / 240)), buffer = ceil(screen / up), nearest-neighbour upscale. Ground chunks of 256 world units bake at 171 × 171 px.",
+    "summary": "All sprites are text grids (one char per pixel) mapped to NES colours by a builder that adds a 1-px black outline automatically; the ground is a material map evaluated on a 2×2-pixel block grid with tile-language edge rules (lip, cliff, ring) and hashed decal glyphs. Everything is blitted at whole art pixels.",
+    "linework": "1-px pure black #000000 outline around every sprite, generated from the 4-neighbourhood of filled pixels (8-neighbour for damage digits). Ground boundaries are single 1-px lines: black between grass and forest/water/plaza, light-green #00A800 lip on grass, ochre lip on forest, dark-brown edge on roads, sand lip where road meets water.",
+    "shading": "Flat colour fills. Volume comes from one light and one dark accent per sprite (e.g. tree canopy: light #58D854 crescent upper-left, black arc lower-right) and checkerboard dithering of black for shade. No gradients, no blending.",
+    "lighting": "No light system. The world is evenly lit; the only 'lighting' is the lantern sprite blinking between gold #F8B800 and white glass at 4 Hz and white-hot explosion cores.",
+    "texture": "No noise texture. Surfaces get NES tile decals instead: 2-row grass tufts on an 8-px grid, 3×3 flowers, 1–2 px red/ochre leaf litter and black twigs on forest floor, pebbles on roads, a 12 × 6 running-bond brick tile on plazas, 2-frame animated wave glyphs on water."
+  },
+  "palette": [
+    { "name": "Black", "hex": "#000000", "role": "Outlines, cliff lines, shadows, HUD and menu backgrounds" },
+    { "name": "Meadow dark green", "hex": "#005800", "role": "Grass base, ~50% of the screen" },
+    { "name": "Leaf green", "hex": "#00A800", "role": "Grass tufts, grass lip at edges, tree canopy, sprite leaves" },
+    { "name": "Light green", "hex": "#58D854", "role": "Canopy and bush highlights" },
+    { "name": "Dark brown", "hex": "#503000", "role": "Forest floor base, road edge, brute feet" },
+    { "name": "Ochre", "hex": "#AC7C00", "role": "Dirt road, forest lip, autumn canopy, brute body, fence wood" },
+    { "name": "Sand", "hex": "#F0D0B0", "role": "Road-to-water lip, light pebbles" },
+    { "name": "Cream", "hex": "#FCE0A8", "role": "Enemy faces/bodies, seed projectile, lantern glass" },
+    { "name": "Orange", "hex": "#E45C10", "role": "Hero pumpkin head, pumpkins, projectile trail" },
+    { "name": "Yellow", "hex": "#F8D878", "role": "Hero carved face, autumn canopy highlight" },
+    { "name": "Gold", "hex": "#F8B800", "role": "Big gems, crits, lantern glow, flowers, explosion ring" },
+    { "name": "Red", "hex": "#F83800", "role": "Hearts, HUD labels, explosion rays, flash colour" },
+    { "name": "Dark red", "hex": "#881400", "role": "Tree trunks, empty hearts, leaf litter, pumpkin ribs" },
+    { "name": "Royal blue", "hex": "#0078F8", "role": "Hero overalls" },
+    { "name": "Navy", "hex": "#0000BC", "role": "Water base" },
+    { "name": "Blue", "hex": "#0058F8", "role": "Water ring, small-gem shade, XP bar gaps" },
+    { "name": "Sky cyan", "hex": "#3CBCFC", "role": "Ghost tail, small gems, XP bar fill, wave tops" },
+    { "name": "White", "hex": "#FCFCFC", "role": "Ghosts, tombstones, HUD text, window borders, sparks" },
+    { "name": "Light grey", "hex": "#BCBCBC", "role": "Plaza highlight, stone, dead trees" },
+    { "name": "Mid grey", "hex": "#7C7C7C", "role": "Plaza bricks, rocks" },
+    { "name": "Purple", "hex": "#940084", "role": "Small enemy and brute heads, lantern cap" },
+    { "name": "Magenta", "hex": "#D800CC", "role": "Second small-enemy palette variant" }
+  ],
+  "paletteRules": [
+    "Only colours from the NES 2C02 master palette; no tints, no mixes, no alpha in the world.",
+    "Each sprite layer uses at most 3 colours plus the black outline (hero head+body shares orange, yellow, green, blue as two stacked NES sprites).",
+    "Ground is roughly 50% #005800 green, 25% #503000 forest floor, 10% #AC7C00 road, the rest water/stone/decals.",
+    "Every enemy family is a palette swap: same grid, different map (purple vs magenta creepers, white+cyan ghosts).",
+    "Damage flash is a palette swap to white/red/pink, never a white overlay.",
+    "Pure black is reserved for outlines, cliff lines, shadows and UI windows."
+  ],
+  "typography": [
+    {
+      "family": "Press Start 2P",
+      "weights": [400],
+      "role": "Everything: HUD labels, numbers, menus, level-up cards",
+      "source": "Google Fonts",
+      "sample": "-LIFE-  22:09  x106",
+      "css": "font: 16px/1 'Press Start 2P', monospace; color: #fcfcfc; text-shadow: none; letter-spacing: 0; text-transform: uppercase;"
+    }
+  ],
+  "background": {
+    "summary": "A top-down overworld made of five flat materials (grass, forest floor, road, water, stone plaza) classified on a 2×2-art-pixel block grid from noise fields, then outlined with NES tile edge rules and stamped with tiny decal glyphs. Water waves animate with 2 frames.",
+    "layers": [
+      "Material map per 2×2 px block: plaza (octagon rect) > water (warped noise < 0.335) > road (distance to two noise-curve roads < 11 units) > forest (warped noise > 0.555) > grass",
+      "Base fills: grass #005800, forest #503000, road #AC7C00, water #0000BC, plaza brick tile #7C7C7C/#BCBCBC/#000000",
+      "Edge pixels: grass lip #00A800, black cliff forest/grass, ochre forest lip vs road/water, dark-brown road edge, sand road lip vs water, black + blue ring around water, black + light-grey ring around plazas",
+      "Decals (never on edge pixels): grass tufts on 8-px grid, flowers on 19-px grid, leaf litter on 5-px grid and twigs on 17-px grid on forest, pebbles on 7-px grid on roads",
+      "Per frame: 2-frame wave glyphs (cyan or blue, 5×2 px) toggling at 2.2 Hz on water anchors",
+      "Props as outlined sprites: round trees, autumn trees, dead grey trees, bushes, rocks, pumpkins, fences, signposts, tombstones and a statue on plazas"
+    ]
+  },
+  "characters": {
+    "summary": "The hero is a 13 × 19 px grid (+1 px outline = 15 × 21, about 22 × 31 world units): a 10-row pumpkin head (orange #E45C10 with yellow #F8D878 carved eyes and zig-zag mouth, green stem) over a 7-row blue #0078F8 overall body with green vine sleeves and 2-row legs. Two walk frames (legs together/apart), a 1-px idle bob, mirrored for facing left.",
+    "rules": [
+      "Every sprite is a text grid; the builder adds the 1-px black outline, never draw it by hand",
+      "Max 3 colours + black per sprite part; big round head on a small body (head is 10 of 19 rows)",
+      "Faces are 1–2 px black eyes and a checkered mouth row (k/c alternation) — readable at 1×",
+      "Exactly 2 animation frames per actor; facing = horizontal flip of the canvas",
+      "Feet anchor: sprite bottom row sits on the actor's world y, snapped to whole art pixels",
+      "Hurt = palette swap (white head, red body); invulnerability = skip drawing every other 2-frame window"
+    ]
+  },
+  "effects": [
+    { "name": "Explosion (enemy death)", "how": "4 procedural frames on a (ceil(18R)|1)² grid, no outline: white core + gold cross, white/gold disc with red diagonal rays, red/gold checker ring, 8 flying bits. R = 1, 1.7 for brutes. Each frame lasts 1/4 of the 1-s death." },
+    { "name": "Spawn puff", "how": "3 frames of white/light-grey circle blobs on a 17 × 15 grid (outlined), last frame 7 small grey dots in a ring without outline; 0.2 s per frame." },
+    { "name": "Checker transparency", "how": "Ghost tails and the hero's dash afterimages drop every other pixel ((x + y + parity) & 1); parity flips every 2 frames so the tail shimmers like NES sprite multiplexing." },
+    { "name": "Pixel particles", "how": "Hit and kill debris are 1–2 px squares in the enemy's own colours with gravity 160–220; they blink (skip odd frames) in their last 30% of life." },
+    { "name": "Star sparkle", "how": "3-frame white/gold (cyan for small gems) plus-star: 3×3 plus, 5×5 star, 4 corner dots. Used on pickup, hurt and level-up ring of 10." },
+    { "name": "Seed projectile", "how": "2×2 cream/white square (outlined to 4×4), alternating colour every frame, with a 1-px gold/cream dot 4 px behind and an orange dot 7 px behind." },
+    { "name": "Damage numbers", "how": "3×5 bitmap digits with 1-px gap, white; crits gold at 2× scale; 8-neighbour black outline; blink in the last 25% of life." }
+  ],
+  "ui": {
+    "summary": "A solid black NES status bar across the top: red uppercase labels (-LIFE-, XP), a row of 8 × 7 px Zelda hearts at 3×, a big white clock, kill counter with a tiny enemy icon, a segmented cyan/blue XP bar with a 4-px white frame. Menus are black windows with double white borders; level-up and game-over screens dim the world with a black checker dither.",
+    "css": ".hud { font-family: 'Press Start 2P', monospace; color: #fcfcfc; background: #000; padding: 14px 32px 12px; box-shadow: 0 4px 0 #000; image-rendering: pixelated; }\n.hud .label { font-size: 16px; color: #f83800; text-transform: uppercase; }\n.hud .clock { font-size: 32px; color: #fcfcfc; text-shadow: none; }\n.xp { height: 16px; background: #000; box-shadow: 0 0 0 4px #fcfcfc; border-radius: 0; }\n.xp-fill { height: 100%; background: repeating-linear-gradient(90deg, #3cbcfc 0 8px, #0058f8 8px 12px, #000 12px 16px); transition: none; }\n.window { background: #000; border: 4px solid #fcfcfc; border-radius: 0; box-shadow: 0 0 0 4px #000, inset 0 0 0 4px #000, inset 0 0 0 8px #fcfcfc; }\n.dim { background: repeating-conic-gradient(#000 0 25%, transparent 0 50%) 0 0 / 8px 8px; }\n@keyframes nesblink { 0% { opacity: 1; } 50% { opacity: 0; } }\n.blink { animation: nesblink 1s steps(1) infinite; }"
+  },
+  "motion": [
+    "Exactly 2 frames for every walk cycle: hero at the run anim rate, small enemies at anim × 1.6, brute at anim × 1.2 (one dust puff per footfall).",
+    "Idle bob: 1 art pixel toggled at 1.8 Hz; ghosts hover 3–4 px above their shadow, toggling at 2 Hz.",
+    "Gems spin with the frame sequence 0,0,0,1,2,3 at 9 fps and bob 1 px at 2.5 Hz.",
+    "No easing and no sub-pixel motion: positions round to whole art pixels; CSS transitions are none and blinks use steps(1).",
+    "Invulnerability flicker: skip drawing when (frameCounter & 2); fading particles and numbers blink the same way.",
+    "Water waves and lanterns use 2-frame toggles (2.2 Hz and 4 Hz)."
+  ],
+  "do": [
+    "Encode every sprite as a text grid with a char→colour map and let the builder add the black outline.",
+    "Keep each sprite to 3 colours + black and choose all colours from the NES palette list.",
+    "Snap every blit to whole art pixels (Math.round of the screen position) and upscale with smoothing off.",
+    "Use checkerboard pixels for transparency and shadows, flicker for invulnerability.",
+    "Make new enemies by palette-swapping existing grids before drawing new ones.",
+    "Give ground boundaries a 1-px lip or black cliff line so areas read like NES tiles.",
+    "Use Press Start 2P at multiples of 8 px for all text, uppercase labels in red #F83800."
+  ],
+  "dont": [
+    "No gradients, glows, blur, alpha fades or anti-aliased shapes in the world.",
+    "No colours outside the NES palette (no #333 greys, no pastel tints).",
+    "No outlines in a colour other than black, and no 2-px outlines.",
+    "No rotation or scaling of sprites — use extra frames or flips instead.",
+    "No more than 2 animation frames for ordinary actors.",
+    "No smooth tweened UI: no rounded corners, no drop-shadow blur, no transitions.",
+    "No noise textures on the ground — only flat fills plus small glyph decals."
+  ],
+  "performance": "Cheap. All sprites (2 frames × 2 facings × palette variants, effect frames, shadows) are baked once at init into tiny canvases; damage numbers are cached per value. Ground chunks (171 × 171 px) are baked incrementally with a generator that samples the noise fields on an 8-px grid and bilinearly interpolates; per frame only drawImage blits, a handful of wave fillRects and an optional scanline pattern (only when the upscale is ≥ 3) are drawn."
+}

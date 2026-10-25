@@ -408,6 +408,52 @@ ohne `play.miwale.com` bleibt Anmelden aus.
 
 Secrets gehoeren nur in die `.env` auf dem Server, nie ins Repository.
 
+## Game Style Library (miwale.com/styles)
+
+Eine offene Seite **für KIs**: 20 fertige, spielbare Grafik-Styles, so genau
+beschrieben, dass eine KI sie für ein anderes Spiel übernehmen kann. Viele KIs
+erfinden schlechte Styles; hier kopieren sie einen, der funktioniert. Alle
+Styles stammen aus dem Game-Jam-Prototyp *Jack vs. the Turnip Ancestors*:
+dasselbe Spiel, 20 komplett verschiedene Looks. Die Texte sind englisch.
+
+Jeder Style liegt in `public/styles/library/<id>/` mit drei handgeschriebenen
+Dateien – das Format steht in `public/styles/library/AUTHORING.md`:
+
+| Datei | Inhalt |
+| --- | --- |
+| `STYLE.md` | Die vollständige Spec mit festen Abschnitten: Palette, Schriften, Render-Technik, Boden, Figuren, Effekte, Licht, HUD, Bewegung, Do/Don't, Schritt-für-Schritt-Rezept, Code, Anpassen, Performance, fertiger Prompt |
+| `spec.json` | Dieselben Fakten als Tokens (Hex-Werte, Schriften mit CSS, Technik, Regeln) |
+| `starter.js` | Starter-Code ohne Abhängigkeiten: Palette, Kern-Techniken und `draw(ctx, w, h, t)`, das eine Vorschau-Szene malt |
+
+Die Referenz-Implementierung jedes Styles bleibt das Modul in
+`public/styles/js/styles/<id>.js` auf dem kleinen Spielkern in `js/core/`.
+
+Die Seite selbst (`index.html`, `css/library.css`, `js/library.js`) ist nur
+die Ansicht: Raster mit Filter und Suche, und pro Style ein Fenster mit
+Screenshots, **Play demo** (`sandbox.html`: das Original-Modul in einer kleinen
+Arena, der Held stirbt nicht), **Asset sheet** (`sandbox.html?mode=sheet`: alle
+Figuren, Pickups und Effekte nebeneinander), **Starter preview**
+(`library/_kit/starter.html`) und den Tabs Overview, Tokens, Recipe, Code,
+Prompt und Full spec. „Copy prompt" legt Spec und Starter-Code als eine
+Nachricht in die Zwischenablage. `#<id>` in der Adresse öffnet das Fenster.
+
+Für Maschinen erzeugt `node tools/build-styles.mjs` aus den Library-Ordnern
+`styles.json`, `llms.txt` (Einstieg nach llmstxt.org), `llms-full.txt` (alle
+Specs in einer Datei) und die statische Linkliste in `index.html`. nginx
+liefert diese Dateien als UTF-8-Text mit `Access-Control-Allow-Origin: *`
+aus; die Seite ist nicht mehr `noindex`.
+
+Prüfen:
+
+```bash
+node --test tools/styles.test.mjs   # Schema, Vollständigkeit, generierte Dateien aktuell (läuft in der CI)
+node tools/check-styles.mjs [id]    # zusätzlich im Browser: starter.js zeichnet, Vorschau-PNG zum Vergleichen
+```
+
+Ein neuer Style: Modul nach `js/styles/`, Screenshots nach `shots/`, Ordner
+`library/<id>/` nach `AUTHORING.md`, Gruppe in `GROUPS` von
+`tools/build-styles.mjs`, dann `node tools/build-styles.mjs`.
+
 ## Adresse und Verlauf
 
 Der sichtbare Zustand des Portfolios steht in kurzen Adressen: `/portfolio`
