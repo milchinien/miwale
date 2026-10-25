@@ -523,8 +523,13 @@ hat, sieht nur die Anleitung.
   `pnpm zentrale:installieren`.
 - **Projekte** findet der Agent selbst: alle Ordner mit `package.json` und
   einem Skript `dev`, `start`, `serve` oder `develop`, auf allen Laufwerken.
-  Paketmanager aus `packageManager` oder der Lock-Datei; fehlt `node_modules`,
-  installiert der Start zuerst. Weitere Suchordner und Ausgeblendetes stehen in
+  Paketmanager aus `packageManager` oder der Lock-Datei. Vor jedem Start prueft
+  der Agent, ob Node jedes Paket aus der `package.json` wirklich findet (nach
+  dem Verschieben eines Projekts zeigen pnpms Links ins Leere) und installiert
+  sonst zuerst. Scheitert der Start trotzdem, repariert er einmal selbst:
+  neu installieren, und klappt das nicht, `node_modules` neu aufbauen. Fehlt
+  pnpm/yarn auf dem Rechner, kommt es ueber `npx`. Nur gegen einen belegten
+  Port hilft das nicht -- dann sagt die Seite, wer ihn hat. Weitere Suchordner und Ausgeblendetes stehen in
   `%LOCALAPPDATA%\miwale-dev\einstellungen.json`, Logs je Projekt in `logs\`.
 - **Laufende Server:** jede Instanz einzeln, auch zwei aus demselben Ordner.
   Gezaehlt werden Node, Bun, Deno, Python & Co. mit offenem Port; zugeordnet
