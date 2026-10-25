@@ -3,7 +3,7 @@
    Technique: 1 art pixel = 1 world unit. Sprites are painted per pixel from shaded shapes, quantised into
    hand-picked ramps with Bayer-8 dither and wrapped in a near-black outline. Colours are authored "fully lit";
    a banded light map (moonlight ambient + warm point lights) is MULTIPLIED onto the ground (100 %) and the
-   entities (55 %), then bloom is added and emissive pixels (eyes, lanterns, seeds, embers) are drawn unlit. */
+   characters and props (55 %), then bloom is added and emissive pixels (eyes, lanterns, seeds, embers) are drawn unlit. */
 (function (root) {
   'use strict';
   const hx = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -76,7 +76,7 @@
   function flipX(src) { const { c, ctx } = canvas(src.width, src.height); ctx.translate(src.width, 0); ctx.scale(-1, 1); ctx.drawImage(src, 0, 0); return c; }
   const rec = (p, ax, ay, eyes) => { const r = p.canvas(); return { r, l: flipX(r), w: p.w, h: p.h, ax, ay, eyes: eyes || [], eyesL: (eyes || []).map((e) => [p.w - 1 - e[0], e[1], e[2]]) }; };
 
-  // ---------- hero: pumpkin head with carved face, cloak, scarf (6 frames: 4 walk + 2 idle) ----------
+  // ---------- main character: pumpkin head with carved face, cloak, scarf (6 frames: 4 walk + 2 idle) ----------
   const FACE = [[-4, 0, 0], [4, 0, 0], [-4, 1, 1], [-3, 1, 0], [3, 1, 0], [4, 1, 1], [-4, 2, 1], [-3, 2, 2], [-2, 2, 1], [2, 2, 1], [3, 2, 2], [4, 2, 1], [0, 3, 1], [-4, 4, 0], [4, 4, 0],
     [-4, 5, 1], [-3, 5, 2], [-1, 5, 2], [0, 5, 2], [1, 5, 2], [3, 5, 2], [4, 5, 1], [-3, 6, 1], [-2, 6, 2], [-1, 6, 1], [1, 6, 1], [2, 6, 2], [3, 6, 1]];
   const JW = 22, JH = 34;
@@ -120,7 +120,7 @@
   /** Emissive face overlay (drawn after the light): level -1/0/+1 = flicker brightness. */
   function makeFace(level) { const p = new Pix(JW + 2, JH + 2); for (const [dx, dy, lv] of FACE) p.set(13 + dx, 7 + dy, PAL.face[clamp(lv + level, 0, 3)]); const r = p.canvas(); return { r, l: flipX(r) }; }
 
-  // ---------- small melee enemy: turnip bulb (purple top dithered into cream), leaves, glowing green eyes ----------
+  // ---------- small creature: root bulb (purple top dithered into cream), leafy top, glowing green eyes ----------
   function makeCreeper(fr, vari) {
     const p = new Pix(20, 26), PU = vari ? PAL.tPurple2 : PAL.tPurple, CR = PAL.tCream, LF = PAL.tLeaf, WI = PAL.tWilt;
     const bob = [0, -1, 0, -1][fr], tilt = [0, 1, 0, -1][fr], cx = 9.5 + tilt * 0.5, cy = 14 + bob;
@@ -158,7 +158,7 @@
     const o = p.outline(OUT);
     return rec(o, 11, o.h - 1, eyes.filter((e) => e[2] > 0).map(([x, y, l]) => [x + 1, y + 1, cs(PAL.eyeG[l + 1])]));
   }
-  // ---------- fast enemy: skeletal ghost, reaching arm, wavy tail that dissolves in Bayer dither ----------
+  // ---------- fast creature: skeletal ghost, reaching arm, wavy tail that dissolves in Bayer dither ----------
   function makeGhost(fr) {
     const p = new Pix(27, 28), GH = PAL.ghost, ph = (fr * Math.PI) / 2, reach = [0, 1, 2, 1][fr], cx = 11;
     p.line(cx - 2, 11, cx + 6 + reach, 15, (x, y, n) => GH[n < 3 ? 2 : 3]); p.line(cx + 6 + reach, 15, cx + 9 + reach, 14, GH[2]); p.line(cx + 6 + reach, 15, cx + 9 + reach, 16, GH[2]);
@@ -177,7 +177,7 @@
     for (let y = 22; y < o.h; y++) for (let x = 0; x < o.w; x++) if (dith(x, y) < (y - 21) / 8) o.del(x, y);
     return rec(o, 12, o.h - 1, [[fx - 1, 6, cs(PAL.eyeC[2])], [fx + 2, 6, cs(PAL.eyeC[2])], [fx - 2, 6, cs(PAL.eyeC[1])], [fx + 3, 6, cs(PAL.eyeC[1])]]);
   }
-  // ---------- props + pickups ----------
+  // ---------- props + collectibles + orbiting lanterns ----------
   /** Rounded gravestone: lit front face + 2-px extruded side, moss on top/bottom, near-black outline. */
   function makeGrave(seed) {
     const W = 16, H = 22, cx = 6, base = 19, rng = R(seed), id = new Uint8Array(W * H), tn = new Float32Array(W * H);
@@ -298,7 +298,7 @@
   }
 
   const flick = (t, s) => 0.86 + 0.09 * Math.sin(t * 7.3 + s * 17.1) * Math.cos(t * 3.1 + s) + 0.05 * Math.sin(t * 23 + s * 40);
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. Unlit body; the face is emissive (see draw()). */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Unlit body; the face is emissive (see draw()). */
   function drawHero(ctx, x, y, t, facing, moving) {
     if (!SPR) init();
     const s = SPR.hero[moving === false ? 4 + (Math.floor(t * 1.6) & 1) : Math.floor(t * 8) & 3], flip = facing < 0;
@@ -306,7 +306,7 @@
     ctx.drawImage(flip ? s.l : s.r, dx, dy);
     return { dx, dy, s, flip };
   }
-  /** Draws a typical enemy with feet at (x, y). kind 'creeper' | 'creeper2' | 'ghost'. Returns eye pixels for the emissive pass. */
+  /** Draws a typical creature with feet at (x, y). kind 'creeper' | 'creeper2' | 'ghost'. Returns eye pixels for the emissive pass. */
   function drawEnemy(ctx, x, y, t, kind, facing, seed) {
     if (!SPR) init();
     const ghost = kind === 'ghost', s = ghost ? SPR.ghost[Math.floor(t * 7 + (seed || 0) * 4) & 3] : SPR.creeper[kind === 'creeper2' ? 1 : 0][Math.floor(t * 6 + (seed || 0) * 3) & 3];
@@ -327,7 +327,7 @@
     b.drawImage(G.c, 0, 0);
     for (const [sc, sx, sy, fa] of [[2, t * 5, t * 1.5, 1], [1, -t * 7 + 90, t * 2 + 40, 0.6]]) { const T = 128 * sc; b.globalAlpha = fa; for (let y = ((sy % T) - T) | 0; y < H; y += T) for (let x = ((sx % T) - T) | 0; x < W; x += T) b.drawImage(SPR.fog, x, y, T, T); }
     b.globalAlpha = 1;
-    // actors
+    // characters, props, collectibles, orbiting lanterns, projectile
     const hx0 = cx + Math.sin(t * 0.5) * 8, hy0 = cy + 8, orbs = [0, 1].map((k) => { const a = t * 2.2 + k * Math.PI; return [hx0 + Math.cos(a) * 30, hy0 - 6 + Math.sin(a) * 18]; });
     const graves = [[cx - 150, cy - 40, 0], [cx - 112, cy - 58, 1], [cx + 120, cy - 70, 2], [cx + 168, cy + 4, 0], [cx - 60, cy + 72, 1], [cx + 70, cy - 104, 2]];
     const foes = [['creeper', 60, -26], ['creeper2', 96, 30], ['ghost', -70, -14], ['ghost', -40, 50], ['creeper', 150, 64], ['ghost', 190, -40], ['creeper2', -170, 40], ['creeper', 20, -80]];
@@ -349,7 +349,7 @@
     foes.forEach(([k, dx, dy], i) => { const x = cx + dx + Math.sin(t + i) * 3, y = cy + dy; list.push({ y, f: () => { const g = k === 'ghost', sh = g ? SPR.sh.g : SPR.sh.s; b.globalAlpha = g ? 0.6 : 1; b.drawImage(sh, Math.round(x - sh.width / 2) + 1, Math.round(y - sh.height / 2)); b.globalAlpha = 1; eyes.push(...drawEnemy(b, x, y, t, k, dx > 0 ? -1 : 1, i * 0.13)); } }); });
     gems.forEach(([x, y], i) => list.push({ y: cy + y, f: () => { const img = SPR.gem[Math.floor(t * 5 + i * 3) % 4]; b.drawImage(img, Math.round(cx + x - img.width / 2), Math.round(cy + y - img.height - 1 + Math.sin(t * 3 + i))); } }));
     list.sort((p, q) => p.y - q.y); for (const o of list) o.f();
-    multiply(ENT_A);                                            // entities: partially lit (stay readable)
+    multiply(ENT_A);                                            // characters + props: partially lit (stay readable)
     b.globalCompositeOperation = 'lighter';                     // bloom around warm sources
     const bl = (spr, x, y, a) => { b.globalAlpha = a; b.drawImage(spr, Math.round(x - spr.width / 2), Math.round(y - spr.height / 2)); };
     bl(SPR.B.warm, hx0, hy0 - 21, 0.42 * fl); orbs.forEach(([x, y]) => bl(SPR.B.warm, x, y - 12, 0.55)); bl(SPR.B.red, graves[1][0] + 6, graves[1][1], 0.6); bl(SPR.B.warm, px, py, 0.5);
@@ -375,7 +375,7 @@
     ctx.fillText('80/100', 312 * k + 2, 56 * k + 2); ctx.fillStyle = '#eadfc8'; ctx.fillText('80/100', 312 * k, 56 * k);
     ctx.textAlign = 'center'; const bx = w / 2 - 90 * k; ctx.fillStyle = '#06070b'; ctx.fillRect(bx - 2 * k, 40 * k, 184 * k, 66 * k); ctx.fillStyle = '#4d5266'; ctx.fillRect(bx, 42 * k, 180 * k, 62 * k); ctx.fillStyle = '#0d0e17'; ctx.fillRect(bx + 2 * k, 44 * k, 176 * k, 58 * k);
     ctx.font = `${Math.round(28 * k)}px Silkscreen, monospace`; ctx.fillStyle = '#000'; ctx.fillText('22:09', w / 2 + 3 * k, 64 * k + 3 * k); ctx.fillStyle = '#e8eefa'; ctx.fillText('22:09', w / 2, 64 * k);
-    ctx.font = `${Math.round(18 * k)}px UnifrakturMaguntia, 'Pirata One', serif`; ctx.fillStyle = '#000'; ctx.fillText('till Midnight', w / 2 + 2, 90 * k + 2); ctx.fillStyle = '#f0a850'; ctx.fillText('till Midnight', w / 2, 90 * k);
+    ctx.font = `${Math.round(18 * k)}px UnifrakturMaguntia, 'Pirata One', serif`; ctx.fillStyle = '#000'; ctx.fillText('Title Text', w / 2 + 2, 90 * k + 2); ctx.fillStyle = '#f0a850'; ctx.fillText('Title Text', w / 2, 90 * k);
   }
 
   const Starter = { id: 'gothic', name: 'Gothic Night', palette: PALETTE, fonts: ['UnifrakturMaguntia', 'Silkscreen', 'Pirata One', 'IM Fell English'], drawHero, drawEnemy, draw };

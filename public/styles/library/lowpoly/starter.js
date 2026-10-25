@@ -156,7 +156,7 @@
     for (const [a, b, c] of triangulate(sp)) m.tri(ids[a], ids[b], ids[c], col, fo);
     return m.orient(() => [1, 0, 0], from);
   }
-  /** Carved jack-o'-lantern feature: dark rim (x1.3) + glowing fill + hot core (x0.5), stacked with depth bias. */
+  /** Carved glowing feature: dark rim (x1.3) + glowing fill + hot core (x0.5), stacked with depth bias. */
   function carved(m, pts, R, Rv, cz, o = {}) {
     feature(m, pts, R, Rv, cz, o.rim || P.carve, { scale: o.rs || 1.3, bias: -0.5, off: 0.28 });
     feature(m, pts, R, Rv, cz, o.fill || P.glow, { scale: 1, bias: -0.9, off: 0.36 });
@@ -243,7 +243,7 @@
     up.add(head, T(0, 0, Math.abs(Math.cos(ph)) * 0.35 * walk)); m.add(up, chain(T(0, 0, 6.5), RX(sw * 0.07), T(0, 0, -6.5)));
     return new Mesh().add(m, SC(1.1));
   }
-  function mEnemy(ph) { // small melee enemy: a walking turnip (cream bottom, lilac top, leaf crown, glowing eyes)
+  function mEnemy(ph) { // small creature: a walking root creature (cream bottom, lilac top, leaf crown, glowing eyes)
     const m = new Mesh(), body = new Mesh(), sw = Math.sin(ph), R = rng(91), jc = (c) => mulc(c, 1 + (R.next() - 0.5) * 0.06);
     for (const s of [-1, 1]) {
       const leg = lathe([[0.7, 0], [1.0, 1.6], [1.45, 6.4]], 5, { col: P.root, capB: 1, capT: 1 });
@@ -263,7 +263,7 @@
     feature(body, [[-2.1, 7.7], [-1.0, 8.15], [0, 7.75], [1.0, 8.15], [2.1, 7.7], [1.5, 6.9], [0, 7.25], [-1.5, 6.9]], ER, ERv, cz, hex('#3d2552'), { off: 0.32 });
     return m.add(body, chain(T(0, 0, 2.6), RX(sw * 0.1)));
   }
-  function mGhost(ph) { // fast enemy: a lathe whose rings drift back and sway -> a trailing sheet
+  function mGhost(ph) { // fast creature: a lathe whose rings drift back and sway -> a trailing sheet
     const m = new Mesh(), zs = [2.6, 3.8, 5.4, 7.6, 10.2, 13.2, 16.2, 18.8, 20.8, 22.0, 22.5], rs = [0, 0.8, 1.7, 2.9, 4.2, 5.5, 6.1, 5.8, 4.5, 2.5, 0];
     m.add(lathe(zs.map((z, i) => { const t = Math.max(0, Math.min(1, (14.5 - z) / 12)); return [rs[i], z + 2.5, -t * t * 6.5, Math.sin(ph + z * 0.33) * t * 2]; }), 9,
       { twist: 0.17, jitter: 0.1, seed: 3, col: (i) => ramp([P.ghostLow, P.ghost, P.ghost, P.ghostTop, P.ghostTop], i / 9) }));
@@ -286,7 +286,7 @@
       m.add(lathe([[r * 0.55, zb + r * 0.12], [r, zb], [0, zt]], 7, { col: (i) => (i === 0 ? mulc(P.pineDk, 0.85) : cols[(t + 1) % 3]), jitter: r * 0.07, twist: R.next(), seed: seed + t, capB: 1 }), RZ(R.range(0, TAU))); }
     return m;
   }
-  function mGem(r, h, col) { // pickup: 8-face octahedron, alternate faces x1.06 / x0.92
+  function mGem(r, h, col) { // collectible: 8-face octahedron, alternate faces x1.06 / x0.92
     const m = new Mesh(), top = m.vert(0, 0, h * 2), bot = m.vert(0, 0, 0), mid = [];
     for (let k = 0; k < 4; k++) mid.push(m.vert(Math.cos((k / 4) * TAU) * r, Math.sin((k / 4) * TAU) * r, h * 1.05));
     for (let k = 0; k < 4; k++) { m.tri(mid[k], mid[(k + 1) % 4], top, k & 1 ? mulc(col, 1.06) : col); m.tri(mid[(k + 1) % 4], mid[k], bot, k & 1 ? mulc(col, 0.92) : mulc(col, 0.98)); }
@@ -350,12 +350,12 @@
   const yawIdx = (yaw) => ((Math.round((yaw / TAU) * 16) % 16) + 16) % 16; // 16 baked yaw angles
   function enemySet(yi) { return C.sets[yi] || (C.sets[yi] = spriteSet([0, 1, 2, 3].map((i) => mEnemy((i / 4) * TAU)), (yi / 16) * TAU, C.K)); }
   const FLASH = new WeakMap();
-  function flashOf(img) { // white silhouette of a baked sprite for hit flashes (cached)
+  function flashOf(img) { // white silhouette of a baked sprite for impact flashes (cached)
     let c = FLASH.get(img); if (c) return c;
     c = canvas(img.width, img.height); const x = c.getContext('2d'); x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
     FLASH.set(img, c); return c;
   }
-  /** Draws the hero with feet at (x, y) (world units, ctx already scaled). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y) (world units, ctx already scaled). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     const set = C.hero, fi = Math.floor(t * 0.8 * 6) % 6, lift = Math.abs(Math.sin(t * 0.8 * TAU)) * 1.1;
     blit(ctx, C.heroSh.c, C.heroSh.ax, C.heroSh.ay, x, y, set.K);
@@ -364,7 +364,7 @@
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22 + 0.06 * Math.sin(t * 9); // warm glow from the carved face
     ctx.drawImage(C.glow, x + 6 - 9, y - lift - 21 * CP + 3 - 9, 18, 18);
     ctx.restore(); }
-  /** Draws a small melee enemy with feet at (x, y), walking along yaw. flash 0..1 = hit flash. */
+  /** Draws a small creature with feet at (x, y), walking along yaw. flash 0..1 = impact flash. */
   function drawEnemy(ctx, x, y, t, yaw = Math.PI / 2, flash = 0) {
     const set = enemySet(yawIdx(yaw)), fi = Math.floor(t * 0.55 * 4) % 4, lift = Math.abs(Math.sin(t * 0.55 * TAU)) * 1.4;
     ctx.globalAlpha = 0.5; blit(ctx, C.enemySh.c, C.enemySh.ax, C.enemySh.ay, x, y, set.K); ctx.globalAlpha = 1;
@@ -384,7 +384,7 @@
     drawMesh(ctx, C.gemM, { yaw: (Math.floor((t * 1.5 + seed * 7) * 8) % 8 / 8) * (TAU / 4), K, ax: 0, ay: 0, lift: 0.18, lw: 0.5 });
     ctx.restore();
   }
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, props, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     const s = h / 360, K = Math.max(1, Math.round(s * 4) / 4), vw = w / s;
     cache(K);
@@ -410,7 +410,7 @@
     list.sort((a, b) => a.y - b.y);
     [[hx + 40, 230], [hx + 52, 238], [hx - 60, 190], [hx + 95, 205], [hx - 20, 280]].forEach(([x, y], i) => drawGem(ctx, x, y, t, i * 0.31));
     for (const o of list) o.f();
-    // seed projectile with tapered trail + ground dot, faceted hit shards (brightness from rotation) and a damage number
+    // seed projectile with tapered trail + ground dot, faceted impact shards (brightness from rotation) and a floating number
     const px = hx + 18 + ((t * 120) % 34), py = 195, tl = 14;
     ctx.globalAlpha = 0.22; ctx.drawImage(C.dot, px - 2.6, py + 6, 5.2, 2.2);
     ctx.globalAlpha = 0.45; ctx.fillStyle = '#fff6dc'; ctx.beginPath(); ctx.moveTo(px - tl, py); ctx.lineTo(px, py + 1.7); ctx.lineTo(px, py - 1.7); ctx.fill();

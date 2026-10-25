@@ -331,7 +331,7 @@
   function blit(ctx, s, x, y, flip, sc) { sc = sc || 1; if (!flip) { ctx.drawImage(s.c, x - s.ax * sc, y - s.ay * sc, s.w * sc, s.h * sc); return; } ctx.save(); ctx.translate(x, y); ctx.scale(-1, 1); ctx.drawImage(s.c, -s.ax * sc, -s.ay * sc, s.w * sc, s.h * sc); ctx.restore(); }
   function rot(ctx, img, x, y, ang, w, h, q) { ctx.save(); ctx.translate(x, y); ctx.scale(1, q || 1); ctx.rotate(ang); ctx.drawImage(img, -w / 2, -h / 2, w, h); ctx.restore(); }
   function shadow(ctx, x, y, rx, ry, a) { ctx.globalAlpha = a || 0.62; ctx.drawImage(S.shadow.c, x - rx + 0.6, y - ry + 0.4, rx * 2, ry * 2); ctx.globalAlpha = 1; }
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     if (!S) build();
     const flip = facing < 0, hx = x + (flip ? -1.2 : 1.2), hy = y - 22, hp = 0.85 + 0.15 * Math.sin(t * 2.2);
@@ -346,7 +346,7 @@
     ctx.drawImage(S.glow, x + (flip ? -2.5 : 2.5) - 8, y - 28, 16, 14);
     ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
-  /** Draws a typical enemy with feet at (x, y). kind = 'creeper' | 'ghost' | 'brute'. */
+  /** Draws a typical creature with feet at (x, y). kind = 'creeper' (small root creature) | 'ghost' (fast floating creature) | 'brute' (large creature). */
   function drawEnemy(ctx, x, y, t, kind, facing, seed) {
     if (!S) build();
     kind = kind || 'creeper'; seed = seed || 0;
@@ -378,10 +378,10 @@
     [[-210, -20, 0.1], [230, -90, 0.6], [140, 140, 0.3], [-120, 150, 0.8]].forEach((e) => list.push({ y: e[1], f: () => drawEnemy(ctx, e[0], e[1], t, 'ghost', e[0] > 0 ? -1 : 1, e[2]) }));
     for (const g of [[30, 60], [52, 72], [-30, -30], [100, 60]]) list.push({ y: g[1], f: () => { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6; rot(ctx, S.haloSmall, g[0], g[1] - 2.5, t * 1.2 + g[0], 10, 10); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#f0a020'; ctx.beginPath(); ctx.ellipse(g[0], g[1] - 2, 1.4, 2, 0, 0, TAU); ctx.fill(); ctx.fillStyle = '#fff6c8'; ctx.fillRect(g[0] - 0.8, g[1] - 3.2, 0.7, 0.9); } });
     list.sort((a, b) => a.y - b.y).forEach((o) => o.f());
-    // orbiting turnip lanterns with their own rotating halo
+    // orbiting objects: root lanterns with their own rotating halo
     for (let i = 0; i < 2; i++) { const a = t * 2.2 + i * Math.PI, ox = px + Math.cos(a) * 30, oy = py - 6 + Math.sin(a) * 20;
       ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5; rot(ctx, S.halo, ox, oy - 5, t * 0.9 + i, 28, 28); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; blit(ctx, S.lantern, ox, oy + 2, Math.cos(a) < 0); }
-    // seed projectile + tapered trail, hit star, paint dabs, damage number
+    // seed-shaped projectile + tapered trail, impact star, paint dabs, floating number
     const k = (t * 1.5) % 1, sx = px + 10 + (62 - px) * k, sy = py - 14 + (-12 - py + 14) * k, ang = Math.atan2(-12 - py + 14, 62 - px);
     ctx.globalAlpha = 0.9; rot(ctx, S.trail.c, sx - Math.cos(ang) * 6, sy - Math.sin(ang) * 6, ang, 16, 4); ctx.globalAlpha = 1; rot(ctx, S.seed.c, sx, sy, ang, 7, 5);
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 9); rot(ctx, S.star.c, 74, -16, t, 12, 12); ctx.globalCompositeOperation = 'source-over';
@@ -396,10 +396,10 @@
     // screen space: varnish vignette + museum HUD
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(GROUND.vig, 0, 0); ctx.drawImage(GROUND.hud, 0, 0);
     const u = h / 540, sh = (str, x, y, font, col, align) => { ctx.font = font; ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#0a0e24'; ctx.fillText(str, x, y + 2 * u); ctx.fillStyle = col; ctx.fillText(str, x, y); };
-    sh('Lv 4', w - 18 * u, 13 * u, `400 ${12 * u}px "Caveat Brush", cursive`, '#fff0b0', 'right');
+    sh('No 4', w - 18 * u, 13 * u, `400 ${12 * u}px "Caveat Brush", cursive`, '#fff0b0', 'right');
     sh('100/100', 194 * u, 38 * u, `400 ${14 * u}px "Caveat Brush", cursive`, '#fff0c8');
     sh('22:' + String(9 + (Math.floor(t) % 50)).padStart(2, '0'), w / 2, 42 * u, `800 ${22 * u}px "Cinzel", Georgia, serif`, '#ffe27a', 'center');
-    sh('till midnight', w / 2, 61 * u, `400 ${11 * u}px "Caveat Brush", cursive`, '#cfe4ff', 'center');
+    sh('title text', w / 2, 61 * u, `400 ${11 * u}px "Caveat Brush", cursive`, '#cfe4ff', 'center');
     sh('88', w - 18 * u, 40 * u, `400 ${20 * u}px "Caveat Brush", cursive`, '#fff0c8', 'right');
     ctx.fillStyle = '#d0341e'; ctx.beginPath(); ctx.arc(26 * u, 36 * u, 5 * u, Math.PI, 0); ctx.arc(34 * u, 36 * u, 5 * u, Math.PI, 0); ctx.lineTo(30 * u, 46 * u); ctx.fill();
   }

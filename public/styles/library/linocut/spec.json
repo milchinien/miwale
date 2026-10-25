@@ -7,24 +7,24 @@
   "summary": "A moving linocut print: cream paper, carbon-black key plate, one misregistered pumpkin-orange spot plate and a sparing teal.",
   "description": "Everything looks carved and printed: black ink shapes with white gouge marks cut into them, black lens-shaped knife marks on bare paper, and a single orange spot colour printed slightly off-register so a sliver of paper shows on one side. There are no gradients anywhere – tone comes only from line density, stipple and hatched shadows. The mood is a folk-tale broadsheet crossed with a screen-printed gig poster.",
   "mood": ["folkloric", "bold", "graphic", "eerie", "handmade"],
-  "bestFor": ["top-down action and survivor games", "folk-horror and fairy-tale games", "card and board games", "narrative / visual-novel art", "puzzle games with strong silhouettes"],
-  "avoidFor": ["colour-coded puzzle games that need many hues", "very dense hordes (they merge into black)", "soft cozy pastel games"],
-  "difficulty": { "stars": 6, "why": "White cut lines inside black areas are fine detail work for every figure, and large hordes already blur into one black mass." },
+  "bestFor": ["top-down action games", "folk-horror and fairy-tale games", "card and board games", "narrative / visual-novel art", "puzzle games with strong silhouettes"],
+  "avoidFor": ["colour-coded puzzle games that need many hues", "scenes packed with dozens of figures (they merge into black)", "soft cozy pastel games"],
+  "difficulty": { "stars": 6, "why": "Every new figure has to be designed as one solid-ink mass carved with white gouges plus one paper mass carved with black lenses, with the orange plate placed on a single focal element at a fixed offset. The white cut lines inside black areas are fine detail work, and many dark figures close together blur into one black mass unless halos and spacing are planned." },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": false,
     "resolution": "Native resolution. Sprites baked at K = clamp(round(screenH/360*4)/4, 2, 5) px per world unit; ground chunks (256 units) at up to 2.5 px per unit.",
     "summary": "Figures are drawn as filled ink shapes plus filled 'lens' (gouge) and 'taper' marks in paper colour or ink, the orange plate is drawn offset by (0.8, 0.55) units, then a paper halo is put behind and an ink-void pass knocks pinholes into the black.",
     "linework": "No strokes of constant width: every line is a filled lens (pointed both ends, half-width 0.12-0.85 units) or a taper (blunt start, sharp tip). Outlines are thin ink strokes 0.5-0.75 units plus a heavy 'crescent' (shape minus a shrunken copy shifted to the upper left, scale 0.93-0.96) on the shadow side.",
-    "shading": "Two values only (ink / paper) plus flat spot colours. Shade = parallel black lenses getting wider toward the shadow side (e.g. 6 lenses widening 0.16 -> 0.44 on the pumpkin's right), lit side = white gouges carved out of black (cloak folds, crown highlights).",
+    "shading": "Two values only (ink / paper) plus flat spot colours. Shade = parallel black lenses getting wider toward the shadow side (e.g. 6 lenses widening 0.16 -> 0.44 on the right of the main character's round head), lit side = white gouges carved out of black (cloak folds, crown highlights).",
     "lighting": "Fixed light from the upper left. Crescents and shadow lenses sit bottom-right, carved highlights top-left. Glows are flat orange ray stars (12-18 spikes) printed on the spot plate, never gradients.",
     "texture": "Paper: 512x512 fibre map (1300 curved fibres) + mottling + grain, offset -22..+14. Ink: 256x256 void noise; where it exceeds ~238 the ink lightens 70% toward paper (pinholes). Orange gets +-6% density grain."
   },
   "palette": [
     { "name": "Paper", "hex": "#f0e7d2", "role": "Ground, halos, carved highlights (~65% of the screen)" },
     { "name": "Ink", "hex": "#1b1715", "role": "Key plate: all outlines, solid masses, marks (~30%)" },
-    { "name": "Pumpkin Orange", "hex": "#ea6820", "role": "The one spot plate: hero head, glowing cores, eyes of lanterns, gems, XP, crits (~4%)" },
-    { "name": "Teal", "hex": "#2e7674", "role": "Second spot, used sparingly: ghost frost stipple, brute core ring, big gem centre (<1%)" },
+    { "name": "Pumpkin Orange", "hex": "#ea6820", "role": "The one spot plate: main character's head, glowing cores, lantern faces, collectibles, progress bar, large floating numbers (~4%)" },
+    { "name": "Teal", "hex": "#2e7674", "role": "Second spot, used sparingly: frost stipple on the floating creature, core ring of the large creature, centre of the large collectible (<1%)" },
     { "name": "Paper Shade", "hex": "#e2d6ba", "role": "Darkest paper fibres (paper - 14)" },
     { "name": "Ink Deep", "hex": "#0d0b0a", "role": "Hard offset shadow on cards / panels" }
   ],
@@ -36,11 +36,11 @@
     "Teal is an accent for at most 2-3 element types."
   ],
   "typography": [
-    { "family": "Rye", "weights": [400], "role": "Titles, clock time, card keys – western woodtype display", "source": "Google Fonts", "sample": "22:09", "css": "font: 400 34px/1.05 'Rye', Georgia, serif; letter-spacing: 2px; color: #1b1715; text-shadow: 2px 2px 0 #ea6820;" },
-    { "family": "Alfa Slab One", "weights": [400], "role": "Numbers: HP, kills, level, damage numbers, card names", "source": "Google Fonts", "sample": "100/100", "css": "font: 400 17px 'Alfa Slab One', Georgia, serif; color: #1b1715;" },
-    { "family": "Special Elite", "weights": [400], "role": "Typewriter body text and small labels", "source": "Google Fonts", "sample": "UNTIL MIDNIGHT", "css": "font: 400 11px 'Special Elite', 'Courier New', monospace; letter-spacing: 3px; border-top: 2px solid #1b1715;" }
+    { "family": "Rye", "weights": [400], "role": "Titles, clock / timer, card keys – western woodtype display", "source": "Google Fonts", "sample": "22:09", "css": "font: 400 34px/1.05 'Rye', Georgia, serif; letter-spacing: 2px; color: #1b1715; text-shadow: 2px 2px 0 #ea6820;" },
+    { "family": "Alfa Slab One", "weights": [400], "role": "Numbers: bar values, counters, badges, floating numbers, card names", "source": "Google Fonts", "sample": "100/100", "css": "font: 400 17px 'Alfa Slab One', Georgia, serif; color: #1b1715;" },
+    { "family": "Special Elite", "weights": [400], "role": "Typewriter body text and small labels", "source": "Google Fonts", "sample": "PRINTED BY HAND", "css": "font: 400 11px 'Special Elite', 'Courier New', monospace; letter-spacing: 3px; border-top: 2px solid #1b1715;" }
   ],
-  "background": {
+  "world": {
     "summary": "Per-pixel 'ink coverage' on fibrous paper. Noise fields with signed distances define regions; each region has a carved pattern computed analytically per pixel (grass ticks, furrows, stipple, cobbles, solid ink with echo contours) separated by 1.5-unit paper gutters. Decals are knocked out of the ground with paper discs and re-carved.",
     "layers": [
       "Paper #f0e7d2 + fibre/mottle offset (-22..+14 per channel)",
@@ -50,39 +50,61 @@
       "Dark soil: solid ink, two paper echo contours 1.8 and 3.4 units inside the edge, oriented white gouge flecks deeper inside",
       "Road: 22-unit-wide cobbles from Worley cells (size 4.4) with paper joints, hatched stone shading on the shadow side, curb line",
       "Ink pass: pinhole voids (VOID noise) and paper fibres showing through the ink",
-      "Decals: flowers, stars, pebbles, skulls, bones, leaves, twigs, mushrooms, sprouts snapped to furrows, carved tree roots",
-      "Props (y-sorted sprites with hatched shadows): oaks, crowned trees, spruces, graves, fences, scarecrows, lantern poles, crows, haystacks",
-      "Screen: ragged ink frame strips (t = 1.1% of H) with an inner rule"
+      "Decals: flowers, stars, pebbles, skulls, bones, leaves, twigs, mushrooms, leafy sprouts snapped to furrows, carved tree roots"
     ]
   },
   "characters": {
     "summary": "Bold silhouettes built from filled smooth paths, tapered limbs and lens marks. Each figure mixes a paper-filled form (with black carving) and a solid-ink form (with white gouges) so it reads on both paper and dark soil. A 0.9-unit paper halo is baked behind every sprite. 4 walk frames x 2 carving variants (re-seeded jitter) per facing.",
     "rules": [
-      "Hero ~16 x 30 units: big pumpkin head (7.3 x 6.2, 22 lobed points) on a solid-black cloak; head = paper + offset orange plate + black ribs and shading lenses + heavy crescent + carved black face.",
-      "Every form has one solid area: cloak, turnip crown, brute body. Faces are carved: paper lens eyes in black, or black holes in paper.",
-      "The orange plate is used for the single most important element per character (hero head, brute core, lantern face).",
+      "Main character ~16 x 30 units: big round lobed orange head (7.3 x 6.2, 22 lobed points) on a solid-black cloak; head = paper + offset orange plate + black ribs and shading lenses + heavy crescent + carved black face.",
+      "Small creature ~16 x 28: a root bulb on root legs with a solid ink crown, an engraved comb hanging into its paper underside and carved paper lens eyes; floating creature ~15 x 24: a paper spirit with a teal stipple plate and dissolving tail; large creature ~37 x 57: a solid ink body with concentric white arc gouges and a teal ring + orange core.",
+      "Every form has one solid area: cloak, bulb crown, large creature's body. Faces are carved: paper lens eyes in black, or black holes in paper.",
+      "The orange plate is used for the single most important element per character (main character's head, large creature's core, lantern face).",
       "Light from the upper left: crescent shadow bottom-right, white gouge highlights top-left.",
-      "Keep 0.9 units of paper halo around sprites so black figures on black soil and black hordes stay separable.",
+      "Keep 0.9 units of paper halo around sprites so black figures on black soil and dense groups stay separable.",
       "Animation is stepped: carving variants swap at 6 fps, never smooth tweening of shapes."
     ]
   },
+  "props": {
+    "summary": "Carved scenery sprites, y-sorted with the characters, each with a paper halo, hatched lens shadow and grass tufts at its base. Bare trees, crowned trees and spruces are mostly solid ink carved with white gouges; graves, fences and haystacks are paper forms carved with black lenses.",
+    "rules": [
+      "Bare oak: carved roots, trunk limb 4.4 -> 3.0, recursive branches 3 levels deep (widths x0.6), white bark gouges on the lit side, a knot hole.",
+      "Crowned tree: 8 ink lobes, each with 3 scalloped white arc gouges; spruce: 6 toothed tiers with white lenses.",
+      "Graves (round with cross, Celtic cross, slab with a carved skull), fences with a broken rail, a scarecrow, lantern poles with orange ray stars, crows (2-frame beak), haystacks (paper dome with 17 converging ink lenses).",
+      "Every tree sends 4-6 carved tapered roots (9-16 units) into the ground decal layer.",
+      "Shadows are hatched, never soft: horizontal ink lenses filling an ellipse (one per 0.75 units of height, half-width 0.33-0.45), shifted right; tree shadow 19 x 4.6.",
+      "Prop animation is stepped too: lantern rays alternate at 3.2 fps, crows open their beaks occasionally."
+    ]
+  },
   "effects": [
-    { "name": "Spawn: block stamped down", "how": "For spawnT < 0.5 the sprite is drawn larger (1 + (1-k)^2 * 0.9) and 10 units higher with alpha 0.25 -> 1 as the block is lowered; on impact an ink splat is stamped on the ground and the sprite squashes (sin * 0.14)." },
-    { "name": "Death: carved shatter", "how": "0.16 s negative print (paper/ink inverted), then the sprite is cut into 4-5 pre-baked wedge shards whose fresh cut edges show paper; shards fly outward, rotate +-1.6 rad and fall with alpha 1 - u^2. An ink splat stays on the ground." },
-    { "name": "Hit flash = negative print", "how": "A baked inverted copy (paper <-> ink by luminance, spot colours turn black) is shown while flash > 0.45; the hero blinks between normal and negative at 14 Hz." },
+    { "name": "Appear: block stamped down", "how": "For appearT < 0.5 the sprite is drawn larger (1 + (1-k)^2 * 0.9) and 10 units higher with alpha 0.25 -> 1 as the block is lowered; on contact an ink splat is stamped on the ground and the sprite squashes (sin * 0.14)." },
+    { "name": "Disappear: carved shatter", "how": "0.16 s negative print (paper/ink inverted), then the sprite is cut into 4-5 pre-baked wedge shards whose fresh cut edges show paper; shards fly outward, rotate +-1.6 rad and fall with alpha 1 - u^2. An ink splat stays on the ground." },
+    { "name": "Flash = negative print", "how": "A baked inverted copy (paper <-> ink by luminance, spot colours turn black) is shown while flash > 0.45; the main character blinks between normal and negative at 14 Hz." },
     { "name": "Projectile", "how": "Orange seed plate offset by the misregistration under a black outlined seed with a carved shine; trail = 3 black lenses behind it, scaled in over 0.12 s; rotation snapped to 45-degree steps * 0.35." },
-    { "name": "Orbiting lantern", "how": "Turnip lantern with an orange face hole, over a slowly rotating 14-spike orange ray star printed offset by (MX, MY)." },
-    { "name": "Particles", "how": "Ink drops (blobs + satellites), wood chips (black or paper lenses with a carved line), radial black/orange lens bursts, halftone puffs (hex dot grid whose dots shrink to the edge, 3 frames), orange 4-point stars, orange gouge-arc rings for level up." }
+    { "name": "Orbiting lantern", "how": "Carved bulb lantern with an orange face hole, over a slowly rotating 14-spike orange ray star printed offset by (MX, MY)." },
+    { "name": "Collectibles", "how": "Small = orange 4-point star on the offset plate with an ink outline and 4 ink spark lenses (2 frames: lengths 3.8 / 4.6); large = 8-point orange star with a teal centre hole and 8 sparks." },
+    { "name": "Particles", "how": "Ink drops (blobs + satellites), wood chips (black or paper lenses with a carved line), radial black/orange lens bursts, halftone puffs (hex dot grid whose dots shrink to the edge, 3 frames), orange 4-point stars, orange gouge-arc rings for big celebratory bursts." }
   ],
+  "atmosphere": {
+    "summary": "No light simulation: light is a fixed convention from the upper left expressed by carving, glow is printed as flat orange ray stars, shadows are hatched lenses, and a ragged ink frame encloses the screen like the edge of a printed block.",
+    "rules": [
+      "Fixed light from the upper left: crescents at the lower right, white gouges at the upper left, shadows shifted right.",
+      "Glow = printed rays, not light: flat orange spike stars (12-18 spikes, alternating lengths) on the offset plate.",
+      "Paper halo (0.5-0.9 units) behind every sprite – the knock-out that keeps black figures readable on dark soil and in groups.",
+      "Ink texture everywhere: pinhole voids and paper fibres in all ink, on the ground and in sprites.",
+      "Frame: ragged ink strips (thickness max(6 px, 1.1% of H), inner jagged edge every 6-18 px) plus an inner rule; no vignette.",
+      "Full-screen overlays: rgba(27,23,21,.8) with a halftone dot pattern radial-gradient(circle, rgba(240,231,210,.16) 0 1.3px, transparent 1.7px) at 8 px."
+    ]
+  },
   "ui": {
-    "summary": "Letterpress HUD: paper panels with a noise texture, 3 px ink borders, hard 4 px ink offset shadows, small radii (2 px), stepped transitions. Bars are diagonal stripe fills (orange with ink rules for XP, ink with paper rules for HP). The clock sits in a double-ruled box with a 7 px hard shadow.",
-    "css": ":root { --paper:#f0e7d2; --ink:#1b1715; --org:#ea6820; --teal:#2e7674; }\n.hud { font-family: 'Special Elite', 'Courier New', monospace; color: var(--ink); }\n.xp { height: 20px; background: var(--paper); border: 3px solid var(--ink); border-radius: 2px; box-shadow: 4px 4px 0 var(--ink); }\n.xp-fill { height: 100%; background: repeating-linear-gradient(-62deg, var(--org) 0 7px, var(--ink) 7px 8.5px); box-shadow: 3px 0 0 var(--ink); transition: width .15s steps(3); }\n.hp-bar { width: 230px; height: 22px; background: var(--paper); border: 3px solid var(--ink); border-radius: 2px; box-shadow: 4px 4px 0 var(--ink); }\n.hp-fill { height: 100%; background: repeating-linear-gradient(-62deg, var(--ink) 0 9px, var(--paper) 9px 10.5px); transition: width .12s steps(2); }\n.clock { background: var(--paper); border: 3px solid var(--ink); padding: 3px 22px 4px; box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px var(--ink), 7px 7px 0 6px var(--ink); }\n.clock-time { font: 400 34px/1.05 'Rye', Georgia, serif; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--org); }\n.hp-text, .kills { font-family: 'Alfa Slab One', Georgia, serif; font-size: 17px; }"
+    "summary": "Letterpress HUD: paper panels with a noise texture, 3 px ink borders, hard 4 px ink offset shadows, small radii (2 px), stepped transitions. Bars are diagonal stripe fills (orange with ink rules for the wide progress bar, ink with paper rules for the short status bar). The clock sits in a double-ruled box with a 7 px hard shadow.",
+    "css": ":root { --paper:#f0e7d2; --ink:#1b1715; --org:#ea6820; --teal:#2e7674; }\n.hud { font-family: 'Special Elite', 'Courier New', monospace; color: var(--ink); }\n.progress { height: 20px; background: var(--paper); border: 3px solid var(--ink); border-radius: 2px; box-shadow: 4px 4px 0 var(--ink); }\n.progress-fill { height: 100%; background: repeating-linear-gradient(-62deg, var(--org) 0 7px, var(--ink) 7px 8.5px); box-shadow: 3px 0 0 var(--ink); transition: width .15s steps(3); }\n.status-bar { width: 230px; height: 22px; background: var(--paper); border: 3px solid var(--ink); border-radius: 2px; box-shadow: 4px 4px 0 var(--ink); }\n.status-fill { height: 100%; background: repeating-linear-gradient(-62deg, var(--ink) 0 9px, var(--paper) 9px 10.5px); transition: width .12s steps(2); }\n.clock { background: var(--paper); border: 3px solid var(--ink); padding: 3px 22px 4px; box-shadow: 0 0 0 3px var(--paper), 0 0 0 6px var(--ink), 7px 7px 0 6px var(--ink); }\n.clock-time { font: 400 34px/1.05 'Rye', Georgia, serif; letter-spacing: 2px; text-shadow: 2px 2px 0 var(--org); }\n.bar-value, .counter { font-family: 'Alfa Slab One', Georgia, serif; font-size: 17px; }"
   },
   "motion": [
     "Carving boil: 2 variants per frame (different jitter seeds), swapped at 6 fps.",
-    "Hero walk: 4 key poses (foot positions 3.3/-3.0, bob -0.8 on passing frames, cloak hem and scarf swing), idle 2 poses at 2.2 fps.",
-    "Small enemy: 4 frames, bob -0.75*|sin|, tilt 0.075*cos; ghost floats 2.2 units up with a bob quantised to 0.4-unit steps.",
-    "Damage numbers pop from 170% to 100% in 0.07 s and fade in the last 0.22 s.",
+    "Main character walk: 4 key poses (foot positions 3.3/-3.0, bob -0.8 on passing frames, cloak hem and scarf swing), idle 2 poses at 2.2 fps.",
+    "Small creature: 4 frames, bob -0.75*|sin|, tilt 0.075*cos; floating creature hovers 2.2 units up with a bob quantised to 0.4-unit steps.",
+    "Floating numbers pop from 170% to 100% in 0.07 s and fade in the last 0.22 s.",
     "UI transitions are stepped (steps(2) / steps(3)) like a print being swapped, never smooth."
   ],
   "do": [
@@ -91,7 +113,7 @@
     "Print orange on its own plate with the same fixed offset everywhere.",
     "Use a heavy crescent on the bottom-right and white gouges on the top-left (light from upper left).",
     "Bake a paper halo around sprites and pinhole voids into the ink.",
-    "Use hatched (lens line) shadows under actors.",
+    "Use hatched (lens line) shadows under characters and props.",
     "Keep regions separated by paper gutters and carved edge lines."
   ],
   "dont": [
@@ -100,7 +122,7 @@
     "Don't register colour perfectly inside outlines – the offset sliver is the look.",
     "Don't draw uniform hairlines or vector-clean strokes.",
     "Don't animate smoothly with tweens on shapes; swap stepped variants.",
-    "Don't put black enemies on black ground without a paper halo."
+    "Don't put black figures on black ground without a paper halo."
   ],
-  "performance": "All character frames (4 x 2 variants x 2 facings), negative copies and death shards, props, particles and shadows are baked at init; the expensive steps are getImageData passes (inkify, invert). Ground chunks are generators that yield every 8 rows inside a 5 ms per-frame budget: an 84x84 field grid per chunk, then per-pixel analytic patterns (grass hash cells, furrows, Worley cobbles) – Worley on roads and hashed cells elsewhere are the hot spots. Per frame is only drawImage of cached sprites."
+  "performance": "All character frames (4 x 2 variants x 2 facings), negative copies and shatter shards, props, particles and shadows are baked at init; the expensive steps are getImageData passes (inkify, invert). Ground chunks are generators that yield every 8 rows inside a 5 ms per-frame budget: an 84x84 field grid per chunk, then per-pixel analytic patterns (grass hash cells, furrows, Worley cobbles) – Worley on roads and hashed cells elsewhere are the hot spots. Per frame is only drawImage of cached sprites."
 }

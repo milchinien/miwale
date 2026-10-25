@@ -2,7 +2,7 @@
 
 > A handmade craft-table diorama: cut construction-paper puppets with white sticker rims and brass split pins on layered kraft, felt and newsprint.
 
-Everything looks as if it was cut from real craft materials and laid out on a table under a warm lamp at the top-left. The ground is a stack of large sheets: kraft paper, corrugated cardboard, green felt, a carpet of cut paper leaves and torn newspaper scraps. Characters are jointed paper puppets. Each body part is a separate flat piece with a cream "sticker" rim, paper grain and its own soft drop shadow, and brass split pins hold the joints together. There are **no ink outlines anywhere**. The eye reads edges from the cream rim, the side thickness of the sheets and the warm brown shadows that always fall right-down. In the reference game (*Jack vs. the Turnip Ancestors*) the hero is a pumpkin-head puppet, the enemies are turnip puppets, tissue-paper ghosts and a cardboard golem, and hits shred enemies into tumbling paper scraps and confetti.
+Everything looks as if it was cut from real craft materials and laid out on a table under a warm lamp at the top-left. The ground is a stack of large sheets: kraft paper, corrugated cardboard, green felt, a carpet of cut paper leaves and torn newspaper scraps. Characters are jointed paper puppets. Each body part is a separate flat piece with a cream "sticker" rim, paper grain and its own soft drop shadow, and brass split pins hold the joints together. There are **no ink outlines anywhere**. The eye reads edges from the cream rim, the side thickness of the sheets and the warm brown shadows that always fall right-down. The sample cast is a puppet with a round, carved orange pumpkin head and an aubergine tunic, cream root-bulb creatures with torn aubergine caps, translucent tissue-paper ghosts and a large cardboard golem; impacts shred the paper into tumbling scraps and confetti.
 
 ## At a glance
 
@@ -10,19 +10,19 @@ Everything looks as if it was cut from real craft materials and laid out on a ta
 | --- | --- |
 | Family | Papercraft · Cut-paper diorama |
 | Mood | cozy, handmade, playful, warm, storybook |
-| Best for | top-down action/survivor, cozy adventure, board-game adaptations, family games, seasonal events |
+| Best for | top-down action games, cozy adventure and farming games, board-game adaptations, family games, seasonal events |
 | Renderer | Canvas 2D, fully procedural, no image assets |
 | Pixel art | No. Native resolution, sprites baked at 4 px per world unit |
-| Difficulty | 6/10. Jointed puppets made of many pieces with pins, rims and shadows; the layered ground is expensive |
+| Complexity | 6/10. Every new asset is a puppet of many separate pieces, each needing rim, grain, light, shadow and pins; the layered ground is expensive |
 | Fonts | Patrick Hand, Gochi Hand, Caveat Brush (Google Fonts) |
 | Key colours | kraft `#a87c54`, felt `#607c46`, card `#c49c6c`, rim `#fbf6ea`, pumpkin `#e57d2c`, aubergine `#6e3c6d`, teal `#36a596`, shadow `rgb(48,26,12)` |
 
 ## When to use it
 
-- **Good fits:** top-down games with medium enemy counts, cozy adventures, farming, puzzle and board-game conversions, kids' games, Halloween or Christmas events. The tactile depth reads well at the usual 360-unit-tall camera.
-- **Good for "charming but readable":** the cream rim makes every actor pop against busy ground without any dark outline.
-- **Bad fits:** bullet-hell games with hundreds of tiny projectiles (each would need rim + shadow, and the screen turns to confetti), grim realism, horror that has to feel threatening, sci-fi neon.
-- **Risky:** very large hordes. Dense crowds of cream-rimmed puppets merge into a white mass (visible in late-game screenshots), so give each enemy type a distinct silhouette and dominant colour.
+- **Good fits:** top-down scenes with a medium number of characters on screen, cozy adventures, farming, puzzle and board-game conversions, kids' games, Halloween or Christmas themes. The tactile depth reads well at the usual 360-unit-tall camera.
+- **Good for "charming but readable":** the cream rim makes every character pop against busy ground without any dark outline.
+- **Bad fits:** bullet-hell shooters with hundreds of tiny projectiles (each would need rim + shadow, and the screen turns to confetti), grim realism, horror that has to feel threatening, sci-fi neon.
+- **Risky:** very large crowds. Dense groups of cream-rimmed puppets merge into a white mass, so give each creature type a distinct silhouette and dominant colour.
 
 ## Color palette
 
@@ -40,24 +40,25 @@ Everything looks as if it was cut from real craft materials and laid out on a ta
 | Cream | `#f2e7cf` / dark `#dccdab` | Paper flowers, sticks, light details |
 | Ink brown | `#3b2a26` | Text and darkest drawn details |
 | Shadow brown | `#301a0c` = `rgb(48,26,12)` | Every shadow at 0.2–0.6 alpha |
-| Pumpkin | `#e57d2c` / light `#f59c4c` / dark `#bb5a20` / deep `#9c4618` | Hero head, fruit props, accents |
+| Pumpkin | `#e57d2c` / light `#f59c4c` / dark `#bb5a20` / deep `#9c4618` | Main character head, fruit props, accents |
 | Glow | `#ffcf4a` / hot `#fff3b8` / deep `#f0922a` | Light behind cut-out holes |
-| Aubergine | `#6e3c6d` / light `#9c629a` / dark `#4a2649` / deep `#2e1530` | Hero tunic, enemy caps and brows |
+| Aubergine | `#6e3c6d` / light `#9c629a` / dark `#4a2649` / deep `#2e1530` | Main character tunic, creature caps and brows |
 | Mustard | `#d6a43a` / dark `#ac7f26` / light `#ecc463` | Buttons, cuffs, hay |
 | Leaf | `#76a54e` / light `#a3cc6a` / dark `#4d7a35` | Sprouts, scarf, leaves |
-| Red | `#c4432f` / dark `#8e2c22` | HP bar, crit numbers, buttons, labels |
-| Teal | `#36a596` / mid `#5cc3b2` / dark `#1d6d68` | XP gems, XP bar |
+| Red | `#c4432f` / dark `#8e2c22` | Main bar fill, emphasis numbers, buttons, labels |
+| Teal | `#36a596` / mid `#5cc3b2` / dark `#1d6d68` | Collectible gems, secondary bar |
 | Denim | `#4f6f95` | Occasional cool accent (pinwheels, notebook lines) |
 | Brass | `#d4ac4a` / light `#fff0b0` / dark `#8f6d24` | Split pins |
-| Ghost tissue | `rgba(188,212,232,0.62)` / `rgba(248,251,253,0.72)` | Translucent enemies |
+| Ghost tissue | `rgba(188,212,232,0.62)` / `rgba(248,251,253,0.72)` | Translucent creatures |
 
 **Palette rules**
 - Use muted craft-paper colours, never neon. Pumpkin `#e57d2c` and teal `#36a596` are the most saturated colours allowed.
-- The ground is about 80% warm browns, tans and felt greens. Characters carry the accents: pumpkin for the hero, aubergine and cream for enemies, teal and gold for pickups.
+- The ground is about 80% warm browns, tans and felt greens. Characters carry the accents: pumpkin for the main character, aubergine and cream for creatures, teal and gold for collectibles.
 - Shadows are always `rgb(48,26,12)` at partial alpha. Never use black or grey shadows. The leaf carpet's internal shadows use a slightly different multiplier per channel (R × 0.86, G × 0.97, B × 1.0) so shade goes warm, not dull.
 - The cream rim `#fbf6ea` is the brightest common value. Only glows and highlights go whiter.
 - Never use pure `#000`. The darkest values are `#3a1408` (inside the cut holes), `#2a1424` (pupils) and `#2e1530`.
 - Each ground material has two tints mixed by low-frequency noise, plus a global brightness factor `0.93 + 0.13·noise`, so large areas never look flat.
+- Glow colours (`#fffbe0 → #ffe066 → #ffa21e`) only appear inside cut-out holes and as additive halos.
 
 ## Typography
 
@@ -65,22 +66,22 @@ All three fonts are hand-lettered and come from Google Fonts. Always weight 400.
 
 - **Patrick Hand.** Body text, labels, card descriptions, the style bar. `https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap`
   `font: 400 19px/26px 'Patrick Hand', 'Gochi Hand', cursive; color: #3b2a26;`
-- **Gochi Hand.** Numbers and short words: HP text, kill counter, card titles, damage numbers, key badges. `https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap`
+- **Gochi Hand.** Numbers and short words: bar text, counters, card titles, floating numbers, key badges. `https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap`
   `font: 400 22px/1 'Gochi Hand', cursive; color: #3b2a26;`
-- **Caveat Brush.** Big titles ("Level Up!", "Game Over"), the clock, the style name. `https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap`
+- **Caveat Brush.** Big titles and banners ("Well done!"), the clock, the style name. `https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap`
   `font: 400 74px/1 'Caveat Brush', cursive; color: #e57d2c; letter-spacing: 2px;`
 
 **Text effects**
 - **Titles get a cut-out sticker rim and are rotated −2° to −3°:** `text-shadow: -3px -3px 0 #fbf6ea, 3px -3px 0 #fbf6ea, -3px 3px 0 #fbf6ea, 3px 3px 0 #fbf6ea, 0 4px 0 #fbf6ea, 7px 10px 6px rgba(20,10,5,.55);`
 - **Labels sit on cream paper stickers:** `background:#fbf6ea; padding:0 9px; transform:rotate(-2deg); box-shadow:2px 3px 4px rgba(48,26,12,.4)`.
-- **In-world damage numbers:**
-  - Font: Gochi Hand, 8 world units tall (11 for crits), rotated by ±0.17 rad per number.
-  - Each number gets a shadow fill rgba(48,26,12,0.35) offset (0.5, 0.7), then a stroke 1.8 wide in `#fbf6ea` (2.4 wide in `#fff3c0` for crits), then the fill `#3b2a26` (crit `#c4432f`).
+- **Floating in-world numbers:**
+  - Font: Gochi Hand, 8 world units tall (11 for emphasised numbers), rotated by ±0.17 rad per number.
+  - Each number gets a shadow fill rgba(48,26,12,0.35) offset (0.5, 0.7), then a stroke 1.8 wide in `#fbf6ea` (2.4 wide in `#fff3c0` when emphasised), then the fill `#3b2a26` (emphasised `#c4432f`).
   - Numbers pop in over 18% of their life with easeOutBack, starting from scale 0.4.
 
 ## Rendering technique
 
-The look comes from one primitive, the **cut piece**, plus strict top-left lighting.
+The look comes from one primitive, the **cut piece**, plus strict top-left lighting. Every element (characters, props, ground decals, effects, icons) is built from it.
 
 1. **Init: build the paper grain tile.** It is 256×256 px.
    - Each pixel is 50/50 cream `(255,250,235)` or brown `(60,36,20)`, at alpha 0–22/255 and 0–20/255 respectively.
@@ -96,24 +97,24 @@ The look comes from one primitive, the **cut piece**, plus strict top-left light
    - Before each part, draw its shadow image at alpha 0.34, offset **(0.42, 0.55) units** in screen space. Props use (0.55, 0.7).
    - Pins are collected through the current transform and drawn last, unmirrored.
 4. **Init: wrap each frame** with `dropSprite`.
-   - The whole-puppet shadow is offset **(0.9, 1.1)**, blurred 0.7 units, at alpha 0.3. The brute uses (1.4, 1.7), blur 1.0. Ghosts use alpha ≈ 0.
+   - The whole-puppet shadow is offset **(0.9, 1.1)**, blurred 0.7 units, at alpha 0.3. The large golem uses (1.4, 1.7), blur 1.0. Ghosts use alpha ≈ 0.
    - A white flash copy is the frame tinted `#fffaf0` at 95% `source-atop`.
-5. **Ground chunks.** These are 256×256 world units, rendered asynchronously (generator that yields every 2 rows) at ≤ 2.5 px per unit, then decals are drawn on top (see the next section).
+5. **Ground chunks.** These are 256×256 world units, rendered asynchronously (generator that yields every 2 rows) at ≤ 2.5 px per unit, then decals are drawn on top (see World and ground).
 6. **Per frame, in order:**
    1. Ground chunks.
-   2. Gems.
-   3. Shadows for every actor and prop: blob or projected cast shadow.
-   4. Props, enemies and hero, y-sorted.
-   5. Orbitals.
+   2. Collectible gems.
+   3. Shadows for every character and prop: blob or projected cast shadow.
+   4. Props and characters, y-sorted together.
+   5. Orbiting objects.
    6. Projectiles.
    7. Particles.
-   8. Damage numbers.
+   8. Floating numbers.
    9. Screen vignette.
 7. **Resolution.** Sprites are drawn with smoothing on and scaled by `sc / K`. World scale is `canvasHeight / 360`. Nothing is snapped to pixels.
 
-## Background and ground
+## World and ground
 
-The floor is a top-down view of material sheets stacked on kraft paper. In the reference, each layer is a noise field turned into a **signed distance** (`(fbm − threshold) / |∇fbm|`, clamped to ±90), then shaded per pixel. Layer parameters (shadow offset, blur and alpha, and side thickness are in world units):
+The floor is a top-down view of a craft table: material sheets stacked on kraft paper under a top-left lamp. Each layer is a noise field turned into a **signed distance** (`(fbm − threshold) / |∇fbm|`, clamped to ±90), then shaded per pixel, so outlines are smooth blobs with a slight wobble. Every sheet casts a soft warm-brown shadow right-down onto what lies beneath and shows a darker side face (its thickness) along its lower edge. Layer parameters (shadow offset, blur and alpha, and side thickness are in world units):
 
 | Layer (bottom → top) | Threshold | Edge wobble | Fibre noise | Thickness | Shadow offset | Shadow blur | Shadow alpha |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -150,13 +151,13 @@ How each material is shaded:
   - 8 columns 64 texels wide (25.6 units).
   - Line height 3.2 texels: word bars `rgba(70,64,60,0.32)` 1.3 tall, headline bars `rgba(40,36,34,0.5)` 4.4 tall, halftone pictures of dots `rgba(55,50,48,0.38)` on a 2.6 grid.
   - Column rules are 0.8 wide.
-  - The torn edge is a **white fibre core** `[246,238,220]`, 0.55–1.0 units wide (noise-varied), with a slightly lighter band just inside it.
+  - The torn edge is a **white fibre core** `[246,238,220]` (`#f6eedc`), 0.55–1.0 units wide (noise-varied), with a slightly lighter band just inside it.
 - **Compositing:**
   - The final pixel is `colour × (0.93 + 0.13·noiseA + 0.06·(noiseB−0.5))`.
   - The accumulated shadow from upper layers is applied per channel as ×(1 − 0.86k, 1 − 0.97k, 1 − k), which keeps shade warm.
   - Within 2.4 units outside a sheet's edge there is extra ambient-occlusion darkening of 0.2·(1 + s/2.4)².
 
-**Decals** are baked into each chunk using a scattered grid (24-unit cells for small decals, 170-unit cells for big ones) and chosen by the region underneath:
+**Decals** are flat cut pieces lying on the ground, baked into each chunk using a scattered grid (24-unit cells for small decals, 170-unit cells for big ones) and chosen by the region underneath:
 - **Felt:** punched 5–6-petal paper flowers, felt grass fringes, sewing buttons with cross-stitched thread, glued pebbles, loose leaves.
 - **Kraft:** pebble clusters, confetti dots (0.55–0.95 units, each with a shadow offset (0.3, 0.4)), lace doilies (15-unit scalloped disc with punched holes), coffee rings, folds (a light line plus a dark line offset 0.45), dashed cut lines with tiny scissors.
 - **Cardboard:** masking tape (zig-zag torn ends, `rgba(234,220,170,0.8)`), staples (grey `#a9a9a9` line with a highlight and shadow), stamped "this side up" arrows.
@@ -165,7 +166,9 @@ Decal sprites are 6 px per unit, with grain at 0.9, light at 0.08, and a shadow 
 
 ## Characters
 
-The **hero is a jointed puppet** about 18 units wide and 30 tall. The frame is 34×42 units with feet at (17, 38), drawn at scale 1.08. Pieces, back to front:
+Every character is a **jointed paper puppet**: separate flat cut pieces (rim, grain, light, own shadow) rotated around pivots, drawn back-to-front, with each piece dropping a blurred shadow (0.42, 0.55 units, alpha 0.34) onto the pieces below and brass split pins on the visible joints. Whole frames are pre-baked, then get a whole-puppet shadow (0.9, 1.1, blur 0.7, alpha 0.3) and a white flash copy.
+
+**Main character** — about 18 units wide and 30 tall: a small puppet in an aubergine tunic and green striped scarf with a big round pumpkin head whose face is carved out and glows. The frame is 34×42 units with feet at (17, 38), drawn at scale 1.08. Pieces, back to front:
 
 1. **Back leg** (`#6f4c30` trousers, `#3e281b` boot) and **front leg** (`#8d6440`, `#5b3d2a` boot). Each is 2.9 units wide and 6.6 long, with a dashed seam `rgba(255,235,200,0.35)` and a highlight strip across the boot. Rim 0.45.
 2. **Back arm**, in the darker tunic colour `#4a2649`, with a cuff and hand.
@@ -182,26 +185,17 @@ The **hero is a jointed puppet** about 18 units wide and 30 tall. The frame is 3
    - Four stacked ellipse lobes: `#9c4618` (8.7×7.5), `#bb5a20`, `#e57d2c`, `#f59c4c` (front, offset +0.9). Each lobe drops a shadow `rgba(70,25,5,0.28)` offset (0.3, 0.4).
    - One pencil rib line.
    - The face is **cut out**: two triangle eyes, a triangle nose and a jagged 9-tooth mouth, all `glowHole`s (dark `#3a1408`, then a radial gradient `#fffbe0 → #ffe066 → #ffa21e` shifted (0.32, 0.45)).
-   - The face sits 1.7 units toward the facing side.
+   - The face sits 1.7 units toward the facing side (three-quarter view).
 8. **Scarf wrap**: green with stripes and a `#a3cc6a` knot.
 
-**Hero animation:**
+**Main character animation:**
 - **Walk:** leg angle `sin(φ)·0.55`, arms opposite, hip lift `(1 − cos(leg))·6.6 − |cos φ|·0.45`, lean 0.07 rad, head tilt `sin(2φ)·0.06`, scarf `−0.25 + sin(2φ)·0.18`.
-- **Frame sets:** 8 walk frames, 8 throw frames (front arm at −2.15 rad) and 4 idle frames (breathing only) per facing.
+- **Frame sets:** 8 walk frames, 8 throw-pose frames (front arm at −2.15 rad) and 4 idle frames (breathing only) per facing.
 - **Mirroring:** facing −1 mirrors all pieces, but pins are drawn after the mirror so their highlight stays top-left.
 - **Face glow:** an additive 22-unit glow sprite sits over the face at (x + facing·2.6, y − 24.2) and flickers.
 
-**Rules that keep characters on-style:**
-- Use flat fills only. Volume comes from overlapping layers, each with its own little shadow.
-- Faces are holes or paper strips, never painted lines.
-- Every piece has a rim. Thin pieces use 0.35–0.45, large ones 0.55–0.6.
-- Joints that should read as articulated get a brass pin (radius 0.42–0.8).
-- Proportions are storybook: the head is about 60% of the height, with stubby limbs.
-
-## Enemies and props
-
-**Small melee enemy (turnip creeper)**, frame 30×36, feet at (15, 32):
-- **Bulb:** turnip path 7.4 wide and 15.2 tall, filled with a vertical gradient `#efe2b8 → #dcc68a`.
+**Small creature (root-bulb creeper)** — a cream root bulb with a torn aubergine cap, three upright leaves and glowing angry cut eyes. Frame 30×36, feet at (15, 32):
+- **Bulb:** a root-bulb path 7.4 wide and 15.2 tall, filled with a vertical gradient `#efe2b8 → #dcc68a`.
 - **Cap:** a **torn aubergine cap** (`tornCap`) at 60% height: a jagged line stepping every 1.1 units ±0.45 with a sine wave of 0.5. Under it lie a 0.55-unit white core strip `#fbf6ea` and a shadow strip `rgba(48,26,12,0.22)`.
 - **Cap details:** brush streaks `rgba(156,98,154,0.5)` on the cap, pencil growth rings and root hairs on the bulb.
 - **Face:**
@@ -212,7 +206,7 @@ The **hero is a jointed puppet** about 18 units wide and 30 tall. The frame is 3
 - **Animation:** 6 frames with wobble ±0.12 rad, hop 0.9 units and leaf sway.
 - **Variant:** a second palette swaps the aubergine for `#843a63` / `#b4618c`.
 
-**Fast enemy (tissue ghost)**, frame 30×32:
+**Fast creature (tissue ghost)** — a floating, translucent tissue-paper sheet with a fluttering hem. Frame 30×32:
 - Two sheets of tissue paper:
   - Back sheet: `rgba(188,212,232,0.62)`, radius 7.2, with a 4-tip hem.
   - Front sheet: `rgba(248,251,253,0.72)`, scaled 0.86×0.9.
@@ -221,7 +215,7 @@ The **hero is a jointed puppet** about 18 units wide and 30 tall. The frame is 3
 - Hollow eyes `rgba(43,36,64,0.88)` with pale catch-lights, a gaping oval mouth and four white sequins.
 - Rim 0.35 in `rgba(255,255,255,0.75)`, grain 0.7, no puppet shadow. Drawn at alpha 0.92 with a bob.
 
-**Large brute (cardboard golem)**, frame 64×68, bulb 17×32:
+**Large creature (cardboard golem)** — a hulking cardboard figure with taped repairs and a glowing core. Frame 64×68, bulb 17×32:
 - **Body:** cardboard `#c49c6c` with a cream-painted lower half `#e9d9ae` and brush streaks.
 - **Torn liner:** a 2.6-unit **exposed corrugated band** (`#dcbb8c` with vertical flute lines every 0.95 units), with a torn aubergine painted top above it.
 - **Repairs:** a pencil crack patched with two masking-tape strips (`rgba(236,222,172,0.88)`, zig-zag ends), plus four staples.
@@ -229,66 +223,83 @@ The **hero is a jointed puppet** about 18 units wide and 30 tall. The frame is 3
 - **Limbs:** cardboard-tube arms with a gradient `#dcbb8c → #c49c6c → #96714a`, an elliptical tube end with rings, tape and root fingers. Two pins.
 - **Shadow and glow:** a larger drop shadow (1.4, 1.7) and a pulsing additive glow on the core.
 
-**Props.** These are stand-up cut-outs, each on a **fold tab** (a trapezoid of `#c9a275` at the foot) and with a **projected cast shadow**:
+**Rules that keep characters on-style:**
+- Use flat fills only. Volume comes from overlapping layers, each with its own little shadow.
+- Round forms are 3–5 stacked ellipse lobes in deep/dark/mid/light of one hue.
+- Clothing gets a second paper layer (front panel in the lighter tint) and a dashed stitch line.
+- Faces are holes or paper strips, never painted lines.
+- Every piece has a rim. Thin pieces use 0.35–0.45, large ones 0.55–0.6.
+- Joints that should read as articulated get a brass pin (radius 0.42–0.8).
+- Proportions are storybook: the head is about 60% of the height, with stubby limbs.
+- Creatures share the construction but each type has its own dominant colour and silhouette: cream + aubergine for root bulbs, translucent tissue for spirits, cardboard + tape for large figures.
+
+## Props
+
+Props are **stand-up cut-outs**: each stands on a **fold tab** (a trapezoid of `#c9a275` at the foot, kraft-light; grey `#b3aebb` for stones; rim 0.3, light 0.05, with a darker 0.7-unit crease band) and is composed like a puppet frame (part shadows offset (0.55, 0.7) instead of (0.42, 0.55)). Every prop gets a **projected cast shadow**:
 - **Building the shadow:**
   - Skew the silhouette with `setTransform(1, 0, −0.42, −0.26, …)` so it falls right-down from the foot.
-  - Fade it from 1 to 0.45 alpha with distance, blur it by 1.4 units and add a dark contact blob at the base.
-  - Draw at alpha 0.78.
-- **Trees:** a tapered trunk `#76503a` with branches and a shaded right half, plus three scalloped crowns (11/9/8 bumps, depth 0.18–0.22) in autumn triplets such as `#9a6a2a / #c8962e / #e2be5a`. The crown carries a pin.
-- **Pines:** four zig-zag felt tiers from `#445e34` to `#859a4e`.
-- **Pumpkins:** five concentric ellipses alternating tones, plus a stem and a leaf.
-- **Gravestones:** grey `#9b97a3` with an inner border, an emblem, scribbled text lines and a moss scallop at the base.
-- **Picket fences:** card pickets alternating `#c49c6c` / `#cba574`, with tape.
-- **Hay mounds:** 140 straw strokes.
-- **Pinwheels:** spin in real time; brass pin on the hub.
+  - Fade it from 1 to 0.45 alpha with distance, blur it by 1.4 units and add a dark contact blob `rgba(48,26,12,0.55)` at the base (radial, 0.32 × sprite width, squashed to 0.35 height).
+  - Draw at alpha 0.78 under the prop, then y-sort the prop with the characters.
 
-**Pickups and orbitals:**
-- **Gems** are **origami foil**: 4 triangular facets (teal `#bff3e8 #5cc3b2 #36a596 #1d6d68`; big gold `#fff1a6 #f0c64a #d39a2a #9a6a18`), a white fold line and a top-left gleam.
-- **Lanterns** are vellum turnips (radial `#fff3c4 → #f5d690 → #c9a0c8`) with glowing cut faces, swinging ±0.12 rad.
+The prop set:
+- **Round trees** (frame 60×82): a tapered trunk `#76503a` with cut branches, a shaded right half (`rgba(30,15,5,0.2)`), a light centre line and pencil bark strokes, plus three scalloped crowns (11/9/8 bumps, depth 0.18–0.22, rim 0.6) with faint cream crease veins and an inner shade layer. Autumn colour triplets: `#9c4a2a / #c86a30 / #d9a23e`, `#8c3a2c / #b8542e / #e08a3a`, `#9a6a2a / #c8962e / #e2be5a`. The front crown carries a brass pin (radius 0.75).
+- **Pines** (frame 44×70): trunk `#6c4a34` and four zig-zag felt tiers from `#445e34 / #566f3a / #6a8443` to `#859a4e` (dark variant `#3f5a30 → #76994c`), each with a shaded right half; pin at the top tier.
+- **Bare tree** (frame 50×62): a thin dark trunk `#5e4034` with four branches and five small paper leaves (`#c86a30`, `#d9a23e`, `#b0522e`) hanging at random angles.
+- **Pumpkins** (frame 26×22): five concentric ellipses (radii 9.5/7.8/5.9/3.8/1.7) alternating tones with thin `rgba(80,30,10,0.25)` rib strokes, plus a stem `#6a7a38` and a leaf. Three colourways: orange (`#9c4618 → #f59c4c`), mustard (`#a8762a → #ecc463`) and cream (`#b9ab8c → #f6efdc`). Placed in small clusters, side ones at 0.7–0.95 scale.
+- **Gravestones** (frame 22×26): grey `#9b97a3` (or `#8e8a9a`), arched or cross-shaped, with an inner border, a small bulb emblem, scribbled text lines, an optional pencil crack and a moss-felt scallop at the base.
+- **Picket fences**: 5–6 card pickets 6 units apart, alternating `#c49c6c` / `#cba574`, with vertical grain lines and a shaded right strip, on two `#96714a` rails, held with two masking-tape strips.
+- **Hay mounds** (frame 36×22): a dome `#d4b058` / `#c9a24a` with 140 straw strokes in six straw tones and 16 straws sticking out of the edge.
+- **Pinwheels**: a cream stick `#f2e7cf` with a red spiral stripe and four blades (teal/mustard/red/aubergine-light or pumpkin/leaf/mustard/denim), each with a light fold triangle and dots; they spin in real time with a brass pin on the hub.
+- **Placement:** props are scattered on 128-unit cells (42% chance) and chosen by the ground region: felt → round trees, pumpkins, hay, pinwheels; moss felt → pines, pumpkins; leaf carpet → bare trees, gravestones; cardboard → fences, pinwheels.
 
 ## Effects and particles
 
-- **Paper scraps.** On a hit, spawn 1–2. On a kill, 8 (small), 6 (ghost) or 18 (brute).
+- **Paper scraps.** On an impact, spawn 1–2. On a creature's tear-apart, 8 (small), 6 (ghost) or 18 (large).
   - Shapes: 6 cached Path2D polygons with 5–7 vertices at radius 0.55–1.05.
-  - Colours: the enemy's own palette (creeper `#6e3c6d #9c629a #efe2b8 #e3cf8a #76a54e`).
+  - Colours: the source creature's own palette (creeper `#6e3c6d #9c629a #efe2b8 #e3cf8a #76a54e`).
   - Physics: vz 25–80, gravity 70, drag 2.2, spin ±6 rad/s, size 1.7–4.
   - Each scrap flips: y-scale `max(0.18, |cos(rot·1.7)|)`, and the back colour is the front colour × 0.72.
   - 0.16-unit cream edge. While airborne, a tiny shadow rectangle on the ground at alpha 0.16.
-- **Confetti.** Dots and strips in the 7 confetti colours. Gravity 120, drag 2.4, sideways flutter `sin(age·7)·0.6`. Hits fire 2, kills 5–14, level-up 46.
-- **Torn death.** The sprite is clipped by a fixed 8-point zig-zag tear path. The two halves move apart by `side·k·w·0.7`, rotate `side·k·0.7` rad, rise 3 units and fade `1 − k²`. A 0.9-unit cream line marks the tear.
-- **Brute death.** Adds 6 kraft-coloured dust puffs `#d8c4a0`.
-- **Projectile.** A spinning seed piece (scale 0.85) with its own part shadow (0.5, 0.7) at alpha 0.35. Behind it run a cream streak (1.6 wide, from 3 to 11 units back) and a pumpkin streak (0.7 wide, from 4 to 13).
-- **Pickup.** An additive 8-point star glint (radius 4.5, or 7 for big gems) for 0.28 s. Gems also twinkle on their own 12% of the time.
-- **Dash.** 5 pale puffs `#e6d6b4` and 3 trailing sprite copies, 7 units apart, at alpha 0.21 / 0.14 / 0.07.
-- **Hurt.** 7 scraps in the hero palette plus 4 confetti. The sprite blinks to alpha 0.45 at 9 Hz during invulnerability and is overlaid with the white flash copy.
-- **Level-up.** A 46-piece confetti fountain plus a squash-and-stretch wobble.
+- **Confetti.** Dots and strips in the 7 confetti colours (`#e57d2c #d6a43a #36a596 #c4432f #9c629a #f2e7cf #76a54e`). Gravity 120, drag 2.4, sideways flutter `sin(age·7)·0.6`. Small impacts fire 2, tear-aparts 5–14, a celebration fountain 46.
+- **Tear-apart.** The sprite is clipped by a fixed 8-point zig-zag tear path. The two halves move apart by `side·k·w·0.7`, rotate `side·k·0.7` rad, rise 3 units and fade `1 − k²`. A 0.9-unit cream line marks the tear. The large golem adds 6 kraft-coloured dust puffs `#d8c4a0`.
+- **Projectile.** A spinning cut seed piece (`#f4e8c6`, brown rim `#8a5a24`, scale 0.85) with its own part shadow (0.5, 0.7) at alpha 0.35. Behind it run a cream streak `rgba(251,246,234,0.5)` (1.6 wide, from 3 to 11 units back) and a pumpkin streak (0.7 wide, from 4 to 13).
+- **Glow halos.** A 96 px radial sprite `rgba(255,214,110,0.95) → rgba(255,170,60,0.45) @0.25 → rgba(240,110,30,0.12) @0.6 → 0`, drawn `'lighter'` at alpha about 0.3 with a two-sine flicker over carved faces and lanterns.
+- **Collectibles.** **Origami foil gems**: 4 triangular facets (teal `#bff3e8 #5cc3b2 #36a596 #1d6d68`; large gold `#fff1a6 #f0c64a #d39a2a #9a6a18`), a white fold line and a top-left gleam. When collected, an additive 8-point star glint (radius 4.5, or 7 for large gems) shows for 0.28 s. Gems also twinkle on their own 12% of the time.
+- **Orbiting objects.** **Lanterns** are vellum root bulbs (radial `#fff3c4 → #f5d690 → #c9a0c8`) with glowing cut faces, swinging ±0.12 rad.
+- **Motion trail (dash).** 5 pale puffs `#e6d6b4` (alpha 0.5·life, growing radius) and 3 trailing sprite copies, 7 units apart, at alpha 0.21 / 0.14 / 0.07.
+- **Flash.** The pre-baked white copy (`#fffaf0` at 95% `source-atop`) is drawn over the sprite with alpha = flash. A main-character flash also sheds 7 scraps in its own palette plus 4 confetti, and the sprite blinks to alpha 0.45 at 9 Hz.
+- **Celebration.** A 46-piece confetti fountain plus a squash-and-stretch wobble on the main character.
 
-## Lighting, shadows and post-processing
+## Atmosphere and lighting
 
-- **Light direction:** fixed top-left. All shadows fall right-down, and the offset grows with layer height:
+- **Light direction:** one warm lamp, fixed top-left. All shadows fall right-down, and the offset grows with layer height:
   - parts inside a puppet: (0.42, 0.55)
+  - parts inside a prop: (0.55, 0.7)
   - decals: (0.45, 0.55)
   - leaves in the carpet: (0.6, 0.75)
-  - whole puppets: (0.9, 1.1)
-  - ground sheets: (1.0–1.7, 1.3–2.2)
-- **Actor contact shadow:** a radial blob `rgba(48,26,12,0.62) → 0.36 @0.55 → 0`, offset (+1.2, +0.6), drawn at alpha 0.75. Sizes:
-  - hero 9×3.6
-  - small enemy 8.5×3.2
-  - brute 19×6
+  - whole puppets: (0.9, 1.1), blur 0.7
+  - ground sheets: (1.0–1.7, 1.3–2.2), blur 1.1–1.9
+- **Shadow colour:** always `rgb(48,26,12)` at 0.2–0.6 alpha, never black or grey.
+- **Per-piece light:** each cut piece carries the diagonal source-atop gradient (cream top-left at a ≈ 0.1, brown 1.2a bottom-right), and lobe layers drop `rgba(70,25,5,0.28)` shadows offset (0.3, 0.4).
+- **Character contact shadow:** a radial blob `rgba(48,26,12,0.62) → 0.36 @0.55 → 0`, offset (+1.2, +0.6), drawn at alpha 0.75. Sizes:
+  - main character 9×3.6
+  - small creature 8.5×3.2
+  - large creature 19×6
   - ghost 6.5×2.4 at alpha 0.55
-- **Prop shadows:** projected skewed cast shadows (see Enemies and props).
-- **Glow:** only additive (`'lighter'`) radial sprites over carved faces, lanterns and the brute's core. Nothing else glows.
+- **Prop shadows:** projected skewed cast shadows (see Props).
+- **Glow:** only additive (`'lighter'`) radial sprites over carved faces, lanterns and the golem's core. Nothing else glows.
 - **Vignette:** one screen-space radial gradient centred at (0.45 W, 0.42 H). Stops: `rgba(255,236,200,0.05)` from 0.35R, `rgba(70,40,20,0)` at 0.6, `rgba(60,30,15,0.36)` at R (R = half the diagonal). Cache it per screen size.
 - **No colour grading, bloom or blur post-processing.** The warmth is all in the palette and shadows.
+- **Modal overlay:** `radial-gradient(ellipse at center, rgba(60,35,20,.35), rgba(40,22,12,.72))`, warm brown, never grey.
 
-## UI and HUD
+## UI
 
 The HUD is made of craft materials too:
 - **Bars** are paper strips. Each has a 3px cream rim (`box-shadow: 0 0 0 3px #fbf6ea`), a warm offset shadow and a slight rotation (−0.4° to 0.6°).
-- **Bar fills** have a torn zig-zag right edge (clip-path). The HP fill is tomato red with cream polka dots. The XP fill is diagonal teal stripes.
+- **Bar fills** have a torn zig-zag right edge (clip-path). The main bar fill is tomato red with cream polka dots. The secondary bar fill is diagonal teal stripes.
 - **Counters** sit on cream stickers.
 - **The timer** sits on lined notebook paper: a red margin line, blue ruled lines and a brass split pin at the top.
-- **Level-up cards** are lined notebook pages rotated −3°, 1.5° and 3.5°, each with striped washi tape (teal, mustard or plum) across the top. Hovering a card straightens it.
+- **Cards** are lined notebook pages rotated −3°, 1.5° and 3.5°, each with striped washi tape (teal, mustard or plum) across the top. Hovering a card straightens it.
 - **Key badges** are pumpkin circles with a cream rim.
 - **Icons** are small cut-paper drawings on a 48-unit canvas: 1.6 rim, grain 0.7, light 0.08, and a shadow offset (1.4, 1.9) at alpha 0.42.
 
@@ -299,8 +310,8 @@ The HUD is made of craft materials too:
 .hud-bar > .fill { height: 100%;
   background: radial-gradient(circle at 5px 5px, rgba(255,240,220,.55) 1.6px, transparent 2px) 0 0/10px 10px, #c4432f;
   clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 25%, 100% 50%, calc(100% - 4px) 75%, 100% 100%, 0 100%); }
-.hud-xp { height: 24px; background: #f4ead2; transform: rotate(-0.4deg); box-shadow: 0 0 0 3px #fbf6ea, 3px 5px 6px rgba(48,26,12,.45); }
-.hud-xp > .fill { background: repeating-linear-gradient(-45deg, #36a596 0 9px, #5cc3b2 9px 18px); }
+.hud-bar2 { height: 24px; background: #f4ead2; transform: rotate(-0.4deg); box-shadow: 0 0 0 3px #fbf6ea, 3px 5px 6px rgba(48,26,12,.45); }
+.hud-bar2 > .fill { background: repeating-linear-gradient(-45deg, #36a596 0 9px, #5cc3b2 9px 18px); }
 .hud-label { font: 400 22px 'Gochi Hand', cursive; color: #3b2a26; background: #fbf6ea; padding: 0 9px;
   border-radius: 2px; transform: rotate(-2deg); box-shadow: 2px 3px 4px rgba(48,26,12,.4); }
 .hud-note { position: relative; background: #fffdf6; padding: 6px 26px 4px; transform: rotate(-1.5deg); border-radius: 2px;
@@ -319,21 +330,21 @@ The HUD is made of craft materials too:
 
 ## Motion and animation
 
-- **Puppet rule:** rigid pieces rotate around pivots. Shapes never deform, except spawn pop and level-up squash on the whole sprite.
-- **Hero:**
+- **Puppet rule:** rigid pieces rotate around pivots. Shapes never deform, except the appear pop and the celebration squash on the whole sprite.
+- **Main character:**
   - Walk: 8 frames per stride; the stride takes 2.4 animation units (`frame = floor(anim/2.4·8) & 7`).
   - Idle: 4 frames at 3 fps (breathing hip bob 0.45).
-  - Throw: the front arm swings up to −2.15 rad while `shootT > 0.45`.
-- **Small enemy:** 6 frames, frame = `floor(anim·0.42·6) % 6`.
-- **Brute:** 6 frames at rate 0.22, bob 1.4, tilt ±0.05.
-- **Ghost:** 6 frames at about 7 fps (`floor(t·7 + seed·13) % 6`) plus a bob of `−2.5 − sin(3.1t + seed·20)·1.6`.
-- **Per-instance variety:** each enemy is scaled by 0.93 + seed·0.14 and starts at a random phase.
-- **Spawn:** `sy = max(0.06, easeOutBack((t − 0.1)/0.9))`, `sx = 1 + (1 − t)·0.3`. Ghosts also fade in over 0.4 of the spawn time.
-- **Death:** tear apart over the death time (see Effects).
-- **Gems:** bob 0.9 at 3.5 rad/s. The paper turn is `scaleX = 0.35 + 0.65·|cos(2.2t)|`, and the spawn pop is easeOutBack.
+  - Throw pose: the front arm swings up to −2.15 rad while `shootT > 0.45`.
+  - Celebration squash: `sy = 1 + sin(t·14)·t·0.12`, `sx = 2 − sy`.
+- **Small creature:** 6 frames, frame = `floor(anim·0.42·6) % 6`; body wobble ±0.12 rad, hop 0.9 units, leaves sway with `sin(2·phase)`.
+- **Large creature:** 6 frames at rate 0.22, bob 1.4, tilt ±0.05.
+- **Fast creature (ghost):** 6 frames at about 7 fps (`floor(t·7 + seed·13) % 6`) cycling the hem flutter, plus a bob of `−2.5 − sin(3.1t + seed·20)·1.6`.
+- **Per-instance variety:** each creature is scaled by 0.93 + seed·0.14 and starts at a random phase.
+- **Appear pop:** `sy = max(0.06, easeOutBack((t − 0.1)/0.9))`, `sx = 1 + (1 − t)·0.3` (a paper piece popping up). Ghosts also fade in over 0.4 of the appear time. Disappearing figures tear apart (see Effects).
+- **Gems:** bob 0.9 at 3.5 rad/s. The paper turn is `scaleX = 0.35 + 0.65·|cos(2.2t)|`, and the appear pop is easeOutBack.
 - **Orbiting lanterns:** bob 1.2 and swing 0.12 rad at 5 rad/s.
 - **Pinwheels:** spin at 1.2–2.8 rad/s.
-- **Face glow flicker:** `0.3 + 0.05·sin(9t) + 0.04·sin(23.7t)`, plus 0.12 while shooting.
+- **Face glow flicker:** `0.3 + 0.05·sin(9t) + 0.04·sin(23.7t)`, plus 0.12 during the throw pose.
 
 ## Do and don't
 
@@ -361,14 +372,14 @@ The HUD is made of craft materials too:
 2. **Write the material helpers:** `cv`, `sil` (silhouette), `dilate` (rim), `softShadow` (blur), `buildGrain`, `applyGrain`, `applyLight`, and `mkPart(bbox, draw, {rim, grain, light, shBlur, rimColor})` at K = 4 px per unit.
 3. **Write `drawPin`.** It draws the brass split pin: a shadow disc offset (0.18, 0.24), a radial gradient `#fff0b0 → #d4ac4a @0.45 → #8f6d24` centred at −0.35r, and a slot line.
 4. **Write the puppet helpers:** `composeFrame` (parts with pivots, per-part shadow offset (0.42, 0.55) at alpha 0.34, pins drawn last) and `dropSprite` (puppet shadow (0.9, 1.1), blur 0.7, alpha 0.3, plus a white flash copy).
-5. **Design the hero** as 6–9 pieces: legs, body, arms, head, accessory.
+5. **Design the main character** as 6–9 pieces: legs, body, arms, head, accessory.
    - Round forms: stacked lobes in deep/dark/mid/light.
    - Face: `glowHole` cut-outs.
    - Clothing: a lighter front panel and a stitch line.
    - Bake 8 walk, 8 action and 4 idle frames per facing.
-6. **Design each enemy type** with the same pieces but its own dominant colour and silhouette.
+6. **Design each creature type** with the same pieces but its own dominant colour and silhouette.
    - Use torn caps (`tornCap`) to split two colours on one piece.
-   - Use tissue (alpha sheets, translucent rim) for spirits and cardboard (tape, staples, corrugation) for brutes.
+   - Use tissue (alpha sheets, translucent rim) for spirits and cardboard (tape, staples, corrugation) for large figures.
 7. **Build the ground** as stacked material sheets on a base paper. For each sheet:
    - Draw a blurred shadow offset right-down.
    - Draw the darker side face shifted down by the sheet's thickness.
@@ -376,13 +387,13 @@ The HUD is made of craft materials too:
    - Torn sheets get a white core edge; felt gets a running stitch.
 8. **Scatter baked decals** (flowers, buttons, tape, staples, confetti) by region. Each is a mini cut piece with a shadow.
 9. **Build props** as stand-up cut-outs on fold tabs, each with a skewed, blurred cast shadow.
-10. **Draw actors per frame:** contact blob shadow, then the sprite blit, then the flash overlay, then additive glows. Y-sort actors and props together.
-11. **Add the effects:** two-sided flipping paper scraps, confetti, tear-apart death and streaked projectiles.
+10. **Draw characters per frame:** contact blob shadow, then the sprite blit, then the flash overlay, then additive glows. Y-sort characters and props together.
+11. **Add the effects:** two-sided flipping paper scraps, confetti, tear-apart and streaked projectiles.
 12. **Finish with the warm vignette.** Then build the HUD in CSS with paper strips, stickers, notebook paper, washi tape and the hand-lettered fonts.
 
 ## Code
 
-The snippets below are the core techniques, ported from the reference so they run on their own. `starter.js` (in this folder) contains all of them plus a working hero, creeper, ghost, tree, pumpkin, gems, layered ground and a preview `draw()`. The full reference module is `../../js/styles/paper.js`.
+The snippets below are the core techniques, ported from the module so they run on their own. `starter.js` (in this folder) contains all of them plus a working main character, root-bulb creeper, ghost, tree, pumpkin, gems, layered ground and a preview `draw()`. The full module is `../../js/styles/paper.js`.
 
 **1. The cut piece (rim + grain + light + shadow)**
 
@@ -480,7 +491,7 @@ function castShadow(spr /* {img, ax, ay} foot in px */, kx = 0.42, ky = 0.26) {
 }
 ```
 
-## Adapting it to your game
+## Adapting it to your project
 
 - **Keep fixed:**
   - the cut-piece pipeline (rim, grain, light, shadow)
@@ -495,17 +506,18 @@ function castShadow(spr /* {img, ax, ay} foot in px */, kx = 0.42, ky = 0.26) {
   - **Winter:** white felt `#e8ecef`, blue tissue, silver-foil gems.
   - **Ocean:** blue crepe paper with wavy torn edges, sand-coloured kraft, shell buttons.
   - **Sci-fi:** silver card, black construction paper, foil stickers (keep the cream rim).
-- **Palette swaps:** keep one warm base paper (~25%), one cool large material (felt/denim), and 2–3 saturated accents reserved for actors. The shadow colour stays a warm dark brown.
+- **Palette swaps:** keep one warm base paper (~25%), one cool large material (felt/denim), and 2–3 saturated accents reserved for characters. The shadow colour stays a warm dark brown.
 - **New character types:**
   - Start from a silhouette made of 3–8 overlapping pieces.
   - Give each type one dominant colour plus cream.
   - Add one "material story" detail (tape patch, stitch, torn cap, foil).
+- **Mixing elements:** the characters drop onto any ground as long as their shadows stay warm and right-down; the craft-table ground works under other character styles if those get a cream rim or a soft offset shadow.
 - **Other genres:** side-scrollers work well. Keep the same shadow offsets, put sheets in parallax layers, and give each depth layer a larger shadow offset and blur. Board and puzzle games can use whole cards and tokens as cut pieces.
 - **Resolution:** if sprites are shown larger than about 4 px per unit, raise K to 6–8, and scale the rim and blur with it (they are defined in world units).
 
 ## Performance notes
 
-- **Init (about 1 s in the reference):**
+- **Init (about 1 s in the module):**
   - Every piece is baked: rim dilation is about 24 drawImage calls per piece, plus grain, light and blur.
   - Every animation frame is baked (about 90 puppet frames).
   - Props and decals are baked.
@@ -517,12 +529,12 @@ function castShadow(spr /* {img, ax, ay} foot in px */, kx = 0.42, ky = 0.26) {
 - **Per frame:**
   - Only `drawImage` of chunks and baked sprites, plus blob shadows, a few additive glows, particles (paths, cheap) and a cached vignette.
   - A crowd of 300 puppets is fine, because each is 1–2 blits.
-- **Budget:** keep particle counts modest (a kill spawns 8–18 scraps). Never call `filter: blur` or `dilate` per frame. The starter.js preview bakes everything on the first call and then runs in about 1 ms per frame.
+- **Budget:** keep particle counts modest (a tear-apart spawns 8–18 scraps). Never call `filter: blur` or `dilate` per frame. The starter.js preview bakes everything on the first call and then runs in about 1 ms per frame.
 
 ## Copy-paste prompt
 
 ```text
-Build my game <X> in the "Paper World" cut-paper diorama style (Canvas 2D, procedural, no image assets):
+Use the Paper World art style for my project: a cut-paper craft-table diorama (Canvas 2D, procedural, no image assets).
 - Everything is cut from craft materials on a table: kraft paper #a87c54, corrugated card #c49c6c, felt #607c46, cut leaves, torn newsprint #ddd5c0.
 - Every object = separate flat cut pieces. Each piece: flat fill, 0.3-0.6 unit cream sticker rim #fbf6ea (dilated silhouette),
   paper grain texture source-atop, a diagonal light gradient (cream top-left -> brown bottom-right, alpha ~0.1), and its own blurred shadow.
@@ -532,8 +544,8 @@ Build my game <X> in the "Paper World" cut-paper diorama style (Canvas 2D, proce
 - Faces are cut-out holes showing glowing paper (#fffbe0 -> #ffe066 -> #ffa21e), offset so the dark cut edge shows top-left.
 - Round forms = stacked flat lobes in 4 tones; two-colour pieces use a torn edge with a white paper core.
 - Ground = stacked material sheets, each with offset shadow and darker side thickness; torn newsprint, stitched felt, leaf carpet; decals: buttons, paper flowers, tape, staples, confetti.
-- Props are stand-up cut-outs on fold tabs with skewed projected cast shadows.
-- Effects: two-sided flipping paper scraps, confetti, enemies tear in half on death.
+- Props are stand-up cut-outs on fold tabs (trees, felt pines, pumpkins, gravestones, fences, hay, pinwheels) with skewed projected cast shadows.
+- Effects: two-sided flipping paper scraps, confetti, figures tear in half along a zig-zag when they disappear, origami foil gems.
 - Palette is muted craft colours (pumpkin #e57d2c, aubergine #6e3c6d, mustard #d6a43a, leaf #76a54e, teal #36a596). No black, no neon.
 - Fonts: Patrick Hand (body), Gochi Hand (numbers), Caveat Brush (titles) with cream sticker outlines; HUD = paper strips with cream rim, notebook paper, washi tape.
 - Bake all pieces, frames and ground once; per frame only drawImage. Warm brown vignette on top.

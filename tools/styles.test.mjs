@@ -57,7 +57,7 @@ test('generated catalog, llms.txt and llms-full.txt are up to date (run node too
 });
 
 test('page scripts parse', () => {
-  for (const f of ['js/library.js', 'js/md.js', 'js/sandbox.js', 'js/main.js']) {
+  for (const f of ['js/library.js', 'js/md.js', 'js/lib.js', 'js/design.js', 'js/mix.js', 'js/stage.js', 'js/main.js']) {
     new vm.Script(readFileSync(join(stylesDir, f), 'utf8'), { filename: f });
   }
 });

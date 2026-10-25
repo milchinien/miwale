@@ -101,7 +101,7 @@
     const map = autumn ? { G: P.ochre, L: P.yellow, k: P.k, t: P.red0 } : { G: P.gr1, L: P.gr2, k: P.k, t: P.red0 };
     return pair(mk(g.map((row) => row.join('')), map));
   }
-  /** Explosion: 4 procedural frames on the pixel grid (white core → gold → red rays → 8 flying bits). */
+  /** Burst: 4 procedural frames on the pixel grid (white core → gold → red rays → 8 flying bits). */
   function boomFrames(R) {
     const out = [], S = Math.ceil(18 * R) | 1, c = (S - 1) / 2;
     for (let f = 0; f < 4; f++) {
@@ -129,7 +129,7 @@
     }
     return out;
   }
-  /** Gem: 4-frame spin (width shrinks to a sliver), white facet, outlined. */
+  /** Collectible gem: 4-frame spin (width shrinks to a sliver), white facet, outlined. */
   function gemFrames(big) {
     const half = big ? [0, 1, 2, 3, 3, 2, 1, 0] : [0, 1, 2, 2, 1, 0], fh = big ? [3, 2, 0, 2] : [2, 1, 0, 1];
     const map = big ? { W: P.w, c: P.gold, d: P.orange } : { W: P.w, c: P.cyan, d: P.blue }, out = [];
@@ -157,7 +157,7 @@
     for (let y = 0; y < h; y++) { let s = ''; for (let x = 0; x < w; x++) { const dx = (x + 0.5 - w / 2) / (w / 2), dy = (y + 0.5 - h / 2) / (h / 2); s += dx * dx + dy * dy <= 1 && ((x + y + par) & 1) === 0 ? 'k' : '.'; } rows.push(s); }
     return mk(rows, { k: P.k }, { outline: false });
   }
-  /** Damage number: 3×5 bitmap digits, white (crit: gold, 2× size), 8-neighbour black outline. */
+  /** Floating number: 3×5 bitmap digits, white (highlighted: gold, 2× size), 8-neighbour black outline. */
   function numSprite(v, crit) {
     const str = String(v), sc = crit ? 2 : 1, rows = [];
     for (let y = 0; y < 5; y++) {
@@ -268,13 +268,13 @@
   const mid = (ctx, img, x, y) => blit(ctx, img, x, y, img.width >> 1, img.height >> 1);
   const shadowAt = (ctx, w, x, y) => { const s = SPR.shadow[w][(Math.round(x) + Math.round(y)) & 1]; ctx.drawImage(s, Math.round(x) - (s.width >> 1), Math.round(y) - (s.height >> 1)); };
 
-  /** Draws the hero with feet at (x, y) in art pixels. t = seconds, facing = 1 | -1. 2-frame walk, 1-px idle bob. */
+  /** Draws the main character (pumpkin head, blue overalls) with feet at (x, y) in art pixels. t = seconds, facing = 1 | -1. 2-frame walk, 1-px idle bob. */
   function drawHero(ctx, x, y, t, facing, moving) {
     if (!SPR) init();
     const frame = moving === false ? 0 : Math.floor(t * 8) & 1, bob = moving === false && (Math.floor(t * 1.8) & 1) ? 1 : 0;
     feet(ctx, SPR.hero[frame][facing < 0 ? 'l' : 'r'], x, y, bob);
   }
-  /** Draws a typical enemy with feet at (x, y). kind: 'creeper' | 'creeper2' | 'ghost' | 'brute'. */
+  /** Draws a typical creature with feet at (x, y) (root creature, ghost or root giant). kind: 'creeper' | 'creeper2' | 'ghost' | 'brute'. */
   function drawEnemy(ctx, x, y, t, kind, facing, id) {
     if (!SPR) init();
     const fl = (facing || 1) < 0 ? 'l' : 'r';
@@ -300,7 +300,7 @@
       if (((ph + v) & 1) === 0) { b.fillRect(x + 1, y, 2, 1); b.fillRect(x, y + 1, 1, 1); b.fillRect(x + 3, y + 1, 2, 1); }
       else { b.fillRect(x + 2, y, 2, 1); b.fillRect(x, y + 1, 2, 1); b.fillRect(x + 4, y + 1, 1, 1); }
     }
-    // scene actors in art-pixel space
+    // scene figures in art-pixel space
     const cx = W * 0.5, cy = H * 0.56, list = [];
     const hx = cx + Math.sin(t * 0.6) * 6, hy = cy + Math.cos(t * 0.6) * 2;
     list.push({ x: hx, y: hy, sh: 12, f: () => drawHero(b, hx, hy, t, Math.cos(t * 0.6) > 0 ? 1 : -1) });
@@ -315,33 +315,33 @@
     for (const o of list) if (o.sh) shadowAt(b, o.sh, o.x, o.y);   // all shadows first, then y-sorted sprites
     list.sort((p, q) => p.y - q.y);
     for (const o of list) o.f();
-    // gems (spin sequence 0,0,0,1,2,3; 1-px bob)
+    // collectibles (spin sequence 0,0,0,1,2,3; 1-px bob)
     const GSEQ = [0, 0, 0, 1, 2, 3];
     [[-30, 34, 0], [44, 30, 1], [-90, -10, 0], [104, -60, 0], [16, -70, 1]].forEach(([dx, dy, big], i) => {
       const set = big ? SPR.gemBig : SPR.gem, img = set[GSEQ[Math.floor(t * 9 + i * 2) % 6]];
       blit(b, img, cx + dx, cy + dy, img.width >> 1, img.height - 1 + (Math.floor(t * 2.5 + i) & 1));
     });
-    // two lanterns orbiting the hero (blink between gold and white glass)
+    // two lanterns orbiting the main character (blink between gold and white glass)
     for (let k = 0; k < 2; k++) { const a = t * 2.4 + k * Math.PI; mid(b, SPR.lantern[Math.floor(t * 4 + k) & 1], hx + Math.cos(a) * 26, hy - 12 + Math.sin(a) * 14); }
-    // seed projectile flying toward a creeper, with a dotted 2-pixel trail
+    // seed projectile flying toward a root creature, with a dotted 2-pixel trail
     const sp = (t * 1.3) % 1, px = hx + (cx + 64 - hx) * sp, py = hy - 12 + (cy - 50 - hy + 12) * sp, vx = 64, vy = -38, vl = Math.hypot(vx, vy);
     blit(b, SPR.seed[Math.floor(t * 30) & 1], px, py, 2, 2);
     b.fillStyle = Math.floor(t * 30) & 1 ? P.gold : P.cream; b.fillRect(Math.round(px - vx / vl * 4), Math.round(py - vy / vl * 4), 1, 1);
     b.fillStyle = P.orange; b.fillRect(Math.round(px - vx / vl * 7), Math.round(py - vy / vl * 7), 1, 1);
-    // looping explosion + damage numbers
+    // looping burst + floating numbers
     mid(b, SPR.boom[Math.floor(t * 6) % 4], cx - 108, cy - 52);
     mid(b, SPR.crit, cx - 108, cy - 70 - (t * 8) % 6);
     mid(b, SPR.num, cx + 92, cy + 20 - (t * 10) % 8);
-    // NES status bar: black strip, 8-px font, red labels, heart row, blue segmented XP bar
+    // NES status bar: black strip, 8-px font, red labels, heart row, blue segmented progress bar
     const bar = 42;
     b.fillStyle = P.k; b.fillRect(0, 0, W, bar);
     b.textBaseline = 'top'; b.font = '8px ' + FONT;
-    b.fillStyle = P.red; b.fillText('-LIFE-', 8, 3); b.fillText('XP', 8, 31);
+    b.fillStyle = P.red; b.fillText('-LIFE-', 8, 3); b.fillText('PW', 8, 31);
     for (let k = 0; k < 10; k++) b.drawImage(k < 8 ? SPR.heart : SPR.heartE, 8 + k * 8, 12);
     b.fillStyle = P.w; b.fillText('80/100', 96, 12);
     b.font = '16px ' + FONT; const clock = '22:09'; b.fillText(clock, Math.round(W / 2 - 40), 2);
-    b.font = '8px ' + FONT; b.fillStyle = P.red; b.fillText('TO MIDNIGHT', Math.round(W / 2 - 44), 17);
-    b.fillStyle = P.w; b.fillText('x 106', W - 50, 8); b.fillText('LV 4', W - 40, 31);
+    b.font = '8px ' + FONT; b.fillStyle = P.red; b.fillText('TITLE TEXT', Math.round(W / 2 - 44), 17);
+    b.fillStyle = P.w; b.fillText('x 106', W - 50, 8); b.fillText('NO 4', W - 40, 31);
     b.drawImage(SPR.creeper[0][0].r, W - 70, 1);
     const bx0 = 28, bx1 = W - 52; b.fillStyle = P.w; b.fillRect(bx0 - 1, 30, bx1 - bx0 + 2, 10); b.fillStyle = P.k; b.fillRect(bx0, 31, bx1 - bx0, 8);
     for (let x = bx0 + 1; x < bx0 + (bx1 - bx0) * 0.72; x += 4) { b.fillStyle = P.cyan; b.fillRect(x, 32, 2, 6); b.fillStyle = P.blue; b.fillRect(x + 2, 32, 1, 6); }

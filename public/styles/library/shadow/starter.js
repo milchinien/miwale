@@ -2,7 +2,7 @@
    Dependency-free Canvas 2D. Free to copy and adapt. Full spec: STYLE.md
    Core trick: the GROUND is the light (glowing colour fields: teal → violet → crimson → amber, joined by thin ink
    seams), everything standing is a flat indigo-black cut-paper silhouette. The only colour on a silhouette is
-   emissive (carved faces, eyes, cracks), plus a baked rim of light. Ghosts invert the rule: pale glowing veils. */
+   emissive (carved faces, eyes, cracks), plus a baked rim of light. Ghost creatures invert the rule: pale glowing veils. */
 (function (root) {
   'use strict';
   const PALETTE = {
@@ -83,7 +83,7 @@
   function add(ctx, s, x, y, alpha, sx, sy, rot) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = alpha; blit(ctx, s, x, y, sx, sy, rot); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
 
   /* ---------- characters (all facing +x, feet at 0,0, y up = negative) ---------- */
-  function drawJack(c, ph, moving) {
+  function drawJack(c, ph, moving) { // main character: slim puppet with a pumpkin head, jagged cloak and streaming scarf
     const s = Math.sin(ph * TAU), co = Math.cos(ph * TAU), bob = moving ? -Math.abs(co) * 0.9 : s * 0.35, hipY = -8.6 + bob, sh = -16.2 + bob;
     const leg = (side) => { const sw = moving ? s * side : 0, thA = Math.PI / 2 - sw * 0.6, hx = side * 1.2 + 0.3, kx = hx + Math.cos(thA) * 4.2, ky = hipY + Math.sin(thA) * 4.2;
       const shA = thA + (moving ? 0.12 + 0.55 * Math.max(0, Math.sin(ph * TAU + side * 1.4)) : 0.04), fx = kx + Math.cos(shA) * 4.4, fy = Math.min(0, ky + Math.sin(shA) * 4.4);
@@ -109,7 +109,7 @@
       p.quadraticCurveTo(cx + 4.6, ya + 3.6, cx + 1.4, ya + 3.8); p.lineTo(cx + 1.0, ya + 2.6); p.lineTo(cx + 0.4, ya + 3.7); p.quadraticCurveTo(cx - 2.0, ya + 3.2, cx - 2.9, ya - 0.3); p.closePath();
     }, cx + 1.4, cy + 0.6, 6, FACE, 1.6, 'rgba(255,150,40,0.95)');
   }
-  function drawCreeper(c, ph, v) { // small melee enemy: waddling root-bulb with filigree leaf crown
+  function drawCreeper(c, ph, v) { // small creature: waddling purple root bulb with a filigree leaf crown
     const s = Math.sin(ph * TAU), by = -12.2 - Math.abs(Math.cos(ph * TAU)), rx = v ? 7.0 : 7.8, ry = v ? 7.6 : 7.0;
     for (const side of [-1, 1]) { const hx = side * 2.6, hy = by + ry - 1.6, ta = Math.PI / 2 - s * side * 0.6, kx = hx + Math.cos(ta) * 3.2, ky = hy + Math.sin(ta) * 3.2;
       const sa = ta + 0.2 + Math.max(0, Math.sin(ph * TAU + side * 1.3)) * 0.6, fx = kx + Math.cos(sa) * 3.3, fy = Math.min(0, ky + Math.sin(sa) * 3.3);
@@ -128,7 +128,7 @@
     glowFill(c, (p) => { const ey = by - 1.2; p.moveTo(-0.6, ey - 0.9); p.quadraticCurveTo(1.0, ey - 0.6, 2.2, ey + 0.4); p.quadraticCurveTo(0.6, ey + 1.2, -0.6, ey - 0.9); p.closePath();
       p.moveTo(6.0, ey - 1.1); p.quadraticCurveTo(4.6, ey - 0.6, 3.4, ey + 0.4); p.quadraticCurveTo(5.0, ey + 1.1, 6.0, ey - 1.1); p.closePath(); }, 2.8, by - 1, 4, [[0, '#ffffe0'], [0.4, '#d8ff62'], [1, '#7fe02a']], 1.3, 'rgba(170,255,70,0.95)');
   }
-  function buildGhost(ph) { // fast enemy: the inversion – a pale glowing veil with a dark halo + light halo
+  function buildGhost(ph) { // fast creature: the inversion – a pale glowing veil with a dark halo + light halo
     const w = Math.sin(ph * TAU), w2 = Math.cos(ph * TAU);
     const veil = mk(-15, -25, 13.5, 0, (c) => {
       c.fillStyle = '#fff'; ell(c, 0.6, -17.4, 5.0, 5.6);
@@ -145,7 +145,7 @@
     blurInto(ctx, veil.c, 2.2 * K, 0.42, '#160828'); blurInto(ctx, veil.c, 1.4 * K, 0.95, '#d6f0ff'); ctx.drawImage(veil.c, 0, 0);
     return { c, ax: veil.ax, ay: veil.ay };
   }
-  function drawColossus(c, ph) { // brute: knobby bulb golem, antler leaf crown, glowing magenta cracks + core
+  function drawColossus(c, ph) { // large creature: knobby root-bulb colossus, antler leaf crown, glowing magenta cracks + core
     const s = Math.sin(ph * TAU), by = -29 - Math.abs(Math.cos(ph * TAU)) * 1.2, as = -s * 0.25, r = rng(4242);
     for (const sd of [-1, 1]) { const fx = sd * 7.5 + s * sd * 2.2, fy = -Math.max(0, s * sd) * 3.6; limb(c, [[sd * 6.5, by + 11], [(sd * 6.5 + fx) / 2 + 1.6, (by + 11 + fy) / 2], [fx, fy - 1]], 5.4, 3.6);
       for (let t = -1; t <= 1; t++) limb(c, [[fx, fy - 1.2], [fx + t * 2.6 + 1, fy + 0.2], [fx + t * 4.2 + 1.6, fy - 0.2]], 1.6, 0.2); }
@@ -164,7 +164,7 @@
     glowFill(c, (p) => { p.moveTo(1.5, by - 4.2); p.lineTo(4.4, by - 0.4); p.lineTo(1.6, by + 3.6); p.lineTo(-1.3, by - 0.4); p.closePath(); }, 1.5, by - 0.3, 4.4, [[0, '#fff'], [0.35, '#ffc2f2'], [1, '#ff5ad2']], 2.2, 'rgba(255,60,200,1)');
     glowFill(c, (p) => { const ey = by - 8.5; p.moveTo(3.2, ey - 0.6); p.lineTo(7.6, ey + 0.6); p.lineTo(3.8, ey + 1.4); p.closePath(); p.moveTo(13.4, ey - 0.8); p.lineTo(9.2, ey + 0.6); p.lineTo(12.8, ey + 1.4); p.closePath(); }, 8, by - 8, 6, [[0, '#fff'], [0.4, '#ffd0f6'], [1, '#ff5ad2']], 1.4, 'rgba(255,70,210,1)');
   }
-  function drawPumpkinProp(c) { // lit jack-o'-lantern prop on a curly vine
+  function drawPumpkinProp(c) { // prop: lit carved gourd lantern on a curly vine
     limb(c, curlPts(-8, 0.4, 0.1, 12, 1.2, 8), 0.7, 0.2, 3); for (let l = -1; l <= 1; l++) leaf(c, -3, -0.6, -Math.PI / 2 + l * 0.7, 3.4 - Math.abs(l) * 0.6, 1.0);
     const cy = -4.8, k = 1; pumpkinShape(c, 0, cy, 6, 4.8); limb(c, [[0, cy - 4.2], [0.4, cy - 5.7], [1.4, cy - 6.9]], 1.1, 0.7);
     glowFill(c, (p) => { p.moveTo(-2.6 * k, cy - 0.4); p.lineTo(-1.3, cy - 2.4); p.lineTo(-0.4, cy - 0.3); p.closePath(); p.moveTo(0.4, cy - 0.3); p.lineTo(1.3, cy - 2.4); p.lineTo(2.6, cy - 0.4); p.closePath();
@@ -201,7 +201,7 @@
   /* ---------- ground: four light fields + bleed + ink seam + ripples + grain, then an ink lace layer ---------- */
   const TH = [-0.95, -0.3, 0.35], BW = 0.075, HOT = [255, 240, 196];
   const BANDS = [{ e: [44, 116, 140], c: [118, 204, 198] }, { e: [104, 64, 162], c: [182, 130, 220] }, { e: [176, 42, 66], c: [242, 106, 82] }, { e: [234, 122, 44], c: [255, 198, 98] }];
-  const FS = 1.7; // field scale for the preview (1 = the game's ~1300-unit fields); smaller fields show all four bands at once
+  const FS = 1.7; // field scale for the preview (1 = the full-size ~1300-unit fields); smaller fields show all four bands at once
   const fval = (x, y) => (warped(x * FS / 1300, y * FS / 1300, 501, 0.85, 3) - 0.5) * 9.5 + (fbm(x * FS / 420, y * FS / 420, 502, 2) - 0.5) * 0.9;
   const bandOf = (f) => (f < TH[0] ? 0 : f < TH[1] ? 1 : f < TH[2] ? 2 : 3);
   /** Colour of a field: edge colour at the seam → core colour 0.75 f-units deep; amber gets a hot white-gold heart. */
@@ -284,14 +284,14 @@
   }
 
   /* ---------- public drawing API (ctx in world units, 1 unit = K/… px handled by blit) ---------- */
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. Warm follow-spot, rim of light, flickering face halo. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Warm follow-spot, rim of light, flickering face halo. */
   function drawHero(ctx, x, y, t, facing) {
     const sp = sprites(), fi = facing < 0 ? 1 : 0, i = Math.floor(t * 9) % 6;
     add(ctx, sp.pool, x, y - 6, 0.55 + 0.05 * Math.sin(t * 2.2), 1.1, 0.62); blit(ctx, sp.contact, x, y + 0.6, 0.8, 0.26);
     add(ctx, sp.jackR[i][fi], x, y, 0.75); blit(ctx, sp.jack[i][fi], x, y);
     add(ctx, sp.face, x + (fi ? -1.6 : 1.6), y - 22.5, (0.8 + 0.12 * Math.sin(t * 11) + 0.08 * Math.sin(t * 27)) * 0.85, 0.8, 0.75);
   }
-  /** Draws a typical enemy with feet at (x, y). kind: 'creeper' (default) | 'ghost' | 'brute'. flash 0..1 = hit rim. */
+  /** Draws a typical creature with feet at (x, y). kind: 'creeper' (small, default) | 'ghost' (fast veil) | 'brute' (large). flash 0..1 = impact rim. */
   function drawEnemy(ctx, x, y, t, kind, seed, facing, flash) {
     const sp = sprites(), fi = (facing || 1) < 0 ? 1 : 0; seed = seed || 0;
     if (kind === 'ghost') { blit(ctx, sp.contact, x, y + 0.5, 0.45, 0.16); blit(ctx, sp.ghost[Math.floor(t * 6 + seed * 9) & 3][fi], x, y - 2.2 - Math.sin(t * 3.1 + seed * 20) * 1.2, 1, 1, Math.sin(t * 2.3 + seed * 9) * 0.06); return; }
@@ -321,8 +321,8 @@
     for (let i = 0; i < 6; i++) { const gx = hx - 120 + i * 21, gy = hy + 40 + Math.sin(i * 2.1) * 14 + Math.sin(t * 3 + i) * 0.8; add(ctx, sp.cyan, gx, gy - 1, (0.75 + 0.25 * Math.sin(t * 5 + i)) * 0.9, 0.75); blit(ctx, sp.gem, gx, gy); }
     const u = (t * 1.3) % 1, px = hx + 8 + u * 120, py = hy - 14 + u * 4, a = Math.atan2(4, 120); // seed projectile with additive trail
     add(ctx, sp.trail, px, py, 1, 1, 1, a); add(ctx, sp.ember, px, py, 0.7, 1.4); blit(ctx, sp.seed, px, py, 1, 1, a);
-    add(ctx, sp.flare, hx + 70, hy + 35 - 12, 0.9, 0.9, 0.9, t * 2); // hit flare on the flashed enemy
-    ctx.font = '700 12.5px Cinzel, "Times New Roman", serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; // damage number: ink stroke + glow, gold gradient
+    add(ctx, sp.flare, hx + 70, hy + 35 - 12, 0.9, 0.9, 0.9, t * 2); // impact flare on the flashed creature
+    ctx.font = '700 12.5px Cinzel, "Times New Roman", serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round'; // pop-up number: ink stroke + glow, gold gradient
     ctx.save(); ctx.shadowColor = 'rgba(255,140,40,0.95)'; ctx.shadowBlur = 6 * s; ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.strokeText('34', hx + 72, hy - 2); ctx.restore();
     const g = ctx.createLinearGradient(0, hy - 12, 0, hy - 2); g.addColorStop(0, '#fff'); g.addColorStop(0.45, '#ffe07a'); g.addColorStop(1, '#ff8a22'); ctx.fillStyle = g; ctx.fillText('34', hx + 72, hy - 2);
     ctx.setTransform(1, 0, 0, 1, 0, 0);

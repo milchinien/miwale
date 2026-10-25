@@ -2,7 +2,7 @@
 
 > Drawn live with pastel chalk on a slate-green school board: broken grainy strokes, loose hatching, eraser smears and doodles.
 
-The whole game world is one big Halloween blackboard drawing. Every figure is a simple doodle: a few smooth closed shapes, each filled with the board colour, given a faint translucent "rub" of chalk, hatched with loose parallel lines and outlined with a broken, pressure-varying chalk stroke. A grain mask knocks tiny holes into every stroke so the dark board shows through. Pastel chalks (orange, lavender, mint, butter yellow, pink, light blue) sit on a dark slate-green board inside a wooden frame with chalk sticks on the ledge. Nothing glows and nothing explodes: enemies are *drawn onto* the board when they spawn and *wiped off with an eraser* when they die. The reference game is *Jack vs. the Turnip Ancestors* (a pumpkin-headed hero fighting turnips and ghosts in a top-down survivor game); treat it as an example only.
+The whole world is one big Halloween blackboard drawing. Every figure is a simple doodle: a few smooth closed shapes, each filled with the board colour, given a faint translucent "rub" of chalk, hatched with loose parallel lines and outlined with a broken, pressure-varying chalk stroke. A grain mask knocks tiny holes into every stroke so the dark board shows through. Pastel chalks (orange, lavender, mint, butter yellow, pink, light blue) sit on a dark slate-green board inside a wooden frame with chalk sticks on the ledge. Nothing glows and nothing explodes: figures are *drawn onto* the board when they appear and *wiped off with an eraser* when they disappear. The module's cast – a cloaked main character with a round orange head and a carved yellow face, cream root-bulb creatures with lavender caps, white floating spirits and a lavender giant – is used below as the example.
 
 ## At a glance
 
@@ -10,25 +10,25 @@ The whole game world is one big Halloween blackboard drawing. Every figure is a 
 | --- | --- |
 | Family | Traditional media · Chalk |
 | Mood | playful, handmade, nostalgic, cozy-spooky, doodly |
-| Best for | top-down survivor games, kids/educational games, cozy Halloween games, board-game adaptations |
+| Best for | top-down action games, kids/educational games, cozy Halloween games, board-game adaptations |
 | Renderer | Canvas 2D, procedural, no image assets |
 | Pixel art | No – native resolution, sprites baked at 2–3.5 px per world unit |
-| Difficulty | 5/10 – forgiving stroke, but every figure needs several redrawn variants and the ground is expensive |
+| Complexity | 5/10 – forgiving stroke, but every figure needs several redrawn variants and the ground is expensive |
 | Fonts | Cabin Sketch, Fredericka the Great, Architects Daughter, Rock Salt |
 | Key colours | board `#25332d`, chalk `#eeeee5`, orange `#f89c52`, lavender `#c2acec`, mint `#98deb2`, yellow `#f9e58c` |
 
 ## When to use it
 
 Good fits:
-- **Top-down action with many enemies** – the board colour halo keeps doodles readable even on hatched ground.
+- **Top-down action with many figures** – the board colour halo keeps doodles readable even on hatched ground.
 - **Kids, school or educational themes** – the blackboard is instantly familiar.
-- **Cozy-spooky / seasonal games** – pastel chalk on dark green softens horror themes.
+- **Cozy-spooky / seasonal projects** – pastel chalk on dark green softens horror themes.
 - **Board-game, puzzle or strategy adaptations** – region borders are crisp white chalk lines, like a drawn map.
 
 Bad fits:
-- **Realistic or gritty games** – chalk always reads as a child's drawing.
+- **Realistic or gritty projects** – chalk always reads as a child's drawing.
 - **Glow-heavy sci-fi, neon, bullet hell** – the style has no light emission; dozens of bright effects turn into white mush.
-- **Huge hordes of the same colour** – 40 lavender turnips blend into a lavender blob; vary colours per type.
+- **Large crowds of one colour** – 40 lavender creatures blend into a lavender blob; vary colours per type.
 
 ## Color palette
 
@@ -36,37 +36,37 @@ Bad fits:
 | --- | --- | --- |
 | Slate Board | `#25332d` | Ground base, sprite "eraser halo", fill of every hole (eyes, mouths) – ~55% of the screen |
 | Board Deep | `#1c2823` | Text shadows, HUD panel background `rgba(22,32,28,.55)` |
-| White Chalk | `#eeeee5` | Main outlines, hero body, ghosts, paths, region borders, HUD frames |
-| Pumpkin Orange | `#f89c52` | Hero head, pumpkins, brute core, labels |
+| White Chalk | `#eeeee5` | Main outlines, the main character's cloak, floating spirits, paths, region borders, HUD frames |
+| Pumpkin Orange | `#f89c52` | Main character's round head, gourds, core of the large creature, labels |
 | Deep Orange | `#de6c34` | Shadow hatching and ribs on orange objects |
-| Lavender | `#c2acec` | Turnip caps, forest cross-hatch, brute body |
-| Mint | `#98deb2` | Meadow tufts, leaves, hero scarf, XP bar |
+| Lavender | `#c2acec` | Caps of the small creatures, forest cross-hatch, large creature body |
+| Mint | `#98deb2` | Meadow tufts, leaves, the main character's scarf, progress bar |
 | Leaf Green | `#70bc7e` | Second leaf colour, stems |
-| Butter Yellow | `#f9e58c` | Eyes and mouths, field rows, crits, stars, level text |
-| Pink | `#f7a8c6` | HP bar, hearts, scarf stripes, big gem |
-| Light Blue | `#9eccf0` | Frost biome, small gems, ghost hem |
-| Cream | `#f4e8ce` | Turnip bulbs and legs, seed projectiles |
-| Eraser Wood | `#b08058` | Eraser top (death wipe only) |
+| Butter Yellow | `#f9e58c` | Eyes and mouths, field rows, large floating numbers, stars, title text |
+| Pink | `#f7a8c6` | Status bar, hearts, scarf stripes, large collectible |
+| Light Blue | `#9eccf0` | Frost biome, small collectibles, hem of the floating spirit |
+| Cream | `#f4e8ce` | Bulbs and legs of the small creatures, seed projectiles |
+| Eraser Wood | `#b08058` | Eraser top (only on the eraser that wipes figures away) |
 | Frame Wood | `#93663f` | Board frame (gradient `#7a5232 → #93663f → #5c3b22`) |
 | Frame Wood Dark | `#5c3b22` | Frame shadow side |
 
 Palette rules:
 - The board colour dominates. Chalk is *translucent*: rub fills use alpha 0.1–0.72; only eyes, mouths and crumbs reach 0.95–1.
 - Pastels only. No black, no saturated primaries, nothing brighter than `#eeeee5`.
-- One chalk colour per biome (meadow mint, forest lavender, field orange/yellow, frost light blue) and one per enemy type.
+- One chalk colour per biome (meadow mint, forest lavender, field orange/yellow, frost light blue) and one per creature type.
 - Holes are board-coloured (`fillBoard()`), never black. Shadows are `rgba(10,18,14,0.55→0)` radial ellipses.
 - Brown wood exists only on the screen frame and the eraser.
 
 ## Typography
 
-- **Cabin Sketch** 400/700 – HUD numbers, damage numbers, card titles. `https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700`
+- **Cabin Sketch** 400/700 – HUD numbers, floating numbers, card titles, counters. `https://fonts.googleapis.com/css2?family=Cabin+Sketch:wght@400;700`
   `font: 700 34px/1 'Cabin Sketch', cursive; letter-spacing: 2px; color: #eeeee5; text-shadow: 0 0 4px #1c2823;`
-- **Fredericka the Great** 400 – big titles (level up 78px, game over 66px, pause 64px). `https://fonts.googleapis.com/css2?family=Fredericka+the+Great`
+- **Fredericka the Great** 400 – big titles (announcement 78px, end screen 66px, pause 64px). `https://fonts.googleapis.com/css2?family=Fredericka+the+Great`
   Title underline: a 5px orange `#f89c52` bar with `border-radius: 50% 40% 60% 30%`, rotated −1°.
 - **Architects Daughter** 400 – labels and body text (15–21px). `https://fonts.googleapis.com/css2?family=Architects+Daughter`
-- **Rock Salt** 400 – handwritten words scribbled on the ground ("Boo!", "Midnight", "Psst!"), 8 world units tall, alpha 0.62, with a wobbly underline at 0.08× font size.
+- **Rock Salt** 400 – handwritten words scribbled on the ground ("Boo!", "Psst!"), 8 world units tall, alpha 0.62, with a wobbly underline at 0.08× font size.
 
-Text effects: no hard outlines in the DOM HUD; a soft `0 0 3–4px #1c2823` shadow. Canvas damage numbers are white (crit: yellow 13 units, normal 9.5 units), get a thick `rgba(30,42,37,0.88)` stroke of 0.3× font size behind them, crits an orange underline swoosh, and the grain mask at 0.8. Every HUD element carries an SVG `feTurbulence` mask so text has chalk holes too.
+Text effects: no hard outlines in the DOM HUD; a soft `0 0 3–4px #1c2823` shadow. Canvas floating numbers are white (large variant: yellow 13 units, small 9.5 units), get a thick `rgba(30,42,37,0.88)` stroke of 0.3× font size behind them, the large ones an orange underline swoosh, and the grain mask at 0.8. Every HUD element carries an SVG `feTurbulence` mask so text has chalk holes too.
 
 ## Rendering technique
 
@@ -76,15 +76,15 @@ Text effects: no hard outlines in the DOM HUD; a soft `0 0 3–4px #1c2823` shad
    - `hatch(poly, {ang, sp, w, c, a, skip, inset})` – clip to the polygon, draw quadratic lines at spacing `sp·(0.75–1.25)` with random start/end (55–115% of the radius) and ±0.5 bend.
    - `rub(poly, c, a)` – flat translucent fill. `fillBoard(poly)` – opaque board-colour fill to hide what's behind.
 3. **Shape recipe** (every body part): `fillBoard → rub → hatch (clipped) → stroke outline`. Details (eyes, mouth) come last.
-4. **Sprite bake (`mk`)** – draw into an offscreen canvas with `setTransform(K,0,0,K,ax,ay)`, round caps/joins; punch the grain with `destination-out` (alpha 1, pattern offset per sprite); then build the **eraser halo**: threshold alpha > 26 into a solid board-colour silhouette, draw it 12× around a 1-unit circle (+6 at half radius), put it behind the chalk at alpha 0.6–0.9. Also bake a white flash copy (`source-atop`, alpha 0.6) for hit flashes and a mirrored copy for facing left.
-5. **Variants** – hero 4 walk + 2 idle frames, each in 3 boil variants (seeds `100 + i·7 + v·31`); enemies 4 frames × 3 variants (2 built lazily in background); gems 2, lanterns 3.
+4. **Sprite bake (`mk`)** – draw into an offscreen canvas with `setTransform(K,0,0,K,ax,ay)`, round caps/joins; punch the grain with `destination-out` (alpha 1, pattern offset per sprite); then build the **eraser halo**: threshold alpha > 26 into a solid board-colour silhouette, draw it 12× around a 1-unit circle (+6 at half radius), put it behind the chalk at alpha 0.6–0.9. Also bake a white flash copy (`source-atop`, alpha 0.6) and a mirrored copy for facing left.
+5. **Variants** – main character 4 walk + 2 idle frames, each in 3 boil variants (seeds `100 + i·7 + v·31`); creatures 4 frames × 3 variants (2 built lazily in background); collectibles 2, lanterns 3.
 6. **Ground chunks** (256 units, ≤ 2.5 px/unit) – generator function that yields every row: compute noise fields on a 65×65 grid (4-unit cells), convert to signed distances, then per pixel composite board + textures + border lines; then stamp decals. Chunk work is limited to 5 ms per frame.
-7. **Per frame** – blit ground chunks; ground overlay (smears); gems; shadows; y-sorted props/enemies/hero (sprite swaps only); lanterns; projectiles; particles; damage numbers; screen overlay (cached frame parts + clock face + two drawn hands).
+7. **Per frame** – blit ground chunks; ground overlay (smears); collectibles; shadows; y-sorted props/creatures/main character (sprite swaps only); lanterns; projectiles; particles; floating numbers; screen overlay (cached frame parts + clock face + two drawn hands).
 8. Positions are snapped to whole screen pixels (`Math.round(x * S) / S`) to avoid shimmer.
 
-## Background and ground
+## World and ground
 
-The ground is a chalk drawing of a map, not a texture. Fields (world units, Perlin/fbm):
+The ground is a chalk drawing of a map, not a texture: biomes are separated by crisp white chalk border lines, and each biome is filled with its own pastel stroke motif. Fields (world units, Perlin/fbm):
 - `A = warped fbm(x/760)` → biome: `A < 0.455` forest, `A > 0.553` field, else meadow; inside meadow `F = fbm(x/420) > 0.585` is frost.
 - `R = perlin(x/1250)` domain-warped → path where `|R| / |∇R| < 8.5` units.
 - Distances: `d = (A − threshold) / |∇A|` gives a distance in world units, wobbled by `perlin(x/11)·0.45`.
@@ -100,68 +100,79 @@ Per pixel:
   - Density × `0.32 + 0.68·smoothstep(0.28, 0.72, T)` (T = fbm/150), × grain value `gm`.
 - **Borders**: wherever `|d| < 0.5` units a white chalk line, alpha `0.8·(0.3 + 0.7·gm)`. Textures fade to 0 within ~1.4 units of the line, so the border reads cleanly.
 - **Path**: band 17 units wide, +6 brightness, filled with stipple dots (r 0.3–0.55) whose alpha peaks 1.3 units inside the edge (dotted border) and is sparse in the middle; pebbles are outlined ellipses (alpha 0.62).
-- **Decals**: eraser swipes (60% of 300-unit cells: arcs r 60–140, width 14–26, 3 passes alpha 0.026 + 8 thin streaks 0.045), doodles every 66 units (30% chance, 7+ units away from borders; set chosen per biome: forest bat/moon/spiral/ghost, field pumpkin/turnip/arrow/tally, meadow flower/heart/star/tic-tac-toe, frost snowflake/star/moon) at alpha 0.5–0.72, scale 0.9–1.35, rotation ±0.35; Rock Salt words every 330 units.
+- **Decals**: eraser swipes (60% of 300-unit cells: arcs r 60–140, width 14–26, 3 passes alpha 0.026 + 8 thin streaks 0.045), doodles every 66 units (30% chance, 7+ units away from borders; set chosen per biome: forest bat/moon/spiral/spirit, field gourd/root bulb/arrow/tally, meadow flower/heart/star/tic-tac-toe, frost snowflake/star/moon) at alpha 0.5–0.72, scale 0.9–1.35, rotation ±0.35; Rock Salt words every 330 units.
 
 ## Characters
 
-**Hero** (reference: Jack), feet at (0,0), ~16 wide, ~31 tall, drawn facing right:
+Every figure follows the shape recipe (`fillBoard → rub → hatch → stroke`), carries a board halo (0.8–1.1 units) and is baked in 4 frames × 3 line-boil variants; facing left = mirrored canvas. Faces are solid butter yellow – the brightest spot on any figure.
+
+**Main character**, feet at (0,0), ~16 wide, ~31 tall, drawn facing right:
 - **Legs**: two 3-point strokes, width 1.35 white, from hip (±1.6, −7.6) to foot; feet are short 1.7-unit strokes pointing forward. Walk: foot x = ±1.9 + sin(phase)·2.6, lift = max(0, −sin·side)·1.7.
 - **Cloak**: 8-point spline trapezoid from y −15.6 to −6; `fillBoard`, rub white 0.34, hatch angle 1.05 spacing 1.25, outline 0.95.
 - **Arms**: 3-point strokes width 1.1 (back, alpha 0.8) and 1.15 (front) with a 0.9 dot hand.
 - **Scarf**: mint stroke 1.9 wide across the neck, a 1.6-wide tail flapping behind, two pink 0.5 stripes.
-- **Head**: ellipse 7.9 × 6.7 centred at (0.3, −21.6) with 6 lobes (`r·(1 + 0.035·cos(6a))`); rub orange 0.72; clipped deep-orange hatching on the lower-left (angle −0.75), yellow hatch highlight upper-right; two deep-orange rib curves; orange outline 1.2; leaf-green stem 1.5.
+- **Head**: a round orange gourd shape – ellipse 7.9 × 6.7 centred at (0.3, −21.6) with 6 lobes (`r·(1 + 0.035·cos(6a))`); rub orange 0.72; clipped deep-orange hatching on the lower-left (angle −0.75), yellow hatch highlight upper-right; two deep-orange rib curves; orange outline 1.2; leaf-green stem 1.5.
 - **Face** shifted 1.4 units toward the facing side: two yellow triangle eyes with a white dot, a 12-point zigzag grin, all solid yellow 0.95.
 - **Glow**: radial orange rub behind the head (0.32 → 0.12 → 0, r 14) using `destination-over`.
-- Frames: 4 walk + 2 idle × 3 boil variants; facing left = mirrored canvas.
+- Frames: 4 walk + 2 idle × 3 boil variants.
 
-## Enemies and props
+**Small creature** (a root bulb on legs, 16 × 30): cream bulb 15.8 × 15.8 (rub 0.2), the top half clipped below a wave line is lavender (rub 0.6 + hatching −0.8 rad), the lower half has sparse white hatching; white outline 0.95; three lens leaves (mint/leaf green, 6.4–8.6 long); yellow ellipse eyes with board pupils and angry white brow strokes; zigzag mouth. Tilts ±0.09 rad while walking.
 
-All enemies follow the same shape recipe and carry a board halo (0.8–1.1 units).
-- **Small melee enemy** (turnip creeper, 16 × 30): cream bulb 15.8 × 15.8 (rub 0.2), the top half clipped below a wave line is lavender (rub 0.6 + hatching −0.8 rad), the lower half has sparse white hatching; white outline 0.95; three lens leaves (mint/leaf green, 6.4–8.6 long); yellow ellipse eyes with board pupils and angry white brow strokes; zigzag mouth. Tilts ±0.09 rad while walking.
-- **Fast / floating enemy** (ghost, 14 × 21): radial white rub (0.8 centre → 0.34 edge), sparse hatching, outline broken into a white upper part and a light-blue frosty hem; wispy trailing strokes; a reaching arm with two finger strokes; eyes and mouth are board-coloured holes with faint blue rims. Drawn at alpha 0.9, floating 2.2 units up.
-- **Brute** (colossus, 33 × 59): big lavender body with double cross-hatching (lavender 0.8 rad + pink −0.8 rad), cream lower band, white cracks, a 1.5-wide outline, an orange/yellow glowing core with 8 tick rays, yellow eyes with heavy brows, root-finger arms 2.6–2.8 wide, and a crown of 5 big leaves.
-- **Pickups**: small gem = light-blue diamond 4.4 × 6.4 with white hatching; big gem = pink diamond 8 × 11 with yellow hatching, a yellow outline and 6 spark ticks. 2 variants, flip at 5 fps.
-- **Orbiting lantern**: small pumpkin lantern with a lavender lid, yellow triangle eyes, two leaves, and a yellow radial rub behind it.
-- **Props** (y-sorted, with soft shadows): tree (hatched trunk with white bark ticks, bumpy 11-lobe crown filled with one 120-point scribble in a second colour, crown colour mint/orange/yellow variants), dead tree (recursive branches 3 levels deep, sometimes a bat), graves (round with "RIP", cross, pointed), fences (4 posts, 2 rails), scarecrow, pumpkin groups, signposts. Each has grass tufts at the base and a ground line.
-- Density: props only on 60-unit cells with ≤ 30% chance, never within 12 units of a path or 95 units of spawn.
+**Fast floating creature** (a sheet-like spirit, 14 × 21): radial white rub (0.8 centre → 0.34 edge), sparse hatching, outline broken into a white upper part and a light-blue frosty hem; wispy trailing strokes; a reaching arm with two finger strokes; eyes and mouth are board-coloured holes with faint blue rims. Drawn at alpha 0.9, floating 2.2 units up.
+
+**Large creature** (a root giant, 33 × 59): big lavender body with double cross-hatching (lavender 0.8 rad + pink −0.8 rad), cream lower band, white cracks, a 1.5-wide outline, an orange/yellow glowing core with 8 tick rays, yellow eyes with heavy brows, root-finger arms 2.6–2.8 wide, and a crown of 5 big leaves.
+
+## Props
+
+Props are chalk doodles made with the same toolkit and shape recipe, y-sorted with the figures, each with a board halo, soft shadow, grass tufts at the base and a short ground line. Outlines 1.0–1.2 units, details 0.35–0.6.
+
+- **Tree**: hatched trunk with white bark ticks, bumpy 11-lobe crown filled with one 120-point scribble in a second colour; crown variants mint / orange / yellow. Shadow 16 × 4.
+- **Dead tree**: recursive branches 3 levels deep, sometimes with a bat.
+- **Graves**: round with "RIP", cross, pointed.
+- **Fences**: 4 posts, 2 rails.
+- **Scarecrow** in a lavender coat, **gourd groups**, **signposts**.
+- **Placement**: only on 60-unit cells with ≤ 30% chance, never within 12 units of a path.
 
 ## Effects and particles
 
 All effects are baked chalk sprites drawn with `globalAlpha` and scale – no additive blending.
-- **Spawn**: reveal the sprite top-down (`rows = h · outQuad(spawnT)`) with a 1.6-unit bright chalk tip `rgba(245,245,236,.95)` moving along the edge.
-- **Death – eraser wipe**: over `deathT` 0→1, crop the sprite from one side (`cut = w · clamp(u·1.2)`), draw a stretched copy (×(1 + 0.9u), alpha 0.45·(1−u)) behind, and draw a rotated eraser sprite (wood top `#b08058` with grain lines, grey felt `rgb(84,88,86)`) at the cut. Leave a tinted chalk smear (9 faint horizontal streaks alpha 0.08–0.2) for 2.6 s.
-- **Hit**: a white (or yellow for orbitals) scribble – 5-ray burst, zigzag or spiral – for 0.22 s, plus 2 crumbs (grainy quads 3 × 1.4 units) flying with gravity 160 in the enemy's colours. Hit flash: the white `source-atop` copy at alpha ≤ 0.75.
-- **Kill**: 3 (brute 7) dust puffs + 6 (brute 12) crumbs + smear.
+- **Appear – drawn onto the board**: reveal the sprite top-down (`rows = h · outQuad(appearT)`) with a 1.6-unit bright chalk tip `rgba(245,245,236,.95)` moving along the edge.
+- **Disappear – eraser wipe**: over `t` 0→1, crop the sprite from one side (`cut = w · clamp(u·1.2)`), draw a stretched copy (×(1 + 0.9u), alpha 0.45·(1−u)) behind, and draw a rotated eraser sprite (wood top `#b08058` with grain lines, grey felt `rgb(84,88,86)`) at the cut, its angle wobbling `sin(u·20)·0.08`. Leave a tinted chalk smear (9 faint horizontal streaks alpha 0.08–0.2) for 2.6 s. Plus 3 (large creature 7) dust puffs and 6 (12) crumbs.
+- **Impact**: a white (or yellow for orbiting objects) scribble – 5-ray burst, zigzag or spiral – for 0.22 s, plus 2 crumbs (grainy quads 3 × 1.4 units) flying with gravity 160 in the figure's colours. Flash: the white `source-atop` copy at alpha ≤ 0.75.
 - **Projectile**: cream seed 6.2 × 3.6 with yellow hatching and an orange midline; trail = 3 rows of broken white dashes, thinner and fainter with distance, scaled in over 0.12 s.
-- **Pickup**: a 5-point yellow star (0.35 s). **Level up**: rotating double ring (yellow r 11.5 + orange r 9.6 + 12 ticks) and 8 stars at 70 units/s.
+- **Collectibles**: small = light-blue diamond 4.4 × 6.4 with white hatching; large = pink diamond 8 × 11 with yellow hatching, a yellow outline and 6 spark ticks; 2 variants flipping at 5 fps. Collecting pops a 5-point yellow star (0.35 s).
+- **Orbiting object**: a small round orange lantern with a lavender lid, yellow triangle eyes, two leaves, and a yellow radial rub behind it.
+- **Celebration**: rotating double ring (yellow r 11.5 + orange r 9.6 + 12 ticks) and 8 stars at 70 units/s.
 - **Dash**: 2 fading after-images (alpha 0.4/i, 7 units apart) and 4 dust puffs.
-- **Player hurt**: yellow scribble at the chest, 6 crumbs, and blinking at 14 Hz for 0.9 s.
+- **Dust puffs**: 7 radial white blobs (alpha 0.42) + 18 specks, tinted per chalk colour, growing with outQuad.
+- **Main character flash**: yellow scribble at the chest, 6 crumbs, and blinking at 14 Hz for 0.9 s.
 
-## Lighting, shadows and post-processing
+## Atmosphere and lighting
 
-- No real lighting. Glows are **rubs painted behind** the chalk (`destination-over`): hero head orange `rgba(248,156,82,.32→0)` r 14, lantern yellow `.3→0` r 10.
-- **Shadows**: radial ellipses `rgba(10,18,14,.55) → .3 at 70% → 0`, squashed (hero 7 × 2.2, small enemy 7.5 × 2.3, ghost 4.6 × 1.4, brute 17 × 4.4, tree 16 × 4). Drawn in a separate pass under all actors.
+- **No real lighting**, no additive blending. Glows are **rubs painted behind** the chalk (`destination-over`): the main character's head orange `rgba(248,156,82,.32→0)` r 14, lantern yellow `.3→0` r 10.
+- **Shadows**: radial ellipses `rgba(10,18,14,.55) → .3 at 70% → 0`, squashed (main character 7 × 2.2, small creature 7.5 × 2.3, floating 4.6 × 1.4, large 17 × 4.4, tree 16 × 4). Drawn in a separate pass under all figures.
 - **Eraser halo**: the key readability device – the board colour around each sprite erases the busy ground texture locally, exactly like a real chalk drawing where you wipe space before drawing a figure.
 - **Screen frame** (baked once per resolution): edge vignette `rgba(6,12,9,.5→.18→0)` over 10% height / 7% width, 700 chalk-dust specks concentrated above the bottom ledge, a wooden frame (thickness `max(8, 1.3% of H)`, bottom ledge 1.8×) with wood-grain strokes, chalk sticks (white, pink, yellow, mint, orange) and an eraser on the ledge, and grain at 0.25.
+- **Colour grading**: none – the dark board itself sets the mood.
 
-## UI and HUD
+## UI
 
 - Panels and bars are chalk outlines (`2.5px solid rgba(238,238,229,.92)`) with deliberately uneven border-radius so they look hand-drawn, backgrounds `rgba(22,32,28,.55)`.
-- Bar fills are diagonal chalk hatching via `repeating-linear-gradient(-58deg, …)`: XP mint, HP pink with orange gaps.
+- Bar fills are diagonal chalk hatching via `repeating-linear-gradient(-58deg, …)`: progress bar mint, status bar pink with orange gaps.
 - The whole HUD gets an SVG noise `mask-image` for chalk holes.
-- A chalk clock: double white circle, yellow ticks at quarters, a little pumpkin at 12, the last two hours hatched in lavender, white hour hand and orange minute hand.
-- Upgrade cards: board-coloured cards with a smudge gradient, chalk borders, each card rotated −1.6°/0.9°/−0.5° and pinned with a coloured magnet (orange/lavender/mint) at the top.
+- A chalk clock: double white circle, yellow ticks at quarters, a little orange gourd at 12, the last two hours hatched in lavender, white hour hand and orange minute hand.
+- Cards: board-coloured cards with a smudge gradient, chalk borders, each card rotated −1.6°/0.9°/−0.5° and pinned with a coloured magnet (orange/lavender/mint) at the top.
 - Icons: drawn with the same toolkit in a 100-unit box (heart, seed, bag, shoe, magnet, bowl) and given grain.
 
 ```css
 .hud { color: #eeeee5; font-family: 'Architects Daughter', 'Comic Sans MS', cursive; }
-.hp-bar { width: 240px; height: 22px; background: rgba(22,32,28,.55);
+.status-bar { width: 240px; height: 22px; background: rgba(22,32,28,.55);
   border: 2.5px solid rgba(238,238,229,.92); border-radius: 4px 14px 6px 12px / 12px 5px 14px 4px; }
-.hp-fill { height: 100%; background: repeating-linear-gradient(-58deg, rgba(247,168,198,.95) 0 3.5px, rgba(247,156,82,.45) 3.5px 7px); }
-.xp { height: 18px; background: rgba(22,32,28,.55); border: 2.5px solid rgba(238,238,229,.92);
+.status-fill { height: 100%; background: repeating-linear-gradient(-58deg, rgba(247,168,198,.95) 0 3.5px, rgba(247,156,82,.45) 3.5px 7px); }
+.progress { height: 18px; background: rgba(22,32,28,.55); border: 2.5px solid rgba(238,238,229,.92);
   border-radius: 14px 4px 12px 5px / 5px 12px 4px 14px; }
-.xp-fill { height: 100%; background: repeating-linear-gradient(-58deg, rgba(152,222,178,.95) 0 3px, rgba(152,222,178,.3) 3px 7px); }
-.hp-text, .kills { font-family: 'Cabin Sketch', cursive; font-weight: 700; font-size: 21px; }
+.progress-fill { height: 100%; background: repeating-linear-gradient(-58deg, rgba(152,222,178,.95) 0 3px, rgba(152,222,178,.3) 3px 7px); }
+.bar-value, .counter { font-family: 'Cabin Sketch', cursive; font-weight: 700; font-size: 21px; }
 .clock-time { font: 700 34px/1 'Cabin Sketch', cursive; letter-spacing: 2px; text-shadow: 0 0 4px #1c2823; }
 .clock-label { font: 15px 'Architects Daughter', cursive; color: #f89c52; text-shadow: 0 0 4px #1c2823; }
 .card { background: radial-gradient(ellipse at 30% 20%, rgba(220,235,225,.07), transparent 60%), #25332d;
@@ -174,13 +185,13 @@ All effects are baked chalk sprites drawn with `globalAlpha` and scale – no ad
 
 ## Motion and animation
 
-- **Line boil**: `variant = floor(t·7 + seed·3) % 3` – the drawing jitters at 7 fps on every actor, even when standing still. This is what makes it look "live".
-- **Hero**: walk frame `floor(anim·1.25) & 3`; leg swing 2.6 units, bob −|cos|·1.0; idle 2 frames at 2.2 fps with a 0.45 bob; scarf tail flaps with the swing.
-- **Small enemy**: 4 frames at `anim·3.2`, tilt ±0.09 rad, bob 0.9. **Brute**: `anim·2.4`, bob 1.6, leg lift 2.2.
-- **Ghost**: 4 wave frames at 5 fps, hover 2.2 + sin(3.1t)·1.1.
-- **Gems**: 2 variants at 5 fps, bob ±0.7; on pickup they pop to ×1.6 and rise 4 units.
-- **Damage numbers**: scale 0.6 → 1 in 0.08 s, random tilt ±0.125 rad, fade in the last 0.22 s.
-- **Spawn reveal** uses `outQuad`; eraser wipe wobbles its angle by `sin(u·20)·0.08`.
+- **Line boil**: `variant = floor(t·7 + seed·3) % 3` – the drawing jitters at 7 fps on every figure, even when standing still. This is what makes it look "live".
+- **Main character**: walk frame `floor(anim·1.25) & 3`; leg swing 2.6 units, bob −|cos|·1.0; idle 2 frames at 2.2 fps with a 0.45 bob; scarf tail flaps with the swing.
+- **Small creature**: 4 frames at `anim·3.2`, tilt ±0.09 rad, bob 0.9. **Large creature**: `anim·2.4`, bob 1.6, leg lift 2.2.
+- **Floating spirit**: 4 wave frames at 5 fps, hover 2.2 + sin(3.1t)·1.1.
+- **Collectibles**: 2 variants at 5 fps, bob ±0.7; when collected they pop to ×1.6 and rise 4 units.
+- **Floating numbers**: scale 0.6 → 1 in 0.08 s, random tilt ±0.125 rad, fade in the last 0.22 s.
+- **Appear reveal** uses `outQuad`; eraser wipe wobbles its angle by `sin(u·20)·0.08`.
 
 ## Do and don't
 
@@ -188,8 +199,8 @@ Do:
 - Build every shape as `fillBoard → rub → hatch → stroke`.
 - Keep strokes broken: resample, jitter, pressure runs, double pass.
 - Punch the grain mask into every sprite, word and HUD element.
-- Bake a board-coloured halo behind every actor and prop.
-- Use one pastel per biome and per enemy type; yellow is reserved for eyes, mouths and rewards.
+- Bake a board-coloured halo behind every figure and prop.
+- Use one pastel per biome and per creature type; yellow is reserved for eyes, mouths and rewards.
 - Keep the 7 fps line boil running.
 - Make all feedback chalk-native: scribbles, crumbs, dust, eraser wipes, smears.
 
@@ -211,13 +222,13 @@ Don't:
 6. Bake 4 animation frames × 3 seeds per character; mirror for facing; bake a white flash copy.
 7. Ground: define biome noise fields, convert to distances with value/|gradient|, pre-bake 512² tileable chalk textures per biome, and composite per pixel (board + smudge + tint + texture × density × grain + white border lines). Build in chunks with a generator to spread the cost.
 8. Scatter decals (eraser swipes, biome doodles, handwritten words) into the chunk and props as y-sorted sprites.
-9. Draw per frame: ground → smears → pickups → shadows → y-sorted sprites (variant = boil) → orbitals → projectiles → particles → numbers → frame overlay.
-10. Implement spawn reveal and eraser-wipe death; particles from baked dust, crumb, scribble, star and ring sprites.
+9. Draw per frame: ground → smears → collectibles → shadows → y-sorted sprites (variant = boil) → orbiting objects → projectiles → particles → numbers → frame overlay.
+10. Implement the appear reveal and the eraser-wipe disappear; particles from baked dust, crumb, scribble, star and ring sprites.
 11. Build the HUD in DOM with the CSS above (chalk borders, hatched fills, noise mask, chalk fonts).
 
 ## Code
 
-The core techniques, standalone. A complete runnable scene (ground, hero, enemies, tree, gems, projectile, HUD, frame) is in [`starter.js`](starter.js); the full reference module is [`../../js/styles/chalk.js`](../../js/styles/chalk.js).
+The core techniques, standalone. A complete runnable scene (ground, main character, creatures, tree, collectibles, projectile, HUD, frame) is in [`starter.js`](starter.js); the full reference module is [`../../js/styles/chalk.js`](../../js/styles/chalk.js).
 
 ```js
 // Seeded RNG + helpers used by everything below
@@ -275,7 +286,7 @@ function hatch(ctx, pts, { rng: r, ang = 0.9, sp = 1.4, w = 0.45, c = [238, 238,
 }
 const rub = (ctx, p, c, a) => { ctx.beginPath(); poly(ctx, p); ctx.fillStyle = rgba(c, a); ctx.fill(); };
 const fillBoard = (ctx, p) => { ctx.beginPath(); poly(ctx, p); ctx.fillStyle = '#25332d'; ctx.fill(); };
-// The recipe for every body part (e.g. a pumpkin head):
+// The recipe for every body part (e.g. a round orange head):
 function chalkShape(ctx, pts, col, r) {
   fillBoard(ctx, pts);                                         // hide lines behind
   rub(ctx, pts, col, 0.5);                                     // faint flat fill
@@ -333,20 +344,21 @@ function groundPixel(out, px, py, d1, d2, H, T, gm, smudge, res, tex, regionCol)
 }
 ```
 
-## Adapting it to your game
+## Adapting it to your project
 
 Keep fixed: the board colour family (dark desaturated green or charcoal), the chalk toolkit and shape recipe, grain on everything, the board halo, translucent fills, the line boil, chalk-native effects (eraser, smears, crumbs, dust).
 
 May change:
 - **Palette swap**: any set of 6–8 *pastel* chalks works. A black slate board (`#2a2c2e`) with white/yellow/pink is a valid variant; keep the board ≥ 4× darker than the chalks.
-- **New characters**: decompose them into 3–8 closed silhouettes; give each enemy type one signature chalk colour and solid yellow (or white) eyes. Big enemies get thicker outlines (1.5) and double cross-hatching.
-- **Biomes**: one texture per biome made from a stroke motif (tufts, crosshatch, rows, dots, asterisks) and a white border line between biomes. Indoor levels: draw tiles as hatched rectangles with chalk grid lines.
+- **New characters**: decompose them into 3–8 closed silhouettes; give each creature type one signature chalk colour and solid yellow (or white) eyes. Large creatures get thicker outlines (1.5) and double cross-hatching.
+- **New props**: same recipe, outline 1.0–1.2, a scribble fill in a second colour, grass tufts and a ground line at the base.
+- **Biomes**: one texture per biome made from a stroke motif (tufts, crosshatch, rows, dots, asterisks) and a white border line between biomes. Indoor scenes: draw tiles as hatched rectangles with chalk grid lines.
 - **Side view / platformer**: same toolkit; ground is a hatched band with a thick white top line; sky is plain board with doodle stars.
 - **Resolution**: scale K with the screen; keep stroke widths in world units so the look is resolution-independent.
 
 ## Performance notes
 
-- **Bake once**: all sprites (≈ 12 hero + 36 enemy + props + particles + doodles), textures (6 × 512²) and the screen frame. Budget ~0.5 s at init; extra boil variants are built lazily within the first frames.
+- **Bake once**: all sprites (≈ 12 main-character + 36 creature + props + particles + doodles), textures (6 × 512²) and the screen frame. Budget ~0.5 s at init; extra boil variants are built lazily within the first frames.
 - **Chunked ground**: 256-unit chunks at ≤ 2.5 px/unit, built by a generator yielding every pixel row, max 5 ms of building per frame, with a ring of pre-built chunks around the view. The field grid is only 65 × 65 per chunk; the per-pixel loop only does bilinear lookups and texture reads (Worley only in fields).
 - **Per frame**: only `drawImage` of cached canvases; the clock face is cached, only its two hands are stroked.
 - **Batch strokes** when baking textures: group by colour/alpha/width into `Path2D` (the module's `Batch` class) – thousands of tufts in a few `stroke()` calls.
@@ -356,7 +368,7 @@ May change:
 ## Copy-paste prompt
 
 ```text
-Build my game <X> in the "Chalkboard" style (miwale Game Style Library):
+Use the Chalkboard art style for my project:
 - Everything is drawn with pastel chalk on a dark slate-green board #25332d inside a wooden frame.
 - Chalks: white #eeeee5, orange #f89c52, deep orange #de6c34, lavender #c2acec, mint #98deb2,
   leaf #70bc7e, butter yellow #f9e58c, pink #f7a8c6, light blue #9eccf0, cream #f4e8ce. No black, no glow.
@@ -368,7 +380,8 @@ Build my game <X> in the "Chalkboard" style (miwale Game Style Library):
 - 4 animation frames × 3 differently seeded variants, swapped at 7 fps (line boil).
 - Ground: noise biomes with crisp white chalk border lines; meadow = mint tufts, forest = lavender
   cross-hatch, field = orange/yellow rows; smudges and faint eraser swipes; doodles scattered at low alpha.
-- Spawn = drawn top-down with a chalk tip; death = eraser wipe + smear; hits = scribbles + crumbs.
-- HUD: chalk outlines with uneven radii, diagonal hatched bar fills, Cabin Sketch / Architects Daughter /
+- Props (trees, graves, fences) are doodles with the same recipe; soft dark ellipse shadows, glows only as rubs behind.
+- Appearing = drawn top-down with a chalk tip; disappearing = eraser wipe + smear; impacts = scribbles + crumbs.
+- UI: chalk outlines with uneven radii, diagonal hatched bar fills, Cabin Sketch / Architects Daughter /
   Fredericka the Great fonts, SVG noise mask for chalk holes.
 ```

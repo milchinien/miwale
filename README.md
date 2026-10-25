@@ -410,43 +410,64 @@ Secrets gehoeren nur in die `.env` auf dem Server, nie ins Repository.
 
 ## Game Style Library (miwale.com/styles)
 
-Eine offene Seite **für KIs**: 20 fertige, spielbare Grafik-Styles, so genau
-beschrieben, dass eine KI sie für ein anderes Spiel übernehmen kann. Viele KIs
-erfinden schlechte Styles; hier kopieren sie einen, der funktioniert. Alle
-Styles stammen aus dem Game-Jam-Prototyp *Jack vs. the Turnip Ancestors*:
-dasselbe Spiel, 20 komplett verschiedene Looks. Die Texte sind englisch.
+Eine offene Seite **für KIs**: 20 fertige Grafik-Styles, so genau beschrieben,
+dass eine KI sie für ein eigenes Projekt übernehmen kann. Viele KIs erfinden
+schlechte Styles; hier kopieren sie einen, der funktioniert. Es geht **nur um
+Design**: Texte, Specs und Vorschauen erwähnen kein Spiel und keine
+Spielmechanik (der Test prüft das über `GAME_WORDS` in `tools/styles-lib.mjs`).
+Die Texte sind englisch.
+
+Jeder Style ist in sechs trennbare **Design-Elemente** zerlegt: World,
+Characters, Props, Effects, Atmosphere, UI & type. Palette und Render-Technik
+gelten für alle.
 
 Jeder Style liegt in `public/styles/library/<id>/` mit drei handgeschriebenen
 Dateien – das Format steht in `public/styles/library/AUTHORING.md`:
 
 | Datei | Inhalt |
 | --- | --- |
-| `STYLE.md` | Die vollständige Spec mit festen Abschnitten: Palette, Schriften, Render-Technik, Boden, Figuren, Effekte, Licht, HUD, Bewegung, Do/Don't, Schritt-für-Schritt-Rezept, Code, Anpassen, Performance, fertiger Prompt |
-| `spec.json` | Dieselben Fakten als Tokens (Hex-Werte, Schriften mit CSS, Technik, Regeln) |
-| `starter.js` | Starter-Code ohne Abhängigkeiten: Palette, Kern-Techniken und `draw(ctx, w, h, t)`, das eine Vorschau-Szene malt |
+| `STYLE.md` | Die vollständige Spec mit festen Abschnitten, je einer pro Element, dazu Palette, Schriften, Technik, Do/Don't, Rezept, Code, Performance, fertiger Prompt |
+| `spec.json` | Dieselben Fakten als Tokens, nach Elementen gruppiert (`world`, `characters`, `props`, `effects`, `atmosphere`, `ui`) |
+| `starter.js` | Starter-Code ohne Abhängigkeiten: Palette, Kern-Techniken und `draw(ctx, w, h, t)` |
 
-Die Referenz-Implementierung jedes Styles bleibt das Modul in
-`public/styles/js/styles/<id>.js` auf dem kleinen Spielkern in `js/core/`.
+Die visuelle Referenz jedes Styles ist das Modul `public/styles/js/styles/<id>.js`.
 
-Die Seite selbst (`index.html`, `css/library.css`, `js/library.js`) ist nur
-die Ansicht: Raster mit Filter und Suche, und pro Style ein Fenster mit
-Screenshots, **Play demo** (`sandbox.html`: das Original-Modul in einer kleinen
-Arena, der Held stirbt nicht), **Asset sheet** (`sandbox.html?mode=sheet`: alle
-Figuren, Pickups und Effekte nebeneinander), **Starter preview**
-(`library/_kit/starter.html`) und den Tabs Overview, Tokens, Recipe, Code,
-Prompt und Full spec. „Copy prompt" legt Spec und Starter-Code als eine
-Nachricht in die Zwischenablage. `#<id>` in der Adresse öffnet das Fenster.
+### Seiten
 
-Für Maschinen erzeugt `node tools/build-styles.mjs` aus den Library-Ordnern
-`styles.json`, `llms.txt` (Einstieg nach llmstxt.org), `llms-full.txt` (alle
-Specs in einer Datei) und die statische Linkliste in `index.html`. nginx
-liefert diese Dateien als UTF-8-Text mit `Access-Control-Allow-Origin: *`
-aus; die Seite ist nicht mehr `noindex`.
+| Adresse | Was |
+| --- | --- |
+| `/styles/` | Galerie mit Filter, Suche, Mixer-Einstieg und „My designs“ |
+| `/styles/<id>/` | Eigene Seite pro Style: Live-Szene, Standbilder, dann je Element ein Abschnitt mit eigener Live-Vorschau, Spec, Tokens und „Copy … spec“; danach Technik und Prompt |
+| `/styles/mix/` | **Mix your own design**: pro Element einen Quell-Style wählen, Live-Vorschau, speichern, Link, Prompt |
+| `/styles/design/?name=…&w=…&c=…&p=…&e=…&a=…&u=…` | Seite eines gemischten Designs (teilbarer Link) |
+| `/styles/stage.html` | Die Vorschau-Engine (in Iframes eingebettet) |
+
+`stage.html` (`js/stage.js`) lädt die Original-Module und baut daraus einen
+zusammengesetzten Style: jeder Hook kommt aus dem Style, der für sein Element
+gewählt ist (`?world=…&chars=…&props=…&fx=…&atmo=…&ui=…`, oder `?style=<id>`
+für alle). `&view=` zeigt das ganze Design (`scene`) oder ein Element allein
+(`world`, `characters`, `props`, `effects`, `atmosphere`, `ui`). Zwei Regeln
+machen das Mischen stabil:
+
+- `drawGroundOverlay` bereitet in vielen Modulen das Bild vor (Kamera-Versatz
+  der Pixel-Blits, Lichtkarten, Nebel). Es läuft für jeden beteiligten Style;
+  wo dessen Boden nicht zu sehen ist, gegen einen stummen Kontext.
+- Ist ein Element Pixel-Art, läuft der ganze Mix in dessen Pixelraster –
+  Pixel-Module blitten in Art-Pixeln und würden auf einer HD-Welt schrumpfen.
+
+Gespeicherte Mixe liegen im `localStorage` des Browsers
+(`miwale-style-mixes`); geteilt wird über den Link.
+
+`node tools/build-styles.mjs` erzeugt aus den Library-Ordnern `styles.json`,
+`llms.txt`, `llms-full.txt`, die Seiten `/styles/<id>/` und `/styles/design/`
+(aus der Vorlage `design.html`, mit vorgerenderter Spec für Leser ohne JS) und
+die statische Linkliste in `index.html`. nginx liefert die Spec-Dateien als
+UTF-8-Text mit `Access-Control-Allow-Origin: *` aus.
 
 Prüfen:
 
 ```bash
-node --test tools/styles.test.mjs   # Schema, Vollständigkeit, generierte Dateien aktuell (läuft in der CI)
+node --test tools/styles.test.mjs   # Schema, Elemente, Design-only-Wortwahl, generierte Dateien aktuell (CI)
 node tools/check-styles.mjs [id]    # zusätzlich im Browser: starter.js zeichnet, Vorschau-PNG zum Vergleichen
 ```
 

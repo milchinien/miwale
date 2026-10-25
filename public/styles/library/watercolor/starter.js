@@ -172,7 +172,7 @@
   }
   const blit = (ctx, s, x, y, flip, sc) => { sc = sc || 1; const ax = flip ? s.wu - s.ax : s.ax; ctx.drawImage(flip ? s.f : s.c, x - ax * sc, y - s.ay * sc, s.wu * sc, s.hu * sc); };
 
-  /* ---------- 3. characters (ported from the reference module) ---------- */
+  /* ---------- 3. characters (ported from the style module) ---------- */
   function drawJack(ctx, ph, wave, r) {
     const sw = ph === null ? 0 : Math.sin(ph), cw = ph === null ? 0 : Math.cos(ph), lift = (v) => (ph === null ? 0 : Math.max(0, v) * 1.5);
     part(ctx, ribbon(jit([[-3.4, -11.6], [-4.8, -9.6], [-5 - sw * 1.5, -7.6]], 0.2, r), taperW(2.5, 2)), { c: '#34406c', blobs: [{ x: -4.6, y: -10, rx: 1.4, ry: 2, c: '#4b5a8e', a: 0.6, blur: 0.8 }], hi: 0.15, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: 0.55 });
@@ -204,7 +204,7 @@
     part(ctx, ribbon(jit([[3, -11.8], [4.6, -9.8], [5.6 + sw * 1.5, -7.9]], 0.2, r), taperW(2.6, 2.1)), { c: '#46578f', blobs: [{ x: 3.6, y: -11, rx: 1.2, ry: 1.6, c: '#7182b5', a: 0.6, blur: 0.7 }], hi: 0.25, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: 0.6 });
     part(ctx, spline(blobPts(5.9 + sw * 1.5, -7.4, 1.3, 1.15, 0.12, r, 7), true, 4), { c: '#ecdfc2', hi: 0.2, rim: 0.5, edge: '#a08060', gran: 0.25 }, r, { w: 0.45 });
   }
-  function drawCreeper(ctx, ph, sway, r, pal) {                           // small melee enemy: walking turnip
+  function drawCreeper(ctx, ph, sway, r, pal) {                           // small creature: violet-crowned root creature with a leafy top
     const sw = Math.sin(ph), cw = Math.cos(ph), lift = (v) => Math.max(0, v) * 1.4;
     for (const [hx, dir, li] of [[-2.4, -1, lift(cw)], [2.6, 1, lift(-cw)]]) {
       const fx = hx + dir * (2 * sw + 0.4), fy = -0.4 - li;
@@ -229,7 +229,7 @@
     inkLine(ctx, jit([[2.2, -12.3], [3.3, -13.1], [4.3, -12.5], [5.3, -13.2], [6.5, -12.3]], 0.08, r), { w: 0.55, ta: 0.15, tb: 0.2, wv: 0.1 });
     ctx.restore();
   }
-  function drawGhost(ctx, p, r) {                                         // fast enemy: feathered, lost-and-found edges
+  function drawGhost(ctx, p, r) {                                         // fast creature: frosty floating ghost sheet, feathered, lost-and-found edges
     const w1 = Math.sin(p), w2 = Math.sin(p + 1.9), w3 = Math.sin(p + 3.6), arm = Math.sin(p + 0.8);
     const BP = spline(jit([[-5.6, -19.2], [-1.6, -23.4], [4.2, -22.6], [7.2, -18.2], [7, -13], [5.2, -8.6], [2.6, -5.8 + w1 * 0.8], [0, -6.9], [-2.4, -3.7 + w2], [-4.1, -7.2], [-7, -4.8 + w3], [-7.1, -9.6], [-6.9, -14.6]], 0.25, r), true, 6);
     wash(ctx, BP, { c: '#d3dbe3', blobs: [{ x: -3.4, y: -8.6, rx: 6, ry: 5, c: '#8fa0bb', a: 0.8, blur: 2.4 }, { x: -1.4, y: -20.2, rx: 4.6, ry: 2.6, c: '#f1f3ef', a: 0.7, blur: 1.6 }, { x: -5.6, y: -5.6, rx: 2.8, ry: 2, c: '#6a7b9e', a: 0.65, blur: 1.4 }], hi: 0.25, rim: 1.5, edge: '#6f80a2', rimA: 0.65, rimBlur: 0.7, gran: 0.55, feather: 0.85, salt: 12 }, r);
@@ -361,7 +361,7 @@
   }
 
   /* ---------- 5. public API ---------- */
-  /** Draws the hero with feet at (x, y) in world units. t = seconds, facing = 1 | -1. */
+  /** Draws the main character (pumpkin-headed child) with feet at (x, y) in world units. t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) buildSprites();
     const ph = t * 7, fr = SPR.jack[(Math.floor(ph) & 3) * 3 + (Math.floor(t * 6) % 3)], bob = -0.9 * Math.abs(Math.cos(ph * Math.PI / 2));
@@ -369,7 +369,7 @@
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 + 0.08 * Math.sin(t * 11) + 0.05 * Math.sin(t * 23);   // warm glow of the carved face
     ctx.drawImage(SPR.glow, x + (facing < 0 ? -2.1 : 2.1) - 9, y + bob - 26.6, 18, 16); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
-  /** Draws a typical enemy (walking turnip) with feet at (x, y). */
+  /** Draws a typical creature (violet root creature with a leafy top) with feet at (x, y). */
   function drawEnemy(ctx, x, y, t, facing, variant) {
     if (!SPR) buildSprites();
     const set = SPR.creep[variant || 0], seed = (x * 0.13 + y * 0.07) % 1;
@@ -401,12 +401,12 @@
     const tg = ctx.createLinearGradient(sx - 18, 0, sx, 0); tg.addColorStop(0, 'rgba(214,138,52,0)'); tg.addColorStop(1, 'rgba(224,128,42,0.85)');
     ctx.fillStyle = tg; trace(ctx, ribbon([[sx - 18, sy + 0.3], [sx - 9, sy - 0.2], [sx, sy]], (u) => 0.4 + 2.6 * Math.pow(u, 1.4))); ctx.fill();
     ctx.beginPath(); ctx.ellipse(sx, sy, 3.3, 1.8, 0.05, 0, TAU); ctx.fillStyle = '#f1e4bf'; ctx.fill(); ctx.lineWidth = 0.42; ctx.strokeStyle = INK; ctx.stroke();
-    ctx.font = '700 15px Caveat, "Segoe Print", cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';  // crit damage number
+    ctx.font = '700 15px Caveat, "Segoe Print", cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';  // floating accent counter
     ctx.save(); ctx.translate(hx + 98, 160 - (t % 1) * 6); ctx.rotate(-0.1); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(246,239,224,0.9)'; ctx.strokeText('34', 0, 0); ctx.fillStyle = '#9e2a1c'; ctx.fillText('34', 0, 0); ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(PAGE, 0, 0);                     // book page margin on top
     const u = h / 540;
     ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.font = 26 * u + "px 'IM Fell English SC', Georgia, serif"; ctx.fillText('22:09', w / 2, 40 * u);
-    ctx.fillStyle = '#8a3a1e'; ctx.font = '700 ' + 15 * u + "px Caveat, cursive"; ctx.fillText('until midnight', w / 2, 58 * u);
+    ctx.fillStyle = '#8a3a1e'; ctx.font = '700 ' + 15 * u + "px Caveat, cursive"; ctx.fillText('title text', w / 2, 58 * u);
     ctx.fillStyle = INK; ctx.textAlign = 'left'; ctx.font = 14 * u + "px 'Cormorant Garamond', Georgia, serif"; ctx.fillText('100/100', 192 * u, 39 * u);
   }
 

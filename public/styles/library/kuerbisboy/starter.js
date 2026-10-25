@@ -7,12 +7,12 @@
   const HEX = [PALETTE.ink, PALETTE.rust, PALETTE.pumpkin, PALETTE.cream]; // index 0 darkest .. 3 lightest
   const RGB = HEX.map((h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
   const PX32 = RGB.map((c) => ((255 << 24) | (c[2] << 16) | (c[1] << 8) | c[0]) >>> 0); // little-endian ABGR
-  const INV = [3, 2, 1, 0];          // palette inversion = hit flash
+  const INV = [3, 2, 1, 0];          // palette inversion = flash frame
   const PS = 2;                      // world units per art pixel (360 world units tall = 180 art px)
   const TAU = Math.PI * 2, B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
   const bay = (x, y) => B4[((y & 3) << 2) | (x & 3)], clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
-  /** Integer hash (same as the reference game) – deterministic per art pixel. */
+  /** Integer hash (same as the module) – deterministic per art pixel. */
   function hashInt(x, y, seed) {
     let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 1442695041)) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
@@ -68,7 +68,7 @@
     for (let i = 0; i < g.a.length; i++) { let v = g.a[i]; if (v < 0) continue; if (map) v = map[v]; d32[i] = PX32[v]; }
     ctx.putImageData(img, 0, 0); return c;
   }
-  /** Sprite set: right/left facing + palette-inverted copies for the hit flash. */
+  /** Sprite set: right/left facing + palette-inverted copies for the flash frame. */
   function sset(g) { const r = toCanvas(g), ri = toCanvas(g, INV); return { r, l: flipX(r), ri, li: flipX(ri), g }; }
   /** Blit with anchor (ax, ay) at art-pixel position (x, y), snapped to whole pixels. */
   function blit(ctx, img, x, y, ax = 0.5, ay = 1, oy = 0) {
@@ -76,7 +76,7 @@
   }
   function dot(ctx, x, y, ci, w = 1, h = 1) { ctx.fillStyle = HEX[ci]; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 
-  /* ---------- sprites (grids verbatim from the reference module) ---------- */
+  /* ---------- sprites (grids verbatim from the module) ---------- */
   const JACK_HEAD = ['....11....', '.22211222.', '2221221222', '2223222322', '2233323332',
     '2222222221', '2322222231', '2333233332', '.22322322.', '..222222..'];
   const JB0 = '...113311...';
@@ -104,7 +104,7 @@
   const FONT = { 0: ['111', '101', '101', '101', '111'], 1: ['110', '010', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'],
     3: ['111', '001', '011', '001', '111'], 4: ['101', '101', '111', '001', '001'], '!': ['1', '1', '1', '0', '1'] };
 
-  /** Hero: body rows + head rows composed into one 12x14 grid, then dark outline + light halo. */
+  /** Main character (pumpkin-headed figure): body rows + head rows composed into one 12x14 grid, then dark outline + light halo. */
   function jackFrame(body, headDy = 0) {
     const g = IG(12, 14).rows(JACK_BODY[body], 0, 10).rows(JACK_HEAD, 1, headDy);
     return sset(outline(outline(g), 3));
@@ -115,7 +115,7 @@
     if (f === 3) { g.set(8, 0, -1); g.set(9, 0, 2); }
     return sset(outline(g));
   }
-  /** Ghost: solid body, outlined, then the lower rows dissolve with Bayer dither (fake transparency). */
+  /** Fast creature (ghost): solid body, outlined, then the lower rows dissolve with Bayer dither (fake transparency). */
   function ghostFrame(f) {
     const o = outline(IG(11, 14).rows(GHOST_BODY).rows(GHOST_TAIL[f], 0, 10)), g = IG(o.w, o.h);
     for (let y = 0; y < o.h; y++) {
@@ -124,7 +124,7 @@
     }
     return sset(g);
   }
-  /** Brute: procedural dithered ellipse body (4 stomp frames), cracks, angry eyes, pulsing core, leaf crown. */
+  /** Large creature (root colossus): procedural dithered ellipse body (4 stomp frames), cracks, angry eyes, pulsing core, leaf crown. */
   function colossusFrame(f) {
     const W = 26, H = 27, g = IG(W, H);
     const bob = (f === 1 || f === 3) ? -1 : 0, legL = f === 1 ? -2 : 0, legR = f === 3 ? -2 : 0;
@@ -203,7 +203,7 @@
     const px = Math.round(x - w / 2), py = Math.round(y - h / 2);
     ctx.drawImage(SHADOWS.get(k)[(px + py) & 1], px, py);
   }
-  /** Damage number from the 3x5 bitmap font: cream (crit: pumpkin) + ink outline + rust underline. */
+  /** Floating number from the 3x5 bitmap font: cream (emphasised: pumpkin) + ink outline + rust underline. */
   function numberSprite(str, crit) {
     const chars = crit ? str + '!' : str;
     let w = -1; for (const ch of chars) w += FONT[ch][0].length + 1;
@@ -320,13 +320,13 @@
     ctx.putImageData(img, 0, 0); return c;
   }
 
-  /** Draws the hero with feet at art-pixel (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at art-pixel (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing = 1, moving = true) {
     if (!SPR) build();
     const k = Math.floor(t * 7) & 3, fr = moving ? SPR.jack.walk[k] : SPR.jack.idle[Math.floor(t * 2.2) & 1];
     blit(ctx, facing < 0 ? fr.l : fr.r, x, y + 2, 0.5, 1, moving && (k & 1) ? -1 : 0);
   }
-  /** Draws a typical enemy with feet at (x, y). type: creeper | ghost | colossus; flash = hit (palette invert). */
+  /** Draws a typical creature with feet at (x, y). type: creeper (small root bulb) | ghost (fast floater) | colossus (large); flash = palette-inverted flash frame. */
   function drawEnemy(ctx, x, y, t, type = 'creeper', seed = 0, flash = false, facing = -1) {
     if (!SPR) build();
     const set = SPR[type], ghost = type === 'ghost', big = type === 'colossus';
@@ -368,7 +368,7 @@
     const q = Math.max(1, Math.round(H / 225)), font = (n) => n * q + "px 'Press Start 2P', monospace";
     ctx.textBaseline = 'top'; ctx.textAlign = 'left';
     win(ctx, 6 * q, 5 * q, W - 12 * q, 7 * q, q); bar(ctx, 7 * q, 6 * q, W - 30 * q, 5 * q, q, 0.74, 2);
-    ctx.fillStyle = HEX[0]; ctx.fillRect(W - 22 * q, 6 * q, 15 * q, 5 * q); ctx.fillStyle = HEX[3]; ctx.font = font(4); ctx.fillText('LV 4', W - 20 * q, 6.6 * q);
+    ctx.fillStyle = HEX[0]; ctx.fillRect(W - 22 * q, 6 * q, 15 * q, 5 * q); ctx.fillStyle = HEX[3]; ctx.font = font(4); ctx.fillText('NO 4', W - 20 * q, 6.6 * q);
     win(ctx, 6 * q, 18 * q, 98 * q, 15 * q, q);
     ctx.fillStyle = HEX[2]; for (const [a, b, c] of [[0, 1, 2], [4, 1, 2], [0, 2, 6], [1, 4, 4], [2, 5, 2]]) ctx.fillRect((10 + a) * q, (22 + b) * q, c * q, q);
     ctx.fillStyle = HEX[0]; ctx.fillRect(19 * q, 22 * q, 52 * q, 7 * q); ctx.fillStyle = HEX[3]; ctx.fillRect(20 * q, 23 * q, 50 * q, 5 * q);
@@ -379,12 +379,12 @@
     const mm = String(9 + (Math.floor(t) % 50)).padStart(2, '0');
     ctx.font = font(8); ctx.fillStyle = HEX[2]; ctx.fillText('22:' + mm, cx + 8 * q, 22 * q);
     ctx.fillStyle = HEX[0]; ctx.fillText('22:' + mm, cx + 7 * q, 21 * q);
-    ctx.font = font(2); ctx.fillStyle = HEX[1]; ctx.fillText('TILL MIDNIGHT', cx + 14 * q, 32 * q);
+    ctx.font = font(2); ctx.fillStyle = HEX[1]; ctx.fillText('TITLE TEXT', cx + 14 * q, 32 * q);
     win(ctx, W - 38 * q, 18 * q, 32 * q, 15 * q, q); ctx.font = font(6); ctx.fillStyle = HEX[0]; ctx.fillText('88', W - 24 * q, 22.5 * q);
     ctx.fillStyle = HEX[1]; ctx.fillRect(W - 33 * q, 22 * q, 6 * q, 6 * q); ctx.fillStyle = HEX[2]; ctx.fillRect(W - 32 * q, 23 * q, 2 * q, 2 * q);
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, props, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     if (!SPR) build();
     const up = Math.max(1, Math.round(h / (360 / PS))), W = Math.ceil(w / up), H = Math.ceil(h / up);
@@ -430,7 +430,7 @@
       if (lit) blit(b, SPR.haloS, x, y - 3, 0.5, 0.5, bob);
       blit(b, SPR.lantern[lit ? 0 : 1], x, y, 0.5, 0.65, bob);
     }
-    for (let i = 0; i < 6; i++) { // hit sparks: single art pixels in ink / cream, blink out
+    for (let i = 0; i < 6; i++) { // impact sparks: single art pixels in ink / cream, blink out
       const a = i * 1.7 + t * 4, r = 4 + ((t * 20 + i * 3) % 8);
       if ((Math.floor(t * 20 + i) & 1) || i < 3) dot(b, tx + Math.cos(a) * r, ty - 12 + Math.sin(a) * r * 0.7, i & 1 ? 0 : 3);
     }

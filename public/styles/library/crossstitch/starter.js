@@ -22,7 +22,7 @@
   const SM = 2, MP = 5, DS = 5;      // stitch sprite margin, motif margin (px), decal px per world unit
   const TAU = Math.PI * 2, WHITE = [255, 255, 255];
 
-  /* ---------- tiny helpers (inlined instead of the game's U.*) ---------- */
+  /* ---------- tiny helpers (inlined, no dependencies) ---------- */
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const lerp = (a, b, t) => a + (b - a) * t;
   const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -246,9 +246,9 @@
     return S;
   }
 
-  /* ---------- actors ---------- */
+  /* ---------- characters ---------- */
   const shadowAt = (ctx, x, y, w, a) => { ctx.globalAlpha = a; ctx.drawImage(S.shadow, x - w / 2, y - w * 0.19, w, w * 0.375); ctx.globalAlpha = 1; };
-  /** Draws the hero with feet at (x, y) in world units. t = seconds, facing = 1 | -1. */
+  /** Draws the main character (pumpkin head, red scarf, navy cloak) with feet at (x, y) in world units. t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     init();
     const set = S.hero, fr = [1, 0, 2, 0][Math.floor(t * 9) & 3]; // walk: frame sequence 1,0,2,0
@@ -260,7 +260,7 @@
     ctx.drawImage(S.glowC, (gx + 4.5 + 0.6 * facing) * C - 12, (gy + 5) * C - 9, 24, 18);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
-  /** Draws a typical enemy with feet at (x, y). kind = 'creeper' | 'ghost'; flash 0..1 = hit flash. */
+  /** Draws a typical creature with feet at (x, y). kind = 'creeper' (small purple root creature with a leafy top) | 'ghost' (fast floating ghost); flash 0..1 = white-flash overlay. */
   function drawEnemy(ctx, x, y, t, kind = 'creeper', facing = -1, seed = 0, flash = 0) {
     init();
     const set = S[kind] || S.creeper, gx = Math.round(x / C - set.w / 2);
@@ -344,13 +344,13 @@
       if ((k = ec(m, at(i, j + 1)))) segs[k].push(x, y + C, x + C, y + C);
     }
     for (const k in segs) threadSegs(ctx, segs[k], RGB[k], 1.0, 0.3);
-    // props on the grid (y-sorted with actors later)
+    // props on the grid (y-sorted with characters later)
     const props = [[S.trees[0], 13, 16, 330, 105], [S.trees[1], 13, 16, 560, 250], [S.trees[2], 13, 16, 480, 330], [S.trees[0], 13, 16, 600, 360],
       [S.pumpkins, 12, 6, 235, 135], [S.grave, 5, 7, 395, 60], [S.grave, 5, 7, 70, 70]].map(([spr, pw, ph, x, y]) => ({ spr, gx: Math.round((X0 + x) / C - pw / 2), gy: Math.round(y / C) - ph, y }));
     return { c, w, h, X0, VW, props };
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, an effect. */
   function draw(ctx, w, h, t) {
     init();
     if (!ground || ground.w !== w || ground.h !== h) ground = bakeGround(w, h);
@@ -358,17 +358,17 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(ground.c, 0, 0);
     ctx.setTransform(s, 0, 0, s, 0, 0);
     const hx = X0 + 320, hy = 205, face = Math.sin(t * 0.7) > -0.6 ? 1 : -1;
-    // warm candle light pool around the hero (additive)
+    // warm candle light pool around the main character (additive)
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 + 0.06 * Math.sin(t * 7.3) + 0.04 * Math.sin(t * 13.1);
     ctx.drawImage(S.glowJ, hx - 40, hy - 30, 80, 52); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-    // pickups: glass beads with glow, bobbing 0.8 units
+    // collectibles: glass beads with glow, bobbing 0.8 units
     for (let k = 0; k < 7; k++) {
       const gx = X0 + 395 + k * 17 + Math.sin(k * 3) * 6, g0 = 222 + Math.cos(k * 2.1) * 14, gy = g0 - 3 - Math.sin(t * 3 + k) * 0.8;
       ctx.globalAlpha = 0.6; ctx.drawImage(S.shadow, gx - 3, g0 - 1.2, 6, 2.4);
       ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 + 0.2 * Math.sin(t * 4 + k * 9); ctx.drawImage(S.glowS, gx - 6.5, gy - 6.5, 13, 13);
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.drawImage(S.gem, gx - 2.7, gy - 2.7, 5.4, 5.4);
     }
-    // actors and props, y-sorted
+    // characters and props, y-sorted
     const list = ground.props.map((p) => ({ y: p.y, f: () => blitCell(ctx, p.spr, p.gx, p.gy) }));
     list.push({ y: hy, f: () => drawHero(ctx, hx, hy, t, face) });
     const foes = [[385, 190, 'creeper', 0.1], [360, 262, 'creeper', 0.6], [250, 240, 'ghost', 0.3], [470, 150, 'ghost', 0.8], [520, 200, 'creeper', 0.4], [150, 160, 'creeper', 0.9]];
@@ -381,7 +381,7 @@
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       const lw = S.lantern.width * K, lh = S.lantern.height * K; ctx.drawImage(S.lantern, ox - lw / 2, oy - lh + 2 + Math.sin(t * 4 + k) * 0.8, lw, lh);
     }
-    // projectile: running-stitch trail + seed; hit: dashed thread ring + cream knot flash
+    // projectile: running-stitch trail + seed; impact burst: dashed thread ring + cream knot flash
     const px = hx + 18 + ((t * 120) % 50), py = hy - 12 - ((t * 120) % 50) * 0.3;
     for (let k = 0; k < 3; k++) threadSegs(ctx, [px - 12 + k * 2.4, py + 3.6 - k * 0.72, px - 10.6 + k * 2.4, py + 3.2 - k * 0.72], [255, 214, 120], 0.45, 0);
     ctx.save(); ctx.translate(px, py); ctx.rotate(-0.29); ctx.fillStyle = '#f3e6bf'; ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 0.3;

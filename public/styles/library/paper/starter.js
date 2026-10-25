@@ -100,7 +100,7 @@
     for (const q of pins) drawPin(x, q[0], q[1], q[2]);
     return c;
   }
-  /** whole-puppet drop shadow offset right-down (0.9, 1.1 wu, blur 0.7 wu, alpha 0.3) + white hit-flash copy */
+  /** whole-puppet drop shadow offset right-down (0.9, 1.1 wu, blur 0.7 wu, alpha 0.3) + white flash copy */
   function dropSprite(frame, footX, footY, o) {
     o = o || {};
     const ox = o.dx || 0.9, oy = o.dy || 1.1, blur = (o.blur || 0.7) * K, pad = Math.ceil(blur * 2.5 + Math.max(ox, oy) * K) + 2;
@@ -162,7 +162,7 @@
   }
   const leafUp = (len, wid, col, type) => mkPart([-wid, -len - 1.5, wid, 1.5], (x) => { x.rotate(-Math.PI / 2); x.translate(len / 2, 0); drawPaperLeaf(x, type, len, wid, col); }, { rim: 0.45 });
 
-  /* ---------- hero: paper puppet (pumpkin head, aubergine tunic, felt scarf, brass pin at the shoulder) ---------- */
+  /* ---------- main character: paper puppet (pumpkin head, aubergine tunic, felt scarf, brass pin at the shoulder) ---------- */
   const SPR = {};
   function buildHero() {
     const leg = (dk) => mkPart([-2.2, -0.8, 4, 7.6], (x) => {
@@ -222,7 +222,7 @@
     SPR.hero = { 1: [], '-1': [] }; for (const fc of [1, -1]) for (let i = 0; i < 8; i++) SPR.hero[fc].push(frame(fc, (i / 8) * TAU));
   }
 
-  /* ---------- small enemy: turnip creeper (cream bulb, torn aubergine cap, glowing cut eyes) ---------- */
+  /* ---------- small creature: root-bulb creeper (cream bulb, torn aubergine cap, glowing cut eyes) ---------- */
   function buildCreeper() {
     const W = 7.4, H = 15.2, r = rng(1300);
     const bulb = mkPart([-W - 1.5, -H - 1.5, W + 1.5, 3], (x) => {
@@ -254,7 +254,7 @@
     }
   }
 
-  /* ---------- fast enemy: tissue-paper ghost (two translucent sheets, white translucent rim) ---------- */
+  /* ---------- fast creature: tissue-paper ghost (two translucent sheets, white translucent rim) ---------- */
   function buildGhost() {
     const shape = (x, R, cy, w, lean) => {
       x.beginPath(); x.moveTo(-R, cy); x.arc(0, cy, R, Math.PI, 0); x.bezierCurveTo(R + 0.3, cy + 5, R + 1.1, cy + 8, R + 0.4 + lean + Math.sin(w) * 0.6, cy + 12.5);
@@ -276,7 +276,7 @@
     }
   }
 
-  /* ---------- props + pickups ---------- */
+  /* ---------- props + collectibles ---------- */
   /** projected cast shadow of an upright cut-out: skewed silhouette, blurred, darker at the foot */
   function castShadow(spr, kx, ky) {
     const src = spr.img, fx = spr.ax, fy = spr.ay, blur = 1.4 * K, pad = Math.ceil(blur * 2.5) + 4, w = src.width + fy * kx + pad * 2, h = fy * ky + pad * 2 + 12;
@@ -376,7 +376,7 @@
     ctx.save(); ctx.translate(x + 1.2, y + 0.6); ctx.scale(1, rh / rw); ctx.translate(-x - 1.2, -y - 0.6); ctx.fillStyle = g; ctx.fillRect(x - rw + 1.2, y - rw + 0.6, rw * 2, rw * 2); ctx.restore();
   }
 
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     init(); const f = facing < 0 ? -1 : 1, JS = 1.08; contactShadow(ctx, x, y, 9, 3.6, 0.75);
     blit(ctx, SPR.hero[f][Math.floor(t * 10) & 7], x, y, JS);
@@ -384,7 +384,7 @@
     ctx.drawImage(SPR.glow, x + f * 2.4 * JS - 11, y - 22.4 * JS - 11, 22, 22);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
-  /** Draws a typical enemy (turnip creeper) with feet at (x, y). */
+  /** Draws a typical creature (root-bulb creeper) with feet at (x, y). */
   function drawEnemy(ctx, x, y, t, facing, seed) {
     init(); seed = seed || 0; contactShadow(ctx, x, y, 8.5, 3.2, 0.75);
     blit(ctx, SPR.creeper[facing < 0 ? -1 : 1][Math.floor(t * 7 + seed * 13) % 6], x, y, 0.93 + seed * 0.14);
@@ -394,14 +394,14 @@
     ctx.globalAlpha = 0.92; blit(ctx, SPR.ghost[Math.floor(t * 7 + seed * 13) % 6], x, y + bob, 1); ctx.globalAlpha = 1;
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, an effect. */
   function draw(ctx, w, h, t) {
     init();
     const key = w + 'x' + h; if (key !== GKEY) { GROUND = bakeGround(w, h); GKEY = key; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(GROUND.c, 0, 0);
     const s = h / 360, W = w / s; ctx.setTransform(s, 0, 0, s, 0, 0);
     const hx = W * 0.5, hy = 215;
-    // pickups (bob + paper turn = horizontal squash)
+    // collectibles (bob + paper turn = horizontal squash)
     [[0.6, 250], [0.64, 262], [0.57, 270], [0.68, 240]].forEach(([fx, gy], i) => {
       const px = W * fx, bob = -3.2 - Math.sin(t * 3.5 + i * 10) * 0.9, turn = Math.cos(t * 2.2 + i * 6);
       contactShadow(ctx, px, gy, 3, 1.2, 0.5); ctx.save(); ctx.translate(px, gy + bob); ctx.scale(0.35 + 0.65 * Math.abs(turn), 1); blitPart(ctx, i === 3 ? SPR.gemBig : SPR.gem, 0, 0, 1); ctx.restore();
@@ -421,7 +421,7 @@
     ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(251,246,234,0.5)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(px - 3, py); ctx.lineTo(px - 11, py); ctx.stroke();
     ctx.strokeStyle = 'rgba(229,125,44,0.35)'; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(px - 4, py); ctx.lineTo(px - 13, py); ctx.stroke();
     ctx.save(); ctx.translate(px, py); ctx.rotate(t * 8); blitPart(ctx, SPR.seed, 0, 0, 0.85, 0.35); ctx.restore();
-    // hit burst on an enemy: paper scraps (two-sided, cream edge) + confetti, deterministic per t
+    // impact burst on a creature: paper scraps (two-sided, cream edge) + confetti, deterministic per t
     const ex = W * 0.62, ey = 222, ph = (t * 0.9) % 1;
     for (let i = 0; i < 12; i++) {
       const r = rng(i * 31 + 7), a = r.next() * TAU, sp = 30 + r.next() * 40, life = ph * 0.9, fl = Math.cos(t * 9 + i);
@@ -431,7 +431,7 @@
       else { ctx.fillStyle = CONF[i % 7]; ctx.fillRect(-0.9, -0.3 * Math.max(0.2, Math.abs(fl)), 1.8, 0.6 * Math.max(0.2, Math.abs(fl))); }
       ctx.restore();
     }
-    ctx.globalAlpha = 1; // damage number: hand-lettered, cream sticker outline, soft offset shadow
+    ctx.globalAlpha = 1; // floating number: hand-lettered, cream sticker outline, soft offset shadow
     ctx.save(); ctx.translate(ex + 2, ey - 34 - ph * 6); ctx.rotate(-0.08); ctx.font = '11px "Gochi Hand", "Patrick Hand", cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
     ctx.fillStyle = 'rgba(48,26,12,0.35)'; ctx.fillText('34', 0.5, 0.7); ctx.lineWidth = 2.4; ctx.strokeStyle = '#fff3c0'; ctx.strokeText('34', 0, 0); ctx.fillStyle = C.red; ctx.fillText('34', 0, 0); ctx.restore();
     // HUD note: lined notebook paper pinned with a brass split pin
@@ -439,7 +439,7 @@
     ctx.fillStyle = '#fffdf6'; ctx.fillRect(-28, -16, 56, 32); ctx.fillStyle = 'rgba(79,111,149,0.28)'; for (let ly = -2; ly < 16; ly += 6.5) ctx.fillRect(-28, ly, 56, 0.4);
     ctx.fillStyle = 'rgba(196,67,47,0.5)'; ctx.fillRect(-28, 4, 56, 0.7);
     ctx.fillStyle = C.ink; ctx.font = '19px "Caveat Brush", cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('22:09', 0, -4);
-    ctx.fillStyle = C.redDark; ctx.font = '6.5px "Patrick Hand", cursive'; ctx.fillText('till midnight', 0, 10); drawPin(ctx, 0, -16, 2.2); ctx.restore();
+    ctx.fillStyle = C.redDark; ctx.font = '6.5px "Patrick Hand", cursive'; ctx.fillText('title text', 0, 10); drawPin(ctx, 0, -16, 2.2); ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = GROUND.vig; ctx.fillRect(0, 0, w, h);
   }
 

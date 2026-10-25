@@ -12,7 +12,7 @@
     trunk: '#865e40', hudOrange: '#f07a24', panel: '#f5ddb8', cream: '#fff6e6',
   };
 
-  /* ---------- tiny helpers (inlined replacements for the game's U.*) ---------- */
+  /* ---------- tiny helpers (colour mixing, seeded RNG, hashing, noise) ---------- */
   const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   const rgbS = (a, al) => (al === undefined ? 'rgb(' + (a[0] | 0) + ',' + (a[1] | 0) + ',' + (a[2] | 0) + ')' : 'rgba(' + (a[0] | 0) + ',' + (a[1] | 0) + ',' + (a[2] | 0) + ',' + al + ')');
@@ -39,7 +39,7 @@
     c.closePath();
   }
   function lumpPts(cx, cy, rx, ry, n, amt, r) { const pts = [], ph = r() * TAU; for (let i = 0; i < n; i++) { const a = (i / n) * TAU, k = 1 + (r() - 0.5) * amt + Math.sin(a * 3 + ph) * amt * 0.25; pts.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]); } return pts; }
-  function pumpkinPath(c, cx, cy, rx, ry) { // superellipse with dents at top (stem) and bottom
+  function pumpkinPath(c, cx, cy, rx, ry) { // round gourd head: superellipse with dents at top (stem) and bottom
     for (let i = 0; i <= 56; i++) { const th = (i / 56) * TAU, co = Math.cos(th), si = Math.sin(th); const x = Math.sign(co) * Math.pow(Math.abs(co), 0.85) * rx; let y = Math.sign(si) * Math.pow(Math.abs(si), 0.92) * ry; y *= 1 - 0.15 * Math.exp(-Math.pow((th - PI * 1.5) / 0.3, 2)) - 0.07 * Math.exp(-Math.pow((th - PI * 0.5) / 0.26, 2)); if (i) c.lineTo(cx + x, cy + y); else c.moveTo(cx + x, cy + y); }
     c.closePath();
   }
@@ -170,7 +170,7 @@
   }
   const CREEP = [[[134, 80, 172], [244, 232, 204]], [[178, 76, 142], [246, 226, 206]], [[104, 92, 190], [238, 232, 198]]];
   const LEAF = [96, 162, 70], ROOT = [228, 202, 160], BROW = [74, 40, 82];
-  function enemyArt(c, fr, v) { // small melee enemy: two-tone turnip, smeared top layer, googly eyes, angry brows
+  function enemyArt(c, fr, v) { // small creature: two-tone root bulb, smeared purple top layer, googly eyes, angry brows
     const [top, bot] = CREEP[v], st = [0, 1, 0, -1][fr], sw = [0, 0.09, 0, -0.09][fr];
     for (const [a, len, wid] of [[-0.85, 8, 2.5], [0.8, 7.8, 2.5], [-0.02, 10, 2.9]]) {
       const mx = 0.3 + Math.sin(a + sw) * len * 0.5, my = -19.6 - Math.cos(a + sw) * len * 0.5;
@@ -191,7 +191,7 @@
     groove(c, (q) => { q.arc(4, -6, 2.2, PI * 1.18, PI * 1.82); }, 0.7, 0.55);
   }
   const GHOST = [234, 240, 252], GHOST_D = [150, 164, 206];
-  function ghostArt(c, fr) { // fast floating enemy: glossy white clay sheet with wavy hem and stubby arms
+  function ghostArt(c, fr) { // fast floating creature: glossy white clay sheet with wavy hem and stubby arms
     const ph = (fr / 4) * TAU;
     const path = (k) => { k.moveTo(-7.8, -7.4); k.bezierCurveTo(-8.8, -15.5, -6.4, -24.4, 0.6, -24.4); k.bezierCurveTo(7.8, -24.4, 9.3, -15.6, 8.3, -5); const xs = [8.3, 4.6, 0.8, -3];
       for (let i = 0; i < 3; i++) k.quadraticCurveTo((xs[i] + xs[i + 1]) / 2, -0.4 + Math.sin(ph + i * 1.9 + 1.2), xs[i + 1], -4.6 + Math.sin(ph + i * 1.9) * 0.6);
@@ -355,7 +355,7 @@
 
   /* ---------- public drawers ---------- */
   const soft = (ctx, s, x, y, rx, ry) => ctx.drawImage(s, x - rx, y - ry, rx * 2, ry * 2);
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. Steps at 12 fps with per-step "boil" jitter. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Steps at 12 fps with per-step "boil" jitter. */
   function drawHero(ctx, x, y, t, facing, moving) {
     if (!SPR) bake(360);
     const stp = Math.floor(t * 12), f = Math.floor(t * 8) & 3, fr = moving === false ? 0 : 1 + f;
@@ -366,7 +366,7 @@
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 + 0.08 * Math.sin(stp * 1.3); // candle glow from the carved face
     soft(ctx, SPR.glow, x + 2.6 * facing, y - 18, 11, 10); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
-  /** Draws a typical enemy with feet at (x, y). kind: 'turnip' (default, variant 0-2) | 'ghost'. */
+  /** Draws a typical creature with feet at (x, y). kind: 'turnip' (small root-bulb creature, default, variant 0-2) | 'ghost' (floating sheet creature). */
   function drawEnemy(ctx, x, y, t, seed, kind) {
     if (!SPR) bake(360);
     seed = seed || 0; const stp = Math.floor(t * 12), bj = hash2(stp, (seed * 9973) | 0, 11) - 0.5, bj2 = hash2(stp, (seed * 9973) | 0, 12) - 0.5, scl = 0.94 + seed * 0.12;
@@ -381,7 +381,7 @@
   }
 
   let GROUND = null, GKEY = '';
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     const s = h / 360;
     if (!SPR || SPR.K !== Math.max(3, Math.min(5, Math.round(s * 1.2)))) bake(h);
@@ -409,11 +409,11 @@
     ctx.save(); ctx.translate(px, py); ctx.rotate(ang); const sg = ctx.createLinearGradient(-2, 0, -13, 0); sg.addColorStop(0, 'rgba(255,244,214,0.75)'); sg.addColorStop(1, 'rgba(255,244,214,0)');
     ctx.fillStyle = sg; ctx.beginPath(); ctx.moveTo(-2, -1.5); ctx.quadraticCurveTo(-8, -0.6, -13.5, 0); ctx.quadraticCurveTo(-8, 0.6, -2, 1.5); ctx.closePath(); ctx.fill(); ctx.restore();
     blit(ctx, SPR.seed, px, py, 0.85, 0.85 * (0.6 + 0.4 * Math.abs(Math.cos(Math.floor(t * 20) / 2))), ang);
-    for (let i = 0; i < 5; i++) { const a = i * 1.3 + 0.4, k = (t * 0.9 + i * 0.13) % 1; // clay crumbs bouncing away from a hit
+    for (let i = 0; i < 5; i++) { const a = i * 1.3 + 0.4, k = (t * 0.9 + i * 0.13) % 1; // clay crumbs bouncing away from an impact
       const z = Math.max(0, 14 + 60 * k - 150 * k * k), bx = 205 + Math.cos(a) * 30 * k, by = 110 + Math.sin(a) * 14 * k - z, sq = z < 0.5;
       blit(ctx, SPR.ball[i % 3], bx, by - 6, 0.8 * (sq ? 1.25 : 1), 0.8 * (sq ? 0.72 : 1)); }
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 * (1 - ((t * 0.9) % 1)); soft(ctx, SPR.glow, 205, 96, 9, 9); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-    // damage number as extruded clay letters (Chewy)
+    // floating number as extruded clay letters (Chewy)
     ctx.save(); ctx.translate(205, 78 - ((t * 0.9) % 1) * 8); ctx.rotate(-0.08); ctx.font = '13px Chewy, "Baloo 2", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(40,18,8,0.45)'; ctx.shadowBlur = 1.6; ctx.shadowOffsetY = 1; ctx.fillStyle = rgbS(darken([178, 74, 22], 0.15)); ctx.fillText('34', 0, 1.7); ctx.shadowColor = 'transparent';
     for (let i = 3; i >= 1; i--) { ctx.fillStyle = rgbS(mix([178, 74, 22], [255, 168, 46], (3 - i) * 0.12)); ctx.fillText('34', 0, 0.45 * i); }
@@ -433,7 +433,7 @@
     pg.addColorStop(0, '#fff5e2'); pg.addColorStop(0.45, '#f5ddb8'); pg.addColorStop(1, '#e0b98a'); ctx.fillStyle = pg; ctx.beginPath(); ctx.roundRect(pxl, pyt, pw, ph, 27 * u); ctx.fill();
     ctx.font = 40 * u + 'px Chewy, "Baloo 2", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
     [['#8c3c0e', 5], ['#a84a12', 4], ['#c85e1a', 2], ['#f07a24', 0]].forEach(([c, d]) => { ctx.fillStyle = c; ctx.fillText('22:09', w / 2, pyt + 46 * u + d * u); });
-    ctx.font = '800 ' + 12 * u + 'px "Baloo 2", sans-serif'; ctx.fillStyle = '#9a6a44'; ctx.fillText('UNTIL MIDNIGHT', w / 2, pyt + 66 * u);
+    ctx.font = '800 ' + 12 * u + 'px "Baloo 2", sans-serif'; ctx.fillStyle = '#9a6a44'; ctx.fillText('TITLE TEXT', w / 2, pyt + 66 * u);
   }
 
   const Starter = { id: 'clay', name: 'Clay World', palette: PALETTE, fonts: ['Chewy', 'Baloo 2:wght@500;600;700;800'], drawHero, drawEnemy, draw, clay };

@@ -85,7 +85,7 @@
     return [{ path: (c) => { c.moveTo(L.bx, L.by); c.quadraticCurveTo(L.ax, L.ay, L.tx, L.ty); c.closePath(); }, col: c1, cx: (L.mx * 2 + L.ax) / 3, cy: (L.my * 2 + L.ay) / 3, r },
       { path: (c) => { c.moveTo(L.bx, L.by); c.quadraticCurveTo(L.cx2, L.cy2, L.tx, L.ty); c.closePath(); }, col: c2, cx: (L.mx * 2 + L.cx2) / 3, cy: (L.my * 2 + L.cy2) / 3, r }];
   }
-  /** Pumpkin ribs: vertical lens-shaped pieces of an ellipse, boundaries fs in -1..1. */
+  /** Rib lenses for round heads / fruit: vertical lens-shaped pieces of an ellipse, boundaries fs in -1..1. */
   function ribCells(cx, cy, rx, ry, fs, cols) {
     const cells = [];
     for (let i = 0; i < fs.length - 1; i++) {
@@ -190,7 +190,7 @@
     }, mosaic(rectPoly(-9, -25, 9, 1), 70, 31, (x, y, i) => PALETTE.opal[i % 6]), { jitter: 0.06 });
     for (const [x, y, rx, ry, r] of [[-2.6, -17.4, 1.7, 2.3, -0.2], [3.2, -17.4, 1.7, 2.3, 0.2], [0.6, -11.6, 2.1, 3, 0]]) P.piece(ELL(x, y, rx, ry, r), PALETTE.hollow, x, y, 2.4, { ol: 0.5, noGlint: true });
   }
-  /** Ghost tail dissolves: destination-out gradient over the lower 9 units of the baked sprite. */
+  /** Fast floating creature: its tail dissolves via a destination-out gradient over the lower 9 units of the baked sprite. */
   function ghostFade(x, box) { x.globalCompositeOperation = 'destination-out'; const g = x.createLinearGradient(0, -8, 0, 1); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.85)'); x.fillStyle = g; x.fillRect(box[0], -8, box[2] - box[0], 12); }
   function bruteParts(P, fr) {
     const lift = [[0, 0], [3.2, 0], [0, 0], [0, 3.2]][fr], sw = [0, 2.5, 0, -2.5][fr];
@@ -238,14 +238,14 @@
   }
   const kFor = (ctx) => Math.max(3, Math.min(5, Math.round((ctx.getTransform ? ctx.getTransform().a : 1.5) * 1.5)));
 
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     const S = sprites(kFor(ctx)), ph = t * 1.6, fr = Math.floor(ph * 4) & 3, lift = Math.abs(Math.sin(ph * TAU)) * 2.2, fx = facing < 0 ? -1 : 1, k = 1.15;
     blit(ctx, S.warm, x + fx * 1.2, y - 24 * k - lift, 1.25, 1.25, 0, 0.32 + 0.08 * Math.sin(t * 6.5), true);
     blit(ctx, S.hero[fr].n, x, y - lift, k * fx, k * (1 + 0.02 * Math.sin(ph * TAU * 2)), 0.05 * fx * Math.sin(ph * TAU));
     blit(ctx, S.gold, x + fx * 2, y - 23 * k - lift, 0.55, 0.55, 0, 0.28 + 0.12 * Math.sin(t * 9) * Math.sin(t * 5.3), true);
   }
-  /** Draws a typical enemy (small melee turnip) with feet at (x, y). flash 0..1 = hit flash. */
+  /** Draws a typical creature (small root-bulb creature) with feet at (x, y). flash 0..1 = lit-glass flash. */
   function drawEnemy(ctx, x, y, t, variant, flash, facing) {
     const S = sprites(kFor(ctx)), ph = t * 0.85 * 1.6 + (variant || 0) * 0.37, set = S.enemy[(variant || 0) % 3][Math.floor(ph * 4) & 3], sn = Math.sin(ph * TAU), fx = facing < 0 ? -1 : 1;
     blit(ctx, set.n, x, y - Math.abs(sn) * 1.2, 0.92 * fx, 0.92, sn * 0.09);
@@ -330,7 +330,7 @@
     }
     return { dark, light };
   }
-  /** Damage number: Cinzel Decorative 900, double lead stroke, gold gradient, white highlight band. */
+  /** Floating number: Cinzel Decorative 900, double lead stroke, gold gradient, white highlight band. */
   function drawNumber(ctx, txt, x, y, fs, crit) {
     ctx.save(); ctx.font = `900 ${fs}px "Cinzel Decorative", "Cinzel", Georgia, serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
     ctx.strokeStyle = LEAD; ctx.lineWidth = fs * 0.26; ctx.strokeText(txt, x, y + fs * 0.06); ctx.strokeText(txt, x, y);
@@ -339,7 +339,7 @@
     ctx.fillStyle = g; ctx.fillText(txt, x, y); ctx.restore();
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   let BG = null;
   function draw(ctx, w, h, t) {
     const s = h / 360, W = w / s, OX = -1760, OY = 960;
@@ -348,7 +348,7 @@
     ctx.setTransform(s, 0, 0, s, 0, 0);
     const S = sprites(kFor(ctx)), cx = W / 2, cy = 205;
     const shadow = (x, y, rx, ry, a) => { ctx.fillStyle = `rgba(14,10,22,${a})`; ctx.beginPath(); ctx.ellipse(x, y + 0.4, rx, ry, 0, 0, TAU); ctx.fill(); };
-    // candle light pool cast on the floor (additive) + hero's warm floor pool
+    // candle light pool cast on the floor (additive) + the main character's warm floor pool
     ctx.globalCompositeOperation = 'lighter';
     blit(ctx, S.warm, cx, cy + 1, 2.6, 1.0, 0, 0.55 + 0.1 * Math.sin(t * 5));
     ctx.globalCompositeOperation = 'source-over';
@@ -364,13 +364,13 @@
       blit(ctx, S.ruby, x, y - 24 - up * 1.8, 0.8, 0.8, 0, 0.45 + 0.25 * Math.sin(t * 4), true); } });
     actors.push({ y: cy, f: () => { shadow(cx, cy, 7.5, 2.4, 0.45); drawHero(ctx, cx, cy, t, 1); } });
     actors.sort((a, b) => a.y - b.y).forEach((a) => a.f());
-    // gems with additive aqua halo, bobbing
+    // collectibles (faceted gems) with additive aqua halo, bobbing
     for (let i = 0; i < 7; i++) { const x = cx + 30 + i * 13, y = cy + 40 + Math.sin(i * 2.1) * 10 + Math.sin(t * 3.2 + i * 2) * 1.1; blit(ctx, S.aqua, x, y - 4.5, 0.6, 0.6, 0, 0.55 + 0.15 * Math.sin(t * 6 + i), true); blit(ctx, S.gem, x, y, 0.85, 0.85); }
-    // seed projectile with warm trail flying toward the brute
+    // seed projectile with warm trail flying toward the large creature
     const pq = (t * 1.4) % 1, px = cx + 12 + pq * 60, py = cy - 22 - pq * 18, ang = Math.atan2(-18, 60);
     ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.globalCompositeOperation = 'lighter'; const tg = ctx.createLinearGradient(0, 0, -16, 0); tg.addColorStop(0, 'rgba(255,214,120,0.75)'); tg.addColorStop(1, 'rgba(255,160,60,0)'); ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(-1, -1.6); ctx.lineTo(-16, 0); ctx.lineTo(-1, 1.6); ctx.fill(); ctx.restore();
     blit(ctx, S.seed, px, py, 0.85, 0.85 * (0.6 + 0.4 * Math.abs(Math.cos(t * 20))), ang);
-    // shatter burst: a killed enemy breaks into tumbling leaded shards (deterministic per t)
+    // shatter burst: a creature breaks into tumbling leaded shards (deterministic per t)
     const bq = (t * 0.8) % 1, bx = cx - 95, by = cy + 30, rnd = mulberry32(5);
     for (let i = 0; i < 9; i++) { const a = rnd() * TAU, sp = 30 + rnd() * 35, z = 11 + 60 * bq - 150 * bq * bq * 0.9 + rnd() * 6, tum = Math.cos(t * 10 + i * 3); blit(ctx, S.shard[i % 4][i % 3], bx + Math.cos(a) * sp * bq, by + Math.sin(a) * sp * bq * 0.6 - Math.max(0, z), 1, 0.25 + 0.75 * Math.abs(tum), a + t * 8 * (rnd() - 0.5), bq > 0.75 ? 1 - (bq - 0.75) / 0.25 : 1); }
     drawNumber(ctx, '34', cx + 85, cy - 80 - ((t * 0.7) % 1) * 8, 12.5, true); drawNumber(ctx, '17', cx - 80, cy + 48, 9.2, false);

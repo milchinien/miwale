@@ -9,10 +9,16 @@ export const libraryDir = join(stylesDir, 'library');
 
 export const HEADINGS = [
   'At a glance', 'When to use it', 'Color palette', 'Typography', 'Rendering technique',
-  'Background and ground', 'Characters', 'Enemies and props', 'Effects and particles',
-  'Lighting, shadows and post-processing', 'UI and HUD', 'Motion and animation', 'Do and don\'t',
-  'Implementation recipe', 'Code', 'Adapting it to your game', 'Performance notes', 'Copy-paste prompt',
+  'World and ground', 'Characters', 'Props', 'Effects and particles',
+  'Atmosphere and lighting', 'UI', 'Motion and animation', 'Do and don\'t',
+  'Implementation recipe', 'Code', 'Adapting it to your project', 'Performance notes', 'Copy-paste prompt',
 ];
+
+/**
+ * Words that tie a spec to the game the modules were drawn for. The library is about design only
+ * (see AUTHORING.md "Language rules"). Checked in STYLE.md and spec.json, not in starter.js code.
+ */
+export const GAME_WORDS = /\b(jack|turnips?|rutabagas?|roguelikes?|roguelites?|survivors?-?like|reference game|game[- ]jam|xp|level[- ]?ups?|kills?|hp|damage numbers?|boss(es)?|enem(y|ies)|hero(es)?|waves? of enemies|ancestors|midnight run)\b/i;
 
 /** Style ids in the order of the gallery (= order of the modules in index.html of the old gallery). */
 export const ORDER = [
@@ -44,6 +50,12 @@ const isStr = (v) => typeof v === 'string' && v.trim().length > 0;
 const isStrList = (v, min = 1) => Array.isArray(v) && v.length >= min && v.every(isStr);
 const HEX = /^#[0-9a-f]{6}$/i;
 
+/** Distinct game words found in a text (lower case). */
+export function gameWords(text) {
+  const re = new RegExp(GAME_WORDS.source, 'gi');
+  return [...new Set([...text.matchAll(re)].map((m) => m[0].toLowerCase()))];
+}
+
 /** Returns a list of problems (empty = valid). */
 export function validate(style) {
   const p = [];
@@ -68,8 +80,13 @@ export function validate(style) {
     else spec.typography.forEach((f, i) => {
       if (!isStr(f.family) || !isStr(f.role) || !isStr(f.css) || !isStr(f.sample)) p.push(`spec.json: typography[${i}] needs family, role, sample, css`);
     });
-    if (!spec.background || !isStr(spec.background.summary) || !isStrList(spec.background.layers)) p.push('spec.json: background {summary, layers[]}');
-    if (!spec.characters || !isStr(spec.characters.summary) || !isStrList(spec.characters.rules)) p.push('spec.json: characters {summary, rules[]}');
+    if (!spec.world || !isStr(spec.world.summary) || !isStrList(spec.world.layers)) p.push('spec.json: world {summary, layers[]}');
+    for (const k of ['characters', 'props', 'atmosphere']) {
+      if (!spec[k] || !isStr(spec[k].summary) || !isStrList(spec[k].rules)) p.push(`spec.json: ${k} {summary, rules[]}`);
+    }
+    if ('background' in spec) p.push('spec.json: "background" was renamed to "world"');
+    const words = gameWords(JSON.stringify(spec));
+    if (words.length) p.push('spec.json: game wording (design only): ' + words.join(', '));
     if (!Array.isArray(spec.effects) || spec.effects.length < 3 || !spec.effects.every((e) => isStr(e.name) && isStr(e.how))) p.push('spec.json: effects needs ≥ 3 {name, how}');
     if (!spec.ui || !isStr(spec.ui.summary) || !isStr(spec.ui.css)) p.push('spec.json: ui {summary, css}');
   }
@@ -84,6 +101,10 @@ export function validate(style) {
       else at = i;
     }
     if (!/^# .+/m.test(md)) p.push('STYLE.md: "# <Name> — Game Art Style Spec" title missing');
+    // code blocks may keep identifiers such as drawHero/drawEnemy; prose may not
+    const prose = md.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+    const words = gameWords(prose);
+    if (words.length) p.push('STYLE.md: game wording (design only): ' + words.join(', '));
   }
   if (!starter) p.push('starter.js missing');
   else {

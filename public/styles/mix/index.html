@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="/styles/">
+  <title>Mix your own design · miwale Game Style Library</title>
+  <meta name="description" content="Combine characters, world, props, effects, atmosphere and UI from 20 art styles into your own design – live preview, shareable link and a ready prompt for your AI.">
+  <meta property="og:title" content="Mix your own design – miwale Game Style Library">
+  <meta property="og:image" content="https://miwale.com/styles/shots/cartoon.webp">
+  <meta name="theme-color" content="#071A29">
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale-light.png">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/spacing.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/radius.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/glass.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/motion.css">
+  <link rel="stylesheet" href="css/library.css">
+</head>
+<body class="page-mix">
+  <div class="water" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="brand" href="/" aria-label="miwale – home"><img src="/assets/logo-wordmark-light.png" alt="miwale" width="132" height="34"></a>
+    <nav class="top-links">
+      <a href="./">All styles</a>
+      <a href="mix/#mine">My designs</a>
+      <a href="llms.txt">llms.txt</a>
+    </nav>
+  </header>
+
+  <section class="hero hero-sm">
+    <a class="d-back" href="./">← All styles</a>
+    <p class="eyebrow">Mix your own design</p>
+    <h1>Take the <span>characters</span> of one style, the <span>world</span> of another.</h1>
+    <p class="lead">Pick a source style for each of the six design elements. The preview renders your mix live with the original style code.
+      Save it, share the link, or copy one prompt that tells your AI exactly how to build every element.</p>
+  </section>
+
+  <main class="mixer" id="mixer">
+    <div class="mix-pickers" id="pickers"></div>
+
+    <aside class="mix-side">
+      <div class="mix-preview glass">
+        <div class="stage-tabs" role="tablist" aria-label="Preview" id="mix-views"></div>
+        <div class="frame16" id="mix-frame"></div>
+        <p class="d-cap" id="mix-cap"></p>
+      </div>
+      <div class="mix-save glass">
+        <label class="mix-name"><span>Name of your design</span><input id="mix-name" type="text" maxlength="60" placeholder="e.g. Neon Storybook"></label>
+        <div class="mix-buttons">
+          <button class="btn btn-primary" type="button" id="mix-save">Save to My designs</button>
+          <button class="btn btn-glass" type="button" id="mix-open">Open design page</button>
+          <button class="btn btn-glass" type="button" id="mix-prompt">Copy prompt</button>
+          <button class="btn btn-glass" type="button" id="mix-link">Copy link</button>
+        </div>
+        <div class="mix-tools">
+          <button class="btn btn-small" type="button" id="mix-random">Shuffle</button>
+          <label class="sort">Start from <select id="mix-base"><option value="">a style…</option></select></label>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="mine" id="mine" aria-labelledby="mine-title">
+    <h2 id="mine-title">My designs</h2>
+    <p class="note">Saved in this browser. Share a design with its link.</p>
+    <div class="grid mine-grid" id="mine-grid"></div>
+  </section>
+
+  <footer class="foot">
+    <p><a href="./">miwale Game Style Library</a> – open art styles for AIs and people. Free to copy and adapt.</p>
+  </footer>
+
+  <script src="js/md.js"></script>
+  <script src="js/lib.js"></script>
+  <script src="js/mix.js"></script>
+</body>
+</html>

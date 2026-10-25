@@ -144,7 +144,7 @@
     ctx.drawImage(g.c, Math.round(x) - g.hw, Math.round(y) - g.hh); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
 
-  /* ---- characters (ported from the reference module) */
+  /* ---- characters (ported from the module js/styles/dusk.js) */
   function leafStroke(p, x0, y0, ang, len, wid, rmp, bend) {
     for (let k = 0; k <= len * 2; k++) {
       const t = k / (len * 2), x = x0 + Math.cos(ang) * t * len, y = y0 + Math.sin(ang) * t * len + bend * t * t * 3, ci = clamp(Math.round(2 + t * 3), 0, rmp.length - 1);
@@ -152,7 +152,7 @@
       if (wid * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.15)), 0.7) > 0.8) { const px = -Math.sin(ang), py = Math.cos(ang); p.set(x + px, y + py, rmp[clamp(ci - 1, 0, rmp.length - 1)]); p.set(x - px, y - py, rmp[clamp(ci + 1, 0, rmp.length - 1)]); }
     }
   }
-  /** Hero, 26x32 px: pumpkin head with an emissive carved face, teal hooded cape, satchel. walk: 6 frames, idle: 4. */
+  /** Main character, 26x32 px: pumpkin head with an emissive carved face, teal hooded cape, satchel. walk: 6 frames, idle: 4. */
   function heroPix(walk, k) {
     const W = 26, H = 32, p = new Pix(W, H), cx = 13, FY = 31; const bob = walk ? [1, 0, 0, 1, 0, 0][k] : [0, 0, 1, 1][k], hb = walk ? [1, 1, 0, 1, 1, 0][k] : [0, 0, 0, 1][k];
     const ax = walk ? [2, 1, -1, -2, -1, 1][k] : 1, al = walk ? [0, 0, 0, 0, 1, 1][k] : 0, bl = walk ? [0, 1, 1, 0, 0, 0][k] : 0, arm = walk ? [-1, -1, 0, 1, 1, 0][k] : 0, hem = walk ? [0, -1, -1, 0, -1, -1][k] : [0, -1, -1, 0][k];
@@ -190,7 +190,7 @@
     }
     for (let i = 0; i < cut.length; i += 3) p.set(cut[i], cut[i + 1], R.pumpkin[cut[i + 2]]); return p;
   }
-  /** Small melee enemy, 24x28: glossy violet turnip, cream belly, leaf crown, root legs, glowing angry eyes. 6 frames. */
+  /** Small creature, 24x28: glossy violet root bulb, cream belly, leaf crown, root legs, glowing angry eyes. 6 frames. */
   function creeperPix(k) {
     const W = 24, H = 28, p = new Pix(W, H), cx = 12, bob = [0, 1, 0, 0, 1, 0][k], tilt = [0, 1, 1, 0, -1, -1][k], TR = R.turnip; const bcy = 15.5 + bob, rx = 7.6, ry = 7.1;
     const leg = (x0, lift, dk) => { for (let y = Math.round(bcy + 4); y <= H - 2 - lift; y++) { p.set(x0, y, R.rbody[4 - dk]); p.set(x0 + 1, y, R.rbody[3 - dk]); } p.set(x0, H - 1 - lift, R.rbody[3 - dk]); p.set(x0 + 1, H - 1 - lift, R.rbody[3 - dk]); p.set(x0 + 2, H - 1 - lift, R.rbody[2 - dk]); };
@@ -211,7 +211,7 @@
     em(ex + 4, ey, E1); em(ex + 4, ey + 1, E1); em(ex + 3, ey + 1, E0); br(ex + 3, ey); br(ex + 4, ey - 1);
     br(ex + 1, ey + 4); br(ex + 2, ey + 3); br(ex + 3, ey + 3); br(ex + 4, ey + 4); return p;
   }
-  /** Fast floating enemy, 26x30: translucent icy wisp whose tail dithers out; hollow eyes, open mouth. 6 frames. */
+  /** Fast floating creature (ghost), 26x30: translucent icy wisp whose tail dithers out; hollow eyes, open mouth. 6 frames. */
   function ghostPix(k) {
     const W = 26, H = 30, p = new Pix(W, H), cx = 12, ph = (k / 6) * Math.PI * 2, hcy = 9, hr = 6.6; for (let y = 2; y < 29; y++) {
       let hw, cxx, alpha, nyv; const head = y + 0.5 <= hcy + 2;
@@ -347,12 +347,12 @@
   }
   const spr = (ctx, s, x, y) => ctx.drawImage(s.c, Math.round(x) - s.ox, Math.round(y) - s.oy);
 
-  /** Draws the hero with feet at (x, y) in art pixels (1 px = 1 world unit). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y) in art pixels (1 px = 1 world unit). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing, moving = true) {
     if (!S) build(); const fr = moving ? S.hero[0][Math.floor(t * 9) % 6] : S.hero[1][Math.floor(t * 3.2) % 4]; spr(ctx, fr[facing < 0 ? 1 : 0], x, y);
     drawGlow(ctx, 'warm', 14, x + facing * 1.5, y - 21, 0.3 * (0.85 + 0.1 * Math.sin(t * 8.1) + 0.05 * Math.sin(t * 19.3)));  // face glow
   }
-  /** Draws a typical enemy with feet at (x, y). kind: 'creeper' (default) | 'ghost'. */
+  /** Draws a typical creature with feet at (x, y). kind: 'creeper' (default) | 'ghost'. */
   function drawEnemy(ctx, x, y, t, kind = 'creeper', facing = -1, seed = 0) {
     if (!S) build(); const f = facing < 0 ? 1 : 0; if (kind === 'ghost') {
       const fy = y - 4 - Math.round(Math.sin(t * 3 + seed * 9) * 1.5); ctx.globalAlpha = 0.92; spr(ctx, S.gh[Math.floor(t * 9 + seed * 6) % 6][f], x, fy); ctx.globalAlpha = 1;
@@ -384,7 +384,7 @@
   /* ---- preview scene */
   let BUF = null, GROUND = null, GKEY = '';
   const TRAIL = ['#ffe9a0', '#ffc35a', '#ff9a4a', '#f06a6a', '#c04a8a'];
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, props, main character, creatures, collectibles, orbiting objects, a projectile. */
   function draw(ctx, w, h, t) {
     if (!S) build(); const up = Math.max(1, Math.round(h / 360)), W = Math.ceil(w / up), H = Math.ceil(h / up);    // 360 art px tall
     if (!BUF || BUF.width !== W || BUF.height !== H) { BUF = mkCanvas(W, H); }
@@ -392,7 +392,7 @@
     const b = BUF.getContext('2d'), cx = Math.floor(W / 2), cy = Math.floor(H / 2) + 10;
     b.setTransform(1, 0, 0, 1, 0, 0); b.imageSmoothingEnabled = false; b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; b.drawImage(GROUND, 0, 0);
     const fl = 0.9 + 0.06 * Math.sin(t * 7.3) + 0.04 * Math.sin(t * 17.1);
-    drawGlow(b, 'warm', 50, cx, cy - 2, 0.42 * fl, true); drawGlow(b, 'amber', 16, cx, cy - 1, 0.35 * fl, true);   // hero light pool
+    drawGlow(b, 'warm', 50, cx, cy - 2, 0.42 * fl, true); drawGlow(b, 'amber', 16, cx, cy - 1, 0.35 * fl, true);   // main-character light pool
     const sh = [[S.tree, cx - 150, cy - 30], [S.shroom, cx - 70, cy + 70], [S.rock, cx + 60, cy + 80]];
     drawGlow(b, 'cyan', 30, cx - 70, cy + 68, 0.32 * (0.75 + 0.25 * Math.sin(t * 1.6)), true); const actors = [{ y: cy, f: () => drawHero(b, cx, cy, t, 1) }];
     for (const [s, x, y] of sh) { spr(b, s.sh, x, y); actors.push({ y, f: () => spr(b, s, x, y) }); }
@@ -401,11 +401,11 @@
     for (const [x, y, k, sd] of foes) {
       if (k === 'ghost') spr(b, S.ghSh, x, y); else spr(b, S.crSh, x, y); actors.push({ y, f: () => drawEnemy(b, x, y, t, k, k === 'ghost' ? 1 : -1, sd) });
     }
-    actors.sort((a, c) => a.y - c.y).forEach((a) => a.f()); for (let i = 0; i < 4; i++) {                                                    // pickups: amber shards bobbing
+    actors.sort((a, c) => a.y - c.y).forEach((a) => a.f()); for (let i = 0; i < 4; i++) {                                                    // collectibles: amber shards bobbing
       const gx = cx + [-30, 40, 30, -100][i], gy = cy + [40, -40, 60, 30][i], bob = Math.round(Math.sin(t * 3 + i * 6) * 1.2);
       drawGlow(b, 'amber', 4, gx, gy, 0.4, true); drawGlow(b, 'amber', 6, gx, gy - bob - 3, 0.5 + 0.18 * Math.sin(t * 4 + i * 9)); spr(b, S.gem, gx, gy - bob);
     }
-    for (let i = 0; i < 2; i++) {                                                    // orbiting lantern familiars
+    for (let i = 0; i < 2; i++) {                                                    // orbiting lantern objects
       const a = t * 2.2 + i * Math.PI, ox = cx + Math.cos(a) * 30, oy = cy - 12 + Math.sin(a) * 18, bob = Math.round(Math.sin(t * 4 + i * 1.7) * 1.2);
       b.globalAlpha = 0.3; b.drawImage(S.ghSh.c, Math.round(ox) - 5, Math.round(oy + 9)); b.globalAlpha = 1;
       spr(b, S.orb, ox, oy + 6 - bob); drawGlow(b, 'warm', 13, ox, oy - 4 - bob, 0.5 * (0.85 + 0.15 * Math.sin(t * 9 + i)));

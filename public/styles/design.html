@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Template for the design pages. tools/build-styles.mjs turns it into /styles/<id>/index.html and /styles/design/index.html. -->
+  <base href="/styles/">
+  <title>{{title}}</title>
+  <meta name="description" content="{{description}}">
+  <meta property="og:title" content="{{title}}">
+  <meta property="og:description" content="{{description}}">
+  <meta property="og:image" content="{{image}}">
+  <meta name="theme-color" content="#071A29">
+  <link rel="alternate" type="text/markdown" title="STYLE.md" href="{{md}}">
+  <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale-light.png">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/spacing.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/radius.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/glass.css">
+  <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/motion.css">
+  <link rel="stylesheet" href="css/library.css">
+</head>
+<body class="page-design" data-style="{{id}}">
+  <div class="water" aria-hidden="true"></div>
+
+  <header class="top">
+    <a class="brand" href="/" aria-label="miwale – home"><img src="/assets/logo-wordmark-light.png" alt="miwale" width="132" height="34"></a>
+    <nav class="top-links">
+      <a href="./">All styles</a>
+      <a href="mix/">Mix your own</a>
+      <a href="llms.txt">llms.txt</a>
+    </nav>
+  </header>
+
+  <main class="design" id="design">
+    <!-- filled by js/design.js; the static spec below is for readers without JavaScript -->
+    <article class="static-spec md">{{static}}</article>
+  </main>
+
+  <footer class="foot">
+    <p><a href="./">miwale Game Style Library</a> – open art styles for AIs and people. Free to copy and adapt.</p>
+  </footer>
+
+  <script src="js/md.js"></script>
+  <script src="js/lib.js"></script>
+  <script src="js/design.js"></script>
+</body>
+</html>

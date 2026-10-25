@@ -11,7 +11,7 @@
   const cP = PALETTE.paper, cI = PALETTE.ink, cO = PALETTE.orange, cT = PALETTE.teal;
   const MX = 0.8, MY = 0.55, TX = -0.55, TY = 0.45; // misregistration of orange / teal plates (world units), identical everywhere
 
-  /* ---------- seeded helpers (stand-ins for the game's U.*) ---------- */
+  /* ---------- seeded helpers (RNG, hash, sprite blit) ---------- */
   function rng(seed) { let a = seed >>> 0; return { next() { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } }; }
   function hashInt(x, y, s) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return h >>> 0; }
   const hash2 = (x, y, s) => hashInt(x, y, s) / 4294967296;
@@ -124,7 +124,7 @@
   }
   function blit(ctx, s, x, y, sc) { const k = (sc || 1) / K; ctx.drawImage(s.c, x - s.ax * k, y - s.ay * k, s.c.width * k, s.c.height * k); }
 
-  /* ---------- hero (feet at 0,0, facing f) ---------- */
+  /* ---------- main character (feet at 0,0, facing f) ---------- */
   const WALK = [{ fa: [3.3, 0], fb: [-3, 0], bob: 0, hem: 0.8, st: 0.5, arm: 0.4 }, { fa: [1, 0], fb: [-0.4, -1.5], bob: -0.8, hem: 0.2, st: -0.6, arm: 0 }, { fa: [-2.7, 0], fb: [3, 0], bob: 0, hem: 0.9, st: 0.6, arm: -0.4 }, { fa: [0.6, -1.5], fb: [-0.2, 0], bob: -0.8, hem: 0.1, st: -0.5, arm: 0 }];
   function drawJack(ctx, f, fr, r) {
     const J = (s) => (r.next() - 0.5) * s, b = fr.bob;
@@ -141,7 +141,7 @@
     fillPath(ctx, (c) => c.arc(hx, hy, 1.25, 0, TAU), cP); strokePath(ctx, (c) => c.arc(hx, hy, 1.25, 0, TAU), cI, 0.45);
     const wrap = (c) => { c.moveTo(-4.6, -16.6 + b); c.quadraticCurveTo(0.4, -15.2 + b, 4.9, -16.6 + b); c.lineTo(4.6, -14.6 + b); c.quadraticCurveTo(0.4, -13 + b, -4.3, -14.6 + b); c.closePath(); };
     fillPath(ctx, wrap, cP); strokePath(ctx, wrap, cI, 0.45); ctx.fillStyle = cI; for (const x of [-2.6, 0.2, 3]) lens(ctx, x - 0.2, -16.2 + b, x + 0.3, -14 + b, 0.38);
-    // pumpkin head: paper, orange plate offset by (MX,MY), carved ribs + shading lenses, crescent shadow, carved face
+    // round lobed head: paper, orange plate offset by (MX,MY), carved ribs + shading lenses, crescent shadow, carved face
     const h0 = 0.7 + J(0.15), v0 = -21.6 + b, rx = 7.3, ry = 6.2, pts = [];
     for (let i = 0; i < 22; i++) { const a = (i / 22) * TAU, lobe = 1 - 0.05 * Math.abs(Math.sin(a * 2.5 + 0.4)) + J(0.035), x = Math.cos(a) * rx * lobe; let y = Math.sin(a) * ry * lobe; if (y < 0) y *= 1 - 0.13 * Math.exp(-(x * x) / 5); pts.push([h0 + x, v0 + y]); }
     const head = (c) => smoothPath(c, pts);
@@ -160,7 +160,7 @@
     ctx.fillStyle = cI; taper(ctx, h0 + 0.2, v0 - ry + 1, h0 + 1.9 + J(0.3), v0 - ry - 2.9, 1.1, -0.5); leaf(ctx, h0 + 0.6, v0 - ry - 0.3, h0 - 3.6, v0 - ry - 1.6, 0.85, -0.5);
     ctx.restore();
   }
-  /* ---------- small enemy: turnip with a solid-ink crown, comb transition, carved eyes + teeth ---------- */
+  /* ---------- small creature: root bulb with a solid-ink crown, comb transition, carved eyes + teeth ---------- */
   function drawCreeper(ctx, f, i, r) {
     const J = (s) => (r.next() - 0.5) * s, ph = (i / 4) * TAU, bob = -0.75 * Math.abs(Math.sin(ph));
     ctx.save(); ctx.scale(f, 1); ctx.fillStyle = cI;
@@ -188,7 +188,7 @@
     ctx.fillStyle = cI; taper(ctx, -6.9, -8.6, -8.6, -8, 0.24); taper(ctx, 6.9, -8, 8.6, -7.2, 0.24);
     ctx.restore();
   }
-  /* ---------- floating enemy: paper ghost with a teal stipple plate on the shadow side ---------- */
+  /* ---------- floating creature: paper spirit with a teal stipple plate on the shadow side ---------- */
   function drawGhost(ctx, f, i) {
     const ph = (i / 4) * TAU, tipX = -9.2 + Math.cos(ph) * 0.8, tipY = -8.4 + Math.sin(ph) * 1.4, reach = Math.sin(ph) * 0.6;
     ctx.save(); ctx.scale(f, 1); ctx.fillStyle = cI;
@@ -243,13 +243,13 @@
     };
   }
 
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) buildSprites();
     blit(ctx, SPR.sh[0], x, y + 0.5);
     blit(ctx, SPR.jack[facing < 0 ? 1 : 0][Math.floor(t * 5) & 3][Math.floor(t * 6) & 1], x, y);
   }
-  /** Draws a typical enemy with feet at (x, y). type: 'creeper' | 'ghost'. */
+  /** Draws a typical creature with feet at (x, y). type: 'creeper' (small root creature) | 'ghost' (floating spirit). */
   function drawEnemy(ctx, x, y, t, type, seed, facing) {
     if (!SPR) buildSprites();
     seed = seed || 0; const fi = facing < 0 ? 1 : 0;
@@ -336,7 +336,7 @@
     ctx.restore(); ctx.strokeStyle = cI; ctx.lineWidth = 3; ctx.strokeRect(x, y, w, h);
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   let CACHE = null;
   function draw(ctx, w, h, t) {
     const s = h / 360;
@@ -349,7 +349,7 @@
     list.sort((a, b) => a.y - b.y).forEach((o) => o.f());
     for (const [x, y, v] of [[15, 30, 0], [25, 24, 1], [0, 44, 0], [62, 50, 1]]) { blit(ctx, SPR.gem[(Math.floor(t * 4) + v) & 1], x, y - 1 + Math.sin(t * 3 + x) * 0.7); }
     blit(ctx, SPR.seed, -6 + (t * 110) % 45, -6);
-    // damage numbers: Alfa Slab One; normal = ink with a fat paper outline; crit = orange over an ink copy offset by the misregistration
+    // floating numbers: Alfa Slab One; small = ink with a fat paper outline; large = orange over an ink copy offset by the misregistration
     ctx.font = '11.5px "Alfa Slab One", Georgia, serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
     const ny = -38 - (t % 1) * 5;
     ctx.lineWidth = 4.1; ctx.strokeStyle = cP; ctx.strokeText('34', 45, ny); ctx.fillStyle = cI; ctx.fillText('34', 45 + MX * 0.6, ny + MY * 0.6); ctx.lineWidth = 1; ctx.strokeStyle = cI; ctx.strokeText('34', 45, ny); ctx.fillStyle = cO; ctx.fillText('34', 45, ny);
@@ -363,7 +363,7 @@
     const bw = w * 0.13, bh = h * 0.085, bx = w / 2 - bw / 2, by = m * 1.6;
     ctx.fillStyle = cI; ctx.fillRect(bx - 6 + 7, by - 6 + 7, bw + 12, bh + 12); ctx.fillRect(bx - 6, by - 6, bw + 12, bh + 12); ctx.fillStyle = cP; ctx.fillRect(bx - 3, by - 3, bw + 6, bh + 6); ctx.fillStyle = cI; ctx.fillRect(bx, by, bw, bh); ctx.fillStyle = cP; ctx.fillRect(bx + 3, by + 3, bw - 6, bh - 6);
     ctx.textAlign = 'center'; ctx.font = Math.round(h * 0.05) + 'px "Rye", Georgia, serif'; ctx.fillStyle = cO; ctx.fillText('22:09', w / 2 + 2, by + bh * 0.42 + 2); ctx.fillStyle = cI; ctx.fillText('22:09', w / 2, by + bh * 0.42);
-    ctx.font = Math.round(h * 0.015) + 'px "Special Elite", monospace'; ctx.fillText('UNTIL MIDNIGHT', w / 2, by + bh * 0.82); ctx.fillRect(bx + bw * 0.12, by + bh * 0.68, bw * 0.76, 2);
+    ctx.font = Math.round(h * 0.015) + 'px "Special Elite", monospace'; ctx.fillText('TITLE TEXT', w / 2, by + bh * 0.82); ctx.fillRect(bx + bw * 0.12, by + bh * 0.68, bw * 0.76, 2);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
 

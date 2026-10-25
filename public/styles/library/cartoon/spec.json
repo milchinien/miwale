@@ -1,15 +1,42 @@
 {
   "id": "cartoon",
-  "name": "Brotato Cartoon",
-  "originalName": "Brotato-Cartoon",
+  "name": "Bouncy Cartoon",
+  "originalName": "modern arena cartoons-Cartoon",
   "family": "Vector · Cartoon",
-  "tags": ["cartoon", "vector", "thick outline", "cel shading", "squash and stretch", "bright", "hd"],
+  "tags": [
+    "cartoon",
+    "vector",
+    "thick outline",
+    "cel shading",
+    "squash and stretch",
+    "bright",
+    "hd"
+  ],
   "summary": "Candy-bright HD vector cartoon: thick deep-plum outlines, one cel-shade crescent, one white gloss and bouncy squash & stretch.",
-  "description": "A clean, high-resolution vector cartoon in the spirit of Brotato: every object is a chunky rounded silhouette with one thick deep-plum outline, a flat fill, exactly one darker cel-shade crescent and one white glossy highlight. Characters are big-headed, round and expressive (angry brows, googly eyes, carved grins) and bounce constantly with squash and stretch. The ground is a flat play-mat of soft-edged grass, lilac and sand regions sprinkled with tiny vector tufts and flowers, so the outlined actors pop clearly even in huge hordes.",
-  "mood": ["cheerful", "bouncy", "toy-like", "punchy", "friendly"],
-  "bestFor": ["horde survival / bullet-heaven games", "top-down arena shooters", "casual mobile action", "party and co-op games", "kid-friendly adventure"],
-  "avoidFor": ["horror or grim drama", "realistic simulations", "moody atmospheric exploration"],
-  "difficulty": { "stars": 3, "why": "Shapes with an outline and flat colour are the most natural thing to generate in code: new enemies are quick to build and read well, and there is plenty of performance headroom." },
+  "description": "A clean, high-resolution vector cartoon: every object is a chunky rounded silhouette with one thick deep-plum outline, a flat fill, exactly one darker cel-shade crescent and one white glossy highlight. Characters are big-headed, round and expressive (angry brows, googly eyes, carved grins) and bounce constantly with squash and stretch. The ground is a flat play-mat of soft-edged grass, lilac and sand regions sprinkled with tiny vector tufts and flowers, so the outlined figures pop clearly even when hundreds crowd the screen.",
+  "mood": [
+    "cheerful",
+    "bouncy",
+    "toy-like",
+    "punchy",
+    "friendly"
+  ],
+  "bestFor": [
+    "top-down arena shooters",
+    "crowded top-down action with hundreds of on-screen characters",
+    "casual mobile action",
+    "party and co-op games",
+    "kid-friendly adventures"
+  ],
+  "avoidFor": [
+    "horror or grim drama",
+    "realistic simulations",
+    "moody atmospheric exploration"
+  ],
+  "difficulty": {
+    "stars": 3,
+    "why": "New assets are quick to make: every character, prop or icon is a short list of ellipses, capsules, blobs and rounded polygons run through the same two-pass painter, so the outline, cel crescent and gloss come for free. The only care needed is a distinctive fat silhouette, a fill/shade colour pair and four slightly varied animation frames."
+  },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": false,
@@ -18,102 +45,240 @@
     "linework": "One outline colour only: deep plum #3a2240. Outer silhouette 1.15 world units (stroke width 2.3, half hidden under the fill), inner separation lines 0.55 units (stroke 1.1 inside the clip), small items 0.6–0.9 units. Round caps and joins everywhere; no black, no coloured outlines.",
     "shading": "Flat fill plus exactly ONE cel step: the whole part is filled with its shade colour, then the lit colour is clipped to the same shape shifted by (-1..-2.8, -0.9..-2.6) units, leaving a crisp dark crescent on the lower-right. No gradients on bodies.",
     "lighting": "Implied light from the top-left. One white gloss ellipse (alpha 0.92) near the top-left of each big shape plus a tiny white dot next to it. Warm additive glow (lighter blend) only for lanterns/candle light; carved faces glow #ffd43f with a #fff3b0 hot core.",
-    "texture": "None on actors. The ground has sparse vector decals (3-blade tufts, 5-petal flowers, pebbles, fallen leaves) and a ±3.5% low-frequency brightness tint."
+    "texture": "None on characters, props or effects. The ground has sparse vector decals (3-blade tufts, 5-petal flowers, pebbles, fallen leaves) and a ±3.5% low-frequency brightness tint."
   },
   "palette": [
-    { "name": "Plum Outline", "hex": "#3a2240", "role": "The only outline/ink colour: silhouettes, pupils, brows, mouths, HUD borders and text outlines" },
-    { "name": "Meadow", "hex": "#9ec671", "role": "Base ground (~55% of the screen)" },
-    { "name": "Deep Grass", "hex": "#79ae5a", "role": "Darker grass patches, rim #6a9e50" },
-    { "name": "Lilac Meadow", "hex": "#c8b6da", "role": "Flower-meadow regions, rim #b4a0cc" },
-    { "name": "Sand Path", "hex": "#ebd3a0", "role": "Winding paths and clearings, rim #d8ba85" },
-    { "name": "Clay Field", "hex": "#daa070", "role": "Autumn/rust ground regions, rim #c78a60" },
-    { "name": "Pumpkin", "hex": "#ff952b", "role": "Hero head; shade #ea681c, ribs #ec7a22" },
-    { "name": "Candle Glow", "hex": "#ffd43f", "role": "Carved eyes/mouth, stars, crit numbers; hot core #fff3b0, carve rim #8a3214" },
-    { "name": "Teal Coat", "hex": "#2f9c95", "role": "Hero body; shade #22736f" },
-    { "name": "Leaf Green", "hex": "#86cf4c", "role": "Leaves, scarf (#8ad04c); shade #59a33a" },
-    { "name": "Turnip Purple", "hex": "#9b5cd0", "role": "Enemy tops (variants #bd5aa6, #7d66d8); shade #7241aa" },
-    { "name": "Turnip Cream", "hex": "#f8eacb", "role": "Enemy bottoms; shade #e0c595" },
-    { "name": "Root Beige", "hex": "#efd49e", "role": "Enemy limbs, brute body; shade #cfac70" },
-    { "name": "Ghost White", "hex": "#f6f8ff", "role": "Floating enemy body; shade #c3d0ef" },
-    { "name": "Brute Purple", "hex": "#7b3f99", "role": "Large brute top; shade #58297a, bottom ochre #efc96f" },
-    { "name": "Gem Green", "hex": "#74e690", "role": "Small XP pickup; facet #2fae66 (big gem #62c8ff / #2f83e0)" },
-    { "name": "Berry Red", "hex": "#ef5a52", "role": "Berries, mushroom caps, HP fill (#ff5466)" },
-    { "name": "Panel Cream", "hex": "#fff4de", "role": "HUD panels, cards" },
-    { "name": "XP Mint", "hex": "#45d6ad", "role": "XP bar fill (gradient #9af7d8 → #45d6ad → #2cb892)" },
-    { "name": "Shadow Plum", "hex": "#321e48", "role": "Ground shadows at 20% alpha: rgba(50,30,72,0.2)" }
+    {
+      "name": "Plum Outline",
+      "hex": "#3a2240",
+      "role": "The only outline/ink colour: silhouettes, pupils, brows, mouths, HUD borders and text outlines"
+    },
+    {
+      "name": "Meadow",
+      "hex": "#9ec671",
+      "role": "Base ground (~55% of the screen)"
+    },
+    {
+      "name": "Deep Grass",
+      "hex": "#79ae5a",
+      "role": "Darker grass patches, rim #6a9e50"
+    },
+    {
+      "name": "Lilac Meadow",
+      "hex": "#c8b6da",
+      "role": "Flower-meadow regions, rim #b4a0cc"
+    },
+    {
+      "name": "Sand Path",
+      "hex": "#ebd3a0",
+      "role": "Winding paths and clearings, rim #d8ba85"
+    },
+    {
+      "name": "Clay Field",
+      "hex": "#daa070",
+      "role": "Autumn/rust ground regions, rim #c78a60"
+    },
+    {
+      "name": "Pumpkin",
+      "hex": "#ff952b",
+      "role": "Main character head; shade #ea681c, ribs #ec7a22"
+    },
+    {
+      "name": "Candle Glow",
+      "hex": "#ffd43f",
+      "role": "Carved eyes/mouth, stars, highlighted numbers; hot core #fff3b0, carve rim #8a3214"
+    },
+    {
+      "name": "Teal Coat",
+      "hex": "#2f9c95",
+      "role": "Main character body; shade #22736f"
+    },
+    {
+      "name": "Leaf Green",
+      "hex": "#86cf4c",
+      "role": "Leaves, scarf (#8ad04c); shade #59a33a"
+    },
+    {
+      "name": "Bulb Purple",
+      "hex": "#9b5cd0",
+      "role": "Small creature tops (variants #bd5aa6, #7d66d8); shade #7241aa"
+    },
+    {
+      "name": "Bulb Cream",
+      "hex": "#f8eacb",
+      "role": "Small creature bottoms; shade #e0c595"
+    },
+    {
+      "name": "Root Beige",
+      "hex": "#efd49e",
+      "role": "Creature limbs, large creature arms; shade #cfac70"
+    },
+    {
+      "name": "Ghost White",
+      "hex": "#f6f8ff",
+      "role": "Floating ghost creature body; shade #c3d0ef"
+    },
+    {
+      "name": "Giant Purple",
+      "hex": "#7b3f99",
+      "role": "Large creature top; shade #58297a, bottom ochre #efc96f"
+    },
+    {
+      "name": "Gem Green",
+      "hex": "#74e690",
+      "role": "Small gem collectible; facet #2fae66 (large gem #62c8ff / #2f83e0)"
+    },
+    {
+      "name": "Berry Red",
+      "hex": "#ef5a52",
+      "role": "Berries, mushroom caps, red bar fill (#ff5466)"
+    },
+    {
+      "name": "Panel Cream",
+      "hex": "#fff4de",
+      "role": "HUD panels, cards"
+    },
+    {
+      "name": "Bar Mint",
+      "hex": "#45d6ad",
+      "role": "Second bar fill (gradient #9af7d8 → #45d6ad → #2cb892)"
+    },
+    {
+      "name": "Shadow Plum",
+      "hex": "#321e48",
+      "role": "Ground shadows at 20% alpha: rgba(50,30,72,0.2)"
+    }
   ],
   "paletteRules": [
     "Every colour comes as a pair: fill + one darker, slightly more saturated shade (about 15–25% darker, hue shifted warm or toward purple). Never a third tone on a body.",
     "The outline is always #3a2240 – never pure black, never per-object outline colours.",
-    "Ground colours are desaturated and mid-light (meadow, lilac, sand) so the saturated actors (orange, purple, teal, white) dominate.",
+    "Ground colours are desaturated and mid-light (meadow, lilac, sand) so the saturated characters (orange, purple, teal, white) dominate.",
     "Highlights are pure white at 0.92 alpha; shadows on the ground are plum at 20% alpha, never grey or black.",
-    "Enemies use cool purples/whites, the hero warm orange + teal: the player always contrasts with the horde.",
-    "Glow colour #ffd43f is reserved for light sources, rewards and crits."
+    "Creatures use cool purples/whites, the main character warm orange + teal: the main character always contrasts with a crowd of creatures.",
+    "Glow colour #ffd43f is reserved for light sources, stars, collect sparkles and highlighted numbers."
   ],
   "typography": [
     {
       "family": "Lilita One",
-      "weights": [400],
-      "role": "Damage numbers, HUD numbers, clock, titles, card names",
+      "weights": [
+        400
+      ],
+      "role": "Floating numbers, HUD counters, clock, titles, card names",
       "source": "Google Fonts",
       "sample": "22:09",
       "css": "font: 400 36px/1.1 'Lilita One', 'Fredoka', sans-serif; letter-spacing: 1.5px; color: #ff8a2a; text-shadow: 2.5px 0 0 #3a2240, -2.5px 0 0 #3a2240, 0 2.5px 0 #3a2240, 0 -2.5px 0 #3a2240, 1.8px 1.8px 0 #3a2240, -1.8px 1.8px 0 #3a2240, 1.8px -1.8px 0 #3a2240, -1.8px -1.8px 0 #3a2240, 0 5px 0 #3a2240;"
     },
     {
       "family": "Fredoka",
-      "weights": [400, 500, 600, 700],
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
       "role": "Body text, labels, card descriptions, hints",
       "source": "Google Fonts",
-      "sample": "UNTIL MIDNIGHT",
+      "sample": "SUNNY MEADOW",
       "css": "font: 600 12px/1.2 'Fredoka', 'Baloo 2', system-ui, sans-serif; letter-spacing: 1.6px; text-transform: uppercase; color: #8a6280;"
     }
   ],
-  "background": {
-    "summary": "A flat-colour play-mat: large calm regions (dark grass, lilac meadow, clay field, sand clearings and even-width winding sand paths) generated from low-frequency noise, rasterised with an analytic signed distance (value / gradient) so every region has a crisp anti-aliased edge and a slightly darker 1.7–2.5 unit inner rim band; tiny flat vector decals sit on top.",
+  "world": {
+    "summary": "A flat-colour, outline-free play-mat: large calm regions (dark grass, lilac meadow, clay field, sand clearings and even-width winding sand paths) generated from low-frequency noise, rasterised with an analytic signed distance (value / gradient) so every region has a crisp anti-aliased edge and a slightly darker 1.7–2.5 unit inner rim band; tiny flat vector decals sit on top.",
     "layers": [
       "Base fill #9ec671 (meadow)",
-      "Noise regions in order: dark grass #79ae5a (rim #6a9e50, 1.7u), lilac #c8b6da (rim #b4a0cc, 2.0u), clay #daa070 (rim #c78a60, 2.3u), sand clearings + paths #ebd3a0 (rim #d8ba85, 2.5u)",
+      "Noise regions in order: dark grass #79ae5a (rim #6a9e50, 1.7u), lilac #c8b6da (rim #b4a0cc, 2.0u), clay #daa070 (rim #c78a60, 2.3u), sand clearings + paths #ebd3a0 (rim #d8ba85, 2.5u); regions 100–400 units across",
+      "Even-width sand paths from the zero contour of a noise field: (0.0175 - |perlin(x/1700)|) * 3, so they wind and branch",
       "±3.5% brightness tint from very low-frequency noise (period ~1500 units)",
-      "Decals on a 12-unit jittered grid: 3-blade grass tufts (0.8 u strokes), 5-petal flowers (white/yellow/pink, orange centre), dot clusters, pebbles on sand, fallen leaves on clay",
-      "Batched plum ground shadows under all actors and props (one union path, one fill)",
-      "Spawn holes: dirt ring #b07a4c with plum outline and dark hole #43283f before enemies pop out",
-      "World overlay: butterflies drifting at z 16 with their own small shadows"
+      "Decals on a 12-unit jittered grid (only where the material is the same within 4.5 u): 3-blade grass tufts (0.8 u strokes), 5-petal flowers (white/yellow/pink, orange centre), dot clusters, pebbles on sand, fallen leaves with a 0.35 u vein on clay",
+      "Dirt holes: a #b07a4c dirt ellipse with a 0.8 u plum rim and a dark centre #43283f that grows with outBack, crumbs r 1.3 #9c6a42 flying out",
+      "Baked in 256-unit chunks at up to 3 px per world unit"
     ]
   },
   "characters": {
-    "summary": "Chunky, big-headed toy figures built from ellipses, capsules (limbs), Catmull-Rom blobs and rounded polygons. The hero (~25 u wide, ~37 u tall incl. stem at 1.1 scale) is a giant pumpkin head (rx 11.2, ry 9.1) on a tiny teal body with stubby capsule limbs, a waving scarf and a carved, glowing jack-o'-lantern face offset toward the facing side. 4 baked hop frames; squash & stretch, tilt and lift are applied at draw time.",
+    "summary": "Chunky, big-headed toy figures built from ellipses, capsules (limbs), Catmull-Rom blobs and rounded polygons. The main character (~25 u wide, ~37 u tall incl. stem at 1.1 scale) is a giant pumpkin head (rx 11.2, ry 9.1) on a tiny teal body with stubby capsule limbs, a waving green scarf and a carved, glowing lantern-style face offset toward the facing side. Creatures: a small grumpy purple-and-cream root bulb with three leaves, a fast floating white ghost with a wavy hem and a tongue-out grin, and a large purple/ochre root giant (2.5x size) with bandages, glowing eyes and teeth. 4 baked frames each; squash & stretch, tilt and lift are applied at draw time.",
     "rules": [
-      "Head is ~60% of the height; bodies and limbs are tiny and stubby (limb radius 1.15–1.45 u).",
+      "Head is ~60% of the height; bodies and limbs are tiny and stubby (limb radius 1.15–1.45 u, large creature 3.1–3.5 u).",
       "All parts of a figure merge into ONE plum silhouette outline (outline pass first), inner overlaps get 0.55 u separation lines only where needed.",
       "Every big shape gets its cel crescent toward the lower-right and its gloss ellipse at the upper-left.",
-      "Faces are drawn into the fill pass: googly white eyes with plum pupils and a white catchlight, thick angry brows (1.35 u), simple arc mouths; or carved shapes with dark rim + glowing offset inside.",
+      "Faces are drawn into the fill pass: googly white eyes (0.7 u plum rim) with plum pupils and a white catchlight, thick angry brows (1.35 u), simple arc mouths; or carved shapes with a dark #8a3214 rim and the #ffd43f glow shifted inside.",
       "Faces sit off-centre toward the facing direction; sprites are mirrored with scale(-1,1) for the other facing.",
-      "Each enemy class has a unique silhouette: round turnip waddler, tall ghost with wavy hem, 2.5x-size brute with bandages and teeth.",
-      "Pre-bake a white flash copy of every frame (fill = #ffffff, shade = #efe6f6) for hits."
+      "Each creature type has a unique silhouette: round two-tone root bulb (cream bottom, purple top split by a sine wave), tall ghost dome with a 3-scallop hem and a tail whose bottom 9 u fade to 42% alpha, 39 x 41 u root giant with five leaves.",
+      "Warm main character (orange + teal) against cool creatures (purple, white) so it never gets lost in a crowd.",
+      "Pre-bake a white flash copy of every frame (fill = #ffffff, shade = #efe6f6) for a white flash overlay."
+    ]
+  },
+  "props": {
+    "summary": "Scenery uses the same two-pass painter as the characters: fat rounded shapes, one plum outline, one cel crescent, one white gloss. Round trees and tiered pines, bushes, rocks, pumpkins, mushrooms, fences, signposts and hay stacks, each baked once in 1–5 colour variants (plus mirrored copies) and placed per ground region.",
+    "rules": [
+      "Round tree (box 40 x 66 u): tapered bark trunk #a56f48 / shade #7c4e33 with a knot circle, canopy = 6 overlapping circles (radius 7–11.5 u) as ONE part, crescent [-2.8,-2.6], six small shade arcs, gloss at the top-left; canopy pairs green #7fca5c/#57a243, orange #f2a64c/#d57c36, lime #a9d65a/#7fb343, gold #efc54e/#d09d36; the green one carries three red apples r 1.4 with a plum rim and white catchlight.",
+      "Tiered pine: three rounded triangles (corner radius 2.6 u, half-widths 14 / 11.5 / 9) in #4fa564 / shade #36804b over a short bark trunk.",
+      "Bush: 4 ellipses as one part (#73c257/#4e9a40, #8acb5a/#61a444, #9ad16a/#6daa4c), crescent [-2.1,-2.0]; variants with red berries r 1.15 or pink 5-petal flowers #f7b5d0 with #ffd43f centres.",
+      "Rock: 7-point Catmull-Rom blob in #bdb5cd / shade #918aa9 with a small crack line, three sizes (0.66, 1, 1.2); the large one wears a mossy cap #8cc65a / #66a443.",
+      "Pumpkin: squircle pumpkin #f59a3a / shade #d96f26 with rib lines, stem, a leaf with midrib and a curly tendril; single or a pair (rx 8.8 + 6.0).",
+      "Mushroom pair: cream stalks #f6ead2 / #d9c6a4, caps red #ec5b52 / #c03f45 or brown #c98a52 / #a4683a with cream dots #fff6e6.",
+      "Fence (two rails, three pointed posts), signpost (arrow board #e4b77b / #c38f56 with a painted pumpkin and arrow) in wood #d4a066 / shade #a9743f; hay stack #f3cf62 / #d6a33c with straw strokes #c99434 and #fbe9a4.",
+      "Placement by region: meadow = trees, bushes, rocks, mushrooms, fences, signs; dark grass = pines, berry bushes, mushrooms, mossy rocks; lilac = flower bushes, lime trees, small rocks; clay = pumpkins, orange/gold trees, hay, fences; sand = rocks, hay, signs.",
+      "Trees and bushes sway by skewing around their base (trees 0.025, bushes 0.035 at t*1.3); everything else is static."
     ]
   },
   "effects": [
-    { "name": "Projectile", "how": "A cream seed (#fff1c8, shade #e6c68a, outline 0.85 u) spinning by squashing its height 0.55–1.0, trailed by a white speed streak: three round-cap lines (1.0 u and 0.75 u) with a linear gradient from 0.95 alpha to 0 over 14 units." },
-    { "name": "Hit star", "how": "An 8-point white star (outer 5.6, inner 2.6, rounded corners 0.4, shade #fff3b5) popping 0.5→1.2→0.3 scale over 0.14 s, plus a 4-point yellow-white spark flying off with gravity." },
-    { "name": "Hit flash", "how": "Blit the baked white-flash copy over the normal sprite at alpha min(0.85, flash*1.3) and squash the sprite (x*1+0.22f, y*1-0.18f)." },
-    { "name": "Death pop", "how": "The enemy inflates in white to 1.28x over 0.22 s, wobbles and shrinks to nothing by 0.5 s; 6–9 outlined cloud puffs burst radially (outBack grow, quadratic shrink, rising 7 u), 2–6 yellow 5-point stars arc out with gravity and 4–10 outlined colour chunks of the enemy's colours bounce away." },
-    { "name": "Shockwave ring", "how": "A flat ellipse (ry = 0.45 rx) growing to 30 u with outQuad, stroked twice: plum at width w+1.4 under white/yellow at width w, w shrinking from 2.4 to 0." },
-    { "name": "Dash smear", "how": "Three white-flash after-images at alpha 0.42/i spaced 7 u behind the hero, hero stretched x*1.2 y*0.88, plus 4 cream dust puffs." },
-    { "name": "Level-up", "how": "Yellow ring, 10 stars in a circle and 18 confetti rectangles (6 colours, outlined 0.45 u) that flip by scaling their y by cos(t*9)." },
-    { "name": "Damage numbers", "how": "Lilita One 9 u (crit 12.5 u), baked per value: plum stroke 0.3*fs, plum drop copy offset 0.09*fs down, then white fill or a #fff27a→#ffc93a→#ff8a2a gradient for crits; pop 0.3→1.35→1.0 scale, random tilt ±0.15 rad." }
+    {
+      "name": "Projectile",
+      "how": "A cream seed (#fff1c8, shade #e6c68a, outline 0.85 u) spinning by squashing its height 0.55–1.0, trailed by a white speed streak: three round-cap lines (1.0 u and 0.75 u) with a linear gradient from 0.95 alpha to 0 over 14 units."
+    },
+    {
+      "name": "Impact star",
+      "how": "An 8-point white star (outer 5.6, inner 2.6, rounded corners 0.4, shade #fff3b5) popping 0.5→1.2→0.3 scale over 0.14 s, plus a 4-point yellow-white spark flying off with gravity."
+    },
+    {
+      "name": "White flash",
+      "how": "Blit the baked white-flash copy over the normal sprite at alpha min(0.85, flash*1.3) and squash the sprite (x*1+0.22f, y*1-0.18f)."
+    },
+    {
+      "name": "Pop-out burst",
+      "how": "The figure inflates in white to 1.28x over 0.22 s, wobbles and shrinks to nothing by 0.5 s; 6–9 outlined cloud puffs burst radially (outBack grow, quadratic shrink, rising 7 u), 2–6 yellow 5-point stars arc out with gravity and 4–10 outlined colour chunks in the figure's colours bounce away."
+    },
+    {
+      "name": "Shockwave ring",
+      "how": "A flat ellipse (ry = 0.45 rx) growing to 30 u with outQuad, stroked twice: plum at width w+1.4 under white/yellow at width w, w shrinking from 2.4 to 0."
+    },
+    {
+      "name": "Dash smear",
+      "how": "Three white-flash after-images at alpha 0.42/i spaced 7 u behind the main character, stretched x*1.2 y*0.88, plus 4 cream dust puffs."
+    },
+    {
+      "name": "Celebration burst",
+      "how": "Yellow ring, 10 stars in a circle and 18 confetti rectangles (6 colours, outlined 0.45 u) that flip by scaling their y by cos(t*9)."
+    },
+    {
+      "name": "Floating numbers",
+      "how": "Lilita One 9 u (highlighted 12.5 u), baked per value: plum stroke 0.3*fs, plum drop copy offset 0.09*fs down, then white fill or a #fff27a→#ffc93a→#ff8a2a gradient for highlighted values; pop 0.3→1.35→1.0 scale, random tilt ±0.15 rad."
+    }
   ],
+  "atmosphere": {
+    "summary": "No lighting system and no post-processing on the scene itself: light is implied from the top-left by the cel crescent (always lower-right) and the white gloss (always upper-left). Depth comes from flat translucent plum ground shadows batched into one fill; the only glow is an additive radial sprite behind lantern-like light sources.",
+    "rules": [
+      "Ground shadows are flat ellipses (main character 9.2 x 3.3 u at scale 1.1, small creature 7.7 x 2.8, ghost 5.8 x 2.1, large creature 18.5 x 5.8, tree 16 x 5.2, bush 12 x 3.8) collected into one path per frame and filled once with rgba(50,30,72,0.2), so overlaps never stack darker.",
+      "The main character's shadow shrinks while it hops; floating things (ghost, gems, lanterns, butterflies) get small detached shadows below them.",
+      "Glow only for light sources: an additive ('lighter') radial sprite rgba(255,226,120,.75) → 0 pulsing at alpha 0.5±0.12 behind the orbiting lantern; carved faces glow by colour alone (#ffd43f with a #fff3b0 core).",
+      "Never grey or black shadows, never blurred drop shadows in the world; highlights are pure white at 0.92 alpha.",
+      "Ambient life: butterflies (4 pastel wing pairs, 0.55 u outline) drift at z 16 over the meadow with their own small shadows.",
+      "Menu overlay: dim the scene with backdrop-filter saturate(.2) brightness(.78), a purple veil rgba(72,36,104,.6) and cream sunburst rays (repeating-conic-gradient, 9° stripes).",
+      "End-screen overlay: grayscale(1) brightness(.62) blur(2px) under a purple radial vignette (rgba(40,18,58,.55) at the edges)."
+    ]
+  },
   "ui": {
-    "summary": "Chunky toy-like HUD: cream (#fff4de) pill panels and dark plum (#563a5e) bar troughs with a 4 px plum border, large radius and a solid 4–5 px plum drop 'lip' (box-shadow 0 5px 0) instead of blurred shadows. Bars have a 3-stop vertical gradient fill with a white 55–62% gloss strip inside. Numbers are Lilita One with a 16-direction plum text-shadow outline; labels are Fredoka 600 in muted mauve #8a6280. Level-up cards have a coloured header band (orange, mint, violet) and pop in with overshoot easing.",
-    "css": ".hud-panel { background: #fff4de; border: 4px solid #3a2240; border-radius: 20px; box-shadow: 0 5px 0 #3a2240; padding: 2px 24px 7px; color: #3a2240; font-family: 'Fredoka', 'Baloo 2', system-ui, sans-serif; }\n.hud-number { font-family: 'Lilita One', 'Fredoka', sans-serif; font-size: 36px; letter-spacing: 1.5px; color: #ff8a2a; text-shadow: 2.5px 0 0 #3a2240, -2.5px 0 0 #3a2240, 0 2.5px 0 #3a2240, 0 -2.5px 0 #3a2240, 1.8px 1.8px 0 #3a2240, -1.8px 1.8px 0 #3a2240, 1.8px -1.8px 0 #3a2240, -1.8px -1.8px 0 #3a2240, 0 5px 0 #3a2240; }\n.hud-label { font: 600 12px 'Fredoka', sans-serif; letter-spacing: 1.6px; color: #8a6280; }\n.bar { position: relative; height: 32px; background: #563a5e; border: 4px solid #3a2240; border-radius: 17px; box-shadow: 0 4px 0 #3a2240, inset 0 4px 0 rgba(0,0,0,.25); overflow: hidden; }\n.bar-fill { position: relative; height: 100%; background: linear-gradient(180deg, #ff9a9a 0%, #ff5466 48%, #df3550 100%); border-radius: 0 13px 13px 0; box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); }\n.bar-fill::after { content: ''; position: absolute; left: 9px; right: 12px; top: 4px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.55); }\n.bar.xp .bar-fill { background: linear-gradient(180deg, #9af7d8 0%, #45d6ad 50%, #2cb892 100%); }\n.card { background: linear-gradient(180deg, #ffd27f 0, #ffb24c 92px, #fff6e4 92px); border: 5px solid #3a2240; border-radius: 28px; box-shadow: 0 9px 0 #3a2240, 0 18px 30px rgba(20,8,30,.35); transition: transform .14s cubic-bezier(.3,1.6,.5,1); }\n.card:hover { transform: translateY(-10px) rotate(-1.5deg) scale(1.03); }"
+    "summary": "Chunky toy-like HUD: cream (#fff4de) pill panels and dark plum (#563a5e) bar troughs with a 4 px plum border, large radius and a solid 4–5 px plum drop 'lip' (box-shadow 0 5px 0) instead of blurred shadows. Bars have a 3-stop vertical gradient fill with a white 55–62% gloss strip inside. Counters are Lilita One with a 16-direction plum text-shadow outline; labels are Fredoka 600 in muted mauve #8a6280. Choice cards have a coloured header band (orange, mint, violet) and pop in with overshoot easing. Icons use the same part painter on a 48 px grid with a 2.6 px outline.",
+    "css": ".hud-panel { background: #fff4de; border: 4px solid #3a2240; border-radius: 20px; box-shadow: 0 5px 0 #3a2240; padding: 2px 24px 7px; color: #3a2240; font-family: 'Fredoka', 'Baloo 2', system-ui, sans-serif; }\n.hud-number { font-family: 'Lilita One', 'Fredoka', sans-serif; font-size: 36px; letter-spacing: 1.5px; color: #ff8a2a; text-shadow: 2.5px 0 0 #3a2240, -2.5px 0 0 #3a2240, 0 2.5px 0 #3a2240, 0 -2.5px 0 #3a2240, 1.8px 1.8px 0 #3a2240, -1.8px 1.8px 0 #3a2240, 1.8px -1.8px 0 #3a2240, -1.8px -1.8px 0 #3a2240, 0 5px 0 #3a2240; }\n.hud-label { font: 600 12px 'Fredoka', sans-serif; letter-spacing: 1.6px; color: #8a6280; }\n.bar { position: relative; height: 32px; background: #563a5e; border: 4px solid #3a2240; border-radius: 17px; box-shadow: 0 4px 0 #3a2240, inset 0 4px 0 rgba(0,0,0,.25); overflow: hidden; }\n.bar-fill { position: relative; height: 100%; background: linear-gradient(180deg, #ff9a9a 0%, #ff5466 48%, #df3550 100%); border-radius: 0 13px 13px 0; box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); }\n.bar-fill::after { content: ''; position: absolute; left: 9px; right: 12px; top: 4px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.55); }\n.bar.alt .bar-fill { background: linear-gradient(180deg, #9af7d8 0%, #45d6ad 50%, #2cb892 100%); }\n.card { background: linear-gradient(180deg, #ffd27f 0, #ffb24c 92px, #fff6e4 92px); border: 5px solid #3a2240; border-radius: 28px; box-shadow: 0 9px 0 #3a2240, 0 18px 30px rgba(20,8,30,.35); transition: transform .14s cubic-bezier(.3,1.6,.5,1); }\n.card:hover { transform: translateY(-10px) rotate(-1.5deg) scale(1.03); }"
   },
   "motion": [
-    "Hero hops instead of walking: hop phase = anim*0.42, lift = sin(f*PI)*3.4 u; contact squash sx 1.12 / sy 0.87, airborne stretch sy 1.07; tilt 0.07 rad toward movement; frame 2 in the air, frames 1/3 alternate on contact; a dust puff on every landing.",
+    "Main character hops instead of walking: hop phase = anim*0.42, lift = sin(f*PI)*3.4 u; contact squash sx 1.12 / sy 0.87, airborne stretch sy 1.07; tilt 0.07 rad toward movement; frame 2 in the air, frames 1/3 alternate on contact; a dust puff on every landing.",
     "Idle breathing: sy = 1 + 0.03*sin(t*3.2), sx = 1 - 0.022*sin(t*3.2).",
-    "Small enemies waddle: 4 frames at anim*0.85, rock ±0.1 rad, bob 1.3 u, squash 5–6% at contact.",
+    "Small creatures waddle: 4 frames at anim*0.85, rock ±0.1 rad, bob 1.3 u, squash 5–6% at contact, per-instance random scale 0.94–1.06.",
     "Ghosts float 4.5 u up with a ±1.6 u bob (t*2.6), cycle 4 hem frames at 7 fps, wobble 4%, lean into velocity up to 0.16 rad.",
-    "Brutes stomp: anim*0.32, lift 2 u, contact squash 8% with a cubic contact curve, rock 0.035 rad.",
-    "Spawns: enemies pop out of a dirt hole with outElastic vertical stretch; ghosts fade in with outBack scale.",
-    "Pickups bob 1.1 u at t*5 with 4–5% squash; props sway by skewing around their base (trees 0.025, bushes 0.035 at t*1.3).",
+    "Large creatures stomp: anim*0.32, lift 2 u, contact squash 8% with a cubic contact curve, rock 0.035 rad.",
+    "Appearing: ground creatures pop out of a dirt hole with outElastic vertical stretch; ghosts fade in with outBack scale.",
+    "Collectibles bob 1.1 u at t*5 with 4–5% squash; props sway by skewing around their base (trees 0.025, bushes 0.035 at t*1.3).",
     "Every pop uses overshoot easing (outBack / outElastic / cubic-bezier(.3,1.7,.5,1))."
   ],
   "do": [
@@ -122,18 +287,18 @@
     "Keep shapes fat and rounded: ellipses, capsules, blobs, rounded polygons with corner radius ≥ 0.4 u.",
     "Bake sprites once at K px per unit and only transform them at draw time (squash, stretch, tilt, flip).",
     "Animate everything with squash & stretch and overshoot easing – nothing should move rigidly.",
-    "Keep the ground flat and pastel with crisp region edges, so outlined actors pop.",
+    "Keep the ground flat and pastel with crisp region edges, so outlined characters pop.",
     "Batch all ground shadows into one path and one translucent plum fill so overlapping shadows do not darken.",
-    "Pre-bake white flash copies for hit feedback."
+    "Pre-bake white flash copies for flash feedback."
   ],
   "dont": [
     "Don't use black or per-object outline colours, and don't vary outline thickness randomly.",
     "Don't add gradients, textures or noise to character bodies – only the flat fill + one crescent + gloss.",
     "Don't draw thin, spiky or realistic anatomy; no hard 90° corners.",
-    "Don't outline the ground regions or decals – the ground is outline-free so it stays behind the actors.",
+    "Don't outline the ground regions or decals – the ground is outline-free so it stays behind the characters.",
     "Don't use blurred drop shadows or grey shadows; use flat plum ellipses at 20% alpha and solid offset lips in the UI.",
-    "Don't re-path every part every frame for hundreds of enemies – that kills performance; blit baked sprites.",
-    "Don't let the ground become as saturated as the actors (no pure greens or bright purples underfoot)."
+    "Don't re-path every part every frame for hundreds of figures – that ruins performance; blit baked sprites.",
+    "Don't let the ground become as saturated as the characters (no pure greens or bright purples underfoot)."
   ],
-  "performance": "All characters, props, pickups and particles are baked once in init() (4 frames x normal + flash + mirrored copies; ~60 canvases total) – per frame it is only drawImage with transforms, so 300+ enemies run well. Ground chunks (256 u) are computed as generators: noise fields on a coarse 4-unit grid, per-pixel signed-distance work only in cells that touch a region edge (others are flat-filled); decals are baked into the chunk. Damage-number sprites are cached per value (cleared at 500). Shadows are one batched path per frame. Main cost: chunk generation when moving fast; cap groundResMax at 3."
+  "performance": "All characters, props, collectibles and particles are baked once in init() (4 frames x normal + flash + mirrored copies; ~60 canvases total) – per frame it is only drawImage with transforms, so 300+ figures run well. Ground chunks (256 u) are computed as generators: noise fields on a coarse 4-unit grid, per-pixel signed-distance work only in cells that touch a region edge (others are flat-filled); decals are baked into the chunk. Floating-number sprites are cached per value (cleared at 500). Shadows are one batched path per frame. Main cost: chunk generation when moving fast; cap groundResMax at 3."
 }

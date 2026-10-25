@@ -129,7 +129,7 @@
     ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
   }
 
-  /* ---------- hero: pumpkin-head with cape + scarf. Frames: idle, step A, pass, step B ---------- */
+  /* ---------- main character: round pumpkin head with cape + scarf. Frames: idle, step A, pass, step B ---------- */
   const JACK_FR = [[-2.2, 0, 2.3, 0, 0.2, -0.2, 0], [-3.4, -0.3, 3.7, -0.9, 0.85, -0.75, 1], [-0.5, -1.9, 1.1, 0, 0.12, 0.05, 0.45], [3.3, -0.6, -2.9, -0.2, -0.75, 0.85, 1]];
   function heroParts(P, f) {
     const F = JACK_FR[f], fl = F[6];
@@ -158,7 +158,7 @@
     });
   }
 
-  /* ---------- small melee enemy: two-tone turnip with leaf crown, angry face ---------- */
+  /* ---------- small creature: two-tone root body with leaf crown, angry face ---------- */
   const CR_FR = [[-2.6, 0, 2.6, 0], [-3.4, -1.5, 2.2, 0], [-2.6, 0, 2.6, 0], [-2.2, 0, 3.4, -1.5]];
   function enemyParts(P, f, v) {
     const col = CRV[v], F = CR_FR[f];
@@ -204,7 +204,7 @@
     { p: [249, 233, 170], sc: null, hatch: true },
   ];
   const GSTEP = 4, NF = 6;
-  /** region fields (>0 = inside), tone, line-weight noise, paper yellowing. Scales shrunk ~3x vs. the game so a preview shows several regions. */
+  /** region fields (>0 = inside), tone, line-weight noise, paper yellowing. Scales shrunk ~3x vs. the reference module so a preview shows several regions. */
   function fieldsAt(x, y, o) {
     const wx = perlin(x / 300, y / 300, 711) * 40, wy = perlin(x / 300 + 9.2, y / 300, 712) * 40, X = x + wx, Y = y + wy;
     o[0] = fbm(X / 330 + 3.1, Y / 330, 121, 3) - 0.56;
@@ -299,7 +299,7 @@
     ctx.fillStyle = INK; ctx.fillText(word, 0.9, 1.6); ctx.lineWidth = fs * 0.2; ctx.strokeText(word, 0, 0.7);
     ctx.fillStyle = col[1]; ctx.fillText(word, 0, 0.7); ctx.restore();
   }
-  function damageNumber(ctx, txt, x, y, sc) { // crit: white star balloon, magenta/cyan plate, yellow digits with red dots
+  function damageNumber(ctx, txt, x, y, sc) { // emphasised number: white star balloon, cyan plate, yellow digits
     const fs = 13; ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc); ctx.font = fs + 'px "Bangers", Impact, sans-serif';
     const rx = ctx.measureText(txt).width / 2 + fs * 0.9 - 1, ry = fs * 1.05 - 1;
     ctx.beginPath(); starPts(11, 1, 0.74, 0, 0, 0.2, 0.25, +txt).forEach((q, i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, q[0] * rx, q[1] * ry)); ctx.closePath();
@@ -309,14 +309,14 @@
     ctx.lineWidth = fs * 0.22; ctx.strokeText(txt, 0, 0.8); ctx.fillStyle = C.yellow; ctx.fillText(txt, 0, 0.8); ctx.restore();
   }
 
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) bake(4);
     const ph = t * 1.6, step = Math.floor(ph * 4), frame = [1, 2, 3, 2][step & 3], f = ph * 2 - Math.floor(ph * 2);
     const lift = Math.sin(f * PI) * 1.8 * 1.12;
     blit(ctx, SPR.hero[frame], x, y - lift, 1.12 * facing, 1.12, 0.05 * facing * Math.sin(f * PI));
   }
-  /** Draws a typical enemy with feet at (x, y). variant 0|1, flash 0..1 = hit frame strength. */
+  /** Draws a typical creature with feet at (x, y). variant 0|1, flash 0..1 = impact flash strength. */
   function drawEnemy(ctx, x, y, t, variant, facing, flash) {
     if (!SPR) bake(4);
     const ph = t * 1.5, f = Math.floor(ph * 4) & 3, sn = Math.sin(ph * TAU), up = Math.abs(sn);
@@ -350,7 +350,7 @@
     for (const q of [[0, 1.0, 15], [-2.0, 0.55, 10], [2.0, 0.55, 11]]) { ctx.moveTo(-3.5, q[0] - q[1] / 2); ctx.lineTo(-3.5 - q[2], q[0]); ctx.lineTo(-3.5, q[0] + q[1] / 2); ctx.closePath(); }
     ctx.globalAlpha = 0.85; ctx.fill(); ctx.restore(); ctx.globalAlpha = 1;
     blit(ctx, SPR.seed, px, py, 1, 0.6 + 0.4 * Math.abs(Math.cos(t * 12)), ang);
-    // kill burst + onomatopoeia + damage number
+    // big burst + sound-word balloon + pop-up number
     const bt = 0.3 + ((t * 1.2) % 1) * 0.4, bsc = (1 + (bt - 0.16) * 0.35) * 1.2;
     blit(ctx, SPR.boom, cx - 70, cy - 70, bsc, bsc, bt * 0.5);
     wordBurst(ctx, 'POW!', cx - 66, cy - 98, 1.3, -0.12, [C.yellow, C.red, C.orangeDot]);

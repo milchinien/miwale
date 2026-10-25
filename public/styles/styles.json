@@ -1,12 +1,39 @@
 {
   "name": "miwale Game Style Library",
-  "description": "Complete, playable art styles for games, documented so AIs can copy and adapt them.",
+  "description": "Complete art styles for games, split into separable design elements and documented so AIs can copy, adapt and mix them.",
   "url": "https://miwale.com/styles/",
   "llms": "https://miwale.com/styles/llms.txt",
-  "license": "Free to copy and adapt for your own games. Credit appreciated: miwale.com/styles",
+  "mixer": "https://miwale.com/styles/mix/",
+  "license": "Free to copy and adapt for your own projects. Credit appreciated: miwale.com/styles",
+  "elements": [
+    {
+      "key": "world",
+      "name": "World"
+    },
+    {
+      "key": "characters",
+      "name": "Characters"
+    },
+    {
+      "key": "props",
+      "name": "Props"
+    },
+    {
+      "key": "effects",
+      "name": "Effects"
+    },
+    {
+      "key": "atmosphere",
+      "name": "Atmosphere"
+    },
+    {
+      "key": "ui",
+      "name": "UI & type"
+    }
+  ],
   "howToUse": [
-    "Pick a style whose mood and genre fit your game.",
-    "Give your AI the STYLE.md of that style (or the \"Copy prompt\" text from the page) together with your game idea.",
+    "Pick a style whose mood fits your project – or mix elements of several styles in the mixer.",
+    "Give your AI the STYLE.md of that style (or the \"Copy prompt\" text from the page) together with a description of your project.",
     "Let it start from starter.js, which already contains the palette and the core drawing techniques."
   ],
   "styles": [
@@ -33,11 +60,11 @@
         "gently spooky"
       ],
       "bestFor": [
-        "top-down action / survivor games",
+        "top-down action games with many on-screen sprites",
         "farming and life sims",
         "cozy RPGs",
-        "Halloween / harvest themed games",
-        "roguelites with readable hordes"
+        "Halloween / harvest themed projects",
+        "seasonal pixel-art scenes"
       ],
       "difficulty": 5,
       "pixelArt": true,
@@ -67,37 +94,44 @@
         "Pixelify Sans",
         "Silkscreen"
       ],
+      "page": "https://miwale.com/styles/harvest16/",
       "files": {
         "spec": "https://miwale.com/styles/library/harvest16/STYLE.md",
         "tokens": "https://miwale.com/styles/library/harvest16/spec.json",
         "starter": "https://miwale.com/styles/library/harvest16/starter.js",
         "module": "https://miwale.com/styles/js/styles/harvest16.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=harvest16&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=harvest16&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=harvest16&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=harvest16&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=harvest16&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=harvest16&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=harvest16&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/harvest16.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/harvest16_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/harvest16_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/harvest16_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/harvest16_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=harvest16",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=harvest16&mode=sheet",
-      "page": "https://miwale.com/styles/#harvest16"
+      ]
     },
     {
       "id": "kuerbisboy",
@@ -123,10 +157,10 @@
         "toy-like"
       ],
       "bestFor": [
-        "survivor-likes and arena shooters",
-        "top-down adventure / zelda-likes",
+        "crowded top-down arena games",
+        "top-down adventures and zelda-likes",
         "farming or harvest games with a spooky twist",
-        "game jams with a strict palette",
+        "quick prototypes with a strict palette",
         "monster-collecting RPGs"
       ],
       "difficulty": 4,
@@ -143,37 +177,44 @@
         "Press Start 2P",
         "3x5 bitmap digits (built in)"
       ],
+      "page": "https://miwale.com/styles/kuerbisboy/",
       "files": {
         "spec": "https://miwale.com/styles/library/kuerbisboy/STYLE.md",
         "tokens": "https://miwale.com/styles/library/kuerbisboy/spec.json",
         "starter": "https://miwale.com/styles/library/kuerbisboy/starter.js",
         "module": "https://miwale.com/styles/js/styles/kuerbisboy.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=kuerbisboy&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/kuerbisboy.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/kuerbisboy_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/kuerbisboy_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/kuerbisboy_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/kuerbisboy_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=kuerbisboy",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=kuerbisboy&mode=sheet",
-      "page": "https://miwale.com/styles/#kuerbisboy"
+      ]
     },
     {
       "id": "gothic",
@@ -199,11 +240,11 @@
         "nocturnal"
       ],
       "bestFor": [
-        "top-down action / survivor games",
-        "horror roguelites",
+        "top-down action games",
+        "horror games",
         "dungeon crawlers",
-        "Halloween-themed games",
-        "stealth or light-radius games"
+        "Halloween-themed projects",
+        "stealth or light-radius scenes"
       ],
       "difficulty": 6,
       "pixelArt": true,
@@ -237,37 +278,44 @@
         "Pirata One",
         "IM Fell English"
       ],
+      "page": "https://miwale.com/styles/gothic/",
       "files": {
         "spec": "https://miwale.com/styles/library/gothic/STYLE.md",
         "tokens": "https://miwale.com/styles/library/gothic/spec.json",
         "starter": "https://miwale.com/styles/library/gothic/starter.js",
         "module": "https://miwale.com/styles/js/styles/gothic.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=gothic&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=gothic&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=gothic&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=gothic&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=gothic&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=gothic&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=gothic&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/gothic.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/gothic_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/gothic_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/gothic_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/gothic_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=gothic",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=gothic&mode=sheet",
-      "page": "https://miwale.com/styles/#gothic"
+      ]
     },
     {
       "id": "dusk",
@@ -292,11 +340,11 @@
         "mysterious"
       ],
       "bestFor": [
-        "top-down action roguelites",
-        "survivor-likes",
+        "top-down action games",
         "cozy adventure RPGs",
         "fairy-tale exploration games",
-        "farming/forest games with a night cycle"
+        "farming/forest games with a day-night cycle",
+        "Halloween and harvest-festival projects"
       ],
       "difficulty": 7,
       "pixelArt": true,
@@ -326,41 +374,48 @@
         "Cinzel",
         "Pixelify Sans"
       ],
+      "page": "https://miwale.com/styles/dusk/",
       "files": {
         "spec": "https://miwale.com/styles/library/dusk/STYLE.md",
         "tokens": "https://miwale.com/styles/library/dusk/spec.json",
         "starter": "https://miwale.com/styles/library/dusk/starter.js",
         "module": "https://miwale.com/styles/js/styles/dusk.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=dusk&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=dusk&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=dusk&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=dusk&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=dusk&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=dusk&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=dusk&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/dusk.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/dusk_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/dusk_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/dusk_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/dusk_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=dusk",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=dusk&mode=sheet",
-      "page": "https://miwale.com/styles/#dusk"
+      ]
     },
     {
       "id": "cartoon",
-      "name": "Brotato Cartoon",
+      "name": "Bouncy Cartoon",
       "family": "Vector · Cartoon",
       "group": "Illustrated",
       "tags": [
@@ -381,11 +436,11 @@
         "friendly"
       ],
       "bestFor": [
-        "horde survival / bullet-heaven games",
         "top-down arena shooters",
+        "crowded top-down action with hundreds of on-screen characters",
         "casual mobile action",
         "party and co-op games",
-        "kid-friendly adventure"
+        "kid-friendly adventures"
       ],
       "difficulty": 3,
       "pixelArt": false,
@@ -415,37 +470,44 @@
         "Lilita One",
         "Fredoka"
       ],
+      "page": "https://miwale.com/styles/cartoon/",
       "files": {
         "spec": "https://miwale.com/styles/library/cartoon/STYLE.md",
         "tokens": "https://miwale.com/styles/library/cartoon/spec.json",
         "starter": "https://miwale.com/styles/library/cartoon/starter.js",
         "module": "https://miwale.com/styles/js/styles/cartoon.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=cartoon&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=cartoon&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=cartoon&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=cartoon&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=cartoon&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=cartoon&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=cartoon&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/cartoon.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/cartoon_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/cartoon_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/cartoon_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/cartoon_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=cartoon",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=cartoon&mode=sheet",
-      "page": "https://miwale.com/styles/#cartoon"
+      ]
     },
     {
       "id": "paper",
@@ -471,7 +533,7 @@
         "storybook"
       ],
       "bestFor": [
-        "top-down action / survivor games",
+        "top-down action games",
         "cozy adventure and farming games",
         "puzzle and board-game adaptations",
         "kids' and family games",
@@ -506,37 +568,44 @@
         "Gochi Hand",
         "Caveat Brush"
       ],
+      "page": "https://miwale.com/styles/paper/",
       "files": {
         "spec": "https://miwale.com/styles/library/paper/STYLE.md",
         "tokens": "https://miwale.com/styles/library/paper/spec.json",
         "starter": "https://miwale.com/styles/library/paper/starter.js",
         "module": "https://miwale.com/styles/js/styles/paper.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=paper&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=paper&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=paper&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=paper&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=paper&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=paper&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=paper&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/paper.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/paper_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/paper_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/paper_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/paper_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=paper",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=paper&mode=sheet",
-      "page": "https://miwale.com/styles/#paper"
+      ]
     },
     {
       "id": "watercolor",
@@ -561,7 +630,7 @@
         "gentle"
       ],
       "bestFor": [
-        "top-down survivor / action games with a fairy-tale theme",
+        "fairy-tale top-down action games",
         "cozy adventure and farming games",
         "story-driven RPGs and visual-novel maps",
         "board-game or storybook map screens"
@@ -596,37 +665,44 @@
         "Cormorant Garamond",
         "Caveat"
       ],
+      "page": "https://miwale.com/styles/watercolor/",
       "files": {
         "spec": "https://miwale.com/styles/library/watercolor/STYLE.md",
         "tokens": "https://miwale.com/styles/library/watercolor/spec.json",
         "starter": "https://miwale.com/styles/library/watercolor/starter.js",
         "module": "https://miwale.com/styles/js/styles/watercolor.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=watercolor&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=watercolor&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=watercolor&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=watercolor&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=watercolor&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=watercolor&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=watercolor&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/watercolor.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/watercolor_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/watercolor_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/watercolor_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/watercolor_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=watercolor",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=watercolor&mode=sheet",
-      "page": "https://miwale.com/styles/#watercolor"
+      ]
     },
     {
       "id": "neon",
@@ -652,11 +728,11 @@
         "crisp"
       ],
       "bestFor": [
-        "arcade shooters and survivor-likes",
+        "arcade shooters",
         "twin-stick and bullet-hell games",
         "rhythm and music games",
         "retro-futuristic puzzle games",
-        "top-down action with many enemies"
+        "top-down arena action with crowded screens"
       ],
       "difficulty": 3,
       "pixelArt": false,
@@ -680,6 +756,7 @@
         "#ff9a2e",
         "#c3b5ff",
         "#6a5ad0",
+        "#ff4fd8",
         "#ff2a7a"
       ],
       "fonts": [
@@ -688,37 +765,44 @@
         "Audiowide",
         "Rajdhani"
       ],
+      "page": "https://miwale.com/styles/neon/",
       "files": {
         "spec": "https://miwale.com/styles/library/neon/STYLE.md",
         "tokens": "https://miwale.com/styles/library/neon/spec.json",
         "starter": "https://miwale.com/styles/library/neon/starter.js",
         "module": "https://miwale.com/styles/js/styles/neon.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=neon&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=neon&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=neon&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=neon&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=neon&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=neon&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=neon&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/neon.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/neon_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/neon_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/neon_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/neon_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=neon",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=neon&mode=sheet",
-      "page": "https://miwale.com/styles/#neon"
+      ]
     },
     {
       "id": "lowpoly",
@@ -744,7 +828,7 @@
         "playful"
       ],
       "bestFor": [
-        "top-down survivor / horde games",
+        "top-down action games with crowds of units",
         "cozy farming or village sims",
         "tactics and strategy maps",
         "casual puzzle-adventure",
@@ -778,37 +862,44 @@
         "Baloo 2",
         "Nunito"
       ],
+      "page": "https://miwale.com/styles/lowpoly/",
       "files": {
         "spec": "https://miwale.com/styles/library/lowpoly/STYLE.md",
         "tokens": "https://miwale.com/styles/library/lowpoly/spec.json",
         "starter": "https://miwale.com/styles/library/lowpoly/starter.js",
         "module": "https://miwale.com/styles/js/styles/lowpoly.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=lowpoly&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=lowpoly&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=lowpoly&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=lowpoly&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=lowpoly&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=lowpoly&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=lowpoly&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/lowpoly.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/lowpoly_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/lowpoly_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/lowpoly_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/lowpoly_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=lowpoly",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=lowpoly&mode=sheet",
-      "page": "https://miwale.com/styles/#lowpoly"
+      ]
     },
     {
       "id": "linocut",
@@ -833,7 +924,7 @@
         "handmade"
       ],
       "bestFor": [
-        "top-down action and survivor games",
+        "top-down action games",
         "folk-horror and fairy-tale games",
         "card and board games",
         "narrative / visual-novel art",
@@ -854,37 +945,44 @@
         "Alfa Slab One",
         "Special Elite"
       ],
+      "page": "https://miwale.com/styles/linocut/",
       "files": {
         "spec": "https://miwale.com/styles/library/linocut/STYLE.md",
         "tokens": "https://miwale.com/styles/library/linocut/spec.json",
         "starter": "https://miwale.com/styles/library/linocut/starter.js",
         "module": "https://miwale.com/styles/js/styles/linocut.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=linocut&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=linocut&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=linocut&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=linocut&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=linocut&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=linocut&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=linocut&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/linocut.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/linocut_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/linocut_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/linocut_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/linocut_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=linocut",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=linocut&mode=sheet",
-      "page": "https://miwale.com/styles/#linocut"
+      ]
     },
     {
       "id": "nes8bit",
@@ -910,10 +1008,10 @@
         "crisp"
       ],
       "bestFor": [
-        "top-down action / survivor games",
+        "top-down action games",
         "arcade shooters",
-        "retro platformers and Zelda-likes",
-        "game jams with strict rules",
+        "retro platformers and Zelda-like adventures",
+        "quick prototypes with strict rules",
         "chiptune rhythm or score-attack games"
       ],
       "difficulty": 3,
@@ -945,37 +1043,44 @@
       "fonts": [
         "Press Start 2P"
       ],
+      "page": "https://miwale.com/styles/nes8bit/",
       "files": {
         "spec": "https://miwale.com/styles/library/nes8bit/STYLE.md",
         "tokens": "https://miwale.com/styles/library/nes8bit/spec.json",
         "starter": "https://miwale.com/styles/library/nes8bit/starter.js",
         "module": "https://miwale.com/styles/js/styles/nes8bit.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=nes8bit&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=nes8bit&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=nes8bit&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=nes8bit&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=nes8bit&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=nes8bit&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=nes8bit&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/nes8bit.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/nes8bit_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/nes8bit_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/nes8bit_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/nes8bit_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=nes8bit",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=nes8bit&mode=sheet",
-      "page": "https://miwale.com/styles/#nes8bit"
+      ]
     },
     {
       "id": "stainedglass",
@@ -1000,7 +1105,7 @@
         "storybook"
       ],
       "bestFor": [
-        "top-down survivor / horde games",
+        "top-down action games with many figures on screen",
         "fairy-tale action RPGs",
         "puzzle and match games",
         "holiday or harvest-themed arcade games",
@@ -1027,6 +1132,7 @@
         "#ff5a26",
         "#e9e9fb",
         "#7e5a3c",
+        "#704690",
         "#e3203c",
         "#3ac6c6",
         "#d9ad4e"
@@ -1035,37 +1141,44 @@
         "Cinzel Decorative",
         "Cinzel"
       ],
+      "page": "https://miwale.com/styles/stainedglass/",
       "files": {
         "spec": "https://miwale.com/styles/library/stainedglass/STYLE.md",
         "tokens": "https://miwale.com/styles/library/stainedglass/spec.json",
         "starter": "https://miwale.com/styles/library/stainedglass/starter.js",
         "module": "https://miwale.com/styles/js/styles/stainedglass.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=stainedglass&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=stainedglass&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=stainedglass&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=stainedglass&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=stainedglass&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=stainedglass&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=stainedglass&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/stainedglass.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/stainedglass_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/stainedglass_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/stainedglass_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/stainedglass_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=stainedglass",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=stainedglass&mode=sheet",
-      "page": "https://miwale.com/styles/#stainedglass"
+      ]
     },
     {
       "id": "clay",
@@ -1090,8 +1203,8 @@
         "warm"
       ],
       "bestFor": [
-        "top-down survivor / action games",
-        "cozy adventures and farming",
+        "top-down action and arena games",
+        "cozy adventures and farming games",
         "puzzle and party games",
         "family-friendly platformers seen from above",
         "casual mobile games"
@@ -1124,37 +1237,44 @@
         "Chewy",
         "Baloo 2"
       ],
+      "page": "https://miwale.com/styles/clay/",
       "files": {
         "spec": "https://miwale.com/styles/library/clay/STYLE.md",
         "tokens": "https://miwale.com/styles/library/clay/spec.json",
         "starter": "https://miwale.com/styles/library/clay/starter.js",
         "module": "https://miwale.com/styles/js/styles/clay.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=clay&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=clay&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=clay&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=clay&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=clay&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=clay&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=clay&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/clay.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/clay_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/clay_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/clay_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/clay_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=clay",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=clay&mode=sheet",
-      "page": "https://miwale.com/styles/#clay"
+      ]
     },
     {
       "id": "chalk",
@@ -1179,7 +1299,7 @@
         "doodly"
       ],
       "bestFor": [
-        "top-down survivor / horde games",
+        "top-down action games",
         "kids and educational games",
         "cozy Halloween games",
         "puzzle and board-game adaptations",
@@ -1210,37 +1330,44 @@
         "Architects Daughter",
         "Rock Salt"
       ],
+      "page": "https://miwale.com/styles/chalk/",
       "files": {
         "spec": "https://miwale.com/styles/library/chalk/STYLE.md",
         "tokens": "https://miwale.com/styles/library/chalk/spec.json",
         "starter": "https://miwale.com/styles/library/chalk/starter.js",
         "module": "https://miwale.com/styles/js/styles/chalk.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=chalk&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=chalk&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=chalk&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=chalk&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=chalk&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=chalk&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=chalk&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/chalk.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/chalk_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/chalk_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/chalk_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/chalk_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=chalk",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=chalk&mode=sheet",
-      "page": "https://miwale.com/styles/#chalk"
+      ]
     },
     {
       "id": "candy",
@@ -1265,7 +1392,7 @@
         "cheeky"
       ],
       "bestFor": [
-        "cute horde survivors",
+        "cute top-down action games with many figures",
         "casual arcade games",
         "match/puzzle games with characters",
         "holiday events",
@@ -1299,37 +1426,44 @@
         "Chewy",
         "Sniglet"
       ],
+      "page": "https://miwale.com/styles/candy/",
       "files": {
         "spec": "https://miwale.com/styles/library/candy/STYLE.md",
         "tokens": "https://miwale.com/styles/library/candy/spec.json",
         "starter": "https://miwale.com/styles/library/candy/starter.js",
         "module": "https://miwale.com/styles/js/styles/candy.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=candy&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=candy&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=candy&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=candy&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=candy&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=candy&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=candy&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/candy.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/candy_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/candy_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/candy_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/candy_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=candy",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=candy&mode=sheet",
-      "page": "https://miwale.com/styles/#candy"
+      ]
     },
     {
       "id": "crossstitch",
@@ -1346,7 +1480,7 @@
         "procedural",
         "folk"
       ],
-      "summary": "The whole game is a living cross-stitch sampler on Aida cloth: every cell is a real thread X, contours are backstitched.",
+      "summary": "The whole world is a living cross-stitch sampler on Aida cloth: every cell is a real thread X, contours are backstitched.",
       "mood": [
         "cozy",
         "handmade",
@@ -1355,11 +1489,11 @@
         "autumnal"
       ],
       "bestFor": [
-        "top-down survivors / arena games",
+        "top-down arena or action games",
         "cozy farming or adventure games",
         "puzzle and board-like games on a grid",
-        "seasonal or holiday games",
-        "roguelites with small readable sprites"
+        "seasonal or holiday projects",
+        "games with crowds of small readable sprites"
       ],
       "difficulty": 3,
       "pixelArt": false,
@@ -1386,37 +1520,44 @@
         "Grandstander",
         "Mali"
       ],
+      "page": "https://miwale.com/styles/crossstitch/",
       "files": {
         "spec": "https://miwale.com/styles/library/crossstitch/STYLE.md",
         "tokens": "https://miwale.com/styles/library/crossstitch/spec.json",
         "starter": "https://miwale.com/styles/library/crossstitch/starter.js",
         "module": "https://miwale.com/styles/js/styles/crossstitch.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=crossstitch&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=crossstitch&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=crossstitch&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=crossstitch&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=crossstitch&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=crossstitch&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=crossstitch&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/crossstitch.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/crossstitch_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/crossstitch_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/crossstitch_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/crossstitch_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=crossstitch",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=crossstitch&mode=sheet",
-      "page": "https://miwale.com/styles/#crossstitch"
+      ]
     },
     {
       "id": "popart",
@@ -1442,11 +1583,11 @@
         "spooky-fun"
       ],
       "bestFor": [
-        "arena survivors / bullet heaven",
+        "top-down arena action with crowds of figures",
         "beat-'em-ups and brawlers",
-        "top-down action with big hordes",
         "superhero or Halloween party games",
-        "card/upgrade screens with strong UI"
+        "B-movie and pulp-comic themes",
+        "card and shop screens with strong UI"
       ],
       "difficulty": 5,
       "pixelArt": false,
@@ -1476,37 +1617,44 @@
         "Bangers",
         "Comic Neue"
       ],
+      "page": "https://miwale.com/styles/popart/",
       "files": {
         "spec": "https://miwale.com/styles/library/popart/STYLE.md",
         "tokens": "https://miwale.com/styles/library/popart/spec.json",
         "starter": "https://miwale.com/styles/library/popart/starter.js",
         "module": "https://miwale.com/styles/js/styles/popart.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=popart&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=popart&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=popart&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=popart&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=popart&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=popart&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=popart&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/popart.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/popart_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/popart_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/popart_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/popart_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=popart",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=popart&mode=sheet",
-      "page": "https://miwale.com/styles/#popart"
+      ]
     },
     {
       "id": "vangogh",
@@ -1531,8 +1679,8 @@
         "artful"
       ],
       "bestFor": [
-        "top-down action / survivor games",
-        "atmospheric adventure games",
+        "atmospheric night adventure games",
+        "top-down action games with a free camera",
         "art-themed or museum games",
         "cozy night exploration",
         "short arthouse games"
@@ -1566,37 +1714,44 @@
         "Caveat Brush",
         "Alegreya"
       ],
+      "page": "https://miwale.com/styles/vangogh/",
       "files": {
         "spec": "https://miwale.com/styles/library/vangogh/STYLE.md",
         "tokens": "https://miwale.com/styles/library/vangogh/spec.json",
         "starter": "https://miwale.com/styles/library/vangogh/starter.js",
         "module": "https://miwale.com/styles/js/styles/vangogh.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=vangogh&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=vangogh&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=vangogh&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=vangogh&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=vangogh&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=vangogh&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=vangogh&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/vangogh.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/vangogh_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/vangogh_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/vangogh_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/vangogh_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=vangogh",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=vangogh&mode=sheet",
-      "page": "https://miwale.com/styles/#vangogh"
+      ]
     },
     {
       "id": "shadow",
@@ -1622,8 +1777,8 @@
         "cosy-spooky"
       ],
       "bestFor": [
-        "survivor-likes and hordes with many enemies",
-        "halloween or folklore action games",
+        "top-down action games with crowded scenes",
+        "halloween or folklore projects",
         "puzzle-platformers with silhouette art",
         "storybook adventures",
         "rhythm games with a stage theme"
@@ -1659,37 +1814,44 @@
         "IM Fell English SC",
         "Cormorant Garamond"
       ],
+      "page": "https://miwale.com/styles/shadow/",
       "files": {
         "spec": "https://miwale.com/styles/library/shadow/STYLE.md",
         "tokens": "https://miwale.com/styles/library/shadow/spec.json",
         "starter": "https://miwale.com/styles/library/shadow/starter.js",
         "module": "https://miwale.com/styles/js/styles/shadow.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=shadow&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=shadow&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=shadow&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=shadow&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=shadow&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=shadow&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=shadow&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/shadow.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/shadow_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/shadow_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/shadow_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/shadow_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=shadow",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=shadow&mode=sheet",
-      "page": "https://miwale.com/styles/#shadow"
+      ]
     },
     {
       "id": "voxel",
@@ -1705,7 +1867,7 @@
         "toy",
         "bright"
       ],
-      "summary": "A bright MagicaVoxel-style miniature world: every actor is a real 3D cube grid, baked to sprites under one warm afternoon sun.",
+      "summary": "A bright MagicaVoxel-style miniature world: every object is a real 3D cube grid, baked to sprites under one warm afternoon sun.",
       "mood": [
         "cheerful",
         "toy-like",
@@ -1714,11 +1876,11 @@
         "sunny"
       ],
       "bestFor": [
-        "top-down survivor / arena games",
+        "top-down arena and action games",
         "farming and village sims",
-        "tactics and roguelikes",
+        "tactics games",
         "builder and puzzle games",
-        "casual mobile action"
+        "casual mobile games"
       ],
       "difficulty": 3,
       "pixelArt": false,
@@ -1748,37 +1910,44 @@
         "Bungee",
         "Chakra Petch"
       ],
+      "page": "https://miwale.com/styles/voxel/",
       "files": {
         "spec": "https://miwale.com/styles/library/voxel/STYLE.md",
         "tokens": "https://miwale.com/styles/library/voxel/spec.json",
         "starter": "https://miwale.com/styles/library/voxel/starter.js",
         "module": "https://miwale.com/styles/js/styles/voxel.js"
       },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=voxel&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=voxel&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=voxel&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=voxel&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=voxel&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=voxel&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=voxel&view=ui"
+      },
       "screenshots": [
         {
-          "label": "Gameplay",
+          "label": "Scene",
           "url": "https://miwale.com/styles/shots/voxel.webp"
         },
         {
-          "label": "Late game",
+          "label": "Dense scene",
           "url": "https://miwale.com/styles/shots/voxel_late.webp"
         },
         {
-          "label": "World map",
+          "label": "Wide view",
           "url": "https://miwale.com/styles/shots/voxel_map.webp"
         },
         {
-          "label": "Level-up screen",
+          "label": "UI overlay",
           "url": "https://miwale.com/styles/shots/voxel_lu.webp"
         },
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/voxel_zoom.webp"
         }
-      ],
-      "demo": "https://miwale.com/styles/sandbox.html?style=voxel",
-      "assetSheet": "https://miwale.com/styles/sandbox.html?style=voxel&mode=sheet",
-      "page": "https://miwale.com/styles/#voxel"
+      ]
     }
   ]
 }

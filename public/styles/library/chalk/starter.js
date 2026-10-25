@@ -18,7 +18,7 @@
   const rgba = (c, a) => 'rgba(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ',' + a + ')';
   const cBoard = rgba(BOARD, 1);
 
-  /* ---------- deterministic randomness + noise (stand-ins for the game's U.* helpers) ---------- */
+  /* ---------- deterministic randomness + noise helpers ---------- */
   function rng(seed) { // mulberry32
     let a = seed >>> 0;
     const next = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
@@ -157,6 +157,7 @@
   function blit(ctx, s, x, y, sc) { const k = (sc || 1) / K; ctx.drawImage(s.c, x - s.ax * k, y - s.ay * k, s.c.width * k, s.c.height * k); }
 
   /* ---------- characters (world units, feet at 0,0, facing right) ---------- */
+  // main character: stick legs, hatched white cloak, mint scarf, big round orange head with a yellow carved face
   function drawJack(ctx, ph, r) {
     const sw = Math.sin(ph * TAU), by = -Math.abs(Math.cos(ph * TAU));
     for (const s of [-1, 1]) {
@@ -197,7 +198,7 @@
     g.addColorStop(0, rgba(CO, 0.32)); g.addColorStop(0.55, rgba(CO, 0.12)); g.addColorStop(1, rgba(CO, 0));
     ctx.fillStyle = g; ctx.fillRect(-15, -37, 30, 30); ctx.globalCompositeOperation = 'source-over';
   }
-  function drawCreeper(ctx, fr, r) { // small melee enemy: turnip bulb, lavender cap hatching, mint leaves, yellow angry eyes
+  function drawCreeper(ctx, fr, r) { // small creature: cream root bulb, lavender cap hatching, mint leaves, yellow angry eyes
     const ph = fr / 4, sw = Math.sin(ph * TAU), bob = -Math.abs(Math.cos(ph * TAU)) * 0.9;
     for (const s of [-1, 1]) {
       const lift = Math.max(0, -sw * s) * 1.4, fx = s * 2.8 + sw * s * 1.6;
@@ -221,7 +222,7 @@
     stroke(ctx, [[-0.6, 3.2], [0.4, 2.5], [1.4, 3.2], [2.4, 2.5], [3.2, 3.2]], { rng: r, w: 0.5, a: 0.95, dbl: false, step: 0.5 });
     ctx.restore();
   }
-  function drawGhost(ctx, fr, r) { // floating enemy: soft white rub, broken outline, blue frosty hem, board-coloured holes for eyes
+  function drawGhost(ctx, fr, r) { // floating creature: soft white rub, broken outline, blue frosty hem, board-coloured holes for eyes
     const w = Math.sin((fr / 4) * TAU);
     const body = spl([[-6.2, -14], [-5.4, -18.8], [-1.5, -21.4], [2.6, -21.2], [6, -18.2], [6.6, -13.5], [5.6, -8.5], [4.4, -4.2 + w * 0.6], [2.2, -1.4], [0.6, -3.6 - w * 0.4], [-1.6, -0.6 + w * 0.7], [-3.6, -3.2], [-6.8, -1.2 - w * 0.6], [-7.4, -5], [-6.8, -9.5]], 3, true);
     ctx.save(); ctx.beginPath(); poly(ctx, body); ctx.clip();
@@ -279,14 +280,14 @@
   const boil = (t, seed) => Math.floor(t * 7 + seed * 3) % 3; // redraw jitter at 7 fps
   function shadow(ctx, x, y, rx, ry) { ctx.save(); ctx.translate(x, y); ctx.scale(1, ry / rx); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, 'rgba(10,18,14,0.55)'); g.addColorStop(0.7, 'rgba(10,18,14,0.3)'); g.addColorStop(1, 'rgba(10,18,14,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore(); }
 
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) buildSprites();
     shadow(ctx, x, y + 0.5, 7, 2.2);
     const s = SPR.jack[Math.floor(t * 6) & 3][boil(t, 0.3)];
     ctx.save(); ctx.translate(x, y); ctx.scale(facing < 0 ? -1 : 1, 1); blit(ctx, s, 0, 0); ctx.restore();
   }
-  /** Draws a typical enemy with feet at (x, y). */
+  /** Draws a typical creature with feet at (x, y). */
   function drawEnemy(ctx, x, y, t, type, seed) {
     if (!SPR) buildSprites();
     seed = seed || 0;
@@ -395,7 +396,7 @@
     stroke(ctx, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], { rng: r, closed: true, w: 2.4, a: 0.92, step: 6, j: 0.6 });
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   let CACHE = null;
   function draw(ctx, w, h, t) {
     const s = h / 360;
@@ -416,7 +417,7 @@
     for (const [x, y, v] of [[20, 30, 0], [30, 22, 1], [-10, 42, 0], [85, 52, 1]]) blit(ctx, SPR.gem[(Math.floor(t * 5) + v) & 1], x, y - 0.5 + Math.sin(t * 3 + x) * 0.7);
     const px = -20 + ((t * 120) % 60); // seed projectile flying right with its dash trail
     blit(ctx, SPR.seed, px, -2);
-    // damage number: Cabin Sketch, yellow + thick dark board-coloured outline, slight tilt
+    // floating number: Cabin Sketch, yellow + thick dark board-coloured outline, slight tilt
     ctx.save(); ctx.translate(60, -40 - (t % 1) * 6); ctx.rotate(-0.06); ctx.font = '700 13px "Cabin Sketch", "Comic Sans MS", cursive'; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
     ctx.lineWidth = 3.9; ctx.strokeStyle = 'rgba(30,42,37,0.88)'; ctx.strokeText('34', 0, 0); ctx.fillStyle = rgba(CY, 1); ctx.fillText('34', 0, 0);
     ctx.beginPath(); ctx.moveTo(-8, 2.4); ctx.quadraticCurveTo(0, 4.2, 8, 1.6); ctx.lineWidth = 1.3; ctx.strokeStyle = rgba(CO, 1); ctx.stroke(); ctx.restore();
@@ -429,7 +430,7 @@
     ctx.font = '700 ' + Math.round(h * 0.03) + 'px "Cabin Sketch", "Comic Sans MS", cursive'; ctx.fillStyle = PALETTE.white; ctx.textBaseline = 'middle';
     ctx.fillText('100/100', m * 2.3 + w * 0.15, m * 2.2 + h * 0.013);
     ctx.font = '700 ' + Math.round(h * 0.045) + 'px "Cabin Sketch", "Comic Sans MS", cursive'; ctx.textAlign = 'center'; ctx.fillText('22:09', w / 2, m * 3.2);
-    ctx.font = Math.round(h * 0.022) + 'px "Architects Daughter", cursive'; ctx.fillStyle = PALETTE.orange; ctx.fillText('until midnight', w / 2, m * 4.3);
+    ctx.font = Math.round(h * 0.022) + 'px "Architects Daughter", cursive'; ctx.fillStyle = PALETTE.orange; ctx.fillText('title text', w / 2, m * 4.3);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   }
 

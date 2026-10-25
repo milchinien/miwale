@@ -97,7 +97,7 @@
     const q = 1 / s.k; ctx.drawImage(s.c, -s.ox * q, -s.oy * q, s.c.width * q, s.c.height * q); ctx.restore();
   }
 
-  /* ------------------------------------------------------------ the hero */
+  /* -------------------------------------------------- the main character */
   const JACK_FR = [[-2.3, 0, 2.3, 0, 0.25, -0.25, 0], [-3.7, -0.2, 3.9, -0.5, 0.9, -0.8, 1.6], [-2.0, -1.5, 2.9, -2.1, 0.35, -0.15, 3.2], [2.7, -0.6, -1.3, -0.2, -0.75, 0.85, 4.8]];
   function scarfFill(c, path, x0, y0, x1, y1, ang) {
     c.beginPath(); path(c); c.fillStyle = lg(c, x0, y0, x1, y1, [[0, '#3fd6c1'], [1, '#1fa596']]); c.fill();
@@ -114,7 +114,7 @@
     spec(c, -1.8, -10.6, 1.4, 0.6, -0.6, 0.55);
     for (const [bx, by, col] of [[2.0, -7.6, '#ffd43f'], [2.1, -5.4, '#ff5c8a']]) gloss(c, E(bx, by, 0.65, 0.65), bx, by, 0.7, '#ffffff', col, col);
     arm(3, F[5]); scarfFill(c, E(0.3, -11, 5.7, 2.3), -5.4, -13.3, 6, -8.7, 0.9);
-    // head: hard candy pumpkin
+    // head: round hard-candy gourd with ribs and a carved caramel face
     const cx = 0.4, cy = -19.6, rx = 11.2, ry = 9.1, hp = (k) => pumpkinPath(k, cx, cy, rx, ry);
     gloss(c, CAP(0.1, -27, 1.3, -31.2, 1.35), 0.6, -29, 2, '#c8f59a', '#62c043', '#2f7a2a');
     gloss(c, hp, cx, cy, 11, '#ffd08a', '#ff8d1e', '#d24e0b');
@@ -135,7 +135,7 @@
     gloss(c, lf, -3, -30, 4, '#b8f58a', '#56c23e', '#2c8a2e'); spec(c, -3.6, -30.4, 1.3, 0.45, -0.3, 0.7);
   }
 
-  /* ------------------------------------------------------- gummy enemy */
+  /* ---------------------------------------------- small gummy creature */
   const CREEP = [
     { hi: '#d9a2ff', top: '#9443d8', dk: '#56168f', edge: 'rgba(80,10,140,0.55)', glow: 'rgba(255,170,255,0.55)' },
     { hi: '#ffa6d2', top: '#d83a8e', dk: '#86104f', edge: 'rgba(140,10,70,0.5)', glow: 'rgba(255,190,220,0.6)' },
@@ -168,7 +168,7 @@
     c.lineWidth = 0.8; c.strokeStyle = '#6a1f45'; c.beginPath(); c.arc(4.2, -6.4, 1.9, PI * 1.2, PI * 1.8); c.stroke();
     spec(c, -5.6, -16.8, 2.2, 1.0, -0.8, 0.95); spec(c, -3.4, -19.2, 0.6, 0.5, 0, 0.95); spec(c, -7.2, -9, 0.5, 1.4, 0.2, 0.55); spec(c, 6.8, -5.2, 1.2, 0.45, -0.5, 0.45);
   }
-  /** Marshmallow ghost: matte (no sharp spec), piped meringue ridges, toasted hem. */
+  /** Floating marshmallow creature: matte (no sharp spec), piped meringue ridges, toasted hem. */
   function ghostParts(c, ph) {
     const mm = (path, cx, cy, r) => { c.beginPath(); path(c); c.fillStyle = rg(c, cx - r * 0.35, cy - r * 0.5, r * 0.1, cx, cy, r * 1.2, [[0, '#ffffff'], [0.55, '#fbf5fb'], [1, '#dccbe4']]); c.fill(); };
     const body = (k) => { k.moveTo(-8.4, -5.2); k.bezierCurveTo(-9.8, -12, -7, -17.4, -3.4, -20.2); k.bezierCurveTo(-1.6, -21.8, -0.6, -23.6, -2.4, -26.2); k.bezierCurveTo(2, -25.8, 4.6, -22.8, 4.6, -20.4); k.bezierCurveTo(8.4, -17.6, 10, -11.6, 8.9, -5);
@@ -188,7 +188,7 @@
     c.fillStyle = 'rgba(255,140,180,0.35)'; c.beginPath(); c.ellipse(-1.2, -11.2, 1.4, 0.8, 0, 0, TAU); c.ellipse(8.2, -11, 1.2, 0.7, 0, 0, TAU); c.fill();
   }
 
-  /* ------------------------------------------------------ pickups / props */
+  /* ------------------------------------------------- collectibles / props */
   function wrappedCandy(c, r, body, swirl, wrapA, wrapB) {
     for (const sg of [-1, 1]) {
       c.beginPath(); c.moveTo(sg * r * 0.7, -0.6 * r); c.lineTo(sg * r * 2.05, -1.05 * r); c.quadraticCurveTo(sg * r * 1.75, 0, sg * r * 2.05, 1.05 * r); c.lineTo(sg * r * 0.7, 0.6 * r); c.closePath();
@@ -303,7 +303,7 @@
   /* ----------------------------------------------------- public drawers */
   /** Shadow: cocoa-plum radial ellipse rgba(45,12,22,.42 -> .3 @55% -> 0). */
   function shadow(ctx, x, y, rx, ry, a) { ctx.save(); ctx.globalAlpha = a || 1; ctx.translate(x, y); ctx.scale(1, ry / rx); ctx.fillStyle = rg(ctx, 0, 0, 0, 0, 0, rx, [[0, 'rgba(45,12,22,0.42)'], [0.55, 'rgba(45,12,22,0.3)'], [1, 'rgba(45,12,22,0)']]); ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore(); }
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. Hop-walk with squash on contact. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Hop-walk with squash on contact. */
   function drawHero(ctx, x, y, t, facing) {
     const sp = SPR || sprites(3), ph = t * 2.2, f = ph - Math.floor(ph), hop = Math.floor(ph), air = Math.sin(f * PI);
     const contact = Math.max(0, 1 - Math.min(f, 1 - f) * 6), JS = 1.06;
@@ -315,7 +315,7 @@
     ctx.fillRect(x - 22, y - lift - 42, 44, 44); ctx.restore();
     blit(ctx, sp.jack[frame], x, y - lift, sx, sy, 0.07 * facing * air, facing < 0);
   }
-  /** Draws a typical enemy (gummy turnip, variant 0-2) with feet at (x, y): jelly wobble. */
+  /** Draws a typical creature (two-layer gummy root bulb, variant 0-2) with feet at (x, y): jelly wobble. */
   function drawEnemy(ctx, x, y, t, variant, facing) {
     const sp = SPR || sprites(3), ph = t * 0.85 * 1.6 + (variant || 0) * 0.37, fr = Math.floor(ph * 4) & 3, sn = Math.sin(ph * TAU), up = Math.abs(sn);
     shadow(ctx, x, y, 9, 3.2);
@@ -358,7 +358,7 @@
     ctx.beginPath(); ctx.moveTo(px - 3, py); ctx.lineTo(px - 16, py); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,140,190,0.8)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(px - 3, py - 1.6); ctx.lineTo(px - 11, py - 1.6); ctx.moveTo(px - 3, py + 1.6); ctx.lineTo(px - 10, py + 1.6); ctx.stroke();
     blit(ctx, sp.seed, px, py, 1, 0.6 + 0.4 * Math.abs(Math.cos(t * 9)));
-    // hit: pink-edged sugar star + sprinkle burst + sparkle
+    // impact: pink-edged sugar star + sprinkle burst + sparkle
     const hx = cx + 80, hy = 158; blit(ctx, sp.hit, hx, hy, 0.8 + 0.1 * Math.sin(t * 20), 0.8 + 0.1 * Math.sin(t * 20), t);
     for (let i = 0; i < 14; i++) { const a = hash(i, 1, 5) * TAU, d = 6 + hash(i, 2, 5) * 16; blit(ctx, sp.sprink[i % 7], hx + Math.cos(a) * d, hy + Math.sin(a) * d * 0.6 + 4, 1, 1, a * 3 + t * 4); }
     damageNumber(ctx, '34', hx + 6, hy - 18);

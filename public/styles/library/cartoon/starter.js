@@ -1,4 +1,4 @@
-/* Brotato Cartoon — starter kit from the miwale Game Style Library (https://miwale.com/styles/).
+/* Bouncy Cartoon — starter kit from the miwale Game Style Library (https://miwale.com/styles/).
    Dependency-free Canvas 2D. Free to copy and adapt. Full spec: STYLE.md
    Core trick: every sprite is a list of "parts" painted TWICE into an offscreen canvas –
    pass 1 strokes+fills every part in one plum colour (= one clean silhouette outline),
@@ -133,7 +133,7 @@
     return s;
   }
 
-  /* ---- hero: pumpkin-head kid, 4 hop frames [backFoot x,y | frontFoot x,y | backArm, frontArm | scarf phase] */
+  /* ---- main character: pumpkin-head kid on a tiny teal body, 4 hop frames [backFoot x,y | frontFoot x,y | backArm, frontArm | scarf phase] */
   const JACK_FR = [[-2.3, 0, 2.3, 0, 0.25, -0.25, 0], [-3.7, -0.2, 3.9, -0.5, 0.9, -0.8, 1.6], [-2.0, -1.5, 2.9, -2.1, 0.35, -0.15, 3.2], [2.7, -0.6, -1.3, -0.2, -0.75, 0.85, 4.8]];
   function jackParts(P, fr) {
     const F = JACK_FR[fr], cx = 0.4, cy = -19.6, rx = 11.2, ry = 9.1;
@@ -174,7 +174,7 @@
     P.detail((c) => { c.strokeStyle = OUT; c.lineWidth = 0.6; c.beginPath(); c.arc(3.3, -29.4, 1.25, PI * 0.9, PI * 2.6); c.stroke(); });
   }
 
-  /* ---- small melee enemy: grumpy turnip, 4 waddle frames */
+  /* ---- small creature: grumpy purple-and-cream root bulb with a leafy top, 4 waddle frames */
   function creeperParts(P, fr, v) {
     const col = CREEP[v], st = [0, 1, 0, -1][fr], sw = [0, 0.1, 0, -0.1][fr];
     const leaf = (a, len, wid) => P.part((c) => leafPath(c, 0.3, -19.4, a + sw, len, wid), C.leaf, { shade: C.leafSh, sh: [-0.6, -0.6], detail: midrib(0.3, -19.4, a + sw, len, C.leafSh) });
@@ -195,7 +195,7 @@
     });
   }
 
-  /* ---- fast floating enemy: ghost with wavy hem, faded bottom */
+  /* ---- fast creature: floating white ghost with a wavy hem, faded bottom */
   function ghostParts(P, fr) {
     const ph = fr / 4 * TAU;
     const body = (c) => {
@@ -224,7 +224,7 @@
     ctx.globalCompositeOperation = 'destination-in'; ctx.fillStyle = g; ctx.fillRect(0, 0, s.c.width, s.c.height);
   }
 
-  /* ---- props & pickups */
+  /* ---- props & collectibles */
   function bushParts(P, v) {
     const col = [['#73c257', '#4e9a40'], ['#8acb5a', '#61a444']][v];
     P.part((c) => { E(-6.4, -6, 6.4, 6)(c); E(6, -5.8, 6, 5.6)(c); E(0, -9.6, 7.6, 7.2)(c); E(-0.5, -4.6, 7, 4.8)(c); }, col[0], { shade: col[1], sh: [-2.1, -2], detail(c) {
@@ -344,7 +344,7 @@
 
   /* ---- public drawers (world units; ctx already scaled so 1 unit = h/360 px) */
   const easeOutBack = (t) => 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. Hop cycle with squash on contact. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Hop cycle with squash on contact. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) sprites(3);
     const ph = t * 2.3, f = ph - Math.floor(ph), hop = Math.floor(ph), air = Math.sin(f * PI);
@@ -353,7 +353,7 @@
     const frame = contact > 0.25 ? (hop & 1 ? 1 : 3) : 2;
     blit(ctx, SPR.jack[frame], x, y - air * 3.4 * 1.1, sx, sy, 0.07 * facing * air, facing);
   }
-  /** Draws a typical enemy (turnip waddler) with feet at (x, y); flash 0..1 = white hit flash. */
+  /** Draws a typical creature (waddling root bulb) with feet at (x, y); flash 0..1 = white flash overlay. */
   function drawEnemy(ctx, x, y, t, variant, facing, flash) {
     if (!SPR) sprites(3);
     const ph = t * 1.1 + (variant || 0) * 0.37, fr = Math.floor(ph * 4) & 3, sn = Math.sin(ph * TAU), up = Math.abs(sn);
@@ -366,7 +366,7 @@
     const b = Math.sin(t * 5.2 + seed * 7);
     blit(ctx, SPR.ghost[Math.floor(t * 7 + seed * 4) & 3], x, y - 4.5 - Math.sin(t * 2.6 + seed * 12) * 1.6, 1 + b * 0.04, 1 - b * 0.04, 0, -1);
   }
-  function damageNumber(ctx, x, y, txt, crit) { // plum outline + plum drop, white or yellow→orange gradient fill
+  function damageNumber(ctx, x, y, txt, crit) { // floating number: plum outline + plum drop, white or yellow→orange gradient fill
     const fs = crit ? 12.5 : 9; ctx.save(); ctx.font = fs + 'px "Lilita One", "Fredoka", "Arial Rounded MT Bold", sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round'; ctx.strokeStyle = OUT; ctx.lineWidth = fs * 0.3;
     ctx.strokeText(txt, x, y + fs * 0.09); ctx.fillStyle = OUT; ctx.fillText(txt, x, y + fs * 0.09); ctx.strokeText(txt, x, y);
@@ -378,13 +378,13 @@
     ctx.fillStyle = fill; ctx.beginPath(); roundPoly(ctx, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], r); ctx.fill();
   }
 
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     const s = h / 360, camX = 260, camY = 40;
     sprites(Math.max(3, Math.min(6, Math.round(s * 1.25))));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = C.grass; ctx.fillRect(0, 0, w, h);
     ctx.drawImage(ground(w, h, s, camX, camY), 0, 0);
-    ctx.setTransform(s, 0, 0, s, w / 2, h / 2); // world space, hero at origin
+    ctx.setTransform(s, 0, 0, s, w / 2, h / 2); // world space, main character at origin
     const hw = w / 2 / s;
     const actors = [
       { k: 'bush', x: -150, y: -110, v: 1 }, { k: 'bush', x: 120, y: 120, v: 0 }, { k: 'rock', x: -hw + 40, y: 70 }, { k: 'bush', x: hw - 50, y: -60, v: 1 },
@@ -414,14 +414,14 @@
     ctx.strokeStyle = sg; ctx.lineCap = 'round'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px - 3.5, py); ctx.lineTo(px - 16.5, py); ctx.stroke();
     ctx.lineWidth = 0.75; ctx.beginPath(); ctx.moveTo(px - 4.5, py - 2); ctx.lineTo(px - 12.5, py - 2); ctx.moveTo(px - 4.5, py + 2); ctx.lineTo(px - 11.5, py + 2); ctx.stroke();
     blit(ctx, SPR.seed, px, py, 1, 0.55 + 0.45 * Math.abs(Math.cos(t * 14)), 0);
-    // hit star + damage numbers on the flashing enemy, death puff burst + stars on the right
+    // impact star + floating numbers on the flashing creature, pop burst of puffs + stars on the right
     blit(ctx, SPR.hit, 56, -21, 0.72, 0.72, t * 3);
     damageNumber(ctx, 66, -40 - (t % 1) * 4, '34', true); damageNumber(ctx, 104, 2, '17', false);
     const q = (t * 0.8 + 0.3) % 1;
     for (let i = 0; i < 6; i++) { const a = i / 6 * TAU, d = q * 16, sc = (q < 0.2 ? easeOutBack(q / 0.2) : 1 - Math.pow((q - 0.2) / 0.8, 2)) * 0.9;
       if (sc > 0.02) blit(ctx, SPR.puff, 120 + Math.cos(a) * (3 + d), 40 - 10 + Math.sin(a) * (1.2 + d * 0.55) - q * 7, sc, sc, 0); }
     for (let i = 0; i < 3; i++) { const a = i * 2.1 + 0.4; blit(ctx, SPR.star, 120 + Math.cos(a) * q * 30, 28 + Math.sin(a) * q * 18 - Math.sin(q * PI) * 14, 0.72, 0.72, q * 6); }
-    // HUD in screen px: XP bar, clock pill, Lilita One numbers
+    // HUD in screen px: gauge bar, clock pill, Lilita One numbers
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const u = h / 540;
     ctx.save(); ctx.scale(u, u); const W = w / u;
@@ -431,11 +431,11 @@
     pill(ctx, W / 2 - 52, 40, 104, 44, 14, C.panel);
     ctx.font = '28px "Lilita One", "Fredoka", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
     ctx.strokeStyle = OUT; ctx.lineWidth = 5; ctx.strokeText('22:09', W / 2, 64); ctx.strokeText('22:09', W / 2, 61); ctx.fillStyle = '#ff8a2a'; ctx.fillText('22:09', W / 2, 61);
-    ctx.font = '600 8px "Fredoka", sans-serif'; ctx.fillStyle = '#8a6280'; ctx.fillText('UNTIL MIDNIGHT', W / 2, 78);
+    ctx.font = '600 8px "Fredoka", sans-serif'; ctx.fillStyle = '#8a6280'; ctx.fillText('TITLE TEXT', W / 2, 78);
     ctx.restore();
   }
 
-  const Starter = { id: 'cartoon', name: 'Brotato Cartoon', palette: PALETTE, fonts: ['Lilita One', 'Fredoka:wght@400;500;600;700'], drawHero, drawEnemy, draw };
+  const Starter = { id: 'cartoon', name: 'Bouncy Cartoon', palette: PALETTE, fonts: ['Lilita One', 'Fredoka:wght@400;500;600;700'], drawHero, drawEnemy, draw };
   root.StyleStarters = root.StyleStarters || {};
   root.StyleStarters['cartoon'] = Starter;
   if (typeof module !== 'undefined' && module.exports) module.exports = Starter;

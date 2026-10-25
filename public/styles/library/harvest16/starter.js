@@ -131,7 +131,7 @@
       const ny = (y + 0.5 - cy) / ry; if (Math.abs(ny) >= 0.92) continue;
       for (const c of creases) { const x = Math.floor(cx + c * rx * Math.sqrt(1 - ny * ny)), k = idx.get(x + ',' + y); if (k !== undefined) p.set(x, y, ramp[Math.max(0, k - 1)]); } }
   }
-  function makeHero(f, glow) { // 22x30 grid (+1 px outline), faces right, 4 walk frames
+  function makeHero(f, glow) { // main character: 22x30 grid (+1 px outline), faces right, 4 walk frames
     const p = new Pix(22, 30);
     const s = [{ bob: 0, a: 2, b: -2, la: 0, lb: 0, hand: 1, flap: 0 }, { bob: -1, a: 0, b: 0, la: 0, lb: -1, hand: 0, flap: 1 },
       { bob: 0, a: -2, b: 2, la: 0, lb: 0, hand: -1, flap: 0 }, { bob: -1, a: 0, b: 0, la: -1, lb: 0, hand: 0, flap: 1 }][f];
@@ -165,7 +165,7 @@
     carve(p, pts(['.1....1..', '121..121.'], 9, ey).concat(pts(['0.......0', '1121.1211', '.0122210.'], 8, ey + 4)), glow ? R.glowB : R.glow, R.pk[0]);
     return p.canvas();
   }
-  function makeCreeper(f, v) { // small melee enemy: turnip bulb on root legs, 20x26
+  function makeCreeper(f, v) { // small creature: purple root bulb with a leafy top on root legs, 20x26
     const TOP = v ? R.tmag : R.tpur, p = new Pix(20, 26);
     const st = [{ sx: 0, by: 0, la: 0, lb: -1, sw: 0 }, { sx: 1, by: -1, la: 0, lb: 0, sw: 1 }, { sx: 0, by: 0, la: -1, lb: 0, sw: 0 }, { sx: -1, by: -1, la: 0, lb: 0, sw: -1 }][f];
     const leg = (x, lift, far) => {
@@ -191,7 +191,7 @@
       [3, 0, E[2]], [4, 0, E[1]], [3, 1, E[0]], [4, 1, E[0]], [0, 5, B], [1, 4, B], [2, 4, B], [3, 4, B], [4, 5, B], [1, 5, R.cream[4]]]) p.set(ex + x, ey + y, c);
     return p.canvas();
   }
-  function makeGhost(f) { // fast enemy: translucent tattered sheet, own cool outline colour
+  function makeGhost(f) { // fast creature: translucent tattered ghost sheet, own cool outline colour
     const p = new Pix(22, 28), I = R.ice, cx = 9.5, cy = 8.5;
     for (let y = 9; y <= 27; y++) {
       const t = (y - 9) / 18, ccx = cx - 4 * t * t + Math.sin(f * Math.PI / 2 + t * 4.2) * 1.9 * t, hw = 6.3 * (1 - 0.6 * Math.pow(t, 1.05)) + 0.2;
@@ -377,19 +377,19 @@
     return S;
   }
   function shadow(ctx, w, x, y, a) { const img = S.shadow[w]; ctx.globalAlpha = a || 1; ctx.drawImage(img, Math.round(x + 1 - w / 2), Math.round(y - img.height / 2)); ctx.globalAlpha = 1; }
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character (pumpkin-headed figure) with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     sprites();
     const flick = noise(t * 9, 0.5, 3) > 0.62 ? 1 : 0, fr = Math.floor(t * 9.2) & 3; // 92 u/s, 1 frame per 10 u
     blit(ctx, S.hero[flick][fr][facing < 0 ? 'l' : 'r'], x, y);
   }
-  /** Draws a typical enemy (turnip creeper) with feet at (x, y). */
+  /** Draws a typical creature (small root creature) with feet at (x, y). */
   function drawEnemy(ctx, x, y, t, facing = -1, variant = 0, flash = false) {
     sprites();
     const fr = Math.floor(t * 5.8 + variant * 1.7) & 3;
     blit(ctx, flash ? S.creeperF[fr] : S.creeper[variant][fr][facing < 0 ? 'l' : 'r'], x, y);
   }
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     sprites();
     const up = Math.max(1, Math.round(h / 360)), W = Math.ceil(w / up), H = Math.ceil(h / up); // 1 art px = 1 world unit
@@ -419,14 +419,14 @@
     for (const o of list) shadow(b, o.sh, o.x, o.y, o.a);
     list.sort((p, q) => p.y - q.y);
     for (const o of list) o.d();
-    [[0.55, 0.7], [0.4, 0.6], [0.66, 0.8]].forEach(([fx, fy], k) => { // XP gems: bob 1 unit, additive stepped glow
+    [[0.55, 0.7], [0.4, 0.6], [0.66, 0.8]].forEach(([fx, fy], k) => { // collectible gems: bob 1 unit, additive stepped glow
       const x = Math.round(W * fx), y = Math.round(H * fy), gy = y - 4 - Math.round(Math.sin(t * 3 + k * 2));
       b.drawImage(S.shadow[6], x - 3, y - 1);
       b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.5 + 0.15 * Math.sin(t * 5 + k);
       b.drawImage(S.glowS, x - 3, gy + 2 - 3); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
       b.drawImage(S.gem, x - (S.gem.width >> 1), gy);
       if ((t * 0.8 + k * 0.37) % 1 < 0.16) b.drawImage(S.spark, x + 1 - 2, gy - 3); });
-    for (let k = 0; k < 3; k++) { // seed projectiles toward the flashing enemy, 2 trail pixels
+    for (let k = 0; k < 3; k++) { // seed projectiles toward the flashing creature, 2 trail pixels
       const tx = W * 0.3, ty = H * 0.42 - 10, u = ((t * 1.3 + k / 3) % 1), sx = hx0 + 4, sy = hy0 - 14;
       const x = sx + (tx - sx) * u, y = sy + (ty - sy) * u, dl = Math.hypot(tx - sx, ty - sy), dx = (tx - sx) / dl, dy = (ty - sy) / dl;
       b.fillStyle = '#fff2c8'; b.globalAlpha = 0.55; b.fillRect(Math.round(x - dx * 4), Math.round(y - dy * 4), 1, 1);

@@ -5,19 +5,19 @@
   "family": "Pixel Art · Dark",
   "tags": ["pixel art", "dark", "gothic", "horror", "night", "lighting", "graveyard", "halloween"],
   "summary": "Moonlit cursed churchyard in detailed pixel art: a banded light map darkens a cold world; only faces, lanterns and candles glow warm.",
-  "description": "A cold, desaturated night in detailed 1:1 pixel art: mossy gravestones, dead trees, cobble paths and leaf litter under drifting mist. Everything is painted fully lit in muted blue-grey, purple and moss ramps, then a per-frame banded light map (moonlight ambient + vignette + warm point lights) is multiplied over it. The only warm colours are the hero's flickering carved face, lanterns, seeds and candles, and enemies keep tiny emissive eyes that pierce the dark.",
+  "description": "A cold, desaturated night in detailed 1:1 pixel art: mossy gravestones, dead trees, cobble paths and leaf litter under drifting mist. Everything is painted fully lit in muted blue-grey, purple and moss ramps, then a per-frame banded light map (moonlight ambient + vignette + warm point lights) is multiplied over it. The only warm colours are the flickering carved pumpkin face of the main character, lanterns, seeds and candles, and creatures keep tiny emissive eyes that pierce the dark.",
   "mood": ["eerie", "melancholic", "atmospheric", "cozy-spooky", "nocturnal"],
-  "bestFor": ["top-down action / survivor games", "horror roguelites", "dungeon crawlers", "Halloween-themed games", "stealth or light-radius games"],
+  "bestFor": ["top-down action games", "horror games", "dungeon crawlers", "Halloween-themed projects", "stealth or light-radius scenes"],
   "avoidFor": ["bright cheerful kids games", "fast readability-critical esports", "huge zoomed-out strategy maps", "low-end hardware with many lights"],
-  "difficulty": { "stars": 6, "why": "Detailed pixel sprites, and every new object has to fit into the lighting system – dark yet still readable is a balancing act." },
+  "difficulty": { "stars": 6, "why": "Every new asset is painted per pixel from shaded shapes into 3–7 step ramps with Bayer dither, outlined, and needs its own emissive pixel list and often a matching banded light sprite; it must stay readable inside the dark light map, so dark-yet-readable is a constant balancing act." },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": { "scale": 1 },
     "resolution": "1 art pixel = 1 world unit: the 360-unit-tall view is a 360-row buffer, integer upscale up = max(1, round(screenH / 360)), nearest neighbour. Sprites are baked once into small canvases; ground chunks of 256 × 256 px are generated per pixel in time slices.",
-    "summary": "Sprites are painted per pixel from shaded shapes (sphere normals lit by one moon direction), quantised into hand-made ramps with Bayer-8 dither and wrapped in a #0b0910 outline. A light map canvas (ambient #687cb2 with banded vignette, drifting cloud light, banded point-light sprites) is multiplied onto the ground at 100 % and onto entities at 55 %, then bloom is added with 'lighter' and emissive pixels are drawn unlit on top.",
-    "linework": "1-px near-black outline #0b0910 around every sprite (4-neighbour), added by a pass after painting; ghosts use a cool #141a2e outline, gems #061c24, seeds #2a1606, crit digits #2a0606. No outlines on ground textures; ground forms are separated by dark mortar/gap pixels and cast shadows.",
+    "summary": "Sprites are painted per pixel from shaded shapes (sphere normals lit by one moon direction), quantised into hand-made ramps with Bayer-8 dither and wrapped in a #0b0910 outline. A light map canvas (ambient #687cb2 with banded vignette, drifting cloud light, banded point-light sprites) is multiplied onto the ground at 100 % and onto characters and props at 55 %, then bloom is added with 'lighter' and emissive pixels are drawn unlit on top.",
+    "linework": "1-px near-black outline #0b0910 around every sprite (4-neighbour), added by a pass after painting; ghosts use a cool #141a2e outline, gems #061c24, seeds #2a1606, emphasised number digits #2a0606. No outlines on ground textures; ground forms are separated by dark mortar/gap pixels and cast shadows.",
     "shading": "Ramp quantisation: tone = 0.45 + shade(normal) * 0.42, picked from 3–7 step ramps with Bayer-8 dither (strength 0.3–0.5). Light comes from the upper left (normalised -0.52, -0.64, 0.56); tone canvases add +0.17 on left edges, +0.1 top, −0.15 right, −0.08 bottom. Colour transitions (purple top into cream body) are dithered.",
-    "lighting": "Per-frame light map: ambient moonlight rgb(104,124,178), 5-band dithered vignette down to 50 %, drifting dark cloud texture added, then point lights as banded radial sprites (hero 96 × 78 warm, lanterns 42 × 34, candles 34 × 26, red grave lights 20 × 15, cyan gems, pale ghost glows, green brute cores). Lights flicker with noise (0.86 ± 0.14). Multiplied onto ground (alpha 1) and entities (alpha 0.55).",
+    "lighting": "Per-frame light map: ambient moonlight rgb(104,124,178), 5-band dithered vignette down to 50 %, drifting dark cloud texture added, then point lights as banded radial sprites (main character 96 × 78 warm, lanterns 42 × 34, candles 34 × 26, red grave lights 20 × 15, cyan gems, pale ghost glows, green giant cores). Lights flicker with noise (0.86 ± 0.14). Multiplied onto ground (alpha 1) and sprites (alpha 0.55).",
     "texture": "Ground is per-pixel procedural: dithered soil, grass tufts revealed by per-pixel thresholds against a coverage field (dark rim where they end), sorted leaf litter with drop shadows, Worley cobbles and flagstone slabs with lit top-left edges, 3/4-view cast shadows from the row above. Decals: skulls, bones, candle stubs, puddles, grave mounds, roots, cracks, dead flowers."
   },
   "palette": [
@@ -30,95 +30,123 @@
     { "name": "Grave stone", "hex": "#666d7f", "role": "Gravestones, pillars, angels (ramp #1d2030…#a2a8b8)" },
     { "name": "Moss", "hex": "#3a5530", "role": "Moss on stone tops and bases" },
     { "name": "Leaf rust", "hex": "#7a4428", "role": "Dead leaf litter (plus ochre #786030, plum #683246, ash #5e554c)" },
-    { "name": "Pumpkin", "hex": "#bd5314", "role": "Hero head (ramp #3a1206…#f3a046)" },
+    { "name": "Pumpkin", "hex": "#bd5314", "role": "Main character's ribbed head (ramp #3a1206…#f3a046)" },
     { "name": "Carved glow", "hex": "#ffcc4a", "role": "Emissive carved face, lantern eyes (face ramp #b84808 #ff8a1c #ffcc4a #fff4c4)" },
-    { "name": "Cloak violet", "hex": "#271f40", "role": "Hero cloak (ramp #0f0b17…#4f4880)" },
-    { "name": "Scarf wine", "hex": "#74244a", "role": "Hero scarf (ramp #2e0b1e…#9a3a62)" },
-    { "name": "Turnip purple", "hex": "#6c2a76", "role": "Small enemies' bulb tops (ramp #1c0a24…#ab68b0)" },
-    { "name": "Turnip cream", "hex": "#b09c6a", "role": "Small enemies' lower bulb, legs, lantern body" },
-    { "name": "Toxic eye", "hex": "#6ee03a", "role": "Emissive enemy eyes and brute core (#c8ff7a highlights)" },
+    { "name": "Cloak violet", "hex": "#271f40", "role": "Main character's cloak (ramp #0f0b17…#4f4880)" },
+    { "name": "Scarf wine", "hex": "#74244a", "role": "Main character's scarf (ramp #2e0b1e…#9a3a62)" },
+    { "name": "Root purple", "hex": "#6c2a76", "role": "Small creatures' bulb tops (ramp #1c0a24…#ab68b0)" },
+    { "name": "Root cream", "hex": "#b09c6a", "role": "Small creatures' lower bulb, legs, lantern body" },
+    { "name": "Toxic eye", "hex": "#6ee03a", "role": "Emissive creature eyes and the large creature's core (#c8ff7a highlights)" },
     { "name": "Ghost blue", "hex": "#8aa0c0", "role": "Ghost body (ramp #1e2840…#e2ecf6)" },
     { "name": "Spectral cyan", "hex": "#4ae8ff", "role": "Ghost eyes, frost sparks" },
     { "name": "Fire", "hex": "#ff8a1c", "role": "Embers, candle flames, seed trail (ramp #7a1c06…#fff2b8)" },
-    { "name": "Soul teal", "hex": "#36d6c0", "role": "XP gems and souls (gem ramp #0c3a48…#e8fffa)" },
-    { "name": "Blood red", "hex": "#d8343c", "role": "HP bar, game-over title, grave-light glass #8a1a1a" },
+    { "name": "Soul teal", "hex": "#36d6c0", "role": "Collectible gems and rising wisps (gem ramp #0c3a48…#e8fffa)" },
+    { "name": "Blood red", "hex": "#d8343c", "role": "Red bar, big red titles, grave-light glass #8a1a1a" },
     { "name": "Tarnished gold", "hex": "#a8874c", "role": "UI ornaments and card frames (#f0d89a highlight)" }
   ],
   "paletteRules": [
     "Author every colour fully lit; the light map turns it into night. Never pre-darken sprites.",
     "Cold, desaturated ramps (blue-grey, violet, moss, plum) for 90% of the image; warm orange/yellow only on light sources and emissive details.",
-    "Emissive colours (carved face, eyes, flames, embers, gems, souls, numbers) are drawn after the light pass and are the brightest pixels on screen.",
+    "Emissive colours (carved face, eyes, flames, embers, gems, wisps, floating numbers) are drawn after the light pass and are the brightest pixels on screen.",
     "Each material gets its own 3–7 step ramp; tones are picked with Bayer-8 dither, never blended.",
-    "Enemy families are identified by eye colour: toxic green turnips, cyan ghosts, green-cored brutes.",
+    "Creature families are identified by eye colour: toxic green root creatures, cyan ghosts, green-cored giants.",
     "Outlines are always near-black #0b0910, never pure black and never coloured (except cool ghost/gem outlines)."
   ],
   "typography": [
-    { "family": "UnifrakturMaguntia", "weights": [400], "role": "Blackletter labels and big titles (clock label, level-up title, pause, game over)", "source": "Google Fonts", "sample": "Draw your Fate", "css": "font: 400 62px/1 'UnifrakturMaguntia', 'Pirata One', serif; color: #f4e6c4; text-shadow: 4px 4px 0 #000, 0 0 22px rgba(255,140,40,.45);" },
-    { "family": "Silkscreen", "weights": [400], "role": "Pixel numbers: clock, HP text, kill count, level", "source": "Google Fonts", "sample": "22:09", "css": "font: 400 28px/1.1 'Silkscreen', monospace; color: #e8eefa; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 12px rgba(150,180,255,.35);" },
-    { "family": "Pirata One", "weights": [400], "role": "Card names and roman numerals on level-up cards", "source": "Google Fonts", "sample": "Cinderella Shoe", "css": "font: 400 25px/1.05 'Pirata One', serif; color: #f4e6c4; text-shadow: 2px 2px 0 #000;" },
-    { "family": "IM Fell English", "weights": [400], "role": "Italic flavour text, descriptions, hints", "source": "Google Fonts", "sample": "+12 % walking speed", "css": "font: italic 400 16px/1.25 'IM Fell English', Georgia, serif; color: #c2bad4;" }
+    { "family": "UnifrakturMaguntia", "weights": [400], "role": "Blackletter labels and big titles (clock label, card-screen title, overlay headings)", "source": "Google Fonts", "sample": "Draw your Fate", "css": "font: 400 62px/1 'UnifrakturMaguntia', 'Pirata One', serif; color: #f4e6c4; text-shadow: 4px 4px 0 #000, 0 0 22px rgba(255,140,40,.45);" },
+    { "family": "Silkscreen", "weights": [400], "role": "Pixel numbers: clock, bar labels, counters", "source": "Google Fonts", "sample": "22:09", "css": "font: 400 28px/1.1 'Silkscreen', monospace; color: #e8eefa; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 12px rgba(150,180,255,.35);" },
+    { "family": "Pirata One", "weights": [400], "role": "Card names and roman numerals on tarot cards", "source": "Google Fonts", "sample": "Cinderella Shoe", "css": "font: 400 25px/1.05 'Pirata One', serif; color: #f4e6c4; text-shadow: 2px 2px 0 #000;" },
+    { "family": "IM Fell English", "weights": [400], "role": "Italic flavour text, descriptions, hints", "source": "Google Fonts", "sample": "Whispers beneath the old yew", "css": "font: italic 400 16px/1.25 'IM Fell English', Georgia, serif; color: #c2bad4;" }
   ],
-  "background": {
-    "summary": "A moonlit moor and churchyard generated per pixel: biome fields (grass, moss, leaf litter, cobble paths, flagstone plazas, graveyard density) are sampled on an 8-px grid and interpolated; each layer reveals its own tileable 256² texture where a per-pixel threshold falls below the field value, so edges break into single tufts, stones and leaves.",
+  "world": {
+    "summary": "A moonlit moor and churchyard generated per pixel: biome fields (grass, moss, leaf litter, cobble paths, flagstone plazas, graveyard density) are sampled on an 8-px grid and interpolated; each layer reveals its own tileable 256² texture where a per-pixel threshold falls below the field value, so edges break into single tufts, stones and leaves. Ground textures have no outlines and are authored fully lit in cold ramps, then darkened by the light map.",
     "layers": [
-      "Soil: dithered 6-step ramp from two fbm octaves, pebbles of 2–3 px cobble tones",
-      "Grass / moss: per-tuft threshold (Worley clumps + fbm) against the grass coverage field; pixels within 0.035 of the threshold are darkened × 0.72 for a rim",
-      "Dead leaves: 2900 tiny 4–6-px leaf shapes per tile in 4 families, sorted by threshold, each casting a 1-px offset shadow (× 0.72)",
-      "Flagstones (plazas) and cobbles (paths): slabs/Worley stones with a lit top-left edge and dark gaps, per-stone thresholds; 3/4-view cast shadow × 0.62 on the row below",
+      "Soil: dithered 6-step ramp (#1e171c…#69574e) from two fbm octaves, 1500 lit pebble dots and 110 pebbles of 2–3 px cobble tones",
+      "Grass / moss: 5200 blades (2–4 px, brightening upward) and a per-tuft threshold (Worley clumps + fbm) against the grass coverage field; pixels within 0.035 of the threshold are darkened × 0.72 for a rim; moss replaces grass where the moss field > 0.57",
+      "Dead leaves: 2900 tiny 4–6-px leaf shapes per tile in 4 families (rust, ochre, plum, ash), sorted by threshold, each casting a 1-px offset shadow (× 0.72)",
+      "Flagstones (plazas) and cobbles (paths): slabs 15–30 px wide in rows 12–17 px tall, Worley stones with a lit top-left edge and dark gaps, per-stone thresholds; 3/4-view cast shadow × 0.62 on the row below, grass over soil × 0.8",
       "Global brightness 0.9–1.1 and slight hue drift from low-frequency fbm",
-      "Decals baked into the chunk: grave mounds, open graves, roots around trees, puddles with moon reflection, floor slabs, cracks, moss patches, skulls and bones, candle stubs, dead flowers, twigs, single leaves",
+      "Decals baked into the chunk: grave mounds, open graves, roots around trees, puddles with moon reflection, floor slabs with engraved crosses, cracks, moss patches, skulls and bones, candle stubs, dead flowers, twigs, single leaves",
       "Per frame: two drifting banded mist layers (alpha ≤ 0.2 and 0.12), then the light map multiply"
     ]
   },
   "characters": {
-    "summary": "The hero is a 22 × 34 px painted sprite (24 × 36 with outline): a 15 × 13 ribbed pumpkin head lit from the upper left with a 28-pixel carved face, a wine scarf whose tail flutters through 4 positions, a violet trapezoid cloak with a lit left edge, two dark folds and a ragged hem, dark trousers and boots. 4 walk frames (legs ±2 px, 1-px lift, cloak sway) and 2 idle frames (bob ±1). The carved face is a separate emissive overlay that flickers between 3 brightness levels.",
+    "summary": "All characters are painted per pixel from shaded ellipses lit from the upper left, quantised into ramps with Bayer dither and wrapped in a 1-px #0b0910 outline; eyes and faces are emissive pixels drawn after the light. The main character is a 22 × 34 px sprite (24 × 36 with outline): a 15 × 13 ribbed pumpkin head with a 28-pixel carved glowing face, a wine scarf whose tail flutters through 4 positions, a violet trapezoid cloak with a lit left edge, two dark folds and a ragged hem, dark trousers and boots. Creatures: a small purple-and-cream root creature with a leafy top and green glowing eyes (20 × 26), a fast skeletal ghost with a dithered dissolving tail and cyan eyes drawn at 86 % alpha (27 × 28), and a large cracked root giant with gnarled arms and a glowing green diamond core (46 × 54).",
     "rules": [
-      "Paint shapes per pixel: ellipse + sphere-normal shading + ramp pick with Bayer dither, then a 1-px #0b0910 outline",
-      "Big readable head (about 40% of the height) carrying the character's colour identity",
-      "Faces and eyes are emissive pixel lists drawn after the light so they read in the dark",
+      "Paint shapes per pixel: ellipse + sphere-normal shading + ramp pick with Bayer dither, then a 1-px #0b0910 outline (ghosts #141a2e)",
+      "Big readable head (about 40% of the height) carrying the main character's colour identity",
+      "Faces and eyes are emissive pixel lists drawn after the light so they read in the dark; one eye colour per creature family",
       "4-frame walks, 2-frame idles, mirrored canvases for facing",
-      "Feet anchor at the outline's bottom row; hero shadow is an 8 × 2.5 dithered ellipse",
-      "Every actor that should be found in the dark gets a light sprite or a glow (ghost pale blue, brute green core)"
+      "Feet anchor at the outline's bottom row; shadows are dithered ellipses (main character 8 × 2.5, small 6 × 2, large 15 × 4, ghost 4 × 1.5)",
+      "Every figure that should be found in the dark gets a light sprite or a glow (main character warm 96 × 78, ghost pale blue, giant green core)",
+      "Small creatures ~20–30 px, large creatures ~45–55 px; floating creatures dissolve at the bottom with Bayer dither"
+    ]
+  },
+  "props": {
+    "summary": "Churchyard props painted per pixel on a tone canvas (material id + tone per pixel, edge rules +0.17 left, +0.1 top, −0.15 right, −0.08 bottom) from the stone, moss, bark, iron and wax ramps, outlined in #0b0910, and each baked with a sheared moon shadow toward the lower right.",
+    "rules": [
+      "Gravestones: 9 shapes (round, arch, cross, obelisk, broken, wide, small…) × 3 tilts (0, −0.09, +0.08), lit front face 0.42 + 0.2 × height, 2-px extruded side/top, engraved crosses as dark groove + lit lip, cracks, moss on top and bottom 4 rows",
+      "Celtic ring crosses (24 × 38), broken pillars (22 × 36, jagged top, rubble) and weeping angels (34 × 50, wings, bowed head, weathering streaks) use the same stone system",
+      "Dead trees (70 × 92): recursive branches (depth ≤ 4, ≤ 220 segments) stamped as discs, flared roots, knot hole, bark ramp with strong left light (+0.32)",
+      "Iron fences with spear-tipped bars between capped stone posts; candle clusters of 3–5 wax candles with 3-frame 1–2-px flames and a 34 × 26 warm light",
+      "Red glass grave lights on 1 in 6 graves with a 20 × 15 red light and red bloom",
+      "Moon shadow: every opaque pixel at height h is copied to (x + 0.55h, 1 + 0.3h) in [5, 5, 12], 2 px tall, drawn at alpha 0.42",
+      "Props are y-sorted with the characters and receive the 55 % light-map darkening"
     ]
   },
   "effects": [
-    { "name": "Flickering carved face", "how": "Face pixels redrawn after the light from a 4-step ramp; flick(t) = 0.86 + 0.09 * noise + 0.05 * sin(23t) selects level 2 (> 0.95), 1 (> 0.84) or 0. The same flicker scales the 96 × 78 hero light." },
-    { "name": "Ember trail", "how": "Single 1-px particles rising from the pumpkin every 0.16 s, wobbling ±1 px, colour stepping down the fire ramp #fff2b8 → #7a1c06 with life; drawn emissive." },
+    { "name": "Flickering carved face", "how": "Face pixels redrawn after the light from a 4-step ramp; flick(t) = 0.86 + 0.09 * noise + 0.05 * sin(23t) selects level 2 (> 0.95), 1 (> 0.84) or 0. The same flicker scales the 96 × 78 main-character light." },
+    { "name": "Ember trail", "how": "Single 1-px particles rising from the pumpkin head every 0.16 s, wobbling ±1 px, colour stepping down the fire ramp #fff2b8 → #7a1c06 with life; drawn emissive." },
     { "name": "Seed projectile", "how": "9 × 9 cream seed baked in 16 rotations with #2a1606 outline, 4-pixel trail #ffc848 #ff8a1c #c8460c #7a1c06 at 3 + 2.2j px behind, a 14 × 11 warm light and a small additive bloom." },
-    { "name": "Hit / kill", "how": "Turnips spray juice pixels (#3a0a26…#bc3068) and white/yellow sparks; ghosts burst into frost sparks and mist; death flashes the sprite white for 0.18 s, half-alpha to 0.4 s, plus a white 15 × 13 light; a teal soul (7 × 12, dithered tail) rises with its own light." },
-    { "name": "Spawn", "how": "Ground enemies rise out of the soil (sprite revealed bottom-up with outQuad) above an outlined dirt heap; ghosts fade in from a mist puff while sinking 8 px into place." },
-    { "name": "Level-up ring", "how": "Ellipse rings (radius 4…40 in steps of 3, y squashed 1.25) in rgb(255,230,170) expand over 0.6 s, with 18 embers and 4 souls." },
-    { "name": "Hurt", "how": "Red 60 × 50 light on the hero, orange/yellow sparks, and a screen overlay: light base multiplied at hurtT × 0.35 plus #6a0010 at hurtT × 0.18." }
+    { "name": "Impact burst and vanish", "how": "Root creatures spray juice pixels (#3a0a26…#bc3068) and white/yellow sparks; ghosts burst into frost sparks (#dffaff #a8e8ff #ffffff) and mist; vanishing flashes the sprite white for 0.18 s, half-alpha to 0.4 s, plus a white 15 × 13 light and 2–3-px chunks; a teal wisp (7 × 12, dithered tail) rises with its own 14 × 14 light." },
+    { "name": "Collectible gems", "how": "6 × 8 (large 8 × 11) teal diamonds with a #061c24 outline, a glint running down the left facet over 4 frames, each with a 10 × 8 (22 × 18) cyan light; collecting shows a cross-shaped #e8fffa glint with 4 outer dots." },
+    { "name": "Orbiting lanterns", "how": "13 × 15 purple/cream root lanterns on an iron handle with 3-frame fire-ramp eyes and mouth, a 42 × 34 warm light and bloom, drawn emissive and swaying ±1 px." },
+    { "name": "Emerge", "how": "Ground creatures rise out of the soil (sprite revealed bottom-up with outQuad) above an outlined dirt heap; ghosts fade in from a mist puff while sinking 8 px into place." },
+    { "name": "Ring burst", "how": "Ellipse rings (radius 4…40 in steps of 3, y squashed 1.25) in rgb(255,230,170) expand over 0.6 s, with 18 embers and 4 wisps." }
   ],
+  "atmosphere": {
+    "summary": "One per-frame light map creates the night: ambient moonlight rgb(104,124,178) with a 5-band dithered vignette, drifting banded cloud light and posterised point-light sprites, multiplied onto the ground at alpha 1 and onto characters and props at alpha 0.55, followed by small additive bloom and an unlit emissive pass. Two banded mist layers and dithered or sheared shadows complete the mood.",
+    "rules": [
+      "Light-map base: vignette v = smoothstep(0.5, 1.12, dist) normalised by (0.6 W, 0.62 H), centre 6 px above the middle, posterised to 5 bands with ±0.4 Bayer dither, f = 1 − v × 0.5",
+      "Cloud light: tileable banded texture rgb(22,26,38) at 512 px scale added with 'lighter', drifting (7, 3) px/s",
+      "Point lights are banded radial sprites (falloff (1 − d)^pow posterised with dithered band edges): main character 96 × 78 7 bands, lantern 42 × 34, candle 34 × 26, grave light 20 × 15 red, projectile 14 × 11, gems 10 × 8 / 22 × 18 cyan, ghost 16 × 13 pale blue at 0.5, giant core 36 × 29 green",
+      "Flicker = 0.86 + 0.09 × noise(7.3t) + 0.05 × sin(23t); warm light stays rare so the main character remains the focal glow",
+      "Bloom: small banded sprites (warm 11 × 10 at 0.32, candle 6 × 6, red 6 × 5, green 12 × 12, cyan 5 × 5) added with 'lighter'",
+      "Shadows: dithered ellipses in [6, 6, 14] at alpha 120 under sprites; props cast sheared moon shadows [5, 5, 12] at 0.42 toward the lower right",
+      "Mist: two banded fog textures rgb(196,208,232) at max alpha 0.2 / 0.12, scale 2 and 1, drifting (5, 1.5) and (−7, 2) px/s, drawn before the light",
+      "Red flash tint: light base multiplied at flashT × 0.35 plus #6a0010 at flashT × 0.18, with a red 60 × 50 light"
+    ]
+  },
   "ui": {
-    "summary": "Iron-framed bars and boxes (2-px grey frame, 2-px black outline, inset black line, hard drop shadow), pixel numbers in Silkscreen with hard black shadows, blackletter labels in warm #f0a850. Level-up cards look like tarot cards: navy-violet radial background, tarnished gold double border, pixel corner ornaments, arched icon window, Pirata One names and italic IM Fell English descriptions.",
-    "css": ".frame { border: 2px solid #4d5266; outline: 2px solid #06070b; box-shadow: inset 0 0 0 2px #06070b, inset 0 2px 0 2px #1a1c28, 0 4px 0 2px rgba(0,0,0,.45); border-radius: 0; }\n.xp { height: 14px; background: #0b0c13; position: relative; overflow: hidden; }\n.xp-fill { height: 100%; background: linear-gradient(#c8fff0 0 2px, #5fd8bc 2px 6px, #2a9688 6px 9px, #17565a 9px); }\n.xp::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 30px, rgba(6,7,11,.75) 30px 32px); }\n.hp-bar { width: 236px; height: 18px; background: #16070b; }\n.hp-fill { height: 100%; background: linear-gradient(#ffb0a0 0 2px, #d8343c 2px 8px, #9a1822 8px 12px, #5c0c14 12px); }\n.clock { padding: 4px 32px 6px; background: linear-gradient(#141624, #090a10); clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }\n.clock-time { font: 400 28px/1.1 'Silkscreen', monospace; color: #e8eefa; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 12px rgba(150,180,255,.35); }\n.clock-label { font: 400 17px/1 'UnifrakturMaguntia', 'Pirata One', serif; color: #f0a850; text-shadow: 2px 2px 0 #000, 0 0 8px rgba(255,140,40,.4); }\n.card { border: 3px solid #a8874c; outline: 3px solid #06070b; box-shadow: inset 0 0 0 3px #0b0a10, inset 0 0 0 5px #5a4628, 0 14px 30px rgba(0,0,0,.75); background: radial-gradient(ellipse at 50% 32%, #2e2848 0, #18152a 45%, #0b0a12 100%); image-rendering: pixelated; }"
+    "summary": "Iron-framed bars and boxes (2-px grey frame, 2-px black outline, inset black line, hard drop shadow), pixel numbers in Silkscreen with hard black shadows, blackletter labels in warm #f0a850. A full-width teal top bar with 30-px separators, a 236 × 18 red bar with a pixel heart, a clipped-corner clock box and a skull counter. Cards look like tarot cards: navy-violet radial background, tarnished gold double border, pixel corner ornaments, arched icon window, Pirata One names and italic IM Fell English descriptions.",
+    "css": ".frame { border: 2px solid #4d5266; outline: 2px solid #06070b; box-shadow: inset 0 0 0 2px #06070b, inset 0 2px 0 2px #1a1c28, 0 4px 0 2px rgba(0,0,0,.45); border-radius: 0; }\n.bar-top { height: 14px; background: #0b0c13; position: relative; overflow: hidden; }\n.bar-top-fill { height: 100%; background: linear-gradient(#c8fff0 0 2px, #5fd8bc 2px 6px, #2a9688 6px 9px, #17565a 9px); }\n.bar-top::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 30px, rgba(6,7,11,.75) 30px 32px); }\n.bar-red { width: 236px; height: 18px; background: #16070b; }\n.bar-red-fill { height: 100%; background: linear-gradient(#ffb0a0 0 2px, #d8343c 2px 8px, #9a1822 8px 12px, #5c0c14 12px); }\n.clock { padding: 4px 32px 6px; background: linear-gradient(#141624, #090a10); clip-path: polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }\n.clock-time { font: 400 28px/1.1 'Silkscreen', monospace; color: #e8eefa; letter-spacing: 2px; text-shadow: 3px 3px 0 #000, 0 0 12px rgba(150,180,255,.35); }\n.clock-label { font: 400 17px/1 'UnifrakturMaguntia', 'Pirata One', serif; color: #f0a850; text-shadow: 2px 2px 0 #000, 0 0 8px rgba(255,140,40,.4); }\n.card { border: 3px solid #a8874c; outline: 3px solid #06070b; box-shadow: inset 0 0 0 3px #0b0a10, inset 0 0 0 5px #5a4628, 0 14px 30px rgba(0,0,0,.75); background: radial-gradient(ellipse at 50% 32%, #2e2848 0, #18152a 45%, #0b0a12 100%); image-rendering: pixelated; }"
   },
   "motion": [
-    "Hero: 4 walk frames at the run anim rate, 2 idle frames alternating at 1.6 Hz (bob ±1 px), scarf tail cycles 4 positions.",
-    "Small enemies: 4 frames (bob 0/−1, tilt ±1, leaves sway ±7°, alternate root-leg lifts) at anim × 1.6; brutes 4 frames at anim × 2.",
+    "Main character: 4 walk frames at the walk animation rate, 2 idle frames alternating at 1.6 Hz (bob ±1 px), scarf tail cycles 4 positions.",
+    "Small creatures: 4 frames (bob 0/−1, tilt ±1, leaves sway ±7°, alternate root-leg lifts) at anim × 1.6; large creatures 4 frames at anim × 2.",
     "Ghosts: 4 frames at 7 fps (tail wave phase, arm reach 0–2 px), hover 4 px plus a ±1.5 px sine at 3 rad/s, drawn at 86% alpha with a 3-pixel icy trail.",
     "Lights flicker continuously (noise + 23 rad/s sine); lanterns cycle 3 eye frames at 10 fps and sway ±1 px.",
     "Gems cycle a glint down the facet in 4 frames at 5 fps (frame 3 held), bob ±1 px; candle flames 3 frames at 9 fps.",
+    "Floating numbers pop up 2 px in the first 0.1 s, then fade in 3 alpha steps (1, 0.66, 0.33).",
     "Mist layers drift slowly (5 and −7 px/s horizontally); cloud light drifts at (7, 3) px/s."
   ],
   "do": [
     "Paint sprites per pixel from lit shapes and quantise into ramps with Bayer-8 dither.",
     "Author colours fully lit and let one multiplied light map create the night.",
-    "Give the hero a large warm light and put all warm colour on light sources.",
+    "Give the main character a large warm light and put all warm colour on light sources.",
     "Draw eyes, faces, flames, gems and numbers after the light pass so they glow.",
     "Use banded (posterised + dithered) light falloff, never smooth gradients.",
     "Outline every sprite with #0b0910 and give props a sheared moon shadow toward the lower right.",
     "Break material borders into single tufts, stones and leaves using per-pixel thresholds."
   ],
   "dont": [
-    "Don't make the world pitch black: ambient moonlight is ~45% brightness blue, and entities only get 55% of the darkening.",
+    "Don't make the world pitch black: ambient moonlight is ~45% brightness blue, and sprites only get 55% of the darkening.",
     "Don't use saturated or warm colours on ordinary surfaces.",
     "Don't use smooth radial gradients or blur for lights and fog.",
     "Don't draw emissive details before the light pass (they would be darkened).",
     "Don't use hard material borders or tile repetition on the ground.",
     "Don't add pure #000000 outlines or thick linework.",
-    "Don't overlap too many warm lights — the hero must stay the brightest point."
+    "Don't overlap too many warm lights — the main character must stay the brightest point."
   ],
   "performance": "Init is heavy: six 256² tileable ground textures, ~30 gravestones, 4 trees, all character frames, ~20 light sprites, fog and cloud textures are baked once. Ground chunks are generated per pixel in a generator that yields every 16 rows (biome fields on an 8-px grid, bilinear). Per frame: one light-map rebuild (copy + cloud tiles + one drawImage per light), two full-buffer multiplies, a handful of bloom blits, and per-pixel fillRects for eyes/embers. Keep point lights to a few dozen and reuse the light-map canvas."
 }

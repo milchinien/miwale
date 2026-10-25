@@ -1,6 +1,6 @@
 /* Voxel Cube World — starter kit from the miwale Game Style Library (https://miwale.com/styles/).
    Dependency-free Canvas 2D. Free to copy and adapt. Full spec: STYLE.md
-   Every actor is a voxel grid baked ONCE into sprites (46 deg ortho projection, 3-tone faces, sun from the upper left,
+   Every character, prop and collectible is a voxel grid baked ONCE into sprites (46 deg ortho projection, 3-tone faces, sun from the upper left,
    colour jitter, neighbour AO, painter's sort). Ground = flat 4x4-unit voxel tiles with 1-voxel steps showing side faces. */
 (function (root) {
   'use strict';
@@ -164,7 +164,7 @@
       gem: C('#5df0b6', { jit: 0.04 }), gemLt: C('#b6ffe0', { jit: 0.03 }), gemDk: C('#2fc596', { jit: 0.04 }),
     }; }
   const ribCol = (cx, cy, zTop, base, dk, lt) => (x, y, z) => (z >= zTop ? lt : Math.cos(Math.atan2(y + 0.5 - cy, x + 0.5 - cx) * 5) > 0.55 ? dk : base);
-  function jackModel(f) { // hero, 10 x 9 x 18 voxels; f 0 = idle, 1..4 = walk
+  function jackModel(f) { // main character (pumpkin-headed figure), 10 x 9 x 18 voxels; f 0 = idle, 1..4 = walk
     const m = new Vox(10, 9, 18, 11), legY = [0, 1, 0, -1, 0][f], lift = [0, 0, 1, 0, 1][f], armY = -legY;
     const raiseL = f === 4 ? 1 : 0, raiseR = f === 2 ? 1 : 0, b = 3 + lift;
     m.box(3, 4 + legY, raiseL, 4, 5 + legY, 2 + lift, (x, y, z) => (z === raiseL ? P.boot : P.pants));
@@ -183,7 +183,7 @@
     for (const [x, z] of face) m.paintFront(x, z, z >= ez ? P.face : P.mouth);
     m.paintFront(2, ez, P.faceHot); m.paintFront(7, ez, P.faceHot);
     return m; }
-  function creeperModel(f) { // small melee enemy (turnip), 10 x 10 x 15
+  function creeperModel(f) { // small creature (purple-and-cream root creature with a leafy top), 10 x 10 x 15
     const m = new Vox(10, 10, 15, 23), legY = [1, 0, -1, 0][f], lift = [0, 1, 0, 1][f], sw = [0, 1, 0, -1][f], cz = 6.3 + lift;
     m.box(3, 5 + legY, 0, 3, 5 + legY, 1 + lift, P.tRoot); m.box(6, 5 - legY, 0, 6, 5 - legY, 1 + lift, P.tRoot);
     m.blob(5, 5, cz, 4.7, 4.5, 4.4, (x, y, z) => { const t = z + 0.5 - cz + (rnd3(x, y, z, 5) - 0.5) * 1.6; if (t > 1.6) return z + 0.5 > cz + 3.4 ? P.tPurDk : rnd3(x, y, z, 9) < 0.18 ? P.tPurLt : P.tPur; if (t > 0.4) return rnd3(x, y, z, 3) < 0.5 ? P.tPur : P.tCream; return z + 0.5 < cz - 2.8 ? P.tCreamDk : P.tCream; });
@@ -193,14 +193,14 @@
     const ez = Math.round(cz) + 1;
     m.paintFront(3, ez, P.tEye); m.paintFront(6, ez, P.tEye); for (const x of [3, 4, 5, 6]) m.paintFront(x, ez + 1, P.tBrow); m.paintFront(4, ez - 2, P.tBrow); m.paintFront(5, ez - 2, P.tBrow);
     return m; }
-  function ghostModel(f) { // fast floating enemy, 11 x 9 x 15
+  function ghostModel(f) { // fast creature (white floating ghost), 11 x 9 x 15
     const m = new Vox(11, 9, 15, 37), sw = [0, 0.8, 0, -0.8][f], arm = [0, 1, 0, -1][f], hz = 10.2, ez = Math.round(hz) + 1;
     m.blob(5.5, 4.5, hz, 4.4, 3.7, 3.9, P.gW);
     for (let z = 1; z <= 7; z++) { const r = 0.9 + (z - 1) * 0.55; m.blob(5.5 + sw * (7 - z) * 0.35, 4.5 - (7 - z) * 0.12, z + 0.5, r, r * 0.85, 0.55, z < 3 ? P.gDeep : z < 5 ? P.gIce : P.gMid); }
     m.box(0, 5, 7 + (arm > 0), 1, 7, 7 + (arm > 0), P.gMid); m.box(9, 5, 7 + (arm < 0), 10, 7, 7 + (arm < 0), P.gMid);
     for (const [x, z] of [[3, ez], [4, ez], [3, ez - 1], [4, ez - 1], [6, ez], [7, ez], [6, ez - 1], [7, ez - 1], [5, ez - 3], [4, ez - 4], [5, ez - 4], [6, ez - 4], [4, ez - 3], [6, ez - 3]]) m.paintFront(x, z, P.gHole);
     return m; }
-  function colossusModel(f) { // brute, 19 x 16 x 25
+  function colossusModel(f) { // large creature (plum root creature with glowing cracks), 19 x 16 x 25
     const m = new Vox(19, 16, 25, 51), legY = [1, 0, -1, 0][f], lift = [0, 1, 0, 1][f], armY = -legY, cz = 12.5 + lift, fz = Math.floor(cz);
     m.box(4, 6 + legY, 0, 7, 9 + legY, 4 + lift, (x, y, z) => (z === 0 ? P.cRoot : P.cBrDk)); m.box(11, 6 - legY, 0, 14, 9 - legY, 4 + lift, (x, y, z) => (z === 0 ? P.cRoot : P.cBrDk));
     m.blob(9.5, 8, cz, 7.6, 6.6, 8.4, (x, y, z) => { const t = z + 0.5 - cz + (rnd3(x, y, z, 7) - 0.5) * 2.2, sp = rnd3(x, y, z, 13); if (t > 1.5) return sp < 0.16 ? P.cPurDk : sp > 0.9 ? P.cPurLt : P.cPur; if (t > 0) return sp < 0.5 ? P.cPur : P.cBr; return sp < 0.18 ? P.cBrDk : P.cBr; }, 2.4);
@@ -213,13 +213,13 @@
     const ez = Math.round(cz) + 3;
     for (const x of [6, 7, 11, 12]) m.paintFront(x, ez, P.cEye); for (const x of [5, 6, 7, 8, 10, 11, 12, 13]) m.paintFront(x, ez + 1, P.cPurDk); for (const x of [7, 8, 9, 10, 11]) m.paintFront(x, ez - 3, P.cMouth);
     return m; }
-  function lanternModel() { // orbiting glowing turnip lantern
+  function lanternModel() { // orbiting object: glowing root-shaped lantern
     const m = new Vox(8, 8, 11, 61);
     m.blob(4, 4, 4.2, 3.7, 3.6, 3.5, (x, y, z) => (z >= 5 ? P.tPur : z >= 4 ? (rnd3(x, y, z, 2) < 0.5 ? P.tPur : P.tCream) : P.tCream));
     for (const [x, z] of [[2, 5], [5, 5], [2, 3], [3, 3], [4, 3], [5, 3], [3, 2], [4, 2]]) m.paintFront(x, z, z === 5 ? P.faceHot : P.face);
     m.box(3, 4, 8, 4, 4, 8, P.tLeafDk); m.box(2, 3, 9, 2, 4, 9, P.tLeaf); m.box(5, 4, 9, 5, 5, 9, P.tLeaf);
     return m; }
-  function gemModel() { // pickup: stepped octahedron
+  function gemModel() { // collectible: stepped octahedron gem
     const m = new Vox(5, 5, 7, 73);
     for (let z = 0; z < 7; z++) { const t = z / 6, r = (t < 0.45 ? t / 0.45 : (1 - t) / 0.55) * 2.3 + 0.5; for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (Math.abs(x - 2) + Math.abs(y - 2) <= r) m.set(x, y, z, t > 0.45 ? (z === 6 || rnd3(x, y, z, 1) < 0.3 ? P.gemLt : P.gem) : P.gemDk); }
     return m; }
@@ -269,7 +269,7 @@
     ctx.drawImage(s.c, Math.round((x - (s.ax / K) * sx) * VSC) / VSC, Math.round((y - (s.ay / K) * sy) * VSC) / VSC, (s.c.width / K) * sx, (s.c.height / K) * sy);
   }
   function glow(ctx, img, x, y, w, h, a) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a; ctx.drawImage(img, x - w / 2, y - h / 2, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; }
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing, moving = true) {
     bake(B ? B.K : 2);
     const side = facing < 0 ? 1 : 0, fi = moving ? 1 + (Math.floor(t * 8) & 3) : 0, lift = moving ? 0 : Math.max(0, Math.sin(t * 2.6)) * 0.6;
@@ -279,7 +279,7 @@
     const gz = (fi === 2 || fi === 4 ? 13 : 12) * CP * B.VW + lift; // bloom over the carved face
     glow(ctx, B.warm, x + (side ? -2.5 : 2.5), y - gz, 22, 18, 0.34 + 0.06 * Math.sin(t * 9));
   }
-  /** Draws a typical enemy with feet at (x, y). type: 'creeper' | 'ghost' | 'colossus'. */
+  /** Draws a creature with feet at (x, y). type: 'creeper' (small) | 'ghost' (fast) | 'colossus' (large). */
   function drawEnemy(ctx, x, y, t, type = 'creeper', facing = 1, seed = 0, flash = 0) {
     bake(B ? B.K : 2);
     const set = B[type], side = facing < 0 ? 1 : 0, ghost = type === 'ghost';
@@ -380,7 +380,7 @@
     const t = ctx.createLinearGradient(0, 0, 0, 180); t.addColorStop(0, 'rgba(255,236,190,0.10)'); t.addColorStop(0.35, 'rgba(255,236,190,0)'); ctx.fillStyle = t; ctx.fillRect(0, 0, 320, 180);
     return (VIG = { w, h, c }).c;
   }
-  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, hero, enemies, an effect. */
+  /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, props, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     const s = h / 360; VSC = s;
     bake(clamp(Math.round(s * 4) / 4, 1.5, 4));
@@ -401,7 +401,7 @@
       list.push({ y, f: (c) => drawEnemy(c, ex, y, t, type, f, sd, type === 'creeper' && sd === 0.1 ? Math.max(0, 0.7 - ((t * 0.9) % 1) * 3) : 0) });
     }
     list.sort((a, b) => a.y - b.y).forEach((o) => o.f(ctx));
-    for (let i = 0; i < 6; i++) { // pickups: spinning gems with mint glow and hover
+    for (let i = 0; i < 6; i++) { // collectibles: spinning gems with mint glow and hover
       const gx = 40 + i * 17 + (i & 1) * 5, gy = 70 + ((i * 37) % 30), z = 2.4 + Math.sin(t * 3 + i) * 0.9, fi = Math.floor((t * 1.6 + i * 0.7) * 8) % 8;
       ctx.globalAlpha = 0.28; ctx.fillStyle = '#1d2a14'; ctx.fillRect(gx - 0.6, gy - 0.6, 3.2, 1.44);
       glow(ctx, B.mint, gx, gy - z - 1.4, 14, 14, 0.4); blit(ctx, B.gem[fi], gx, gy - z);
@@ -412,7 +412,7 @@
       ctx.globalAlpha = 0.25; ctx.fillStyle = '#1d2a14'; ctx.fillRect(ox - 2, oy + 5, 6, 2.6);
       glow(ctx, B.warm, ox, oy + 6 - hov - 6, 32, 32, 0.5 + 0.12 * Math.sin(t * 11 + i)); blit(ctx, B.lantern[fi], ox, oy + 6 - hov);
     }
-    const tx = 95, ty = 50, pt = (t * 0.9) % 1; // seed projectile -> turnip, then a cube burst + square ring
+    const tx = 95, ty = 50, pt = (t * 0.9) % 1; // seed projectile -> small creature, then a cube burst + square ring
     for (let k = 0; k < 2; k++) {
       const q = (pt + k * 0.5) % 1, px = hx + (tx - hx) * q, py = hy - 12 + (ty - 12 - hy + 12) * q, ang = Math.atan2(ty - hy, tx - hx);
       for (let i = 1; i <= 3; i++) { const dd = i * 3.2, sz = 2.2 - i * 0.45; ctx.globalAlpha = 0.55 - i * 0.14; ctx.fillStyle = i === 1 ? '#fff6dc' : '#ffe2a8'; ctx.fillRect(px - Math.cos(ang) * dd - sz / 2, py - Math.sin(ang) * dd - sz / 2, sz, sz); }
@@ -427,7 +427,7 @@
     }
     const rk = 1 - Math.min(1, bt / 0.5), rr = 10 + 38 * (1 - (1 - (1 - rk)) ** 2);
     if (rk > 0) { ctx.globalAlpha = rk * 0.85; ctx.strokeStyle = '#fff1c8'; ctx.lineWidth = 3 * rk + 0.4; ctx.strokeRect(tx - rr, ty - rr * SP, rr * 2, rr * 2 * SP); } ctx.globalAlpha = 1;
-    const age = (t * 0.7) % 1, pop = age < 0.12 ? 0.6 + (age / 0.12) * 0.55 : 1.15 - Math.min(0.15, (age - 0.12) * 0.6); // damage number
+    const age = (t * 0.7) % 1, pop = age < 0.12 ? 0.6 + (age / 0.12) * 0.55 : 1.15 - Math.min(0.15, (age - 0.12) * 0.6); // floating number
     ctx.font = Math.round(9 * pop * 2) / 2 + "px 'Bungee', 'Chakra Petch', system-ui, sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.globalAlpha = clamp((1 - age) * 3, 0, 1); ctx.fillStyle = '#5a200a'; ctx.fillText('34!', 175.3, 26 - age * 14); ctx.fillStyle = '#ffc23e'; ctx.fillText('34!', 175, 25 - age * 14); ctx.globalAlpha = 1;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(vignette(w, h), 0, 0, w, h);

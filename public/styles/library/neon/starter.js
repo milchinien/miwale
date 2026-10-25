@@ -28,7 +28,7 @@
   function rng(seed) { let a = seed >>> 0; const next = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     return { next, range: (a0, b0) => a0 + (b0 - a0) * next(), int: (a0, b0) => a0 + Math.floor(next() * (b0 - a0 + 1)), chance: (p) => next() < p, sign: () => (next() < 0.5 ? -1 : 1) }; }
 
-  /* ---------- sprite toolkit (ported from the reference module) ---------- */
+  /* ---------- sprite toolkit (ported from the style module) ---------- */
   /** A neon tube: 'full' pass = coloured line + hot white-ish core at 36 % width; 'glow' pass = 1.8x fat line (gets blurred). */
   function tube(c, pass, col, lw, o) {
     if (pass === 'full') {
@@ -111,7 +111,7 @@
   }
   function bulbPath(c) { c.beginPath(); c.moveTo(0, -20); c.bezierCurveTo(-4.4, -19.8, -8.9, -16.6, -8.9, -11.6); c.bezierCurveTo(-8.9, -6.9, -4.9, -4.2, 0, -4.2);
     c.bezierCurveTo(4.9, -4.2, 8.9, -6.9, 8.9, -11.6); c.bezierCurveTo(8.9, -16.6, 4.4, -19.8, 0, -20); c.closePath(); }
-  /** Small melee enemy: magenta bulb, violet leaves, glowing pink eyes, root legs. */
+  /** Small creature: magenta root bulb with violet leaves, glowing pink eyes, root legs. */
   function creeperPose(c, pass, ph) {
     const a = ph * TAU, s = Math.sin(a), bob = -Math.abs(s) * 1.2, dark = 'rgba(32,4,34,0.96)';
     for (const sd of [-1, 1]) { const lift = Math.max(0, sd * s) * 1.9, hx = sd * 2.6, hy = -5.4 + bob * 0.6, fx = sd * 3.6 + s * 1.1, fy = -lift;
@@ -134,7 +134,7 @@
     c.quadraticCurveTo(3.6, -6.2 + w2 * 0.5, 1.9, -7.7); c.quadraticCurveTo(0.4, -5.6 + w3 * 0.5, -1.6, -7.1); c.quadraticCurveTo(-4.4, -5.4 + w1 * 0.6, -7.8 + w2 * 0.5, -4.4 + w3 * 0.6);
     c.quadraticCurveTo(-10.6 + w3 * 0.7, -3.6 + w1 * 0.7, -11.6 + w1 * 0.8, -5.8 + w2 * 0.6); c.quadraticCurveTo(-8.6, -8.0, -7.0, -11.6); c.quadraticCurveTo(-6.6, -14.4, -6.6, -17.6); c.closePath();
   }
-  /** Fast floating enemy: translucent cyan sheet, black hollow eyes + mouth, frost sparkles. */
+  /** Fast creature: floating translucent cyan sheet, black hollow eyes + mouth, frost sparkles. */
   function ghostPose(c, pass, ph) {
     const a = ph * TAU, w1 = Math.sin(a), w2 = Math.sin(a + 2.1), w3 = Math.sin(a + 4.2);
     const arm = (sx, sy, ex, ey, hx, hy, lw) => { c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo(ex, ey, hx, hy); c.moveTo(hx, hy); c.lineTo(hx + 1.6, hy - 1.1); c.moveTo(hx, hy); c.lineTo(hx + 1.9, hy + 0.15); tube(c, pass, P.cyan, lw, { hot: false }); };
@@ -150,7 +150,7 @@
     c.beginPath(); spk(-4.8, -25.6, 0.9 * tw); spk(6.6, -23.6, 0.7 * (1.4 - tw)); tube(c, pass, '#ffffff', 0.3, { hot: false, glowCol: P.cyan });
   }
   function hexPath(c, x, y, r, rot) { for (let i = 0; i < 6; i++) { const t = rot + (i / 6) * TAU; if (i) c.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r); else c.moveTo(x + Math.cos(t) * r, y + Math.sin(t) * r); } c.closePath(); }
-  /** Brute: faceted violet crystal golem with a pulsing toxic-green hex core and green cracks. */
+  /** Large creature: faceted violet crystal golem with a pulsing toxic-green hex core and green cracks. */
   function brutePose(c, pass, ph) {
     const a = ph * TAU, s = Math.sin(a), PU = P.acid, PD = P.acidDark, GR = P.toxic, dark = 'rgba(22,6,38,0.97)';
     c.save(); c.scale(0.92, 0.92);
@@ -177,7 +177,7 @@
     c.beginPath(); c.moveTo(2.4, -39.4 + bob); c.lineTo(6.0, -37.9 + bob); c.moveTo(9.2, -37.9 + bob); c.lineTo(12.6, -39.4 + bob); tube(c, pass, GR, 1.35);
     c.restore();
   }
-  /** Pickup: rotating octahedron gem, translucent faces + bright outline + white specular dot. */
+  /** Collectible: rotating octahedron gem, translucent faces + bright outline + white specular dot. */
   function gemPose(c, pass, a) {
     const h = 3.7, bt = 2.8, w = 2.6, yc = -7.5, col = P.lime, vs = [];
     for (let k = 0; k < 4; k++) { const t = a + (k * Math.PI) / 2; vs.push([Math.cos(t) * w, yc + Math.sin(t) * w * 0.32, Math.sin(t)]); }
@@ -283,9 +283,9 @@
     return S;
   }
 
-  /** Draws the hero with feet at (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) { const s = sprites().hero[Math.floor(t * 2.6 * 8) & 7][facing < 0 ? 1 : 0]; blit(ctx, s, s.img, x, y); }
-  /** Draws a typical enemy (small melee) with feet at (x, y). kind: 'creep' | 'ghost' | 'brute'. */
+  /** Draws a typical creature (small by default) with feet at (x, y). kind: 'creep' (small) | 'ghost' (fast) | 'brute' (large). */
   function drawEnemy(ctx, x, y, t, kind, facing, flash) {
     const set = sprites()[kind || 'creep'], n = set.length, sp = kind === 'brute' ? 1.8 : kind === 'ghost' ? 1.7 : 2.9;
     const s = set[Math.floor(t * sp * n) % n][facing < 0 ? 1 : 0]; if (kind === 'ghost') y -= 2.5 + Math.sin(t * 2.6 + x) * 1.3;
@@ -304,27 +304,27 @@
     for (let i = 0; i < 6; i++) actors.push({ k: i % 3 ? 'creep' : 'ghost', x: R.range(30, W - 30), y: R.range(60, 330), f: R.sign(), o: R.next() });
     for (let i = 0; i < 18; i++) actors.push({ k: i % 4 === 0 ? 'ghost' : 'creep', x: W * 0.68 + R.range(0, W * 0.3) + i * 0.5, y: 268 + R.range(0, 85), f: -1, o: R.next() });
     actors.push({ k: 'hero', x: hx, y: hy, f: 1 });
-    ctx.globalCompositeOperation = 'lighter'; // hero light spill on the floor + gems
+    ctx.globalCompositeOperation = 'lighter'; // main-character light spill on the floor + collectible gems
     const gl = ctx.createRadialGradient(hx, hy - 2, 0, hx, hy - 2, 58); gl.addColorStop(0, hexA('#ff8a2a', 0.34)); gl.addColorStop(0.35, hexA('#ff8a2a', 0.15)); gl.addColorStop(1, hexA('#ff8a2a', 0));
     ctx.save(); ctx.translate(0, (hy - 2) * 0.55); ctx.scale(1, 0.45); ctx.fillStyle = gl; ctx.fillRect(hx - 58, hy - 60, 116, 120); ctx.restore();
     for (let i = 0; i < 9; i++) { const g = sp.gem[Math.floor((t * 1.6 + i * 0.37) * 8) & 7], gx = W * 0.6 + (i % 3) * 14 - 40 + i * 3, gy = 245 + Math.floor(i / 3) * 16; blit(ctx, g, g.img, gx, gy + Math.sin(t * 3 + i) * 0.7); }
     ctx.globalCompositeOperation = 'source-over';
     actors.sort((a, b) => a.y - b.y);
     for (const a of actors) { const pk = a.k === 'hero' ? 'hero' : a.k, rw = a.k === 'hero' ? 13 : a.k === 'brute' ? 26 : a.k === 'ghost' ? 9 : 10.5; ctx.drawImage(sp.pool[pk], a.x - rw, a.y - rw * 0.4, rw * 2, rw * 0.8); }
-    const ph = (t * 1.4) % 1, bx = W * 0.6, by = 210; // projectile flying hero -> brute, hit flash near the end of its flight
+    const ph = (t * 1.4) % 1, bx = W * 0.6, by = 210; // projectile flying from the main character to the large creature, impact flash near the end of its flight
     for (const a of actors) { if (a.k === 'hero') drawHero(ctx, a.x, a.y, t, 1); else drawEnemy(ctx, a.x, a.y, t + (a.o || 0) * 3, a.k, a.f, a.x === bx && ph > 0.85 ? (1 - ph) * 6 : 0); }
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
     const px0 = hx + 8 + (bx - 20 - hx) * ph, py0 = hy - 14 + (by - 28 - hy + 14) * ph, tg = ctx.createLinearGradient(px0 - 24, py0, px0, py0);
     tg.addColorStop(0, 'rgba(255,90,20,0)'); tg.addColorStop(0.55, 'rgba(255,110,30,0.35)'); tg.addColorStop(1, 'rgba(255,150,50,0.95)');
     ctx.strokeStyle = tg; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(px0 - 24, py0); ctx.lineTo(px0, py0); ctx.stroke(); ctx.strokeStyle = '#fff3d6'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(px0 - 8, py0); ctx.lineTo(px0, py0); ctx.stroke();
-    const kk = ((t * 1.1) % 1), cx = W * 0.25, cy = 250; // kill burst: line fragments + squashed ring, batched 2-pass additive strokes
+    const kk = ((t * 1.1) % 1), cx = W * 0.25, cy = 250; // dissolve burst: line fragments + squashed ring, batched 2-pass additive strokes
     for (const [col, lw] of [[P.magenta, 0.8], ['#ffffff', 0.45]]) { ctx.strokeStyle = col; ctx.beginPath();
       for (let i = 0; i < 9; i++) { const an = hash(i, 3, col.length) * TAU, d = 4 + kk * (26 + hash(i, 5, 1) * 20), L = 3 * (1 - kk) + 1, x = cx + Math.cos(an) * d, y = cy - 10 + Math.sin(an) * d * 0.6 + kk * kk * 14; ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(an + i) * L, y + Math.sin(an + i) * L); }
       const rr = 4 + (1 - (1 - kk) * (1 - kk)) * 30; ctx.moveTo(cx + rr, cy); ctx.ellipse(cx, cy, rr, rr * 0.42, 0, 0, TAU);
       ctx.globalAlpha = (1 - kk) * 0.28; ctx.lineWidth = lw * 3.2; ctx.stroke(); ctx.globalAlpha = 1 - kk; ctx.lineWidth = lw; ctx.stroke(); }
     ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(CACHE.ovl, 0, 0); // HUD in screen px
-    const u = h / 540; ctx.save(); ctx.translate(24 * u, 26 * u); ctx.transform(1, 0, -Math.tan(0.384), 1, 0, 0); // skewX(-22deg) HP bar
+    const u = h / 540; ctx.save(); ctx.translate(24 * u, 26 * u); ctx.transform(1, 0, -Math.tan(0.384), 1, 0, 0); // skewX(-22deg) segmented bar
     ctx.shadowColor = 'rgba(255,60,200,0.6)'; ctx.shadowBlur = 12 * u; ctx.fillStyle = 'rgba(22,4,26,0.82)'; ctx.fillRect(0, 0, 250 * u, 15 * u); ctx.shadowBlur = 14 * u; ctx.shadowColor = 'rgba(255,100,60,0.9)';
     const hg = ctx.createLinearGradient(0, 0, 250 * u, 0); hg.addColorStop(0, '#ff2bd0'); hg.addColorStop(0.45, '#ff5a6a'); hg.addColorStop(0.8, '#ff8a1f'); hg.addColorStop(1, '#ffc23a');
     ctx.fillStyle = hg; ctx.fillRect(0, 0, 250 * u * 0.82, 15 * u); ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(10,2,14,0.85)'; for (let x = 23; x < 250; x += 25) ctx.fillRect(x * u, 0, 2 * u, 15 * u);
