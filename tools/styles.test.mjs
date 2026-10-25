@@ -49,9 +49,8 @@ test('generated catalog, llms.txt and llms-full.txt are up to date (run node too
   assert.deepEqual(problems, []);
   for (const [path, text] of Object.entries(files)) {
     assert.ok(existsSync(path), path + ' missing');
-    assert.equal(readFileSync(path, 'utf8').replace(/
-/g, '
-'), text, path + ' is stale');
+    // Windows checkouts may turn LF into CRLF; the generator always writes LF
+    assert.equal(readFileSync(path, 'utf8').replace(/\r\n/g, '\n'), text, path + ' is stale');
   }
   const catalog = JSON.parse(files[join(stylesDir, 'styles.json')]);
   assert.equal(catalog.styles.length, styleIds().length);
