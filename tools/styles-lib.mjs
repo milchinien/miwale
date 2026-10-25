@@ -30,7 +30,8 @@ export function styleIds() {
 
 export function readStyle(id) {
   const dir = join(libraryDir, id);
-  const read = (f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), 'utf8') : null);
+  // CRLF (Windows checkouts) -> LF, so generated files are identical on every machine
+  const read = (f) => (existsSync(join(dir, f)) ? readFileSync(join(dir, f), 'utf8').replace(/\r\n/g, '\n') : null);
   const specText = read('spec.json');
   let spec = null, specError = null;
   if (specText !== null) {
