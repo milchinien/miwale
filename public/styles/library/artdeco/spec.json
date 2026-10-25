@@ -1,0 +1,152 @@
+{
+  "id": "artdeco",
+  "name": "Art Deco Gold",
+  "originalName": "Art Deco Gold",
+  "family": "Vector · Art Deco",
+  "tags": ["art deco", "1920s", "gold", "geometric", "marble", "luxury", "dark", "sunburst"],
+  "summary": "A 1920s grand lobby: onyx, emerald and midnight marble inlaid with metallic gold sunbursts, chevrons, fans and stepped corners.",
+  "description": "The world is one endless grand floor of 200-unit marble bays – sunburst medallions, harlequin diamonds, fan scallops, zigzag chevrons, reflecting pools and parterre gardens – separated by midnight-blue terrazzo promenades with bevelled gold borders and compass rosettes. Everything is strict geometry in a tight palette of deep black, emerald and midnight blue with metallic gold and ivory; gold is always drawn as a banded linear gradient or a dark / mid / bright bevel stroke so it reads as polished metal. Figures are elegant geometric cut-outs with a thin ink outline and a gilded rim: a dapper gentleman in an ivory dinner jacket and top hat, enamel scarabs carrying sun discs, swept-wing swifts and a gilded guardian statue with a fan headdress.",
+  "mood": ["glamorous", "opulent", "nocturnal", "orderly", "festive"],
+  "bestFor": ["stylish top-down action and arcade projects", "heist, casino, hotel or jazz-age settings", "luxury puzzle and match games", "elegant menus, title screens and card UIs", "art-deco inspired city builders and museums"],
+  "avoidFor": ["cozy pastel farming sims", "gritty realism or post-apocalyptic settings", "organic, painterly nature worlds", "pixel-perfect retro looks"],
+  "difficulty": {
+    "stars": 5,
+    "why": "Every asset is plain geometry – polygons, arcs, stepped rectangles and radial fans – so new pieces come together quickly from a small vocabulary, and the metallic look is a reusable gradient plus a three-pass bevel stroke. The craft is restraint: keeping the floor calm enough behind the actors, keeping symmetry and the pin-line rhythm consistent, and giving every new figure a clear silhouette against the dark ground (the gilded rim does most of that work)."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets): vector parts baked into sprites at init, world-anchored marble and terrazzo patterns for the floor",
+    "pixelArt": false,
+    "resolution": "Native resolution. Sprites are baked at K = clamp(round(screenHeight/360 * 1.7), 3, 7) px per world unit (4 px/unit at 900 px); the floor is baked in 256-unit chunks at up to 2.5 px/unit (groundResMax 2.5).",
+    "summary": "Shapes are hard-edged polygons, arcs and stepped rectangles filled with linear gradients; gold is a six-stop banded metal gradient, gold lines are stroked three times (dark edge, mid gold, thin bright highlight). The floor is drawn per chunk with patterns made from baked tileable marble and terrazzo textures, so every inlay stays continuous across chunks.",
+    "linework": "Figures: an ink outline #07080b of 0.5-0.8 units made by dilating the silhouette, plus a gilded rim #c9973a 0.42 units outside it. Floor and props: no outline; gold pin-lines of 0.4-0.6 units (#c99a3c) and bevelled gold bands of 1.0-1.3 units (dark #5a3d10 at 1.55x, mid #b8862f at 1x, highlight #fff0b8 at 0.34x). Miter joins, butt caps, everything straight or circular.",
+    "shading": "Linear gradients only, lit from the upper left: ivory #fffaf0 -> #cdbb93, enamel light/base/dark (jade #6fd8b8 / #1f9a80 / #0a4a40), black satin #26272f -> #0b0c10. Gold fill = banded gradient #fff0b8, #e9bf5c, #9a6c22, #c8973a, #f5d98a, #7d561a. Gold rings use a radial gradient across the ring width so they look turned and polished.",
+    "lighting": "A warm light from above (radial rgba(255,214,140,.13) from above the top edge) with 28 faint sunburst rays, a strong dark vignette rgba(4,5,9,.66), additive warm glows only on lamp lanterns, the orbiting sun discs, the large collectible and the guardian's jade eyes.",
+    "texture": "Marble: 192 px tileable textures from periodic sine veins warped by tileable fbm (onyx, emerald, midnight, ivory), used as patterns at 0.5-0.62 units per texel with a random 90° rotation and offset per bay. Terrazzo: a 160 px midnight base with 1100 chips in ivory, gold, jade, black and blue. A 30 % dark varnish over every bay keeps the floor below the actors."
+  },
+  "palette": [
+    { "name": "Onyx", "hex": "#0d0e12", "role": "Black marble, the base of the floor and most bay fields (~35 % of the screen); cloud #1d1e26, veins #6e6553" },
+    { "name": "Onyx Satin", "hex": "#1b1c23", "role": "Trousers, top hat, plinths, vases, lamp pillars" },
+    { "name": "Midnight", "hex": "#0f1a33", "role": "Midnight marble and fan-scallop fields; cloud #182a4e" },
+    { "name": "Terrazzo", "hex": "#18233f", "role": "Promenades between the bays (~20 %), chips in ivory, gold, jade and #33467a" },
+    { "name": "Lapis", "hex": "#3460c0", "role": "Blue enamel scarab, scallop rows #3a5a9e" },
+    { "name": "Emerald", "hex": "#0e4a40", "role": "Emerald marble in sunburst rays, harlequin diamonds and chevrons; cloud #125548" },
+    { "name": "Emerald Light", "hex": "#14695a", "role": "Fronds, fan leaves, topiary tiers, guardian crest" },
+    { "name": "Jade", "hex": "#2a9c84", "role": "Jade enamel, swift body, fan-leaf highlights; light #6fd1b6" },
+    { "name": "Gold", "hex": "#b8862f", "role": "Mid gold of every bevelled line" },
+    { "name": "Gold Light", "hex": "#e6c15a", "role": "Gold accents, sparkles, sun-disc rays, speed lines" },
+    { "name": "Gold Highlight", "hex": "#fff0b8", "role": "The thin bright line on every gold band and the top stop of gold gradients" },
+    { "name": "Gold Dark", "hex": "#5a3d10", "role": "Dark edge of gold bands, gold-leaf backs #8a611d" },
+    { "name": "Pin Gold", "hex": "#c99a3c", "role": "Thin pin-lines in the floor and in UI frames" },
+    { "name": "Ivory", "hex": "#f2e8d0", "role": "Dinner jacket, medallion centres, pool coping, swift wings, UI text" },
+    { "name": "Pearl", "hex": "#fffaf0", "role": "Brightest ivory: lit side of jacket and wings, gloves" },
+    { "name": "Champagne Skin", "hex": "#ecd0a4", "role": "The main character's face; shade #c39b6c" },
+    { "name": "Bronze", "hex": "#3a332a", "role": "Guardian statue body, palm trunks; light #6a5c46, dark #16130f" },
+    { "name": "Pool Water", "hex": "#123a57", "role": "Reflecting pools and fountain basins; deep #0a2136, ripples #a8eadf" },
+    { "name": "Ruby", "hex": "#b8323f", "role": "Rare warm accent: bar fill, heart icon, hurt flash rays #ff7a6a" },
+    { "name": "Ink", "hex": "#07080b", "role": "Outlines of figures and icons, text strokes" }
+  ],
+  "paletteRules": [
+    "Dark surfaces (onyx, midnight, emerald) take about 80 % of the screen; gold is only ever lines, rims, bands, discs and small ornaments – never a large flat field.",
+    "Gold is always metal: a banded gradient for fills, three stacked strokes (dark, mid, highlight) for lines, a radial gradient for rings. Never a flat yellow.",
+    "Ivory is the bright accent and the main character's colour; keep large ivory areas off the floor (only medallion centres and pool coping).",
+    "Creatures are enamel (jade, lapis, onyx) or pearl and gold – one enamel colour per figure plus gold trim.",
+    "Ruby is the only warm colour besides gold and appears only in small doses (bars, the heart icon, hurt flashes).",
+    "No pastels, no gradients between unrelated hues, no pure white except tiny sparkle cores."
+  ],
+  "typography": [
+    { "family": "Limelight", "weights": [400], "role": "Titles, counters, card titles, floating numbers", "source": "Google Fonts", "sample": "PANEL TITLE", "css": "font: 400 64px/1 'Limelight', Georgia, serif; letter-spacing: .16em; text-transform: uppercase; background: linear-gradient(180deg, #fff3c4 8%, #e9bf5c 42%, #9a6c22 58%, #f5d98a 86%); -webkit-background-clip: text; background-clip: text; color: transparent;" },
+    { "family": "Josefin Sans", "weights": [300, 400, 600, 700], "role": "Body copy, card text, captions and small labels", "source": "Google Fonts", "sample": "Short card text", "css": "font: 400 15px/1.3 'Josefin Sans', 'Century Gothic', sans-serif; color: #c9bb98;" },
+    { "family": "Poiret One", "weights": [400], "role": "Thin elegant hints and taglines in wide-spaced capitals", "source": "Google Fonts", "sample": "HINT TEXT", "css": "font: 400 19px/1.2 'Poiret One', sans-serif; letter-spacing: .3em; text-transform: uppercase; color: #e2cf9f;" }
+  ],
+  "world": {
+    "summary": "One endless grand floor laid out on a strict 200-unit grid: each square bay is a framed marble inlay of a different type, separated by 28-unit midnight terrazzo promenades with bevelled gold borders, ivory lozenge studs and gold compass rosettes at every crossing.",
+    "layers": [
+      "Base fill: onyx marble pattern over the whole chunk (groundColor #0d0e12)",
+      "Bays (interior 172 units): stepped-corner frame (two 7-unit notches per corner), bevelled gold band 1.25 units at 2.4 inset, 0.45 pin-line at 7 inset; type from a hash: 25 % medallion, 17 % harlequin, 15 % scallop, 13 % pool, 17 % garden, 13 % chevron",
+      "Medallion: 58-unit sunburst – 16 emerald rays tapering from r 15 to the rim, gold pin-lines between them, polished gold ring 3.4, 32 gold beads at r 63.6, an ivory centre r 14 with an 8-point gold star; quarter fans of 6 emerald/onyx wedges in each corner",
+      "Harlequin: emerald field with onyx diamonds (half-diagonal 12), gold pin-lines along both diagonal lattices, ivory studs at every vertex",
+      "Scallop: overlapping fish-scale fans r 12 in rows 11 units apart, rows alternate jade and lapis gradients, each with a gold arc, inner arc, five short rays and a small gold half-sun",
+      "Chevron: zigzag bands 13 units tall (period 26, amplitude 6.5) cycling onyx / emerald / onyx / midnight with gold seams, a stepped ivory-and-onyx diamond inlay with a 4-point star in the centre",
+      "Pool: ivory marble coping 10 units, water with a diagonal gradient #1a4b6b -> #0a2136, concentric ripple rings every 9 units, zigzag wavelets in the corners, a faint diagonal sheen",
+      "Garden: hedge border #082219, striped lawn #0f3a2b / #123f2f, four stepped parterre beds with dotted planting rays, terrazzo cross paths and a round basin with an emerald star",
+      "A 30 % varnish rgba(4,5,9,.3) over each bay so the promenades frame them and the actors stay on top",
+      "Promenades: terrazzo pattern, bevelled gold borders at ±12.4, pin-lines at ±9.6, ivory lozenge studs every 20 units on the centre line; crossings get a gold-framed square with a gold 8-point compass star on an onyx disc"
+    ]
+  },
+  "characters": {
+    "summary": "Elegant geometric figures in 3/4 view baked into sprites with an ink outline and a thin gilded rim. The main character (~31 x 42 units with the hat) is a dapper gentleman: an ivory dinner jacket with squared shoulders and a pointed cutaway hem trimmed in gold, black satin lapels, a bow tie with a gold knot, a gold fan pocket square, black trousers, ivory spats, a champagne face with a slicked black hairline and a thin moustache, a black top hat with a gold band, and a black cane with a gold knob. Creatures: an enamel scarab (small; jade, lapis or onyx shell engraved with a gold sunburst, carrying a gold sun disc), a swift seen from above (fast; pearl swept wings with jade and gold chevrons, a jade body, a gold forked tail) and a gilded guardian statue (large, ~42 x 64 units) with a gold mask, glowing jade eye slits, a fan headdress, a stepped bronze torso with gold chevrons and a sun medallion.",
+    "rules": [
+      "Build from hard geometry: trapezoid torsos, squared shoulders, stepped (ziggurat) silhouettes, half-disc fans and circles – no blobby or organic curves except the scarab shell and swift wings.",
+      "Every figure gets the same outline recipe: dilated ink silhouette (0.5-0.8 units) plus a gold rim 0.42 units outside it – that rim is what makes dark parts readable on the dark floor.",
+      "One enamel colour per creature plus gold trim; the main character is the only ivory-jacketed figure.",
+      "Main character: 6 walk frames (scissor legs ±0.44 rad, foot lift 1.5, opposite arm swing, cane swing) plus an idle pose; sprites are mirrored for facing.",
+      "Scarab: 4-frame tripod leg gait, 0.5-unit bob; swift: 4 wing-span frames (1, 0.72, 0.38, 0.72) at 12 per second, hovering 13 units above its shadow and rotated to its flight direction; guardian: 4 heavy stepping frames with a 0.8-unit body bob.",
+      "Appearing: a gold sunburst ring opens on the floor while ground creatures rise (vertical scale outBack); the swift drops 26 units while fading in.",
+      "Hit flash: a warm ivory #fff6dc silhouette over the sprite plus a small squash. Vanishing: the figure turns into a gold silhouette, swells 22 % and fades while the gold leaf burst takes over."
+    ]
+  },
+  "props": {
+    "summary": "Symmetric Deco furniture placed by the bay layout, not at random: gilded sun-bearer statues on stepped onyx plinths and tiered ivory fountains at medallion and pool centres, segmented palms in stepped planters on garden parterres, stepped cypress topiaries in ivory cubes, fan-leaf plants in chevron vases, and four streamlined lamp posts with glowing stepped glass lanterns around every other crossing.",
+    "rules": [
+      "Props sit on the grid: centres, parterre centres, stepped corners and crossings – symmetry is part of the style.",
+      "Every plinth, planter and base is stepped (two or three tiers) with a gold band on each step.",
+      "Lamp: onyx pillar with gold rings and fluting, a three-tier ziggurat lantern of glowing ivory glass with gold mullions and an additive warm glow that flickers ±6 %.",
+      "Fountain: octagonal ivory basin seen in 3/4 view, a fluted column, a scallop-shell bowl and fan-shaped water arcs drawn per frame as dashed pale-teal strokes with a moving dash offset.",
+      "Plants are geometric: palm fronds are straight-edged lozenges with gold midribs, fan leaves are 9 pleated wedges, topiaries are stacked emerald tiers with chevron shading.",
+      "Props get a thin ink outline (0.6 units) but no gold rim, and a soft radial contact shadow; tall props turn 55 % translucent when the main character walks behind them."
+    ]
+  },
+  "effects": [
+    { "name": "Gold dart projectile", "how": "A slim gold lozenge (banded gradient, bright centre line) rotated to its flight angle with three parallel pin-line streaks fading behind it and a small additive warm glow." },
+    { "name": "Orbiting sun disc", "how": "A gold disc with 12 alternating long and short rays and a glowing ivory core, spinning at 2.2 rad/s over an additive glow and a soft ground shadow." },
+    { "name": "Collectibles", "how": "Small: an emerald step-cut gem (octagon with two inner facet rings) in a gold bezel that turns by squeezing its width. Large: an Asscher-cut ivory diamond with gold prongs, a warm glow and a twinkling 4-point glint." },
+    { "name": "Sunburst flash", "how": "Radiating gold lines (8-28, alternate long and short) that expand from the impact point and fade, drawn additively; flattened to an ellipse when it lies on the floor." },
+    { "name": "Gold leaf burst", "how": "When a creature vanishes: 8-16 gold leaf flakes flip between a bright gradient front and a dark gold back (horizontal scale |cos|), float on light gravity and high drag, joined by enamel shards in the creature's colour, a double gold floor ring and glints." },
+    { "name": "Impact", "how": "A 4-point ivory-gold glint plus a short 10-ray sunburst at hit height and a couple of gold leaf flakes." },
+    { "name": "Glow-up", "how": "A big double gold ring on the floor, a flat 28-ray sunburst, a second upright burst, 20 gold leaves and 8 glints; a rotating sunburst halo of 18 rays shines behind the main character." },
+    { "name": "Floating numbers", "how": "Limelight in ivory #f6ecd2 with an ink stroke; emphasised values are larger, filled with the gold gradient and sit on a small ring of gold rays." }
+  ],
+  "atmosphere": {
+    "summary": "A night-time grand lobby under warm light: a soft golden glow and faint sunburst rays from above the top edge, a deep dark vignette, glowing lanterns, drifting gold dust motes and a gold double pin-line frame with stepped corners and corner fans around the screen.",
+    "rules": [
+      "Screen overlay baked once per size: radial warm light rgba(255,214,140,.13) from above the top centre, 28 additive sunburst rays at 7 % alpha, vignette to rgba(4,5,9,.66).",
+      "Frame: stepped gold double pin-line 7 units from the edge (1.0 + 0.45 units, 75 % alpha) with quarter sunburst fans in the four corners.",
+      "Ambient life: one gold dust mote on half the cells of a 95-unit grid, drifting upward and twinkling, drawn additively at 15-75 % alpha.",
+      "Shadows: soft radial black ellipses (alpha .6 core) under every figure and prop; flying figures keep a lighter shadow below them.",
+      "Glow is reserved for light sources and treasure: lanterns, sun discs, the large collectible, the guardian's eyes – everything else is matte or polished, never neon.",
+      "Modal overlays: dark radial backdrop with a fine repeating conic sunburst of gold rays at 6.5 % alpha."
+    ]
+  },
+  "ui": {
+    "summary": "Deco frames everywhere: panels have notched two-step corners (clip-path) with a gold double border drawn by an SVG border-image (metallic outer line, thin inner pin-line, tiny gold diamonds), on a midnight-to-onyx gradient. Bars are black channels with a gold pin border and fluted fills (gold, or ruby for the panel bar). The title is huge Limelight capitals in a gold gradient flanked by double pin-lines; cards carry a sunburst header of gold rays, a circular icon well with a double gold ring and a gold diamond number badge on the top edge.",
+    "css": ".deco-panel { border: 12px solid transparent; border-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M9 1H39V5H43V9H47V39H43V43H39V47H9V43H5V39H1V9H5V5H9Z' fill='none' stroke='%23d4a541' stroke-width='2'/%3E%3Cpath d='M10.5 5.5H37.5V8H40V10.5H42.5V37.5H40V40H37.5V42.5H10.5V40H8V37.5H5.5V10.5H8V8H10.5Z' fill='none' stroke='%23c99a3c' stroke-width='.8'/%3E%3C/svg%3E\") 16 / 12px stretch; background: linear-gradient(180deg, rgba(20,28,52,.94), rgba(8,9,13,.95)); clip-path: polygon(6px 0, calc(100% - 6px) 0, calc(100% - 6px) 3px, calc(100% - 3px) 3px, calc(100% - 3px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 3px) calc(100% - 6px), calc(100% - 3px) calc(100% - 3px), calc(100% - 6px) calc(100% - 3px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 3px), 3px calc(100% - 3px), 3px calc(100% - 6px), 0 calc(100% - 6px), 0 6px, 3px 6px, 3px 3px, 6px 3px); color: #f2e8d0; font: 400 15px 'Josefin Sans', sans-serif; }\n.deco-bar { width: 230px; height: 14px; background: #040507; border: 1px solid #8a611d; box-shadow: 0 0 0 1px rgba(230,193,90,.25); }\n.deco-bar-fill { height: 100%; background: repeating-linear-gradient(90deg, rgba(0,0,0,.3) 0 1px, transparent 1px 9px), linear-gradient(180deg, #f39a92 0%, #c23b45 36%, #7d1a26 72%, #a92c38 100%); }\n.deco-gold-bar-fill { height: 100%; background: repeating-linear-gradient(90deg, rgba(60,36,6,.5) 0 1px, transparent 1px 8px), linear-gradient(180deg, #fff0b8 0%, #e2b553 32%, #9c6f22 64%, #f0cf7a 100%); }\n.deco-title { position: relative; font: 400 64px/1 'Limelight', serif; letter-spacing: .16em; text-transform: uppercase; background: linear-gradient(180deg, #fff3c4 8%, #e9bf5c 42%, #9a6c22 58%, #f5d98a 86%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 rgba(0,0,0,.85)); }\n.deco-title::before, .deco-title::after { content: ''; position: absolute; top: 50%; width: 150px; height: 7px; margin-top: -4px; border-top: 1px solid #c99a3c; border-bottom: 1px solid #c99a3c; }\n.deco-title::before { right: 100%; } .deco-title::after { left: 100%; }\n.deco-card { width: 236px; min-height: 306px; border: 18px solid transparent; background-origin: border-box; background: repeating-conic-gradient(from 90deg at 50% 0, rgba(226,181,83,.2) 0deg 4deg, rgba(226,181,83,0) 4deg 11deg) 0 0 / 100% 150px no-repeat, radial-gradient(ellipse at 50% 0, rgba(42,156,132,.34), rgba(42,156,132,0) 68%) 0 0 / 100% 170px no-repeat, linear-gradient(180deg, #13203f 0%, #0b101e 48%, #07080c 100%); }\n.deco-badge { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: linear-gradient(180deg, #fff0b8, #e2b553 40%, #9c6f22 70%, #f0cf7a); color: #07080c; font: 12px 'Limelight', serif; }"
+  },
+  "motion": [
+    "Main character: 6 walk frames over 5.6 animation units per cycle with a |sin| bob of 0.9 units and a 0.03 rad lean; idle breathing ±1.2 % vertical.",
+    "Dash: the figure leans 0.16 rad, three gold silhouettes trail 7 units apart at alpha 0.42/i, three parallel gold speed lines stream behind.",
+    "Scarab: tripod gait at anim*0.9*4 frames; swift: wing frames at 12 per second, hover bob ±1.6 units, nose follows the flight direction; guardian: 4 frames at anim*1.2 with a ±0.02 rad sway.",
+    "Appear 0.45 s: the floor sigil (ellipse + 12 rays) grows with outQuad and fades on a sine; vanish 0.35 s: gold silhouette swells 22 % and fades with (1-t)^1.4.",
+    "Sunburst flashes expand with outQuad and fade linearly in 0.2-0.7 s; gold leaf flips at 10 rad/s and lives about a second.",
+    "Lantern glow flickers ±6 % at 5 rad/s; fountain dashes flow at 9 units/s; pool ripples expand every ~8 s; gold motes rise 4 units/s.",
+    "HUD: cards and title rise 24 px and fade in over 0.5 s (staggered 0.08 s); a card lifts 8 px and brightens on hover."
+  ],
+  "do": [
+    "Draw every gold element as metal: banded gradient fills, three-pass bevel strokes, radial-gradient rings.",
+    "Keep the composition symmetric and on a grid – bays, props and ornaments are centred or mirrored.",
+    "Use stepped (ziggurat) corners on frames, plinths, planters, panels and cards.",
+    "Repeat the core motifs: sunbursts, fans, chevrons, concentric arcs and parallel pin-lines.",
+    "Darken the floor fields (varnish) so ivory figures and gold rims read first.",
+    "Give every figure the ink outline plus gilded rim so black parts never vanish on the dark floor.",
+    "Set titles in wide-spaced capitals and keep body text small and quiet."
+  ],
+  "dont": [
+    "Don't use flat yellow for gold or let gold fill large areas – it turns brassy and loud.",
+    "Don't use soft organic blobs, hand-drawn wobble or textured brush strokes – every edge is ruled or compass-drawn.",
+    "Don't introduce pastels or extra hues; the palette is black, emerald, midnight, gold, ivory and a touch of ruby.",
+    "Don't scatter props randomly – random placement breaks the Deco order.",
+    "Don't use lead-came borders around every shape (that reads as stained glass) or gothic pointed arches.",
+    "Don't add neon glows or bloom to ordinary surfaces.",
+    "Don't make the floor brighter than the figures."
+  ],
+  "performance": "Baked once at init (~150-250 ms): five floor textures (four 192/160 px marble textures from tileable fbm veins, one terrazzo), the main character in 7 poses, 12 scarab, 4 swift and 4 guardian sprites, each with an ivory flash and a gold silhouette copy, 6 props, effect sprites and glow gradients. Per frame there are only drawImage blits with a setTransform, a few gold strokes (fountain arcs, speed lines, sunburst rays) and one cached full-screen overlay: about 2 ms median for a full scene with 50-100 creatures, cheaper than most styles. Floor chunks (256 units, up to 640 px) are drawn by a generator yielding after every bay (2-4 ms each); the scallop bay with ~120 gradient circles is the most expensive."
+}

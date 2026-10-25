@@ -5,13 +5,21 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import vm from 'node:vm';
-import { ORDER, readStyle, styleIds, validate, stylesDir } from './styles-lib.mjs';
+import { ORDER, ORIGINALS, VARIANTS, readStyle, styleIds, validate, stylesDir } from './styles-lib.mjs';
 import { build } from './build-styles.mjs';
 
 test('every style of the reference game has a library entry', () => {
   const ids = styleIds();
   for (const id of ORDER) assert.ok(ids.includes(id), `library/${id}/ missing`);
   for (const id of ids) assert.ok(existsSync(join(stylesDir, 'js', 'styles', id + '.js')), `${id}: no reference module js/styles/${id}.js`);
+});
+
+test('variants point at an existing base style and are made for the library', () => {
+  const ids = styleIds();
+  for (const [v, base] of Object.entries(VARIANTS)) {
+    assert.ok(ORIGINALS.includes(v), v + ' must be listed in ORIGINALS');
+    assert.ok(ids.includes(base) && !VARIANTS[base], v + ': base "' + base + '" must be an existing, non-variant style');
+  }
 });
 
 test('spec.json, STYLE.md and starter.js follow AUTHORING.md', () => {

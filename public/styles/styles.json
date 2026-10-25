@@ -2463,6 +2463,792 @@
           "url": "https://miwale.com/styles/shots/origami_zoom.webp"
         }
       ]
+    },
+    {
+      "id": "rubberhose",
+      "name": "Rubber Hose 1930s",
+      "family": "Cartoon · Vintage animation",
+      "group": "Illustrated",
+      "original": true,
+      "variantOf": "cartoon",
+      "tags": [
+        "rubber hose",
+        "1930s",
+        "black and white",
+        "vintage cartoon",
+        "film grain",
+        "ink outline",
+        "squash and stretch",
+        "art nouveau ui"
+      ],
+      "summary": "Black-and-white 1930s animation: ink figures with elbow-less rubber-hose limbs, white gloves and pie-cut eyes, projected through grainy, scratched film.",
+      "mood": [
+        "jaunty",
+        "nostalgic",
+        "musical",
+        "mischievous",
+        "slightly eerie"
+      ],
+      "bestFor": [
+        "retro top-down action with crowds of characters",
+        "vintage cartoon platformers and brawlers",
+        "music or rhythm projects",
+        "spooky-cute or carnival themes",
+        "nostalgic menus, title screens and trailers"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#16120e",
+        "#3a342d",
+        "#6d665b",
+        "#a0988a",
+        "#cdc5b5",
+        "#efe9dc",
+        "#faf7ef",
+        "#e6dece",
+        "#d9d1c1",
+        "#f4efe4",
+        "#cfc8b9",
+        "#b2aa9a",
+        "#928a7c",
+        "#e4ddcd",
+        "#565047",
+        "#978c7b",
+        "#0c0a08",
+        "#17130f",
+        "#b9b1a1"
+      ],
+      "fonts": [
+        "Limelight",
+        "Rye",
+        "Special Elite"
+      ],
+      "page": "https://miwale.com/styles/rubberhose/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/rubberhose/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/rubberhose/spec.json",
+        "starter": "https://miwale.com/styles/library/rubberhose/starter.js",
+        "module": "https://miwale.com/styles/js/styles/rubberhose.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=rubberhose&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=rubberhose&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=rubberhose&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=rubberhose&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=rubberhose&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=rubberhose&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=rubberhose&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/rubberhose.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/rubberhose_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/rubberhose_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/rubberhose_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/rubberhose_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "vaporwave",
+      "name": "Vaporwave Sunset",
+      "family": "Vector · Vaporwave",
+      "group": "Digital",
+      "original": true,
+      "variantOf": "neon",
+      "tags": [
+        "vaporwave",
+        "pastel",
+        "retro 90s",
+        "marble",
+        "checkerboard",
+        "vhs",
+        "gradient",
+        "sunset"
+      ],
+      "summary": "Pastel vaporwave plazas of pink marble, checkerboards and tiled pools under a sunset wash, with VHS fringes on every sprite.",
+      "mood": [
+        "dreamy",
+        "nostalgic",
+        "sunny",
+        "ironic",
+        "chill"
+      ],
+      "bestFor": [
+        "retro-themed arcade and arena games",
+        "chill exploration or collecting games",
+        "music, lo-fi and synthwave-adjacent projects",
+        "menus, title screens and promo art with a 90s internet flavour",
+        "satirical or meme-flavoured games"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#2a1a4c",
+        "#ff5fc1",
+        "#ff9ad5",
+        "#ffd1ea",
+        "#ffc1a1",
+        "#fff27a",
+        "#ffb36b",
+        "#b892ff",
+        "#dccbff",
+        "#7a4fd0",
+        "#8ff5d2",
+        "#3fd8c8",
+        "#5ee7ff",
+        "#1fb2e0",
+        "#fff5fb",
+        "#c9b0ee",
+        "#ffcfb0",
+        "#ffdcee",
+        "#cdb3f7",
+        "#6d49b8",
+        "#c6f4e3",
+        "#62dcf7"
+      ],
+      "fonts": [
+        "Monoton",
+        "Rubik Mono One",
+        "VT323"
+      ],
+      "page": "https://miwale.com/styles/vaporwave/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/vaporwave/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/vaporwave/spec.json",
+        "starter": "https://miwale.com/styles/library/vaporwave/starter.js",
+        "module": "https://miwale.com/styles/js/styles/vaporwave.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=vaporwave&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=vaporwave&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=vaporwave&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=vaporwave&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=vaporwave&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=vaporwave&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=vaporwave&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/vaporwave.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/vaporwave_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/vaporwave_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/vaporwave_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/vaporwave_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "sumie",
+      "name": "Sumi-e Ink",
+      "family": "Painterly · Ink wash",
+      "group": "Painterly",
+      "original": true,
+      "variantOf": "watercolor",
+      "tags": [
+        "sumi-e",
+        "ink wash",
+        "monochrome",
+        "brushwork",
+        "dry brush",
+        "xuan paper",
+        "empty space",
+        "vermilion seal"
+      ],
+      "summary": "Monochrome ink-wash painting in motion: black sumi in five tones on warm xuan paper, one-stroke brushwork, lots of empty space, one vermilion accent.",
+      "mood": [
+        "serene",
+        "contemplative",
+        "elegant",
+        "airy",
+        "timeless"
+      ],
+      "bestFor": [
+        "calm exploration and travel games with an East-Asian theme",
+        "martial-arts and folklore action games that want a painterly look",
+        "zen, meditation and puzzle projects",
+        "story maps, title screens and scroll-based menus"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#f3ecdd",
+        "#f9f4e8",
+        "#161412",
+        "#2c2926",
+        "#56524c",
+        "#8a857c",
+        "#beb8aa",
+        "#322f2c",
+        "#ce3c26",
+        "#a0261a",
+        "#e47052",
+        "#4e4b46",
+        "#2a2622",
+        "#d6cebe",
+        "#3a3630"
+      ],
+      "fonts": [
+        "Ma Shan Zheng",
+        "Zhi Mang Xing",
+        "Yuji Mai",
+        "Cormorant Garamond"
+      ],
+      "page": "https://miwale.com/styles/sumie/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/sumie/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/sumie/spec.json",
+        "starter": "https://miwale.com/styles/library/sumie/starter.js",
+        "module": "https://miwale.com/styles/js/styles/sumie.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=sumie&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=sumie&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=sumie&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=sumie&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=sumie&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=sumie&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=sumie&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/sumie.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/sumie_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/sumie_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/sumie_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/sumie_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "bricks",
+      "name": "Toy Bricks",
+      "family": "3D Look · Toy Bricks",
+      "group": "3D look",
+      "original": true,
+      "variantOf": "voxel",
+      "tags": [
+        "toy bricks",
+        "studs",
+        "glossy plastic",
+        "3d look",
+        "toy box",
+        "primary colours",
+        "diorama"
+      ],
+      "summary": "A toy-box world of glossy plastic bricks: stud-covered baseplates, tiled roads, transparent-blue water plates and a little toy figure.",
+      "mood": [
+        "playful",
+        "cheerful",
+        "tactile",
+        "bright",
+        "nostalgic"
+      ],
+      "bestFor": [
+        "family and kids games",
+        "top-down action and arena games",
+        "builder and sandbox games",
+        "puzzle and party games",
+        "casual mobile games"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#47a347",
+        "#2f8540",
+        "#8cc63f",
+        "#e2cb96",
+        "#666d73",
+        "#c6cbce",
+        "#a7acb0",
+        "#3d92e8",
+        "#d4231c",
+        "#f7c81e",
+        "#1c5fc6",
+        "#21883f",
+        "#f2f2ec",
+        "#2a2c31",
+        "#7b4527",
+        "#5f666c",
+        "#f07e1f",
+        "#f7c51e",
+        "#1f4f9a",
+        "#cde8ff",
+        "#2f9bff",
+        "#1b1d22"
+      ],
+      "fonts": [
+        "Titan One",
+        "Fredoka"
+      ],
+      "page": "https://miwale.com/styles/bricks/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/bricks/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/bricks/spec.json",
+        "starter": "https://miwale.com/styles/library/bricks/starter.js",
+        "module": "https://miwale.com/styles/js/styles/bricks.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=bricks&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=bricks&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=bricks&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=bricks&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=bricks&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=bricks&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=bricks&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/bricks.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/bricks_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/bricks_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/bricks_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/bricks_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "riso",
+      "name": "Risograph Print",
+      "family": "Print · Risograph",
+      "group": "Graphic",
+      "original": true,
+      "tags": [
+        "risograph",
+        "zine",
+        "spot colour",
+        "overprint",
+        "halftone",
+        "misregistration",
+        "fluorescent",
+        "grain"
+      ],
+      "summary": "A three-ink risograph zine: fluorescent pink, blue and yellow overprinting on recycled paper, out of register, with halftones and drum grain.",
+      "mood": [
+        "playful",
+        "punchy",
+        "handmade",
+        "sunny",
+        "indie"
+      ],
+      "bestFor": [
+        "colourful top-down action and arcade games",
+        "indie games with a zine or poster identity",
+        "music, festival and art-scene projects",
+        "cheerful puzzle and party games",
+        "menus, title cards and promo art"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#f3ede0",
+        "#ff48b0",
+        "#0078bf",
+        "#ffe800",
+        "#f34f9f",
+        "#3189b3",
+        "#f3d912",
+        "#312d7f",
+        "#f3480d",
+        "#317d0e",
+        "#312a0a",
+        "#f3c5d0",
+        "#dedda5",
+        "#f3e481"
+      ],
+      "fonts": [
+        "Rubik Mono One",
+        "Space Grotesk",
+        "DM Mono"
+      ],
+      "page": "https://miwale.com/styles/riso/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/riso/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/riso/spec.json",
+        "starter": "https://miwale.com/styles/library/riso/starter.js",
+        "module": "https://miwale.com/styles/js/styles/riso.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=riso&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=riso&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=riso&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=riso&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=riso&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=riso&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=riso&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/riso.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/riso_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/riso_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/riso_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/riso_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "crayon",
+      "name": "Crayon Kids",
+      "family": "Hand-drawn · Wax crayon",
+      "group": "Illustrated",
+      "original": true,
+      "tags": [
+        "crayon",
+        "child's drawing",
+        "hand-drawn",
+        "scribble",
+        "boiling lines",
+        "paper texture",
+        "bright",
+        "naive art"
+      ],
+      "summary": "A child's wax-crayon drawing brought to life: toothy white paper, zigzag scribble fills that go outside the lines, wobbly boiling outlines.",
+      "mood": [
+        "cheerful",
+        "innocent",
+        "playful",
+        "handmade",
+        "sunny"
+      ],
+      "bestFor": [
+        "children's and family games",
+        "cozy or comedic top-down action",
+        "educational and storybook projects",
+        "doodle-themed menus, tutorials and level select screens",
+        "party and casual mobile games"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#fbf8ef",
+        "#2b2a30",
+        "#e2362c",
+        "#f78b1f",
+        "#fdce28",
+        "#42ae3a",
+        "#217a38",
+        "#9ece3a",
+        "#42a8ea",
+        "#2a5ec8",
+        "#8c4cc4",
+        "#5c2c8c",
+        "#f67eb4",
+        "#94582c",
+        "#d8a262",
+        "#fcc698",
+        "#929098",
+        "#a8d6f6"
+      ],
+      "fonts": [
+        "Gochi Hand",
+        "Patrick Hand",
+        "Caveat Brush",
+        "Schoolbell"
+      ],
+      "page": "https://miwale.com/styles/crayon/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/crayon/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/crayon/spec.json",
+        "starter": "https://miwale.com/styles/library/crayon/starter.js",
+        "module": "https://miwale.com/styles/js/styles/crayon.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=crayon&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=crayon&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=crayon&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=crayon&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=crayon&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=crayon&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=crayon&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/crayon.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/crayon_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/crayon_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/crayon_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/crayon_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "deepsea",
+      "name": "Deep Sea Glow",
+      "family": "Underwater · Bioluminescent",
+      "group": "Illustrated",
+      "original": true,
+      "tags": [
+        "underwater",
+        "bioluminescent",
+        "deep sea",
+        "glow",
+        "dark",
+        "soft",
+        "organic",
+        "atmospheric"
+      ],
+      "summary": "The abyssal sea floor at night, lit only by living light: glowing jellies, kelp and coral, marine snow and blue depth fog.",
+      "mood": [
+        "mysterious",
+        "calm",
+        "wondrous",
+        "lonely",
+        "dreamy"
+      ],
+      "bestFor": [
+        "underwater exploration games",
+        "calm atmospheric adventures",
+        "horror games about light and darkness",
+        "night or deep-space style worlds with glowing life",
+        "relaxing collect-and-explore games"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#040b18",
+        "#07101f",
+        "#162842",
+        "#2c4a6e",
+        "#09091b",
+        "#1a1838",
+        "#060a13",
+        "#1f2f48",
+        "#547aa6",
+        "#59e8ff",
+        "#34f0c8",
+        "#c4fdff",
+        "#9d7dff",
+        "#ff6fd2",
+        "#ff7fae",
+        "#8dffe0",
+        "#fff1c8",
+        "#ffc46b",
+        "#1f4d6e",
+        "#112e46",
+        "#7d90a0"
+      ],
+      "fonts": [
+        "Exo 2",
+        "Quantico",
+        "Comfortaa"
+      ],
+      "page": "https://miwale.com/styles/deepsea/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/deepsea/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/deepsea/spec.json",
+        "starter": "https://miwale.com/styles/library/deepsea/starter.js",
+        "module": "https://miwale.com/styles/js/styles/deepsea.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=deepsea&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=deepsea&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=deepsea&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=deepsea&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=deepsea&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=deepsea&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=deepsea&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/deepsea.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/deepsea_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/deepsea_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/deepsea_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/deepsea_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "artdeco",
+      "name": "Art Deco Gold",
+      "family": "Vector · Art Deco",
+      "group": "Graphic",
+      "original": true,
+      "tags": [
+        "art deco",
+        "1920s",
+        "gold",
+        "geometric",
+        "marble",
+        "luxury",
+        "dark",
+        "sunburst"
+      ],
+      "summary": "A 1920s grand lobby: onyx, emerald and midnight marble inlaid with metallic gold sunbursts, chevrons, fans and stepped corners.",
+      "mood": [
+        "glamorous",
+        "opulent",
+        "nocturnal",
+        "orderly",
+        "festive"
+      ],
+      "bestFor": [
+        "stylish top-down action and arcade projects",
+        "heist, casino, hotel or jazz-age settings",
+        "luxury puzzle and match games",
+        "elegant menus, title screens and card UIs",
+        "art-deco inspired city builders and museums"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#0d0e12",
+        "#1b1c23",
+        "#0f1a33",
+        "#18233f",
+        "#3460c0",
+        "#0e4a40",
+        "#14695a",
+        "#2a9c84",
+        "#b8862f",
+        "#e6c15a",
+        "#fff0b8",
+        "#5a3d10",
+        "#c99a3c",
+        "#f2e8d0",
+        "#fffaf0",
+        "#ecd0a4",
+        "#3a332a",
+        "#123a57",
+        "#b8323f",
+        "#07080b"
+      ],
+      "fonts": [
+        "Limelight",
+        "Josefin Sans",
+        "Poiret One"
+      ],
+      "page": "https://miwale.com/styles/artdeco/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/artdeco/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/artdeco/spec.json",
+        "starter": "https://miwale.com/styles/library/artdeco/starter.js",
+        "module": "https://miwale.com/styles/js/styles/artdeco.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=artdeco&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=artdeco&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=artdeco&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=artdeco&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=artdeco&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=artdeco&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=artdeco&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/artdeco.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/artdeco_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/artdeco_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/artdeco_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/artdeco_zoom.webp"
+        }
+      ]
     }
   ]
 }

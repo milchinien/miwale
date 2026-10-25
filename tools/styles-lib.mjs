@@ -27,7 +27,11 @@ export const ORDER = [
 ];
 
 /** Styles made especially for the library (not drawn for an earlier project). Shown as "New". */
-export const ORIGINALS = ['blueprint', 'ukiyoe', 'thermal', 'terminal', 'origami'];
+export const ORIGINALS = ['blueprint', 'ukiyoe', 'thermal', 'terminal', 'origami',
+  'rubberhose', 'vaporwave', 'sumie', 'bricks', 'riso', 'crayon', 'deepsea', 'artdeco'];
+
+/** Variants: built on the technique of an existing style, but a clearly different look. variant -> base. */
+export const VARIANTS = { rubberhose: 'cartoon', vaporwave: 'neon', sumie: 'watercolor', bricks: 'voxel' };
 
 export function styleIds() {
   const found = readdirSync(libraryDir, { withFileTypes: true })
