@@ -508,6 +508,48 @@ Ein neuer Style: Modul nach `js/styles/`, Screenshots nach `shots/`, Ordner
 `library/<id>/` nach `AUTHORING.md`, Gruppe in `GROUPS` von
 `tools/build-styles.mjs`, dann `node tools/build-styles.mjs`.
 
+## Dev-Zentrale (miwale.com/dev)
+
+Zeigt die laufenden Dev-Server (localhosts) des Rechners, an dem man gerade
+sitzt, und startet oder stoppt sie. Die Seite selbst weiss nichts ueber
+Geraete: `public/dev/zentrale.js` fragt im Browser den **Agenten** auf
+`127.0.0.1:5300` (`public/dev/agent.mjs`, ohne Abhaengigkeiten). Wer keinen
+hat, sieht nur die Anleitung.
+
+- **Einrichten, einmal pro Windows-Rechner:** auf der Seite "Kopieren", dann
+  `Win+R`, `Strg+V`, `Enter`. `public/dev/installieren.ps1` legt den Agenten
+  nach `%LOCALAPPDATA%\miwale-dev`, in den Autostart und ins Startmenue mit
+  dem Kuerzel **Strg+Alt+D** (oeffnet die Seite). Im Repo:
+  `pnpm zentrale:installieren`.
+- **Projekte** findet der Agent selbst: alle Ordner mit `package.json` und
+  einem Skript `dev`, `start`, `serve` oder `develop`, auf allen Laufwerken.
+  Paketmanager aus `packageManager` oder der Lock-Datei. Vor jedem Start prueft
+  der Agent, ob Node jedes Paket aus der `package.json` wirklich findet (nach
+  dem Verschieben eines Projekts zeigen pnpms Links ins Leere) und installiert
+  sonst zuerst. Scheitert der Start trotzdem, repariert er einmal selbst:
+  neu installieren, und klappt das nicht, `node_modules` neu aufbauen. Fehlt
+  pnpm/yarn auf dem Rechner, kommt es ueber `npx`. Nur gegen einen belegten
+  Port hilft das nicht -- dann sagt die Seite, wer ihn hat. Weitere Suchordner und Ausgeblendetes stehen in
+  `%LOCALAPPDATA%\miwale-dev\einstellungen.json`, Logs je Projekt in `logs\`.
+- **Laufende Server:** jede Instanz einzeln, auch zwei aus demselben Ordner.
+  Gezaehlt werden Node, Bun, Deno, Python & Co. mit offenem Port; zugeordnet
+  ueber den Projektpfad in der Befehlszeile. "Alle stoppen" laesst Server ohne
+  Projekt in Ruhe.
+- **Tastatur:** Tippen sucht, `Enter` startet/oeffnet den Treffer, `1`–`9` das
+  Projekt mit der Nummer, `Entf` stoppt alle, `Esc` leert die Suche.
+- **Sicherheit:** Der Agent lauscht nur auf 127.0.0.1, nimmt Anfragen nur von
+  `https://miwale.com` und `http://localhost:*` an (Origin- und Host-Pruefung)
+  und kennt keine freien Befehle: Starten heisst immer das Skript aus der
+  `package.json` des gefundenen Ordners, stoppen nur Prozesse aus seiner
+  eigenen Liste. Die CSP von `/dev/` erlaubt genau die Verbindung zum Agenten
+  (`docker/sicherheit-dev.conf`). Chrome fragt beim ersten Mal, ob miwale.com
+  auf das lokale Netzwerk zugreifen darf.
+
+```bash
+pnpm zentrale                 # Agent starten (falls noetig) und Seite oeffnen
+node --test tools/dev-zentrale.test.mjs
+```
+
 ## Adresse und Verlauf
 
 Der sichtbare Zustand des Portfolios steht in kurzen Adressen: `/portfolio`

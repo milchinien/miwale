@@ -96,6 +96,16 @@ export function diensteDev() {
         if (pfad.startsWith('/api/bewertungen/')) return bewertungen(req, res);
         if (pfad === '/api/ideen' || pfad.startsWith('/api/ideen/')) return ideen(req, res);
         if (pfad === '/api/stimmen' || pfad.startsWith('/api/stimmen/')) return stimmen(req, res);
+        // Wie nginx: /styles und /Styles... fuehren auf /styles/, das die Galerie liefert.
+        if (pfad === '/styles' || pfad.startsWith('/Styles')) {
+          res.statusCode = 301;
+          res.setHeader('Location', '/styles' + (pfad.slice(7) || '/') + req.url.slice(pfad.length));
+          return res.end();
+        }
+        if (pfad === '/styles/') { req.url = '/styles/index.html' + req.url.slice(pfad.length); return next(); }
+        // Dev-Zentrale wie in nginx: /dev -> /dev/, das liefert index.html.
+        if (pfad === '/dev') { res.statusCode = 301; res.setHeader('Location', '/dev/' + req.url.slice(pfad.length)); return res.end(); }
+        if (pfad === '/dev/') { req.url = '/dev/index.html' + req.url.slice(pfad.length); return next(); }
         if (pfad === '/admin') { res.statusCode = 301; res.setHeader('Location', '/admin/'); return res.end(); }
         if (pfad === '/admin/') {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
