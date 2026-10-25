@@ -159,6 +159,15 @@ jobs:
           grep -qi '^x-content-type-options: nosniff' <<< "$kopf" || { echo "STYLE.md ohne nosniff"; echo "$kopf"; exit 1; }
           curl -sSI http://127.0.0.1:8080/styles/llms.txt | tr -d '\r' | grep -qi '^content-type: text/plain; charset=utf-8'
           umleitung /admin 301 /admin/
+          # Dev-Zentrale: Seite, Agent und Installationsskript; die CSP erlaubt
+          # die eine Verbindung zum Agenten auf dem eigenen Geraet.
+          test "$(status /dev/)" = 200
+          test "$(status /dev/zentrale.js)" = 200
+          umleitung /dev 301 /dev/
+          curl -sSI http://127.0.0.1:8080/dev/ | tr -d '\r' | grep -qi "^content-security-policy: .*connect-src 'self' http://127.0.0.1:5300;"
+          for datei in agent.mjs installieren.ps1; do
+            curl -sSI "http://127.0.0.1:8080/dev/$datei" | tr -d '\r' | grep -qi '^content-type: text/plain; charset=utf-8' || { echo "/dev/$datei falscher Typ"; exit 1; }
+          done
           umleitung /games/runecall/raum/A9YW4 302 '/games/runecall/#A9YW4'
           umleitung /games 301 /
           umleitung /games/ 301 /

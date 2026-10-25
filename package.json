@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "games:sync": "node tools/sync-games.mjs",
     "check:games": "node tools/check-games.mjs",
-    "test": "node --test tools/*.test.mjs"
+    "test": "node --test tools/*.test.mjs",
+    "zentrale": "node public/dev/agent.mjs --oeffnen",
+    "zentrale:installieren": "powershell -NoProfile -ExecutionPolicy Bypass -File public/dev/installieren.ps1"
   },
   "devDependencies": {
     "playwright": "^1.63.0",
