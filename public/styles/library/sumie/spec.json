@@ -1,0 +1,138 @@
+{
+  "id": "sumie",
+  "name": "Sumi-e Ink",
+  "originalName": "Sumi-e Ink",
+  "family": "Painterly · Ink wash",
+  "tags": ["sumi-e", "ink wash", "monochrome", "brushwork", "dry brush", "xuan paper", "empty space", "vermilion seal"],
+  "summary": "Monochrome ink-wash painting in motion: black sumi in five tones on warm xuan paper, one-stroke brushwork, lots of empty space, one vermilion accent.",
+  "description": "Everything is painted with one black ink diluted into five tones, from burnt black to a clear grey wash, on warm rice paper with visible fibres. Shapes are made of a few expressive single strokes: pressed starts, tapering ends and dry-brush streaks where the bristles run out of ink, plus soft washes that bleed into the paper. Most of the sheet stays empty; water is bare paper framed by banks, mountains dissolve into mist, bamboo, plum branches and pines are built from classic brush motifs. The only colour is vermilion, kept for seals, a few plum blossoms and the sash of the main character.",
+  "mood": ["serene", "contemplative", "elegant", "airy", "timeless"],
+  "bestFor": ["calm exploration and travel games with an East-Asian theme", "martial-arts and folklore action games that want a painterly look", "zen, meditation and puzzle projects", "story maps, title screens and scroll-based menus"],
+  "avoidFor": ["projects that need colour coding by hue", "neon, sci-fi or gritty modern settings", "very dense screens where empty space cannot survive"],
+  "difficulty": { "stars": 5, "why": "New assets are fast to sketch with the brush() and wash() toolkit and need no colour design, but they only read when the strokes are few and confident: choosing which five to eight strokes carry a figure, balancing the five ink tones for depth and keeping enough empty paper is the real craft." },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native resolution, smooth scaling. Characters and effects baked at 4 px per world unit (effects up to 12), props at 3 px; ground chunks of 256 units rendered per pixel at up to 2.5 px per unit.",
+    "summary": "Every mark is a filled brush ribbon along a Catmull-Rom spline whose width follows a pressed start, a wobble and a tapering end; dry strokes switch to 4-18 parallel bristle ribbons that end early and break into gaps along 1D noise (flying white). Washes are filled shapes with blurred darker blots, a dried rim, paper granulation and an optional mist fade; a blurred copy underneath makes the ink bleed. A fibre pattern is cut out of every baked sprite so the ink sits in the paper.",
+    "linework": "No outlines in the cartoon sense: contours are brush strokes. Main character back stroke 3.0 units wide (burnt black, dry 0.6), front contours 1.1-1.4, sleeve stroke 2.2, folds 0.7-1.0, face contour 0.6. Width = w * (0.3 + 0.7 sqrt(u / ta)) at the start, * (0.04 + 0.96 ((1 - u) / tb)^0.6) at the end, * (1 + press * exp(-s^2 / 1.2 w^2)) for a pressed head, * (1 + 0.12 wobble). Ground strokes 0.5-2.4 units, props 0.4-5.2 units (plum trunk 5.2, pine trunk 4.4).",
+    "shading": "Value only, built from the five ink tones: dark blots inside washes (blurred 1-5 units), lighter belly patches, a dried darker rim along wash edges and the tone mix across dry bristles (tip ink c on one side, belly ink c2 on the other). Depth in props comes from value: far stalks, back peaks and far needle clusters in dan / qing, near ones in nong / jiao.",
+    "lighting": "No light source, no highlights except bare-paper glints. Readability comes from value contrast: black creatures on pale paper, bare-paper faces and eyes, a pale grey robe held by black strokes. Shadows are soft pale ink ellipses rgba(58,54,48,.34 -> 0).",
+    "texture": "Warm xuan paper: a 512 px fibre tile (2600 curved hairs, 62 % light), 256 px paper tooth noise, a granulation tile multiplied into every wash at 0.3-0.8, and a 256 px light-fibre pattern cut out of every sprite with destination-out at 0.28 (characters) / 0.35 (props)."
+  },
+  "palette": [
+    { "name": "Xuan paper", "hex": "#f3ecdd", "role": "The sheet: ground base (~75 % of the screen), panel paper, misty margin" },
+    { "name": "Unpainted paper", "hex": "#f9f4e8", "role": "Brightest paper: faces, eyes, collar gaps, waterfalls, mist bands, flash state" },
+    { "name": "Jiao (burnt ink)", "hex": "#161412", "role": "Darkest tone: creature bodies, hair, crest lines, moss dots, text" },
+    { "name": "Nong (thick ink)", "hex": "#2c2926", "role": "Bold contours, bamboo stalks, grass, needle clusters, HUD bars" },
+    { "name": "Zhong (heavy ink)", "hex": "#56524c", "role": "Mid tone: inner blots, shore strokes, ripples, pine trunks" },
+    { "name": "Dan (light ink)", "hex": "#8a857c", "role": "Far props, robe shading, ground dry strokes, brush handle" },
+    { "name": "Qing (clear ink)", "hex": "#beb8aa", "role": "Pale washes: robe, smoke creature, far peaks, bar tracks" },
+    { "name": "Ground ink", "hex": "#322f2c", "role": "Ink mixed into the paper by the ground shader (wash density 0.03-0.19)" },
+    { "name": "Vermilion", "hex": "#ce3c26", "role": "The only colour: seals, plum blossoms, the sash and hair tie, orbit dots, card keys" },
+    { "name": "Vermilion deep", "hex": "#a0261a", "role": "Sash shading, blossom centres, seal pressure spots, menu captions (#a8281a)" },
+    { "name": "Vermilion light", "hex": "#e47052", "role": "Blossom hearts, seal highlights (#e8583c)" },
+    { "name": "Silk mounting", "hex": "#4e4b46", "role": "Scroll mounting of cards, plaques and the caption bar" },
+    { "name": "Roller", "hex": "#2a2622", "role": "Scroll rods and rollers (gradient #4a4540 -> #141210)" },
+    { "name": "Paper rule", "hex": "#d6cebe", "role": "Thin pale strips between silk and paper on scrolls" },
+    { "name": "Shadow ink", "hex": "#3a3630", "role": "Soft ground shadows at alpha 0.17-0.34" }
+  ],
+  "paletteRules": [
+    "Monochrome first: every mark uses one of the five ink tones over warm paper; tones are mixed by alpha, never by hue.",
+    "Vermilion appears only as seals, a few plum blossoms and petals, the sash and hair tie of the main character and the tiny dots inside the orbiting circles; keep it under about 2 % of the screen.",
+    "No pure black and no pure white: the darkest ink is #161412, the brightest paper #f9f4e8.",
+    "Leave most of the sheet empty paper (ma); washes stay under 20 % density on the ground.",
+    "Value carries depth: far things pale (dan / qing), near things dark (nong / jiao).",
+    "Water is never painted blue or grey: it is bare paper framed by bank washes and a few flowing lines."
+  ],
+  "typography": [
+    { "family": "Ma Shan Zheng", "weights": [400], "role": "Titles, clock, counters, floating numbers, seal numerals", "source": "Google Fonts", "sample": "12:30", "css": "font: 400 40px/1 'Ma Shan Zheng', 'Zhi Mang Xing', serif; letter-spacing: 2px; color: #161412;" },
+    { "family": "Zhi Mang Xing", "weights": [400], "role": "Captions, labels, hints (grass-script feel), often in vermilion", "source": "Google Fonts", "sample": "Hint text", "css": "font: 400 19px/1.1 'Zhi Mang Xing', 'Ma Shan Zheng', cursive; color: #ce3c26;" },
+    { "family": "Yuji Mai", "weights": [400], "role": "Card titles", "source": "Google Fonts", "sample": "Card title", "css": "font: 400 22px/1.15 'Yuji Mai', 'Cormorant Garamond', serif; color: #161412;" },
+    { "family": "Cormorant Garamond", "weights": [500, 600], "role": "Body copy and card text (italic 600)", "source": "Google Fonts", "sample": "Body copy in the card font", "css": "font: italic 600 18px/1.2 'Cormorant Garamond', Georgia, serif; color: #56524c;" }
+  ],
+  "world": {
+    "summary": "An endless sheet of xuan paper painted per pixel in 256-unit chunks: paper tooth and fibres, pale ink washes that bleed into the fibres with one dried edge, ponds and thin streams left as bare paper framed by bank washes, then a few brush marks on a lot of empty space. Chunks are built by a generator in small time slices.",
+    "layers": [
+      "Paper: #f3ecdd * (0.966 + 0.05 tooth + 0.12 fibres); fibres are a 512 px tileable tile of curved hairs (0.4 units per texel at full resolution)",
+      "Pale wash regions (domain-warped fbm, scale 500 units, threshold 0.6): softness 1.5-13.5 units, fibre-feathered edge (+-9 units of noise), density 0.03 + 0.09 exp(-d / 10..36) with a dried rim of 0.055 just inside the edge and granulation +-50 %",
+      "Ponds (warped fbm, scale 820, threshold 0.625) and streams (zero contour of warped noise at scale 860, half width 5.5-10.5 units, only where a mask noise allows, so they thin out and end): bare paper +1.2 % brighter",
+      "Shore wash inside the water: 0.07-0.19 density fading over 9 units; bank wash on the land side: 0.04-0.17 fading over 8-24 units, absent in places",
+      "Brush decals: long pale dry strokes for the lie of the land (26-72 units, flying white), broken shore strokes that follow the bank (11-31 units), two or three flowing ripple lines in open water, reeds with cattail heads, sparse orchid-like grass tufts, clusters of moss dots, pebbles and stepping stones, flicked ink droplets, a few vermilion petals"
+    ]
+  },
+  "characters": {
+    "summary": "Figures painted with a handful of strokes and baked once per pose. Main character: a wandering calligrapher (about 22 x 30 units, 40 up to the bristle tip) with a bare-paper face, black hair in a topknot with a vermilion tie, a pale grey robe held by one bold burnt-black back stroke, a vermilion sash whose two tails stream behind, straw-sandal dabs and a giant calligraphy brush carried across the back, bristles up. Small creature: an ink blot (about 20 x 17 units) with spiky dry-brush hair, satellite droplets, four stroke legs and two bare-paper eyes, in burnt black or heavy grey with a curled tail. Fast creature: a wisp of pale smoke (about 11 x 24 units) with a round head, a curling dry-brush tail, a broken contour and two slanted ink dashes for eyes. Large creature: a shaggy beast of splashed ink (about 46 x 40 units) with a radiating dry-brush mane, pale curved horns, a grey face mask, bare-paper eyes and fangs and a flame-like tail.",
+    "rules": [
+      "Five to twelve strokes per figure; every stroke has a pressed start and a tapering or dry end. Never close a contour completely.",
+      "Readability by value: creatures are the darkest masses on the screen, the main character is a mid-grey robe with black strokes and the only vermilion; eyes and faces are bare paper.",
+      "Ink bleeds: dark bodies get a blurred halo (0.5-2.2 units) under the wash, so edges look soaked into the paper.",
+      "Walk cycles: 4 baked poses (legs swap, sash tails wave, sleeve swings); idle: 2 poses (breathing 0.22 units, sash flutter) at 1.4 fps; bob 0.9 units at draw time.",
+      "Hit flash: the same silhouette filled with unpainted paper #f9f4e8 drawn over the sprite at up to 85 % — the ink is lifted.",
+      "Appear: an ink stain spreads on the ground (0.5 -> 1.7 x radius) while a blurred copy of the figure grows from 70 % height, then the crisp strokes fade in.",
+      "Dissolve: four baked frames where the figure blurs, pales toward the paper colour and breaks apart along paper fibres and wash noise, slightly growing."
+    ]
+  },
+  "props": {
+    "summary": "Classic ink-painting motifs, each a few strokes: bamboo clumps (3-5 jointed stalks with node hooks and 个-shaped leaf groups, 64-84 units tall), plum trees with a gnarled dry-brush trunk, angular branches, straight new shoots and vermilion five-petal blossoms (some in ink outline, some as buds), pines with an S-curved trunk, bark-scale hooks and fan-shaped needle wheels over pale wash discs, rocks with axe-cut texture strokes and moss dots (one tall scholar rock with holes), misty mountains (rounded peaks in three values covered with horizontal Mi dots, or craggy pinnacles with a bare-paper waterfall), a thatched hut with a tiny seated figure, reed clumps with feathery plumes and orchids with swelling leaves.",
+    "rules": [
+      "Paint back to front: pale far parts (dan / qing) first, dark near parts on top; that value step is the only depth cue.",
+      "Mountains dissolve into mist: the wash fades out over the lower half and a band of unpainted paper is laid across the slope.",
+      "Props stand on a small pale wash at their base instead of a hard shadow; trees and rocks add a soft shadow ellipse (rocks 9 x 2.6, pines 15 x 4 units).",
+      "Vermilion only in plum blossoms and fallen petals.",
+      "Tall props (mountains, pines, bamboo, plum) turn 45 % transparent when the main character walks behind them.",
+      "Placement: mountains rare and away from water, bamboo in groves driven by a noise field, reeds only on the banks, rocks also in the water as stepping stones."
+    ]
+  },
+  "effects": [
+    { "name": "Flung ink projectile", "how": "A burnt-black drop (r 1.9) with a tiny paper glint and a 21-unit tail that starts at the drop and breaks into dry-brush bristle streaks toward the end, rotated along the flight direction." },
+    { "name": "Ink splash impact", "how": "A baked splash (central blot r 3.6 with a bleed halo, ten droplets on short tapered spokes) grows from 55 % to 115 % and fades within 0.24 s at the impact height; two or three ink drops fly off under gravity and land as flattened stains." },
+    { "name": "Ink burst", "how": "10-22 drops thrown out with gravity 260 that land and stay as stains on the paper, a 0.3 s splash and a bleed ring on the ground: a pale disc with a darker dried rim that spreads to 15-32 units and fades over 1-1.5 s. Smoke creatures dissolve into three pale smoke puffs instead." },
+    { "name": "Orbiting ensō", "how": "Two small one-stroke circles (r 5.6, 1.7 units wide, pressed start, dry end, open gap) spin at 2.2 rad/s around the main character with a vermilion dot in the middle and a soft pale shadow below." },
+    { "name": "Collectibles", "how": "Small: a burnt-black ink bead (teardrop 5 x 8 units) with a paper glint. Large: a vermilion square seal (9.6 units) with eroded edges and carved abstract strokes that bobs and tilts; collecting one releases vermilion petals and a small bleed ring." },
+    { "name": "Ensō glow-up", "how": "A large one-stroke circle (r 14, 2.5 units wide, dry end) is painted in one movement around the main character (pie clip sweeping 0 -> 330 degrees in 0.55 s), then fades into the paper while twelve vermilion petals scatter and flutter." },
+    { "name": "Dash smear", "how": "A 30-unit dry-brush streak in light ink behind the figure, three after-images at 20 / 10 / 7 % alpha and a few drops left on the ground." },
+    { "name": "Floating numbers", "how": "Ma Shan Zheng numerals, 10 units, black ink with a paper outline; accented ones 13 units in paper colour on a small vermilion seal; pop 0.55 -> 1.15 -> 1 with a slight tilt." }
+  ],
+  "atmosphere": {
+    "summary": "The screen is a painting with an unpainted margin: the edges fade into misty paper along a fibre-feathered border, slow bands of mist drift across the world, and the lower left carries a column of abstract calligraphy with a square and a round vermilion seal. Hurt makes black ink seep in from the margin.",
+    "rules": [
+      "Margin: a rounded rectangle (radius 10 % of the height) whose outside fades to paper #f3ecdd at up to 82 % over 11 % of the height, edge displaced +-6 % by wash noise and +-1.4 % by fibres; built once per screen size, drawn as four strips.",
+      "Mist bands: three in eight 460 x 230-unit cells carry a soft paper-coloured band 240-380 units wide that drifts 5-11 units/s with alpha 0.32 sin(pi * phase), so it fades in and out instead of popping.",
+      "Inscription: four abstract glyphs (bars, a spine, falling strokes, hooks, dots) 3.4 % of the height tall in nong at 72 %, a square seal with carved strokes and a small round seal below — never real script.",
+      "Hurt: ink #2c2926 seeps in from the margin along noise, up to 62 % alpha, fading with the hurt timer.",
+      "No vignette darkening, no glow, no colour grading: the paper itself is the light."
+    ]
+  },
+  "ui": {
+    "summary": "Mounted scrolls and brush strokes. Cards are hanging scrolls: a cord and hook, a dark rod, grey silk mounting with a faint diagonal weave, pale strips, a paper field with fibres and a heavy bottom roller with knobs; the clock plaque and the caption bar are small handscrolls with dark rollers at both ends. Bars are single brush strokes (pale dry track, black ink fill with a ragged dry-brush end mask). Counters and numbers are Ma Shan Zheng ink; vermilion seals mark the level box (square), card keys (round) and titles (square with carved strokes). Titles sit on one broad pale wash stroke.",
+    "css": ".panel { background: #f3ecdd; border: 10px solid #4e4b46; outline: 2px solid #d6cebe; outline-offset: -12px; box-shadow: 0 12px 14px rgba(16,13,10,.45); color: #161412; }\n.panel::before { content: ''; position: absolute; left: -16px; right: -16px; bottom: -22px; height: 14px; border-radius: 7px; background: linear-gradient(#4a4540, #141210); }\n.bar { height: 22px; background: linear-gradient(90deg, rgba(190,184,170,.75), rgba(190,184,170,.55)); border-radius: 11px 4px 9px 3px; }\n.bar > .fill { height: 100%; background: linear-gradient(180deg, #2c2926, #161412 60%, #2c2926); border-radius: 12px 2px 10px 3px; -webkit-mask: linear-gradient(90deg, #000 calc(100% - 16px), transparent); mask: linear-gradient(90deg, #000 calc(100% - 16px), transparent); }\n.number { font: 400 40px/1 'Ma Shan Zheng', serif; color: #161412; text-shadow: 0 0 3px #f3ecdd, 0 0 8px #f3ecdd; }\n.seal { width: 34px; height: 34px; background: #ce3c26; border-radius: 2px; color: #f9f4e8; font: 400 20px/34px 'Ma Shan Zheng', serif; text-align: center; transform: rotate(-3deg); box-shadow: inset 0 0 0 2px #ce3c26, inset 0 0 0 3px rgba(249,244,232,.7); }\n.caption { font: 400 19px 'Zhi Mang Xing', cursive; color: #ce3c26; }"
+  },
+  "motion": [
+    "Main character walk: 4 baked poses at phase = distance * 0.08 cycles, bob 0.9 |cos| units; idle alternates two breathing poses at 1.4 fps; the sash tails and hair tie are part of each pose.",
+    "Small creature: 4 poses at anim * 0.7 (legs alternate, body squash 6 %); smoke creature: 4 tail poses at anim * 0.35, hovering 2.5 +- 1.4 units at 3 rad/s; large creature: 4 poses at anim * 0.45.",
+    "Appear 0.45 s (ink stain spreads with outQuad, blurred copy, then crisp strokes from 35 %); dissolve 0.35 s in four frames; hit flash fades at 7/s.",
+    "Splashes 0.18-0.3 s, landed drops 1-1.8 s, bleed rings 0.45-1.6 s, puffs 0.35-1 s, petals 0.8-1.5 s with a sideways flutter and a cosine flip.",
+    "Ensō glow-up: painted in 0.55 s, visible 1.4 s; orbiting ensō spin 2.2 rad/s; collectible seals bob 1 unit at 3 rad/s and tilt 0.12 rad.",
+    "Mist bands drift 5-11 units/s; nothing in the style moves fast except the brush marks themselves."
+  ],
+  "do": [
+    "Paint every shape with a few confident strokes: pressed start, tapering or dry end, never a uniform line.",
+    "Leave most of the sheet empty; let water, faces, eyes and mist be bare paper.",
+    "Use the five ink tones for depth: pale far, dark near.",
+    "Let dark masses bleed: put a blurred halo under ink blots and bodies.",
+    "Use dry-brush streaks on long strokes (bars, ground strokes, trunks, mane) so the paper shows through the ink.",
+    "Keep vermilion for seals, blossoms and the main character's sash; one accent only.",
+    "Frame the screen with a misty unpainted margin and sign it with abstract calligraphy and seals."
+  ],
+  "dont": [
+    "Don't add a second colour, colour-tinted water or coloured shadows.",
+    "Don't outline shapes with closed constant-width lines; that turns ink into a cartoon.",
+    "Don't fill the ground with texture everywhere; clutter destroys the empty space.",
+    "Don't use hard flat colour blocks or crisp vector edges; washes always feather into the paper.",
+    "Don't use pure white or pure black.",
+    "Don't write legible text in seals or inscriptions; use abstract glyph strokes.",
+    "Don't animate the strokes with a jittery boil; the look is calm and the poses are stable."
+  ],
+  "performance": "Init bakes about 70 sprite canvases (6 main-character poses, 8 small-creature, 4 smoke and 4 large-creature poses, each with a mirrored and a paper-flash copy, blurred appear copies and 12 dissolve frames, 17 prop variants, ~25 effect sprites and the HUD textures) in about 0.8 s: textures 0.22 s, characters 0.25 s, props 0.19 s, effects and HUD 0.16 s; the blur filters of the bleed halos are the main cost. Ground chunks (256 units, up to 640 px) cost 50-85 ms each, built by a generator in 5 ms slices (per-pixel shader with fields on a 16 px grid, then decals). Per frame: chunk blits, one drawImage per shadow, actor, prop and particle, about six mist bands and the cached margin strips. With 60 actors the frame costs about 1.4-2.2 ms at 1600 x 900, in line with the watercolour module measured the same way."
+}

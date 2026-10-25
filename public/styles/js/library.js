@@ -34,11 +34,13 @@
   function buildChips() {
     const groups = ['all'];
     if (state.list.some((s) => s.original)) groups.push('new');
+    if (state.list.some((s) => s.variantOf)) groups.push('variants');
     for (const s of state.list) if (!groups.includes(s.group)) groups.push(s.group);
     const box = $('#chips');
     box.innerHTML = groups.map((g) => {
-      const n = g === 'all' ? state.list.length : g === 'new' ? state.list.filter((s) => s.original).length : state.list.filter((s) => s.group === g).length;
-      const label = g === 'all' ? 'All' : g === 'new' ? '✦ New' : esc(g);
+      const n = g === 'all' ? state.list.length : g === 'new' ? state.list.filter((s) => s.original).length
+        : g === 'variants' ? state.list.filter((s) => s.variantOf).length : state.list.filter((s) => s.group === g).length;
+      const label = g === 'all' ? 'All' : g === 'new' ? '✦ New' : g === 'variants' ? '⟲ Variants' : esc(g);
       return '<button type="button" class="chip' + (g === 'new' ? ' chip-new' : '') + '" data-group="' + esc(g) + '" aria-pressed="' + (g === state.group) + '">' + label + ' <span>' + n + '</span></button>';
     }).join('');
     box.addEventListener('click', (e) => {
@@ -51,7 +53,7 @@
   }
 
   function visible() {
-    let arr = state.list.filter((s) => state.group === 'all' || (state.group === 'new' ? s.original : s.group === state.group));
+    let arr = state.list.filter((s) => state.group === 'all' || (state.group === 'new' ? s.original : state.group === 'variants' ? s.variantOf : s.group === state.group));
     if (state.q) arr = arr.filter((s) => [s.name, s.family, s.summary, s.group, ...s.tags, ...s.mood, ...s.bestFor, ...s.fonts].join(' ').toLowerCase().includes(state.q));
     const base = (s) => state.list.indexOf(s);
     const pop = (s) => L.votes.score('style:' + s.id);
@@ -86,6 +88,7 @@
         '<div class="card-body">' +
         '<p class="eyebrow">' + String(n).padStart(2, '0') + ' · ' + esc(s.family) + '</p>' +
         '<h3>' + esc(s.name) + '</h3>' +
+        (s.variantOf ? '<p class="card-variant">⟲ Variant of ' + esc(nameOf(s.variantOf)) + '</p>' : '') +
         '<p class="card-sum">' + esc(s.summary) + '</p>' +
         '<div class="card-meta">' + L.voteWidget('style:' + s.id, 'sm') +
         '<span class="effort" title="How hard it is to create new assets in this style (1 simple – 10 elaborate)">' + L.meter(s.difficulty) + s.difficulty + '/10</span></div>' +

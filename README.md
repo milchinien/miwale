@@ -410,7 +410,7 @@ Secrets gehoeren nur in die `.env` auf dem Server, nie ins Repository.
 
 ## Game Style Library (miwale.com/styles)
 
-Eine offene Seite **für KIs**: 25 fertige Grafik-Styles, so genau beschrieben,
+Eine offene Seite **für KIs**: 33 fertige Grafik-Styles, so genau beschrieben,
 dass eine KI sie für ein eigenes Projekt übernehmen kann. Viele KIs erfinden
 schlechte Styles; hier kopieren sie einen, der funktioniert. Es geht **nur um
 Design**: Texte, Specs und Vorschauen erwähnen kein Spiel und keine
@@ -483,7 +483,10 @@ Tests: `node --test tools/stimmen.test.mjs`.
 
 Neben den 20 Styles des Game-Jam-Prototyps gibt es Styles, die eigens für die
 Bibliothek entstanden sind (`ORIGINALS` in `tools/styles-lib.mjs`, in der
-Galerie „✦ New“). Ein Style ist immer ein Modul in `js/styles/<id>.js`, das
+Galerie „✦ New“). Einige davon sind **Varianten** (`VARIANTS` in
+`tools/styles-lib.mjs`): Sie bauen auf der Technik eines vorhandenen Styles
+auf, sehen aber deutlich anders aus; Galerie und Style-Seiten verweisen
+gegenseitig darauf („⟲ Variant of …“). Ein Style ist immer ein Modul in `js/styles/<id>.js`, das
 in `play.html` eingetragen ist.
 
 `node tools/shots-styles.mjs <id> | --all` erzeugt die fünf Vorschaubilder

@@ -1,0 +1,139 @@
+{
+  "id": "riso",
+  "name": "Risograph Print",
+  "originalName": "Risograph Print",
+  "family": "Print · Risograph",
+  "tags": ["risograph", "zine", "spot colour", "overprint", "halftone", "misregistration", "fluorescent", "grain"],
+  "summary": "A three-ink risograph zine: fluorescent pink, blue and yellow overprinting on recycled paper, out of register, with halftones and drum grain.",
+  "description": "Everything is printed with only three fluorescent soy inks – pink #ff48b0, medium blue #0078bf and yellow #ffe800 – on off-white recycled paper. There is no black plate and no outline anywhere: shapes are flat ink layers that multiply where they overlap (pink over blue turns violet, pink over yellow red-orange, blue over yellow green), and every plate sits a few pixels out of register, so edges show slivers of single inks and paper. Tones come from coarse round halftone dots on a different screen angle per ink or from random grain stipple, and a drum texture of clumps, streaks, missing-ink specks and soft banding runs through every layer. The UI is a zine page: crop marks, registration targets, colour bars, stamped labels and offset ink blocks.",
+  "mood": ["playful", "punchy", "handmade", "sunny", "indie"],
+  "bestFor": ["colourful top-down action and arcade games", "indie games with a zine or poster identity", "music, festival and art-scene projects", "cheerful puzzle and party games", "menus, title cards and promo art"],
+  "avoidFor": ["horror and dark, gritty moods", "photorealistic or painterly projects", "night scenes that need deep blacks", "UI-dense simulations that need many neutral greys"],
+  "difficulty": { "stars": 5, "why": "A new asset is a short list of flat shapes, each assigned to one or two of three inks, plus one halftone gradient – overprint colours, misregistration, grain and paper come from the shared plate engine. The craft is choosing which shapes knock out and which overprint, and keeping silhouettes readable without any outline." },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets): three ink plates per sprite in one RGB mask canvas -> per-pixel multiplicative bake with drum grain -> cached sprites; ground shaded per pixel in cached chunks",
+    "pixelArt": false,
+    "resolution": "Native resolution. Sprites are baked at K = clamp(round(screenHeight x dpr / 360 x 1.6), 3, 8) px per world unit; the ground at up to 2.5 px per world unit, scaled with nearest-neighbour so halftone dots stay crisp.",
+    "summary": "Each sprite is drawn into one mask canvas whose red, green and blue channels are the pink, blue and yellow plates ('lighter' adds ink, multiplying by #00ffff / #ff00ff / #ffff00 knocks one plate out), every plate translated by its own misregistration offset. A bake computes paper x product over inks of (1 - coverage x density x grain x (1 - ink)) per pixel.",
+    "linework": "None. No outlines and no black. The only lines are shapes in their own right: mouths, stems, grass ticks and hand scribbles 0.5-0.8 units wide in a single ink, also misregistered.",
+    "shading": "Flat ink plus halftone: round AM dots (pitch 1.3 units on sprites, 2.6 on the ground; radius = pitch x 0.707 x sqrt(tone)) at screen angles 15° pink, 75° blue, 45° yellow, or FM grain stipple (0.5-unit cells). Volume is a second ink overprinted as a halftone gradient – blue dots on pink become violet shading, yellow dots on blue a green lit side.",
+    "lighting": "No light, only print: a 'lit' side is a lighter halftone or a yellow overprint, a shadow is a blue halftone ellipse multiplied onto the ground. Yellow halftone discs stand in for glow.",
+    "texture": "Recycled paper (#f3ede0 with 2 % grain and rare fibre flecks) plus a 256 x 256 drum-grain tile per ink: clumps, vertical streaks, ±7 % noise, 2.8 % missing-ink specks; ink density mottling (±12 %) and horizontal banding (±5 %)."
+  },
+  "palette": [
+    { "name": "Recycled Paper", "hex": "#f3ede0", "role": "The base of everything (~45 % of the screen): ground, page margin, UI panels, knocked-out highlights and eyes" },
+    { "name": "Fluorescent Pink", "hex": "#ff48b0", "role": "Ink 1 (density 0.93, screen 15°): blossom fields, pink creatures, cheeks, rays, the misregistered shadow plate of UI blocks" },
+    { "name": "Medium Blue", "hex": "#0078bf", "role": "Ink 2 (density 0.80, screen 75°): ponds, hoodie, blue creatures, shadows, type in the UI" },
+    { "name": "Sunflower Yellow", "hex": "#ffe800", "role": "Ink 3 (density 0.92, screen 45°): paths, beanie, eyes of the large creature, collectibles, light" },
+    { "name": "Pink on paper", "hex": "#f34f9f", "role": "What a solid pink layer prints as" },
+    { "name": "Blue on paper", "hex": "#3189b3", "role": "What a solid blue layer prints as" },
+    { "name": "Yellow on paper", "hex": "#f3d912", "role": "What a solid yellow layer prints as" },
+    { "name": "Violet overprint", "hex": "#312d7f", "role": "Pink x blue: trousers, pupils, hair, shadow sides – the darkest common colour" },
+    { "name": "Red-orange overprint", "hex": "#f3480d", "role": "Pink x yellow: beanie cuff, shoes, skateboard deck, cores of projectiles" },
+    { "name": "Green overprint", "hex": "#317d0e", "role": "Blue x yellow: tree crowns, leaves, meadow dots, lily pads" },
+    { "name": "Three-ink near black", "hex": "#312a0a", "role": "Pink x blue x yellow: only for tiny accents such as the large creature's mouth" },
+    { "name": "Pink tint 25 %", "hex": "#f3c5d0", "role": "Blossom fields: pink halftone at tone 0.25" },
+    { "name": "Meadow tint", "hex": "#dedda5", "role": "Meadow fields: yellow 0.27 + blue 0.11 halftones (a green-dotted rosette)" },
+    { "name": "Path tint", "hex": "#f3e481", "role": "Paths: yellow halftone at tone 0.46" }
+  ],
+  "paletteRules": [
+    "Only three inks exist. Every other colour must be a product of them on paper – never mix a new hex value by hand.",
+    "Overprints multiply: pink x blue = violet #312d7f, pink x yellow = red-orange #f3480d, blue x yellow = green #317d0e, all three = near black #312a0a.",
+    "There is no black ink and no grey; the darkest value is the violet overprint (or the three-ink near black in tiny spots).",
+    "White is paper: highlights, eyes and teeth are knockouts where no plate prints.",
+    "The ground uses light tints (tones 0.1-0.5) so characters in solid ink always sit on top; solid ground ink only for ponds and small decals.",
+    "Each plate keeps its own misregistration offset everywhere: pink (+0.72, -0.46), blue (-0.60, +0.48), yellow (+0.30, +0.66) world units."
+  ],
+  "typography": [
+    { "family": "Rubik Mono One", "weights": [400], "role": "Titles, the big title panel, counters, bar labels, floating numbers", "source": "Google Fonts", "sample": "12:30", "css": "font: 400 34px/1 'Rubik Mono One', monospace; color: #0078bf; text-shadow: 3px 2px 0 rgba(255,72,176,.88);" },
+    { "family": "Space Grotesk", "weights": [400, 500, 700], "role": "Card titles and general sans text", "source": "Google Fonts", "sample": "Card title", "css": "font: 700 22px/1.12 'Space Grotesk', sans-serif; letter-spacing: -.01em; color: #0078bf;" },
+    { "family": "DM Mono", "weights": [400, 500], "role": "Small print: captions, labels, card body copy, hints – letter-spaced uppercase", "source": "Google Fonts", "sample": "TITLE", "css": "font: 500 11px/1.2 'DM Mono', monospace; letter-spacing: .34em; text-transform: uppercase; color: #0078bf;" }
+  ],
+  "world": {
+    "summary": "A risograph print of a park seen from above: off-white paper with soft pink and yellow grain clouds, hand-cut colour fields of meadow (green-dotted rosette) and blossom (pink dots), winding yellow halftone paths and solid blue ponds with paper wave marks and a blue halftone shore. Every region edge shows three slightly different outlines because each plate is offset.",
+    "layers": [
+      "Paper #f3ede0 with 2 % grain and rare fibre flecks",
+      "FM grain clouds on bare paper: pink up to 24 % and yellow up to 20 % stipple density, following slow noise – the riso gradient",
+      "Meadow fields: yellow halftone 0.27 + blue halftone 0.11 (different screen angles) + a sparse blue stipple gradient",
+      "Blossom fields: pink halftone 0.25 + yellow stipple",
+      "Paths ~40 units wide: yellow halftone 0.46 with a 5 % pink speckle; they knock out the fields below",
+      "Ponds: solid blue with dashed wavy paper lines (7.5-unit spacing), a blue halftone shore fading over 9 units outside",
+      "Decals as extra ink on the plates: blue grass ticks, five-dot flowers with overprinted centres, pink pebbles on paths, yellow lily pads on ponds (they print green)",
+      "Every plate shifted by its misregistration; drum grain, density mottling and banding over all of it"
+    ]
+  },
+  "characters": {
+    "summary": "Bold, simple shapes built from flat ink layers with no outline, printed on their own paper (knocked out of the world) so they read on any ground. The main character (~19 x 34 units with the bobble) is a kid in a yellow beanie with a red-orange cuff and pink bobble, a blue hoodie shaded with pink halftone (violet dots), violet trousers and red-orange sneakers, a peach halftone face with violet eyes and a pink cheek; when dashing they crouch on a red-orange skateboard with blue wheels. Small creatures are gumdrop blobs (pink with a yellow bobble, or blue with pink horns) with paper eyes; fast creatures are scribbled ghosts – a pale tint silhouette filled with blue and pink hand scribbles; the large creature is a geometric monster: a blue triangle with an overprinted pink disc belly, one big yellow eye, a near-black mouth with paper teeth and a pink horn.",
+    "rules": [
+      "No outlines: the silhouette is the edge of the inks. Keep a dark overprint (violet) somewhere on every character for contrast.",
+      "Back limbs are printed one ink darker (violet or three-ink) than front limbs – depth without lines.",
+      "Eyes, teeth and highlights are paper knockouts; pupils are violet (pink + blue).",
+      "Shade with a second ink as a halftone gradient (blue dots on pink, yellow dots on blue, pink dots on blue) – never with a darker version of the same ink.",
+      "Characters are knocked out of the world: baked onto their own paper and drawn opaque, so a blue creature on a blue pond stays readable.",
+      "Sizes: main character ~19 x 34, small creature 18 x 18, fast creature ~20 x 20 floating 4 units up, large creature ~54 x 60."
+    ]
+  },
+  "props": {
+    "summary": "Scenery made of a few flat shapes that overprint the ground with multiply: round trees (a yellow disc and a smaller blue disc overlapping into a green lens, pink fruit dots), a pink lollipop tree with yellow grain, pines of stacked blue triangles with a yellow halftone lit side, bushes of overlapping yellow and blue circles, halftone-blue rocks and small violet pebbles, little houses (pink walls and a blue roof, or yellow walls and a pink roof, with knocked-out window crosses), flower clusters, a potted leafy plant and a street lamp with a yellow halftone glow disc.",
+    "rules": [
+      "Overlap shapes of different inks on purpose: the overlap is the most riso part of any prop.",
+      "Props print with multiply over the ground, so a pink house on a yellow path gets a red-orange base – keep their own inks solid so they still read.",
+      "Use 2-3 inks per prop, one halftone gradient at most.",
+      "Each prop has a blue halftone shadow ellipse shifted slightly right.",
+      "Trees, flowers and plants sway by shearing (±0.02); houses and rocks are static.",
+      "Typical sizes: tree 24 x 42, pine 26 x 44, house 28 x 30, bush 20 x 16, lamp 3 x 37 with a 21-unit glow."
+    ]
+  },
+  "effects": [
+    { "name": "Ink pellet projectile", "how": "A pink disc (r 2.7) with an overprinted yellow core (prints red-orange) and a trail of three shrinking pink halftone dots, rotated along the flight direction and multiplied onto the world." },
+    { "name": "Collectibles", "how": "Small: a yellow diamond (6.8 x 9.6) with a smaller overprinted pink diamond – red-orange core, yellow and pink fringes. Large: a pink five-point star with a blue overprint centre and a yellow halftone gradient, gently tilting; both bob 3 units above a tiny halftone shadow." },
+    { "name": "Orbiting sun stamp", "how": "A yellow disc with blue dot eyes and a smile, pink halftone shading, inside a separately rotating ring of 10 pink zigzag rays; a yellow halftone glow ellipse prints on the ground below." },
+    { "name": "Registration-target impact", "how": "On a hit a registration target (circle + crosshair, 0.75-unit lines) appears in pink and blue, each at its plate offset, growing from 2.5 to 7.5 units while the two plates drift further apart and fade within 0.22 s; plus three ink dots." },
+    { "name": "Ink burst", "how": "A 12-point starburst in one ink with a radial halftone of a second ink and a paper hole in the middle, popping with an overshoot; a mono-ink splat blob with satellite droplets prints on the ground and fades over 0.8 s; a ring of halftone dots in two misregistered inks grows to ~25 units; 6-14 triangle confetti in the three inks tumble and fall." },
+    { "name": "Plate separation", "how": "Appearing creatures arrive as their three single-ink plates sliding into register one after another (yellow, pink, blue) over 0.45 s while a misregistered registration target marks the ground; vanishing creatures pop yellow, then their plates drift apart along three directions up to 13 units and fade." },
+    { "name": "Misregistration jolt", "how": "When hit, a character is overlaid with a yellow 'pop' copy and its pink and blue plates kick 3-4 units out of register, then settle back as the flash decays." },
+    { "name": "Glow-up rings", "how": "Large flat rings of 26 yellow and pink halftone dots expand over the ground, a second blue-pink ring at body height, and eight yellow four-point sparkles with a pink misregistered copy fly out." }
+  ],
+  "atmosphere": {
+    "summary": "No light and no fog – the atmosphere is the print itself: the screen is a zine page with a recycled-paper margin (2.4 % of the screen height) carrying crop marks, three registration targets and a colour bar of solids, overprints and tints, all printed in the three inks out of register. A faint paper veil adds drum banding across the image and ink starvation towards the right edge.",
+    "rules": [
+      "Shadows are blue halftone ellipses multiplied onto the ground (alpha 0.7-0.85), never dark blurs.",
+      "Glow is a yellow halftone disc or ellipse, never an additive light.",
+      "Keep the page margin, crop marks and registration targets – they frame every view.",
+      "The banding veil stays under 6 % paper opacity; it should be felt, not seen.",
+      "No vignette, no blur, no colour grading beyond the inks."
+    ]
+  },
+  "ui": {
+    "summary": "UI is a zine layout: panels are paper blocks with an offset ink block behind them (blue, pink or yellow, 5-9 px) as if a plate slipped, crop marks at every corner, registration targets beside titles and counters, stamped round labels, yellow title strips with blue mono type and a pink misregistered shadow, halftone bars whose fill multiplies over the dots, and cards with a halftone colour band (multiply-blended dots) and the icon on a paper stamp disc.",
+    "css": ".panel { position: relative; background: #f3ede0; box-shadow: 5px 5px 0 rgba(0,120,191,.92); padding: 6px 14px; }\n.panel::before { content: ''; position: absolute; inset: -11px; pointer-events: none; background: linear-gradient(#ff48b0,#ff48b0) 0 11px / 7px 1px no-repeat, linear-gradient(#ff48b0,#ff48b0) 11px 0 / 1px 7px no-repeat, linear-gradient(#ff48b0,#ff48b0) 100% 11px / 7px 1px no-repeat, linear-gradient(#ff48b0,#ff48b0) calc(100% - 11px) 0 / 1px 7px no-repeat, linear-gradient(#ff48b0,#ff48b0) 0 calc(100% - 11px) / 7px 1px no-repeat, linear-gradient(#ff48b0,#ff48b0) 11px 100% / 1px 7px no-repeat, linear-gradient(#ff48b0,#ff48b0) 100% calc(100% - 11px) / 7px 1px no-repeat, linear-gradient(#ff48b0,#ff48b0) calc(100% - 11px) 100% / 1px 7px no-repeat; }\n.bar { position: relative; width: 240px; height: 22px; background: radial-gradient(circle, rgba(255,72,176,.62) 1.2px, transparent 1.9px) 0 0 / 5px 5px, #f3ede0; }\n.bar-fill { position: absolute; inset: 0 auto 0 0; width: 72%; background: #0078bf; mix-blend-mode: multiply; box-shadow: 2px 2px 0 rgba(255,72,176,.85); }\n.title { padding: 16px 44px 12px; background: #ffe800; font: 400 56px/1 'Rubik Mono One', monospace; color: #0078bf; text-shadow: 5px 4px 0 rgba(255,72,176,.9); box-shadow: 9px 8px 0 rgba(255,72,176,.9); transform: rotate(-2deg); }\n.card-band { background: radial-gradient(circle, #ff48b0 2.3px, transparent 3px) 0 0 / 8px 8px, #ffe800; background-blend-mode: multiply; }"
+  },
+  "motion": [
+    "Main character: 4-frame walk (frames 1-2-3-2) at anim x 0.4, step bob up to 1.6 units, lean 0.04 rad; idle breathing ±2.2 % height; shoot squash 4.5 %.",
+    "Dash: a skateboard pose leaning 0.24 rad forward, two fading single-plate copies (blue, pink) 7 and 14 units behind and four pink speed streaks.",
+    "Small creature: 4-frame waddle at anim x 0.85, |sin| hop of 1.4 units, ±0.07 rad rock; large creature: 4-frame stomp at anim x 0.32 with 6 % contact squash.",
+    "Fast creature: floats 4 units up, bobbing ±1.6; its scribbles re-draw every frame at 8 fps (four baked scribble seeds) so the fill boils like hand animation.",
+    "Appearing: plates slide into register yellow -> pink -> blue over 0.45 s from up to 14 units away; vanishing: plates drift apart up to 13 units in 0.35 s.",
+    "Hit: 0.15 s yellow pop with pink and blue plates kicked 3 units out of register; orbiting sun rays turn at 1.6 rad/s.",
+    "UI: titles 'pull' in from a 22 px offset with a widely misregistered pink shadow that settles in 0.5 s; cards slide in staggered by 70 ms."
+  ],
+  "do": [
+    "Build every asset from flat shapes, each assigned to one, two or three of the three inks.",
+    "Let overlaps multiply on purpose – the overprint colours are the palette.",
+    "Offset each plate by its own few-pixel misregistration, consistently across the whole game.",
+    "Shade with halftone dots of a second ink at that ink's screen angle, or with grain stipple for soft gradients.",
+    "Knock out eyes, teeth and highlights to bare paper.",
+    "Run drum grain, missing-ink specks and slight banding through every layer, including the UI icons.",
+    "Frame the screen as a printed page: paper margin, crop marks, registration targets, colour bar."
+  ],
+  "dont": [
+    "Don't draw outlines or use black – this is not a comic and not a carved print.",
+    "Don't invent extra colours; if a colour cannot be made from pink, blue and yellow on paper it does not belong.",
+    "Don't use smooth airbrush gradients, glows or blur – tones are dots or grain.",
+    "Don't register the plates perfectly; a crisp perfect print looks like flat vector art.",
+    "Don't fill the ground with solid ink – keep it light so solid-ink characters stay on top.",
+    "Don't use fine, tiny halftone screens; the dots must be visible at a glance (≥ 1.3 units).",
+    "Don't add 3D lighting, specular highlights or drop shadows with blur."
+  ],
+  "performance": "Baked once at init: 5 main-character poses, 2 x 4 small-creature frames, 4 scribbled ghost frames and 4 large-creature frames (each with a paper print, a yellow pop copy and three single-ink plates), 10 props (print + multiply layer), collectibles, projectile, sun stamp, 9 splats, 3 bursts, shadow and glow – roughly 150 ms at K = 4. Per frame: one drawImage per actor (plus 3 plates only while appearing, vanishing or flashing), multiply drawImages for props, shadows and effects, cheap arcs for dots, rings and confetti, and 5 drawImages for the page frame and banding veil. Ground chunks (256 units) are shaded per pixel in a generator spread over frames: ~70 ms per chunk at 2.5 px/unit, with a per-cell fast path when a whole cell lies inside one region."
+}

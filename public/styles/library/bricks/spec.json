@@ -1,0 +1,151 @@
+{
+  "id": "bricks",
+  "name": "Toy Bricks",
+  "originalName": "Toy Bricks",
+  "family": "3D Look · Toy Bricks",
+  "tags": ["toy bricks", "studs", "glossy plastic", "3d look", "toy box", "primary colours", "diorama"],
+  "summary": "A toy-box world of glossy plastic bricks: stud-covered baseplates, tiled roads, transparent-blue water plates and a little toy figure.",
+  "description": "Everything is built from interlocking plastic parts seen from a steep 3/4 front view: bricks, plates, smooth tiles and round bricks, each baked to sprites at startup by a small cell renderer that gives every part a glossy front gradient, a sheen band, lit rims, dark gaps to its neighbours and a round stud with a highlight crescent on every open top. The ground is a green baseplate covered in studs, with raised lime and grey plates, smooth grey road tiles with white lane dashes and transparent-blue water plates. The main character is a molded toy figure with a yellow cylinder head, printed face and claw hands; creatures are a brick beetle with eye studs, a translucent ghost piece and a brick-built robot. Saturated toy-box primaries, crisp and cheerful.",
+  "mood": ["playful", "cheerful", "tactile", "bright", "nostalgic"],
+  "bestFor": ["family and kids games", "top-down action and arena games", "builder and sandbox games", "puzzle and party games", "casual mobile games"],
+  "avoidFor": ["horror or grim drama", "realistic or painterly worlds", "organic, soft-bodied character animation"],
+  "difficulty": {
+    "stars": 4,
+    "why": "Props and creatures are cell grids described with a few part() calls, and the renderer adds gloss, gaps, studs and shadows automatically. The molded figures are hand-written canvas paths with several gradients, prints and per-frame poses, and round parts need their own cylinder slices, so new characters take more care than new props."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets) with a small brick-cell renderer and vector figure painter that bake sprites at init",
+    "pixelArt": false,
+    "resolution": "Native resolution. Sprites are baked at K = clamp(round(screenH/360 × 1.6 × 2)/2, 2.5, 7) px per world unit (about 1.6× the screen scale, so element sheets and close-ups stay crisp) and drawn down-scaled; blits snap to whole screen pixels. Ground chunks (256 units) are drawn at up to 2.5 px per unit.",
+    "summary": "A model is a grid of cells (x right, y toward the viewer, z up; 1 cell = 1 stud × 1 stud × 1 plate) where every cell stores the id of the part it belongs to. Seen straight from the front with no yaw, only top and front faces exist, so every face is an axis-aligned rectangle: rows are drawn back to front, plates bottom to top, and the part ids tell the renderer where to put rims, gaps and studs.",
+    "linework": "No outlines. Forms are separated by 1-px-per-0.28-unit lines from the part structure: a white rim (alpha 0.6) along the top edge of every front face, a dark gap line (black, alpha 0.4) where a part sits on another part, dark vertical gaps (alpha 0.36) between neighbouring parts, a light left end (alpha 0.3) and a darker right end (alpha 0.2). Prints (faces, windows, arrows) are flat #1b1d22 shapes.",
+    "shading": "Front faces: vertical gradient over the whole part, colour ×1.2+12 at the top edge, ×1.02 at 13%, ×0.88 at 60%, ×0.70 at the bottom, plus a horizontal sheen band (white 0.24 alpha at 10% of the part width, fading to a 0.12 black at the right end). Top faces: flat colour ×1.06+4 with a white back rim. Round parts: horizontal cylinder gradient ×0.95 / ×1.2 highlight at 20% / ×1.02 / ×0.8 / ×0.62.",
+    "lighting": "Bright studio light from the upper left: highlights on the left and top edges, cast shadows sheared to the lower right by (0.36, 0.2) units per unit of height and blurred (0.9 K px), drawn at 0.42–0.5 alpha in a cool rgba(10,25,45). Only transparent emissive parts (lamp heads, robot eyes, orbiting beacons) get an additive radial glow. A soft cool vignette and a warm-white light spot in the top-left corner finish the frame.",
+    "texture": "None. The texture is the studs themselves: a stud on every open top cell of every part and on every baseplate cell, each a baked sprite with a cylinder gradient, a lighter top, an 0.34-unit white highlight crescent on its upper left and a soft contact shadow to the lower right."
+  },
+  "palette": [
+    { "name": "Baseplate Green", "hex": "#47a347", "role": "Main ground plate with studs (~55% of the screen)" },
+    { "name": "Dark Baseplate", "hex": "#2f8540", "role": "Darker green baseplate patches (woods)" },
+    { "name": "Lime Plate", "hex": "#8cc63f", "role": "Raised plates one plate above the baseplate, front edge visible" },
+    { "name": "Sand Tan", "hex": "#e2cb96", "role": "Tan baseplate around water" },
+    { "name": "Road Tile", "hex": "#666d73", "role": "Smooth 2×2 road tiles without studs; lane dashes #eeeee8" },
+    { "name": "Curb Tile", "hex": "#c6cbce", "role": "One-stud-wide light grey tile border of roads" },
+    { "name": "Plaza Grey", "hex": "#a7acb0", "role": "Raised light grey plates (squares), also light grey parts" },
+    { "name": "Water Blue", "hex": "#3d92e8", "role": "Transparent-blue water plates one plate below the baseplate (deep #2b70d2, studs #8fcaff at 0.75 alpha)" },
+    { "name": "Toy Red", "hex": "#d4231c", "role": "Small creature body, fruit, house walls, impact bricks" },
+    { "name": "Toy Yellow", "hex": "#f7c81e", "role": "Fruit, robot shoulders, projectiles, large collectibles, bars" },
+    { "name": "Toy Blue", "hex": "#1c5fc6", "role": "Large creature torso, counter panel" },
+    { "name": "Leaf Green", "hex": "#21883f", "role": "Tree crowns (with bright green #4caf48 and dark green #1d6b34)" },
+    { "name": "Toy White", "hex": "#f2f2ec", "role": "Fences, eye studs, windows, white HUD panel" },
+    { "name": "Toy Black", "hex": "#2a2c31", "role": "Feet, lamp posts, hips of the robot" },
+    { "name": "Reddish Brown", "hex": "#7b4527", "role": "Trunks, sign posts, backpack" },
+    { "name": "Dark Grey", "hex": "#5f666c", "role": "Robot legs, rocks, roofs" },
+    { "name": "Toy Orange", "hex": "#f07e1f", "role": "Main character shirt, cones, orbiting beacons (transparent #ff9a26)" },
+    { "name": "Figure Yellow", "hex": "#f7c51e", "role": "Main character head and claw hands" },
+    { "name": "Figure Blue", "hex": "#1f4f9a", "role": "Main character legs" },
+    { "name": "Ghost Clear", "hex": "#cde8ff", "role": "Translucent fast creature (fill 0.5–0.78 alpha, white rim)" },
+    { "name": "Collectible Azure", "hex": "#2f9bff", "role": "Small stud coins (large coins are #ffc81e)" },
+    { "name": "Print Black", "hex": "#1b1d22", "role": "Printed faces, card borders, title outlines" }
+  ],
+  "paletteRules": [
+    "Only saturated toy-box primaries plus white, black, tan and two greys; every colour is a flat plastic colour, never a texture or a noise mix.",
+    "Shading comes only from the fixed gloss recipe (×1.2 rim to ×0.7 bottom) — never pick a second, hand-darkened shade for the same part.",
+    "Transparent parts (water, lamp heads, beacons, ghost, debris of the ghost) keep their colour at 0.5–0.88 alpha and get brighter highlights; only transparent warm parts glow.",
+    "The world is green/tan/grey/blue; creatures are red, white, blue and clear; the main character is orange, yellow and dark blue so it pops on every ground.",
+    "Prints are always #1b1d22 flat shapes with tiny white glints, like pad-printed toy parts.",
+    "UI uses the same part colours (white, yellow, blue bricks, black tiles) with #1b1d22 as the booklet line colour."
+  ],
+  "typography": [
+    { "family": "Titan One", "weights": [400], "role": "Titles, big counters, floating numbers, step numbers", "source": "Google Fonts", "sample": "STEP 12",
+      "css": "font: 400 66px/1 'Titan One', 'Fredoka', system-ui, sans-serif; color: #f7c81e; -webkit-text-stroke: 3px #1b1d22; paint-order: stroke fill; text-shadow: 0 5px 0 #1b1d22, 0 9px 0 #d4231c, 0 12px 0 #1b1d22;" },
+    { "family": "Fredoka", "weights": [400, 500, 600, 700], "role": "Card titles, body copy, labels, hints", "source": "Google Fonts", "sample": "Build the tower",
+      "css": "font: 700 20px/1.15 'Fredoka', system-ui, sans-serif; color: #1b1d22;" }
+  ],
+  "world": {
+    "summary": "An endless stud-covered baseplate drawn row by row into cached 256-unit chunks. One cell = one stud (6 units across, 4.2 units deep). Every cell has a material and a level (-1 water, 0 baseplate, +1 raised plates); a raised cell is drawn 2.1 units higher and shows its glossy front edge when the cell in front of it is lower, so the ground reads as real plates stacked on a baseplate.",
+    "layers": [
+      "Base: per-cell top colour (baseplate #47a347, dark green #2f8540, raised lime #8cc63f, tan #e2cb96, raised grey #a7acb0, road #666d73, curb #c6cbce, water #3d92e8 / #2b70d2)",
+      "Plate seams: dark 0.2-alpha lines every 16 studs on baseplates, every 4 on raised plates, every 2 on road tiles (plus a 0.16 white top line per tile row)",
+      "Edges: white rim on the back and left edge of raised cells, 2.2-unit contact-shadow gradient below and 2.4-unit shadow right of higher neighbours, a glossy 2.1-unit front face (×1.16+10 → ×0.84 → ×0.64) on cells above a lower neighbour",
+      "Roads: winding constant-width bands from |noise| / |gradient| < 11.5 units, curb tiles where a road cell touches a non-road cell, white lane-dash tiles on the centre line in a 2-on / 2-off pattern",
+      "Studs: one baked stud sprite per cell centre (transparent pale-blue studs on water); none on roads and curbs",
+      "Toy parts instead of a stud: flower plates (5 petals in red, yellow, white, pink, azure or violet around a yellow centre, ~1.6% of green cells), leaf plants (3 glossy pointed leaves, ~2.4%), loose 1×1 round plates (~0.3%), lily pads on open water (2%)",
+      "Per frame: white cross-shaped glints blinking on 12% of the water cells"
+    ]
+  },
+  "characters": {
+    "summary": "Two construction methods share one light. The main character and the translucent ghost are molded toy figures painted with canvas paths (gradients, rims, prints) and baked per frame and facing; the brick beetle and the robot are cell grids built from bricks, plates and round bricks with printed faces, baked per frame and mirrored per facing by mirroring the grid (so the light stays on the left).",
+    "rules": [
+      "Main character: a toy figure ~31 units tall and ~15 wide — blue legs on a hip piece, an orange trapezoid torso with printed strap, belt and red bandana, sloping arms ending in yellow C-shaped claw hands, a yellow cylinder head with a printed face (two black oval eyes with white glints, short brows, smile), a tan pith helmet with a brown band and a brown backpack peeking out on the side away from the facing direction.",
+      "The face print shifts 0.85 units toward the facing direction; frames: idle, 4 walk poses (stiff legs swinging ±1.5 units, arms counter-swinging, 0.5-unit bob) and a dash pose leaning 0.17 rad.",
+      "Small creature: a red brick beetle (4×3×6 cells, ~24 units wide) — a 2×3 red brick body with a printed black grin and white fangs, a dark red 2×2 plate shell, two white 1×1 round-brick eyes with black pupils looking toward the facing direction, black side feet scuttling forward and back by one stud.",
+      "Fast creature: a translucent ghost piece (~20 units wide): a sheet with raised arms and a wavy hem, cool clear fill (0.5 → 0.78 alpha toward the edge), a white rim, an inner blue rim, a white gloss arc on the head and printed black oval eyes and O-mouth; it hovers 4 ± 1.6 units with a faint blue glow.",
+      "Large creature: a brick robot (7×3×18 cells, ~42 units wide): dark grey legs on wide feet, a black hip plate, a blue 5×3 torso of two bricks with a printed yellow chest panel and red core, light grey arms with yellow shoulder plates and red hands, a light grey head with two glowing red printed eyes and a black antenna with a transparent red tip.",
+      "No outlines and no outline strokes; parts are separated by the renderer's rims and gaps. Every figure casts a soft shadow to the lower right."
+    ]
+  },
+  "props": {
+    "summary": "Scenery is brick-built on the same stud grid as the ground: props snap to whole studs, sit on the plate they stand on (raised plates lift them by 2.1 units) and are y-sorted with the figures. Each prop is one cell grid baked once with its own sheared, blurred shadow.",
+    "rules": [
+      "Trees (5×3×15): a 1×1 round brown trunk of two round bricks, a dark green 3×3 plate, two stepped crown layers of green and bright green bricks, a lime top plate and red or yellow 1×1 round fruit plates on the steps.",
+      "Pines (5×3×16): a short round trunk and alternating dark green bricks and green plates stepping in from 5 to 3 to 1 stud.",
+      "Small props: a green bush brick with round leaf and flower plates, a stepped grey rock pile, a white fence (two posts, two smooth rails), a pile of loose coloured bricks, a sign post (round brown post + white tile with a printed red arrow), an orange cone with a white stripe, a black lamp post with a glowing transparent yellow head.",
+      "A small house (5×4×14): red walls laid in running bond (staggered 2/3-stud bricks), a printed blue door, two white window parts with printed blue glass and white mullions, a white plate, a dark grey roof brick and a dark red chimney.",
+      "Props only stand where every footprint cell has the same material and never on plate edges, roads or water; lamps and cones may stand on curbs.",
+      "Tall props (trees, pines, lamps, house) fade to 0.32 alpha when the main character is behind them, and the figure is redrawn over them at 0.72 alpha."
+    ]
+  },
+  "effects": [
+    { "name": "Flying single bricks", "how": "Impacts and bursts throw baked loose parts (1×1 brick, 1×2 brick, 2×2 plate, 1×1 round plate, 1×1 plate) in the colours of the object that bursts. They tumble with 2D rotation (vr ±7 rad/s), fly with vz 50–150, gravity 330, drag 1.3, leave a soft shadow near the ground and fade in the last 25% of their life. Ghost pieces float upward (gravity −40)." },
+    { "name": "Sparkles", "how": "Four-point white stars (#fff6c8, cool #d8f1ff for clear pieces) with a white centre dot, 3–6 units, growing and shrinking with sin(life·π)." },
+    { "name": "Stud ring", "how": "An ellipse (r × 0.8 r) easing out from 8–10 to 52–56 units, white stroke 1.6·k+0.4 at 0.8·k alpha, with 12–16 yellow studs riding on it and turning slowly." },
+    { "name": "Build-up appearance", "how": "Brick creatures are revealed from the bottom in whole plate rows (2.1 units each) while two loose bricks drop into place; the ghost fades and scales in from 0.6." },
+    { "name": "Coming apart", "how": "A dissolving creature splits into three horizontal sections that slide apart sideways and hop while fading, over a short white flash, while the burst throws its bricks." },
+    { "name": "Stud coins", "how": "Collectibles are round stud coins standing upright and spinning (10 baked frames over half a turn): azure #2f9bff small (3.1 units), gold #ffc81e large (4.3 units) with a gold glow; face with a raised ring and highlight crescent, a darker edge band when turned, hovering 4.4–6 units with a twinkle star." },
+    { "name": "Projectile", "how": "A yellow 1×1 round plate with two smaller fading copies behind it and a 10-unit pale yellow speed line." },
+    { "name": "Orbiting beacon", "how": "A transparent orange 1×1 round brick on a black round plate with a yellow cap, hovering 10 ± 1.4 units over a soft shadow with a warm additive glow." }
+  ],
+  "atmosphere": {
+    "summary": "Clean toy photography: one bright studio light from the upper left baked into every gradient, rim and stud crescent, cool soft shadows, almost no colour grading. Only transparent warm parts glow.",
+    "rules": [
+      "Cast shadows of props and brick creatures: every column's footprint sheared (0.36, 0.2) units per unit of height to the lower right, filled black, blurred 0.9 K px, alpha 0.42–0.5.",
+      "Figures without a grid (main character, ghost, collectibles, beacons, debris) get a soft radial ellipse shadow rgba(10,25,45,0.5 → 0) offset 1.6 units to the right.",
+      "Glow sprites: 64 px radial gradients (0.9 → 0.32 → 0 alpha) in warm rgb(255,210,110), red rgb(255,70,40), cool rgb(120,190,255) or gold, drawn additively — only on emissive transparent parts.",
+      "Screen overlay: radial vignette from rgba(20,40,80,0) at 0.36 h to rgba(14,26,60,0.34) at the corners, plus a warm-white light spot rgba(255,252,235,0.16) at the top-left corner.",
+      "Ground light: only blinking white glints on transparent water plates.",
+      "Overlay screens tint the world with a pale booklet blue: radial-gradient(rgba(232,245,253,.42), rgba(120,176,224,.52)).",
+      "No grain, no blur, no bloom pass, no outlines; the gloss recipe carries all the light."
+    ]
+  },
+  "ui": {
+    "summary": "Brick-built HUD and instruction-booklet cards. Panels are bricks: a glossy vertical gradient, inset white top/left rims and dark bottom/right rims, a 4 px hard drop edge in a darker shade, and a row of side-view studs (CSS gradients) sitting on the top edge. Bars are dark recessed tiles whose fill is a plate seen from above, covered in studs. Cards are booklet pages: white with a pale blue bottom, a 3 px #1b1d22 border and hard 6 px drop edge, a big Titan One step number in the corner and a parts-callout box around the icon with a small '1x' count.",
+    "css": ".brick { position: relative; padding: 8px 14px 9px; border-radius: 5px; color: #1b1d22; font: 400 16px/1 'Titan One', sans-serif;\n  background: linear-gradient(180deg, #ffffff 0 3px, #f2f2ec 3px 45%, #d6d6cf 100%);\n  box-shadow: inset 0 2px 0 rgba(255,255,255,.55), inset 2px 0 0 rgba(255,255,255,.28), inset -2px 0 0 rgba(0,0,0,.14), inset 0 -3px 0 rgba(0,0,0,.2), 0 4px 0 #a9aaa3, 0 9px 16px rgba(20,30,60,.32); }\n.brick::before { content: ''; position: absolute; left: 7px; right: 7px; top: -8px; height: 9px;\n  background: radial-gradient(ellipse 2.6px 1.1px at 8.5px 2px, rgba(255,255,255,.9) 0 90%, transparent 100%) 0 0 / 22px 9px repeat-x,\n              radial-gradient(ellipse 6px 2.6px at 11px 2.7px, #ffffff 0 92%, transparent 100%) 0 0 / 22px 9px repeat-x,\n              linear-gradient(90deg, transparent 0 5px, #e6e6df 5px 8px, #ffffff 8px 10px, #e6e6df 10px 14px, #b9bab3 14px 17px, transparent 17px) 0 2.7px / 22px 6.3px repeat-x; }\n.bar { width: 210px; height: 22px; border-radius: 4px; background: #2b2e33; box-shadow: inset 0 3px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.7); overflow: hidden; }\n.bar > .fill { height: 100%; border-radius: 3px; box-shadow: inset 0 2px 0 rgba(255,255,255,.45);\n  background: radial-gradient(circle at 42% 38%, rgba(255,255,255,.85) 0 1.4px, transparent 2.2px), radial-gradient(circle, #ff8c7a 0 3.2px, #d4231c 3.6px 4.4px, #8e1410 4.8px 5.4px, transparent 5.9px) 0 1px / 18px 20px, linear-gradient(180deg, #f2554a, #d4231c 45%, #a8180f); }\n.card { border: 3px solid #1b1d22; border-radius: 14px; background: linear-gradient(180deg, #ffffff 0 62%, #e8f3fb 62%); box-shadow: 0 6px 0 #1b1d22, 0 14px 24px rgba(20,40,80,.3); }\n.card .step { font: 400 40px/1 'Titan One', sans-serif; color: #1b1d22; }"
+  },
+  "motion": [
+    "Main character: idle + 4 walk frames at frame = 1 + floor(anim·1.4) mod 4 (stiff toy legs swing, arms counter-swing, 0.5-unit bob), a dash pose leaning 0.17 rad with three white tinted trail copies 6 units apart; idle hops up to 0.5 units with max(0, sin(t·2.4)).",
+    "Brick beetle: 4 frames at anim·1.8 (feet jump one stud forward/back); robot: 4 frames at anim·1.2 (one leg lifts a plate, arms swing a stud); ghost: 4 frames at 5 fps, hovering 4 ± 1.6 units at sin(t·2.6).",
+    "All brick motion is in whole cells (studs and plates) — parts move in clicks, never smoothly; only debris, coins and the ghost move smoothly.",
+    "Coins spin through 10 baked frames (1.4 sets per second) and bob ±0.9 units at 3 rad/s; a twinkle star appears when sin(t·4 + seed) > 0.7.",
+    "Floating numbers pop from 0.6 to 1.15 scale in the first 14% of their life, then settle; Titan One with a 1.7-unit (emphasised 2.2) #1b1d22 stroke, white fill (emphasised yellow).",
+    "Glows flicker gently (±0.08–0.12 alpha at 3–9 rad/s); water glints blink when sin(t·1.6 + phase) > 0.4."
+  ],
+  "do": [
+    "Build every prop, creature, icon and debris piece from real part sizes on one grid: 1 stud = 6 units across, 4.2 deep, 1 plate = 2.1 units, 1 brick = 3 plates.",
+    "Let the part structure do the line work: rims on top edges, dark gaps between parts, staggered bricks in walls.",
+    "Put a stud on every open top that is not a smooth tile, and on every baseplate cell.",
+    "Use only flat saturated toy colours and the fixed gloss recipe; make transparent parts translucent with brighter highlights.",
+    "Snap props to whole studs so they sit exactly on the baseplate grid.",
+    "Mirror brick grids (not sprites) for the other facing so the light stays on the upper left.",
+    "Use smooth tiles (no studs) for roads, signs and roofs to give the eye calm areas."
+  ],
+  "dont": [
+    "Don't add outlines or strokes around parts.",
+    "Don't use noise, texture, dithering or per-cell colour jitter — plastic is clean and uniform.",
+    "Don't rotate the camera or show side faces; the look depends on the straight front 3/4 view.",
+    "Don't use half-stud offsets or arbitrary sizes; nothing may float between studs.",
+    "Don't use muted, earthy or pastel palettes for the world; it must feel like a toy box.",
+    "Don't make every surface studded: roads, curbs, signs and roof tiles stay smooth.",
+    "Don't use brand names, logos or embossed lettering on studs."
+  ],
+  "performance": "All parts are baked once in init(): the figure (6 frames × 2 facings), the ghost (4 frames + flipped copies), beetle and robot (4 frames × 2 mirrored grids), 11 props with shadows, ~80 debris sprites and 20 coin frames — a few hundred ms. Per frame every object is 1–3 drawImage calls of cached canvases (flash and tint copies are cached on first use); particles use one setTransform per brick. Ground chunks are drawn row by row with fillRect and one stud drawImage per cell as a generator (~20 ms per chunk spread over frames); stud, flower and plant sprites are cached per resolution. Measured in the same noisy conditions, steady frames cost about the same as the voxel module and chunk builds are cheaper."
+}

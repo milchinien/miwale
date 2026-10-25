@@ -65,6 +65,7 @@
         '<a class="d-back" href="./">← All styles</a>' +
         '<div class="d-head"><div><p class="eyebrow">' + (single ? esc(main.spec.family) : 'Custom mix · ' + L.sources(d).length + ' source styles') + '</p>' +
         '<h1>' + esc(name) + '</h1><p class="d-sum">' + esc(single ? main.spec.summary : 'Six design elements, each taken from a different style of the library.') + '</p>' +
+        (single ? relations(main.id, cat) : '') +
         '<div class="d-rating" id="d-rating">' + (single ? ratingHtml('style:' + main.id, 'this style') : '') + '</div></div>' +
         '<div class="d-actions">' + actions + '</div></div>' +
         '<div class="d-stage glass"><div class="frame16"><iframe title="Live scene" src="' + L.stageUrl(d, 'scene') + '" allow="fullscreen"></iframe></div>' +
@@ -85,7 +86,17 @@
     });
   }
 
-  const ratingHtml = (ziel, what) => '<span class="d-rating-label">Rate ' + esc(what) + '</span>' + L.voteWidget(ziel);
+  /** "Variant of …" / "Variants: …" links between a style and the styles built on its technique. */
+  function relations(id, cat) {
+    const me = cat.styles.find((s) => s.id === id) || {};
+    const link = (s) => '<a href="' + s.id + '/">' + esc(s.name) + '</a>';
+    const base = me.variantOf && cat.styles.find((s) => s.id === me.variantOf);
+    const kids = cat.styles.filter((s) => s.variantOf === id);
+    if (!base && !kids.length) return '';
+    return '<p class="d-rel">' + (base ? '⟲ Variant of ' + link(base) + ' – same technique, a different look.' : '⟲ Variants of this style: ' + kids.map(link).join(', ')) + '</p>';
+  }
+
+  const ratingHtml =(ziel, what) => '<span class="d-rating-label">Rate ' + esc(what) + '</span>' + L.voteWidget(ziel);
 
   /** A mix can be voted on once it is in the community; otherwise offer to publish it. */
   function mixRating(d) {
