@@ -1,0 +1,153 @@
+{
+  "id": "terminal",
+  "name": "Terminal ASCII",
+  "originalName": "Terminal ASCII",
+  "family": "Text Mode · CRT Phosphor",
+  "tags": ["ascii", "text mode", "terminal", "crt", "phosphor", "glyphs", "retro computing", "dark"],
+  "summary": "The world drawn entirely in text glyphs on a green phosphor CRT: one fixed character grid, glowing multi-glyph figures, scanlines.",
+  "description": "Everything on screen is a character in one fixed grid of 6 × 10-unit cells: meadows are sparse dim ticks (. , ' \" `), forests are fields of club and spade glyphs, water is ~ and ≈, hills are ░▒▓█ density ramps and rooms are # walls around dotted floors. Figures are small multi-glyph sprites on opaque cell plates – an @-headed adventurer in amber, (ö) critters, flickering (*) spirits and a block-letter brute in red – that erase the ground under them and glow like hot phosphor. Effects are glyph bursts, rings of characters, box-drawing frames and typed-out text; the picture sits behind scanlines, a breathing flicker, a rolling refresh band and a barrel vignette with rounded glass corners.",
+  "mood": ["nostalgic", "nocturnal", "hacker", "minimal", "eerie"],
+  "bestFor": ["grid-based dungeon crawlers", "hacker and cyber themed projects", "minimalist action or puzzle games", "rapid prototypes with no art budget", "retro computing tributes"],
+  "avoidFor": ["cozy or cute pastel projects", "realistic or painterly worlds", "designs that need detailed faces or many similar figure types", "bright daylight scenes"],
+  "difficulty": {
+    "stars": 3,
+    "why": "New assets are two short text grids per sprite (glyph rows + colour-key rows) baked by one shared routine, so a new figure or prop takes minutes. The skill is ASCII-art composition: readable silhouettes in 3–7 cells, choosing glyphs by shape, and keeping the palette discipline (green world, amber main character, cyan/red as signals). The engine part (glyph atlas, character ROM for block/box glyphs, cell snapping) is written once."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, glyph atlas, no image assets)",
+    "pixelArt": false,
+    "resolution": "Full display resolution. 1 world unit = screenH / 360 px (2.5 px at 900 px). A cell is 6 × 10 units (15 × 25 px at 900 px), so the screen is 36 text rows tall. Ground chunks are 240 units (40 × 24 cells) baked at min(scale, 4) px per unit.",
+    "summary": "Every glyph is baked once into a glyph atlas per cell size (slot = glyph + colour + mode: plain, glow, inverse) and blitted cell by cell; block, shade and box-drawing glyphs and a few symbols (♣ ♠ ◆ ≈ ▲ ♥ ☼) are drawn procedurally like a character ROM so they tile seamlessly. Ground, figures, props, effects and numbers all snap to whole cells; only the camera scrolls smoothly.",
+    "linework": "No outlines. Shapes are glyph strokes of VT323 at 1.25 × cell height, double-struck (drawn twice, shifted max(1 px, 10 % of the cell width) to the right) for figures, props and effects; ground glyphs are single-struck. Box-drawing lines are max(1, round(0.15 × cell width)) px thick, double lines are two strokes 20 % of the cell width apart.",
+    "shading": "None inside a glyph. Volume and density come from glyph choice: the shade ramp ░ (25 % dots) ▒ (50 % checker) ▓ (75 %) █ (solid) on dot lattices of max(1, round(cellH / 12)) px, half blocks ▀ ▄ for rounded silhouettes, and brightness steps of the phosphor ramps (7 greens, 6 ambers, 5 cyans, 4 reds).",
+    "lighting": "Light is phosphor glow: every bright glyph is baked with a wide bloom (shadowBlur 1.0 × cell height at 75 % alpha) plus a tight halo (0.3 × cell height). Only light-emitting keys glow on props (tree tips, LEDs, sign text, fire). Warm additive radial pools (amber #ffb238, 50 % alpha, 46-unit radius) sit under campfires, and a faint 16 % amber lamp glow (52 units) under the main character.",
+    "texture": "The grid itself: sparse hashed glyphs per cell, dot-lattice shade glyphs, display-resolution scanlines. No noise texture is ever drawn as pixels."
+  },
+  "palette": [
+    { "name": "Screen black", "hex": "#020a05", "role": "Background of every cell (~70 % of the screen), HUD panels" },
+    { "name": "Plate", "hex": "#010502", "role": "Opaque cell plates behind figures, props, collectibles and text; dark glyph on inverse cells" },
+    { "name": "Phosphor deep", "hex": "#0a2613", "role": "Solid █ hill cores" },
+    { "name": "Phosphor dim", "hex": "#113d20", "role": "Most grass ticks, forest floor dots, ▓ hill shade" },
+    { "name": "Phosphor low", "hex": "#1a6331", "role": "Meadow ticks, forest glyphs, ░ ▒ hill edges, room floors, prop shade" },
+    { "name": "Phosphor mid", "hex": "#2a994b", "role": "Room walls, prop bodies, HUD frames and labels" },
+    { "name": "Phosphor bright", "hex": "#4ddb76", "role": "Small-creature shells, tree tips, HUD text and bars" },
+    { "name": "Phosphor hot", "hex": "#a3ffbd", "role": "Big HUD numbers, card titles, floating numbers" },
+    { "name": "Phosphor white", "hex": "#e6fff0", "role": "Small-creature eye glyph, hottest numbers" },
+    { "name": "Amber dark", "hex": "#7a4a0e", "role": "Dirt-road dots, shore sand, wood (trunks, sign frames, logs)" },
+    { "name": "Amber", "hex": "#c97f19", "role": "Main character's torso and legs, doors, chest, bridge planks" },
+    { "name": "Amber bright", "hex": "#ffb238", "role": "Main character's arms, projectile trail, orbiting spinner brackets, PWR bar, cursor" },
+    { "name": "Amber light", "hex": "#ffd98e", "role": "Large creature's teeth, fire sparks, highlighted numbers" },
+    { "name": "Amber white", "hex": "#fff3da", "role": "Main character's @ head, projectile head, spinner core" },
+    { "name": "Cyan dim", "hex": "#0f5c62", "role": "Water ~ and ≈ glyphs" },
+    { "name": "Cyan", "hex": "#1fb0b9", "role": "Spirit brackets, water crests, glyph tails" },
+    { "name": "Cyan bright", "hex": "#5cefff", "role": "Collectibles, LEDs, stairs glyph, glow-up frame and text" },
+    { "name": "Cyan white", "hex": "#ccfbff", "role": "Spirit core glyph, collectible blink" },
+    { "name": "Red", "hex": "#ff4257", "role": "Large creature blocks, small-creature x eyes, error text and scramble" },
+    { "name": "Red dark", "hex": "#86131f", "role": "Large creature's feet, rare ♦ flowers" },
+    { "name": "Water cell", "hex": "#031a1e", "role": "Cell background of shallow water (#042229 for deep water)" },
+    { "name": "Room cell", "hex": "#071f0f", "role": "Cell background of rooms (forest #04170c, road #0e0d05)" }
+  ],
+  "paletteRules": [
+    "Phosphor green carries ~90 % of the picture; the ground never goes brighter than #2a994b except room walls and tree tips.",
+    "Amber belongs to the main character, light sources and warm materials (wood, sand, roads) – no creature is amber.",
+    "Cyan and red are signal colours: cyan for collectibles, spirits, water and glow-up; red only for the large creature, small-creature eyes, errors and alerts.",
+    "Every colour family is a brightness ramp; fading = stepping one level darker per frame band, never alpha.",
+    "Cell backgrounds are near-black tints of their material (water, room, forest, road), never mid tones.",
+    "Inverse video (lit cell, dark glyph) is the only flash: fill the plate with the brightest step of the figure's family."
+  ],
+  "typography": [
+    { "family": "VT323", "weights": [400], "role": "All glyphs in the world, HUD numbers, titles, card titles, labels", "source": "Google Fonts", "sample": "> SELECT ONE█  12:30  ×128", "css": "font: 52px/0.95 'VT323', monospace; letter-spacing: 2px; color: #a3ffbd; text-shadow: 0 0 6px rgba(77,219,118,.75), 0 0 16px rgba(77,219,118,.25);" },
+    { "family": "IBM Plex Mono", "weights": [400, 500, 600], "role": "Small body text: card descriptions, captions, hints", "source": "Google Fonts", "sample": "> hint text", "css": "font: 500 11px/1.4 'IBM Plex Mono', monospace; letter-spacing: 3px; text-transform: uppercase; color: #2a994b;" }
+  ],
+  "world": {
+    "summary": "A field of glyph cells: one hashed glyph per 6 × 10-unit cell, picked by material from noise fields. Dim green ticks for meadows, clubs and spades for forests, ~ ≈ for water on dark-teal cells, ░▒▓█ ramps for hills, dotted amber dirt roads, = bridges and rogue-style rooms with # or double-line ═║ walls, dotted floors and + doors. Water crests travel as brighter ~ ≈ glyphs every frame.",
+    "layers": [
+      "Base: screen black #020a05; chunk = 240 units = 40 × 24 cells, painted from a one-cell margin so glyph overflow never seams",
+      "Material per cell (priority): room (cell-aligned rectangle 11–19 × 7–11 cells, at most one per 44 × 30-cell region, 42 % chance) > water (warped noise < 0.335; deep < 0.265) > road (distance to two noise curves < 8 units) > hill (fbm > 0.665) > forest (warped noise > 0.54) > grass",
+      "Cell backgrounds: water #031a1e / deep #042229, rooms #071f0f, dense forest #04170c, roads and bridges #0e0d05",
+      "Glyphs: grass 8–44 % density (by meadow noise) of . , ' ` \" ; in #113d20/#1a6331, meadow patches \" , ; in #1a6331/#2a994b, 0.6 % amber * flowers, 0.25 % red ♦; forest 8–48 % ♣ ♠ ^; hills ░ ▒ ▓ (12 % ▲ peaks) then █ cores; water ~ (shallow, 50 %) and ≈ (deep, 42 %); shore band . , · in amber dark; roads · centre and . , ' edges in amber dark; bridges = in amber",
+      "Rooms: walls # (#2a994b, 20 % #4ddb76; 13 % ruined into ▒ or ,) or double-line ╔═╗║╚╝, floors . in #1a6331, 2–3 doors + in amber #c97f19",
+      "Per frame: water crests where sin(0.42·col + 1.1·row − 1.9·t + 1.4·sin(0.7·row + 0.6·t)) > 0.9 – ~ in #1fb0b9, top 2.5 % as glowing ≈ in #5cefff",
+      "Per frame: additive amber light pools under campfires"
+    ]
+  },
+  "characters": {
+    "summary": "Multi-glyph sprites, 1–7 cells wide, snapped to whole cells, each cell on an opaque plate so the figure erases the ground. Main character: a 3 × 3 '@' adventurer – white-amber @ head, amber /█\\ arms and torso, / \\ legs with a 4-frame walk, standing on a blinking amber ▁ cursor. Small creature: a 3 × 2 critter (ö) or {x} in bright green with white or red eyes and / \" \\ legs. Fast creature: a 3 × 1 spirit whose glyph flickers through (*) {+} (×) <*> {x} (+) at 11 fps, trailing + · . cells it just left. Large creature: a 7 × 4 block-letter brute built from half blocks ▀▄█ in red with white O eyes and amber vvv teeth.",
+    "rules": [
+      "One glyph per cell, one colour key per cell; '.' leaves the ground visible, 'K' is a plate with no glyph",
+      "Bold = double strike: every figure glyph is drawn twice, one font pixel apart",
+      "Bake order per sprite: plates, wide bloom (blur 1.0 × cell height, 75 % alpha), tight halo (0.3 ×), crisp glyphs",
+      "Facing = mirrored glyph rows with paired glyphs swapped (/ ↔ \\, ( ↔ ), < ↔ >, [ ↔ ], { ↔ }, ▌ ↔ ▐)",
+      "Feet anchor: the bottom row of the sprite sits in the cell that holds the figure's y; column = round(x / 6 − width / 2)",
+      "Flash = inverse video (plate lit in the family's brightest colour, glyphs in plate black) while flash > 0.45",
+      "Materialise: cells type in one by one between 25 % and 90 % of the appear time, earlier cells show scrambling noise glyphs from #%&$@?!*+=/<>{}[]~^:;░▒▓",
+      "Dissolve: each cell drifts 1.5–4 cells its own way and decays ▓ ▒ ░ · . while stepping down its colour ramp",
+      "Hit on the main character: 55 % of its cells scramble to red noise glyphs for a moment; dash leaves ▓ ▒ ░ afterimages in amber"
+    ]
+  },
+  "props": {
+    "summary": "Glyph-art objects on plates, snapped to cells and y-sorted with the figures: 5 × 6 stacked-^ pines with a ║ trunk, 6 × 4 (&&&&) oaks, 4 × 2 bushes, 6 × 3 outlined boulders with ░▒▓ shading, a 3 × 5 half-block monolith with a blinking cyan ■ LED, a box-drawing signpost with a blinking >_ prompt, # ruin walls, a flickering campfire )▲( on =#= logs, a cyan > stairs glyph and an amber [=] chest inside rooms.",
+    "rules": [
+      "Same sprite format as figures: glyph rows + colour-key rows, plates behind every non-'.' cell",
+      "Only light-emitting keys bloom (tree tips, LEDs, sign text, fire, stairs); stone, wood and foliage are drawn without glow",
+      "Props stay in the green family (#1a6331–#4ddb76) with amber only for wood, fire and treasure",
+      "Animated props swap whole glyph rows: fire 4 frames at 7 fps, LED 2-on-1-off at 1.4 Hz, sign cursor 1.06 s blink, stairs pulse",
+      "A tree that a figure stands behind is redrawn without plates and dimmed one step so the figure shows through",
+      "Rooms get furniture from their own seed: a campfire in the middle (60 %), stairs (55 %), a chest (60 %), a monolith (40 %)"
+    ]
+  },
+  "effects": [
+    { "name": "Glyph burst", "how": "Impacts throw 2 glyphs from * + ' ` in the struck figure's colour family; bursts throw 6 (16 for the large creature) of the figure's own glyphs plus 3–8 * + x. Each particle is one glyph snapped to the cell grid, decaying to · and . (shade glyphs to ▒ ░) in its last 45 % while stepping down its colour ramp." },
+    { "name": "Glyph ring", "how": "A ring of * (# for the large creature) on the cell grid, radius growing 4 → 22 units (46 for large) with ease-out over 0.32–0.55 s, y squashed to 0.6, glyphs dedupe per cell and turn to · after 60 % of their life." },
+    { "name": "Box frame glow-up", "how": "A box-drawing frame ┌─┐│└┘ in cyan growing from 1 to 6 cells half-height around the main character over 0.7 s, plus the typed text [ OK ] above and ten rising ↑ ▲ glyphs in cyan and amber." },
+    { "name": "Typed-out text", "how": "Short words (OK, ERR, SIGNAL LOST) appear one character per cell over the first 30 % of their life with a blinking █ cursor at the end, then scramble into noise glyphs in the last 25 %." },
+    { "name": "Collectibles and spinner", "how": "Small collectibles are a single cyan ◆ on a plate that blinks to ◇ one frame in five; large ones are [◆]. The orbiting object is a terminal spinner | / - \\ at 12 fps in white-amber between amber ( ) brackets, with a fading · on its previous spot." },
+    { "name": "Projectile", "how": "A white-amber * on a plate with up to two trail cells behind it: the direction glyph - \\ | / (by angle, 45° steps) in amber and a dim ·." },
+    { "name": "Floating numbers", "how": "Digits typed into consecutive cells over 0.18 of their life on plates, phosphor white (highlighted: white-amber with a trailing !), decaying to . · in the last 22 %." },
+    { "name": "Row tearing", "how": "On heavy impacts 2–5 horizontal strips, each 1–3 text rows tall and aligned to the text rows, slide sideways by up to two whole cells and settle back over 0.14–0.5 s." }
+  ],
+  "atmosphere": {
+    "summary": "A CRT tube: baked phosphor bloom on every bright glyph, display-resolution scanlines, a breathing flicker, a slow rolling refresh band, a barrel vignette with darker edges and rounded black glass corners, a faint glass reflection, and row tearing on impacts. No shadows – figures stand on cells, the main character on a blinking cursor.",
+    "rules": [
+      "Bloom is baked into the glyph atlas and sprites (two shadow-blur passes), never computed full-screen per frame",
+      "Scanlines: every max(3, round(screenH / 300)) display px a dark row of a third of that height at rgba(0,0,0,0.42)",
+      "Flicker: a black veil of 1.2–6.2 % alpha – hashed noise changing 30 times per second plus a slow swell (sin 1.7 t)",
+      "Rolling band: an additive green gradient 14 % of the screen tall at 3.5 % alpha, sweeping down every 9.8 s",
+      "Vignette: radial black 0 → 16 % (55 %) → 50 % (85 %) → 82 % at the corners, 6 % edge bands at 55 %, rounded screen corners of 7.5 % of the short side",
+      "Glass reflection: a soft radial highlight rgba(200,255,220,0.045) at the upper left",
+      "Shadows do not exist: the main character's cell below is a ▁ cursor blinking with a 1.06 s period"
+    ]
+  },
+  "ui": {
+    "summary": "Terminal windows: near-black panels with a 2-px #2a994b frame, a black outer ring and a soft green glow, scanline texture, and a title cut into the top border like a legend (PWR in amber). Bars are block segments (8 px block, 2 px gap) in bright green or amber with a drop-shadow glow over a dim segmented track. Big numbers in VT323 with phosphor text-shadow; captions in IBM Plex Mono with a > or $ prompt; blinking █ and _ cursors; cards have a lit title strip with [1] keys and switch to amber with an inverse-video title on hover.",
+    "css": ".panel { position: relative; background: repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px), rgba(2,10,5,.9); border: 2px solid #2a994b; border-radius: 0; box-shadow: 0 0 0 3px #020a05, 0 0 14px rgba(77,219,118,.28), inset 0 0 18px rgba(77,219,118,.12); padding: 16px 16px 10px; font-family: 'VT323', monospace; color: #4ddb76; }\n.panel::before { content: ' PWR '; position: absolute; left: 12px; top: -12px; padding: 0 6px; background: #020a05; font: 20px/1 'VT323', monospace; color: #ffb238; text-shadow: 0 0 6px rgba(255,178,56,.8); }\n.bar { width: 210px; height: 18px; background: repeating-linear-gradient(90deg, rgba(122,74,14,.55) 0 8px, transparent 8px 10px); }\n.bar-fill { height: 100%; background: repeating-linear-gradient(90deg, #ffb238 0 8px, transparent 8px 10px); filter: drop-shadow(0 0 5px rgba(255,178,56,.8)); transition: none; }\n.big { font: 52px/0.95 'VT323', monospace; color: #a3ffbd; text-shadow: 0 0 6px rgba(77,219,118,.75), 0 0 16px rgba(77,219,118,.25); }\n.cursor::after { content: '\\2588'; animation: termblink 1.06s steps(1) infinite; }\n@keyframes termblink { 0% { opacity: 1; } 50% { opacity: 0; } }"
+  },
+  "motion": [
+    "Everything moves in whole cells (6 units across, 10 down); only the camera scrolls smoothly – movement reads as discrete terminal steps.",
+    "Main character: 4 walk frames (arms /█\\ -█\\ /█\\ /█-, legs / \\  |\\ / \\ /| ) at anim × 0.45; the arm on the facing side turns into - / \\ | toward the aim while firing.",
+    "Small creature: 2 frames (legs / \" \\ ↔ \\ \" /) at anim × 0.8; large creature: 2 frames of alternating block feet at anim × 0.5.",
+    "Fast creature: glyph flicker through 6 bracket/core combinations at 11 fps plus a 4-cell tail of the cells it just left.",
+    "Blinks are hard steps (no fades): cursors 1.06 s period, collectibles 1 frame in 5 at 3 fps, i-frame blink at 16 Hz, glow-up colour swap at 12 Hz.",
+    "Water crests travel diagonally at 1.9 rad/s; the orbiting spinner turns at 12 fps; campfires change frame at 7 fps.",
+    "UI never tweens: transitions none, every blink uses steps(1)."
+  ],
+  "do": [
+    "Snap every glyph to the cell grid (floor(x / 6), floor(y / 10)) and draw at whole display pixels.",
+    "Bake glyphs once into an atlas keyed by glyph + colour + mode and blit cells; bake multi-cell sprites once per cell size.",
+    "Put an opaque plate behind every figure, prop and collectible cell so it erases the ground underneath.",
+    "Keep the ground dim and sparse (≤ 50 % filled, ≤ #2a994b) so the bright, glowing figures carry the picture.",
+    "Draw block, shade and box glyphs procedurally so they tile without gaps at any cell size.",
+    "Use inverse video for flashes, scrambling glyphs for damage, typed-out text for messages.",
+    "Choose glyphs by silhouette: half blocks for round masses, slashes for limbs, brackets for shells."
+  ],
+  "dont": [
+    "No sub-cell positions, rotation or scaling of glyphs – a glyph is either in a cell or not.",
+    "No colours outside the phosphor ramps; no amber creatures, no green main character.",
+    "No full-screen blur or bloom pass per frame; the glow lives in the baked glyphs.",
+    "No drop shadows under figures; no gradients inside cells.",
+    "No proportional or rounded fonts in the world; no mixed glyph sizes in one grid.",
+    "No dense, bright ground textures – a busy ground swallows the figures.",
+    "No alpha fades for decay – step down the colour ramp and the glyph ramp (* + · .) instead."
+  ],
+  "performance": "Very cheap per frame: with 60–120 figures plus particles the drawing code takes ~1–2 ms per frame (median) in headless Chromium. On the first frame at a new cell size a warm-up bakes the ~600 common glyph slots (bursts, digits, scramble set, ramps) into 8 × 8-slot atlas pages and all figure states (≈ 50 sprites), so later frames never bake; rare extra slots are added on first use. Atlas pages and sprites live in CPU-backed canvases (willReadFrequently) that are only ever drawImage sources. Ground chunks (40 × 24 cells) are generated with a generator in row batches and cached; chunks built before the web font arrived are repainted in place a few per frame. Per frame: one drawImage per figure/prop, one per particle glyph, a few hundred water-crest cells, a scanline pattern fill and one cached vignette canvas. The only full-screen copy is the row tearing, and only during impacts."
+}

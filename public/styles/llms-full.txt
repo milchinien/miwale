@@ -1,6 +1,6 @@
 # miwale Game Style Library – all style specs
 
-> 20 art styles. Source: https://miwale.com/styles/ · Index: https://miwale.com/styles/llms.txt
+> 25 art styles. Source: https://miwale.com/styles/ · Index: https://miwale.com/styles/llms.txt
 
 
 ---
@@ -9207,4 +9207,1903 @@ Use the Voxel Cube World art style for my project: a MagicaVoxel look in Canvas 
 - Effects: tumbling 1-voxel cube debris in the object's colours, squashed SQUARE rings, white silhouette impact flash.
 - Bright saturated autumn palette, purple radial vignette. HUD: #2b2446 slabs with 3px #151024 edge + hard bevel,
   segmented bars with 3 hard colour bands, Bungee numbers with stacked hard drop shadows, Chakra Petch labels.
+```
+
+
+---
+
+<!-- style: blueprint · https://miwale.com/styles/library/blueprint/STYLE.md -->
+
+# Blueprint — Game Art Style Spec
+
+> A living technical drawing: white line work, dimension lines and hatching on deep cyan-blue drafting paper with a fine grid.
+
+Everything on screen is drawn like an engineer's drafting sheet. Deep cyan-blue paper with an 8-unit grid carries faint drawings at every scale — floor plans with hatched walls and door swings, gear details, hatched sections, north arrows, callout bubbles, spot heights and handwritten notes. On top of it, characters and props are crisp mechanical drawings in white and pale cyan: outlined tube limbs, 45° hatching for shade, graduated lines on cylinders, center marks on every circle and chain-dash center lines. A navy knock-out halo around each sprite lifts it off the busy paper. One amber "highlighter" accent marks friendly and collectible things, red pencil marks hostile eyes and corrections. Fold creases, coffee rings, eraser smudges, a sheet border with zone letters and a title block make the sheet feel handled and alive; effects are dashed trajectories, measurement callouts, rubber stamps and red-pencil cross-outs.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Family | Line art · Technical drawing |
+| Mood | precise, clever, nerdy, calm, handmade |
+| Best for | engineering and building games, puzzle and logic games, factory / automation sims, machine tower defense, top-down arena action with crowded screens |
+| Renderer | Canvas 2D, fully procedural, no image assets, no web fonts on the canvas |
+| Pixel art | No – native resolution, sprites baked at 4–7 px per world unit |
+| Complexity | 4/10 – new assets are line drawings of engineered primitives; the two-pass bake keeps them readable; the craft is in the drafting details |
+| Fonts | Built-in single-stroke lettering (canvas), Share Tech Mono (HUD), Architects Daughter (handwritten notes) |
+| Key colours | `#0e5088` paper · `#f2faff` ink · `#a9dcf6` pale cyan · `#062a4a` navy halo · `#1c6aa8` body fill · `#ffcf4a` amber · `#ff5b4d` red pencil |
+
+## When to use it
+
+Good fits:
+- **Engineering, building and factory games.** The subject matter and the look are the same thing: machines drawn as machines.
+- **Puzzle and logic games.** Dimension lines, grids and callouts make spatial information feel deliberate and readable.
+- **Tower defense or arena action with many creatures.** The navy halo plus white outline separates every sprite even in tight crowds; creature types differ by silhouette (gear, drone, cylinder) rather than by colour.
+- **Educational or "maker" projects**, technical museums, tutorials with diagrams.
+- **Teams that need lots of assets quickly.** Most objects are rectangles, circles, gears and tubes plus a few annotations.
+
+Bad fits:
+- Horror, gore or emotional close-ups – the style is cool, cerebral and friendly.
+- Lush nature settings – organic shapes look odd as engineering drawings (they can work as architect's symbols, sparingly).
+- Gameplay that colour-codes many categories – you only get two accents (amber, red) before the blueprint illusion breaks.
+- Photoreal or painterly projects.
+
+## Color palette
+
+| Swatch | Hex | Role |
+| --- | --- | --- |
+| Blueprint paper | `#0e5088` | World base, ~70 % of the screen |
+| Paper dark | `#0a4374` | Mottling low end |
+| Paper light | `#16609c` | Mottling high end; sun-faded patches mix towards `rgb(32,106,162)` |
+| Grid / ground line | `#e2f4ff` | Grid (7.5 % minor, 17 % major) and all ground drawings at 12–55 % alpha |
+| Ink white | `#f2faff` | Character outlines, lettering, projectile arrow |
+| Pale cyan | `#a9dcf6` | Secondary lines, details, tab labels |
+| Construction cyan | `#74b6de` | Inner construction circles |
+| Navy halo | `#062a4a` | Knock-out halo behind every sprite, shadows, HUD panels |
+| Navy separation | `#072e52` | Thin line under each white outline |
+| Body fill | `#1c6aa8` | Character bodies (lighter than the paper) |
+| Back-limb fill | `#165b93` | Far limbs, back struts |
+| Top face | `#2a7dbd` | Upper faces, joints, domes |
+| Lens dark | `#08304f` | Lenses, gauges, portholes, grilles |
+| Prop line | `#d3ebfa` | Scenery outlines |
+| Prop fill | `#14598f` | Scenery fills |
+| Water | `#04284c` | Canal fill at 50 % |
+| Road surface | `#0f538c` | Blank road strip (hides the grid) |
+| Red pencil | `#ff5b4d` | Creature eyes, revision clouds, cross-outs, hurt marks, stamps |
+| Amber highlighter | `#ffcf4a` | Main character helmet and pencil, collectibles, orbiting discs, approval stamp |
+| Eraser pink | `#f3b6ae` | Eraser crumbs, pencil eraser |
+| Coffee | `#c4a060` | Coffee rings at 7–34 % |
+
+Palette rules:
+- **Blue first.** Paper and navy cover at least 85 % of the screen; everything else is line work.
+- **Light lines only.** Lines are white or pale cyan, never black. Darkness appears only as the navy halo, shadows and panel backgrounds.
+- **Two accents, fixed meaning.** Amber = friendly / collectible, red = hostile / correction. Never use red for something friendly.
+- **Fills stay blue.** Character fill `#1c6aa8` is a step *lighter* than the paper so bodies read as cut-outs; scenery fill `#14598f` stays close to the paper so characters win.
+- **Faint paper.** Nothing drawn on the ground exceeds ~55 % alpha white.
+- No gradients on forms, no glow, no saturated colours besides the two accents.
+
+## Typography
+
+| Family | Use | Notes |
+| --- | --- | --- |
+| Built-in single-stroke lettering | Everything drawn on the canvas: dimensions, labels, floating numbers, title block, stamps, ground notes | Polylines on a 4x6 grid, advance 5.7, uppercase only, round caps; italic = x-shear 0.2, "handwritten" = ±0.35 u vertex jitter |
+| Share Tech Mono 400 | HUD numbers, labels, panel titles, card names | `font: 400 34px/1.1 'Share Tech Mono', monospace; letter-spacing: 4px; color: #f2faff;` Titles add 10–14 px letter-spacing and uppercase |
+| Architects Daughter 400 | Handwritten notes in the UI: card descriptions, hints, captions | `font: 400 16px/1.3 'Architects Daughter', cursive; color: #ffcf4a;` |
+
+The canvas never uses web fonts, so lettering is identical in every mix and never pops in late. Line width of the stroke lettering is about 8 % of the cap height (0.42 u at 4.2 u caps on the ground, 0.8–1.0 u for floating numbers with a 2.4 u navy halo).
+
+## Rendering technique
+
+Shared pipeline:
+1. **init()** picks the bake resolution `K = clamp(ceil(screenScale * 1.6) + 1, 4, 7)` px per world unit (screenScale = display height / 360) and bakes every sprite once.
+2. **Two-pass sprite painting.** Each part of a drawing is a path function. The *back* pass fills the path in navy `#062a4a` and strokes it `lineWidth + 2.3` in navy, building one knock-out halo for the whole sprite. The *main* pass then fills (`#1c6aa8` etc.), clips hatching into the shape, strokes a navy separation line (`lineWidth + 0.85`) and finally the white outline. Construction lines are main-pass only, so they float over the paper without a halo.
+3. **Copies:** a white silhouette (hit flash) for every frame, a red silhouette for main character frames. Facing is a negative-x transform at draw time – no mirrored copies.
+4. **Ground** is baked per 256-unit chunk by a generator (yields between ~12 phases) at up to 3 px per unit; everything is drawn in world coordinates so it lines up across chunks.
+5. **Per frame:** shadows (one drawImage each) → y-sorted props / creatures / main character (one drawImage each, plus a white flash at `alpha = flash*1.2`) → orbiting discs and projectiles (sprite + one dashed trail stroke) → vector particles → cached number sprites → a cached display overlay (sheet frame).
+
+Draw order inside a character: construction center line → back limbs → body → head → accents → front limb. Inside a prop: annotations first, then the object.
+
+## World and ground
+
+The world is an endless drafting sheet, built in this order:
+
+1. **Paper base.** An 8-unit colour grid (`fbm(x/900)` 85 % + `noise(x/160)` 15 %) ramps between `#0a4374`, `#0e5088` and `#16609c`; slow sun-faded patches mix towards `rgb(32,106,162)` by up to 22 %. The small grid is upscaled with smoothing, sample centres aligned to world multiples of 8, so chunks match.
+2. **Canals.** A band of constant half-width 15 u around the zero line of `perlin(x/760) + 0.3*perlin(x/260)`, using `d = f / |grad f|` as signed distance, intersected with a region mask (`max(|d| - 15, -maskDistance)`), so canals have square-cut ends. Filled `#04284c` at 50 % with a 2-unit soft edge, *before* the grid.
+3. **Grid.** 0.9 px lines every 8 u at `rgba(205,236,255,.075)`, 1.15 px lines every 40 u at `.17`.
+4. **Topographic contours** in some regions (mask noise): marching squares on `fbm(x/560)` every 0.024; thin lines 0.32 u at 8.5–15 %, every fifth line 0.55 u at 14–26 %; skipped on water and roads.
+5. **Roads.** Band of half-width 8 u, filled `#0f538c` at 96 % (a blank strip that hides grid and contours).
+6. **Paper grain** over everything: a 256 px tileable tile (white/navy speckles, low-alpha fbm, 70 short curved fibres) used as a world-aligned pattern at 1/3 scale.
+7. **Line work for bands.** Canal bank 0.7 u at 55 %, outer line at +3.2 u (30 %), flow lines at −6 and −12 u drawn on every other lattice cell (reads as dashed), comb hachures on the land side (2.2 / 4.2 u alternating, 30 %), small wave marks (two quadratic arcs, 6 u) every ~22 u inside. Road edges 0.7 u at 48 %, curb lines at +2.2 u, dashed centre line.
+8. **Drawings at three scales** (all `#e2f4ff`):
+   - long construction lines across the sheet (700-unit cells, 70 %, 0.3 u at 12 %, some chain-dashed);
+   - big drawings (440-unit cells, 85 %, alpha factor 0.75–1): floor plans (walls 4 u thick with 45° hatching at 30 %, outlines 0.5 u at 55 %, windows as two glass lines, doors as leaf + quarter-circle swing, column grid with lettered bubbles, overall dimensions in mm, room labels like `LAB 07` with area `18.2 M²`), gear details (toothed outline, chain-dash pitch circle and center lines, bore with keyway, bolt circle with center marks, diameter dimension, `DETAIL C SCALE 2:1`), hatched L/T sections with a hole and `SECTION A-A` double-underlined, north arrows with scale bars, detail callout bubbles with a dashed boundary circle;
+   - mid-size parts (180-unit cells, 62 %): plate with 4 holes + `4X Ø4.8`, bolt elevation with thread hatch and `M5X32`, angle measure with arc and degrees, isometric box with dashed hidden edges, circle with radius callout, dimension chain;
+   - small notes (150-unit cells): spot heights `+12.40` with a cross, handwritten notes (`VERIFY ON SITE`, `CHECK CLEARANCE`, `SEE DETAIL 3`, … italic, jittered, 42 % white or 62 % red, often with a curved leader arrow), registration crosses.
+9. **Red pencil** (560-unit cells, 60 %): revision clouds (scalloped ellipse, 0.6 u at 55 %) with a delta triangle and letter, circled question marks, check marks with OK, strike-throughs with an arrow.
+10. **Handling marks.** Eraser smudges (soft radial `rgba(160,212,245,.075)` + a ghost line), fold creases every 1024 u in x and 768 u in y (10-unit band: 7 % highlight, 22 % navy shadow, a 0.5 u highlight line), coffee rings (`#c4a060`: main ring 2 u at 34 %, inner ring 16 %, partial ring 22 %, 7 % fill, an optional drip).
+
+Three fixed landmark drawings near the start point (a gear detail, a floor plan, a section) and one coffee ring make the first view composed. Scenery and big drawings avoid canals and roads.
+
+## Characters
+
+All characters share the two-pass bake, body fill `#1c6aa8`, back limbs `#165b93`, top faces `#2a7dbd`, lenses `#08304f`, white outlines 0.95–1.15 u, tube limbs (navy halo, 0.55 u white rim, blue core), hatching on the lower-right, and center marks on round parts.
+
+**Main character – engineer robot** (~15 u wide body, ~32 u to the helmet top, ~36 u to the antenna ball; drawn at 0.92 scale):
+- Boxy head 13.4 x 10.4 u (radius 2.2) with hatching on the right third; a big lens eye r 3.4 (dark fill, inner construction ring, white pupil r 1.15 with a dark dot, center mark extending 1.8 u outside the rim) offset towards the facing direction; a three-line speaker grille; an ear bolt with a slot.
+- Amber safety helmet: half-ellipse 6.3 x 5.1 u plus a 16.6 u brim, darker amber hatching on the right, a ridge line. A thin antenna with a red ball sways from the helmet.
+- Torso 10.6 x 8.8 u with a belt line, a chest gauge (dark disc, five ticks, amber needle) and four rivets; a sprung neck.
+- Tube limbs 1.75–2.1 u with round joints, rounded-box feet, round hands. The front hand holds a 10.5 u hexagonal amber drafting pencil with a pale ferrule, pink eraser and a dark graphite tip.
+- A chain-dash center line runs through the whole figure from 3 u below the feet to 42 u up.
+- Frames: 4 idle (bob ±0.4 u, antenna sway, a lens blink), 8 walk, 1 dash (leaning 0.2 rad, pencil forward like a lance, three baked dashed speed lines behind).
+
+**Small creature – cog crawler** (~20 x 22 u): a gear body (9, 8 or 11 teeth, root r ~6.2, tip r ~8) centred 10.8 u above the ground, with a chain-dash pitch circle, a dark hub r 2.9, a red eye r 1.65 with a white glint, two angry brow strokes, two feelers with balls and four jointed legs (back pair darker). Three variants (tooth count, spokes, slit pupil). Six frames per gait cycle turn the gear exactly one tooth pitch.
+
+**Fast creature – survey drone** (~24 x 20 u, drawn at 0.8 scale, hovering 5 u up): a capsule body 12.4 x 6.2 u with a lighter dome, a dashed equator line, a red lens r 1.75 with a brow, two struts to rotor hubs, rotor discs as dashed ellipses (5.4 x 1.15 u) with one blade line whose length follows `cos(phase)`, skids, dashed downwash lines and an amber plumb bob on a dashed line. Four rotor frames; tilts with its velocity.
+
+**Large creature – boiler walker** (~42 x 60 u): a vertical cylinder r 14 from y −45 to −19.5 with elliptical caps (ry 3.4), graduated vertical shading lines (`x = 14*cos(theta)`, theta 0.12–1.05 step 0.13), a dashed inner ring on the top face, a riveted seam, two portholes (r 2.9 / 2.6) with red pupils and heavy brow strokes, a grille mouth, a small name plate, a smoke stack puffing three dashed circles, clamp arms (3 u tubes with C-clamps) and piston legs (4.4 u tubes, knee discs with center marks, trapezoid foot plates with bolts). A live callout leader with `Ø28` is drawn beside it (opposite its facing) so the lettering never mirrors.
+
+States:
+- **Hit:** white silhouette over the sprite at `alpha = min(.9, flash*1.2)`, scaled up 6 %.
+- **Draft-in (0.45 s):** a dashed construction ellipse shrinks from 2.6r to 1.2r around a center mark; after 8 % the sprite is revealed from the feet up (source-rect crop) with a white pen line on the edge.
+- **Erase (0.35 s):** the sprite is wiped from left to right while fading to 50 %, and a red X is drawn over it in two strokes (2.6 u navy underlay, 1.2 u red), fading out at the end.
+- **Main character hurt:** red silhouette at `alpha = hurtT*1.1` plus a fast ±0.05 rad shake; invulnerability blinks to 55 % at 14 Hz.
+
+## Props
+
+Elevation drawings with the same bake, but dimmer: outline `#d3ebfa` 0.85 u, halo 1.9 u, fill `#14598f`, details in pale cyan, and at least one annotation each.
+
+- **Architect's tree:** trunk tube 2.8 u with two branch tubes; canopy = union of four circles (strokes at double width first, then all fills, giving one clean contour), hatching clipped to the lower right, center marks on each circle, a dashed construction arc; a chain-dash center line.
+- **Conifer:** four hatched triangles stacked on a short trunk.
+- **Rock:** a faceted polygon with internal facet lines and stipple dots on the right.
+- **Crate:** front face with inner frame and diagonal brace, top face `#1d68a3`, hatched side face, stencil `NO 12`, a width dimension below.
+- **Tank `T-2`:** cylinder r 8.5 on four legs, graduated shading, top dome, ladder, an amber level gauge, a height dimension.
+- **Street lamp:** pole tube with an arm, hatched lamp head, amber bulb, a dashed amber light cone with a dashed ellipse on the ground.
+- **Lattice tower:** tapering truss with X-bracing per level, cross arm with insulators, amber tip light, a `71.5` height dimension and a ground line.
+- **Theodolite `STA 3`:** tripod tubes, instrument box with a dark dial, telescope with a chain-dash sight line, an amber plumb line down to a center mark on the ground.
+- **Valve `V-04`:** pipe with bolted flanges and horizontal hatching on the lower half, valve body, stem and a front hand wheel with four spokes, a ground line with hatch ticks.
+
+Placement: one candidate per 92-unit cell, 34 % kept, weighted tree 24 %, rock 18 %, crate 14 %, valve 9 %, lamp 9 %, theodolite 9 %, tank 9 %, tower 8 %; never on water or roads, none within 90 u of the start. Only tree, rock and lamp are mirrored (the others carry lettering).
+
+## Effects and particles
+
+- **Projectile – flying dimension arrow:** filled white arrowhead (3.6 u, navy halo) rotated to its flight direction; a dashed trail (`[2.4, 1.7]`, offset `−age*40`) through its last 7 positions, 1.6 u navy underlay + 0.6 u white at 85 %, with a perpendicular extension tick at the start.
+- **Collectibles:** small = amber hex nut (r 2.9) with a paper-coloured hole and a white glint; large = amber 8-tooth gear (r 4.6) with darker hatching and a center mark, spinning at 1.6 rad/s, with a small amber leader tag. Both bob 1.2 u above a scaled ground-line shadow; spawn pop with ease-out-back.
+- **Orbiting discs:** amber protractors (r 6, drawn at 0.85) with 24 degree ticks, a half-circle scale, a red needle and a paper hub, spinning at 5 rad/s, trailed by a dashed amber line through their last 11 positions.
+- **Impact:** a center-mark crosshair with a circle (5 u, 7 u on large creatures) shrinking to 70 % and fading in 0.2 s, plus two white / pale tick sparks.
+- **Erase burst:** 6 (14 on large) eraser crumbs – `#f3b6ae` capsules with a navy edge, gravity 240 – plus paper-dust dots and a dashed construction ring on the ground squashed to 42 % (large ones add a live radius label `R##`).
+- **Launch mark:** half of the shots leave a tiny pale crosshair at the muzzle.
+- **Collect:** an amber check mark pops (ease-out-back) and rises; large collectibles add a small amber ring.
+- **Dash:** a full dimension line with extension lines and arrowheads from start to end of the dash, labelled `Δ 62`; a dashed ring at the start and four dashed speed lines.
+- **Celebration:** an amber dashed construction circle growing to R64 with a live radius line and label, a white ring, 12 amber ticks and an `APPROVED` rubber stamp (double rounded frame, tilted −0.16 rad) slamming in from 1.7x.
+- **Hurt:** a red-pencil scribble drawn progressively over the main character, a red ring 5→20 u, red ticks, a red vignette on the screen edges.
+- **Floating numbers:** measurement callouts – the value in stroke lettering on a shelf line with a slanted leader and dot; strong values are red, larger and circled.
+
+## Atmosphere and lighting
+
+- **Shadows are drafting ground lines.** A baked shadow (unit radius 10): navy radial pool `rgba(3,22,42,.55)` squashed to 36 %, a 0.5 u ground line at 45 % white, five diagonal hatch ticks below it. Scaled per subject: main character 9.5, small creature 10.5, fast creature 6.5, large creature 19, props 6–15, collectibles 3–4.
+- **Plotted route.** The main character's path is drawn behind it as a dashed line (last 44 points, sampled every 7 u) with station crosses every 6 points, in three alpha bands (10 / 21 / 32 %).
+- **Desk lamp + vignette.** Radial `rgba(190,232,255,.07)` from the upper left (22 %, 12 %); navy vignette from 36 % of the short side to 58 % of the diagonal, ending at `rgba(2,16,32,.6)`.
+- **Sheet frame.** Outer line 1 px at 50 % (inset 7 px), inner line 2 px at 75 % (inset 21 px), the strip between them darkened to `rgba(4,30,56,.5)`; zone ticks every ~200 px with letters H…A along top and bottom and numbers down the sides; centring marks on every edge.
+- **Title block** (300 x 74 px at 900 px height, lower right): navy panel with cells `TITLE / FIELD STUDY`, `DRAWN` with an amber handwritten name, `SHEET 04 / 12`, `SCALE 1:20`, `REV B`, `DATE 10.26`, plus a red revision delta beside it.
+- The overlay is drawn once per screen size into a cached canvas – one drawImage per frame.
+- No glow, bloom, colour grading or additive light anywhere.
+
+## UI
+
+The HUD is drawing-sheet furniture:
+- **Panels** are title-block cells: `rgba(6,42,74,.84)`, 1.5 px `#dff3ff` border, square corners, a tab label (`FIG. 1`) sitting on the top border.
+- **Bars** have hairline tick marks every 22 px; fills are 45° hatch patterns (`repeating-linear-gradient(45deg, …)`) with a solid end line – white normally, red when hurt.
+- **The thin top bar is a scale ruler** (ticks every 10 px, long ticks every 50 px) with an amber hatched fill.
+- **The title cell** has a caption strip `SHEET 04 — REV B`, a 34 px Share Tech Mono value and an amber handwritten label; an inner hairline frame.
+- **Counters are rubber stamps:** red `#ff6b5c` text and 2.5 px border, rounded 5 px, an outline 3 px outside, rotated −2.5°.
+- **Cards** are drawing sheets: grid background, inner border, a circled number, a dashed icon circle with a crosshair, Share Tech Mono uppercase titles, amber Architects Daughter descriptions, a bottom title strip `DWG A-01 SCALE 1:1`. Hover lifts and tilts the card and turns its border amber.
+- **Panel titles** get a dimension line underneath (hairline + two extension ticks); they reveal left-to-right with `clip-path`.
+- **Icons** are drawn by the style in two passes (navy halo, then lines) on a 24-unit grid: a cog-crawler face, a geometric heart built from two construction circles, a pen nib, a stopwatch, fanned dimension arrows, a reflected trajectory off a hatched wall, a disc on a dashed orbit, a wheel with motion lines, a horseshoe magnet with dashed field lines, a wrench with a plus.
+
+```css
+.hud-panel { position: relative; padding: 7px 14px 7px 8px; background: rgba(6,42,74,.84); border: 1.5px solid #dff3ff; font: 400 15px 'Share Tech Mono', monospace; color: #f2faff; }
+.hud-panel::before { content: 'FIG. 1'; position: absolute; top: -9px; left: 8px; padding: 0 5px; font: 400 10px/16px 'Share Tech Mono', monospace; letter-spacing: 2px; color: #a9dcf6; background: #0b4475; border: 1px solid rgba(223,243,255,.55); }
+.bar { position: relative; width: 230px; height: 16px; border: 1.5px solid #dff3ff; background: rgba(3,26,48,.85); }
+.bar::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 22px, rgba(223,243,255,.5) 22px 23px); }
+.bar-fill { height: 100%; background: repeating-linear-gradient(45deg, rgba(236,248,255,.95) 0 1.6px, transparent 1.6px 4.6px), rgba(236,248,255,.14); border-right: 2px solid #f2faff; }
+.stamp { display: inline-block; padding: 3px 16px; color: #ff6b5c; font: 400 26px 'Share Tech Mono', monospace; border: 2.5px solid #ff6b5c; border-radius: 5px; outline: 1px solid rgba(255,107,92,.55); outline-offset: 3px; transform: rotate(-2.5deg); }
+```
+
+## Motion and animation
+
+- **Main character:** walk 8 frames (bob −|sin|·1.1 u, feet ±3.3 u, lift 1.9 u, arms ±0.65 rad, antenna on a phase offset); idle 4 frames at 1.4 cycles/s (bob ±0.4 u, one lens blink); dash: one leaning pose plus three fading white after-images 7 u apart.
+- **Small creature:** 6 frames per cycle; the gear turns exactly one tooth pitch per cycle, so it rolls continuously; legs alternate in pairs; feelers wiggle at double frequency; body rocks ±0.05 rad.
+- **Fast creature:** 4 rotor frames at 14 fps, hover float `sin(t*3)*1.5 u`, tilt up to 0.18 rad with horizontal speed, plumb bob swing ±0.9 u.
+- **Large creature:** 6 frames, bob 1.3 u, feet lift 2.8 u, smoke circles rise 9 u and grow from 1.4 to 4 u over one cycle.
+- **Transitions:** draft-in 0.45 s (feet first), erase 0.35 s (wipe + red X in two overlapping strokes).
+- **Numbers and stamps:** pop 0.55→1.15→1x in 0.25 s and fade over the last 30 %; stamps slam from 1.7x in 15 % of their life.
+- **Rings** ease out (quad) and fade linearly; trajectory dashes move with age so lines look like they are being drawn.
+- No squash and stretch on machines beyond small 3–10 % pulses (shooting, celebration).
+
+## Do and don't
+
+Do:
+- Bake each sprite in two passes (navy halo first, then fill + hatching + white outline) and only drawImage at runtime.
+- Put a center mark on every important circle and a chain-dash center line through symmetric objects.
+- Shade with 45° hatching on the lower-right; graduate the lines on cylinders.
+- Annotate: dimension lines with filled arrowheads, single-stroke capitals, leaders with dots.
+- Keep the paper busy but faint (≤ 55 % alpha), so the haloed characters always win.
+- Reserve amber for friendly / collectible things and red pencil for hostile eyes and corrections.
+- Frame the screen like a sheet (border with zone marks, title block).
+
+Don't:
+- Don't use black outlines, glow, bloom or soft gradients on forms.
+- Don't bake lettering into sprites that get mirrored – draw labels live.
+- Don't fill bodies with the paper colour; they vanish into the grid.
+- Don't add more hues – a third accent breaks the blueprint illusion.
+- Don't draw wobbly organic outlines for machines; only handwritten notes may wobble.
+- Don't let ground drawings compete with thick lines or high alpha.
+- Don't rely on web fonts inside the canvas.
+
+## Implementation recipe
+
+1. Fill the background with `#0e5088`; add a smoothly upscaled mottling grid and a world-aligned grain pattern.
+2. Draw the grid: 8-unit minor lines at 7.5 %, 40-unit major lines at 17 %.
+3. Add bands (canals, roads) as signed-distance bands from noise fields; mask-fill them, then contour the banks with marching squares.
+4. Scatter faint drawings at three scales (big plans and gear details, mid-size parts, small notes) plus red-pencil corrections, creases and coffee rings – deterministic per world cell so chunks match.
+5. Build the drafting toolkit: stroke lettering, `dimLine()`, `centerMark()`, `hatchLines()`, `arrowHead()`.
+6. Write each subject as path functions and paint them through `shp()` / `tube()` / `ln()` / `con()` so the same code produces the navy back pass and the main pass.
+7. Bake frames: main character 4 idle + 8 walk + 1 dash, creatures 4–6 frames each; add white (and for the main character red) silhouette copies.
+8. Draw per frame: ground-line shadows, y-sorted sprites with a mirrored transform for facing, flash overlays, dashed trails, vector particles.
+9. Implement draft-in (crop from the feet up) and erase (wipe + red X) directly in the creature draw.
+10. Cache the sheet frame and title block per screen size; skin the HUD with title-block cells, hatched bars and rubber stamps.
+
+## Code
+
+Two-pass painting helpers – one path function, two passes:
+
+```js
+let PASS = 'main';
+const NAVY = '#062a4a', SEP = '#072e52', INK = '#f2faff', HALO = 2.3;
+function shp(c, path, o) {           // filled part with outline (+ optional hatching)
+  const lw = o.lw === undefined ? 1 : o.lw;
+  if (PASS === 'back') { path(c); c.fillStyle = NAVY; c.fill(); c.lineWidth = lw + HALO; c.strokeStyle = NAVY; c.stroke(); return; }
+  path(c); if (o.fill) { c.fillStyle = o.fill; c.fill(); }
+  if (o.hatch) {                     // 45° hatching clipped to the shape and a sub-rectangle
+    const r = o.hatch; c.save(); path(c); c.clip(); c.beginPath(); c.rect(r[0], r[1], r[2] - r[0], r[3] - r[1]); c.clip();
+    c.beginPath(); for (let k = -60; k <= 60; k += 1.2) { c.moveTo(r[0] + k, r[1]); c.lineTo(r[0] + k + 60, r[1] + 60); }
+    c.lineWidth = 0.32; c.strokeStyle = 'rgba(226,244,255,0.5)'; c.stroke(); c.restore();
+  }
+  path(c); c.lineWidth = lw + 0.85; c.strokeStyle = SEP; c.stroke();
+  c.lineWidth = lw; c.strokeStyle = o.col || INK; c.stroke();
+}
+function tube(c, path, w, core) {    // outlined limb
+  if (PASS === 'back') { path(c); c.lineWidth = w + HALO; c.strokeStyle = NAVY; c.stroke(); return; }
+  path(c); c.lineWidth = w + 0.85; c.strokeStyle = SEP; c.stroke();
+  c.lineWidth = w; c.strokeStyle = INK; c.stroke();
+  c.lineWidth = w - 1.1; c.strokeStyle = core || '#1c6aa8'; c.stroke();
+}
+function bake(w, h, K, ox, oy, draw) { // ox/oy: anchor in world units inside the box
+  const cv = document.createElement('canvas'); cv.width = w * K; cv.height = h * K;
+  const c = cv.getContext('2d'); c.lineCap = c.lineJoin = 'round';
+  for (const p of ['back', 'main']) { PASS = p; c.setTransform(K, 0, 0, K, ox * K, oy * K); draw(c); }
+  PASS = 'main'; return cv;
+}
+```
+
+Drafting primitives – center mark, dimension line, single-stroke lettering:
+
+```js
+function centerMark(c, x, y, r, ext) {
+  const k = Math.min(1.2, r * 0.35);
+  c.moveTo(x - k, y); c.lineTo(x + k, y); c.moveTo(x, y - k); c.lineTo(x, y + k);
+  c.moveTo(x - r - ext, y); c.lineTo(x - r + 0.6, y); c.moveTo(x + r - 0.6, y); c.lineTo(x + r + ext, y);
+  c.moveTo(x, y - r - ext); c.lineTo(x, y - r + 0.6); c.moveTo(x, y + r - 0.6); c.lineTo(x, y + r + ext);
+}
+const GLYPH = { '0': [[1,0,3,0,4,1,4,5,3,6,1,6,0,5,0,1,1,0]], '1': [[1,1.2,2.2,0,2.2,6],[1,6,3.4,6]], A: [[0,6,2,0,4,6],[0.7,4,3.3,4]] /* … */ };
+function text(c, s, x, y, h) {       // baseline at y, left aligned; uppercase polylines on a 4x6 grid
+  const k = h / 6;
+  for (const ch of s.toUpperCase()) {
+    for (const p of GLYPH[ch] || []) for (let j = 0; j < p.length; j += 2) (j ? c.lineTo : c.moveTo).call(c, x + p[j] * k, y - h + p[j + 1] * k);
+    x += 5.7 * k;
+  }
+}
+function dimLine(c, x1, y1, x2, y2, off, label, col) {
+  const L = Math.hypot(x2 - x1, y2 - y1), nx = (y2 - y1) / L, ny = -(x2 - x1) / L, ux = -ny, uy = nx;
+  const ax = x1 + nx * off, ay = y1 + ny * off, bx = x2 + nx * off, by = y2 + ny * off;
+  c.beginPath(); c.moveTo(x1 + nx * 1.5, y1 + ny * 1.5); c.lineTo(ax + nx * 2, ay + ny * 2);
+  c.moveTo(x2 + nx * 1.5, y2 + ny * 1.5); c.lineTo(bx + nx * 2, by + ny * 2); c.moveTo(ax, ay); c.lineTo(bx, by);
+  c.strokeStyle = col; c.lineWidth = 0.35; c.stroke();
+  c.beginPath();
+  for (const [px, py, s] of [[ax, ay, -1], [bx, by, 1]]) { c.moveTo(px, py); c.lineTo(px - ux * s * 3 + nx, py - uy * s * 3 + ny); c.lineTo(px - ux * s * 3 - nx, py - uy * s * 3 - ny); c.closePath(); }
+  c.fillStyle = col; c.fill();
+  c.save(); c.translate((ax + bx) / 2, (ay + by) / 2); c.rotate(Math.atan2(y2 - y1, x2 - x1));
+  c.beginPath(); text(c, label, -label.length * 2.6 * 0.75, -0.6, 4.5); c.lineWidth = 0.4; c.stroke(); c.restore();
+}
+```
+
+Signed-distance band for canals and roads (constant width, square ends):
+
+```js
+// f = band field (perlin), m = region mask (noise - 0.5); both evaluated on a 4-unit lattice
+function bandValue(f, gradF, m, gradM, halfWidth) {
+  const d = f / Math.max(1e-6, gradF);     // approx. distance to the zero line of f
+  const md = m / Math.max(1e-6, gradM);    // approx. distance into the mask region
+  return Math.max(Math.abs(d) - halfWidth, -md); // < 0 inside the band
+}
+// fill: alpha = clamp(0.5 - v / 2, 0, 1) per mask pixel; banks: marching squares at v = 0, +3.2, -6, -12
+```
+
+Graduated cylinder shading and the erase effect:
+
+```js
+function cylinderShade(c, cx, r, y0, y1) {   // call inside a clip of the cylinder outline
+  c.beginPath();
+  for (let th = 0.12; th <= 1.05; th += 0.13) { const x = cx + r * Math.cos(th); c.moveTo(x, y0); c.lineTo(x, y1); }
+  c.lineWidth = 0.34; c.strokeStyle = 'rgba(226,244,255,0.5)'; c.stroke();
+}
+function drawErased(ctx, sprite, x, y, scale, q, cx, cy, R) { // q = 0..1 over 0.35 s
+  const wipe = Math.min(1, q * 1.25), w = sprite.width, h = sprite.height, k = scale;
+  if (wipe < 1) { ctx.globalAlpha = 1 - q * 0.5; ctx.drawImage(sprite, wipe * w, 0, (1 - wipe) * w, h, x - w * k / 2 + wipe * w * k, y - h * k, (1 - wipe) * w * k, h * k); }
+  const k1 = Math.min(1, q / 0.4), k2 = Math.max(0, Math.min(1, (q - 0.3) / 0.4));
+  ctx.globalAlpha = q > 0.8 ? (1 - q) / 0.2 : 1; ctx.beginPath();
+  ctx.moveTo(cx - R, cy - R); ctx.lineTo(cx - R + 2 * R * k1, cy - R + 2 * R * k1);
+  if (k2 > 0) { ctx.moveTo(cx + R, cy - R); ctx.lineTo(cx + R - 2 * R * k2, cy - R + 2 * R * k2); }
+  ctx.lineWidth = 2.6; ctx.strokeStyle = 'rgba(6,42,74,0.7)'; ctx.stroke();
+  ctx.lineWidth = 1.2; ctx.strokeStyle = '#ff5b4d'; ctx.stroke(); ctx.globalAlpha = 1;
+}
+```
+
+## Adapting it to your project
+
+- **Other subjects:** anything engineered translates directly – vehicles (side elevation, wheels with center marks), buildings (front elevation + floor plan on the ground), tools, plants as architect's symbols (circle unions, hatched triangles). Give each one annotation.
+- **Animals or people:** build them from capsules, circles and joints like mannequins or mechanical toys; keep faces to one lens/eye shape plus a brow stroke.
+- **More categories:** separate by silhouette and hatching density, not colour. If you truly need a third accent, use a desaturated ochre and keep it rare.
+- **Day/night or variants:** swap the paper for a white-print variant (paper `#f4f1e8`, lines `#1c3f6e`, halo `#f4f1e8`) – the pipeline stays identical.
+- **Pixel-art projects:** bake at 1 px per unit with 1-unit outlines and drop the hatching to every second pixel; dimension text becomes a 3x5 pixel font.
+- **UI-heavy projects:** title-block cells, tab labels and rubber stamps scale well; keep Architects Daughter for short notes only.
+
+## Performance notes
+
+- Everything that looks expensive is baked once: 13 main-character frames (+ white and red copies), 18 small-creature frames, 4 drone frames, 6 large-creature frames (all + white copies), 10 prop sprites, collectibles, arrow, disc, shadow and the grain tile. Mirroring is a transform, so no flipped copies.
+- Ground chunks (256 u, up to 3 px/u) are built by a generator in ~12 phases: lattice fields (≈ 4,800 points), masks at 2 u per pixel, marching squares, scattered drawings. Average 7–12 ms per chunk, spread over frames.
+- Per frame: one drawImage per actor, prop and shadow; one dashed stroke per projectile and orbiting disc; vector particles (short paths); number sprites cached per value (cache cleared above 400); one cached overlay image.
+- Measured: median ~2.3 ms per frame with ~90 creatures at 1600 x 900.
+- Hot spots: `setLineDash` per trail (cheap but not free – batch if you have hundreds), and per-pixel mask building in chunk generation.
+
+## Copy-paste prompt
+
+```text
+Use the "Blueprint" art style for my project: a living technical drawing.
+- Background: deep cyan-blue drafting paper #0e5088 with subtle mottling (#0a4374..#16609c), paper grain,
+  a fine grid (8-unit lines at 7.5 % white, 40-unit lines at 17 %), fold creases and faint coffee rings.
+- The ground carries faint white drawings (12-55 % alpha): floor plans with hatched walls and door swings,
+  gear details with center lines, hatched sections, north arrows, dimension chains, handwritten notes,
+  red-pencil revision clouds. Canals/roads are constant-width bands with crisp banks and hachures.
+- Characters and props are mechanical drawings: white outlines #f2faff (~1 unit), blue fills #1c6aa8,
+  outlined tube limbs, 45° hatching on the lower-right, graduated lines on cylinders, center marks on circles,
+  chain-dash center lines. Every sprite has a navy #062a4a knock-out halo ~1.1 units wide so it pops.
+- Exactly two accents: amber #ffcf4a for friendly things and collectibles, red pencil #ff5b4d for hostile eyes
+  and corrections. No black lines, no glow, no gradients on forms.
+- Lettering: single-stroke technical capitals (stroke font), dimension lines with filled arrowheads.
+- Effects: dashed trajectories, measurement callouts, construction circles, eraser crumbs, red-pencil X
+  cross-outs, an APPROVED rubber stamp. Shadows are ground lines with hatch ticks over a soft navy pool.
+- Frame the screen like a drawing sheet: border with zone letters, title block (SHEET 04, REV B).
+- UI: title-block cells with 1.5 px pale borders, hatched bars, red rubber-stamp counters,
+  Share Tech Mono + Architects Daughter.
+```
+
+
+---
+
+<!-- style: ukiyoe · https://miwale.com/styles/library/ukiyoe/STYLE.md -->
+
+# Ukiyo-e Woodblock — Game Art Style Spec
+
+> An Edo-period colour woodblock print in motion: bokashi colour blocks printed off-register, carved sumi key lines, washi fibres, seigaiha water.
+
+Everything looks like a Hokusai or Hiroshige print that has started to move. Every shape is printed from blocks, exactly like a real woodblock print: a kinari paper underlay, flat colour blocks with **bokashi** gradients laid slightly **off-register**, and one **sumi key block** whose lines swell and thin like a carved line and grow heavier towards the lower right. Washi fibres show through every colour. The ground is a pale cream meadow with sage and ochre washes, moss and susuki fields, earth paths and Prussian-blue water with shore contour lines and **seigaiha** fans, crossed by stepped **kasumi** mist bands. The screen itself is framed like a print: an **ichimonji-bokashi** band along the top, a paper margin with a key-line border, a signature cartouche and a red **hanko** seal. The module's cast – a wandering traveller in a wide straw hat, kappa water imps, haunted paper lanterns and a club-carrying oni – shows how to apply it.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Family | Print · Woodblock |
+| Mood | serene, folkloric, elegant, playful, seasonal |
+| Best for | folklore top-down action and adventure, calm travel games, Japanese-inspired RPGs and card games, story maps |
+| Renderer | Canvas 2D, procedural, no image assets |
+| Pixel art | No – native resolution, sprites baked at 3–7 px per world unit |
+| Complexity | 6/10 – parts are quick to block out, but each needs a good split into colour blocks, bokashi and line weights |
+| Fonts | Zen Antique, Shippori Mincho, Yuji Syuku |
+| Key colours | paper `#f2e8d2`, sumi `#1e1b19`, Prussian `#24527e`, vermilion `#cf4a2c`, indigo `#2d4a72`, straw `#d8b264` |
+
+## When to use it
+
+Good fits:
+- **Folklore and fantasy set in a stylised old Japan** – yokai, shrines, travellers, festivals.
+- **Top-down action with crowds** – the black key line plus the pale ground keeps every figure readable, even 60+ at once.
+- **Calm exploration, travel and seasonal games** – cherry blossom, maple and pine give natural seasonal palettes.
+- **Card games, menus and story maps** – static frames look like real prints; the HUD kit is already a set of cartouches and seals.
+
+Bad fits:
+- **Sci-fi, neon or gritty modern settings** – the motifs and paper texture fight them.
+- **Projects that need dynamic lighting** – there is no light model; light is printed into the blocks.
+- **Very dark scenes** – the look lives on bright paper; a night version needs its own palette.
+
+## Color palette
+
+| Swatch | Hex | Role |
+| --- | --- | --- |
+| Kinari paper | `#f2e8d2` | Paper underlay of every part, panels; page margin `#efe4cb` |
+| Unprinted paper | `#fbf5e6` | Flash state, eyes, petals, foam – the brightest tone |
+| Sumi | `#1e1b19` | Key block: outlines, solid hair, text, borders |
+| Meadow cream | `#eee4c7` | Main ground wash (~50 % of the screen) |
+| Meadow sage | `#c7cf98` | Large soft bokashi patches in the meadow |
+| Meadow ochre | `#e6cf96` | Warm bokashi patches in the meadow |
+| Moss | `#96aa74` | Moss regions (edge `#688558`) |
+| Susuki field | `#dec48a` | Dry grass field (edge `#c29650`) |
+| Earth path | `#e7d4a8` | Paths (edge `#c2a372`) |
+| Shallow water | `#a8c5c9` | Water at the shore |
+| Prussian blue | `#24527e` | Water, ichimonji band, top bar, off-register text shadows |
+| Prussian deep | `#1e456e` | Deepest water |
+| Indigo | `#2d4a72` | Kimono (light `#5a7aa0`, deep `#1c3150`) |
+| Vermilion | `#cf4a2c` | Sashes, torii, oni skin, crest rims, hurt tint (light `#e7845a`, deep `#9e321e`) |
+| Seal red | `#c8402a` | Hanko seals and red slips in the HUD |
+| Straw ochre | `#d8b264` | Straw hat, sandals, tiger skin (light `#eed79c`, deep `#a9813d`) |
+| Pine green | `#3d5a45` | Pine pads, bamboo leaves (light `#748f61`, deep `#2a4031`) |
+| Kappa green | `#5f9466` | Small creature (variants teal `#4b8a86`, olive `#7d8f48`) |
+| Koban gold | `#d9a93b` | Collectibles, metal fittings, sparks (light `#f4d77e`, deep `#a47722`) |
+| Sakura pink | `#f0c3c3` | Blossom crowns, petals (deep `#d58c97`) |
+| Stone grey | `#8d918b` | Lanterns, statues, rocks (light `#c3c5b9`, deep `#5d6a76`) |
+| Usuzumi | `#4b4f58` | Flat cast shadows at 15–24 % alpha, motion trails |
+
+Palette rules:
+- **Paper is the lightest value.** Pure white never appears; unprinted paper `#fbf5e6` is the brightest tone.
+- **One bokashi per block.** Each coloured part has exactly one gradient between a light and a deep version of its hue.
+- **Pale ground, saturated figures.** The meadow, moss and fields stay light and low in contrast; vermilion, indigo and Prussian blue belong to figures, gates and water.
+- **Warm sumi.** Key lines are `#1e1b19`, never `#000`. Ground region edges use tinted lines (deep green, ochre, brown); only the water shore is sumi.
+- **Accents have jobs.** Vermilion = seals, sashes, gates, danger. Gold = collectibles and small fittings.
+- **Shadows are flat usuzumi ellipses.** No gradients, no blur.
+
+## Typography
+
+| Family | Weights | Role | Sample CSS |
+| --- | --- | --- | --- |
+| Zen Antique | 400 | Titles, clock, counters, floating numbers, seal numerals | `font: 400 40px/1 'Zen Antique', serif; letter-spacing: 2px; text-shadow: 2px 1.5px 0 rgba(36,82,126,.42);` |
+| Shippori Mincho | 500–800 | Card names (800), body copy (600), captions (500) | `font: 800 20px/1.15 'Shippori Mincho', 'Yu Mincho', Georgia, serif;` |
+| Yuji Syuku | 400 | Brush-hand labels, vertical red slips, hints | `font: 400 19px 'Yuji Syuku', serif; color: #9e321e;` |
+
+All three are on Google Fonts (`Shippori+Mincho:wght@500;600;700;800`, `Zen+Antique`, `Yuji+Syuku`). The signature trick of the type: **every important number has an off-register colour copy** – a Prussian-blue or vermilion text shadow offset by about (2, 1.5) px, like a colour block that missed its key line. Short labels can run vertically (`writing-mode: vertical-rl`) in a red slip. Seals and cartouches never contain legible script – only abstract brush glyphs.
+
+## Rendering technique
+
+The whole style is one printing metaphor applied to everything:
+
+1. **Paper underlay** – the part's shape filled with kinari paper `#f2e8d2`, unshifted.
+2. **Colour block** – the same shape filled with a bokashi gradient, **translated by (+0.38, +0.30) world units**. This leaves a sliver of paper on the upper-left of every part and lets colour slip slightly past the line on the lower-right.
+3. **Key block** – the outline drawn as a **stamped brush ribbon**: circles placed every `0.2 * width` along the polyline, all added to one path and filled once in sumi. Width varies along the line with `1 + 0.3 * (0.55 sin(0.85 s) + 0.45 sin(2.3 s))` and with the outward normal: `1 + 0.45 * (n · (0.6, 0.8))`, so lower-right edges are heavier. Open lines taper at both ends over `max(0.8, 2.4 * width)`.
+4. **Washi fibres** – a 160 px tile of curved light and dark fibres composited `source-atop` over the finished sprite.
+
+Parts are printed back to front, each with its own key line, so a front part cleanly covers the lines behind it. Shapes are Catmull-Rom splines through a handful of control points, sampled to dense polylines that both the fill and the ink stamps use.
+
+Baked at init (K px per world unit, `K = clamp(round(display px per unit * 1.6), 3, 7)`): every pose of every figure, its **flash** copy (pixels whose luminance is above ~40–82 become unprinted paper, darker ones stay sumi – only the key block survives), the **hurt** copy of the main character (colour re-printed in a vermilion ramp), **dissolve** frames, all props, FX sprites and icons. Per frame: only `drawImage`, a few ellipse fills and transforms.
+
+Draw order: ground chunks → ink pools → collectibles → shadows → y-sorted props and figures → orbiting crests → projectiles → particles → numbers → drifting petals → print frame (screen space).
+
+## World and ground
+
+The ground is a per-pixel shader cached in 256-unit chunks (up to 3 px per unit), built by a generator in 5 ms slices.
+
+- **Fields on a 4-unit grid.** Four region fields (moss, susuki field, earth path, water) plus a tint noise and a line-wobble noise are sampled on a grid. Each region field is converted to an **approximate signed distance** in world units: `d = field / |gradient|` (central differences, clamped to ±60). Per pixel, distances are bilinearly interpolated.
+- **Off-register regions.** Each pixel samples the region distance twice: at its own position for the **key line** and at `(x − 0.8, y − 0.6)` for the **colour** – the ground version of the misregistration.
+- **Meadow base.** A ramp ochre `#e6cf96` → cream `#eee4c7` → sage `#c7cf98` driven by a 700-unit noise gives large soft bokashi patches.
+- **Moss** (fbm 460, threshold 0.575): bokashi from edge `#688558` to inner `#96aa74` over 9 units; key line 0.6 units in deep green `#405a3a`.
+- **Susuki field** (fbm 820, threshold 0.605): `#c29650` → `#dec48a` over 8 units; ochre line `#926c32`; brown arching grass strokes on top.
+- **Earth path** (zero contour of a 1500-unit noise, ~22 units wide): `#c2a372` → `#e7d4a8` over 5 units; brown line `#7c5c3c`; pebbles and short dashes.
+- **Water** (ponds at 620 units plus a winding river, suppressed within 260 units of the origin): depth bokashi `#a8c5c9` (0) → `#7aa3bc` (4) → `#406e97` (10) → `#27547f` (20) → `#1e456e` (34 units); **three paper contour lines** at 2.4 / 5.0 / 7.6 units from the shore (0.54 units wide, wobbling with noise); **seigaiha** in the deep part – fans of radius 7 units in rows 3.5 units apart, rings every 1.75 units, colour `rgb(132,170,198)` at 55 % fading in between 7 and 15 units of depth; a 0.96-unit sumi shore line.
+- **Key lines wobble** ±45 % in width with a 26-unit noise, like a hand-cut block.
+- **Fibres** – a 512 px luminance tile (0.5 units per texel) multiplies every ground pixel by `1 ± 0.05`.
+- **Decals** (scattered on an 11-unit jittered grid, seamless across chunks): Hiroshige grass ticks – 3–4 tapered blades, 2.3–4.3 units long, clustered by a density noise – small red, white and pink five-dot flowers, fallen petals, maple leaves on moss, lily pads with lotus and paper ripple rings on water.
+- **Kasumi bands** – drawn last: 2–3 stacked rounded bars, 110–190 units long and 9–13 tall, filled with a pale pink-to-cream bokashi (`#efd3c4` → `#f5ecda`) and one 1-unit brown outline around the union (stroke the whole path, then fill it on top). About one per 300 × 300 units.
+
+## Characters
+
+All figures face right when baked, feet at the sprite anchor; left-facing copies are mirrored.
+
+**Main character – a wandering traveller** (about 25 units wide including the hat, 33 tall):
+- A wide, shallow **sugegasa** straw cone: apex at −32.6, brim ±11.6 units at −24.2, bokashi `#f3dea4` → `#dcb76a` → `#b48a43`, 1.1-unit brim line, seven radial straw lines in brown `#6b5330`, an inner brim line in deep ochre.
+- A small face peeking out under the brim (skin `#efd5ae` → `#d8b387`) with a slit eye, a short nose line and a faint blush dot.
+- An **indigo kimono** tucked up for walking (`#5a7aa0` → `#1c3150`), woven with paper-white **kasuri** crosses, a white under-collar and a **vermilion sash** with an ochre stripe.
+- Wide sleeves that swing with the stride, pale indigo leggings, straw sandals with red thongs, a black lacquered scabbard pointing back with a gold end cap, a wrapped hilt with a gold guard, and a cream travel bundle with indigo dots on the back.
+- Poses: idle, four walk poses (stride, passing, stride, passing) and a thrust pose with the front sleeve forward.
+
+**Small creature – kappa** (radius 9, about 20 × 24 units): a round green body (`#8fb886` → `#3a684a`; teal and olive variants), a brown turtle shell on the back with hex lines, a cream belly plate with segment lines, an ochre duck-like beak, one big paper eye with a sumi pupil, a heavy brow, a **solid black spiky hair fringe** and a pale water dish on top. Four waddle poses.
+
+**Fast creature – chochin-obake** (radius 7, about 15 × 23 units, floating 5 units up): a barrel-shaped paper lantern with horizontal cylinder shading (`#cf9450` edges → `#f8ecd2` centre) and a warm ochre glow wash inside, curved sumi ribs, black lacquer rims with vermilion bands and a wire handle, a torn mouth with a long lolling vermilion tongue (four sway frames), one big eye and one squint.
+
+**Large creature – oni** (radius 17, about 44 × 60 units): a vermilion body (`#e5835c` → `#c9472f` → `#8c2a1b`, radial bokashi; a Prussian-blue variant `#76a0c2` → `#22446a`), a wild black mane, ivory horns, gold eyes under solid black brows, a dark open mouth with ivory fangs, a **tiger-skin loincloth** (ochre with tapered sumi stripes), gold armlet and anklet, and an **upright studded iron club** held in front.
+
+Rules:
+- Outer silhouette lines 0.95–1.35 units, limbs 0.5–0.7, interior details 0.25–0.6 – the silhouette always reads first.
+- Filled sumi areas (hair, mane, brows, lacquer) anchor small figures in a crowd.
+- One hue family per creature type, so mixed groups stay readable.
+- **Flash** – only the key block printed, colour blocks become unprinted paper; overlaid at `min(1, flash * 1.4)` with a slight squash.
+- **Hurt** – colour blocks re-printed in vermilion, a 1.1-unit shake and a vermilion edge bokashi on screen.
+- **Dash** – three usuzumi-grey after-images 7 units apart and a 0.12 rad lean.
+- **Appear** – kappa and oni rise out of an ink pool (sumi or Prussian blue) with two ripple rings: the top part of the sprite is revealed bottom-up over 0.8 of the appear time. Lanterns fade and scale in.
+- **Dissolve** – a 0.16 flash pop, then three baked frames where the sheet burns away from the top along noise, with a sumi rim and a thin vermilion ember line, the remaining colour fading towards paper.
+
+## Props
+
+Printed with the same three passes; mirrored for variety; flat usuzumi shadows at 20 %.
+
+| Prop | Size (units) | Notes |
+| --- | --- | --- |
+| Pine (2) | ~59 × 73 | Ribbon trunk with bark arcs, branches to 5 flat cloud-like pads (lumpy top, flattened underside), bokashi `#748f61` → `#2a4031`, fan-shaped needle clusters printed inside |
+| Maple (2) | ~44 × 57 | Short trunk, 4 lumpy lobes with bokashi (red `#ef9558` → `#8c2a1a` or gold `#f3cd68` → `#9c6a22`), star-shaped leaf prints |
+| Cherry (2) | ~56 × 58 | Gnarled dark trunk, 5 pink cloud lobes `#fbe4e2` → `#dc97a0`, five-dot blossoms |
+| Shrine (2) | 20 × 36 / 12 × 21 | Stone toro lantern with a glowing window; jizo statue with a vermilion bib and cap |
+| Torii gate | 60 × 47 | Vermilion pillars and beams with horizontal bokashi, black bases, a curved black kasagi top beam |
+| Stone (3) | up to 34 × 19 | Lumpy garden rocks, bokashi light upper-left to deep lower-right, short diagonal brush strokes, moss dots |
+| Bamboo | 34 × 66 | Five stalks with node ticks, 16 lance leaves |
+| Reeds | 34 × 26 | Arching susuki blades with fluffy cream-to-ochre plumes |
+
+Rules: bokashi is light at the top and deep at the bottom; foliage blocks carry pattern prints clipped inside the block; trees, bamboo and reeds sway by skewing around the base (0.018–0.05 rad at 1.2 rad/s); placement follows the terrain (pines everywhere, cherries and shrines on the meadow, maples and bamboo on moss, reeds on the field, shrines and gates along paths, only stones in water).
+
+## Effects and particles
+
+- **Ink crescent projectile** – a brushed crescent (about 4 × 12 units) of sumi over an off-register vermilion block, two dashed dry-brush gaps cut out, a 22-unit tapered dry-brush trail that fades to nothing, a small flat shadow 7 units below.
+- **Ink splash impact** – a baked splat (lumpy blot r 2.5 plus 8 tapered droplets) at the impact height for 0.22 s, plus two ink drops under gravity. Vermilion splat for hurts, Prussian-blue splat for water creatures.
+- **Kumo smoke burst** – 4–8 stylised cloud puffs (overlapping paper discs with grey bokashi, sumi outlines and spiral curls) pop out with `outBack`, drift, rise 8 units and fade over 0.55–0.75 s. Accents per creature: a **Hokusai wave crest** with paper foam claws and blue drops (kappa), burning **paper scraps** and embers (lantern), a burst of **maple leaves** and an **ensō** ring (oni).
+- **Orbiting crest** – a mitsudomoe disc (r 6.5): vermilion rim, cream field, three black commas, spinning at 6 rad/s, with a fading usuzumi wind trail of its last 8 positions.
+- **Collectibles** – small gold **koban** (5.4 × 7.4 units) with stamped lines; large **oban** (7.6 × 10.4) with a red seal stamp. Both bob, turn around their vertical axis (x-scale 0.3–1) and the large one twinkles with a gold four-point spark.
+- **Glow-up** – a brushed **ensō** circle (r 18, width 3.2, dry-brush gaps) laid flat on the ground expands and fades, with 18 sakura petals and 6 gold sparks.
+- **Petals** – flutter with a cosine flip of the y-axis, gravity 70, drag 2.6, life 1–2 s.
+- **Floating numbers** – Zen Antique, 9 units (accent 12.5): sumi with a paper outline; accent numbers vermilion with a sumi outline and an off-register indigo copy.
+
+## Atmosphere and lighting
+
+There is no light model – everything is printed.
+- **Ichimonji-bokashi band**: 9.5 % of the screen height along the top, `rgba(22,52,88,.88)` → `rgba(36,82,126,0)`, with 46 faint wavy wood-grain streaks cut out. Built once per screen size.
+- **Print margin**: 10 px per 900 px of height in `#efe4cb`, with a 2.4 px sumi border line just inside.
+- **Signature cartouche + seal** in the lower right: a 24 × 104 px slip with four abstract brush marks and a 27 px vermilion seal with paper glyph strokes (sizes per 900 px of height).
+- **Hurt**: a low-res vermilion edge bokashi (transparent centre → `rgba(158,50,30,.8)`) stretched over the screen at up to 85 % alpha.
+- **Drifting petals and leaves**: about 40 % of 110-unit cells carry one, crossing diagonally over 7–15 s, falling from 29 units height, fading with `sin(phase)`, with a tiny shadow.
+- **Shadows**: one flat usuzumi ellipse per object, offset (+0.5, +0.35) units.
+- No vignette, bloom, fog or colour grading.
+
+## UI
+
+The HUD is a set of paper slips and seals:
+- **Panels** – paper `#f4ead4` with faint fibre gradients and a **double sumi rule**: a 2–3 px outer border, a 3 px paper gap, a 1.5 px inner line (`inset` box-shadows).
+- **Bars** – paper troughs with the same double rule; fills are vertical bokashi (top bar Prussian `#173a5e` → `#7ea6c4`, life bar vermilion `#8e2a1a` → `#e8906a`) with a dark inner edge at the fill end.
+- **Title cartouche** – the clock in Zen Antique 40 px with an off-register Prussian shadow, beside a **vertical red slip** label in Yuji Syuku.
+- **Counter** – a vertical cartouche: icon above number.
+- **Seals (hanko)** – 30–42 px vermilion squares with a thin inner paper frame, slightly rotated, holding Zen Antique numerals or abstract glyphs (drawn with gradients).
+- **Cards** – tall paper prints (232 × 318) with a triple frame, a coloured bokashi band at the top (Prussian, vermilion, pine), a round **mon disc** icon (paper with a double ring), a yellow title slip (`#f4e2a6` → `#e9cf88`) with its own double line, and a seal for the key number.
+- **Overlay** – a warm paper wash with a faint vermilion bokashi at the bottom and `sepia(.4) saturate(.75)` on the backdrop.
+- **Icons** – printed with the same toolkit in a 48-unit box: a red camellia, an oni mask, a katana with a vermilion splash, crescents with speed lines, a wave crest, the crest disc, a straw sandal, a lucky rake with koban, a sake gourd.
+
+```css
+.panel { background: repeating-linear-gradient(17deg, rgba(120,96,60,.05) 0 1px, transparent 1px 7px), #f4ead4;
+  border: 2.5px solid #1e1b19; box-shadow: inset 0 0 0 3px #f4ead4, inset 0 0 0 4.5px #1e1b19, 0 8px 16px rgba(30,27,25,.3); }
+.bar > .fill { background: linear-gradient(180deg, #8e2a1a 0%, #cf4a2c 45%, #e8906a 100%); }
+.seal { background: #c8402a; box-shadow: inset 0 0 0 2px #c8402a, inset 0 0 0 3.2px rgba(247,238,219,.9); transform: rotate(-5deg); }
+```
+
+## Motion and animation
+
+- Main character: 4 walk poses at `phase = distance * 0.13` cycles, bob `|sin(2π phase)|` × 1 unit, sway 0.025 rad; idle breathing ±1.5 %; a thrust pose while standing and throwing; a 5-unit hop when glowing up.
+- Kappa: 4 poses at `anim * 0.36`, bob 0.9 units, tilt 0.07 rad. Oni: 4 poses at `anim * 0.3`, 5 % squash on contact, tilt 0.03 rad.
+- Lanterns: 4 tongue frames at 6 fps, float 5 ± 1.8 units, lean with speed (0.16 rad) plus a 0.05 rad swing.
+- Appear 0.45 s (rise out of the pool), flash fades at 7/s, dissolve 0.35 s.
+- Puffs 0.55–0.75 s, splats 0.22–0.4 s, ensō 0.6–1.4 s, petals 1–2 s.
+- Trees and reeds sway; petals flip with `cos(3.4 t)`; the crest spins at 6 rad/s.
+
+## Do and don't
+
+Do:
+- Print every part in three passes: paper underlay, off-register bokashi block, stamped key line.
+- Make key lines heavier on the outer silhouette and the lower-right side; taper open lines.
+- Build with classic ukiyo-e motifs: seigaiha, kasumi bands, pine pads, maple stars, torii, mon crests, seals.
+- Keep the ground pale so figures read in crowds.
+- Let washi fibres show through every block, HUD panels included.
+- Bake once; derive flash, hurt and dissolve per pixel.
+- Frame the screen like a print.
+
+Don't:
+- Outline with constant-width canvas strokes – that reads as vector cartoon.
+- Add soft shadows, glows, highlights or blur inside shapes.
+- Use pure black or pure white.
+- Stack two gradients on one block.
+- Put legible script into seals or cartouches.
+- Saturate the ground or use black lines on every ground edge.
+- Register colour perfectly on the line.
+
+## Implementation recipe
+
+1. Write the toolkit: `spline()` (Catmull-Rom → polyline), `ell()`, `capsule()`, `ink()` (stamped ribbon) and `part()` (underlay + shifted bokashi block + ink).
+2. Bake a 160 px fibre tile; apply it `source-atop` at the end of every bake.
+3. Draw each figure back to front with `part()`; use filled sumi for hair and lacquer; add interior lines with open `ink()` calls.
+4. Bake every pose at K px per unit, mirror for the other facing, derive flash / hurt / dissolve copies by remapping pixels by luminance.
+5. Ground: sample region fields on a 4-unit grid, convert to distances `f / |∇f|`, then per pixel pick colours by depth (bokashi), draw key lines where `|d| < half width`, sample colour off-register, add seigaiha and contour lines in water, multiply fibres.
+6. Bake decals on top, then kasumi bands (stroke the union, then fill).
+7. Per frame: shadows, y-sorted `drawImage`, particles from baked FX sprites, then the cached print frame.
+8. Skin the HUD with double-rule paper panels, bokashi bar fills, red slips and seals.
+
+## Code
+
+The stamped key line – the heart of the look:
+
+```js
+function ink(ctx, pts, w, closed) {
+  let area = 0;
+  for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; area += p[0] * q[1] - q[0] * p[1]; }
+  const sg = area >= 0 ? 1 : -1, segs = closed ? pts.length : pts.length - 1, step = w * 0.2;
+  let total = 0;
+  for (let i = 0; i < segs; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; total += Math.hypot(q[0] - p[0], q[1] - p[1]); }
+  ctx.beginPath();
+  let s = 0, next = 0;
+  for (let i = 0; i < segs; i++) {
+    const p = pts[i], q = pts[(i + 1) % pts.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    if (!L) continue;
+    const tx = (q[0] - p[0]) / L, ty = (q[1] - p[1]) / L;
+    const shade = closed ? sg * ty * 0.6 - sg * tx * 0.8 : 0;          // outward normal · lower-right
+    for (; next <= s + L; next += step) {
+      const x = p[0] + tx * (next - s), y = p[1] + ty * (next - s);
+      let k = (1 + 0.3 * (0.55 * Math.sin(next * 0.85) + 0.45 * Math.sin(next * 2.3))) * (1 + 0.45 * shade);
+      if (!closed) k *= Math.min(1, 0.2 + 0.8 * Math.min(next, total - next) / (w * 2.4));
+      const r = Math.max(0.04, w * k / 2);
+      ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+    s += L;
+  }
+  ctx.fillStyle = '#1e1b19';
+  ctx.fill();
+}
+```
+
+One printed part – paper underlay, off-register bokashi block, key line:
+
+```js
+function part(ctx, pts, light, deep, y0, y1, lineW) {
+  const path = (c) => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (const p of pts) c.lineTo(p[0], p[1]); c.closePath(); };
+  path(ctx); ctx.fillStyle = '#f2e8d2'; ctx.fill();                  // paper underlay
+  ctx.save(); ctx.translate(0.38, 0.30);                              // misregistration
+  const g = ctx.createLinearGradient(0, y0, 0, y1);
+  g.addColorStop(0, light); g.addColorStop(1, deep);                  // one bokashi per block
+  path(ctx); ctx.fillStyle = g; ctx.fill();
+  ctx.restore();
+  ink(ctx, pts, lineW || 0.95, true);                                 // key block
+}
+```
+
+Hit flash derived from the baked sprite – only the key block stays:
+
+```js
+function flashCopy(src) {
+  const c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+  const x = c.getContext('2d'); x.drawImage(src, 0, 0);
+  const img = x.getImageData(0, 0, c.width, c.height), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const l = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11;
+    const t = Math.min(1, Math.max(0, (l - 40) / 42));              // 0 = ink, 1 = colour block
+    d[i] = 30 + (251 - 30) * t; d[i + 1] = 27 + (245 - 27) * t; d[i + 2] = 25 + (230 - 25) * t;
+  }
+  x.putImageData(img, 0, 0);
+  return c;
+}
+```
+
+Seigaiha in a pixel shader – distance to the centre of the fan that covers a point:
+
+```js
+function seigaiha(x, y, R) {                 // fans of radius R, rows R/2 apart, odd rows shifted by R
+  const H = R / 2;
+  let j = Math.floor((y + R) / H);
+  for (let k = 0; k < 6; k++, j--) {         // lowest row first: lower rows cover upper ones
+    const yc = j * H, xs = j & 1 ? R : 0;
+    const cx = xs + Math.round((x - xs) / (2 * R)) * 2 * R;
+    const d = Math.hypot(x - cx, y - yc);
+    if (d < R) return d;                     // ring line where d is near a multiple of R / 4
+  }
+  return R;
+}
+```
+
+## Adapting it to your project
+
+- **Other subjects**: any figure works if you split it into a few big colour blocks with clear bokashi directions and give it one solid sumi area (hair, hat band, lacquer). Animals, samurai, merchants, foxes and tanuki fit naturally.
+- **Seasons**: swap the crown palettes (pink sakura → green summer → red maple → snow white with Prussian shadows) and the drifting particles (petals → fireflies → leaves → snow).
+- **Night**: darken the ground washes with a Prussian multiply, keep the paper underlay, make lanterns and windows the light sources – still printed as ochre washes, never glows.
+- **Side view**: the motifs come from landscape prints, so a side-scroller works even better – stack kasumi bands, a Mount-Fuji silhouette with bokashi, and a Hokusai wave foreground.
+- **Pixel art version**: keep the block logic (paper sliver, one gradient as 2–3 dithered steps, black key line) on a low-res grid.
+- **Line weight**: scale all key-line widths with sprite size, but keep the 3 : 1 ratio between silhouette and interior lines.
+
+## Performance notes
+
+- Init bakes about 100 sprite canvases in 0.4 s (K = 4) to 0.9 s (K = 7); the stamped key lines are the main cost. Bake once and reuse.
+- Flash, hurt and dissolve variants are pixel remaps of baked sprites – much cheaper than re-drawing.
+- Ground chunks (256 units, up to 768 × 768 px) cost 40–60 ms each and are built by a generator in 5 ms slices; pixels far outside every region skip the region maths.
+- Per frame: chunk blits, one ellipse fill per shadow, one `drawImage` per figure or particle, a handful of drifting petals and the cached print frame (one band image, four rects, one border stroke, one signature image). With 60–80 figures on screen, drawing takes about 1 ms at 1600 × 900.
+- Avoid `ctx.filter` and per-frame gradients; all bokashi is baked.
+
+## Copy-paste prompt
+
+```text
+Use the Ukiyo-e Woodblock art style for my project: an Edo-period colour woodblock print in motion
+(Hokusai / Hiroshige feel), drawn procedurally with Canvas 2D, no image assets.
+- Print every shape in three passes: kinari paper underlay #f2e8d2, a flat colour block with ONE bokashi
+  gradient shifted off-register by (+0.38, +0.30) units, then a sumi #1e1b19 key line.
+- Key lines are stamped brush ribbons (circles along the outline in one path): silhouette 0.95-1.35 units,
+  interior 0.25-0.6, swelling +-30 % along the line and heavier on the lower-right; open lines taper.
+- Washi fibres show through every sprite (fibre tile drawn source-atop); no pure black or white.
+- Palette: indigo #2d4a72, vermilion #cf4a2c, straw ochre #d8b264, Prussian blue #24527e, pine #3d5a45,
+  sakura #f0c3c3, gold #d9a93b, ground cream #eee4c7 / sage #c7cf98 / ochre #e6cf96.
+- Ground: pale meadow with soft bokashi patches, moss and dry-grass regions with tinted key lines,
+  water with depth bokashi, paper contour lines along the shore and seigaiha fans in the deep, Hiroshige
+  grass ticks and stepped kasumi mist bands.
+- Motifs: wide straw hats, kasuri crosses, pines with flat needle pads, maples, cherry blossom, torii,
+  stone lanterns, mitsudomoe crests, gold koban, ink splashes, kumo smoke curls, ensō rings, falling petals.
+- Frame the screen like a print: Prussian ichimonji-bokashi band at the top, paper margin, key-line border,
+  signature cartouche with abstract brush marks and a red seal.
+- UI: paper slips with double sumi rules, bokashi bar fills, vertical red slips, hanko seals; fonts
+  Zen Antique (numbers, titles), Shippori Mincho (body), Yuji Syuku (labels).
+- Flat usuzumi shadow ellipses only; no glows, blur or rendered light.
+```
+
+
+---
+
+<!-- style: thermal · https://miwale.com/styles/library/thermal/STYLE.md -->
+
+# Thermal Vision — Game Art Style Spec
+
+> The world through an infrared camera: every surface is a temperature mapped through an ironbow ramp; warm bodies glow white-hot.
+
+Nothing in this style is painted in colour. Every pixel – ground, props, creatures, particles, even the icons – is first a **temperature** between 0 and 1 and only then pushed through one false-colour ramp, the classic "ironbow": black → deep indigo → violet → magenta → crimson → orange → yellow → white. Cold ground and tree canopies sit in indigo and near-black, warm bodies glow orange with white-hot faces and cores, every body reads a little cooler at its rim and radiates a soft halo. A camera UI frames the image: corner brackets, a temperature scale bar, °C readouts, a blinking REC dot, a tracking box, sensor grain and heat shimmer. The result feels like surveillance footage of a night that is full of hidden life.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Family | Infrared · False colour |
+| Mood | surveillance, nocturnal, tense, clinical, eerie |
+| Best for | stealth and infiltration, night hunting or rescue, sci-fi / military top-down shooters, horror about unseen creatures, drone-camera puzzles |
+| Renderer | Canvas 2D, fully procedural, no image assets |
+| Pixel art | No – native resolution; sprites baked at 4 px per world unit, ground chunks at up to 2.5 px/unit |
+| Complexity | 4/10 – every asset is shapes filled with temperatures; the shared bake does the rest. The work is thinking in hot/cold contrast. |
+| Fonts | Share Tech Mono (readouts), Orbitron (titles, labels), Chakra Petch (card titles) |
+| Key colours | `#1d0b52` indigo ground · `#64108a` purple · `#c4256a` crimson · `#f4701a` orange · `#fdc52e` yellow · `#fffdf2` white-hot · `#eef3ff` camera white |
+
+## When to use it
+
+Good fits:
+- **Stealth, infiltration, hunting and rescue.** Heat signatures are a built-in readability system: anything alive is bright, the environment is dark, hiding places are cold shapes.
+- **Horror and mystery.** The thermal camera shows what the eye cannot: residual handprints, footprints that fade, the imprint of something that just vanished.
+- **Sci-fi, military and drone-camera framing.** The UI is diegetic – it is the camera you are looking through.
+- **Crowded top-down action.** Warm bodies pop off the indigo ground; limb cooling and halos keep neighbours separate.
+- **Small teams and AI-generated content.** New assets need no palette decisions; one ramp makes everything match.
+
+Bad fits:
+- Cozy daylight projects, picture-book stories, anything that wants material colour (wood, fabric, skin tones).
+- Puzzle games that use many colour codes – you have one hue axis (temperature), not eight hues.
+- Projects where the UI must feel friendly or soft.
+
+## Color palette
+
+The palette **is** the ramp. Each swatch is a stop of the ironbow LUT; subjects never pick a colour, they pick a temperature.
+
+| Swatch | Hex | Role |
+| --- | --- | --- |
+| Absolute cold (0.00) | `#030108` | Deepest shadows, text outline base |
+| Deep cold (0.08) | `#0d0626` | Tree canopies, hedgerows, cold puddles |
+| Indigo ground (0.18) | `#1d0b52` | Open soil, ground fallback colour (~45 % of the screen) |
+| Violet (0.28) | `#3a0f78` | Warmer soil, stubble fields, cold metal |
+| Purple (0.38) | `#64108a` | Road asphalt, dry-stone walls, rocks with stored warmth |
+| Magenta (0.48) | `#96158a` | Halos, insulated clothing edges, warm metal |
+| Crimson (0.57) | `#c4256a` | Cool rims of warm bodies, cooling particles |
+| Red-orange (0.65) | `#e3443a` | Outer body zones; REC dot and hot-spot marker in the UI |
+| Orange (0.73) | `#f4701a` | Bodies, hot pipes |
+| Amber (0.81) | `#fb9d12` | Warm cores, flanges, card hover |
+| Yellow (0.88) | `#fdc52e` | Hot cores, eyes; UI accent labels |
+| Pale yellow (0.94) | `#ffe777` | Near white-hot, floating digits |
+| White-hot (1.00) | `#fffdf2` | Faces, furnace cores, flame centres, impact flash |
+| Camera white | `#eef3ff` | Every overlay line, bracket, readout and HUD border |
+| HUD panel | `#05030c` | Panel and label backgrounds |
+| Card lavender | `#c7b8f2` | Card body text |
+
+The LUT has 256 entries but is **quantised to 72 bands**, so smooth gradients show the faint contour banding of an 8-bit sensor.
+
+Temperature budget (what goes where):
+
+| Range | Subjects |
+| --- | --- |
+| 0.03 – 0.14 | Water, tree canopies, hedgerows, fence posts |
+| 0.12 – 0.30 | Open ground, fields, shoulders |
+| 0.30 – 0.46 | Road asphalt, stone walls, rocks, contact pools under props |
+| 0.45 – 0.65 | Warm metal, insulated clothing, body rims, halos |
+| 0.50 – 0.85 | Bodies, limbs, hot pipes |
+| 0.90 – 1.00 | Faces, eyes, furnace cores, flame centres, flanges, embers |
+
+Palette rules:
+- Every visible colour of the image comes from one ramp lookup. Choose temperatures, never colours.
+- Ground stays ≤ ~0.46 so every warm subject outshines it; every subject keeps at least one spot above 0.9.
+- Pair a hot focal point with a cool part on every subject (white face + cold backpack, white eye + cool quills, white core + cool fur).
+- The UI is the only thing outside the ramp: camera white with a dark outline, plus the ramp itself as gradients.
+- No greens, cyans or greys inside the image.
+
+## Typography
+
+| Font | Weights | Role | CSS |
+| --- | --- | --- | --- |
+| Share Tech Mono | 400 | All readouts: °C, timer, counters, bar labels, timestamp, card text, floating digits | `font: 400 16px 'Share Tech Mono', monospace; color: #eef3ff; letter-spacing: 1px; text-shadow: 0 0 2px #000, 0 1px 3px #000;` |
+| Orbitron | 500 / 700 / 900 | Big titles with ramp-gradient fill; tiny spaced labels (9–10 px, letter-spacing 3–5 px, `#fdc52e`) | `font: 900 50px/1 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; background: linear-gradient(180deg,#fffdf2 8%,#ffe777 30%,#fb9d12 52%,#e3443a 72%,#96158a 96%); -webkit-background-clip: text; color: transparent;` |
+| Chakra Petch | 400 / 600 / 700 | Card titles, name plates | `font: 600 18px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; color: #fffdf2;` |
+
+All fonts are on Google Fonts. Text drawn into the canvas (scale labels, REC, timestamps, spot meter, tracking label) is Share Tech Mono in camera white with a dark `rgba(2,0,8,.8)` outline 0.22 × the font size wide, rendered once into a small bitmap and reused. Floating digits are Share Tech Mono baked into a digit atlas, pale yellow `#ffe777` with an orange `#f4701a` glow (white-hot `#fffdf2` with a red-orange glow for emphasis) and always end with a small `°` glyph.
+
+## Rendering technique
+
+One idea drives everything: **render temperature first, map to colour last.**
+
+1. **Paint temperature.** Shapes are drawn on an offscreen canvas in grayscale: the gray value is the temperature (0–1), alpha is coverage. Gradients are temperature gradients (warm core → cooler edge). Semi-transparent gray over gray simply mixes temperatures.
+2. **Heat pipeline (once per sprite, JS):** read the pixels, build premultiplied buffers (A, T·A), and box-blur them three times (≈ gaussian):
+   - *Diffusion*: blur radius 0.55 u; the painted temperature is mixed 50 % towards the blurred one, so heat bleeds softly across part boundaries.
+   - *Limb cooling*: with a 1.5 u blur of coverage `Ah`, every covered pixel is multiplied by `1 − 0.42 × (1 − min(1, Ah × 1.3))`. Rims read up to 42 % cooler – real physics (grazing angle) that gives free volume and separates neighbours.
+   - *Halo*: outside the silhouette the blurred temperature × 0.6 is shown with alpha `min(1, Ah × 1.7) × 0.62 × smoothstep(0.36, 0.8, T)` – only warm things glow.
+3. **Map** through the 72-band LUT into RGBA. **Variants** are other transfer functions on the same temperature map: flash `t + (1 − t) × 0.86` (halo × 1.3), cooled `0.1 + 0.34 t` (halo × 0.25), afterimage `0.74 t` (halo × 0.6). Facings are mirrored copies.
+4. **Ground** is a temperature field computed in JS per 256-unit chunk (see World), stamped with decals and mapped through the same LUT, inside a generator that yields ~80 times per chunk.
+5. **Per frame:** ground chunks → residual-heat imprints → collectibles → contact glows and footprints → y-sorted props and actors → orbiting orbs → projectiles → particles → floating digits → tracking box → (screen) heat shimmer, auto-gain wash, sensor grain → (display) cached camera overlay + live readouts.
+
+Sprites are baked at K = 4 px per world unit (the screen is 360 units tall). The renderer draws at native resolution; ground chunks render at up to 2.5 px/unit with smoothing, which keeps the soft, slightly blurry thermal feel.
+
+## World and ground
+
+A night-time patchwork landscape seen from above, as a temperature field.
+
+**Raw fields (sampled every 4 units, bilinear-interpolated):**
+- Base temperature `0.19 + (fbm(x/340) − 0.5) × 0.18 + (fbm(x/64) − 0.5) × 0.065`; damp hollows (fbm 190 u above 0.6–0.72) −0.05.
+- **Field cells**: Worley noise with a 380-unit lattice (lightly domain-warped). Each cell has a type – meadow (34 %, ±0), ploughed (28 %, +0.018 plus furrows), dry stubble (20 %, +0.075, the warmest), wet field (18 %, −0.06) – and a random furrow direction. The border distance `f2 − f1` is kept as a smooth field.
+- **Roads**: distance to gently curving centrelines (rows every 1300 u, columns every 1500 u, `base + sin(x/420)·120 + sin(x/170)·24`), divided by `sqrt(1 + slope²)`.
+- **Water** level (fbm 600 u) and a **wall-ness** field (fbm 520 u).
+
+**Per pixel (crisp thresholds on the interpolated fields):**
+- Furrows: `+ sin((x·cos a + y·sin a) × 0.97) × 0.05` – a 6.5-unit period.
+- Fine noise from a tileable fbm tile: ±0.034 at 128 u and ±0.017 at 32 u.
+- **Hedgerows**: where `f2 − f1 < 0.034` (about 13 u wide) the temperature goes to 0.10 with bumpy noise – cold dark lines between fields.
+- **Dry-stone walls** (where wall-ness > 0.54): warm core 0.34 for `f2 − f1 < 0.011`, cold flanks 0.125 beside it.
+- **Road**: asphalt 0.345 within 10 u of the centreline, two wheel tracks +0.03 at 5.2 u, cold gravel shoulders 0.2 out to 14 u.
+- **Water**: flat 0.10 with ±0.007 ripples, a damp shore −0.04, a faint warm waterline +0.045. Roads run through ponds as fords.
+- **Buried heating pipes**: straight lines on a 760-unit grid, `+0.07·exp(−d²/14) + 0.03·exp(−d²/150)`, warm manhole discs at their ends.
+
+**Decals** stamped into the temperature buffer before mapping (deterministic per world cell, seamless across chunks):
+- warm pebbles 0.6–1.6 u (+0.04–0.075), cold plant clumps of 3–6 blobs (−0.03…−0.05);
+- boot-print trails: 12–22 ovals 1.15 × 2.05 u every 6.6 u, alternating sides, older prints cooler (+0.045 → +0.13);
+- paired animal tracks every 4.6 u; warm resting spots 6–10 × 3.5–5.5 u (+0.07–0.11);
+- compost heaps in stubble fields (three nested stamps, up to +0.39 – rare orange accents);
+- soft cold puddles in wet fields.
+
+A screen typically shows 2–4 fields, a road and a hedgerow or two; the overall impression is indigo and violet with purple roads and black tree lines.
+
+## Characters
+
+All characters are heat signatures, painted facing right and mirrored for the left.
+
+**Main character – the explorer** (~14 u wide, ~30 u tall, feet at the anchor):
+- Hood: circle r 5.5 at (0.6, −24.7), radial 0.7 → 0.53; fur ruff ring 0.76 (1.35 u stroke).
+- Face: ellipse 2.75 × 3.25 at (3.05, −24.2), radial **1.0 → 0.86** – the hottest spot of the figure; the nose tip is a cooler dot (0.79).
+- Parka: tapered torso from y −22 to −8, radial 0.8 at the chest → 0.58 at the hem; a cooler strap (0.42) and hem line (0.47).
+- Arms 2.7 u strokes (near 0.64, far 0.52) with mitts (0.76 / 0.62); legs 3.1 u strokes (near 0.6, far 0.5); boots 0.32 / 0.28.
+- **Backpack**: 5.6 × 11.8 u, 0.31 → 0.23, with a bedroll on top (0.2) – the darkest shape, it shows the facing at a glance.
+- Walk: 8 frames; idle; dash leans 0.24 rad.
+
+**Small creature – quilled critter** (~27 × 17 u): horizontal body ellipse 8.2 × 5.3, radial 0.82 at the chest → 0.57; a ridge of 8 quills along the back at 0.46 (cooler keratin = dark spikes on top); head r 3.9 (0.84 → 0.66), snout 0.72, cold nose 0.55, ears 0.7 / 0.8, **eye 1.0**; four 1.7 u legs (near 0.55, far 0.46); tail 0.56 → 0.3.
+
+**Fast creature – wisp** (~12 × 24 u, hovering 3 ± 1.5 u): a flame silhouette (round bottom r 5.7, flickering tongues to y −29), radial **1.0 → 0.96 → 0.8 → 0.6**; two side tongues 0.74; two **cold eye holes** (0.36) and a small mouth (0.6). Halo 2.1 u at 85 %: wisps are the brightest subjects.
+
+**Large creature – the hulk** (~42 × 50 u), seen from the front: wide-shouldered torso (radial 0.8 → 0.55), long arms hanging outside the body to warm fists on the ground (near 0.6, far 0.52; fists +0.08), short legs; nine cooler fur clumps along the shoulders (0.5); a **white-hot furnace core** in the chest (r 9, 1.0 → 0.98 → 0.88 fading) with five glowing fissures (0.92); a small head sunk between the shoulders with a heavy cooler brow, two white eyes and a hot mouth (0.98).
+
+Rules: one white-hot focal point and one clearly cool part per subject; types differ by silhouette (upright, horizontal, flame, wide frontal), not by hue; far limbs 0.06–0.08 cooler; draw with source-over only – halos are baked.
+
+## Props
+
+Cold shapes with residual warmth, baked through the same pipeline (halo 1.6 u at 55 %, limb cooling 0.38). Each prop bakes its own contact pool into the sprite.
+
+| Prop | Construction |
+| --- | --- |
+| Pine tree | 5 jagged tiers, canopy 0.03 (tip) → 0.14 – colder than the ground, a near-black silhouette; trunk 0.38; a warm ground pool r 19 at 0.4 under it (the canopy blocks radiative cooling) |
+| Dead tree | Recursive branches (depth 4) at 0.08 + 0.045 × width; slightly warmer trunk base 0.29 |
+| Rock | Lumpy dome, radial 0.46 (sun-warmed top) → 0.27, cold cracks 0.22; one variant carries a **warm handprint** (0.6) |
+| Fence | Three cold posts (0.13 → 0.19) with sagging wires (0.2); one variant has a small **warm bird** (0.9) on the middle post |
+| Ember pit | Coal bed 0.9 → 0.62, charred logs 0.5 with glowing ends 0.95, embers 0.92–1.0, a ring of 9 warm stones (0.36 / 0.42); 3 baked flicker frames |
+| Steam pipe | 68-unit run on cold trestles (0.24), cylinder 0.72 top → 0.6 bottom, cooler insulated sleeves (0.5 → 0.44), **hot flanges 0.84**, valve wheel 0.76, legs diving into the ground |
+| Exhaust vent | Stack 0.66 → 0.46, seams 0.58, hot rim 0.86, **white-hot throat 1.0**, rain hat 0.62; rising plume at runtime |
+| Transformer | Box 0.62 → 0.5 with alternating fins (0.48 / 0.6), cold concrete pad 0.22, three stacked bushings, one **overheating connector 1.0** that flickers |
+
+Placement follows the world: pines and dead trees line the hedgerows, rocks and ember pits sit in dry stubble, fences dot the ploughed fields, the industrial set (pipe, vent, transformer) clusters within 48 units of a buried pipe; nothing stands on roads or water. Hot props register heat shimmer.
+
+## Effects and particles
+
+All particles carry a start temperature `t0` and **cool as they age** (their temperature is a fraction of `t0` that drops with remaining life).
+
+- **Hot-streak projectile**: white-hot head (r 2.3, 1.0 → 0.9, strong halo) in front of a 26-unit wedge trail painted as temperature 0.4 → 0.97 with alpha 0 → 1; grows from 15 % to full length in the first 0.1 s.
+- **Impact**: the struck body flashes white-hot (flash transfer at alpha = flash), 4 hot sparks (line streaks, `t0` 0.98) and a small white puff.
+- **Heat burst** (dissolve): instant white-hot pop (radius 1.25–1.5 × body radius, 0.2 s), 5–10 rising puffs growing 1.8x and cooling from 0.98 over 0.6–1.05 s, 9–18 ember streaks with gravity (cool to 45 %), a shock ring 0.6r → 3.4r (5r large) at 1.0 → 0.58.
+- **Residual heat imprint**: a flat soft ellipse where the body was, 0.5–0.62 cooling to half, fading over 2.6 s (4 s large); drawn under the actors.
+- **Collectibles**: small ember shard (diamond, core pulsing 0.8–0.93 over 6 frames at 5 fps), large hexagonal hot cell (core 0.9–1.0); both float over a warm puff and leave two cooled afterimages when they fly.
+- **Orbiting heat orb**: white-hot orb r 3.4 with a tilted cooler ring, pulsing ±6 %, trailing a 14-sample arc that cools from 0.9 to 0.45 and thins from 3.2 to 0.8 u.
+- **Collect**: a ring 3 → 11 u (18 u large) at 0.82–0.95 plus 2–6 rising motes.
+- **Glow-up celebration**: a vertical heat column (white-hot base fading to magenta, 20 × 98 u), rings 6 → 72 u and 4 → 46 u, 20 rising embers and a column of warm puffs.
+- **Breath & footprints**: warm breath clouds every 2.4 s; footprints every 6.5 units cooling from 0.48 to 0.24 over 5 s (the hulk: every 12 units, 7 s, r 3.6).
+- **Spawn / dissolve**: appear as a cold silhouette that warms up inside a shrinking ring; dissolve by cross-fading to the cold version while slumping (width +16 %, height −38 %).
+
+Puffs use 16 pre-baked radial sprites (one per temperature step); sparks and embers are single strokes in one of 64 cached ramp colours.
+
+## Atmosphere and lighting
+
+The camera is the atmosphere.
+
+- **No light, no shadows.** A warm contact glow sits under every body: radial ramp 0.44 at 80 % → 0.37 at 42 % → 0, a flat ellipse (height 0.42); radius 12 u under the main character, creature radius × 1.45 (wisp × 1.9 at 55 %, hulk × 1.6).
+- **Lens vignette** (cooler edges): radial from 34 % of the short side to 56 % of the diagonal, `rgba(3,1,12,0)` → `rgba(3,1,12,.24)` at 62 % → `rgba(2,0,7,.72)`.
+- **Sensor grain**: 4 pre-baked 160 px tiles of light speckles (alpha ≤ 15·|n|) and dark speckles (alpha ≤ 36·|n|) with fixed-pattern column stripes (±0.12) and row offsets (±0.06), cycled 30 times per second at a random offset, plain source-over.
+- **Heat shimmer**: the region above each hot source (vents, pipes, ember pits, transformer, the hulk, the main character's head) is copied once per frame and redrawn in 0.9-unit strips shifted sideways by `sin(y·0.9 − t·8) × 0.35–0.7 u`, strongest in its lower middle.
+- **Auto gain**: strong heat events add a `screen` wash of `#fdc52e` at up to 32 % decaying with `exp(−5t)` – like a camera re-ranging.
+- **Camera overlay** (u = screen height / 900): corner brackets 58u long at a 30u margin (2.2u camera white over a 4.2u dark stroke); reticle ticks 63–81u around the subject in the centre plus four small corner marks; a vertical scale bar 13u × 36 % of the height with the ramp, a white border and five labels 48.6 … −12.4, "°C" above and "IRONBOW" below; `ε 0.95   AUTO   ×1.0`; a blinking REC dot + elapsed time; a timestamp; `SP1 36.6°C` spot meter; `MAX` readout; a `NUC` label that blinks every 16 s.
+- **Tracking box**: corner brackets around the hottest large subject near the centre, 0.7 u camera white over 1.5 u dark, shrinking from 1.7x to 1x within 0.25 s on acquisition, then a red hot-spot triangle and a °C label 5.4 u high.
+
+## UI
+
+The HUD is the camera's own interface – a measuring instrument, not a game menu.
+
+- **Panels**: near-black translucent (`rgba(5,2,16,.78)` fading to `.35`), square corners, a 2 px camera-white left edge.
+- **Bars**: 1 px camera-white border on `rgba(5,2,16,.85)`, the fill is the ironbow ramp itself, divided into 10 % segments by thin dark gaps; the long top bar has tick marks every 5 % below it and a boxed value label at its right end.
+- **Timer / titles**: Share Tech Mono 36 px, letter-spacing 4 px, framed by two bracket halves (2 px camera white); a tiny Orbitron label in yellow underneath.
+- **Counter**: Share Tech Mono 26 px with a thermal-image icon and a small red-orange dot.
+- **Name plate**: dark strip with a glowing red-orange REC dot, Orbitron 9 px family label, Chakra Petch 15 px uppercase name.
+- **Cards**: dark indigo-to-black panel with a faint border, corner brackets 16 px outside each corner, icon inside an inset viewport (`#0d0626`, 1 px border, inner shadow), Chakra Petch title, Share Tech Mono body in lavender `#c7b8f2`, a `[1]` key label in yellow, a ramp stripe along the bottom; hover lifts 6 px and turns the border amber with a warm glow.
+- **Panel screen**: radial indigo dim with full-frame corner brackets and an Orbitron title filled with the ramp from white-hot down to magenta.
+- **Icons** are thermal images too: shapes painted as temperatures (a heart, a critter head inside reticle brackets, hot shards and streaks, an orbit, a boot, a magnet with white-hot poles, a steaming mug) run through the same bake with a 5-unit halo.
+
+```css
+.hud-panel { padding: 6px 10px; background: linear-gradient(90deg, rgba(5,2,16,.78), rgba(5,2,16,.35)); border-left: 2px solid #eef3ff;
+  font: 400 16px 'Share Tech Mono', monospace; color: #fffdf2; text-shadow: 0 0 2px #000, 0 1px 3px #000; }
+.bar { position: relative; width: 236px; height: 12px; background: rgba(5,2,16,.85); border: 1px solid rgba(238,243,255,.8); }
+.bar-fill { height: 100%; background: linear-gradient(90deg,#3a0f78,#96158a 22%,#e3443a 48%,#fb9d12 72%,#ffe777 92%,#fffdf2); }
+.bar::after { content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(5,2,16,.9) calc(10% - 1px) 10%); }
+.card { position: relative; padding: 22px 16px 18px; background: linear-gradient(180deg, rgba(29,11,82,.62), rgba(5,2,16,.94) 46%);
+  border: 1px solid rgba(238,243,255,.28); }
+.card-title { font: 600 18px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; color: #fffdf2; }
+```
+
+## Motion and animation
+
+- **Temperature is the animation channel**: things appear by warming up, vanish by cooling down, impacts flash white-hot for ~0.15 s, every particle cools while it ages.
+- Main character: 8 walk frames (legs ±3.8 u, foot lift 1.9 u, bob 1.1 u, arms 0.8 rad against the legs); idle bob `sin(t·2.6)·0.35`; dash: lean 0.24 rad, 4 cooled afterimages 6.5 u apart at 45/35/25/15 %; hurt: blink at 18 Hz plus white-hot flash.
+- Critter: 8 frames, legs alternate ±1.9 u, body bob 0.8 u, tail sways.
+- Wisp: 8 flicker frames at 10 fps (flame tongues run up the edges), hover 3 ± 1.5 u, alpha flicker 80–100 % at 24 Hz, two cooled afterimages at −0.06 s and −0.12 s of velocity.
+- Hulk: 8 frames, bob 1.3 u, knuckle walk (fists lift 2.8 u alternately), a cooling ring 14 → 30 u on each footfall.
+- Props: ember pits cross-fade between 3 frames at 2.4 Hz with rising sparks; vent plumes rise 30 u in 2.4 s growing to 10 u; the faulty connector flickers.
+- Camera: REC blinks at 0.8 Hz, the spot meter jitters ±0.2 °C twice a second, grain changes 30x per second, the tracking box snaps in within 0.25 s.
+
+## Do and don't
+
+Do:
+- Paint gray temperatures and map them through one ramp – sprites, ground, particles and icons alike.
+- Give every subject one white-hot focal point and one clearly cold part.
+- Bake rim cooling and hot-only halos once; draw sprites with plain `drawImage`.
+- Keep the ground in the indigo–purple band (≤ 0.46) and most props colder than the characters.
+- Tell stories with residual heat: footprints, handprints, imprints, warm ground under trees.
+- Let particles cool through the ramp as they age.
+- Frame the image with the camera UI: brackets, scale bar, °C readouts, REC, grain, vignette.
+
+Don't:
+- Don't pick colours per subject – one green, cyan or grey pixel breaks the illusion.
+- Don't draw outlines; separate bodies with temperature contrast, rim cooling and halos.
+- Don't make the ground warm or busy; above ~0.46 it competes with the bodies.
+- Don't make everything hot – without cold parts the image becomes orange soup.
+- Don't use additive blending for bodies, or `shadowBlur` / `ctx.filter` at runtime.
+- Don't run a per-pixel colour pass over the full screen every frame.
+- Don't use soft rounded fonts or coloured panels.
+
+## Implementation recipe
+
+1. Build the ramp: 13 stops from `#030108` to `#fffdf2`, a 256-entry LUT quantised to 72 bands, and 64 cached CSS colour strings for particles.
+2. Write the heat bake: paint grayscale on an offscreen canvas → `getImageData` → premultiplied buffers → 3x box blur (0.55 u and 1.5 u) → diffusion + limb cooling + hot-only halo → LUT → `putImageData`. Keep the temperature map so flash / cooled / afterimage variants are just re-mappings.
+3. Paint each subject as temperatures with its feet at the origin; leave ~3x the halo radius of margin; bake 8 animation frames and mirror them.
+4. Ground: per chunk, sample raw fields on a 4-unit grid, interpolate per pixel, apply crisp thresholds (hedges, walls, roads, water), add periodic fine noise, stamp decals, map through the LUT. Run it as a generator with short steps.
+5. Props: same bake, with a contact pool painted into the sprite; place them by world features.
+6. Particles: store `t0`, draw with `col(t0 × f(life))`; puffs from 16 pre-baked radial sprites.
+7. Atmosphere: contact glows, footprints, heat shimmer strip copies, grain pattern, cached vignette + camera overlay, cached text bitmaps for live readouts.
+8. HUD: camera-white 1 px borders, ramp-filled segmented bars, Share Tech Mono readouts, bracket-framed cards.
+
+## Code
+
+The ramp and the LUT – everything is coloured by this one function:
+
+```js
+const STOPS = [[0,'#030108'],[0.08,'#0d0626'],[0.18,'#1d0b52'],[0.28,'#3a0f78'],[0.38,'#64108a'],[0.48,'#96158a'],
+  [0.57,'#c4256a'],[0.65,'#e3443a'],[0.73,'#f4701a'],[0.81,'#fb9d12'],[0.88,'#fdc52e'],[0.94,'#ffe777'],[1,'#fffdf2']]
+  .map(([t, h]) => [t, [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16))]);
+function ramp(t) {
+  t = Math.min(1, Math.max(0, t));
+  for (let i = 1; i < STOPS.length; i++) if (t <= STOPS[i][0]) {
+    const [t0, a] = STOPS[i - 1], [t1, b] = STOPS[i], k = (t - t0) / (t1 - t0);
+    return a.map((v, j) => v + (b[j] - v) * k);
+  }
+  return STOPS[STOPS.length - 1][1];
+}
+const BANDS = 72, LUT = new Uint8ClampedArray(256 * 3);
+for (let i = 0; i < 256; i++) LUT.set(ramp(Math.round((i / 255) * (BANDS - 1)) / (BANDS - 1)), i * 3);
+const gray = (t, a = 1) => { const v = Math.round(Math.min(1, Math.max(0, t)) * 255); return `rgba(${v},${v},${v},${a})`; };
+```
+
+The heat bake – paint temperatures, then diffusion, limb cooling, hot-only halo, LUT:
+
+```js
+function blur3(src, w, h, r) { // 3 x separable box blur (zero outside)
+  const tmp = new Float32Array(src.length), out = new Float32Array(src.length), iv = 1 / (2 * r + 1);
+  let a = src;
+  for (let p = 0; p < 3; p++) {
+    for (let y = 0; y < h; y++) { let s = 0; for (let x = 0; x <= r && x < w; x++) s += a[y*w+x];
+      for (let x = 0; x < w; x++) { tmp[y*w+x] = s * iv; if (x+r+1 < w) s += a[y*w+x+r+1]; if (x-r >= 0) s -= a[y*w+x-r]; } }
+    for (let x = 0; x < w; x++) { let s = 0; for (let y = 0; y <= r && y < h; y++) s += tmp[y*w+x];
+      for (let y = 0; y < h; y++) { out[y*w+x] = s * iv; if (y+r+1 < h) s += tmp[(y+r+1)*w+x]; if (y-r >= 0) s -= tmp[(y-r)*w+x]; } }
+    a = out;
+  }
+  return out;
+}
+function bakeHeat(w, h, paint, K = 4, f = (t) => t) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'); paint(x); // gray = temperature, alpha = coverage
+  const d = x.getImageData(0, 0, w, h).data, N = w * h, A = new Float32Array(N), TA = new Float32Array(N);
+  for (let i = 0; i < N; i++) { A[i] = d[i*4+3] / 255; TA[i] = d[i*4] / 255 * A[i]; }
+  const Ad = blur3(A, w, h, Math.round(0.55 * K)), TAd = blur3(TA, w, h, Math.round(0.55 * K));
+  const Ah = blur3(A, w, h, Math.round(1.5 * K)), TAh = blur3(TA, w, h, Math.round(1.5 * K));
+  const img = x.createImageData(w, h), q = img.data, smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let i = 0; i < N; i++) {
+    const a = A[i]; let t = 0;
+    if (a > 0.003) { const t0 = TA[i] / a, tb = TAd[i] / Math.max(Ad[i], 1e-4); t = (t0 + (tb - t0) * 0.5) * (1 - 0.42 * (1 - Math.min(1, Ah[i] * 1.3))); }
+    const th = TAh[i] / Math.max(Ah[i], 1e-4), ah = Math.min(1, Ah[i] * 1.7) * 0.62 * smooth(0.36, 0.8, th) * (1 - a), oa = a + ah;
+    if (oa < 0.004) continue;
+    const i1 = Math.round(Math.min(1, Math.max(0, f(t))) * 255) * 3, i2 = Math.round(Math.min(1, Math.max(0, f(th * 0.6))) * 255) * 3;
+    for (let k = 0; k < 3; k++) q[i*4+k] = (LUT[i1+k] * a + LUT[i2+k] * ah) / oa;
+    q[i*4+3] = Math.min(255, oa * 255);
+  }
+  x.putImageData(img, 0, 0);
+  return c; // flash: f = t => t + (1 - t) * 0.86 · cooled: f = t => 0.1 + 0.34 * t · afterimage: f = t => 0.74 * t
+}
+```
+
+Painting a subject – the main character's head, as temperatures:
+
+```js
+function paintHead(c, K) {
+  c.setTransform(K, 0, 0, K, 16 * K, 36 * K); // anchor = feet
+  const radial = (x, y, r, t0, t1) => { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, gray(t0)); g.addColorStop(1, gray(t1)); return g; };
+  c.beginPath(); c.rect(-8.8, -23.4, 5.6, 11.8); c.fillStyle = gray(0.27); c.fill();                  // cold backpack
+  c.beginPath(); c.arc(0.6, -24.7, 5.5, 0, Math.PI * 2); c.fillStyle = radial(2.4, -24.4, 6.6, 0.7, 0.53); c.fill(); // hood
+  c.beginPath(); c.ellipse(2.95, -24.3, 3.65, 4.15, 0, 0, Math.PI * 2); c.strokeStyle = gray(0.76); c.lineWidth = 1.35; c.stroke(); // fur ruff
+  c.beginPath(); c.ellipse(3.05, -24.2, 2.75, 3.25, 0, 0, Math.PI * 2); c.fillStyle = radial(3, -24.8, 3.5, 1.0, 0.86); c.fill(); // white-hot face
+  c.beginPath(); c.arc(5.25, -23.8, 0.7, 0, Math.PI * 2); c.fillStyle = gray(0.79); c.fill();          // cooler nose tip
+}
+```
+
+Particles that cool while they age:
+
+```js
+const COLS = Array.from({ length: 64 }, (_, i) => { const c = ramp(i / 63); return `rgb(${c[0]|0},${c[1]|0},${c[2]|0})`; });
+const col = (t) => COLS[Math.max(0, Math.min(63, Math.round(t * 63)))];
+function drawEmber(ctx, p) { // p: {x, y, z, vx, vy, vz, life, max, t0, size}
+  const k = Math.max(0, p.life / p.max), t = p.t0 * (0.45 + 0.55 * k), vy = p.vy - p.vz, sp = Math.hypot(p.vx, vy) || 1;
+  const L = Math.min(5, sp * 0.03) * (0.5 + 0.5 * k), y = p.y - p.z;
+  ctx.globalAlpha = Math.min(1, k * 2.5); ctx.strokeStyle = col(t); ctx.lineWidth = p.size * 0.8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(p.x, y); ctx.lineTo(p.x - p.vx / sp * L, y - vy / sp * L); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+```
+
+## Adapting it to your project
+
+- **Other palettes**: the whole look is one LUT. Swap the stops for "white-hot" (black → white), "black-hot" (inverted), "rainbow" (blue → green → yellow → red) or "arctic" (blue → white → gold) and every asset follows instantly – a great unlockable camera mode.
+- **New creatures**: start from the silhouette, then choose the hot focal point (eyes, mouth, core) and the cold part (shell, armour, wings, fur). Keep 0.15+ difference between neighbouring parts.
+- **Mechanical subjects**: engines, batteries and motors are the hot cores; panels and shells are cold; exhausts get shimmer and plumes.
+- **Indoor scenes**: floors at 0.2–0.3, walls colder with warm pipes and vents inside them, warm handprints on doors, lamps and screens as hot rectangles.
+- **Stealth mechanics as visuals**: hiding = cooling down (use the cooled transfer), alert = flashing white-hot, footprints reveal paths for a few seconds.
+- **Day / night**: shift the ground up (0.3–0.45) in daytime – sun-heated roads go magenta and trees turn warm while bodies stay hottest.
+- **Other subjects**: any world works as long as you define its temperature budget table first.
+
+## Performance notes
+
+- Bake once in init (~0.4 s): the main character (8 walk + idle + dash), small critter 8, wisp 8, hulk 8 frames – each with 4 box blurs on the CPU – plus normal / flash / cooled / afterimage variants and mirrored copies, collectibles 2 × 6 frames, projectile head and trail, orb, 9 prop sprites, 16 puff sprites, 4 grain tiles.
+- Ground chunks (256 u at up to 2.5 px/unit): ~25–40 ms each, spread over ~80 generator steps of ~1 ms. Keep the per-pixel loop in a plain function (not inside the generator body) so the engine can optimise it; precompute the periodic fine noise as pixel tables per resolution; flag grid cells that can contain hedges, roads or water so open-field pixels skip that math.
+- Per frame: 1 `drawImage` per sprite (2–3 with afterimages), particles as single strokes or puff blits, one grain pattern fill (plain source-over – blend modes like `overlay` are far slower on a full screen), up to 10 small strip copies for heat shimmer, one cached overlay image, cached text bitmaps instead of `strokeText` every frame.
+- Hot spot: the full-screen passes (grain, overlay) on software-rendered canvases; drop the grain first if you need headroom.
+
+## Copy-paste prompt
+
+```text
+Use the "Thermal Vision" art style for my project: the world as seen through an infrared camera.
+Render everything as a TEMPERATURE first (0 = coldest .. 1 = hottest) and map it through one
+ironbow false-colour ramp: #030108, #0d0626, #1d0b52, #3a0f78, #64108a, #96158a, #c4256a,
+#e3443a, #f4701a, #fb9d12, #fdc52e, #ffe777, #fffdf2 (72 quantised bands for faint banding).
+Ground stays cold (indigo/violet, max ~0.46): field patchwork with cold hedgerows, warm roads,
+flat cold ponds, fading warm footprints. Trees and fences are colder than the ground (near-black).
+Characters are heat signatures with one white-hot focal point (face, eye, furnace core) and one
+cold part (backpack, quills, fur, eye holes). Bake each sprite once: paint grayscale temperatures,
+blur for diffusion, cool the rims by up to 42 %, add a halo only around warm things, map via LUT.
+Effects cool through the ramp as they age: white-hot pops, ember streaks, rising puffs, rings.
+Atmosphere = the camera: warm contact glows instead of shadows, vignette, animated sensor grain,
+heat shimmer above hot sources, corner brackets, a temperature scale bar, °C readouts, REC dot,
+timestamp and a tracking box. UI: camera-white 1 px borders, square corners, ramp-filled bars,
+Share Tech Mono readouts, Orbitron titles, Chakra Petch card titles. No other colours anywhere.
+```
+
+
+---
+
+<!-- style: terminal · https://miwale.com/styles/library/terminal/STYLE.md -->
+
+# Terminal ASCII — Game Art Style Spec
+
+> The world drawn entirely in text glyphs on a green phosphor CRT: one fixed character grid, glowing multi-glyph figures, scanlines.
+
+Everything on screen is a character in one fixed grid. A cell is **6 × 10 world units**, so the 360-unit-tall view is exactly 36 text rows. The ground is a field of dim glyphs – sparse ticks for meadows, clubs and spades for forests, `~` and `≈` for water, `░▒▓█` density ramps for hills, dotted amber dirt roads and rogue-style rooms with `#` walls around dotted floors. Figures are small multi-glyph sprites on opaque cell plates that erase the ground beneath them and glow like hot phosphor: an `@`-headed adventurer in amber standing on a blinking cursor, little `(ö)` critters, flickering `(*)` spirits trailing glyph tails, and a red block-letter brute made of half blocks. Effects are glyph bursts, rings of characters, expanding box-drawing frames and typed-out words. The whole picture sits behind scanlines, a breathing flicker, a rolling refresh band and a barrel vignette with rounded glass corners. Phosphor green carries about 90 % of the screen; amber marks the main character and every light; cyan and red are signals, used sparingly.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Family | Text Mode · CRT Phosphor |
+| Mood | nostalgic, nocturnal, hacker, minimal, eerie |
+| Best for | grid-based dungeon crawlers, hacker/cyber themes, minimalist action or puzzle games, rapid prototypes with no art budget, retro computing tributes |
+| Renderer | Canvas 2D, procedural; glyph atlas baked per cell size, cells blitted |
+| Pixel art | no – full display resolution, but every glyph snaps to the **6 × 10-unit** cell grid |
+| Complexity | 3/10: new assets are two short text grids; the engine (atlas + character ROM) is written once |
+| Fonts | VT323 (world glyphs, numbers, titles), IBM Plex Mono (small body text) – Google Fonts |
+| Key colours | `#020a05` screen · `#1a6331` / `#2a994b` phosphor · `#4ddb76` bright · `#ffb238` amber · `#5cefff` cyan · `#ff4257` red |
+
+## When to use it
+
+- **Good fits:** dungeon crawlers and turn-based grid games, hacker or cyberpunk stories told through a terminal, minimal arcade action, puzzle games on a grid, prototypes that need a strong look with zero drawn art.
+- **Good when** the screen gets crowded: plates erase the ground under every figure and the figures glow against a dim field, so crowds stay readable.
+- **Good when** you want text to be part of the world – messages type themselves out, damage scrambles glyphs, the HUD is a set of terminal windows.
+- **Bad fits:** cozy, cute or pastel projects, realistic or painterly worlds, bright daylight scenes.
+- **Bad for** designs that depend on faces, costumes or many subtly different figure types – a figure has 3–7 cells of detail.
+
+## Color palette
+
+Every family is a brightness ramp (brightest first in code). Fading means stepping down the ramp, never alpha.
+
+| Swatch | Hex | Role |
+| --- | --- | --- |
+| Screen black `bg` | `#020a05` | background of every cell, HUD panels |
+| Plate `plate` | `#010502` | opaque plates behind figures/props/collectibles/text, dark glyph of inverse cells |
+| Phosphor deep `g0` | `#0a2613` | solid █ hill cores |
+| Phosphor dim `g1` | `#113d20` | most grass ticks, forest floor dots, ▓ hill shade |
+| Phosphor low `g2` | `#1a6331` | meadow ticks, forest glyphs, ░ ▒ hill edges, room floors, prop shade |
+| Phosphor mid `g3` | `#2a994b` | room walls, prop bodies, HUD frames and labels |
+| Phosphor bright `g4` | `#4ddb76` | small-creature shells, tree tips, HUD text and bars |
+| Phosphor hot `g5` | `#a3ffbd` | big HUD numbers, card titles, numbers |
+| Phosphor white `g6` | `#e6fff0` | small-creature eye, hottest numbers |
+| Amber deep `a0` | `#3d2405` | dim road dots, sand |
+| Amber dark `a1` | `#7a4a0e` | road dots, shore sand, wood (trunks, frames, logs), empty bar segments |
+| Amber `a2` | `#c97f19` | main character's torso and legs, doors, chest, bridges |
+| Amber bright `a3` | `#ffb238` | main character's arms, projectile trail, spinner brackets, PWR bar, cursor |
+| Amber light `a4` | `#ffd98e` | large creature's teeth, fire sparks, bar text |
+| Amber white `a5` | `#fff3da` | main character's `@` head, projectile head, spinner core |
+| Cyan dim `c1` | `#0f5c62` | water `~` `≈` |
+| Cyan `c2` | `#1fb0b9` | spirit brackets, water crests, glyph tails |
+| Cyan bright `c3` | `#5cefff` | collectibles, LEDs, stairs, glow-up frame and text |
+| Cyan white `c4` | `#ccfbff` | spirit core, collectible blink |
+| Red `r2` | `#ff4257` | large creature, `x` eyes, error text and scramble |
+| Red light `r3` | `#ff8a96` | large creature's horn tips, scramble highlights |
+| Red dark `r1` | `#86131f` | large creature's feet, rare ♦ flowers |
+| Water cells | `#031a1e` / `#042229` | cell background of shallow / deep water |
+| Region cells | `#071f0f` · `#04170c` · `#0e0d05` | cell background of rooms · dense forest · roads and bridges |
+
+**Palette rules**
+
+- Green carries ~90 % of the picture. The ground never gets brighter than `#2a994b`, except room walls (20 % `#4ddb76`) and tree tips.
+- Amber belongs to the main character, light sources and warm materials (wood, sand, roads, treasure). No creature is amber.
+- Cyan is for collectibles, spirits, water and the glow-up; red only for the large creature, small-creature eyes, errors and alerts.
+- Cell backgrounds are near-black tints of their material, never mid tones – they are what makes the map readable from far away.
+- Flash = inverse video: the plate lit in the brightest step of the figure's colour family, the glyphs in plate black.
+
+## Typography
+
+- **VT323** (Google Fonts, 400) is the world font and the display font. In the world it is set at **1.25 × cell height** (31 px for a 25-px cell): VT323's advance is 0.4 em, so a 6 × 10 cell is filled; baseline at 79 % of the cell height. Before the web font has loaded the glyphs fall back to Share Tech Mono / Consolas at 0.9 × cell height and everything is re-baked once VT323 arrives.
+- **Bold = double strike:** figure, prop and effect glyphs are drawn twice, the second time shifted right by max(1 px, 10 % of the cell width) – exactly how text terminals made bold.
+- **IBM Plex Mono** (400–600) for small body text in the UI: card descriptions, captions and hints, 11–15 px, often uppercase with 2–3 px letter spacing.
+- HUD numbers: VT323 26–52 px with a two-layer phosphor glow `text-shadow: 0 0 6px rgba(77,219,118,.75), 0 0 16px rgba(77,219,118,.25)` (amber equivalent for amber text).
+- Prompts and cursors are typography too: `> ` and `$ ` before captions, a blinking `█` or `_` after titles (1.06 s, `steps(1)`).
+
+## Rendering technique
+
+The shared pipeline:
+
+1. **Character grid.** Cell = 6 × 10 world units. A world point maps to cell `(floor(x / 6), floor(y / 10))`; screen position of a cell = `round(col · 6 · S + ox)`, `round(row · 10 · S + oy)` with S = screenH / 360.
+2. **Character ROM.** Block elements (`█ ▀ ▄ ▌ ▐ ■ ▪ ▁`), shades (`░ ▒ ▓` as 25 / 50 / 75 % dot lattices with dot size max(1, round(cellH / 12))), box drawing (`─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼` and the double set `═ ║ ╔ ╗ ╚ ╝`, stroke max(1, round(0.15 · cellW))) and seven bitmap symbols the font lacks (`♣ ♠ ♥ ◆ ◇ ≈ ▲ ☼ ↑ ♦`, 7-column pixel grids fitted into 90 % × 72 % of the cell) are drawn procedurally with rounded rects. Everything else is VT323 text.
+3. **Glyph atlas.** One atlas per cell pixel size. A slot is one (glyph, colour, mode) on an 8 × 8-slot page (small pages keep re-uploads cheap when a slot is added); slot size = cell + 2 × pad (pad = 0.9 × cell height for glowing modes). Modes: plain (ground), glow (wide shadow blur 0.9 × cellH at 70 % alpha + tight 0.32 × cellH + crisp double-struck), inverse (lit cell with its own glow, glyph in plate black), soft (single 0.3 × blur). The common slots are baked in one warm-up on the first frame at a new cell size; anything else is baked on first use, then reused forever.
+4. **Ground chunks** (240 units = 40 × 24 cells) evaluate one material + glyph + colour + background per cell from noise, including a one-cell margin, fill the backgrounds, then blit plain atlas glyphs. Built with a generator in row batches and cached.
+5. **Sprites** (figures and props) are text grids: glyph rows + colour-key rows. They are baked once per cell size into one canvas (plates → wide bloom → tight halo → crisp glyphs) and drawn with one `drawImage`. Transient states (appear, scramble, dissolve) are drawn cell by cell from the atlas instead.
+6. **Draw order:** ground chunks → water crests and light pools → collectibles → shadows (only the main character's cursor and lamp glow) → y-sorted props and figures → orbiting spinners → projectiles → particles → numbers → row tearing → scanlines, refresh band, flicker, vignette.
+
+## World and ground
+
+One glyph per cell, chosen by material in this priority order:
+
+- **Rooms** – cell-aligned rectangles 11–19 × 7–11 cells, at most one per 44 × 30-cell region (42 % chance), never near the start point or water. Half are rogue rooms with `#` walls (`#2a994b`, 20 % `#4ddb76`, 13 % ruined into `▒` or `,`), half have double-line walls `╔═╗ ║ ╚═╝`. Floors are a regular `.` on every cell in `#1a6331` (12 % brighter). 2–3 doors `+` in amber `#c97f19`. Cell background `#071f0f`.
+- **Water** – warped noise < 0.335: shallow cells 50 % `~`, deep cells (< 0.265) 42 % `≈` + 20 % `~`, all in `#0f5c62` (20–30 % `#1fb0b9`), on `#031a1e` / `#042229` cell backgrounds. Where a road crosses water it becomes a plank bridge `=` in amber. A 0.02-wide shore band of `. , ·` in amber dark frames every lake.
+- **Roads** – cells within 8 units of two noise curves: centre `·` and `:`, edges `. , '`, all amber dark `#7a4a0e` / `#3d2405` on `#0e0d05`.
+- **Hills** – fbm > 0.665, drawn as a density ramp from the rim inward: `░` (`#1a6331`) → `▒` → `▓` (`#113d20`, 12 % `▲` peaks in `#2a994b`) → solid `█` in `#0a2613`.
+- **Forest** – warped noise > 0.54; density rises over 0.11 of noise. 8–48 % of cells are `♣ ♠ ^` (`#1a6331`, 18 % `#2a994b`), the rest `.` `,` in `#113d20` on `#04170c` once dense.
+- **Grass** – 8–44 % of cells (by meadow noise) get `. , ' \` "` in `#113d20` / `#1a6331`; meadow patches use `" , ; '` one step brighter. 0.6 % amber `*` flowers and 0.25 % red `♦` add rare sparks of colour.
+- A slow macro noise shifts grass and forest glyphs one brightness step up or down in large areas, so the field breathes like an unevenly worn tube.
+- **Animated water:** every frame, water cells where `sin(0.42·col + 1.1·row − 1.9·t + 1.4·sin(0.7·row + 0.6·t)) > 0.9` get a crest: plate in the water background, `~` in `#1fb0b9`; the top 2.5 % become a glowing `≈` in `#5cefff`.
+- **Light pools:** campfires put an additive amber radial (50 % alpha, radius 46 units, flickering ±3) on the ground.
+
+The ground stays dim and at most half filled – the figures own the brightness.
+
+## Characters
+
+Every figure is a text grid: glyph rows + colour-key rows (`.` = no cell, ground stays visible; `K` = plate without glyph). Each used cell gets an opaque `#010502` plate, then the glyphs are baked with a wide bloom (shadow blur 1.0 × cell height at 75 % alpha), a tight halo (0.3 ×) and a crisp double-struck pass. Facing left mirrors the rows and swaps paired glyphs (`/ ↔ \`, `( ↔ )`, `< ↔ >`, `[ ↔ ]`, `{ ↔ }`, `▌ ↔ ▐`).
+
+**Main character – the `@` adventurer, 3 × 3 cells (18 × 30 units)**
+
+```text
+ @        H  = #fff3da  white-amber head
+/█\       A a A  arms #ffb238, torso #c97f19
+/ \       a K a  legs #c97f19 (gap = plate only)
+```
+
+- Walk: 4 frames at `anim × 0.45` – arms `/█\ -█\ /█\ /█-`, legs `/ \ ·|\ / \ /|·`.
+- While firing, the arm on the facing side becomes `- / \ |` by aim angle.
+- Dash: arms `-█=`, legs `/ >`, all glyphs white-amber, and three afterimages one step apart down the ramp `▓ ▒ ░` in amber.
+- It stands on a blinking amber `▁` cursor in the cell below its feet (1.06 s period) and carries a faint amber lamp glow (16 %, 52 units).
+- Hit: 55 % of its cells scramble to red noise glyphs (`#%&$@?!*+=/\<>{}[]~^:;░▒▓`) every 1/24 s. Glow-up: all glyphs swap to cyan at 12 Hz. Invulnerable: dim and unglowing every other 1/16 s.
+
+**Small creature – a glyph critter, 3 × 2 cells**
+
+```text
+(ö)   g W g    shell #4ddb76, eye #e6fff0        {x}   g R g   red eyes #ff4257
+/"\   d g d    legs #2a994b / underside #4ddb76  / \   d K d
+```
+
+Two variants (55 % / 45 %), two leg frames (`/"\ ↔ \"/`, `/ \ ↔ | |`) at `anim × 0.8`.
+
+**Fast creature – a flickering spirit, 3 × 1 cells**
+
+`(*) {+} (×) <*> {x} (+)` cycling at 11 fps, brackets `#1fb0b9`, core `#ccfbff`. It never mirrors. Behind it the last four cells it occupied show `+ · · .` fading through the cyan ramp.
+
+**Large creature – a block-letter brute, 7 × 4 cells (42 × 40 units)**
+
+```text
+▀▄   ▄▀    horn tips #ff8a96, horns #ff4257
+▄█O█O█▄    body #ff4257, eyes O #fff3da
+█▀vvv▀█    teeth v #ffd98e
+▀ █ █ ▀    feet #86131f   (frame 2:  █ ▀ █ )
+```
+
+Two frames of alternating feet at `anim × 0.5`.
+
+**States shared by all creatures**
+
+- **Appear (0 → 1):** cells type in one by one between 25 % and 90 % of the appear time in reading order; before that each cell shows a dim scrambling noise glyph (from 12 % on).
+- **Flash:** while flash > 0.45 the sprite turns into inverse video – every plate lit in the family's brightest colour with glow, glyphs in plate black.
+- **Dissolve (0 → 1):** each cell drifts 1.5–4 cells in its own direction (and up), shows its own glyph for the first 18 %, then decays `▓ ▒ ░ · .` while stepping down its colour ramp; cells vanish between 45 % and 100 %.
+
+## Props
+
+Same text-grid sprites with plates, snapped to cells and y-sorted with the figures. Only light-emitting keys get bloom; stone, wood and foliage are drawn without glow.
+
+| Prop | Glyphs | Colours |
+| --- | --- | --- |
+| Pine, 5 × 6 | stacked `^` tiers (1, 3, 5, 3, 5) and a `║` trunk | tip `#a3ffbd` (glowing), `#4ddb76` / `#2a994b` / `#1a6331`, trunk `#7a4a0e` |
+| Oak, 6 × 4 | ` .&&. ` `(&&&&)` `(&%&&)` `` `||` `` | `#4ddb76` / `#2a994b`, trunk `#7a4a0e` |
+| Bush, 4 × 2 | ` ,, ` `(&&)` | `#2a994b` |
+| Boulder, 6 × 3 | ` .--. ` `(.░▒▓)` `` `----´ `` | `#2a994b` rim, `#1a6331` / `#113d20` shading |
+| Monolith, 3 × 5 | `▲` `▐■▌` `▐▒▌` `▐▒▌` `▄█▄` | `#1a6331`, LED `■` `#5cefff` (2 on, 1 off at 1.4 Hz) |
+| Signpost, 5 × 4 | `┌───┐` `│>_ │` `└─┬─┘` `  │  ` | wood `#7a4a0e`, prompt `#ffb238`, blinking `_` `#ffd98e` |
+| Ruin wall | `# ##` / `####` or `##` / `###` / `###` | `#2a994b` |
+| Campfire, 3 × 3 | sparks `, ' ` (moving), `)▲(` / `(▲)`, logs `=#=` | flame `#ffb238`, core `#fff3da`, sparks `#ffd98e`, logs `#7a4a0e` |
+| Stairs | `>` | `#5cefff`, pulsing |
+| Chest | `[=]` | `#c97f19` / `#ffb238` |
+
+- Rooms are furnished from their own seed: campfire in the middle (60 %), stairs (55 %), chest (60 %), monolith (40 %).
+- Outside: trees dense in forest (42 % per 42-unit cell) and rare on meadows (1.2 %), bushes, boulders near hills, monoliths, ruins, signposts 12 units beside roads, rare campfires.
+- A tree with a figure standing behind it is redrawn without plates and one step dimmer, so the figure shows through.
+
+## Effects and particles
+
+Every particle is one glyph on the cell grid – no shapes, no sprites.
+
+- **Glyph burst:** impacts throw 2 glyphs from `* + ' \`` in the struck figure's colour family; bursts throw 6 (16 for the large creature) of the figure's *own* glyphs plus 3–8 `* + x`. Glyphs decay to `·` then `.` (shade glyphs to `▒` then `░`) in their last 45 % and step down the colour ramp; glow turns soft below 30 % of life.
+- **Glyph ring:** a ring of `*` (large creature: `#`, plus an amber `▓` ring) on the grid, radius 4 → 22 units (46 for large) with ease-out over 0.32–0.55 s, squashed to 0.6 vertically, one glyph per cell, turning to `·` after 60 %.
+- **Collect:** a cyan `+` rises from the main character; large collectibles add a small `◇` ring.
+- **Glow-up:** a cyan box-drawing frame `┌─┐ │ └─┘` grows from 1 to 6 cells half-height around the main character over 0.7 s, `[ OK ]` types itself above, and ten `↑ ▲` glyphs rise in cyan and amber.
+- **Typed text:** words appear one character per cell (on plates) over the first 30 % of their life with a blinking `█` cursor at the end, and scramble into noise glyphs in the last 25 %. Used for `OK`, `ERR` (red, when the main character is hit) and `SIGNAL LOST`.
+- **Collectibles:** small = one cyan `◆` on a plate blinking to `◇` one frame in five (3 fps); large = `[◆]`. When attracted they leave a `·` one cell behind. Freshly dropped ones pop `·` → `+` → `◆`.
+- **Orbiting object:** a terminal spinner `| / - \` at 12 fps in `#fff3da` between amber `( )` brackets, with a soft `·` on the previous spot of its orbit.
+- **Projectile:** a `#fff3da` `*` on a plate, then the direction glyph `- \ | /` (angle in 45° steps) in amber, then a dim `·`.
+- **Floating numbers:** digits type into consecutive cells over the first 18 % of their life on plates in `#e6fff0` (highlighted: `#fff3da` with a trailing `!`), decaying to `. ·` in the last 22 %.
+- **Row tearing:** heavy impacts (large burst 0.14 s, hit on the main character 0.22 s, final burst 0.5 s) slide 2–5 strips of 1–3 text rows sideways by up to two cells, settling back.
+- Bursts sent by other systems with arbitrary colours are snapped to the nearest phosphor family and level, so foreign effects still look like text.
+
+## Atmosphere and lighting
+
+- **Phosphor bloom is baked**, not post-processed: every glowing glyph carries its own two-pass shadow-blur halo in the atlas. A full-screen downsample bloom was tested and dropped – reading back the frame costs ~20 ms in software rendering.
+- **No shadows.** Figures stand in cells; the main character stands on its blinking cursor and casts a faint amber lamp glow.
+- **Scanlines:** every max(3, round(screenH / 300)) display pixels a dark row a third of that height at `rgba(0,0,0,0.42)`, drawn at display resolution.
+- **Flicker:** a black veil of 1.2–6.2 % alpha: hashed noise at 30 Hz plus a slow swell `0.02 · max(0, sin(1.7 t))`.
+- **Rolling refresh band:** an additive gradient `rgba(120,255,170,0.035)`, 14 % of the screen tall, sweeping top to bottom every 9.8 s.
+- **Barrel vignette:** radial black 0 → 16 % (at 55 %) → 50 % (85 %) → 82 % in the corners, plus 6 %-wide edge bands at 55 % that darken toward each border, plus rounded black screen corners with a radius of 7.5 % of the short side.
+- **Glass:** a soft radial reflection `rgba(200,255,220,0.045)` at the upper left.
+- Light sources are amber additive pools (campfires) and glowing glyph halos; there is no global light direction.
+
+## UI
+
+The HUD is a set of terminal windows.
+
+- **Window:** near-black `rgba(2,10,5,.9)` with a scanline texture `repeating-linear-gradient(0deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px)`, 2-px `#2a994b` border, square corners, a 3-px screen-black outer ring and a soft glow `0 0 14px rgba(77,219,118,.28)` plus an inner glow.
+- **Title in the border:** like a fieldset legend – ` PWR ` in amber VT323 20 px on a screen-black patch at `top: -12px`.
+- **Bars:** block segments 8 px + 2 px gap: bright green (`#4ddb76`) for the top progress bar, amber (`#ffb238`) for the panel bar, both with a `drop-shadow` glow over a dim segmented track; a dim three-letter label `BUF` to the left and the number in `[07]` brackets to the right.
+- **Big numbers:** VT323 52 px `#a3ffbd` with the phosphor text-shadow and a blinking block cursor; captions in IBM Plex Mono 11 px uppercase with a `>` prompt in amber.
+- **Counter:** a window with a small creature icon and `×128`.
+- **Cards:** windows 236 × 290 px with a lit `#2a994b` title strip carrying `[1]`, a 96-px icon, VT323 30 px uppercase title, Plex Mono 13 px body. Hover: frame and strip turn amber and the title turns inverse video (`#ffd98e` background, black text).
+- **Panel title:** `> SELECT ONE` in VT323 64 px with a blinking `█`; the dimmed backdrop is a radial near-black veil with scanlines.
+- **Caption bar:** a window with `$ ` before the family, the name in VT323 with a blinking `_`.
+- **Icons:** 1–3 rows of glyph art on transparent ground, double-struck with glow (`»»»`, `\|/ -*- /|\`, `(☼)`, `>◆<`, `♥+`, `-=@` …), sized so the art fills ~94 % of the icon width.
+- No transitions; all blinks are `steps(1)`.
+
+## Motion and animation
+
+- Everything moves in whole cells (6 units across, 10 down); only the camera scrolls smoothly. Movement reads as discrete terminal steps – embrace it.
+- Main character: 4 walk frames at `anim × 0.45`; creatures 2 frames (`anim × 0.8`, large `× 0.5`); spirits flicker at 11 fps.
+- Blinks are hard steps: cursors 1.06 s period, collectibles one frame in five, invulnerability 16 Hz, glow-up 12 Hz.
+- Spinner 12 fps, campfire 7 fps, monolith LED 1.4 Hz (2 on / 1 off), water crests 1.9 rad/s.
+- Decay is a ramp, never a fade: `* → + → · → .` and `█ → ▓ → ▒ → ░`, with one colour step darker per band.
+- Text always types in, then scrambles out.
+
+## Do and don't
+
+**Do**
+
+- Snap every glyph to the cell grid and draw at whole display pixels.
+- Bake glyphs once into an atlas (glyph + colour + mode) and blit cells; bake multi-cell sprites once per cell size.
+- Put an opaque plate behind every figure, prop, collectible and text cell.
+- Keep the ground dim and sparse (≤ 50 % filled, ≤ `#2a994b`).
+- Draw block, shade and box glyphs procedurally so they tile seamlessly.
+- Use inverse video for flashes, scrambled glyphs for hits and typed text for messages.
+- Choose glyphs by silhouette: half blocks for masses, slashes for limbs, brackets for shells.
+
+**Don't**
+
+- No sub-cell positions, rotated or scaled glyphs, or mixed glyph sizes in one grid.
+- No colours outside the phosphor ramps; no amber creatures, no green main character.
+- No per-frame full-screen blur or bloom; the glow lives in the baked glyphs.
+- No drop shadows, gradients inside cells or rounded proportional fonts in the world.
+- No dense, bright ground textures – they swallow the figures.
+- No alpha fades for decay.
+
+## Implementation recipe
+
+1. Pick the cell: 6 × 10 world units (aspect 0.6, like a monospace font). Screen height = 36 rows.
+2. Load VT323; until it is loaded use a monospace fallback at 0.9 × cell height, then clear the atlas and repaint cached ground once.
+3. Write `paintGlyph(ctx, ch, x, y, w, h, bold)`: procedural blocks/shades/box lines/bitmap symbols, otherwise `fillText` at 1.25 × h, baseline 0.79 h, double strike for bold.
+4. Build the atlas: slots keyed by mode + glyph + colour, baked on first use with shadow blur for glow.
+5. Generate the ground per cell (material → glyph → colour → background) in chunks of 40 × 24 cells, with a one-cell margin.
+6. Define figures and props as glyph rows + colour-key rows; bake each state once (plates, bloom, halo, crisp).
+7. Draw everything at `round(col · cellW + ox)`, feet in the cell that holds y.
+8. Implement appear (type-in), flash (inverse), dissolve (drift + ramp) cell by cell from the atlas.
+9. Effects = single glyph particles, glyph rings, box frames and typed text.
+10. Finish with scanlines, flicker, refresh band and a cached vignette canvas.
+
+## Code
+
+The glyph painter with the procedural character ROM and double-strike bold:
+
+```js
+const ROM = { '♣': ['..xxx..', '..xxx..', 'xx.x.xx', 'xxxxxxx', 'xx.x.xx', '...x...', '..xxx..'] };
+const rect = (g, x0, y0, x1, y1) => { const a = Math.round(x0), b = Math.round(y0); g.fillRect(a, b, Math.max(1, Math.round(x1) - a), Math.max(1, Math.round(y1) - b)); };
+function paintGlyph(g, ch, x, y, w, h, bold) {
+  if (ch === ' ') return;
+  if (ch === '█') return rect(g, x, y, x + w, y + h);
+  if (ch === '▀') return rect(g, x, y, x + w, y + h / 2);
+  if (ch === '▄') return rect(g, x, y + h / 2, x + w, y + h);
+  const shade = { '░': 1, '▒': 2, '▓': 3 }[ch];
+  if (shade) {                                     // 25 / 50 / 75 % dot lattices
+    const d = Math.max(1, Math.round(h / 12));
+    for (let j = 0; j * d < h; j++) for (let i = 0; i * d < w; i++) {
+      const on = shade === 1 ? i % 2 === 0 && j % 2 === 0 : shade === 2 ? ((i + j) & 1) === 0 : !(i % 2 && j % 2);
+      if (on) g.fillRect(Math.round(x + i * d), Math.round(y + j * d), d, d);
+    }
+    return;
+  }
+  const rom = ROM[ch];
+  if (rom) {                                       // bitmap symbol fitted into the glyph box
+    const n = rom.length, ps = Math.min((w * 0.9) / 7, (h * 0.72) / Math.max(6, n));
+    const bx = x + (w - ps * 7) / 2, by = y + h * 0.8 - ps * n;
+    for (let j = 0; j < n; j++) for (let i = 0; i < 7; i++) if (rom[j][i] === 'x') rect(g, bx + i * ps, by + j * ps, bx + (i + 1) * ps, by + (j + 1) * ps);
+    return;
+  }
+  g.font = Math.round(h * 1.25) + 'px "VT323", monospace';
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillText(ch, x + w / 2, y + h * 0.79);
+  if (bold) g.fillText(ch, x + w / 2 + Math.max(1, w * 0.1), y + h * 0.79);   // double strike
+}
+```
+
+The glyph atlas – bake on first use, blit forever:
+
+```js
+function makeAtlas(cw, ch) {
+  const pad = Math.ceil(ch * 0.9), sw = Math.ceil(cw) + pad * 2, sh = Math.ceil(ch) + pad * 2, per = 16;
+  const page = document.createElement('canvas'); page.width = sw * per; page.height = sh * per;
+  const g = page.getContext('2d'), map = new Map(); let n = 0;
+  function get(glyph, col, glow) {
+    const key = (glow ? 1 : 0) + glyph + col;
+    let s = map.get(key);
+    if (s) return s;
+    const k = n++, sx = (k % per) * sw, sy = Math.floor(k / per) * sh, x = sx + pad, y = sy + pad;
+    g.save(); g.beginPath(); g.rect(sx, sy, sw, sh); g.clip(); g.fillStyle = col;
+    if (glow) {
+      g.shadowColor = col;
+      g.globalAlpha = 0.7; g.shadowBlur = ch * 0.9; paintGlyph(g, glyph, x, y, cw, ch, true);
+      g.globalAlpha = 1; g.shadowBlur = ch * 0.32; paintGlyph(g, glyph, x, y, cw, ch, true);
+      g.shadowBlur = 0;
+    }
+    paintGlyph(g, glyph, x, y, cw, ch, glow);
+    g.restore();
+    map.set(key, (s = { sx, sy }));
+    return s;
+  }
+  return { get, draw(ctx, glyph, col, glow, px, py) { const s = get(glyph, col, glow); ctx.drawImage(page, s.sx, s.sy, sw, sh, px - pad, py - pad, sw, sh); } };
+}
+```
+
+A multi-glyph sprite on opaque plates, snapped to the grid by its feet:
+
+```js
+const HERO = { g: [' @ ', '/█\\', '/ \\'], k: ['.H.', 'AaA', 'aKa'] };       // '.' = no cell, 'K' = plate only
+const KEY = { H: '#fff3da', A: '#ffb238', a: '#c97f19' };
+function bakeSprite(def, cw, ch) {
+  const w = def.g[0].length, h = def.g.length, pad = Math.ceil(ch * 0.9);
+  const c = document.createElement('canvas'); c.width = Math.ceil(w * cw) + pad * 2; c.height = Math.ceil(h * ch) + pad * 2;
+  const g = c.getContext('2d'), X = (i) => pad + Math.round(i * cw), Y = (j) => pad + Math.round(j * ch);
+  g.fillStyle = '#010502';
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (def.k[j][i] !== '.') g.fillRect(X(i), Y(j), X(i + 1) - X(i), Y(j + 1) - Y(j));
+  for (let pass = 0; pass < 3; pass++) {                     // wide bloom, tight halo, crisp
+    g.save(); if (pass === 0) g.globalAlpha = 0.75;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = def.k[j][i], glyph = def.g[j][i];
+      if (k === '.' || k === 'K' || glyph === ' ') continue;
+      g.fillStyle = KEY[k];
+      if (pass < 2) { g.shadowColor = KEY[k]; g.shadowBlur = ch * (pass === 0 ? 1 : 0.3); }
+      paintGlyph(g, glyph, X(i), Y(j), X(i + 1) - X(i), Y(j + 1) - Y(j), true);
+    }
+    g.restore();
+  }
+  return { c, pad, w, h };
+}
+function putSprite(ctx, s, x, y, S, ox, oy) {               // world (x, y) = feet; 6 × 10-unit cells
+  const left = Math.round(x / 6 - s.w / 2), top = Math.floor(y / 10) - s.h + 1;
+  ctx.drawImage(s.c, Math.round(left * 6 * S + ox) - s.pad, Math.round(top * 10 * S + oy) - s.pad);
+}
+```
+
+The dissolve – each cell drifts and decays down the shade ramp:
+
+```js
+function drawDissolve(atlas, def, left, top, t, seed, cellPx) {   // t: 0 → 1
+  const ramp = ['▓', '▒', '░', '·', '.'], fam = ['#e6fff0', '#a3ffbd', '#4ddb76', '#2a994b', '#1a6331'];
+  for (let j = 0; j < def.g.length; j++) for (let i = 0; i < def.g[j].length; i++) {
+    if (def.k[j][i] === '.' || def.g[j][i] === ' ') continue;
+    const h1 = hash(i + j * 9, seed, 3), h2 = hash(i * 5 + j, seed, 4);
+    if (t > 0.45 + h1 * 0.55) continue;                       // this cell is gone
+    const a = h2 * Math.PI * 2, d = t * (1.5 + h1 * 2.5);
+    const dc = Math.round(Math.cos(a) * d), dr = Math.round(Math.sin(a) * d * 0.6 - t * 1.2);
+    const glyph = t < 0.18 ? def.g[j][i] : ramp[Math.min(4, Math.floor((t - 0.18) * 7 + h1 * 1.5))];
+    atlas.draw(ctx, glyph, fam[Math.min(4, Math.floor(t * 3) + (t < 0.18 ? 0 : 1))], true,
+      (left + i + dc) * cellPx.w, (top + j + dr) * cellPx.h);
+  }
+}
+```
+
+## Adapting it to your project
+
+- **Side view:** keep the grid, build platforms from `═ █ ▀` rows and ladders from `H`; the same sprites work in profile.
+- **Other phosphors:** swap the green ramp for an amber-only (classic amber monitor) or white/blue ramp, keep one contrasting family for the main character and one signal colour.
+- **Bigger figures:** go to 5 × 4 cells for the main character, but keep creatures readable by silhouette first (brackets, blocks, slashes), colour second.
+- **Grid snapping too coarse?** Halve the cell to 3 × 5 units for figures only, never for the ground – or keep full cells and lean into the stepping as a feature.
+- **Menus and dialogue** are free: typed text, `> ` prompts, box-drawing windows and inverse-video selection.
+- **Without web fonts:** draw every glyph from the procedural ROM (extend the 7-column bitmaps) – the look survives and becomes fully deterministic.
+
+## Performance notes
+
+- Per frame the cost is a handful of `drawImage` calls: one per figure or prop (baked sprite), one per particle glyph, a few hundred water-crest cells, one pattern fill for scanlines and one cached vignette canvas. A crowded scene with 60–120 figures spends ~1–2 ms (median) in the drawing code in headless Chromium.
+- On the first frame at a new cell size a warm-up bakes ~600 common glyph slots and all ~50 figure states at once, so no later frame pays for baking; resizing clears and re-warms.
+- Atlas pages and sprite canvases are created with `willReadFrequently: true` (CPU-backed): they are drawn into once and then only used as `drawImage` sources.
+- Ground chunks (40 × 24 cells) are built with a generator in row batches (noise per cell, then backgrounds, then glyph blits) and cached by the core; chunks built before the web font arrived are repainted in place, three per frame.
+- Avoid full-screen readbacks (downsample bloom, `getImageData`): they stall the GPU pipeline – row tearing copies the canvas onto itself only during impacts.
+- `shadowBlur` is expensive, which is exactly why it only ever runs at bake time.
+
+## Copy-paste prompt
+
+```text
+Use the Terminal ASCII art style for my project:
+- Render everything as text glyphs on one fixed character grid: cell = 6 x 10 world units (screen height = 36 rows). Snap every glyph to whole cells.
+- Bake glyphs once into a glyph atlas (glyph + colour + mode: plain / glow / inverse) and blit cells; draw block, shade (░▒▓ as 25/50/75 % dot lattices) and box-drawing glyphs procedurally.
+- Font: VT323 at 1.25 x cell height, double-struck for bold; IBM Plex Mono for small UI text.
+- Palette: screen #020a05; phosphor green ramp #0a2613 #113d20 #1a6331 #2a994b #4ddb76 #a3ffbd #e6fff0 (~90 % of the screen); amber #7a4a0e #c97f19 #ffb238 #ffd98e #fff3da for the main character and lights; cyan #0f5c62 #1fb0b9 #5cefff and red #ff4257 only as signals.
+- Ground: sparse dim ticks . , ' " for meadows, ♣ ♠ ^ forests, ~ ≈ water on dark teal cells, ░▒▓█ hill ramps, dotted amber roads, rooms with # walls, . floors and + doors. Keep it dim and at most half filled.
+- Figures are small multi-glyph sprites on opaque black cell plates with a baked phosphor glow: a 3x3 @-headed adventurer in amber on a blinking ▁ cursor, (ö) critters, flickering (*) spirits with glyph tails, a 7x4 red half-block brute.
+- Flash = inverse video. Appear = cells type in through scrambling noise glyphs. Dissolve = cells drift apart and decay ▓ ▒ ░ · .
+- Effects: single-glyph bursts, rings of * on the grid, expanding ┌─┐ frames, typed-out words that scramble away, a | / - \ spinner, a * projectile with a direction-glyph trail.
+- Atmosphere: scanlines, 1-6 % flicker, rolling refresh band, barrel vignette with rounded glass corners, row tearing on impacts. No shadows, no full-screen blur.
+- UI: terminal windows (2 px #2a994b frame, glow, scanline texture, title cut into the border), block-segment bars, > prompts and blinking █ cursors.
+```
+
+
+---
+
+<!-- style: origami · https://miwale.com/styles/library/origami/STYLE.md -->
+
+# Origami Fold — Game Art Style Spec
+
+> A world folded from washi paper: flat facets with crisp mountain and valley creases on a giant crease-pattern sheet.
+
+Every character, creature, prop, collectible and icon is a small **fold mesh**: flat triangular facets with a pseudo height per vertex. One soft light from the upper left gives each facet a flat tone from a 4-step ramp per paper colour (light / base / shade / deep). Shared edges are classified automatically: a **mountain fold** catches the light as a thin bright line, a **valley fold** is a thin dark line, an open edge is the deep-toned paper edge. The paper is two-sided like real kami — hems, bellies, inner ears, wing backs and confetti show the cream back of the sheet. The ground is one endless sheet scored with a crease tessellation; pastel sheets lie on top along straight folded hems with short drop shadows, and pleated blue water is sunk below. Soft plum shadows, sheared to the lower right, lift every folded object off the paper.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Family | Paper · Origami |
+| Mood | calm, crafted, gentle, playful, tidy |
+| Best for | cozy top-down action and adventure, puzzle and board-game adaptations, children's games, zen / seasonal projects, papercraft menus and maps |
+| Renderer | Canvas 2D, procedural: 2D fold meshes with z heights → flat tone per facet → automatic crease lines → baked sprites |
+| Pixel art | No — native resolution, sprites baked at 3–8 px per world unit |
+| Complexity | 5/10 — shading and creases are automatic; designing folds that read as origami is the craft |
+| Fonts | Zen Maru Gothic (500/700/900), M PLUS Rounded 1c (500/700/800), Kalam (400/700) |
+| Key colours | washi `#f4eee1`, coral `#e8755b`, kami cream `#f3e9d6`, indigo `#4f62a6`, teal `#35a194`, mustard `#e6ae42`, blush `#ee9597`, plum `#76599b`, water `#88a8d8` |
+
+## When to use it
+
+- **Good fit:** cozy top-down or 3/4 projects with many small units — the pale ground and saturated folded figures stay readable in crowds.
+- **Good fit:** puzzle games, board-game adaptations, map and menu screens — the crease grid is a natural board, and envelopes, tabs and notes make a coherent UI kit.
+- **Good fit:** children's, educational, zen and seasonal projects — calm light, soft washi colours, no harsh contrast.
+- **Good fit:** anything that wants "handmade" without hand-drawn assets — every asset is code, so variants are cheap.
+- **Bad fit:** horror, grit, realism; dark neon or high-contrast moods — matte paper has no glow.
+- **Bad fit:** projects needing hundreds of distinct, finely animated models — each pose is a rebuilt mesh, baked twice (both facing directions).
+- **Bad fit:** retro pixel looks — the style relies on crisp sub-pixel crease lines.
+
+## Color palette
+
+| Swatch | Hex | Role |
+| --- | --- | --- |
+| Washi White | `#f4eee1` | Base sheet of the ground (~50 % of the screen), hem `#fbf8f0` |
+| Sage Sheet | `#d5e1c0` | Pale green sheet on the ground |
+| Mustard Sheet | `#f2dca6` | Pale yellow sheet |
+| Coral Sheet | `#f3cebe` | Pale coral sheet |
+| Teal Sheet | `#c3dfd6` | Pale teal sheet |
+| Water | `#88a8d8` | Sunken water; pleats lit `#a9c3ea`, shaded `#6d8cc6` |
+| Coral | `#e8755b` | Main character fur, roofs — ramp `#f7a283` `#e8755b` `#c95b47` `#9b4136` |
+| Kami Cream | `#f3e9d6` | The back of every sheet — ramp `#fffbf3` `#f3e9d6` `#dccbae` `#b5a083` |
+| Indigo | `#4f62a6` | Kimono, doors, diagram ink — ramp `#7488c9` `#4f62a6` `#3b4a87` `#283462` |
+| Teal | `#35a194` | Small creature, orbiting star — ramp `#63c2b3` `#35a194` `#277f76` `#1a5b56` |
+| Sage | `#98b37d` | Small creature, stems, grass — ramp `#bdd39b` `#98b37d` `#779562` `#587149` |
+| Mustard | `#e6ae42` | Sash, mane, small collectible — ramp `#f8d372` `#e6ae42` `#c68c2d` `#936624` |
+| Blush | `#ee9597` | Paper crane, tulips, lotus — ramp `#f9c0bd` `#ee9597` `#cd7279` `#9d525c` |
+| Plum | `#76599b` | Large creature — ramp `#9a7fbb` `#76599b` `#5a447c` `#3f3059` |
+| Pine | `#60a077` | Pine tiers — ramp `#88c197` `#60a077` `#46805c` `#305d44` |
+| Wood | `#b0875e` | Trunks, sticks — ramp `#d4ae83` `#b0875e` `#8b6543` `#63472f` |
+| Stone | `#cac3ba` | Boulders — ramp `#e6e1da` `#cac3ba` `#a8a098` `#7f7873` |
+| Paw Ink | `#3d3747` | Main character's legs — ramp `#5a5368` `#3d3747` `#2e2936` `#201c27` |
+| Ink | `#2a2433` | Eyes, noses; mixed into paper edges |
+| Shadow Plum | `#4e3848` | Cast shadows at alpha 0.24–0.32 |
+| HUD Ink | `#3d3852` | HUD text; titles `#3b4a87`, captions `#c95b47` |
+
+Derived line colours per ramp: **paper edge** = deep tone mixed 38 % toward `#2a2433`; **mountain highlight** = light tone mixed 55 % toward white; **valley line** = deep tone mixed 15 % toward ink.
+
+**Rules**
+- Every paper colour is exactly a 4-step ramp; the light picks the step per facet. No gradients inside facets, no in-between tones.
+- The ground is pale; everything standing on it uses the saturated mid-value ramps. Actors pop by value first, hue second.
+- Two-sided paper: wherever a sheet turns over, switch to the cream ramp.
+- Hue ownership: coral + indigo = main character; teal / sage / mustard = small creatures; blush = fast creature; plum + mustard mane = large creature.
+- Water is the only large saturated ground area, always sunk below the paper.
+- Shadows are plum `rgb(78,56,72)` at low alpha — never black or grey. No pure black (darkest `#201c27`).
+
+## Typography
+
+**Zen Maru Gothic** — 500, 700, 900 — titles, counters, card titles, floating numbers. `https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap`
+
+```css
+.counter { font: 900 32px/1.05 'Zen Maru Gothic', sans-serif; letter-spacing: .05em; color: #3b4a87; text-shadow: 2px 2px 0 rgba(255,251,243,.9); }
+.ribbon-title { font: 900 54px/1 'Zen Maru Gothic', sans-serif; letter-spacing: .06em; color: #fffbf3; text-shadow: 2px 3px 0 rgba(120,40,30,.35); }
+```
+
+**M PLUS Rounded 1c** — 500, 700, 800 — body copy, descriptions, caption bar. `https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap`
+
+```css
+.desc { font: 700 15px/1.3 'M PLUS Rounded 1c', sans-serif; color: #7a6c74; }
+```
+
+**Kalam** — 400, 700 — handwritten notes on the paper: labels, hints, families, like pencil marks. `https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap`
+
+```css
+.note { font: 700 15px/1.1 'Kalam', cursive; color: #c95b47; }
+```
+
+Canvas numbers: `900 8.5u "Zen Maru Gothic"` (emphasised 12 units) in indigo `#3b4a87` with a 0.32×size cream `#fffbf3` border; emphasised values in deep coral `#9b4136` on a folded mustard tag (upper half `#f8d372`, lower half `#e6ae42`, cream crease line, plum shadow offset). No all-caps; slight positive letter-spacing on titles.
+
+## Rendering technique
+
+**The fold mesh.** A model is a list of triangles in screen space (x right, y down, units = world units) with a z height per vertex. Points are de-duplicated (rounded to 1/64 unit), so faces that share two points share an edge.
+
+1. **Normal & tone.** For each face, n = cross(b−a, c−a), flipped to face the viewer (nz ≥ 0). d = n·L with L = normalize(−0.55, −0.45, 0.7). Tone = d > 0.8 → light, > 0.55 → base, > 0.3 → shade, else deep. A flat face (d ≈ 0.70) is the base tone; tilting toward the upper left lightens, toward the lower right darkens. An optional tone offset (+1) pushes far legs and far wings back.
+2. **Fill.** Faces are drawn in authoring order (back to front) and stroked in their own colour at 0.9 px to hide anti-aliasing seams.
+3. **Edges.** Each edge is drawn once, when the later of its two faces is drawn:
+   - **open edge** (one face): paper edge, deep tone toward ink, 0.55 units;
+   - **shared edge**: take the far vertex of the earlier face and its signed distance to the later face's plane, divided by its distance from the edge. Below −0.025 → **mountain** (light-tone highlight, alpha 0.9, 0.3 units); above +0.025 → **valley** (deep line, alpha 0.6); flat → nothing (same colour) or a soft seam (alpha 0.45, different colours).
+4. **Details.** Ink dot eyes (0.75–0.85 units, white catch-light) and noses on top.
+5. **Paper fibre.** A tileable 160 px fibre canvas is laid over the sprite with `source-atop` at 0.55.
+
+**Baking.** Everything is baked once at `K = clamp(round(screenHeight/360·1.6), 3, 8)` px per unit into sprites anchored at the feet. The **left-facing version is rebuilt from mirrored geometry** (x → −x, then re-lit) — never flipped — so the light stays in the upper left. Each sprite also gets a baked shadow sprite.
+
+**Per frame.** Ground chunks (cached) → shadows of all y-sorted objects → props/creatures/main character sorted by y → orbiting objects → projectiles → particles → numbers → ambient butterflies → screen light overlay. Native resolution, smoothing on.
+
+## World and ground
+
+- **Crease tessellation.** 40-unit squares, each split into four triangles (N, E, S, W) by both diagonals. Every triangle gets one region id from noise at its centroid — so every region border runs along crease lines and is straight.
+- **Regions.** Water where `fbm(x/720) > 0.64` (kept 190 units away from the start); else a coloured sheet where `fbm(x/420) ≥ 0.5`, its colour from `fbm(x/1000)`: < 0.44 sage, < 0.5 mustard, < 0.56 coral, else teal; else the washi base.
+- **Relief.** The sheet remembers its folds: each triangle's colour is multiplied by `1 + relief·amp` (amp 0.35–1.25 from slow noise). Every 4×4-cell panel between two major folds has its own pattern: **pyramids** (42 %, N +0.022, E −0.017, S −0.027, W +0.013), **waterbomb** (26 %, pyramids up/down in a checker), **pleats** (16 %, rows alternately +0.02 / −0.022) and **twist** (16 %, the tone set rotated per cell).
+- **Layering.** Drawn bottom to top: water, base, sage, mustard, coral, teal. Before each layer, its union path is filled twice as a drop shadow onto the layers below: offset (+2.6, +3.2) at `rgba(84,60,58,.07)` and (+1.3, +1.6) at `.09`. The base sheet's shadow falls into the water as an inner shadow.
+- **Hems.** Along every edge bordering a lower layer, a 2.4-unit strip inside the sheet in its colour mixed 55 % toward `#fffcf4` (the folded-over back), with a fold line `rgba(96,72,60,.22)` 0.4 and the paper edge `rgba(96,72,60,.34)` 0.45.
+- **Water.** Clipped to the water triangles: chevron pleat rows (period 18, row height 11, zig-zag amplitude 3.4, each row phase-shifted by a hash). Per row: shaded slope `#6d8cc6` from the ridge to the valley at 45 % of the row, lit slope `#a9c3ea` down to the next ridge; valley line `rgba(44,64,122,.32)` 0.45, ridge line `rgba(255,255,255,.7)` 0.55. Small cream three-facet wave crests on a 52-unit grid.
+- **Crease lines.** Pyramid diagonals are mountain folds: `rgba(255,253,246,.7)` 0.45 with a faint dark twin offset 0.5 units; down-pyramids and pleat valleys `rgba(98,76,60,.16)`; grid edges `rgba(98,76,60,.13)`. Not drawn on water.
+- **Diagram notation.** Every 160 units a full-sheet fold: valley folds dashed `[5, 3.5]` in indigo `rgba(59,74,135,.28)`, mountain folds dash-dot `[7, 2.5, 1.2, 2.5]` in coral `rgba(201,91,71,.3)`, 0.6 units.
+- **Fibre** over each chunk at 0.5.
+- **Decals** (sparse — 13 % of a 21-unit jittered grid, never on water): folded grass (3 pointed strips, sage or pine), 4-petal flat folded flowers in blush / cream / mustard (scale 0.6–0.95), pairs of tiny two-tone scraps, and rare curved fold arrows (indigo, alpha 0.38).
+
+## Characters
+
+All models face +x; feet at (0, 0); y up is negative. Built from three primitives: **kite** (two triangles folded along an axis A–B, side corners P, Q), **folded strip** (legs, necks, tails; centre crease raised by z) and **fan** (triangles around one raised point — heads, bodies, crowns).
+
+**Main character — the folded fox** (~26 × 36 units including ears and tail):
+- **Tail:** a big coral kite from the hip (−2.4, −9.6) to the tip (−12.8, −22.6), sides (−10.6, −11.4) and (−4.6, −18.8); the outer 40 % is a cream kite (the tip).
+- **Legs:** folded strips in paw ink (3.0 → 2.1 wide), the back one +1 tone, with a small triangular paw.
+- **Kimono:** one indigo sheet folded down the middle: neck (0.8, −18.8, z 2.2), hem corners (−6.4, −6) and (6.8, −6.4), centre (0.9, −5.2, z 2.6) — the left half lit, the right half shaded. Mustard sash between 55 % and 70 % of the height, cream hem in the last 10 %, cream V collar, an indigo kite sleeve with a paw.
+- **Ears:** two coral kites to (−4.6, −34) and (2.4, −34.8) with cream inner triangles (+1 tone).
+- **Head:** six facets around a raised muzzle peak (2.2, −22.4, z 3.6): forehead, back of the head, cheek, top of the muzzle in coral; the two lower facets cream. Ink eye (4.7, −23.3) r 0.85 with a catch-light, ink nose at the snout tip (10.1, −21).
+- **Poses:** idle, 4 walk frames (paw offsets ±4.8, lifts up to 1.8, 0.3–1.1 body bob, tail and sleeve swing), dash (legs spread ±6, ears laid back 2.6 units, tail raised).
+
+**Small creature — jumping frog** (~18 × 14): a diamond body with an X of folds around a raised centre (0.2, −6.6, z 3.6) — the two upper facets in the creature colour, the two lower ones cream (belly); a big folded back thigh (+1 tone), a small front leg, two little pyramid eyes with ink pupils. Variants teal, sage, mustard. Frames: sit, crouch (body 1.4 lower), leap (legs extended 4 units).
+
+**Fast creature — paper crane** (~26 × 21, hovering 8 units up): diamond body fan, tail strip to (−12.6, −17.4), neck strip to (9.4, −19.8) with a downward beak, far wing (+1 tone) and near wing as kites. Wing raise u ∈ {1, 0.45, −0.35, 0.45}; when u < 0.1 the wings show their cream backs. Blush.
+
+**Large creature — folded boar** (~46 × 40): a plum body fan of 8 points around a raised flank point (−3, −21, z 6), a cream belly band, a 6-point head fan with a blush snout tip, a cream tusk, a mustard eye with an ink pupil, a plum ear with a cream inside, six mustard spike kites along the spine and four strip legs with mustard hooves (far pair +1 tone).
+
+**States:** hit = cream `#fffaf0` silhouette at alpha `min(0.85, flash·1.2)` plus a 16 % squash; appear = a flat four-facet square of the creature's colour rotating 1.6 rad and shrinking while the creature unfolds upward (outBack on y-scale after 25 %); the crane drops in from 30 units while fading in; vanish (0.35 s) = flatten (y-scale → 0.15, x → 1.35) and fade with a fading cream flash. Hurt main character = cream flash + squash + wobble; blinking at 16 Hz during invulnerability.
+
+## Props
+
+- **Pines:** wood strip trunk (3.8 → 3.0), three kite tiers bottom-to-top (half-widths 15.5 / 11.7 / 7.9, heights 48–66), the centre crease raised (bottom centre z 5.5) so the left half is lit. Pine green or teal.
+- **Round trees:** strip trunk + one branch; crown of 8 outer points (rx 15, ry 13.5, alternate points 92 %), 8 inner points at half radius (z 6.5) and a raised apex (z 9.5) = 24 facets. Coral, mustard, sage or teal.
+- **Boulders:** a fan of 7 jittered points (radius 7–12) around a raised point at the upper left (z 0.7·r); one variant with a second small stone. Stone ramp.
+- **Origami house:** front walls folded slightly at the middle in cream, side wall +1 tone, side roof +1 tone, front roof as one folded triangle (coral or indigo) with two cream squash-fold flap triangles; indigo door, mustard window.
+- **Tulips:** three sage stems (two with folded leaves), cup-shaped heads (8-point fan) in coral / mustard / blush.
+- **Pinwheel:** stick + head of four blades (coral / teal alternating, each with a cream inner flap), 12 baked rotation frames over 180°, turning at 9 frames/s.
+- **Accordion screen:** six cream panels alternately tilted (z 0 / 2.4) so they alternate lit and shaded, with teal top bands.
+- **On water:** paper boats (mustard / coral / cream: a folded sail over a two-half hull) and lotus (blush and cream petal kites on a notched sage pad) bob 0.8 units, rock ±0.05 rad, with an expanding cream ripple ellipse and a blue under-shadow.
+- All land props cast the shared sheared shadow (blur 1.6, alpha 0.28, contact ellipse); pines, trees and houses turn 50 % translucent when the main character is behind them.
+
+## Effects and particles
+
+- **Paper-plane projectile:** a folded dart — cream wings with coral tips, a valley crease down the middle — baked at 16 angles (re-lit per angle), its own soft shadow 7 units below (squashed 0.55), two short pencil dashes `#7a6c74` behind.
+- **Orbiting shuriken:** a two-tone origami star — four arms, each split into coral and teal halves around a raised centre — 8 rotation frames over 90°, 30 frames/s, over a plum blob.
+- **Collectibles:** small = mustard lucky star (5 points, 10 facets, r 4.4, 6 rotation frames); large = teal folded crystal (4 facets) turning through 8 frames. Bob 3 ± 1.2 units over a plum blob; pop in with outBack.
+- **Impact:** a crisp 4-point folded sparkle (cream, thin plum edge) at hit height plus 3 two-tone shards (gravity 260).
+- **Unfolding burst:** 8–12 two-tone kite petals (creature colour + cream) shoot out and fold shut again (length `0.5 + 0.8·sin(πt)`), the flat square sheet of the creature tumbles up and away flipping between colour front and cream back, 8–16 confetti follow; the large creature adds a dash-dot crease ring in plum and a small screen shake.
+- **Two-sided confetti:** flat triangles flipping with `cos(t·9)` — colour front when positive, cream back when negative — swaying sideways, gravity 50–120, drag 2.4–2.8.
+- **Collect:** a small 4-point sparkle (cream-yellow, teal-white for large) and a few confetti for large collectibles.
+- **Glow-up:** a dashed mustard crease ellipse opening to 40 units, two ground-level rings of petals (10 mustard/coral, 8 teal/cream) and 22 confetti drifting down from 30–46 units; the main character turns once like a card.
+- **Dash:** folded paper strips (cream and indigo, light/shade halves) trailing behind, plus three cream afterimages at alpha 0.38/i.
+
+## Atmosphere and lighting
+
+- **One light**, L = normalize(−0.55, −0.45, 0.7), for models, ground relief and water pleats alike.
+- **Cast shadows:** silhouette tinted `rgb(78,56,72)`, sheared x' = x − 0.62·y, y' = −0.36·y around the feet (the shadow falls to the lower right), blurred 1.1 units (props 1.6) at alpha 0.3 (props 0.28), plus a contact ellipse at 85 % of that alpha. Flying creatures: flattened (y' = 0.42·y), unsheared shadow offset by 0.45 × their height to the right, alpha 0.24.
+- **Layer shadows** between ground sheets (see World).
+- **Screen light** baked per size: linear gradient `rgba(255,250,235,.16)` (upper left) → clear at 45–70 % → `rgba(90,64,80,.14)` (lower right), plus a radial vignette to `rgba(96,70,70,.17)`.
+- **Ambient life:** origami butterflies — two kite wings, flapping by horizontal scale 0.25–1 at 11 rad/s — on a 230-unit grid, 22 ± 4 units above a soft blob shadow.
+- **Matte:** no glow, no bloom, no fog.
+
+## UI
+
+The HUD is folded paper — no rounded corners, hard offset shadows `rgba(82,60,72,.15)`, 1 px edges `rgba(120,96,80,.24)`.
+
+- **Top bar:** a cream strip folded lengthwise (`linear-gradient(180deg, #fffaf1 0 48%, #ebe0cb 52%)`), fill = teal pleats `repeating-linear-gradient(118deg, #43ad9f 0 18px, #33998c 18px 36px)` with the same top/bottom fold overlay, value on a coral tab notched on the left.
+- **Panel + bar:** heart icon (a faceted coral fold heart) + a 250×26 folded strip with coral pleats, value centred in Zen Maru Gothic 900 15 px with a cream halo.
+- **Title / clock:** an envelope — cream `#fbf5e8`, a flap triangle (`clip-path: polygon(0 0, 100% 0, 50% 100%)`, two-tone halves) and diagonal crease lines; digits indigo Zen Maru 900 32 px, a Kalam caption in coral.
+- **Counter:** a paper tab with a dog-eared top-right corner (`linear-gradient(225deg, transparent 14px, #fbf5e8 14px)` + a `#dccbae` fold triangle).
+- **Caption bar:** a note folded down the middle (`#fcf7ec` / `#f1e7d4` halves), Kalam family in teal, name in coral Zen Maru 900.
+- **Cards:** envelopes 232 × 300, slightly rotated (−1.5° / 1.2° / −0.6°), with a coloured flap triangle (coral / teal / mustard halves), bottom diagonal creases, a folded-square icon plate (`conic-gradient(from 45deg, #fffbf3 0 25%, #f2e8d4 0 50%, #e6d9c1 0 75%, #faf4e8 0)`), an indigo corner tab with the key number. They unfold from the top edge (`perspective(700px) rotateX(-88deg)` → 0) and straighten on hover.
+- **Panel title:** a coral ribbon with V-notched ends and a horizontal centre fold.
+- **Modal overlay:** indigo tint with a diagonal crease grid of light lines every 64 px.
+- **Icons** are fold meshes drawn into the 48-unit icon box with 1.25-unit paper edges and 0.7-unit creases: fold heart, frog face, folded blade, lightning, three planes, waterbomb cube, shuriken, folded wing with speed strips, folded magnet, envelope with a heart.
+
+```css
+.bar { position: relative; width: 250px; height: 26px; background: linear-gradient(180deg, #fffaf1 0 50%, #e9ddc7 50% 100%);
+  box-shadow: 0 0 0 1px rgba(120,96,80,.26), 3px 4px 0 rgba(82,60,72,.16); overflow: hidden; }
+.bar-fill { height: 100%; box-shadow: 1px 0 0 #9b4136;
+  background: linear-gradient(180deg, rgba(255,255,255,.2) 0 50%, rgba(90,24,14,.13) 50% 100%), repeating-linear-gradient(62deg, #ee8063 0 15px, #df6c52 15px 30px); }
+.card { position: relative; isolation: isolate; width: 232px; min-height: 300px; background: linear-gradient(180deg, #fffaf1, #f5ecdb);
+  box-shadow: 0 0 0 1px rgba(120,96,80,.24), 6px 8px 0 rgba(82,60,72,.16); transform: rotate(-1.5deg); }
+.card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 118px; z-index: -1;
+  background: linear-gradient(90deg, #f29074 0 50%, #e2735a 50% 100%); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+```
+
+## Motion and animation
+
+- Main character: 4 walk frames per 4.6 animation units, `|sin|` step bob 1.1 units, 0.04 rad lean; idle breathing ±1.8 %; firing squashes 4 %.
+- Frog: hop cycle at anim·0.5 — 20 % crouch (8 % squash), 58 % airborne (4.5-unit arc, −0.2 rad nose-up, +0.12 on the way down), land.
+- Crane: 4 wing frames at 10/s, hover 8 ± 1.8 units, banking ±0.12 rad with its velocity.
+- Boar: 4 walk frames at anim·0.32·4, ±0.03 rad sway, size jitter ±4 %.
+- Appear 0.45 s (fold up from a sheet), vanish 0.35 s (flatten), hit flash decays at 7/s.
+- Glow-up card turn: horizontal scale `|cos(2π·min(1, 2t))|`, mirrored sprite on the back half, lift 5 units.
+- Numbers unfold from a crease in the first 14 % of their life (outBack on y-scale), fold away in the last 22 %.
+- Props: pinwheel 9 frames/s; boats bob 0.8 units at 1.8 rad/s with a ripple every 2 s.
+- UI: cards unfold 0.6 s, staggered 0.08 s; the title ribbon unfolds horizontally in 0.5 s.
+
+## Do and don't
+
+**Do**
+- Model every asset as facets with a z height per vertex and let one shared light choose the tone.
+- Draw shared edges as creases (bright mountain, dark valley); stroke only open edges as paper edges.
+- Show the cream back of the paper wherever a sheet turns over.
+- Keep the ground pale and structured by its crease pattern; put colour on the things standing on it.
+- Let region borders follow crease lines — straight, hemmed and shadowed.
+- Bake both facing directions from mirrored geometry so the light never flips.
+- Lift every folded object with a soft plum shadow falling to the lower right.
+
+**Don't**
+- Don't use smooth gradients or airbrush shading — folds are straight.
+- Don't add thick black outlines; edges are paper edges in the colour's own deep tone.
+- Don't flip sprites with a negative scale.
+- Don't cut torn or scissor-cut silhouettes — that is cut-paper, not origami.
+- Don't fill the ground with saturated colour or dense decals.
+- Don't make shadows black or grey, or point them in different directions.
+- Don't add glow, bloom or neon — paper is matte.
+
+## Implementation recipe
+
+1. Define the ramps (4 hex values per paper colour) and derive the three line colours per ramp.
+2. Write the fold mesh: de-duplicated points with z, `tri`, `quad`, `kite`, `strip`, `fan`, `dot`, an optional transform (`at(x, y, scale, rot)`).
+3. Write `renderFold`: normals → tones → fill + seam stroke → edges classified as open / mountain / valley / seam → dots.
+4. Write `bake(box, fn, mirror)` at K px per unit with fibre on top, and `castShadow(sprite, shx, shy, alpha, contact)` with a blur filter.
+5. Author the main character facing +x as a function of a pose object; bake idle + walk frames + dash for both directions; same for each creature.
+6. Ground per chunk: classify the four triangles of every 40-unit cell, colour with the panel's relief pattern, draw layers with offset shadows and hems, clip water and draw chevron pleats, then crease lines, diagram lines, fibre, sparse decals. Use a generator and cache the region per triangle.
+7. Props: bake each variant (and mirrored copies) with shadows; place them per region on a jittered 60-unit grid, keeping land props off the water and boats/lotus fully on it.
+8. Effects: bake planes at 16 angles, shuriken and stars as rotation frames; draw petals, confetti, strips and sheets as tiny two-tone paths per frame.
+9. Add the screen light overlay and the butterflies; skin the HUD with the paper CSS.
+
+## Code
+
+**Fold mesh primitives**
+
+```js
+function Fold() { this.v = []; this.f = []; this.idx = new Map(); }
+Fold.prototype.pt = function ([x, y, z = 0]) {            // shared points -> shared edges
+  const k = Math.round(x * 64) + ',' + Math.round(y * 64) + ',' + Math.round(z * 64);
+  let i = this.idx.get(k);
+  if (i === undefined) { i = this.v.length / 3; this.v.push(x, y, z); this.idx.set(k, i); }
+  return i;
+};
+Fold.prototype.tri = function (a, b, c, key, off = 0) { this.f.push({ a: this.pt(a), b: this.pt(b), c: this.pt(c), key, off }); return this; };
+Fold.prototype.kite = function (A, B, P, Q, key) { return this.tri(A, P, B, key).tri(A, B, Q, key); };  // folded along A-B
+Fold.prototype.strip = function (p0, p1, w0, w1, z, key) {                                             // leg / neck / tail
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+  const L0 = [p0[0] + nx * w0 / 2, p0[1] + ny * w0 / 2], R0 = [p0[0] - nx * w0 / 2, p0[1] - ny * w0 / 2];
+  const L1 = [p1[0] + nx * w1 / 2, p1[1] + ny * w1 / 2], R1 = [p1[0] - nx * w1 / 2, p1[1] - ny * w1 / 2];
+  const C0 = [p0[0], p0[1], z], C1 = [p1[0], p1[1], z];
+  return this.tri(L0, C0, C1, key).tri(L0, C1, L1, key).tri(C0, R0, R1, key).tri(C0, R1, C1, key);
+};
+```
+
+**Tones and automatic creases**
+
+```js
+const L = normalize([-0.55, -0.45, 0.7]);                 // light from the upper left
+const toneOf = (n) => { const d = n[0] * L[0] + n[1] * L[1] + n[2] * L[2]; return d > 0.8 ? 0 : d > 0.55 ? 1 : d > 0.3 ? 2 : 3; };
+// for a shared edge p-q between face i (drawn now) and face j (drawn earlier), d = far vertex of face j:
+function creaseKind(nI, P, D) {
+  const s = (nI[0] * (D[0] - P[0]) + nI[1] * (D[1] - P[1]) + nI[2] * (D[2] - P[2])) / (Math.hypot(D[0] - P[0], D[1] - P[1]) + 1e-6);
+  return Math.abs(s) < 0.025 ? 'flat' : s < 0 ? 'mountain' : 'valley';
+}
+// mountain: stroke ramp.light mixed 55 % with white, alpha .9, 0.3 units
+// valley:   stroke ramp.deep  mixed 15 % with ink,   alpha .6, 0.3 units
+// open edge (no neighbour): ramp.deep mixed 38 % with ink, 0.55 units
+```
+
+**Sheared soft cast shadow**
+
+```js
+function castShadow(s, shx = 0.62, shy = -0.36, alpha = 0.3, K = 4) {  // s = { c: canvas, ox, oy } anchored at the feet
+  const pad = Math.ceil(K * 3), W = Math.ceil(s.c.width + shx * s.oy) + pad * 2, H = Math.ceil(-shy * s.c.height) + pad * 2 + K * 4;
+  const out = Object.assign(document.createElement('canvas'), { width: W, height: H }), g = out.getContext('2d');
+  const sil = Object.assign(document.createElement('canvas'), { width: s.c.width, height: s.c.height }), q = sil.getContext('2d');
+  q.drawImage(s.c, 0, 0); q.globalCompositeOperation = 'source-in'; q.fillStyle = 'rgb(78,56,72)'; q.fillRect(0, 0, sil.width, sil.height);
+  const ax = s.ox + pad, ay = pad + K * 2;
+  g.filter = `blur(${(K * 1.1).toFixed(1)}px)`; g.globalAlpha = alpha;
+  g.setTransform(1, 0, -shx, shy, ax - s.ox + shx * s.oy, ay - shy * s.oy);   // x' = x - shx*y, y' = shy*y around the feet
+  g.drawImage(sil, 0, 0);
+  return { c: out, ox: ax, oy: ay };
+}
+```
+
+**Folded-wave water (chevron pleats)**
+
+```js
+function waves(ctx, x0, x1, y0, y1, hash) {
+  const PW = 18, PH = 11, A = 3.4;
+  const row = (r, dy) => { const off = hash(r) * PW, pts = []; for (let x = Math.floor((x0 + off) / (PW / 2)) * (PW / 2) - off; x <= x1 + PW; x += PW / 2) pts.push([x, r * PH + dy + (Math.round((x + off) / (PW / 2)) & 1 ? A : 0)]); return pts; };
+  const band = (a, b, col) => { ctx.fillStyle = col; ctx.beginPath(); a.forEach((p) => ctx.lineTo(...p)); b.slice().reverse().forEach((p) => ctx.lineTo(...p)); ctx.fill(); };
+  for (let r = Math.floor(y0 / PH) - 1; r <= y1 / PH + 1; r++) {
+    const top = row(r, 0), mid = row(r, PH * 0.45), bot = row(r + 1, 0);
+    band(top, mid, '#6d8cc6'); band(mid, bot, '#a9c3ea');                       // shaded slope, lit slope
+    ctx.strokeStyle = 'rgba(44,64,122,.32)'; ctx.lineWidth = 0.45; ctx.beginPath(); mid.forEach((p) => ctx.lineTo(...p)); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 0.55; ctx.beginPath(); top.forEach((p) => ctx.lineTo(...p)); ctx.stroke();
+  }
+}
+```
+
+**Two-sided confetti**
+
+```js
+function confetti(ctx, x, y, size, rot, t, seed, ramp, cream) {
+  const flip = Math.cos(t * 9 + seed * 30), f = Math.abs(flip) < 0.15 ? 0.15 : flip;
+  const co = Math.cos(rot) * size, si = Math.sin(rot) * size;
+  ctx.save(); ctx.transform(co, si, -si * f, co * f, x, y);
+  ctx.fillStyle = flip > 0 ? ramp[flip > 0.6 ? 0 : 1] : cream[flip < -0.6 ? 0 : 2];  // colour front, cream back
+  ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(0.95, 0.7); ctx.lineTo(-0.95, 0.7); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+```
+
+## Adapting it to your project
+
+- **Keep fixed:** the light vector, 4-step ramps, automatic mountain/valley creases, cream back side, mirrored re-baking, plum shadows to the lower right, a pale crease-pattern ground, the paper-tab / envelope UI.
+- **May change:** the palette — keep a pale ground (≥ 85 % lightness), mid-value saturated ramps for actors, and a cream back-side ramp. A winter theme: base `#eef2f5`, sheets in ice blue and lilac, indigo and coral actors stay.
+- **New characters:** start from kites, strips and fans; decide one raised point per body part — that is where the light breaks. Keep the main character ~26 × 36 units with a big readable silhouette (ears, tail), small creatures 14–20 units, large creatures ~2.5× the main character. Bake every pose twice.
+- **Mixing elements:** the characters and props depend only on the light vector and the shadow rule — on another style's ground, keep the plum sheared shadows. The crease-pattern ground works under other characters if their shadows are soft and fall to the lower right.
+- **Other project types:** the crease grid doubles as a board for puzzles or tactics (snap to the 40-unit cells); menus can be built from the envelope cards and paper tabs alone; for side views, author meshes in profile — the shading still works because it only needs z.
+- **Other resolutions:** only K changes (`clamp(round(H/360·1.6), 3, 8)`); lines are in world units and scale with it.
+
+## Performance notes
+
+- Init bakes roughly 150 sprites plus their blurred shadows (main character 6 poses × 2, frogs 3 × 3 × 2, crane 4 × 2, boar 4 × 2, 19 props + mirrored copies, 12 pinwheel frames, 16 planes, 8 shuriken, 6 stars, 8 crystals, butterflies) in about 150–250 ms. Hit flashes are tinted lazily and cached on the sprite.
+- Per frame: one shadow + one sprite blit per object, tiny particle paths, one full-screen overlay — about 1 ms of script with 100+ creatures on screen.
+- Ground chunks (256 units at ≤ 2.5 px/unit) are vector-drawn by a generator that yields after every layer, the crease pass and every 16 decals (~4 ms per chunk); region lookups per triangle are cached.
+- `ctx.filter` blur is used only while baking shadows; ground shadows are two offset fills instead of a blur so chunk borders stay seamless.
+- The starter kit caches its sprites and the ground canvas and redraws its preview in a few milliseconds.
+
+## Copy-paste prompt
+
+```text
+Use the Origami Fold art style for my project:
+- Canvas 2D, no image assets. Everything is a "fold mesh": triangles in screen space with a z height per vertex,
+  shared points de-duplicated so faces share edges. Bake meshes once into sprites (K px per world unit, 360 units = screen height).
+- One light from the upper left, L = normalize(-0.55,-0.45,0.7). Facet tone from d = n·L: >.8 light, >.55 base, >.3 shade, else deep,
+  using 4-step ramps: coral #f7a283/#e8755b/#c95b47/#9b4136, indigo #7488c9/#4f62a6/#3b4a87/#283462, teal #63c2b3/#35a194/#277f76/#1a5b56,
+  mustard #f8d372/#e6ae42/#c68c2d/#936624, blush #f9c0bd/#ee9597/#cd7279/#9d525c, cream back side #fffbf3/#f3e9d6/#dccbae/#b5a083.
+- Shared edges: mountain fold = thin bright line (light tone + 55 % white), valley fold = thin dark line; open edges = deep-tone paper edge.
+- Paper is two-sided: hems, bellies, inner ears, wing backs and confetti show the cream back.
+- Mirror by rebuilding geometry (x -> -x) and re-lighting, never by flipping the image.
+- Main character: a coral origami fox in an indigo kimono with a mustard sash, cream hem, dark paws, kite ears and a kite tail (~26x36 units).
+  Creatures: teal/sage/mustard jumping frogs, blush paper cranes hovering 8 units up, a plum folded boar with a mustard spiked mane.
+- Ground: a washi sheet #f4eee1 with a 40-unit crease tessellation (squares + diagonals, faint pyramid relief), pastel sheets
+  (#d5e1c0 #f2dca6 #f3cebe #c3dfd6) laid on top along crease lines with cream hems and offset drop shadows, sunken water #88a8d8 as chevron pleats,
+  major folds every 160 units in diagram notation (dashed valley, dash-dot mountain).
+- Shadows: silhouette tinted rgb(78,56,72), sheared to the lower right, blurred, alpha ~0.3. Paper fibre texture on everything.
+- Effects: paper-plane projectiles, two-tone shuriken, lucky stars, unfolding petal bursts, tumbling sheets, two-sided confetti.
+- UI: folded paper strips with pleated fills, envelope panels with flaps, dog-eared tabs, envelope cards that unfold; fonts Zen Maru Gothic 900,
+  M PLUS Rounded 1c, Kalam for handwritten notes.
 ```

@@ -42,6 +42,7 @@
       "name": "Harvest 16-Bit",
       "family": "Pixel Art · SNES 16-bit",
       "group": "Pixel art",
+      "original": false,
       "tags": [
         "pixel art",
         "16-bit",
@@ -138,6 +139,7 @@
       "name": "Pumpkin Boy",
       "family": "Pixel Art · 4 Colours",
       "group": "Pixel art",
+      "original": false,
       "tags": [
         "pixel art",
         "4 colours",
@@ -221,6 +223,7 @@
       "name": "Gothic Night",
       "family": "Pixel Art · Dark",
       "group": "Pixel art",
+      "original": false,
       "tags": [
         "pixel art",
         "dark",
@@ -322,6 +325,7 @@
       "name": "Dusk Grove",
       "family": "Pixel Art · Modern HD-2D",
       "group": "Pixel art",
+      "original": false,
       "tags": [
         "pixel art",
         "hd-2d",
@@ -418,6 +422,7 @@
       "name": "Bouncy Cartoon",
       "family": "Vector · Cartoon",
       "group": "Illustrated",
+      "original": false,
       "tags": [
         "cartoon",
         "vector",
@@ -514,6 +519,7 @@
       "name": "Paper World",
       "family": "Papercraft · Cut-paper diorama",
       "group": "Handcrafted",
+      "original": false,
       "tags": [
         "papercraft",
         "cut paper",
@@ -612,6 +618,7 @@
       "name": "Watercolor Storybook",
       "family": "Illustrated · Watercolor",
       "group": "Painterly",
+      "original": false,
       "tags": [
         "watercolor",
         "storybook",
@@ -709,6 +716,7 @@
       "name": "Neon Midnight",
       "family": "Vector · Neon",
       "group": "Graphic",
+      "original": false,
       "tags": [
         "synthwave",
         "neon",
@@ -809,6 +817,7 @@
       "name": "Low-Poly Diorama",
       "family": "3D Look · Low Poly",
       "group": "3D look",
+      "original": false,
       "tags": [
         "low poly",
         "flat shading",
@@ -906,6 +915,7 @@
       "name": "Linocut",
       "family": "Printmaking · Linocut",
       "group": "Graphic",
+      "original": false,
       "tags": [
         "linocut",
         "woodcut",
@@ -989,6 +999,7 @@
       "name": "8-Bit Arcade",
       "family": "Pixel Art · NES 8-bit",
       "group": "Pixel art",
+      "original": false,
       "tags": [
         "pixel art",
         "8-bit",
@@ -1087,6 +1098,7 @@
       "name": "Cathedral Glass",
       "family": "Mosaic · Stained Glass",
       "group": "Graphic",
+      "original": false,
       "tags": [
         "stained glass",
         "mosaic",
@@ -1185,6 +1197,7 @@
       "name": "Clay World",
       "family": "Claymation · Stop-motion plasticine",
       "group": "Handcrafted",
+      "original": false,
       "tags": [
         "claymation",
         "plasticine",
@@ -1281,6 +1294,7 @@
       "name": "Chalkboard",
       "family": "Traditional media · Chalk",
       "group": "Painterly",
+      "original": false,
       "tags": [
         "chalk",
         "blackboard",
@@ -1374,6 +1388,7 @@
       "name": "Trick or Treat",
       "family": "Rendered Cartoon · Candy Gloss",
       "group": "Handcrafted",
+      "original": false,
       "tags": [
         "candy",
         "glossy",
@@ -1470,6 +1485,7 @@
       "name": "Cross-Stitch Sampler",
       "family": "Textile · Cross-stitch embroidery",
       "group": "Pixel art",
+      "original": false,
       "tags": [
         "embroidery",
         "cross-stitch",
@@ -1564,6 +1580,7 @@
       "name": "Pop-Art Comic",
       "family": "Comic · Pop-Art print",
       "group": "Graphic",
+      "original": false,
       "tags": [
         "comic",
         "halftone",
@@ -1661,6 +1678,7 @@
       "name": "Starry Night",
       "family": "Traditional media · Impasto oil painting",
       "group": "Painterly",
+      "original": false,
       "tags": [
         "oil painting",
         "impasto",
@@ -1758,6 +1776,7 @@
       "name": "Shadow Theatre",
       "family": "Silhouette · Paper Shadow Puppets",
       "group": "Graphic",
+      "original": false,
       "tags": [
         "silhouette",
         "shadow puppet",
@@ -1858,6 +1877,7 @@
       "name": "Voxel Cube World",
       "family": "3D Look · Voxel",
       "group": "3D look",
+      "original": false,
       "tags": [
         "voxel",
         "magicavoxel",
@@ -1946,6 +1966,501 @@
         {
           "label": "Close-up",
           "url": "https://miwale.com/styles/shots/voxel_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "blueprint",
+      "name": "Blueprint",
+      "family": "Line art · Technical drawing",
+      "group": "Graphic",
+      "original": true,
+      "tags": [
+        "blueprint",
+        "technical drawing",
+        "line art",
+        "engineering",
+        "hatching",
+        "drafting",
+        "mechanical",
+        "monochrome"
+      ],
+      "summary": "A living technical drawing: white line work, dimension lines and hatching on deep cyan-blue drafting paper with a fine grid.",
+      "mood": [
+        "precise",
+        "clever",
+        "nerdy",
+        "calm",
+        "handmade"
+      ],
+      "bestFor": [
+        "engineering and building games",
+        "puzzle and logic games",
+        "factory and automation sims",
+        "tower defense with machines",
+        "top-down arena action with crowded screens"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#0e5088",
+        "#0a4374",
+        "#16609c",
+        "#e2f4ff",
+        "#f2faff",
+        "#a9dcf6",
+        "#74b6de",
+        "#062a4a",
+        "#072e52",
+        "#1c6aa8",
+        "#165b93",
+        "#2a7dbd",
+        "#08304f",
+        "#d3ebfa",
+        "#14598f",
+        "#04284c",
+        "#0f538c",
+        "#ff5b4d",
+        "#ffcf4a",
+        "#f3b6ae",
+        "#c4a060"
+      ],
+      "fonts": [
+        "Single-stroke technical lettering (built in)",
+        "Share Tech Mono",
+        "Architects Daughter"
+      ],
+      "page": "https://miwale.com/styles/blueprint/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/blueprint/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/blueprint/spec.json",
+        "starter": "https://miwale.com/styles/library/blueprint/starter.js",
+        "module": "https://miwale.com/styles/js/styles/blueprint.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=blueprint&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=blueprint&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=blueprint&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=blueprint&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=blueprint&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=blueprint&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=blueprint&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/blueprint.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/blueprint_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/blueprint_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/blueprint_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/blueprint_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "ukiyoe",
+      "name": "Ukiyo-e Woodblock",
+      "family": "Print · Woodblock",
+      "group": "Graphic",
+      "original": true,
+      "tags": [
+        "ukiyo-e",
+        "woodblock print",
+        "japanese",
+        "bokashi",
+        "washi paper",
+        "ink line",
+        "seigaiha",
+        "edo"
+      ],
+      "summary": "An Edo-period colour woodblock print in motion: bokashi colour blocks printed off-register, carved sumi key lines, washi fibres, seigaiha water.",
+      "mood": [
+        "serene",
+        "folkloric",
+        "elegant",
+        "playful",
+        "seasonal"
+      ],
+      "bestFor": [
+        "top-down action and adventure games with a folklore theme",
+        "calm exploration and travel games",
+        "Japanese-inspired fantasy RPGs and card games",
+        "story maps, menus and festival-themed projects"
+      ],
+      "difficulty": 6,
+      "pixelArt": false,
+      "palette": [
+        "#f2e8d2",
+        "#fbf5e6",
+        "#1e1b19",
+        "#eee4c7",
+        "#c7cf98",
+        "#e6cf96",
+        "#96aa74",
+        "#dec48a",
+        "#e7d4a8",
+        "#24527e",
+        "#1e456e",
+        "#a8c5c9",
+        "#2d4a72",
+        "#cf4a2c",
+        "#c8402a",
+        "#d8b264",
+        "#3d5a45",
+        "#5f9466",
+        "#d9a93b",
+        "#f0c3c3",
+        "#8d918b",
+        "#4b4f58"
+      ],
+      "fonts": [
+        "Zen Antique",
+        "Shippori Mincho",
+        "Yuji Syuku"
+      ],
+      "page": "https://miwale.com/styles/ukiyoe/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/ukiyoe/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/ukiyoe/spec.json",
+        "starter": "https://miwale.com/styles/library/ukiyoe/starter.js",
+        "module": "https://miwale.com/styles/js/styles/ukiyoe.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=ukiyoe&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=ukiyoe&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=ukiyoe&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=ukiyoe&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=ukiyoe&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=ukiyoe&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=ukiyoe&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/ukiyoe.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/ukiyoe_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/ukiyoe_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/ukiyoe_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/ukiyoe_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "thermal",
+      "name": "Thermal Vision",
+      "family": "Infrared · False colour",
+      "group": "Digital",
+      "original": true,
+      "tags": [
+        "thermal",
+        "infrared",
+        "false colour",
+        "ironbow",
+        "night vision",
+        "camera hud",
+        "sci-fi",
+        "dark"
+      ],
+      "summary": "The world through an infrared camera: every surface is a temperature mapped through an ironbow ramp; warm bodies glow white-hot.",
+      "mood": [
+        "surveillance",
+        "nocturnal",
+        "tense",
+        "clinical",
+        "eerie"
+      ],
+      "bestFor": [
+        "stealth and infiltration games",
+        "night-time hunting or rescue games",
+        "sci-fi and military top-down shooters",
+        "horror games about unseen creatures",
+        "detective or drone-camera puzzle games"
+      ],
+      "difficulty": 4,
+      "pixelArt": false,
+      "palette": [
+        "#030108",
+        "#0d0626",
+        "#1d0b52",
+        "#3a0f78",
+        "#64108a",
+        "#96158a",
+        "#c4256a",
+        "#e3443a",
+        "#f4701a",
+        "#fb9d12",
+        "#fdc52e",
+        "#ffe777",
+        "#fffdf2",
+        "#eef3ff",
+        "#05030c",
+        "#c7b8f2"
+      ],
+      "fonts": [
+        "Share Tech Mono",
+        "Orbitron",
+        "Chakra Petch"
+      ],
+      "page": "https://miwale.com/styles/thermal/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/thermal/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/thermal/spec.json",
+        "starter": "https://miwale.com/styles/library/thermal/starter.js",
+        "module": "https://miwale.com/styles/js/styles/thermal.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=thermal&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=thermal&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=thermal&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=thermal&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=thermal&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=thermal&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=thermal&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/thermal.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/thermal_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/thermal_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/thermal_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/thermal_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "terminal",
+      "name": "Terminal ASCII",
+      "family": "Text Mode · CRT Phosphor",
+      "group": "Digital",
+      "original": true,
+      "tags": [
+        "ascii",
+        "text mode",
+        "terminal",
+        "crt",
+        "phosphor",
+        "glyphs",
+        "retro computing",
+        "dark"
+      ],
+      "summary": "The world drawn entirely in text glyphs on a green phosphor CRT: one fixed character grid, glowing multi-glyph figures, scanlines.",
+      "mood": [
+        "nostalgic",
+        "nocturnal",
+        "hacker",
+        "minimal",
+        "eerie"
+      ],
+      "bestFor": [
+        "grid-based dungeon crawlers",
+        "hacker and cyber themed projects",
+        "minimalist action or puzzle games",
+        "rapid prototypes with no art budget",
+        "retro computing tributes"
+      ],
+      "difficulty": 3,
+      "pixelArt": false,
+      "palette": [
+        "#020a05",
+        "#010502",
+        "#0a2613",
+        "#113d20",
+        "#1a6331",
+        "#2a994b",
+        "#4ddb76",
+        "#a3ffbd",
+        "#e6fff0",
+        "#7a4a0e",
+        "#c97f19",
+        "#ffb238",
+        "#ffd98e",
+        "#fff3da",
+        "#0f5c62",
+        "#1fb0b9",
+        "#5cefff",
+        "#ccfbff",
+        "#ff4257",
+        "#86131f",
+        "#031a1e",
+        "#071f0f"
+      ],
+      "fonts": [
+        "VT323",
+        "IBM Plex Mono"
+      ],
+      "page": "https://miwale.com/styles/terminal/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/terminal/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/terminal/spec.json",
+        "starter": "https://miwale.com/styles/library/terminal/starter.js",
+        "module": "https://miwale.com/styles/js/styles/terminal.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=terminal&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=terminal&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=terminal&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=terminal&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=terminal&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=terminal&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=terminal&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/terminal.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/terminal_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/terminal_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/terminal_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/terminal_zoom.webp"
+        }
+      ]
+    },
+    {
+      "id": "origami",
+      "name": "Origami Fold",
+      "family": "Paper · Origami",
+      "group": "Handcrafted",
+      "original": true,
+      "tags": [
+        "origami",
+        "folded paper",
+        "facets",
+        "crease pattern",
+        "washi",
+        "pastel",
+        "cozy",
+        "two-sided paper"
+      ],
+      "summary": "A world folded from washi paper: flat facets with crisp mountain and valley creases on a giant crease-pattern sheet.",
+      "mood": [
+        "calm",
+        "crafted",
+        "gentle",
+        "playful",
+        "tidy"
+      ],
+      "bestFor": [
+        "cozy top-down action and adventure",
+        "puzzle games and board-game adaptations",
+        "children's and educational games",
+        "zen, relaxing or seasonal projects",
+        "papercraft-themed menus and map screens"
+      ],
+      "difficulty": 5,
+      "pixelArt": false,
+      "palette": [
+        "#f4eee1",
+        "#d5e1c0",
+        "#f2dca6",
+        "#f3cebe",
+        "#c3dfd6",
+        "#88a8d8",
+        "#e8755b",
+        "#f3e9d6",
+        "#4f62a6",
+        "#35a194",
+        "#98b37d",
+        "#e6ae42",
+        "#ee9597",
+        "#76599b",
+        "#60a077",
+        "#b0875e",
+        "#cac3ba",
+        "#3d3747",
+        "#2a2433",
+        "#4e3848",
+        "#3d3852"
+      ],
+      "fonts": [
+        "Zen Maru Gothic",
+        "M PLUS Rounded 1c",
+        "Kalam"
+      ],
+      "page": "https://miwale.com/styles/origami/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/origami/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/origami/spec.json",
+        "starter": "https://miwale.com/styles/library/origami/starter.js",
+        "module": "https://miwale.com/styles/js/styles/origami.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=origami&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=origami&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=origami&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=origami&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=origami&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=origami&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=origami&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/origami.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/origami_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/origami_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/origami_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/origami_zoom.webp"
         }
       ]
     }

@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { anwendungBauen } from '../server/bewertungen.mjs';
 import { ideenBauen } from '../server/ideen.mjs';
+import { stimmenBauen } from '../server/stimmen.mjs';
 import { kontenBauen } from '../server/konten.mjs';
 
 // Lokal laufen die Dienste (Bewertungen, Game Requests, Konten) direkt in Vite,
@@ -81,6 +82,7 @@ export function diensteDev() {
       });
       const bewertungen = anwendungBauen({ ...optionen, konten });
       const ideen = ideenBauen({ ...optionen, konten });
+      const stimmen = stimmenBauen(optionen);
       server.middlewares.use((req, res, next) => {
         const pfad = req.url.split('?')[0];
         // Der Dev-Server ist auch im WLAN erreichbar (Handy). Die Test-Anmeldung
@@ -93,6 +95,7 @@ export function diensteDev() {
         if (pfad === '/api/konto' || pfad.startsWith('/api/konto/')) return konten(req, res);
         if (pfad.startsWith('/api/bewertungen/')) return bewertungen(req, res);
         if (pfad === '/api/ideen' || pfad.startsWith('/api/ideen/')) return ideen(req, res);
+        if (pfad === '/api/stimmen' || pfad.startsWith('/api/stimmen/')) return stimmen(req, res);
         if (pfad === '/admin') { res.statusCode = 301; res.setHeader('Location', '/admin/'); return res.end(); }
         if (pfad === '/admin/') {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');

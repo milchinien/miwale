@@ -410,7 +410,7 @@ Secrets gehoeren nur in die `.env` auf dem Server, nie ins Repository.
 
 ## Game Style Library (miwale.com/styles)
 
-Eine offene Seite **für KIs**: 20 fertige Grafik-Styles, so genau beschrieben,
+Eine offene Seite **für KIs**: 25 fertige Grafik-Styles, so genau beschrieben,
 dass eine KI sie für ein eigenes Projekt übernehmen kann. Viele KIs erfinden
 schlechte Styles; hier kopieren sie einen, der funktioniert. Es geht **nur um
 Design**: Texte, Specs und Vorschauen erwähnen kein Spiel und keine
@@ -457,6 +457,39 @@ machen das Mischen stabil:
 
 Gespeicherte Mixe liegen im `localStorage` des Browsers
 (`miwale-style-mixes`); geteilt wird über den Link.
+
+### Bewertungen und Ranglisten
+
+Alles lässt sich mit Daumen hoch oder runter bewerten, ohne Konto, eine Stimme
+je Gerät (dieselbe Gerätekennung `miwale-geraet` wie bei den Spielbewertungen):
+
+| Ziel | Wo | Wirkung |
+| --- | --- | --- |
+| `style:<id>` | Kacheln der Galerie, Kopf der Style-Seite | Galerie sortiert standardmäßig nach Beliebtheit, die Top 3 tragen Abzeichen |
+| `el:<id>:<element>` | jeder Element-Abschnitt, Mixer („Rate the … of …“) | Im Mixer stehen je Element die beliebtesten Quellen vorn |
+| `mix:<id>` | Community-Designs | Rangliste der Community-Designs (Mixer und Startseite) |
+
+Gereiht wird nach der unteren Grenze des Wilson-Intervalls (95 %), damit drei
+von drei Stimmen nicht vor 90 von 100 stehen. Aus dem Mixer lässt sich ein Mix
+**in die Community veröffentlichen** (Name mit Wortfilter, mindestens zwei
+Quell-Styles; gleiche Mixe gibt es nur einmal). Dienst: `server/stimmen.mjs`
+unter `/api/stimmen/`, im selben Prozess wie die Bewertungen, Datei
+`stimmen.json` im Datenordner. Welche Styles es gibt, liest er aus
+`styles/styles.json` (`STIMMEN_KATALOG`). Verwaltung: `GET`/`DELETE
+/api/stimmen/admin/mixe[/<id>]` mit dem Passwort der Verwaltung als Bearer.
+Tests: `node --test tools/stimmen.test.mjs`.
+
+### Styles für die Bibliothek und Vorschaubilder
+
+Neben den 20 Styles des Game-Jam-Prototyps gibt es Styles, die eigens für die
+Bibliothek entstanden sind (`ORIGINALS` in `tools/styles-lib.mjs`, in der
+Galerie „✦ New“). Ein Style ist immer ein Modul in `js/styles/<id>.js`, das
+in `play.html` eingetragen ist.
+
+`node tools/shots-styles.mjs <id> | --all` erzeugt die fünf Vorschaubilder
+in `shots/` – nur Design, ohne Spiel-HUD: Szene und dichte Szene
+(`stage.html`, `&dense`), Weitsicht (Kartenmodus von `play.html`), UI-Kit
+(`stage.html?view=ui`) und eine Nahaufnahme. Chromium kodiert das WebP selbst.
 
 `node tools/build-styles.mjs` erzeugt aus den Library-Ordnern `styles.json`,
 `llms.txt`, `llms-full.txt`, die Seiten `/styles/<id>/` und `/styles/design/`

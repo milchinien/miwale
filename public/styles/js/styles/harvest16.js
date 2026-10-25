@@ -1784,7 +1784,7 @@ ${B} #stylebar .style-hint { font-size: 13px; color: #fbe8c4; opacity: .9; }
 ${B} #stylebar .auto.on { color: #ffd84a; }
 ${B} #levelup { background: radial-gradient(ellipse at 50% 45%, rgba(80,40,20,.25), rgba(28,14,22,.8)); gap: 30px; }
 ${B} #levelup .lu-title { font-size: 0; text-shadow: none; }
-${B} #levelup .lu-title::after { content: 'Neue Stufe!'; font: 700 60px 'Pixelify Sans', monospace; color: #ffd36a; letter-spacing: 3px; ${OUT('#3b1d10', 4)} }
+${B} #levelup .lu-title::after { content: 'Harvest moon!'; font: 700 60px 'Pixelify Sans', monospace; color: #ffd36a; letter-spacing: 3px; ${OUT('#3b1d10', 4)} }
 ${B} #levelup .lu-cards { gap: 28px; }
 ${B} #levelup .card { width: 224px; min-height: 278px; border-radius: 0; padding: 26px 18px 18px; gap: 12px;
   background: radial-gradient(circle at 18% 14%, rgba(255,251,232,.75) 0 12%, rgba(255,251,232,0) 34%),

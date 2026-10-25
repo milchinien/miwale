@@ -26,6 +26,7 @@
     <a class="brand" href="/" aria-label="miwale – home"><img src="/assets/logo-wordmark-light.png" alt="miwale" width="132" height="34"></a>
     <nav class="top-links">
       <a href="./">All styles</a>
+      <a href="mix/#community">Community</a>
       <a href="mix/#mine">My designs</a>
       <a href="llms.txt">llms.txt</a>
     </nav>
@@ -52,6 +53,7 @@
         <label class="mix-name"><span>Name of your design</span><input id="mix-name" type="text" maxlength="60" placeholder="e.g. Neon Storybook"></label>
         <div class="mix-buttons">
           <button class="btn btn-primary" type="button" id="mix-save">Save to My designs</button>
+          <button class="btn btn-glass" type="button" id="mix-publish">Publish to community</button>
           <button class="btn btn-glass" type="button" id="mix-open">Open design page</button>
           <button class="btn btn-glass" type="button" id="mix-prompt">Copy prompt</button>
           <button class="btn btn-glass" type="button" id="mix-link">Copy link</button>
@@ -63,6 +65,13 @@
       </div>
     </aside>
   </main>
+
+  <section class="mine" id="community" aria-labelledby="community-title">
+    <div class="sec-row"><h2 id="community-title">Community designs</h2>
+      <label class="sort">Sort <select id="community-sort"><option value="top">Top rated</option><option value="new">Newest</option></select></label></div>
+    <p class="note">Mixes published by visitors. Vote with ▲ / ▼ – the best rise to the top, on this page and on the library start page.</p>
+    <div class="grid mine-grid" id="community-grid"></div>
+  </section>
 
   <section class="mine" id="mine" aria-labelledby="mine-title">
     <h2 id="mine-title">My designs</h2>

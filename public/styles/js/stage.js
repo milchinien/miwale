@@ -25,6 +25,8 @@
   window.addEventListener('error', (ev) => window.__reportError(ev.error || ev.message));
   document.body.classList.add('view-' + view);
   document.body.classList.toggle('embed', params.has('embed'));
+  // ?shot: used by tools/shots-styles.mjs for the preview images – no hints, no labels' animation lag
+  document.body.classList.toggle('shot', params.has('shot'));
 
   /* ---------- load the modules that are needed ---------- */
   const ids = [...new Set(LAYERS.map((k) => pick[k]).filter(Boolean))];
@@ -239,13 +241,15 @@
       }
       requestAnimationFrame(frame);
     }
-    window.__stage = { game, renderer, mix, errors, pick, view };
+    window.__stage = { game, renderer, mix, errors, pick, view, get settled() { return game.time > 6 && !renderer.chunks.job; } };
     requestAnimationFrame((t) => { last = t; frame(t); });
   }
 
   /* ---------- scene: the original simulation as a diorama ---------- */
   function scene(game) {
-    const CAST = { creeper: 9, ghost: 5, colossus: 1 };
+    // ?dense shows a crowded scene (preview image "Dense scene")
+    const n = params.has('dense') ? 4 : 1;
+    const CAST = { creeper: 9 * n, ghost: 5 * n, colossus: n };
     game.stats.lanterns = 2;
     game.updateSpawning = function () {
       const alive = { creeper: 0, ghost: 0, colossus: 0 };
@@ -403,11 +407,14 @@
         o.y = -64 + Math.sin(o.angle) * 22 * 0.85;
       });
       if (which === 'effects') {
+        // the four slots fire in turn, one every 0.3 s: each repeats every 1.2 s, so none sits empty for long
+        // (impacts get two hits in a row – their particles live only a quarter second)
         fxT += dt;
-        if (fxT > 0.7) {
+        if (fxT > 0.3) {
           fxT = 0;
           beat++;
           const slot = beat % 4, x = -150 + slot * 100, y = 80;
+          if (slot === 0) setTimeout(() => fire('Hit', { kind: 'enemy', type: 'creeper', x: x + 6, y: y - 4, r: R.creeper.r, xp: 1, mass: 1, seed: Math.random(), facing: 1, flash: 1, hitT: 0 }, 'proj'), 150);
           const dummy = { kind: 'enemy', type: ['creeper', 'ghost', 'colossus'][beat % 3], x, y, r: R.creeper.r, xp: 1, mass: 1, seed: Math.random(), facing: 1, flash: 1, hitT: 0 };
           if (slot === 0 && !fire('Hit', dummy, 'proj')) this.burst(x, y, 4, { colors: ['#ffffff', '#ffd27a'], speed: 50, life: 0.25, size: 1.5 });
           if (slot === 1 && !fire('Kill', dummy)) this.burst(x, y, 10, { colors: ['#ffffff', '#cccccc'], speed: 70, life: 0.45, size: 2 });

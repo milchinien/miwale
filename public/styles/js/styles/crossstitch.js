@@ -1146,7 +1146,7 @@ ${B} #stylebar .style-hint { font: 600 12px 'Mali', sans-serif; color: #5a3a26; 
 ${B} #stylebar .auto.on { color: #2d5230; font-weight: 800; }
 ${B} #levelup { background: radial-gradient(ellipse at 50% 45%, rgba(80,45,20,.3), rgba(28,14,8,.82)); gap: 28px; }
 ${B} #levelup .lu-title { font-size: 0; text-shadow: none; }
-${B} #levelup .lu-title::after { content: 'Neue Stufe!'; font: 900 70px 'Grandstander', sans-serif; letter-spacing: 2px; ${STITCHED(tO, 8)}
+${B} #levelup .lu-title::after { content: 'Fresh pattern!'; font: 900 70px 'Grandstander', sans-serif; letter-spacing: 2px; ${STITCHED(tO, 8)}
   filter: drop-shadow(0 3px 0 #3a1a0c) drop-shadow(0 0 1px #3a1a0c); }
 ${B} #levelup .lu-cards { gap: 26px; }
 ${B} #levelup .card { width: 226px; min-height: 284px; padding: 26px 18px 20px; gap: 10px; border-radius: 26px; border: 8px solid transparent;

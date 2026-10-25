@@ -1,0 +1,154 @@
+{
+  "id": "blueprint",
+  "name": "Blueprint",
+  "originalName": "Blueprint",
+  "family": "Line art · Technical drawing",
+  "tags": ["blueprint", "technical drawing", "line art", "engineering", "hatching", "drafting", "mechanical", "monochrome"],
+  "summary": "A living technical drawing: white line work, dimension lines and hatching on deep cyan-blue drafting paper with a fine grid.",
+  "description": "Everything is drawn like an engineer's drafting sheet: crisp white and pale-cyan lines on deep cyan-blue paper with an 8-unit grid, dimension lines with filled arrowheads, 45° hatching for shade, graduated line shading on cylinders, construction circles, chain-dash center lines and single-stroke technical lettering. Characters are small machines with a navy knock-out halo so they lift off the busy sheet; one amber highlighter accent marks friendly things and red pencil marks hostile eyes and corrections. Fold creases, coffee rings, eraser smudges, a sheet border with zone letters and a title block make the paper feel handled and alive.",
+  "mood": ["precise", "clever", "nerdy", "calm", "handmade"],
+  "bestFor": ["engineering and building games", "puzzle and logic games", "factory and automation sims", "tower defense with machines", "top-down arena action with crowded screens"],
+  "avoidFor": ["horror or gore", "lush organic nature settings", "colour-coded gameplay that needs many hues", "photoreal or painterly projects"],
+  "difficulty": {
+    "stars": 4,
+    "why": "New assets are mostly line drawings built from rectangles, circles and gears, and the two-pass bake (navy halo, then fill + hatching + white lines) handles readability automatically. The work is in the drafting details that sell the look: center marks on every circle, correct hatching direction, dimension lines and lettering that never mirrors. Organic subjects (animals, faces) are harder because the style wants everything to look engineered."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets, no web fonts on the canvas)",
+    "pixelArt": false,
+    "resolution": "Native display resolution; sprites baked once at K = 4–7 px per world unit (ceil(screenScale*1.6)+1); ground chunks of 256 units baked at up to 3 px per unit.",
+    "summary": "Every sprite is painted twice with the same paths: a 'back' pass fills each part in navy #062a4a and strokes it 2.3 units wider (one knock-out halo per sprite), then a 'main' pass adds the blue fill, clipped hatching, a thin navy separation line and the white outline. Construction lines (center lines, center marks, dashed circles) are added only in the main pass so they float over the paper without a halo.",
+    "linework": "Round caps and joins. Silhouette outlines #f2faff at 0.95–1.15 world units, limbs as outlined tubes (1.3–4.4 u wide: navy halo, 0.55 u white rim, blue core), details 0.3–0.6 u in pale cyan #a9dcf6, construction lines 0.25–0.35 u, chain-dash center lines [5.5, 1.3, 0.9, 1.3], dashed construction [2.2, 1.4]. Props use the dimmer #d3ebfa at 0.85 u.",
+    "shading": "No gradients on forms. Shade is 45° hatching (spacing 1.0–1.3 u, 0.32 u lines at 50 % white) clipped to the lower-right part of each shape; cylinders get graduated vertical lines at x = r*cos(theta), theta 0.12–1.05 rad, so they crowd towards the edge. Top faces are one step lighter (#2a7dbd).",
+    "lighting": "Flat drafting light from the upper left. A soft desk-lamp glow in the upper left of the screen and a navy vignette are the only light effects; no glow, no bloom, no additive blending on actors.",
+    "texture": "Paper only: an 8-unit mottling grid upscaled smoothly, a tileable 256 px grain tile (speckles + short paper fibres) as a world-aligned pattern, fold creases every 1024/768 units, coffee rings and eraser smudges. Actors and props carry no texture."
+  },
+  "palette": [
+    { "name": "Blueprint paper", "hex": "#0e5088", "role": "World base, ~70 % of the screen" },
+    { "name": "Paper dark", "hex": "#0a4374", "role": "Mottling low end" },
+    { "name": "Paper light", "hex": "#16609c", "role": "Mottling high end, sun-faded patches" },
+    { "name": "Grid / ground line", "hex": "#e2f4ff", "role": "Grid (7.5 % minor, 17 % major), ground drawings at 12–55 % alpha" },
+    { "name": "Ink white", "hex": "#f2faff", "role": "Character outlines, lettering, projectile arrow" },
+    { "name": "Pale cyan", "hex": "#a9dcf6", "role": "Secondary lines, details, labels" },
+    { "name": "Construction cyan", "hex": "#74b6de", "role": "Inner construction circles" },
+    { "name": "Navy halo", "hex": "#062a4a", "role": "Knock-out halo behind every sprite, shadows, panel backgrounds" },
+    { "name": "Navy separation", "hex": "#072e52", "role": "Thin line under each white outline so overlapping parts separate" },
+    { "name": "Body fill", "hex": "#1c6aa8", "role": "Character body fill (lighter than the paper)" },
+    { "name": "Back-limb fill", "hex": "#165b93", "role": "Far limbs, back struts" },
+    { "name": "Top face", "hex": "#2a7dbd", "role": "Upper faces, joints, domes" },
+    { "name": "Lens dark", "hex": "#08304f", "role": "Lenses, gauges, portholes, grilles" },
+    { "name": "Prop line", "hex": "#d3ebfa", "role": "Scenery outlines (slightly dimmer than characters)" },
+    { "name": "Prop fill", "hex": "#14598f", "role": "Scenery body fill" },
+    { "name": "Water", "hex": "#04284c", "role": "Canal fill at 50 % alpha" },
+    { "name": "Road surface", "hex": "#0f538c", "role": "Blank road strip that hides the grid" },
+    { "name": "Red pencil", "hex": "#ff5b4d", "role": "Creature eyes, revision clouds, cross-outs, hurt marks, rubber stamps" },
+    { "name": "Amber highlighter", "hex": "#ffcf4a", "role": "Main character helmet, pencil, collectibles, orbiting discs, approval stamps" },
+    { "name": "Eraser pink", "hex": "#f3b6ae", "role": "Eraser crumbs, pencil eraser" },
+    { "name": "Coffee", "hex": "#c4a060", "role": "Coffee-ring stains at 7–34 % alpha" }
+  ],
+  "paletteRules": [
+    "Blue first: the paper and its navy tones cover at least 85 % of the screen; everything else is line work.",
+    "Lines are white or pale cyan, never black. Darkness only appears as the navy halo and navy shadows.",
+    "Exactly two accent hues: amber #ffcf4a for friendly and collectible things, red #ff5b4d for hostile eyes and corrections. Never swap them.",
+    "Character fills (#1c6aa8) are lighter than the paper so bodies read as cut-outs; scenery fills (#14598f) stay closer to the paper so characters win.",
+    "Ground drawings never exceed ~55 % alpha white; grid lines stay at 7.5 % / 17 %.",
+    "No gradients on forms, no glow, no saturated colours besides the two accents (plus the muted eraser pink and coffee)."
+  ],
+  "typography": [
+    { "family": "Single-stroke technical lettering (built in)", "weights": [400], "role": "All text drawn on the canvas: dimensions, labels, floating numbers, title block, stamps", "source": "Built-in polyline font on a 4x6 grid (see STYLE.md)", "sample": "DETAIL C  SCALE 2:1", "css": "stroke: #f2faff; stroke-width: 0.075em; stroke-linecap: round; text-transform: uppercase; letter-spacing: 0.28em;" },
+    { "family": "Share Tech Mono", "weights": [400], "role": "HUD numbers, labels, titles, card names", "source": "Google Fonts", "sample": "SHEET 04 — REV B", "css": "font: 400 34px/1.1 'Share Tech Mono', monospace; letter-spacing: 4px; color: #f2faff;" },
+    { "family": "Architects Daughter", "weights": [400], "role": "Handwritten notes: card descriptions, hints, captions", "source": "Google Fonts", "sample": "verify on site", "css": "font: 400 16px/1.3 'Architects Daughter', cursive; color: #ffcf4a;" }
+  ],
+  "world": {
+    "summary": "An endless drafting sheet. Deep cyan-blue paper with a fine grid carries faint engineering drawings at different scales: floor plans with hatched walls and door swings, gear details, hatched sections, north arrows with scale bars, callout bubbles, mid-size part drawings, spot heights and handwritten notes. Canals and roads are signed-distance bands of constant width with crisp square ends; topographic contours appear in some areas. Fold creases, coffee rings and eraser smudges make the paper feel handled.",
+    "layers": [
+      "Base: 8-unit colour grid (fbm 1/900 + noise 1/160) between #0a4374, #0e5088 and #16609c, plus sun-faded patches towards rgb(32,106,162) at 22 %, upscaled with smoothing (seamless across chunks).",
+      "Canals: |d| - 15 intersected with a region mask (d = perlin field / gradient length), filled #04284c at 50 % with a soft 2-unit edge; drawn before the grid so the grid shows through.",
+      "Grid: 0.9 px lines every 8 units at rgba(205,236,255,.075), 1.15 px lines every 40 units at .17.",
+      "Topographic contours: marching squares on fbm(1/560) every 0.024, every 5th line heavier (0.55 u at 26 %), only where a slow mask noise allows, skipped on water and roads.",
+      "Roads: |d| - 8 band filled with #0f538c at 96 % (hides the grid), then paper grain over everything (256 px tile, world-aligned pattern at 1/3 scale).",
+      "Banks and edges: bank line 0.7 u at 55 %, outer line at +3.2 u, flow lines at -6 / -12 u drawn every other lattice cell (dashed look), comb hachures 2.2 / 4.2 u on the land side, wave marks every ~22 u inside. Road edges 0.7 u at 48 %, curbs at +2.2 u, a dashed centre line.",
+      "Drawings: long construction lines (700-unit cells, 12 %), big drawings (440-unit cells: floor plans, gear details, sections, north arrows, callout bubbles at 30–55 %), mid-size part drawings (180-unit cells: hole plates, bolts, angle measures, iso boxes, radius callouts, dimension chains), small notes (spot heights, handwritten notes, registration crosses).",
+      "Corrections and wear: red-pencil revision clouds with a delta letter, circled question marks, check marks and strike-throughs (560-unit cells); eraser smudges; fold creases (shadow band 22 % navy + 7 % highlight) every 1024 units in x and 768 in y; coffee rings (#c4a060 rings at 34 / 16 / 22 %)."
+    ]
+  },
+  "characters": {
+    "summary": "Characters are mechanical drawings. The main character is a small engineer robot (~28 units tall incl. antenna) with a boxy head, a big lens eye with a center mark, an amber safety helmet, a chest gauge, outlined tube limbs and a long amber drafting pencil. The small creature is a cog crawler: a 9-tooth gear body with a red eye in its hub, angry brow strokes, two feelers and four jointed legs. The fast creature is a hovering survey drone with two dashed rotor discs, a red lens and a plumb bob on a dashed line. The large creature is a boiler walker: a vertical cylinder with graduated line shading, riveted seam, two portholes with red pupils, a grille mouth, a smoke stack puffing dashed circles, clamp arms and heavy piston legs, labelled with a live measurement callout.",
+    "rules": [
+      "Two-pass bake for every sprite: navy #062a4a silhouette widened by 2.3 units, then fill + hatching + navy separation line + white outline.",
+      "Silhouette from engineered primitives: rounded rectangles, circles, gears, cylinders, tubes. Every circle that matters gets a center mark (small cross + four dashes outside).",
+      "Body fill #1c6aa8, back limbs #165b93, top faces #2a7dbd, lenses #08304f. Shade = 45° hatching on the lower-right part only.",
+      "Friendly = amber accents (helmet, pencil, collectibles); hostile = red pencil eyes. One accent per subject.",
+      "A chain-dash center line runs vertically through the main character and past its feet and head.",
+      "Lettering is never baked into sprites that get mirrored; labels and callouts are drawn live so they always read left to right.",
+      "Facing = mirrored transform of the same sprite; the hit flash is a white silhouette copy, the hurt flash a red one.",
+      "Size classes: main character ~28x36 u incl. antenna, small creature ~20x22 u, fast creature ~24x20 u (hovering 5 u up), large creature ~42x60 u."
+    ]
+  },
+  "props": {
+    "summary": "Scenery is drawn as engineering elevations with the same two-pass bake but dimmer lines (#d3ebfa) and a fill closer to the paper (#14598f): an architect's tree of overlapping construction circles, a conifer of hatched triangles, faceted rocks with stipple, crates with cross bracing and stencil numbers, a cylindrical tank with ladder and level gauge, a street lamp with a dashed amber light cone, a lattice transmission tower with a height dimension, a theodolite on a tripod with a plumb line, and a pipe with a hand-wheel valve.",
+    "rules": [
+      "Outline 0.85 u in #d3ebfa, halo 1.9 u, fill #14598f; details 0.35–0.6 u in pale cyan.",
+      "Add at least one drafting annotation per prop: a dimension line, a label (T-2, V-04, STA 3, NO 12) or a center line.",
+      "Tree canopy = union of 3–4 circles: stroke all circles at double width, then fill all of them -> one clean outer contour; center marks on each circle and one dashed construction arc.",
+      "Cylinders use graduated vertical lines; horizontal pipes use horizontal hatching on the lower half.",
+      "Only props without text are mirrored (tree, rock, lamp); props with lettering keep their orientation.",
+      "Sparse placement: one candidate per 92-unit cell, 34 % kept, never on water or roads, none within 90 units of the start point."
+    ]
+  },
+  "effects": [
+    { "name": "Projectile = flying dimension arrow", "how": "A filled white arrowhead (3.6 u long) rotated to the flight direction, trailing a dashed polyline through its last 7 positions (dash [2.4, 1.7], offset animated) with a 1.6 u navy underlay and a short extension tick at the start of the trajectory." },
+    { "name": "Collectibles", "how": "Small = amber hex nut with a paper-coloured hole and a white glint; large = amber 8-tooth gear with hatching and a center mark, spinning, with a small leader tag. Both bob 1.2 u above a scaled ground-line shadow." },
+    { "name": "Orbiting protractor discs", "how": "Amber discs (r 6, drawn at 0.85) with degree ticks, a half-circle scale, a red needle and a paper-coloured hub, spinning, trailed by a dashed amber line through the last 11 positions." },
+    { "name": "Impact", "how": "A center-mark crosshair with a circle (5–7 u) that shrinks and fades in 0.2 s, plus two short white/pale tick sparks flying out." },
+    { "name": "Erase burst", "how": "The creature drawing is wiped away left to right while a red-pencil X is drawn over it in two strokes (navy 2.6 u underlay, red 1.2 u); 6–14 eraser crumbs (#f3b6ae capsules with navy edge) fly out with gravity, plus paper dust and a dashed construction ring on the ground (large ones add a radius label R##)." },
+    { "name": "Draft-in", "how": "Creatures appear inside a shrinking dashed construction ellipse with a center mark; the sprite is revealed from the feet upwards by cropping its source rect, with a white pen line at the reveal edge." },
+    { "name": "Measurement callouts", "how": "Floating numbers sit on a shelf line with a slanted leader and dot, like a dimension note; strong ones are red and circled. A dash draws a full dimension line with arrowheads from start to end labelled with the distance (Δ 62)." },
+    { "name": "Approval stamp", "how": "A celebration draws an amber dashed construction circle growing to R64 with a live radius label, a white ring, 12 amber ticks, and an APPROVED rubber stamp (double rounded frame, tilted -0.16 rad) that slams in from 1.7x scale." },
+    { "name": "Red-pencil correction", "how": "When the main character is hurt a red scribble is drawn progressively over it, a red ring expands, red ticks fly out and the screen edges get a red-pencil vignette." }
+  ],
+  "atmosphere": {
+    "summary": "The whole screen is framed like a drawing sheet: a soft desk-lamp light in the upper left, a navy vignette, a double border with zone letters and numbers, centring marks and a title block with a red revision triangle in the lower right. Shadows are drafting ground lines with hatch ticks over a soft navy pool.",
+    "rules": [
+      "Shadow sprite (unit radius 10): radial navy pool rgba(3,22,42,.55) squashed to 36 %, a 0.5 u ground line at 45 % white across it and five 0.35 u diagonal hatch ticks underneath; scaled per subject (main character 9.5, small 10.5, fast 6.5, large 19, props 6–15).",
+      "The main character's route is plotted as a dashed line behind it (last 44 points, sampled every 7 u) with station crosses every 6 points, fading in three alpha bands.",
+      "Desk lamp: radial rgba(190,232,255,.07) from (22 %, 12 %) of the screen; vignette from 36 % of the short side to 58 % of the diagonal, ending at rgba(2,16,32,.6).",
+      "Sheet border: 7 px outer line at 50 %, 21 px inner line 2 px at 75 %, the strip between darkened to rgba(4,30,56,.5), zone ticks every ~200 px with letters H..A on top/bottom and numbers on the sides, centring marks in the middle of each edge.",
+      "Title block 300x74 px (scaled with the screen height): TITLE / FIELD STUDY, DRAWN with an amber handwritten name, SHEET 04 / 12, SCALE 1:20, REV B, DATE, and a red revision delta beside it.",
+      "The overlay is rendered once per screen size into a cached canvas; per frame it is a single drawImage.",
+      "No bloom, no colour grading, no glow; atmosphere comes from the paper and the sheet furniture."
+    ]
+  },
+  "ui": {
+    "summary": "HUD panels are title-block cells: navy translucent boxes with 1.5 px pale borders, an inner hairline frame and tiny FIG. labels on tabs. Bars are scale rulers with tick marks; fills are 45° hatch patterns (white for the main bar, amber for the progress ruler, red when hurt). Counters are red rubber stamps with a double outline, rotated -2.5°. Cards are drawing sheets with a grid, inner border, circled number, dashed icon circle with crosshair and a title strip at the bottom (DWG A-01 SCALE 1:1). Titles get a dimension line underneath.",
+    "css": ".hud-panel{position:relative;padding:7px 14px 7px 8px;background:rgba(6,42,74,.84);border:1.5px solid #dff3ff;font:400 15px 'Share Tech Mono',monospace;color:#f2faff}\n.hud-panel::before{content:'FIG. 1';position:absolute;top:-9px;left:8px;padding:0 5px;font:400 10px/16px 'Share Tech Mono',monospace;letter-spacing:2px;color:#a9dcf6;background:#0b4475;border:1px solid rgba(223,243,255,.55)}\n.bar{position:relative;width:230px;height:16px;border:1.5px solid #dff3ff;background:rgba(3,26,48,.85)}\n.bar::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 22px,rgba(223,243,255,.5) 22px 23px)}\n.bar-fill{height:100%;background:repeating-linear-gradient(45deg,rgba(236,248,255,.95) 0 1.6px,transparent 1.6px 4.6px),rgba(236,248,255,.14);border-right:2px solid #f2faff}\n.ruler{height:16px;border:1.5px solid #dff3ff;background:repeating-linear-gradient(90deg,rgba(223,243,255,.6) 0 1px,transparent 1px 10px) left bottom/100% 5px no-repeat,rgba(6,42,74,.84)}\n.ruler-fill{height:100%;background:repeating-linear-gradient(-45deg,rgba(255,207,74,.95) 0 1.5px,transparent 1.5px 5px),rgba(255,207,74,.16);border-right:2px solid #ffcf4a}\n.stamp{display:inline-block;padding:3px 16px;color:#ff6b5c;font:400 26px 'Share Tech Mono',monospace;letter-spacing:2px;border:2.5px solid #ff6b5c;border-radius:5px;outline:1px solid rgba(255,107,92,.55);outline-offset:3px;transform:rotate(-2.5deg)}\n.card{position:relative;width:236px;min-height:312px;padding:26px 18px 52px;color:#f2faff;background:linear-gradient(rgba(200,235,255,.06) 1px,transparent 1px) 0 0/12px 12px,linear-gradient(90deg,rgba(200,235,255,.06) 1px,transparent 1px) 0 0/12px 12px,#0d4f86;border:1.5px solid #dff3ff;box-shadow:inset 0 0 0 6px #0d4f86,inset 0 0 0 7px rgba(223,243,255,.5)}\n.card::after{content:'DWG A-01   SCALE 1:1';position:absolute;left:7px;right:7px;bottom:7px;height:26px;border-top:1px solid rgba(223,243,255,.55);font:400 10px/26px 'Share Tech Mono',monospace;letter-spacing:2px;color:#a9dcf6;text-align:center}"
+  },
+  "motion": [
+    "Main character walk: 8 baked frames, body bob -|sin|*1.1 u, feet swing ±3.3 u and lift 1.9 u, arms swing 0.65 rad, antenna sways on a phase offset; idle: 4 frames, bob ±0.4 u and a lens blink; dash: one leaning pose (0.2 rad) with baked dashed speed lines plus 3 fading white after-images 7 u apart.",
+    "Small creature: 6 frames per cycle in which the gear turns exactly one tooth pitch, so it rolls continuously; feet lift 2.1 u, feelers wiggle at double frequency, body rocks ±0.05 rad.",
+    "Fast creature: 4 rotor frames at 14 fps, hovers 5 u up with sin(t*3)*1.5 u float, tilts up to 0.18 rad with its velocity, plumb bob swings ±0.9 u.",
+    "Large creature: 6 frames, bob 1.3 u, feet lift 2.8 u, three dashed smoke circles rise and grow from the stack over one cycle.",
+    "Creatures draft in over 0.45 s (feet first) and are erased over 0.35 s (left-to-right wipe + red X drawn in two strokes).",
+    "Floating numbers pop from 0.55x to 1.15x in 0.12 s, settle to 1x, fade over the last 30 %. Stamps slam from 1.7x to 1x in 15 % of their life.",
+    "Rings ease out (quad) and fade linearly; projectile dash offsets move with age so trajectories look like they are being drawn."
+  ],
+  "do": [
+    "Bake every sprite in two passes (navy halo, then fill + hatching + white lines) and only drawImage at runtime.",
+    "Put a center mark on every important circle and a chain-dash center line through symmetric objects.",
+    "Shade with 45° hatching on the lower-right side; use graduated lines on cylinders.",
+    "Annotate: dimension lines with filled arrowheads, labels in single-stroke capitals, leaders with dots.",
+    "Keep the paper busy but faint (≤ 55 % alpha) so the bright, haloed characters always win.",
+    "Use amber only for friendly/collectible things and red pencil only for hostile eyes and corrections.",
+    "Frame the screen like a sheet: border with zone marks and a title block."
+  ],
+  "dont": [
+    "Don't use black outlines, glow, bloom or soft gradients on forms.",
+    "Don't bake lettering into sprites that get mirrored – draw labels live.",
+    "Don't fill bodies with the paper colour: they disappear into the grid.",
+    "Don't add more hues; a third accent breaks the blueprint illusion.",
+    "Don't draw organic, wobbly outlines for machines – straight lines, arcs and gears only (only handwritten notes may wobble).",
+    "Don't let ground drawings compete: no thick lines or high alpha on the paper.",
+    "Don't depend on web fonts inside the canvas; the stroke lettering always renders."
+  ],
+  "performance": "Baked once in init(): main character 4 idle + 8 walk + 1 dash frames (each with a white and a red silhouette copy), 3 small-creature variants x 6 frames, 4 drone frames, 6 large-creature frames (all with white flash copies), 10 prop sprites, gems, arrow, disc, shadow and a grain tile; mirroring is done with a negative transform, so no flipped copies. Ground chunks (256 u at up to 3 px/u) are built by a generator in ~12 yields, averaging 7–12 ms per chunk spread over frames. Per frame: one drawImage per actor/prop/shadow, a few dashed strokes for projectile and orbit trails, vector particles, cached number sprites and one cached display overlay. Measured: median 2.3 ms per frame with ~90 creatures at 1600x900."
+}

@@ -1,0 +1,148 @@
+{
+  "id": "ukiyoe",
+  "name": "Ukiyo-e Woodblock",
+  "originalName": "Ukiyo-e Woodblock",
+  "family": "Print · Woodblock",
+  "tags": ["ukiyo-e", "woodblock print", "japanese", "bokashi", "washi paper", "ink line", "seigaiha", "edo"],
+  "summary": "An Edo-period colour woodblock print in motion: bokashi colour blocks printed off-register, carved sumi key lines, washi fibres, seigaiha water.",
+  "description": "Everything looks like a Hokusai or Hiroshige print that has started to move. Every shape is printed from blocks: a kinari paper underlay, flat colour blocks with bokashi gradients laid slightly off-register, and one sumi key block whose stamped brush lines swell and thin and grow heavier towards the lower right. The ground is a cream meadow with sage and ochre washes, moss and susuki fields, earth paths and Prussian-blue water with shore contour lines and seigaiha fans, crossed by stepped kasumi mist bands. The frame is a real print: an ichimonji-bokashi band along the top, a paper margin with a key-line border, a signature cartouche and a red seal.",
+  "mood": ["serene", "folkloric", "elegant", "playful", "seasonal"],
+  "bestFor": ["top-down action and adventure games with a folklore theme", "calm exploration and travel games", "Japanese-inspired fantasy RPGs and card games", "story maps, menus and festival-themed projects"],
+  "avoidFor": ["sci-fi, neon or gritty modern settings", "projects that need photoreal light and soft shadows", "very dark night scenes (the look lives on bright paper)"],
+  "difficulty": { "stars": 6, "why": "New assets are quick to block out with the part() + ink() toolkit, but each one needs a careful split into colour blocks with the right bokashi direction, a key line with sensible weights and a recognisable ukiyo-e motif; the ground shader and the per-pixel derived variants (flash, hurt tint, dissolve) add steps for every new figure." },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native resolution, smooth scaling. Sprites baked at K = clamp(round(display px per world unit * 1.6), 3, 7) px per world unit; ground chunks of 256 units rendered per pixel at up to 3 px per unit.",
+    "summary": "Every sprite part is printed in three passes: paper underlay (unshifted), colour block with a bokashi gradient shifted by (+0.38, +0.30) units, then a sumi key line made of circles stamped along the outline into one path. Washi fibres are composited source-atop over every baked sprite. The ground is a per-pixel shader over approximate signed-distance regions where the colour is sampled off-register (+0.8, +0.6) from the key line.",
+    "linework": "Sumi #1e1b19 key lines are filled ribbons of stamped circles, not strokes: outline width 0.95 units on characters (1.25-1.35 on the large creature torso and face, 1.1 on the hat brim), 0.5-0.7 on limbs and small parts, 0.25-0.45 for interior details. Width varies along the line by 1 + 0.3*(0.55 sin(0.85 s) + 0.45 sin(2.3 s)) and by 1 + 0.45*(outward normal · (0.6, 0.8)), so lower-right edges are heavier; open lines taper at both ends over max(0.8, 2.4 w). Ground region edges: shore 0.96 units sumi, moss 0.6 units deep green #405a3a, field 0.52 units #926c32, path 0.6 units #7c5c3c, all wobbling +-45 %.",
+    "shading": "Flat colour blocks with one bokashi gradient each: vertical light-to-deep (kimono #5a7aa0 -> #1c3150, hat #f3dea4 -> #b48a43, creatures light top -> deep bottom), radial on round bodies (large creature torso), horizontal cylinder shading on the paper lantern. Off-register colour leaves a paper sliver on the upper-left of each part. No soft shadows inside shapes, no highlights except tiny paper dots in eyes.",
+    "lighting": "No light sources. Readability comes from the black key line and the paper underlay. The only glows are printed: an ochre radial wash inside the lantern creature and the lit window of the stone lantern. Cast shadows are flat usuzumi ellipses #4b4f58 at 15-24 % alpha.",
+    "texture": "Washi fibres everywhere: a 160 px tile of curved fibres (light rgba(255,250,236,.24), dark rgba(70,52,30,.13)) drawn source-atop over every sprite and icon; the ground multiplies a 512 px fibre luminance tile (0.5 units per texel) at +-5 %. Wood-grain streaks are cut out of the ichimonji band."
+  },
+  "palette": [
+    { "name": "Kinari paper", "hex": "#f2e8d2", "role": "Paper underlay of every printed part, panel paper, page margin (#efe4cb)" },
+    { "name": "Unprinted paper", "hex": "#fbf5e6", "role": "Flash state (key block only), eyes, petals, foam" },
+    { "name": "Sumi", "hex": "#1e1b19", "role": "Key block: all outlines, solid hair, text, borders" },
+    { "name": "Meadow cream", "hex": "#eee4c7", "role": "Main ground wash (~50 % of the screen)" },
+    { "name": "Meadow sage", "hex": "#c7cf98", "role": "Large soft sage bokashi patches in the meadow" },
+    { "name": "Meadow ochre", "hex": "#e6cf96", "role": "Warm ochre bokashi patches in the meadow" },
+    { "name": "Moss", "hex": "#96aa74", "role": "Moss regions, inner colour (edge #688558)" },
+    { "name": "Susuki field", "hex": "#dec48a", "role": "Dry grass field, inner colour (edge #c29650)" },
+    { "name": "Earth path", "hex": "#e7d4a8", "role": "Paths, inner colour (edge #c2a372)" },
+    { "name": "Prussian blue", "hex": "#24527e", "role": "Water, ichimonji band, top bar fill, accent text shadow" },
+    { "name": "Prussian deep", "hex": "#1e456e", "role": "Deepest water and the top edge of the ichimonji band" },
+    { "name": "Shallow water", "hex": "#a8c5c9", "role": "Water at the shore before the bokashi deepens" },
+    { "name": "Indigo", "hex": "#2d4a72", "role": "Main character kimono (light #5a7aa0, deep #1c3150)" },
+    { "name": "Vermilion", "hex": "#cf4a2c", "role": "Sash, torii, seals, large creature skin, crest rim, hurt tint (light #e7845a, deep #9e321e)" },
+    { "name": "Seal red", "hex": "#c8402a", "role": "Hanko seals and red title slips in the HUD" },
+    { "name": "Straw ochre", "hex": "#d8b264", "role": "Straw hat, sandals, tiger stripes base (light #eed79c, deep #a9813d)" },
+    { "name": "Pine green", "hex": "#3d5a45", "role": "Pine pads, bamboo leaves (light #748f61, deep #2a4031)" },
+    { "name": "Kappa green", "hex": "#5f9466", "role": "Small creature body (variants teal #4b8a86, olive #7d8f48)" },
+    { "name": "Koban gold", "hex": "#d9a93b", "role": "Collectibles, sword guard, sparks (light #f4d77e, deep #a47722)" },
+    { "name": "Sakura pink", "hex": "#f0c3c3", "role": "Cherry blossom crowns, petals (deep #d58c97)" },
+    { "name": "Stone grey", "hex": "#8d918b", "role": "Stone lanterns, statues, rocks (light #c3c5b9, deep #5d6a76)" },
+    { "name": "Usuzumi", "hex": "#4b4f58", "role": "Flat cast shadows (15-24 % alpha), motion trails" }
+  ],
+  "paletteRules": [
+    "Paper is the lightest value; pure white never appears. Unprinted paper #fbf5e6 is the brightest tone.",
+    "Every coloured part carries exactly one bokashi gradient between a light and a deep version of its hue, never a second shading layer.",
+    "The ground stays light and low in contrast (cream, sage, ochre, soft moss); saturated vermilion, indigo and Prussian blue belong to figures, gates and water.",
+    "Sumi is warm near-black #1e1b19, never #000; ground region lines are tinted (deep green, ochre, brown) except the water shore, which is sumi.",
+    "Vermilion is the accent for seals, sashes, gates and danger; gold is reserved for collectibles and small metal fittings.",
+    "Shadows are flat usuzumi ellipses, never gradients or blur."
+  ],
+  "typography": [
+    { "family": "Zen Antique", "weights": [400], "role": "Titles, clock, counters, floating numbers, seal numerals", "source": "Google Fonts", "sample": "12:30", "css": "font: 400 40px/1 'Zen Antique', serif; letter-spacing: 2px; color: #1e1b19; text-shadow: 2px 1.5px 0 rgba(36,82,126,.42);" },
+    { "family": "Shippori Mincho", "weights": [500, 600, 700, 800], "role": "Body copy, card names (800), card text (600), captions", "source": "Google Fonts", "sample": "Card title", "css": "font: 800 20px/1.15 'Shippori Mincho', 'Yu Mincho', Georgia, serif; color: #1e1b19;" },
+    { "family": "Yuji Syuku", "weights": [400], "role": "Brush-hand labels, vertical slips, hints", "source": "Google Fonts", "sample": "Hint text", "css": "font: 400 19px 'Yuji Syuku', serif; color: #9e321e; letter-spacing: 1px;" }
+  ],
+  "world": {
+    "summary": "A per-pixel shader paints a cream meadow with sage and ochre bokashi and four region layers (moss, susuki field, earth path, water) from approximate signed-distance fields; colour is sampled off-register from the key line, water deepens from shallow teal to Prussian blue with paper contour lines and seigaiha fans, then brush decals and kasumi mist bands are baked on top. 256-unit chunks are built by a generator.",
+    "layers": [
+      "Meadow base: ramp ochre #e6cf96 -> cream #eee4c7 -> sage #c7cf98 driven by low-frequency noise (scale 700 units), times washi fibre luminance (+-5 %)",
+      "Moss (fbm scale 460, threshold 0.575): bokashi from edge #688558 to inner #96aa74 over 9 units, deep-green key line",
+      "Susuki field (fbm scale 820, threshold 0.605): edge #c29650 -> inner #dec48a over 8 units, ochre key line, brown grass strokes",
+      "Earth path (zero contour of noise at scale 1500, ~22 units wide): edge #c2a372 -> inner #e7d4a8 over 5 units, brown key line, pebbles and dashes",
+      "Water (ponds at scale 620 plus a winding river): shallow #a8c5c9 -> #7aa3bc (4 u) -> #406e97 (10 u) -> #27547f (20 u) -> #1e456e (34 u); three paper contour lines at 2.4 / 5.0 / 7.6 units from the shore; seigaiha fans (radius 7 units, rings every 1.75) fading in from 7 to 15 units depth; sumi shore line",
+      "Decals: Hiroshige grass ticks clustered by a density noise, small red / white / pink flowers, fallen petals and maple leaves, lily pads with lotus, ripple rings",
+      "Kasumi bands: 2-3 stacked rounded bars 110-190 units long, 9-13 tall, pale pink-to-cream bokashi with one thin brown outline, about one per 300 x 300 units"
+    ]
+  },
+  "characters": {
+    "summary": "Woodblock figures baked once per pose and facing. Main character: a wandering traveller (about 25 units wide incl. the hat, 33 tall) in an indigo kasuri kimono tucked up for walking, a vermilion sash, pale indigo leggings, straw sandals, a black lacquered sword and a cream travel bundle, under a wide shallow straw sugegasa with radial straw lines. Small creature: a kappa (r 9, ~20 x 24 units) with a turtle shell, cream belly plate, ochre beak, one big eye, a spiky black hair fringe and a pale water dish, in green, teal or olive. Fast creature: a chochin-obake paper lantern (r 7, ~15 x 23 units) with ribbed cream paper, black lacquer rims with vermilion bands, one big eye, one squint and a long lolling tongue, floating 5 units up. Large creature: an oni (r 17, ~44 x 60 units) in vermilion or Prussian blue with a wild black mane, ivory horns, gold eyes, fangs, a tiger-skin loincloth and an upright studded iron club.",
+    "rules": [
+      "Build every figure from parts drawn back to front; each part = paper underlay + off-register bokashi colour block + its own key line, so front parts cleanly cover the lines behind them.",
+      "Key lines are heaviest on the outer silhouette (0.95-1.35 units) and light inside (0.25-0.6) so the silhouette pops on the pale ground even in crowds.",
+      "Solid black is a colour: hair fringes, the mane, brows and lacquer rims are filled sumi, which anchors small figures.",
+      "Each creature family keeps one hue family (green kappa, cream lantern, vermilion or blue oni) so groups stay readable.",
+      "Walk cycles have 4 baked poses (main character 4 walk + idle + a thrust pose); motion between them is a small bob (1 unit) and a 0.025-0.07 rad sway at draw time.",
+      "Hit flash = the same sprite with only the key block printed (colour blocks become unprinted paper #fbf5e6), derived per pixel from the baked sprite.",
+      "Hurt = colour blocks re-printed in vermilion (per-pixel remap) plus a 1.1-unit shake; dash = three usuzumi-grey after-images 7 units apart.",
+      "Creatures rise out of a sumi or Prussian ink pool with two ripple rings (top part of the sprite revealed bottom-up); lantern creatures fade and scale in instead.",
+      "Dissolve: a 0.16 flash pop, then three baked frames where the sheet burns away from the top along noise with a sumi rim and a thin vermilion ember line."
+    ]
+  },
+  "props": {
+    "summary": "Baked woodblock props, mirrored for variety: two Hiroshige pines with flat cloud-like needle pads (74 units tall), red and golden maples with star-shaped leaf prints, two cherry trees with pink cloud crowns and five-dot blossoms, a stone toro lantern with a lit window and a jizo statue with a red bib and cap (one 'shrine' type), a vermilion torii gate with a black curved top beam (60 units wide), three mossy garden stones with brush texture strokes, a bamboo grove with node ticks and lance leaves, and susuki reeds with fluffy plumes.",
+    "rules": [
+      "Same printing passes as the characters: paper underlay, off-register bokashi block, stamped sumi line; foliage colour blocks carry pattern prints (needle fans, maple stars, blossoms) clipped inside the block.",
+      "Bokashi direction is light on top, deep at the bottom (stone: light upper-left to deep lower-right).",
+      "Trees, bamboo and reeds sway by skewing around the base (0.018-0.05 rad, 1.2 rad/s).",
+      "Every prop gets a flat usuzumi shadow ellipse (pine 15 x 4.6, torii 24 x 3.2, stone 15 x 4.2, lantern 7.4 x 2.4 units) at 20 % alpha.",
+      "Placement follows the terrain: pines everywhere, cherries and shrines on the meadow, maples and bamboo on moss, reeds on the susuki field, shrines and torii along paths, only stones in water."
+    ]
+  },
+  "effects": [
+    { "name": "Ink crescent projectile", "how": "A brushed crescent (about 4 x 12 units) of sumi over a vermilion block printed off-register, with two dashed dry-brush gaps cut out, followed by a 22-unit tapered dry-brush trail that fades out; a small flat shadow 7 units below." },
+    { "name": "Ink splash impact", "how": "A baked splat (lumpy central blot r 2.5 + 8 tapered droplets) flashes for 0.22 s at the impact height with two ink drops thrown out under gravity; vermilion splat and drops for hurts, Prussian-blue splat for water creatures." },
+    { "name": "Kumo smoke burst", "how": "4-8 stylised cloud puffs (overlapping paper-white discs with grey bokashi, sumi outlines and spiral curls) pop out with outBack, drift, rise 8 units and fade; plus a type-specific accent: a Hokusai wave crest with paper foam claws, burning paper scraps and embers, or a burst of maple leaves and an expanding ensō ring." },
+    { "name": "Orbiting crest", "how": "A mitsudomoe disc (r 6.5): vermilion rim, cream field, three black commas, spinning at 6 rad/s with a fading usuzumi wind trail of its last 8 positions." },
+    { "name": "Koban collectibles", "how": "Small: a gold oval koban (5.4 x 7.4 units) with stamped lines; large: a bigger oban (7.6 x 10.4) with a red seal stamp. Both bob, spin around their vertical axis (x-scale 0.3-1) and the large one twinkles with a gold four-point spark." },
+    { "name": "Ensō and petals", "how": "A brushed ensō circle (r 18, width 3.2, dry-brush gaps) laid flat on the ground expands and fades; 18-30 sakura petals flutter with a cosine flip, gravity 70 and drag 2.6." },
+    { "name": "Floating numbers", "how": "Zen Antique digits, 9 units (accent 12.5): normal sumi with a paper outline, accent vermilion with a sumi outline and an off-register indigo copy behind; pop 0.4 -> 1.25 -> 1, slight tilt." }
+  ],
+  "atmosphere": {
+    "summary": "The screen is framed as a real print: a Prussian-blue ichimonji-bokashi band printed along the top and wiped out downwards, a kinari paper margin with a sumi key-line border, a vertical signature cartouche of abstract brush marks and a red seal in the lower right; sakura petals and maple leaves drift across the world.",
+    "rules": [
+      "Ichimonji band: 9.5 % of the screen height, rgba(22,52,88,.88) at the top -> rgba(36,82,126,0) at the bottom, with 46 faint wood-grain streaks cut out; built once per screen size.",
+      "Paper margin 10 px per 900 px of height in #efe4cb with a 2.4 px sumi border line just inside.",
+      "Signature: a 24 x 104 px (per 900 px height) cartouche with four abstract brush marks and a 27 px vermilion seal with paper glyph lines; never real script.",
+      "Hurt: a low-res vermilion edge bokashi (radial, transparent centre -> rgba(158,50,30,.8)) scaled to the screen at up to 85 % alpha.",
+      "Drifting petals: about 40 % of 110-unit cells carry a petal (5 % a maple leaf) that crosses diagonally over 7-15 s, falling from 29 units height, fading in and out with sin(phase).",
+      "No vignette, no bloom, no colour grading: all light is printed."
+    ]
+  },
+  "ui": {
+    "summary": "HUD parts are paper slips framed by double sumi rules (outer 2-3 px line, paper gap, inner 1.5 px line), with faint washi fibres from repeating gradients. Bars are paper troughs filled with bokashi (Prussian for the top bar, vermilion for the life bar); the clock sits in a title cartouche with a vertical red slip label; the counter is a vertical cartouche; numbers in Zen Antique carry an off-register colour shadow; seals (hanko) mark levels, card keys and titles; cards are tall paper prints with a coloured bokashi band at the top and a yellow title slip.",
+    "css": ".panel { background: repeating-linear-gradient(17deg, rgba(120,96,60,.05) 0 1px, transparent 1px 7px), repeating-linear-gradient(-63deg, rgba(255,255,255,.24) 0 1px, transparent 1px 11px), #f4ead4; border: 2.5px solid #1e1b19; box-shadow: inset 0 0 0 3px #f4ead4, inset 0 0 0 4.5px #1e1b19, 0 8px 16px rgba(30,27,25,.3); color: #1e1b19; }\n.bar { height: 24px; background: #f4ead4; border: 2px solid #1e1b19; box-shadow: 0 0 0 3px #f4ead4, 0 0 0 4.5px #1e1b19; }\n.bar > .fill { height: 100%; background: linear-gradient(180deg, #8e2a1a 0%, #cf4a2c 45%, #e8906a 100%); box-shadow: inset -2px 0 0 rgba(30,27,25,.55); }\n.number { font: 400 40px/1 'Zen Antique', serif; color: #1e1b19; text-shadow: 2px 1.5px 0 rgba(36,82,126,.42); }\n.slip { writing-mode: vertical-rl; font: 400 12px 'Yuji Syuku', serif; color: #f7eedb; background: #c8402a; padding: 6px 4px; }\n.seal { width: 30px; height: 30px; background: #c8402a; border-radius: 2px 4px 2px 5px; box-shadow: inset 0 0 0 2px #c8402a, inset 0 0 0 3.2px rgba(247,238,219,.9); color: #f7eedb; font: 400 16px/30px 'Zen Antique', serif; text-align: center; transform: rotate(-5deg); }\n.card { background: linear-gradient(180deg, rgba(23,58,94,.96) 0, rgba(36,82,126,.72) 22px, rgba(126,166,196,0) 92px), #f4ead4; border: 3px solid #1e1b19; box-shadow: inset 0 0 0 5px #f4ead4, inset 0 0 0 6.5px #1e1b19, 0 14px 26px rgba(30,27,25,.38); }"
+  },
+  "motion": [
+    "Main character walk: 4 poses at phase = distance * 0.13 cycles, bob |sin(2 pi phase)| * 1 unit, sway 0.025 rad; idle breathing scale 1 +- 0.015 at 2.2 rad/s; a thrust pose while throwing and standing.",
+    "Small creature walk 4 poses at anim * 0.36, bob 0.9 units, tilt 0.07 rad; large creature 4 poses at anim * 0.3 with a 5 % squash on contact.",
+    "Lantern creatures cycle 4 tongue frames at 6 fps, float 5 +- 1.8 units and lean with their speed (0.16 rad) plus a 0.05 rad swing.",
+    "Appear: rise out of the ink pool over 0.8 of the appear time (outQuad); pool pops with outBack and fades over the last 25 %.",
+    "Hit flash fades at 7/s; dissolve takes 0.35 s (flash pop 16 %, then three burn frames, alpha fade after 75 %).",
+    "Puffs 0.55-0.75 s, splats 0.22-0.4 s, ensō 0.6-1.4 s, petals 1-2 s; the orbiting crest spins at 6 rad/s.",
+    "Trees and reeds sway by base skew; drifting petals flip with cos(3.4 t)."
+  ],
+  "do": [
+    "Print every part in three passes: paper underlay, off-register colour block with one bokashi gradient, stamped key line.",
+    "Make key lines heavier on the outer silhouette and on the lower-right side; taper open lines at both ends.",
+    "Use classic ukiyo-e motifs as design units: seigaiha water, kasumi bands, pine pads, maple stars, torii, mon crests, seals.",
+    "Keep the ground pale and calm so vermilion, indigo and Prussian figures read in crowds.",
+    "Let washi fibres show through every block, including HUD panels.",
+    "Bake all sprites once and derive flash, hurt and dissolve variants per pixel from the baked image.",
+    "Frame the screen like a print: ichimonji band, paper margin, border line, signature cartouche and seal."
+  ],
+  "dont": [
+    "Don't use constant-width canvas strokes for outlines; they look like vector cartoon art.",
+    "Don't add soft shadows, glows, highlights or blur inside shapes: light is printed, not rendered.",
+    "Don't use pure black or pure white.",
+    "Don't stack two gradients on one block or use rainbow gradients; one bokashi per block.",
+    "Don't print legible text in seals or cartouches; use abstract glyph strokes.",
+    "Don't make the ground as saturated as the figures or draw black key lines on every ground edge.",
+    "Don't register colour perfectly on the line; the slight offset is part of the look."
+  ],
+  "performance": "Init bakes about 100 sprite canvases (6 main-character poses with hurt and after-image copies, 12 small-creature, 4 lantern and 8 large-creature poses with flash copies, 15 dissolve frames, 15 props, FX and fibre textures) in 0.4 s at K=4 and 0.9 s at K=7; the stamped key lines are the main cost. Ground chunks (256 units, up to 768 px) cost 40-60 ms each and are built by a generator in 5 ms slices. Per frame: chunk blits, one ellipse fill per shadow, drawImage per actor and particle, a few drifting petals and the cached print frame (top band, four margin rects, one border stroke, the signature image). Frame time with 60-80 actors matches the cartoon module (about 1 ms of drawing at 1600 x 900)."
+}

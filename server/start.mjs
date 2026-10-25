@@ -1,7 +1,7 @@
 // Startet die Dienste der Seite in einem Prozess auf 127.0.0.1:8081:
-// Bewertungen (/api/bewertungen/), Game Requests (/api/ideen/) und Konten
-// (/api/konto/). Gestartet von docker/40-dienste.sh; nginx reicht alle drei
-// Pfade hierher durch.
+// Bewertungen (/api/bewertungen/), Game Requests (/api/ideen/), Konten
+// (/api/konto/) und die Stimmen der Style Library (/api/stimmen/). Gestartet
+// von docker/40-dienste.sh; nginx reicht alle vier Pfade hierher durch.
 //
 // Alle teilen Datenordner, Wortsperrliste und das Passwort der Verwaltung.
 
@@ -9,6 +9,7 @@ import http from "node:http";
 import { anwendungBauen, spieleAusKatalog, KATALOG } from "./bewertungen.mjs";
 import { ideenBauen } from "./ideen.mjs";
 import { kontenBauen } from "./konten.mjs";
+import { stimmenBauen, stylesAusKatalog, STYLE_KATALOG } from "./stimmen.mjs";
 
 const port = Number(process.env.BEWERTUNGEN_PORT || 8081);
 const ordner = process.env.BEWERTUNGEN_ORDNER || "/data";
@@ -47,11 +48,14 @@ const bewertungen = anwendungBauen({
   spiele: spieleAusKatalog(process.env.BEWERTUNGEN_KATALOG || KATALOG)
 });
 const ideen = ideenBauen({ ...gemeinsam, konten });
+// Stimmen der Game Style Library; welche Styles es gibt, steht im Katalog der Seite.
+const stimmen = stimmenBauen({ ...gemeinsam, katalog: stylesAusKatalog(process.env.STIMMEN_KATALOG || STYLE_KATALOG) });
 
 const unter = (url, basis) => url === basis || url.startsWith(basis + "/") || url.startsWith(basis + "?");
 
 http.createServer((req, res) => {
   if (unter(req.url, "/api/konto")) return konten(req, res);
   if (unter(req.url, "/api/ideen")) return ideen(req, res);
+  if (unter(req.url, "/api/stimmen")) return stimmen(req, res);
   return bewertungen(req, res);
 }).listen(port, "127.0.0.1", () => console.log("Dienste auf 127.0.0.1:" + port));

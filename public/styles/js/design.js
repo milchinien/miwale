@@ -64,7 +64,8 @@
       '<section class="d-hero">' +
         '<a class="d-back" href="./">← All styles</a>' +
         '<div class="d-head"><div><p class="eyebrow">' + (single ? esc(main.spec.family) : 'Custom mix · ' + L.sources(d).length + ' source styles') + '</p>' +
-        '<h1>' + esc(name) + '</h1><p class="d-sum">' + esc(single ? main.spec.summary : 'Six design elements, each taken from a different style of the library.') + '</p></div>' +
+        '<h1>' + esc(name) + '</h1><p class="d-sum">' + esc(single ? main.spec.summary : 'Six design elements, each taken from a different style of the library.') + '</p>' +
+        '<div class="d-rating" id="d-rating">' + (single ? ratingHtml('style:' + main.id, 'this style') : '') + '</div></div>' +
         '<div class="d-actions">' + actions + '</div></div>' +
         '<div class="d-stage glass"><div class="frame16"><iframe title="Live scene" src="' + L.stageUrl(d, 'scene') + '" allow="fullscreen"></iframe></div>' +
         '<p class="d-cap">Live scene with all six elements together – rendered by the original style code. Click it, then <kbd>WASD</kbd> to walk around.' +
@@ -78,6 +79,31 @@
       promptSection(d, S, single);
 
     wire(d, S, single);
+    L.votes.load().then(() => {
+      document.querySelectorAll('.vote').forEach((v) => L.votes.refresh(v.dataset.ziel));
+      if (!single) mixRating(d);
+    });
+  }
+
+  const ratingHtml = (ziel, what) => '<span class="d-rating-label">Rate ' + esc(what) + '</span>' + L.voteWidget(ziel);
+
+  /** A mix can be voted on once it is in the community; otherwise offer to publish it. */
+  function mixRating(d) {
+    const box = document.getElementById('d-rating');
+    const same = (m) => L.ELEMENTS.every((e) => m.picks[e.key] === d.picks[e.key]);
+    const pub = L.votes.data.mixe.find(same);
+    if (pub) { box.innerHTML = ratingHtml('mix:' + pub.id, 'this community design'); return; }
+    if (L.votes.offline || L.sources(d).length < 2) { box.innerHTML = ''; return; }
+    box.innerHTML = '<button class="btn btn-small" type="button" id="d-publish">Publish to community</button><span class="d-rating-label">so others can find and vote on it</span>';
+    document.getElementById('d-publish').onclick = async () => {
+      try {
+        await L.votes.publish(Object.assign({}, d, { name: d.name || 'Custom mix' }));
+        L.toast('Published – thanks!');
+        mixRating(d);
+      } catch (e) {
+        L.toast({ woerter: 'Please choose another name in the mixer', 'zu-schnell': 'Too many designs at once – try again later' }[e.message] || 'Publishing failed');
+      }
+    };
   }
 
   const fact = (k, v) => '<div class="d-fact"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>';
@@ -125,7 +151,7 @@
     const badge = single ? '' : '<a class="d-src" href="' + s.id + '/#el-' + e.key + '">from ' + esc(s.spec.name) + ' ↗</a>';
     return '<section class="d-sec d-el" id="el-' + e.key + '">' +
       '<header class="d-sec-head"><span class="d-num">' + String(i + 1).padStart(2, '0') + '</span><div><h2>' + esc(e.name) + ' ' + badge + '</h2><p>' + esc(e.blurb) + '</p></div>' +
-      '<div class="d-sec-act"><button class="btn btn-small" type="button" data-act="element" data-el="' + e.key + '">Copy ' + esc(e.name) + ' spec</button></div></header>' +
+      '<div class="d-sec-act">' + L.voteWidget('el:' + s.id + ':' + e.key, 'sm') + '<button class="btn btn-small" type="button" data-act="element" data-el="' + e.key + '">Copy ' + esc(e.name) + ' spec</button></div></header>' +
       '<div class="d-el-grid">' +
         '<div class="d-el-stage"><div class="frame16" data-src="' + esc(L.stageUrl(d, e.view)) + '"><span class="d-loading">Loading preview…</span></div>' +
         '<p class="d-cap">' + esc(e.name) + ' of ' + esc(s.spec.name) + ', isolated' + (e.key === 'atmosphere' ? ' – toggle it on and off in the corner' : '') + '.</p></div>' +
