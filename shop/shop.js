@@ -621,7 +621,8 @@
         : ideen ? '<main class="sp-ideen sp-breite" data-ideen></main>'
         : konto ? '<main class="sp-ideen sp-konto sp-breite" data-konto></main>'
         : datenschutz ? '<main class="sp-ideen sp-breite" data-datenschutz></main>'
-        : profilSeite ? '<main class="sp-ideen sp-breite pf-seite" data-profilseite></main>'
+        // Die Bibliothek nutzt wie bei Steam die ganze Breite; Profil und Shop die normale Spalte.
+        : profilSeite ? (ort.seite === "bibliothek" ? '<main class="pf-seite pf-seite--voll" data-profilseite></main>' : '<main class="sp-ideen sp-breite pf-seite" data-profilseite></main>')
         : startSeite();
       app.innerHTML = kopf() + inhalt + fuss() + '<div data-fenster></div>';
       app.dataset.seite = seitenSchluessel;

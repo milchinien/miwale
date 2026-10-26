@@ -121,13 +121,13 @@
       return '<li><a class="bib-leiste__spiel' + (seite.id === sp.id ? " ist-aktiv" : "") + '" href="/library/' + esc(sp.id) + '" data-link>' +
         '<img src="' + esc(sp.bild) + '" alt="" loading="lazy"><span>' + esc(sp.name) + "</span>" + (z.sek ? "<small>" + esc(t().stunden(z.sek)) + "</small>" : "") + "</a></li>";
     };
-    return '<aside class="bib-leiste">' +
+    return '<aside class="bib-leiste"><div class="bib-leiste__innen">' +
       '<a class="bib-leiste__start' + (!seite.id ? " ist-aktiv" : "") + '" href="/library" data-link>' + esc(t().bibliothek) + "</a>" +
       '<label class="bib-leiste__suche">' + ICON.lupe + '<input type="search" data-bib-suche placeholder="' + esc(t().suche) + '" value="' + esc(seite.suche) + '" aria-label="' + esc(t().suche) + '"></label>' +
       '<div data-bib-listen>' +
       (fav.length ? '<h3>' + esc(t().favoriten) + " <span>(" + fav.length + ")</span></h3><ul>" + fav.map(zeile).join("") + "</ul>" : "") +
       '<h3>' + esc(t().alle) + " <span>(" + alle.length + ")</span></h3>" + (alle.length ? "<ul>" + alle.map(zeile).join("") + "</ul>" : '<p class="bib-leer">' + esc(t().keineTreffer) + "</p>") +
-      "</div></aside>";
+      "</div></div></aside>";
   }
 
   function startseite() {

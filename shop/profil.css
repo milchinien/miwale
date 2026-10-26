@@ -266,8 +266,12 @@
 .pf-items--shop .pf-vorschau { height: 130px; }
 
 /* ---- Bibliothek ---- */
-.bib { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 0; margin-top: 18px; min-height: 70vh; border: 1px solid var(--pf-linie); border-radius: var(--pf-r); background: rgba(10, 15, 22, .7); }
-.bib-leiste { position: sticky; top: calc(var(--sp-kopfhoehe) + 8px); align-self: start; max-height: calc(100vh - var(--sp-kopfhoehe) - 24px); overflow: auto; padding: 12px 8px; border-right: 1px solid var(--pf-linie); background: #0d141b; }
+/* Volle Breite, kein Kasten: links die Leiste mit allen Spielen (dunkler, eigene
+   Flaeche, reicht bis ganz unten), rechts der Inhalt. */
+.pf-seite--voll { padding-top: 0; }
+.bib { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: calc(100dvh - var(--sp-kopfhoehe)); background: rgba(8, 13, 19, .55); }
+.bib-leiste { background: #080d13; border-right: 1px solid rgba(255, 255, 255, .09); box-shadow: 6px 0 24px rgba(0, 0, 0, .25); }
+.bib-leiste__innen { position: sticky; top: var(--sp-kopfhoehe); max-height: calc(100dvh - var(--sp-kopfhoehe)); overflow: auto; padding: 16px 10px 24px; scrollbar-width: thin; scrollbar-color: #2a3644 transparent; }
 .bib-leiste__start { display: block; padding: 8px 10px; border-radius: var(--pf-r); font-weight: 700; font-size: 14px; color: #fff; text-transform: uppercase; letter-spacing: .06em; }
 .bib-leiste__start:hover, .bib-leiste__start.ist-aktiv { background: #1c2836; color: #fff; }
 .bib-leiste__suche { display: flex; align-items: center; gap: 6px; margin: 8px 2px 10px; padding: 0 8px; border-radius: var(--pf-r); background: #182230; color: var(--pf-leise); }
@@ -283,7 +287,7 @@
 .bib-leiste__spiel:hover { background: #1a2532; color: #fff; }
 .bib-leiste__spiel.ist-aktiv { background: #2a3d52; color: #fff; }
 .bib-leer { margin: 4px 0 8px; font-size: 13px; color: var(--pf-sehrleise); }
-.bib-haupt { min-width: 0; padding: 18px 22px 30px; }
+.bib-haupt { min-width: 0; padding: 26px 36px 48px; }
 .bib-hinweis { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin: 0 0 18px; padding: 10px 14px; border-radius: var(--pf-r); background: #15212d; border: 1px solid var(--pf-linie); font-size: 14px; color: var(--pf-leise); }
 .bib-hinweis--klein { margin: 4px 0 12px; }
 .bib-regal { margin-bottom: 26px; }
@@ -313,14 +317,14 @@
 .bib-kachel__stern.ist-an svg, .bib-knopf--stern.ist-an svg { fill: currentColor; }
 
 /* Seite eines Spiels in der Bibliothek */
-.bib-held { position: relative; height: 300px; margin: -18px -22px 0; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 22px 20px; background: #0b1016 var(--bib-bild) center 35% / cover no-repeat; }
+.bib-held { position: relative; height: clamp(300px, 38vh, 440px); margin: -26px -36px 0; display: flex; flex-direction: column; justify-content: space-between; padding: 18px 36px 26px; background: #0b1016 var(--bib-bild) center 35% / cover no-repeat; }
 .bib-held::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 12, 18, .3) 0%, rgba(8, 12, 18, .25) 40%, rgba(10, 15, 22, .96) 100%); }
 .bib-held > * { position: relative; }
 .bib-held__zurueck { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; padding: 6px 10px 6px 6px; border-radius: var(--pf-r); background: rgba(5, 10, 16, .6); color: #dfe4e9; font-size: 13px; font-weight: 600; }
 .bib-held__zurueck svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 .bib-held__zurueck:hover { background: rgba(5, 10, 16, .85); color: #fff; }
 .bib-held__name { margin: 0; font: 800 40px/1.05 var(--font-brand, sans-serif); color: #fff; text-shadow: 0 2px 16px rgba(0, 0, 0, .6); }
-.bib-aktionen { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 0 -22px; padding: 12px 22px; background: #111a24; border-bottom: 1px solid var(--pf-linie); }
+.bib-aktionen { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 0 -36px; padding: 14px 36px; background: #111a24; border-bottom: 1px solid var(--pf-linie); }
 .bib-play { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; margin-right: 14px; padding: 0 30px 0 22px; border-radius: var(--pf-r); background: var(--sp-play); color: #062A33; font: 800 16px/1 var(--font-ui, sans-serif); letter-spacing: .05em; text-transform: uppercase; }
 .bib-play svg { width: 18px; height: 18px; fill: currentColor; }
 .bib-play:hover { background: var(--sp-play-hover); color: #062A33; }
@@ -376,11 +380,11 @@
 
 /* ---- Schmal ---- */
 @media (max-width: 1000px) {
-  .bib { grid-template-columns: 1fr; border: 0; background: none; }
+  .bib { grid-template-columns: 1fr; min-height: 0; background: none; }
   .bib-leiste { display: none; }
-  .bib-haupt { padding: 0; }
-  .bib-held { margin: 0; height: 240px; border-radius: var(--pf-r); }
-  .bib-aktionen { margin: 0; }
+  .bib-haupt { padding: 18px 14px 30px; }
+  .bib-held { margin: -18px -14px 0; height: 240px; padding: 14px; }
+  .bib-aktionen { margin: 0 -14px; padding: 12px 14px; }
   .bib-spalten, .pf-spalten { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
