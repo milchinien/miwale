@@ -223,24 +223,32 @@
     m.add(lathe(prof, segs, { ribs: 0.88, col: (i, j) => (i <= 0 ? mulc(P.pumpkinDk, 0.96) : j & 1 ? P.pumpkinDk : P.pumpkin) })); // alternating rib colours
     m.add(lathe([[R * 0.17, 0], [R * 0.13, R * 0.32], [R * 0.16, R * 0.42]], 5, { col: P.stem, capB: 1, capT: 1, twist: 0.5 }), chain(T(0.2, 0, hz + Rv * 0.78), RY(-0.32)));
   }
-  function mHero(ph, walk) {
-    const m = new Mesh(), sw = Math.sin(ph) * walk, up = new Mesh(), head = new Mesh();
-    for (const s of [-1, 1]) {
-      const leg = lathe([[1.5, 0], [1.62, 1.7], [1.42, 2.3], [1.5, 7.6]], 6, { col: (i) => (i <= 0 ? P.boot : P.pants), capB: 1, capT: 1 });
-      leg.add(box(2.7, 2.8, 1.8, P.boot), T(1.1, 0, 0.9));
-      m.add(leg, chain(T(0, s * 2.05, 7.6 + Math.max(0, Math.sin(ph) * s) * 1.1 * walk), RY(-sw * 0.62 * s), T(0, 0, -7.6)));
-    }
+  /** Main character rig (knees, elbows, cape rings, scarf + head pivots); hip height from the stance leg -> feet stay on the ground. */
+  function walkPose(ph) {
+    const legs = [], arms = [], lag = 0.5 + 0.5 * Math.sin(2 * ph - 1.4); // follow-through peaks after the bob
+    for (let k = 0; k < 2; k++) { const f = ph + (k ? 0 : Math.PI); legs.push([-0.58 * Math.sin(f), 0.1 + 1.05 * Math.pow(Math.max(0, Math.cos(f)), 1.4)]); arms.push([0.62 * Math.sin(f), 0.35 + 0.4 * Math.max(0, -Math.sin(f))]); }
+    return { legs, arms, lean: 0.11, twist: 0.12 * Math.sin(ph), head: 0.35 * Math.sin(2 * ph - 0.9), cape: 1.5 + 0.9 * lag, capeLift: 0.4 + 0.9 * lag, capeSway: 0.7 * Math.sin(ph - 1.1), scarf: 0.5 + 0.3 * lag };
+  }
+  function mHero(q) {
+    const m = new Mesh(), up = new Mesh(), head = new Mesh(), L1 = 3.8, L2 = 3.9;
+    let hip = 0; for (const [a, kn] of q.legs) hip = Math.max(hip, L1 * Math.cos(a) + L2 * Math.cos(a + kn));
+    q.legs.forEach(([a, kn], k) => {
+      const leg = new Mesh().add(lathe([[1.58, 0], [1.5, L1 + 0.25]], 6, { col: P.pants, capT: 1, capB: 1 }), T(0, 0, -L1));
+      const shin = lathe([[1.5, 0], [1.62, 1.7], [1.42, 2.3], [1.47, L2]], 6, { col: (i) => (i <= 0 ? P.boot : P.pants), capB: 1, capT: 1 }).add(box(2.7, 2.8, 1.8, P.boot), T(1.1, 0, 0.9));
+      m.add(leg.add(shin, chain(T(0, 0, -L1), RY(kn), T(0, 0, -L2))), chain(T(0, (k ? 1 : -1) * 2.05, hip), RY(a)));
+    });
     up.add(lathe([[4.15, 6.3], [4.5, 7.2], [3.95, 10.2], [3.35, 12.9], [2.1, 14.5], [0, 14.8]], 8, { col: (i) => (i <= 0 ? P.shirtDk : P.shirt), capB: 1 }));
     up.add(lathe([[4.18, 9.0], [4.05, 10.1]], 8, { col: P.pants })); up.add(lathe([[3.1, 13.0], [3.8, 13.6], [3.65, 14.6], [2.5, 15.25]], 8, { col: P.scarf }));
-    up.add(box(1.3, 2.2, 4.8, P.scarf), chain(T(-3.1, 1.6, 12.0), RY(0.35 + 0.2 * Math.abs(sw))));
-    const fl = 1.0 + Math.abs(sw) * 1.2; up.add(lathe([[5.6, 6.0, -fl, 0], [4.7, 10.2, -0.5, 0], [3.35, 14.0, -0.1, 0]], 7, { a0: Math.PI * 0.6, a1: Math.PI * 1.4, ds: 1, col: (i) => (i === 0 ? mulc(P.cape, 0.92) : P.cape) }));
-    for (const s of [-1, 1]) up.add(lathe([[1.0, -5.2], [1.22, -2.5], [1.2, 0]], 5, { col: P.shirt, capB: 1, capT: 1 }).add(ico(0, { r: 1.4, col: P.glove }), T(0, 0, -5.9)), chain(T(0, s * 4.0, 13.1), RY(sw * 0.7 * s), RX(s * 0.2)));
+    up.add(box(1.3, 2.2, 4.8, P.scarf), chain(T(-3.0, 1.6, 14.4), RY(q.scarf), T(0, 0, -2.3))); // scarf tail on a pivot at the knot
+    const fl = q.cape, cl = q.capeLift, cs = q.capeSway;
+    up.add(lathe([[5.6, 6.0 + cl, -fl, cs], [5.1, 8.1 + cl * 0.45, -fl * 0.5 - 0.25, cs * 0.45], [4.7, 10.2, -0.5, 0], [3.35, 14.0, -0.1, 0]], 7, { a0: Math.PI * 0.6, a1: Math.PI * 1.4, ds: 1, col: (i) => (i === 0 ? mulc(P.cape, 0.88) : P.cape) }));
+    q.arms.forEach(([a, el], k) => up.add(lathe([[1.2, -2.7], [1.25, -1.2], [1.2, 0]], 5, { col: P.shirt, capB: 1, capT: 1 }).add(lathe([[1.02, -2.5], [1.14, 0]], 5, { col: P.shirt, capB: 1 }).add(ico(0, { r: 1.4, col: P.glove }), T(0, 0, -3.2)), chain(T(0, 0, -2.6), RY(-el))), chain(T(0, (k ? 1 : -1) * 4.0, 13.1), RY(a), RX((k ? 1 : -1) * 0.2))));
     const hz = 21.6, R = 7.8, Rv = 6.5; pumpkinHead(head, hz, R, Rv, 16);
     head.add(leaf(4.8, 2.6, P.leaf, P.leafDk, 0.45, -0.6), chain(T(0.1, 0.5, hz + Rv * 0.92), RZ(1.9), RY(-0.35)));
     const eye = [[-4.1, hz + 1.3], [-0.85, hz + 1.3], [-2.45, hz + 4.6]];
     carved(head, eye, R, Rv, hz); carved(head, eye.map(([u, v]) => [-u, v]), R, Rv, hz);
     carved(head, [[-5.0, hz - 0.2], [-3.0, hz - 0.75], [-3.0, hz - 1.95], [-1.6, hz - 1.95], [-1.6, hz - 1.0], [1.6, hz - 1.0], [1.6, hz - 1.95], [3.0, hz - 1.95], [3.0, hz - 0.75], [5.0, hz - 0.2], [3.7, hz - 2.9], [0, hz - 3.8], [-3.7, hz - 2.9]], R, Rv, hz, { rs: 1.16, hs: 0.45 });
-    up.add(head, T(0, 0, Math.abs(Math.cos(ph)) * 0.35 * walk)); m.add(up, chain(T(0, 0, 6.5), RX(sw * 0.07), T(0, 0, -6.5)));
+    up.add(head, chain(T(0, 0, 15 + q.head), T(0, 0, -15))); m.add(up, chain(T(0, 0, 6.5 + hip - 7.7), RY(q.lean), RZ(q.twist), T(0, 0, -6.5)));
     return new Mesh().add(m, SC(1.1));
   }
   function mEnemy(ph) { // small creature: a walking root creature (cream bottom, lilac top, leaf crown, glowing eyes)
@@ -272,8 +280,8 @@
     for (const p of [hole(-2.3, 21.3, 1.25, 1.75, 6), hole(2.3, 21.3, 1.25, 1.75, 6), hole(0, 16.8, 1.6, 2.4, 8)]) { feature(m, p, 6.1, 6.6, 18.2, P.hole, { off: 0.3 }); feature(m, p, 6.1, 6.6, 18.2, P.holeDeep, { scale: 0.55, bias: -1.0, off: 0.35 }); }
     return m;
   }
-  function mTree(h, crown, seed) { // prop: tapered trunk + 1-3 jittered icosphere crowns, per-face colour pick
-    const m = new Mesh(), R0 = rng(seed), R = h * 0.3, cc = (nx, ny, nz, r) => mulc(crown[Math.floor(r.next() * 3) % 3], 1 + (r.next() - 0.5) * 0.1);
+  function mTree(h, crown, seed) { // prop: trunk + icosphere lobes; crown tone by face normal [mid, shadow, sunlit] -> one lit volume
+    const m = new Mesh(), R0 = rng(seed), R = h * 0.3, cc = (nx, ny, nz, r) => mulc(crown[nz > 0.42 ? 2 : nz < -0.12 ? 1 : 0], 1 + (r.next() - 0.5) * 0.06);
     m.add(lathe([[2.0, 0], [1.6, h * 0.35], [1.15, h * 0.62]], 6, { col: P.trunk, capT: 1, twist: 0.3 }));
     m.add(ico(1, { r: R, sz: 0.92, jitter: 0.1, seed, col: cc }), T(0, 0, h * 0.68));
     for (let i = 0; i < 2; i++) { const a = R0.range(0, TAU); m.add(ico(1, { r: R * R0.range(0.55, 0.7), jitter: 0.12, seed: seed + 10 + i, col: cc }), T(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75, h * 0.6 + R0.range(-2, 4))); }
@@ -319,14 +327,14 @@
       const k = (j - j0) * NI + (i - i0), a = V[k], b = V[k + 1], c = V[k + NI], d = V[k + NI + 1], hid = (j * 7919 + i) * 2;
       if ((j & 1) === 0) { facet(a, b, c, hid); facet(b, d, c, hid + 1); } else { facet(a, d, c, hid); facet(a, b, d, hid + 1); }
     }
-    const leafCols = ['#e0893f', '#d4613f', '#e9b347', '#b8693f'].map(hex).map((c) => [rgbs(shadeRGB(c, -0.2, 0.15, 0.97, 0)), rgbs(shadeRGB(c, 0.35, -0.1, 0.93, 0))]);
     for (let cy = 0; cy < 360 / 11; cy++) for (let cx = 0; cx < vw / 11; cx++) { // decals on an 11-unit jittered grid
       const x = (cx + hash2(cx, cy, 1)) * 11, y = (cy + hash2(cx, cy, 2)) * 11, r = hash2(cx, cy, 3), b = biome(x, y);
       if (b === 0 && r < 0.05) { const d = sprites.tuft; blit(g, d.frames[0], d.ax, d.ay, x, y, d.K); }
-      else if (b === 1 && r < 0.34) { // two-tone fallen leaf triangles
-        const a = hash2(cx, cy, 4) * TAU, sz = 1.5 + hash2(cx, cy, 5) * 1.1, c = leafCols[Math.floor(hash2(cx, cy, 6) * 4)], ca = Math.cos(a), sa = Math.sin(a);
-        for (const sgn of [1, -1]) { g.fillStyle = c[sgn > 0 ? 0 : 1]; g.beginPath(); g.moveTo(x - ca * sz, y - sa * sz); g.lineTo(x - sgn * sa * sz * 0.55, y + sgn * ca * sz * 0.55); g.lineTo(x + ca * sz, y + sa * sz); g.fill(); }
-      }
+    }
+    for (const p of sprites.props) for (let k = 0; p.c !== undefined && k < 14; k++) { // leaf litter under each crown, in that crown's own colours
+      const a = hash2(k, p.c, 4) * TAU, rr = Math.sqrt(hash2(k, p.y | 0, 5)), x = p.x + 4 + Math.cos(a) * rr * 24, y = p.y + 2 + Math.sin(a) * rr * 13;
+      const r = hash2(k, 7, p.x | 0) * TAU, sz = 1.5 + hash2(k, 8, 5) * 1.1, c = CROWNS[p.c][k % 3], ca = Math.cos(r), sa = Math.sin(r);
+      for (const sgn of [1, -1]) { g.fillStyle = rgbs(shadeRGB(c, sgn > 0 ? -0.2 : 0.35, 0.1, 0.95, 0)); g.beginPath(); g.moveTo(x - ca * sz, y - sa * sz); g.lineTo(x - sgn * sa * sz * 0.55, y + sgn * ca * sz * 0.55); g.lineTo(x + ca * sz, y + sa * sz); g.fill(); }
     }
     g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.62; // prop shadows are baked into the ground
     for (const p of sprites.props) blit(g, p.sh.c, p.sh.ax, p.sh.ay, p.x, p.y, s);
@@ -336,8 +344,8 @@
   let C = null;
   function cache(K) {
     if (C && C.K === K) return C; C = { K, sets: {} };
-    const walk = []; for (let i = 0; i < 6; i++) walk.push(mHero((i / 6) * TAU, 1));
-    C.hero = spriteSet(walk, 0.45, K); C.heroSh = makeShadow(mHero(0, 0), 0.45, K, { ao: 6.2, aoA: 0.9, dirA: 0.55, blur: 1.4 });
+    const walk = []; for (let i = 0; i < 8; i++) walk.push(mHero(walkPose((i / 8) * TAU))); // 8 baked rig poses per stride
+    C.hero = spriteSet(walk, 0.45, K); C.heroSh = makeShadow(walk[0], 0.45, K, { ao: 6.2, aoA: 0.9, dirA: 0.55, blur: 1.4 });
     C.enemySh = makeShadow(mEnemy(0), Math.PI / 2, K, { ao: 6.6, aoA: 0.9, dirA: 0.5, blur: 1.4 });
     C.ghost = spriteSet([0, 1, 2, 3].map((i) => mGhost((i / 4) * TAU)), Math.PI * 0.75, K, 0.3);
     C.ghostSh = makeShadow(mGhost(0), Math.PI / 2, K, { ao: 5.2, aoA: 0.7, dirA: 0, blur: 1.6 });
@@ -350,40 +358,28 @@
   const yawIdx = (yaw) => ((Math.round((yaw / TAU) * 16) % 16) + 16) % 16; // 16 baked yaw angles
   function enemySet(yi) { return C.sets[yi] || (C.sets[yi] = spriteSet([0, 1, 2, 3].map((i) => mEnemy((i / 4) * TAU)), (yi / 16) * TAU, C.K)); }
   const FLASH = new WeakMap();
-  function flashOf(img) { // white silhouette of a baked sprite for impact flashes (cached)
-    let c = FLASH.get(img); if (c) return c;
-    c = canvas(img.width, img.height); const x = c.getContext('2d'); x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
-    FLASH.set(img, c); return c;
-  }
+  function flashOf(img) { let c = FLASH.get(img); if (c) return c; // white silhouette of a baked sprite for impact flashes (cached)
+    c = canvas(img.width, img.height); const x = c.getContext('2d'); x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); FLASH.set(img, c); return c; }
   /** Draws the main character with feet at (x, y) (world units, ctx already scaled). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
-    const set = C.hero, fi = Math.floor(t * 0.8 * 6) % 6, lift = Math.abs(Math.sin(t * 0.8 * TAU)) * 1.1;
-    blit(ctx, C.heroSh.c, C.heroSh.ax, C.heroSh.ay, x, y, set.K);
+    const set = C.hero, fi = Math.floor(t * 0.8 * 8) % 8, lift = 0; blit(ctx, C.heroSh.c, C.heroSh.ax, C.heroSh.ay, x, y, set.K); // bob is baked into the poses
     ctx.save(); if (facing < 0) { ctx.translate(2 * x, 0); ctx.scale(-1, 1); }
     blit(ctx, set.frames[fi], set.ax, set.ay, x, y - lift, set.K);
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22 + 0.06 * Math.sin(t * 9); // warm glow from the carved face
-    ctx.drawImage(C.glow, x + 6 - 9, y - lift - 21 * CP + 3 - 9, 18, 18);
-    ctx.restore(); }
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22 + 0.06 * Math.sin(t * 9); ctx.drawImage(C.glow, x + 6 - 9, y - lift - 21 * CP + 3 - 9, 18, 18); ctx.restore(); } // warm face glow
   /** Draws a small creature with feet at (x, y), walking along yaw. flash 0..1 = impact flash. */
   function drawEnemy(ctx, x, y, t, yaw = Math.PI / 2, flash = 0) {
     const set = enemySet(yawIdx(yaw)), fi = Math.floor(t * 0.55 * 4) % 4, lift = Math.abs(Math.sin(t * 0.55 * TAU)) * 1.4;
-    ctx.globalAlpha = 0.5; blit(ctx, C.enemySh.c, C.enemySh.ax, C.enemySh.ay, x, y, set.K); ctx.globalAlpha = 1;
-    blit(ctx, set.frames[fi], set.ax, set.ay, x, y - lift, set.K);
+    ctx.globalAlpha = 0.5; blit(ctx, C.enemySh.c, C.enemySh.ax, C.enemySh.ay, x, y, set.K); ctx.globalAlpha = 1; blit(ctx, set.frames[fi], set.ax, set.ay, x, y - lift, set.K);
     if (flash > 0.04) { ctx.globalAlpha = Math.min(1, flash * 1.1); blit(ctx, flashOf(set.frames[fi]), set.ax, set.ay, x, y - lift, set.K); ctx.globalAlpha = 1; }
   }
   function drawGhost(ctx, x, y, t, seed) {
     const s = C.ghost, fi = Math.floor((t * 1.4 + seed * 5) * 4) % 4, lift = 2.5 + Math.sin(t * 2.6 + seed * 20) * 1.6;
-    ctx.globalAlpha = 0.3; blit(ctx, C.ghostSh.c, C.ghostSh.ax, C.ghostSh.ay, x, y, s.K);
-    ctx.globalAlpha = 0.8; blit(ctx, s.frames[fi], s.ax, s.ay, x, y - lift, s.K); ctx.globalAlpha = 1;
-  }
+    ctx.globalAlpha = 0.3; blit(ctx, C.ghostSh.c, C.ghostSh.ax, C.ghostSh.ay, x, y, s.K); ctx.globalAlpha = 0.8; blit(ctx, s.frames[fi], s.ax, s.ay, x, y - lift, s.K); ctx.globalAlpha = 1; }
   function drawGem(ctx, x, y, t, seed) {
     const K = C.K, z = 2.2 + Math.sin(t * 3 + seed * 10) * 0.8;
-    ctx.globalAlpha = 0.32; ctx.drawImage(C.dot, x - 2.3 + 0.6, y - 1, 4.6, 2); ctx.globalAlpha = 1;
-    ctx.save(); ctx.translate(x, y - z); ctx.scale(1 / K, 1 / K);
+    ctx.globalAlpha = 0.32; ctx.drawImage(C.dot, x - 2.3 + 0.6, y - 1, 4.6, 2); ctx.globalAlpha = 1; ctx.save(); ctx.translate(x, y - z); ctx.scale(1 / K, 1 / K);
     ctx.drawImage(C.halo, -C.halo.width / 2, -2.3 * CP * K - C.halo.height / 2);
-    drawMesh(ctx, C.gemM, { yaw: (Math.floor((t * 1.5 + seed * 7) * 8) % 8 / 8) * (TAU / 4), K, ax: 0, ay: 0, lift: 0.18, lw: 0.5 });
-    ctx.restore();
-  }
+    drawMesh(ctx, C.gemM, { yaw: (Math.floor((t * 1.5 + seed * 7) * 8) % 8 / 8) * (TAU / 4), K, ax: 0, ay: 0, lift: 0.18, lw: 0.5 }); ctx.restore(); }
   /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, props, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     const s = h / 360, K = Math.max(1, Math.round(s * 4) / 4), vw = w / s;
@@ -393,7 +389,7 @@
       const props = [[vw * 0.12, 120, 'tree', 2], [vw * 0.2, 150, 'tree', 0], [vw * 0.8, 95, 'tree', 1], [vw * 0.9, 210, 'tree', 0], [vw * 0.76, 300, 'pine'], [vw * 0.96, 330, 'tree', 2], [vw * 0.86, 360, 'pine']];
       C.props = props.map(([x, y, kind, c], i) => {
         const m = kind === 'tree' ? mTree(54 + i * 3, CROWNS[c], 20 + i * 7) : mPine(64 + i, 3 + i), yaw = i * 0.9, sp = spriteSet([m], yaw, K);
-        return { x, y, img: sp.frames[0], ax: sp.ax, ay: sp.ay, sh: makeShadow(m, yaw, s, { ao: 6, aoA: 0.9, dirA: 0.62, blur: 1.8, col: PALETTE.propShadow }) };
+        return { x, y, c: kind === 'tree' ? c : undefined, img: sp.frames[0], ax: sp.ax, ay: sp.ay, sh: makeShadow(m, yaw, s, { ao: 6, aoA: 0.9, dirA: 0.62, blur: 1.8, col: PALETTE.propShadow }) };
       });
       C.ground = canvas(w, h); C.gw = w; C.gh = h;
       paintGround(C.ground.getContext('2d'), vw, s, biome, { tuft: C.tuft, props: C.props });

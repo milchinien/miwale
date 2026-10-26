@@ -1,9 +1,14 @@
 /* Style "Sternennacht" – a living post-impressionist oil painting at night (Van Gogh: The Starry Night,
-   Café Terrace at Night). Everything is built from short, thick, directional impasto brush strokes:
-   - ground: thousands of pre-rendered stroke sprites laid along swirling flow fields over a dark under-painting
-   - characters / props: painted stroke by stroke into offscreen canvases at init (several "breathing" variants)
-   - light: swirling concentric halos of strokes around Jack, lanterns, windows and gems (additive)
-   - HUD: museum look – gilded frames, painted brush-stroke bars, framed little paintings as level-up cards. */
+   Café Terrace at Night, Wheat Field with Cypresses). Everything is built from short, thick, directional
+   impasto brush strokes, with a stroke-size hierarchy:
+   - ground: three passes of pre-rendered atlas strokes over a dark under-painting – big calm "coat" strokes
+     everywhere, medium "body" strokes, and small bright "focal" strokes only along designed edges (field
+     hedges, forest rims and cast shadows, pond shores, path borders and ruts). Every stroke follows the form
+     of its region (furrows parallel to the field edge, ripples parallel to the shore, grass in the wind).
+   - characters / props: painted stroke by stroke into offscreen canvases at init, 6–8 poses per cycle
+     ("on twos"), plus runtime secondary motion (scarf, lean, squash, smear-death, painted-in spawn)
+   - light: swirling halos of strokes only around real light sources (face, lanterns, windows, lamps)
+   - HUD: museum look – gilded frames, painted brush-stroke bars, framed little paintings as cards. */
 (function () {
   'use strict';
   const U = window.U, G = window.G;
@@ -53,7 +58,7 @@
     ctx.moveTo(-hl * 0.95, hw * 0.6);
     ctx.quadraticCurveTo(0, hw * 0.86 + b, hl * 0.85, b * 0.12 + hw * 0.1);
     ctx.lineWidth = hw * 0.32;
-    ctx.strokeStyle = rgb(U.mul(col, 0.58), 0.75);
+    ctx.strokeStyle = rgb(U.mul(col, o.lo !== undefined ? o.lo : 0.58), 0.75);
     ctx.stroke();
     // bristle groove
     const v1 = (r.next() - 0.5) * hw * 0.9;
@@ -62,7 +67,7 @@
     ctx.quadraticCurveTo(hl * 0.2, v1 * 0.8 + b * 0.9, hl * 0.95, b * 0.12 + v1 * 0.3);
     ctx.lineWidth = Math.max(0.05, wid * 0.08);
     ctx.lineCap = 'butt';
-    ctx.strokeStyle = rgb(U.mul(col, 0.7), 0.55);
+    ctx.strokeStyle = rgb(U.mul(col, o.lo !== undefined ? 0.5 + o.lo * 0.35 : 0.7), 0.55);
     ctx.stroke();
     ctx.restore();
   }
@@ -199,7 +204,20 @@
     ctx.scale(k, k);
     ctx.translate(ax, ay);
     fn(ctx);
-    return { c: gpuc(c), f: null, w: wu, h: hu, ax, ay };
+    // trim to the painted pixels (+1 px): transparent margins still cost fill rate on every blit
+    const W = c.width, Hh = c.height, d = ctx.getImageData(0, 0, W, Hh).data;
+    let x0 = W, y0 = Hh, x1 = -1, y1 = -1;
+    for (let y = 0; y < Hh; y++) {
+      const row = y * W * 4;
+      for (let x = 0; x < W; x++) {
+        if (d[row + x * 4 + 3] > 3) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      }
+    }
+    if (x1 < 0) return { c: gpuc(c), f: null, w: wu, h: hu, ax, ay };
+    x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1); x1 = Math.min(W - 1, x1 + 1); y1 = Math.min(Hh - 1, y1 + 1);
+    const tw = x1 - x0 + 1, th = y1 - y0 + 1, o = U.canvas(tw, th);
+    o.ctx.drawImage(c, x0, y0, tw, th, 0, 0, tw, th);
+    return { c: o.c, f: null, w: tw / k, h: th / k, ax: ax - x0 / k, ay: ay - y0 / k };
   }
   function withFlip(s) { s.f = U.flipX(s.c); return s; }
   function blit(ctx, s, x, y, flip, sc, img) {
@@ -208,29 +226,24 @@
     const ax = flip ? s.w - s.ax : s.ax;
     ctx.drawImage(im, x - ax * sc, y - s.ay * sc, s.w * sc, s.h * sc);
   }
-  function flashOf(s, flip) {
-    if (!s.fl) {
-      s.fl = U.tint(s.c, '#ffc84a', 1);
-      s.flf = U.flipX(s.fl);
-    }
-    return flip ? s.flf : s.fl;
-  }
 
   /* ======================================================================
-     2. Ground – fields, flow and stroke atlas
+     2. Ground – regions with designed edges, form-following flow, a 3-scale stroke atlas
      ====================================================================== */
+  const LDX = -0.6, LDY = -0.8;            // direction towards the light (upper left) – one light for the whole world
   const MATS = [
-    { L: 9, W: 2.5, bend: 0.55, pal: ['#3c2e18', '#54421e', '#6c5624', '#866c2a', '#a08232', '#bc9a3e'], acc: ['#2e3e70', '#a65e28', '#4e5a28'], under: [46, 34, 20], pB: 0.75, acP: 0.14 },
-    { L: 8, W: 2.7, bend: 0.45, pal: ['#1a3430', '#23463c', '#2e5944', '#3c6a48', '#527e4a', '#70944e'], acc: ['#2e4a86', '#8a8a3a', '#3a6a7a'], under: [17, 32, 28], pB: 0.62, acP: 0.12 },
-    { L: 11, W: 2.5, bend: 0.22, pal: ['#1c1e44', '#262a5a', '#31356c', '#3d4180', '#4c4f94', '#6264a8'], acc: ['#6a4f8e', '#2c4f72', '#7a6a5a'], under: [17, 17, 40], pB: 0.55, acP: 0.12 },
-    { L: 6.5, W: 2.6, bend: 0.45, pal: ['#08120f', '#0e1d18', '#142a20', '#1b3828', '#24462f', '#305639'], acc: ['#1a2650', '#3a4a24', '#0e2a36'], under: [6, 11, 10], pB: 0.4, acP: 0.14 },
-    { L: 10, W: 2.5, bend: 0.62, pal: ['#10244e', '#163268', '#1d4384', '#26579c', '#3270ae', '#4a8fbc'], acc: ['#78c0c0', '#c6d2a0', '#e8c850'], under: [10, 21, 50], pB: 0.72, acP: 0.13 },
+    { L: 9, W: 2.5, bend: 0.35, pal: ['#3c2e18', '#54421e', '#6c5624', '#866c2a', '#a08232', '#bc9a3e'], acc: ['#2e3e70', '#4e5a28', '#a65e28'], under: [46, 34, 20] },   // wheat
+    { L: 10, W: 2.6, bend: 0.5, pal: ['#1a3430', '#23463c', '#2e5944', '#3c6a48', '#527e4a', '#70944e'], acc: ['#2e4a86', '#8a8a3a', '#3a6a7a'], under: [17, 32, 28] },   // meadow
+    { L: 10, W: 2.5, bend: 0.18, pal: ['#1c1e44', '#262a5a', '#31356c', '#3d4180', '#4c4f94', '#6264a8'], acc: ['#8e7c6c', '#2c4f72', '#6a4f8e'], under: [17, 17, 40] },   // path
+    { L: 6, W: 2.7, bend: 0.5, pal: ['#0a1612', '#10221a', '#173024', '#1f3e2c', '#2a4c34', '#3a5c3e'], acc: ['#1a2650', '#3a4a24', '#0e2a36'], under: [7, 13, 12] },   // forest floor
+    { L: 10, W: 2.4, bend: 0.3, pal: ['#10244e', '#163268', '#1d4384', '#26579c', '#3270ae', '#4a8fbc'], acc: ['#78c0c0', '#c6d2a0', '#e8c850'], under: [10, 21, 50] },   // pond
   ];
   const GOLD_STROKES = ['#d08a26', '#eeb63a', '#ffd862', '#fff0a8'];
-  // all ground strokes live on one CPU sprite sheet (the chunk is painted on a CPU canvas too)
-  const ATLAS = { mats: [], gold: [], flower: [], sheet: null };
+  const CALM = { hi: 0.12, lo: 0.82 };      // low-contrast strokes for the big calm "coat" pass
+  // all ground strokes live on one CPU sprite sheet (the chunk is painted into a CPU pixel buffer too)
+  const ATLAS = { mats: [], sets: {}, sheet: null };
   let SHX = 0, SHY = 0, SHROW = 0;
-  function atlasSprite(L, W, bend, col, seed) {
+  function atlasSprite(L, W, bend, col, seed, so) {
     const r = U.rng(seed);
     const w = Math.ceil((L + W * 2) * KG), h = Math.ceil((W * 2.2 + L * Math.abs(bend) * 0.5 + 1) * KG);
     if (SHX + w > 1024) { SHX = 0; SHY += SHROW + 1; SHROW = 0; }
@@ -238,7 +251,7 @@
     ctx.save();
     ctx.translate(SHX + w / 2, SHY + h / 2);
     ctx.scale(KG, KG);
-    stroke(ctx, 0, 0, 0, L, W, col, r, { bend: (r.next() - 0.5) * bend });
+    stroke(ctx, 0, 0, 0, L, W, col, r, { bend: (r.next() - 0.5) * bend, hi: so && so.hi, lo: so && so.lo });
     ctx.restore();
     const spr = { sx: SHX, sy: SHY, w, h, cx: w / 2, cy: h / 2 };
     SHX += w + 1;
@@ -247,16 +260,26 @@
   }
   function buildAtlas() {
     let sd = 100;
-    ATLAS.sheet = cv(1024, 320);
+    ATLAS.sheet = cv(1024, 560);
     SHX = SHY = SHROW = 0;
     for (const m of MATS) {
-      const set = { pal: [], acc: [] };
+      const set = { coat: [], pal: [], acc: [] };
+      for (const h of m.pal) set.coat.push([0, 1].map(() => atlasSprite(m.L * 1.55, m.W * 1.45, m.bend * 0.7, H(h), sd++, CALM)));
       for (const h of m.pal) set.pal.push([0, 1, 2].map(() => atlasSprite(m.L, m.W, m.bend, H(h), sd++)));
-      for (const h of m.acc) set.acc.push([0, 1, 2].map(() => atlasSprite(m.L, m.W, m.bend, H(h), sd++)));
+      for (const h of m.acc) set.acc.push([0, 1].map(() => atlasSprite(m.L * 0.8, m.W * 0.9, m.bend, H(h), sd++)));
       ATLAS.mats.push(set);
     }
-    ATLAS.gold = GOLD_STROKES.map((h) => [0, 1].map(() => atlasSprite(6, 2.2, 0.3, H(h), sd++)));
-    ATLAS.flower = ['#f4efd8', '#ffd84a', '#7aa8e8', '#e0582a', '#c8a0e0'].map((h) => [0, 1].map(() => atlasSprite(3, 2, 0.5, H(h), sd++)));
+    const mkSet = (cols, L, W, bend, n, so) => cols.map((h) => Array.from({ length: n }, () => atlasSprite(L, W, bend, H(h), sd++, so)));
+    const S = ATLAS.sets;
+    S.ink = mkSet(['#0c1228', '#111733', '#18202e'], 5.6, 1.7, 0.2, 2, { hi: 0.08 });         // broken dark contour of regions
+    S.rim = mkSet(['#6f8e3c', '#9aae4c', '#c4c062'], 6.5, 2.0, 0.3, 2);                         // moonlit forest rim
+    S.shade = mkSet(['#0b1330', '#111b3e', '#0d1a28'], 10, 2.8, 0.25, 2, CALM);                 // cast shadow of the forest
+    S.shore = mkSet(['#4f94aa', '#86c8c8', '#bfe4d4'], 7, 1.9, 0.25, 2);                        // ripples along the shore
+    S.rut = mkSet(['#5e5a86', '#7a6e8e', '#8e7c6c'], 8, 1.9, 0.12, 2);                           // worn ruts on the paths
+    S.gold = mkSet(GOLD_STROKES, 6, 2.2, 0.3, 2);
+    S.flower = mkSet(['#f4efd8', '#ffd84a', '#7aa8e8', '#c8a0e0'], 3, 2, 0.5, 2);
+    S.poppy = mkSet(['#b02a1a', '#d8452a', '#ec6a32'], 3.2, 2.2, 0.5, 2);
+    S.eddy = mkSet(['#5e8a4c', '#86a656', '#2e4a86', '#a4b450'], 9, 2.3, 0.45, 2);
     ATLAS.sw = ATLAS.sheet.c.width;
     const A = (ATLAS.data = ATLAS.sheet.ctx.getImageData(0, 0, ATLAS.sheet.c.width, ATLAS.sheet.c.height).data);
     // trim every sprite rect to its painted pixels (smaller splat spans)
@@ -269,12 +292,13 @@
       sp.sx += x0; sp.sy += y0; sp.cx -= x0; sp.cy -= y0; sp.w = x1 - x0 + 1; sp.h = y1 - y0 + 1;
     };
     const all = [];
-    for (const m of ATLAS.mats) { for (const g of m.pal) all.push(...g); for (const g of m.acc) all.push(...g); }
-    for (const g of ATLAS.gold) all.push(...g);
-    for (const g of ATLAS.flower) all.push(...g);
+    const add = (g) => { for (const v of g) all.push(...v); };
+    for (const m of ATLAS.mats) { add(m.coat); add(m.pal); add(m.acc); }
+    for (const k in S) add(S[k]);
     all.forEach(trim);
   }
 
+  /* ---------- regions ---------- */
   const PI_ = { d: 0, tx: 0, ty: 0 };
   function pathInfo(x, y, out) {
     const s = 1 / 980, e = 2;
@@ -286,34 +310,24 @@
     out.d = Math.abs(p - 0.5) / Math.max(gm, 0.0006);
     out.tx = -gy / gm; out.ty = gx / gm;
   }
-  /** material weights w[0..4] = wheat, meadow, path, forest, pond; v (optional) = flow vectors + macro */
-  function fieldAt(x, y, w, v) {
-    const F = U.warped(x / 760, y / 760, 11, 1.0, 3);
-    const P = U.warped(x / 640 + 31.7, y / 640 - 12.3, 23, 0.55, 3);
-    const Wn = U.fbm(x / 470 - 7.1, y / 470 + 3.9, 31, 3);
-    const sp = x * x + y * y;
-    const pond = U.smoothstep(0.322, 0.306, P) * U.smoothstep(150 * 150, 300 * 300, sp);
+  const forestN = (x, y) => U.warped(x / 760, y / 760, 11, 1.0, 3);
+  // ponds fade out around the start point (raised noise -> the shore shrinks smoothly, no hard circle)
+  const pondN = (x, y) => U.warped(x / 640 + 31.7, y / 640 - 12.3, 23, 0.55, 3) + (1 - U.smoothstep(150 * 150, 320 * 320, x * x + y * y)) * 0.1;
+  const wheatN = (x, y) => U.fbm(x / 470 - 7.1, y / 470 + 3.9, 31, 3);
+  /** material weights w = [wheat, meadow, path, forest, pond] from the raw fields + distance to the path centre */
+  function weightsOf(F, P, Wn, pd, w) {
+    const pond = U.smoothstep(0.322, 0.306, P);
     const forest = U.smoothstep(0.59, 0.61, F) * (1 - pond);
     const wheat = U.smoothstep(0.482, 0.518, Wn) * Math.max(0, 1 - forest - pond);
     const meadow = Math.max(0, 1 - forest - pond - wheat);
-    pathInfo(x, y, PI_);
-    const path = (1 - U.smoothstep(9, 15, PI_.d)) * (1 - pond);
+    const path = (1 - U.smoothstep(9, 15, pd)) * (1 - pond);
     const k = 1 - path;
     w[0] = wheat * k; w[1] = meadow * k; w[2] = path; w[3] = forest * k; w[4] = pond;
-    if (v) {
-      const s1 = 1 / 120, e = 2;
-      let n = U.fbm(x * s1, y * s1, 51, 2);
-      let gx = U.fbm((x + e) * s1, y * s1, 51, 2) - n, gy = U.fbm(x * s1, (y + e) * s1, 51, 2) - n;
-      let gm = hyp(gx, gy) + 1e-9;
-      v[0] = -gy / gm; v[1] = gx / gm;
-      const s2 = 1 / 52;
-      n = U.fbm(x * s2, y * s2, 52, 2);
-      gx = U.fbm((x + e) * s2, y * s2, 52, 2) - n; gy = U.fbm(x * s2, (y + e) * s2, 52, 2) - n;
-      gm = hyp(gx, gy) + 1e-9;
-      v[2] = -gy / gm; v[3] = gx / gm;
-      v[4] = PI_.tx; v[5] = PI_.ty;
-      v[6] = U.fbm(x / 250, y / 250, 61, 2);
-    }
+  }
+  function fieldAt(x, y, w) {
+    pathInfo(x, y, PI_);
+    weightsOf(forestN(x, y), pondN(x, y), wheatN(x, y), PI_.d, w);
+    return w;
   }
   const WT = new Float32Array(5);
   function matAt(x, y) {
@@ -323,7 +337,9 @@
     return best;
   }
 
-  const GS = 5, GMARGIN = 20, NV = 7;
+  const GS = 5, GMARGIN = 24, NR = 8, NC = 22;
+  // node channels: 0-4 weights | 5 dF 6-7 nF (forest: signed distance to the edge, + inside, unit normal into it)
+  // 8 dW 9-10 nW (wheat) | 11 dP 12-13 nP (pond) | 14 pd 15-16 path tangent | 17 wind angle | 18 macro | 19 curl | 20 cluster | 21 detail
   /** allocation-free re-seedable PRNG (mulberry32) for the hot ground loops */
   const RR = {
     a: 0,
@@ -385,6 +401,7 @@
       }
     }
   }
+  const prox = (d, R) => { const a = d < 0 ? -d : d; return a >= R ? 0 : 1 - a / R; };
   let BANDC = null;
   const POOL = [];
   function* groundGen(ctx, info) {
@@ -400,28 +417,67 @@
     // a job dropped by the chunk cache never finishes -> treat buffers busy for > 4 s as free again
     let buf = POOL.find((b) => b.key === key && (!b.busy || now - b.t0 > 4000));
     if (!buf) {
-      buf = { key, busy: false, img: ctx.createImageData(PX, PX), Wg: new Float32Array(nx * ny * 5), Vg: new Float32Array(nx * ny * NV), Cg: new Float32Array(nx * ny * 3) };
+      buf = { key, busy: false, img: ctx.createImageData(PX, PX), Rg: new Float32Array(nx * ny * NR), Ng: new Float32Array(nx * ny * NC), Cg: new Float32Array(nx * ny * 3) };
       if (POOL.length < 4) POOL.push(buf);
     }
     buf.busy = true;
     buf.t0 = now;
-    const { Wg, Vg, Cg } = buf;
-    const w = new Float32Array(5), v = new Float32Array(NV);
+    const { Rg, Ng, Cg } = buf;
+    // 1. raw noise fields on a 5-unit grid
     for (let j = 0; j < ny; j++) {
       if ((j & 1) === 1) yield;
       for (let i = 0; i < nx; i++) {
-        const x = (gx0 + i) * GS, y = (gy0 + j) * GS;
-        fieldAt(x, y, w, v);
-        const o = j * nx + i;
-        for (let k = 0; k < 5; k++) Wg[o * 5 + k] = w[k];
-        for (let k = 0; k < NV; k++) Vg[o * NV + k] = v[k];
-        let R = 0, Gc = 0, B = 0;
-        for (let k = 0; k < 5; k++) { const u = MATS[k].under; R += u[0] * w[k]; Gc += u[1] * w[k]; B += u[2] * w[k]; }
-        const m = 0.8 + v[6] * 0.45;
-        Cg[o * 3] = R * m; Cg[o * 3 + 1] = Gc * m; Cg[o * 3 + 2] = B * m;
+        const x = (gx0 + i) * GS, y = (gy0 + j) * GS, o = (j * nx + i) * NR;
+        Rg[o] = forestN(x, y);
+        Rg[o + 1] = pondN(x, y);
+        Rg[o + 2] = wheatN(x, y);
+        Rg[o + 3] = U.fbm(x / 980, y / 980, 41, 3);
+        Rg[o + 4] = U.fbm(x / 380 + 3.3, y / 380 - 8.1, 53, 2);
+        Rg[o + 5] = U.fbm(x / 250, y / 250, 61, 2);
+        Rg[o + 6] = U.perlin(x / 46, y / 46, 71);
+        Rg[o + 7] = U.fbm(x / 70 + 1.7, y / 70 + 9.1, 81, 2);
       }
     }
-    // dark under-painting with canvas weave
+    // 2. derived: edge distances + normals from grid gradients, weights, flow, detail, under-painting colour
+    const w = new Float32Array(5);
+    let gx = 0, gy = 0;
+    const grad = (i, j, k) => {
+      const iL = i > 0 ? i - 1 : i, iR = i < nx - 1 ? i + 1 : i, jU = j > 0 ? j - 1 : j, jD = j < ny - 1 ? j + 1 : j;
+      gx = (Rg[(j * nx + iR) * NR + k] - Rg[(j * nx + iL) * NR + k]) / ((iR - iL) * GS);
+      gy = (Rg[(jD * nx + i) * NR + k] - Rg[(jU * nx + i) * NR + k]) / ((jD - jU) * GS);
+    };
+    for (let j = 0; j < ny; j++) {
+      if ((j & 7) === 7) yield;
+      for (let i = 0; i < nx; i++) {
+        const ro = (j * nx + i) * NR, o = (j * nx + i) * NC;
+        let gm;
+        grad(i, j, 0); gm = hyp(gx, gy) + 1e-7;
+        const dF = clamp((Rg[ro] - 0.6) / gm, -80, 80);
+        Ng[o + 5] = dF; Ng[o + 6] = gx / gm; Ng[o + 7] = gy / gm;
+        grad(i, j, 2); gm = hyp(gx, gy) + 1e-7;
+        const dW = clamp((Rg[ro + 2] - 0.5) / gm, -80, 80);
+        Ng[o + 8] = dW; Ng[o + 9] = gx / gm; Ng[o + 10] = gy / gm;
+        grad(i, j, 1); gm = hyp(gx, gy) + 1e-7;
+        const dP = clamp((0.314 - Rg[ro + 1]) / gm, -80, 80);
+        Ng[o + 11] = dP; Ng[o + 12] = -gx / gm; Ng[o + 13] = -gy / gm;
+        grad(i, j, 3); gm = hyp(gx, gy) + 1e-9;
+        const pd = Math.abs(Rg[ro + 3] - 0.5) / Math.max(gm, 0.0006);
+        Ng[o + 14] = pd; Ng[o + 15] = -gy / gm; Ng[o + 16] = gx / gm;
+        weightsOf(Rg[ro], Rg[ro + 1], Rg[ro + 2], pd, w);
+        for (let k = 0; k < 5; k++) Ng[o + k] = w[k];
+        Ng[o + 17] = -0.45 + (Rg[ro + 4] - 0.5) * 3.0;
+        Ng[o + 18] = Rg[ro + 5];
+        Ng[o + 19] = Rg[ro + 6] * 3.2;
+        Ng[o + 20] = Rg[ro + 7];
+        const hid = w[2] + w[3] + w[4];
+        Ng[o + 21] = Math.max(prox(dF, 16), prox(dW, 11) * Math.max(0, 1 - hid * 1.5), prox(dP, 14), prox(pd - 12, 9) * (1 - w[4]), (Rg[ro + 7] - 0.58) * 1.4);
+        let R = 0, Gc = 0, B = 0;
+        for (let k = 0; k < 5; k++) { const u = MATS[k].under; R += u[0] * w[k]; Gc += u[1] * w[k]; B += u[2] * w[k]; }
+        const m = 0.8 + Rg[ro + 5] * 0.45;
+        Cg[(j * nx + i) * 3] = R * m; Cg[(j * nx + i) * 3 + 1] = Gc * m; Cg[(j * nx + i) * 3 + 2] = B * m;
+      }
+    }
+    // 3. dark under-painting with canvas weave
     const img = buf.img;
     const D = img.data;
     const gpx0 = Math.round(wx * res), gpy0 = Math.round(wy * res);
@@ -436,12 +492,12 @@
       const fy = (wy + (py + 0.5) / res) / GS - gy0, j0 = fy | 0, ty = fy - j0;
       const r0 = j0 * nx * 3, r1 = r0 + nx * 3;
       for (let i = 0; i < nx * 3; i++) rowC[i] = Cg[r0 + i] + (Cg[r1 + i] - Cg[r0 + i]) * ty;
-      const gy = gpy0 + py, rowEdge = (gy & 3) === 0 || (gy & 3) === 3;
+      const gyp = gpy0 + py, rowEdge = (gyp & 3) === 0 || (gyp & 3) === 3;
       let o = py * PX * 4;
       for (let px = 0; px < PX; px++, o += 4) {
         const i = colI[px], t = colT[px];
-        const gx = gpx0 + px;
-        const wv = ((gx >> 2) + (gy >> 2)) & 1 ? ((gx & 3) === 0 || (gx & 3) === 3 ? 0.87 : 1) : (rowEdge ? 0.87 : 1);
+        const gxp = gpx0 + px;
+        const wv = ((gxp >> 2) + (gyp >> 2)) & 1 ? ((gxp & 3) === 0 || (gxp & 3) === 3 ? 0.87 : 1) : (rowEdge ? 0.87 : 1);
         D[o] = (rowC[i] + (rowC[i + 3] - rowC[i]) * t) * wv;
         D[o + 1] = (rowC[i + 1] + (rowC[i + 4] - rowC[i + 1]) * t) * wv;
         D[o + 2] = (rowC[i + 2] + (rowC[i + 5] - rowC[i + 2]) * t) * wv;
@@ -449,38 +505,88 @@
       }
     }
 
-    const sw = new Float32Array(5), sv = new Float32Array(NV);
+    // 4. strokes
+    const S = new Float32Array(NC);
     const sample = (x, y) => {
       const fx = x / GS - gx0, fy = y / GS - gy0;
       const i0 = Math.min(nx - 2, Math.max(0, fx | 0)), j0 = Math.min(ny - 2, Math.max(0, fy | 0));
-      const tx = fx - i0, ty = fy - j0;
-      const o00 = j0 * nx + i0, o10 = o00 + 1, o01 = o00 + nx, o11 = o01 + 1;
+      const tx = clamp01(fx - i0), ty = clamp01(fy - j0);
+      const o00 = (j0 * nx + i0) * NC, o10 = o00 + NC, o01 = o00 + nx * NC, o11 = o01 + NC;
       const a = (1 - tx) * (1 - ty), b = tx * (1 - ty), c = (1 - tx) * ty, d = tx * ty;
-      for (let k = 0; k < 5; k++) sw[k] = Wg[o00 * 5 + k] * a + Wg[o10 * 5 + k] * b + Wg[o01 * 5 + k] * c + Wg[o11 * 5 + k] * d;
-      for (let k = 0; k < NV; k++) sv[k] = Vg[o00 * NV + k] * a + Vg[o10 * NV + k] * b + Vg[o01 * NV + k] * c + Vg[o11 * NV + k] * d;
+      for (let k = 0; k < NC; k++) S[k] = Ng[o00 + k] * a + Ng[o10 + k] * b + Ng[o01 + k] * c + Ng[o11 + k] * d;
+    };
+    const detAt = (x, y) => {
+      const i = Math.min(nx - 1, Math.max(0, Math.round(x / GS - gx0))), j = Math.min(ny - 1, Math.max(0, Math.round(y / GS - gy0)));
+      return Ng[(j * nx + i) * NC + 21];
     };
     const kRes = res / KG;
     const draw = (spr, x, y, ang, sc) => splat(D, PX, spr, (x - wx) * res, (y - wy) * res, ang, kRes * sc);
-    const flowAngle = (mat, r) => {
+    const tangAng = (nxv, nyv) => Math.atan2(nxv, -nyv);   // angle of the tangent (-ny, nx)
+    const flowAngle = (mat, x, y, r, jit) => {
       let vx, vy;
       switch (mat) {
-        case 0: vx = sv[0] * 0.5; vy = -1 + sv[1] * 0.5; break;
-        case 1: vx = sv[0]; vy = sv[1]; break;
-        case 2: vx = sv[4] + sv[0] * 0.22; vy = sv[5] + sv[1] * 0.22; break;
-        case 3: vx = sv[2]; vy = sv[3]; break;
-        default: vx = sv[2] * 0.85 + sv[0] * 0.3; vy = sv[3] * 0.85 + sv[1] * 0.3;
+        case 0: vx = -S[10]; vy = S[9]; break;                       // furrows parallel to the field edge
+        case 1: {                                                      // grass in the wind, bending around forests and ponds
+          vx = Math.cos(S[17]); vy = Math.sin(S[17]);
+          const bF = Math.exp(-Math.abs(S[5]) / 12) * 1.6, bP = Math.exp(-Math.abs(S[11]) / 12) * 1.6;
+          let tx = -S[7], ty = S[6];
+          if (tx * vx + ty * vy < 0) { tx = -tx; ty = -ty; }
+          vx += tx * bF; vy += ty * bF;
+          tx = -S[13]; ty = S[12];
+          if (tx * vx + ty * vy < 0) { tx = -tx; ty = -ty; }
+          vx += tx * bP; vy += ty * bP;
+          break;
+        }
+        case 2: vx = S[15]; vy = S[16]; break;                         // along the path
+        case 3: return S[19] + (r.next() - 0.5) * 0.6;                 // curly foliage dabs
+        default: vx = -S[13]; vy = S[12];                              // ripples parallel to the shore
       }
-      return Math.atan2(vy, vx) + (r.next() - 0.5) * 0.3;
+      return Math.atan2(vy, vx) + (r.next() - 0.5) * jit;
+    };
+    const lightTerm = (mat, x, y) => {
+      let l = (S[18] - 0.5) * 2.4;
+      if (mat === 0 && S[8] > 0) l += 0.75 * Math.sin(S[8] * 0.95);                                  // furrow bands
+      else if (mat === 1) { const a = S[17] + 1.5708; l += 0.42 * Math.sin((x * Math.cos(a) + y * Math.sin(a)) / 7 + S[18] * 8); }   // wind waves
+      else if (mat === 4) l += 1.3 * (1 - U.smoothstep(0, 14, S[11])) - 0.4;                        // lighter shallows
+      const lit = -(S[6] * LDX + S[7] * LDY);
+      if (mat !== 3 && lit < -0.15 && S[5] < 0 && S[5] > -(4 - lit * 12)) l -= 1.3;                   // in the forest's cast shadow
+      if (mat === 3 && lit > 0.15 && S[5] < 6) l += 1.1;                                              // moonlit forest edge
+      return l;
     };
     const pickMat = (u) => {
       let acc = 0;
-      for (let k = 0; k < 5; k++) { acc += sw[k]; if (u < acc) return k; }
+      for (let k = 0; k < 5; k++) { acc += S[k]; if (u < acc) return k; }
       return 1;
     };
+    const SETS = ATLAS.sets;
+    let EA = 0, ESC = 1;
+    /** designed edge bands – returns a sprite (and sets EA/ESC) or null */
+    const edgeStroke = (x, y, r, pass) => {
+      const u = r.next();
+      if (S[4] < 0.3) {                                                // path borders + ruts
+        const e = S[14] - 12;
+        if (e > -1.3 && e < 1.3 && u < 0.85) { EA = Math.atan2(S[16], S[15]); ESC = 0.85; return SETS.ink[r.int(0, 1)][r.int(0, 1)]; }
+        if (pass === 2 && Math.abs(S[14] - 4.6) < 1.0 && S[2] > 0.6) { EA = Math.atan2(S[16], S[15]) + (r.next() - 0.5) * 0.15; ESC = 0.85; return SETS.rut[r.int(0, 2)][r.int(0, 1)]; }
+      }
+      const dP = S[11];
+      if (dP > -1.4 && dP < 0.9 && u < 0.8) { EA = tangAng(S[12], S[13]); ESC = 0.85; return SETS.ink[r.int(0, 2)][r.int(0, 1)]; }
+      if (dP > 0.9 && dP < 6 && u < 1 - dP / 6) { EA = tangAng(S[12], S[13]) + (r.next() - 0.5) * 0.2; ESC = 0.8 + r.next() * 0.3; return SETS.shore[r.int(0, 2)][r.int(0, 1)]; }
+      const dF = S[5], lit = -(S[6] * LDX + S[7] * LDY);
+      if (dF > -1.2 && dF < 1.0 && u < 0.7) { EA = tangAng(S[6], S[7]); ESC = 0.9; return SETS.ink[r.int(0, 1)][r.int(0, 1)]; }
+      if (lit > 0.15 && dF > 0.6 && dF < 3 + lit * 5 && u < lit * 1.2) { EA = tangAng(S[6], S[7]) + (r.next() - 0.5) * 0.3; ESC = 0.75 + r.next() * 0.3; return SETS.rim[r.int(0, 2)][r.int(0, 1)]; }
+      if (lit < -0.15 && dF < -0.6 && dF > -(3 - lit * 11) && S[4] < 0.3 && u < 0.85) { EA = tangAng(S[6], S[7]) + (r.next() - 0.5) * 0.2; ESC = 0.8 + r.next() * 0.35; return SETS.shade[r.int(0, 2)][r.int(0, 1)]; }
+      if (S[2] + S[3] + S[4] < 0.35) {                                // wheat field hedge line + poppy drifts
+        const dW = S[8];
+        if (dW > -1.1 && dW < 1.1 && u < 0.75) { EA = tangAng(S[9], S[10]); ESC = 0.85; return SETS.ink[r.int(0, 2)][r.int(0, 1)]; }
+        if (pass === 2 && dW > 0.8 && dW < 7 && S[20] > 0.6) { EA = r.next() * TAU; ESC = 0.55 + r.next() * 0.3; return SETS.poppy[r.int(0, 2)][r.int(0, 1)]; }
+      }
+      return null;
+    };
     let n = 0;
-    const M = 9;
-    for (let pass = 0; pass < 2; pass++) {
-      const cell = pass === 0 ? 4.3 : 6.2, seed = pass === 0 ? 7001 : 7002;
+    const M = 12;
+    const PASS = [[6.6, 7001, 1.5], [4.5, 7002, 2.4], [2.9, 7003, 3.1]];
+    for (let pass = 0; pass < 3; pass++) {
+      const cell = PASS[pass][0], seed = PASS[pass][1], base = PASS[pass][2];
       const cx0 = Math.floor((wx - M) / cell), cx1 = Math.floor((wx + size + M) / cell);
       const cy0 = Math.floor((wy - M) / cell), cy1 = Math.floor((wy + size + M) / cell);
       for (let cy = cy0; cy <= cy1; cy++) {
@@ -488,23 +594,31 @@
           const r = RR.seed(U.hashInt(cx, cy, seed));
           const x = (cx + r.next()) * cell, y = (cy + r.next()) * cell;
           if (x < wx - M || x > wx + size + M || y < wy - M || y > wy + size + M) continue;
-          sample(x, y);
-          const mat = pickMat(r.next());
-          const m = MATS[mat], set = ATLAS.mats[mat];
-          if (pass === 1 && r.next() > m.pB) continue;
-          const bias = (sv[6] - 0.5) * 3.2;
-          let spr;
-          if (pass === 1 && r.next() < m.acP) spr = set.acc[(r.next() * set.acc.length) | 0][(r.next() * 3) | 0];
-          else {
-            const idx = pass === 0 ? clamp(Math.floor(r.next() * 4 + bias - 0.4), 0, 5) : clamp(2 + Math.floor(r.next() * 3 + bias), 0, 5);
-            spr = set.pal[idx][(r.next() * 3) | 0];
+          if (pass > 0) {
+            const det = detAt(x, y), u = r.next();
+            if (pass === 1 ? u > 0.3 + 0.62 * det : (det < 0.12 || u > det * det * 1.15)) continue;
           }
-          draw(spr, x, y, flowAngle(mat, r), (pass === 0 ? 1.12 : 1.0) * (0.8 + r.next() * 0.4));
-          if (++n % 30 === 0) yield;
+          sample(x, y);
+          let spr = pass > 0 ? edgeStroke(x, y, r, pass) : null, ang, sc;
+          if (spr) { ang = EA; sc = ESC; }
+          else {
+            const mat = pickMat(r.next());
+            const set = ATLAS.mats[mat];
+            ang = flowAngle(mat, x, y, r, pass === 0 ? 0.18 : 0.3);
+            const accP = pass === 0 ? 0 : 0.03 + 0.22 * U.smoothstep(0.55, 0.75, S[20]);
+            if (r.next() < accP) { spr = set.acc[(r.next() * set.acc.length) | 0][r.int(0, 1)]; sc = pass === 2 ? 0.7 : 0.95; }
+            else {
+              const idx = clamp(Math.round(base + lightTerm(mat, x, y) + (r.next() - 0.5) * (pass === 0 ? 0.9 : 1.2)), 0, 5);
+              if (pass === 0) { spr = set.coat[idx][r.int(0, 1)]; sc = 0.85 + r.next() * 0.3; }
+              else { spr = set.pal[idx][r.int(0, 2)]; sc = pass === 1 ? 0.8 + r.next() * 0.4 : 0.55 + r.next() * 0.25; }
+            }
+          }
+          draw(spr, x, y, ang, sc);
+          if (++n % 40 === 0) yield;
         }
       }
     }
-    // decals painted on top: lamp reflections on the paths, wildflowers, wheat ears, starry whorls in the ponds
+    // 5. decals with intent: wind eddies in open meadows, star whorls mirrored in deep water, flower drifts at edges
     const scat = function* (cell, seed, margin, fn) {
       const x0 = Math.floor((wx - margin) / cell), x1 = Math.floor((wx + size + margin) / cell);
       const y0 = Math.floor((wy - margin) / cell), y1 = Math.floor((wy + size + margin) / cell);
@@ -520,54 +634,37 @@
         }
       }
     };
-    yield* scat(26, 811, 10, (x, y, r) => {
-      if (sw[2] < 0.7 || r.next() > 0.32) return;
-      const ang = Math.atan2(sv[5], sv[4]);
-      const nxp = -Math.sin(ang), nyp = Math.cos(ang);
-      const cnt = 2 + r.int(0, 2);
-      for (let i = 0; i < cnt; i++) {
-        const t = i * 1.7 - cnt * 0.8;
-        const spr = ATLAS.gold[clamp(i === 0 ? 2 : r.int(0, 2), 0, 3)][r.int(0, 1)];
-        draw(spr, x + nxp * t + (r.next() - 0.5) * 2, y + nyp * t, ang + (r.next() - 0.5) * 0.2, 0.55 + r.next() * 0.35 - i * 0.06);
-      }
-    });
-    yield* scat(12, 822, 4, (x, y, r) => {
-      if (sw[1] < 0.6 || r.next() > 0.2) return;
-      const f = ATLAS.flower[r.next() < 0.5 ? 0 : r.next() < 0.6 ? 1 : 2];
-      const cnt = 2 + r.int(0, 1);
-      for (let i = 0; i < cnt; i++) draw(f[r.int(0, 1)], x + (r.next() - 0.5) * 2, y + (r.next() - 0.5) * 1.6, r.next() * TAU, 0.5 + r.next() * 0.3);
-    });
-    yield* scat(9, 833, 6, (x, y, r) => {
-      if (sw[0] < 0.65 || r.next() > 0.14) return;
-      const spr = ATLAS.gold[r.int(0, 1)][r.int(0, 1)];
-      draw(spr, x, y, -Math.PI / 2 + sv[0] * 0.5 + (r.next() - 0.5) * 0.4, 0.6 + r.next() * 0.4);
-    });
-    yield* scat(34, 844, 4, (x, y, r) => {
-      if (sw[0] < 0.6 || r.next() > 0.18) return;
-      for (let i = 0; i < 2; i++) draw(ATLAS.flower[3][i], x + i * 1.5, y + (r.next() - 0.5), r.next() * TAU, 0.6);
-    });
-    yield* scat(70, 855, 24, (x, y, r) => {
-      if (sw[4] < 0.85 || r.next() > 0.7) return;
-      // a Starry-Night whorl mirrored in the water
-      const set = ATLAS.mats[4];
-      const turns = 1.6 + r.next() * 0.8, cnt = 18 + r.int(0, 8), dir = r.next() < 0.5 ? 1 : -1, ph = r.next() * TAU;
-      const R = 12 + r.next() * 8;
+    const spiral = (x, y, r, R, cnt, turns, flat, pick, sc0) => {
+      const dir = r.next() < 0.5 ? 1 : -1, ph = r.next() * TAU;
       for (let i = 0; i < cnt; i++) {
         const t = i / cnt;
-        const a = ph + dir * t * turns * TAU, rr = 2 + t * R;
-        const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * 0.62;
-        const tang = Math.atan2(Math.cos(a) * 0.62 * dir, -Math.sin(a) * dir);
-        const spr = t < 0.3 ? ATLAS.gold[r.int(1, 3)][r.int(0, 1)] : set.acc[r.next() < 0.7 ? 0 : 1][r.int(0, 2)];
-        draw(spr, px, py, tang, (t < 0.3 ? 0.55 : 0.7) + r.next() * 0.2);
+        const a = ph + dir * t * turns * TAU, rr = 1.5 + t * R;
+        const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr * flat;
+        const tang = Math.atan2(Math.cos(a) * flat * dir, -Math.sin(a) * dir);
+        draw(pick(t, r), px, py, tang, sc0 + t * 0.35 + r.next() * 0.15);
       }
+    };
+    yield* scat(330, 891, 40, (x, y, r) => {
+      if (S[1] < 0.92 || S[21] > 0.3 || r.next() > 0.5) return;
+      spiral(x, y, r, 18 + r.next() * 12, 22 + r.int(0, 8), 1.4 + r.next() * 0.5, 0.72, (t, rr) => SETS.eddy[t < 0.25 ? 3 : rr.int(0, 2)][rr.int(0, 1)], 0.6);
     });
-    yield* scat(40, 866, 8, (x, y, r) => {
-      if (sw[4] < 0.8 || r.next() > 0.35) return;
-      // small star reflections
+    yield* scat(80, 855, 30, (x, y, r) => {
+      if (S[4] < 0.95 || S[11] < 14 || r.next() > 0.6) return;
+      const set = ATLAS.mats[4];
+      spiral(x, y, r, 12 + r.next() * 8, 18 + r.int(0, 8), 1.6 + r.next() * 0.8, 0.62, (t, rr) => (t < 0.3 ? SETS.gold[rr.int(1, 3)][rr.int(0, 1)] : set.acc[rr.next() < 0.7 ? 0 : 1][rr.int(0, 1)]), 0.5);
+    });
+    yield* scat(46, 866, 8, (x, y, r) => {
+      if (S[4] < 0.9 || S[11] < 8 || r.next() > 0.3) return;
       for (let i = 0; i < 5; i++) {
         const a = (i / 5) * TAU + r.next();
-        draw(ATLAS.gold[i === 0 ? 3 : r.int(1, 2)][r.int(0, 1)], x + Math.cos(a) * 2.6, y + Math.sin(a) * 1.6, a + Math.PI / 2, 0.45);
+        draw(SETS.gold[i === 0 ? 3 : r.int(1, 2)][r.int(0, 1)], x + Math.cos(a) * 2.6, y + Math.sin(a) * 1.6, a + Math.PI / 2, 0.45);
       }
+    });
+    yield* scat(8, 822, 4, (x, y, r) => {
+      if (S[1] < 0.7 || S[20] < 0.64 || S[21] < 0.15 || r.next() > 0.5) return;
+      const f = SETS.flower[r.next() < 0.55 ? 0 : r.next() < 0.7 ? 1 : r.next() < 0.6 ? 2 : 3];
+      const cnt = 2 + r.int(0, 1);
+      for (let i = 0; i < cnt; i++) draw(f[r.int(0, 1)], x + (r.next() - 0.5) * 2.4, y + (r.next() - 0.5) * 1.8, r.next() * TAU, 0.5 + r.next() * 0.3);
     });
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -582,15 +679,18 @@
   }
 
   /* ======================================================================
-     3. Characters
+     3. Characters – every body part has its own seeded RNG, so the strokes stay put from pose to pose
+        (the motion reads as one painted figure moving, not as noise)
      ====================================================================== */
   const PRUSSIAN = H('#111733');
   const ORANGE = hexes(['#8e3a12', '#b8521a', '#d86c1e', '#ec8a28', '#f6aa3c', '#fcd06a']);
   const COAT = hexes(['#141d52', '#1d2c78', '#26409a', '#3157b4', '#4a76cc', '#7aa0e0']);
   const LEAF = hexes(['#163a2a', '#1f5a3a', '#2f7a4a', '#4a9a52', '#80bc5c']);
   const GLOWC = hexes(['#4a1206', '#ffb52e', '#ffe070', '#fff6c8']);
+  const SCARF = hexes(['#8a1a10', '#c8341e', '#e8502a', '#f6883a']);
+  const RNG = (seed, part) => U.rng(seed * 31 + part * 977);
 
-  function carved(ctx, P, r) {
+  function carved(ctx, P) {
     let cx = 0, cy = 0;
     for (const p of P) { cx += p[0]; cy += p[1]; }
     cx /= P.length; cy /= P.length;
@@ -605,167 +705,263 @@
   }
   const tri = (cx, cy, s, tall) => [[cx - s, cy + s * 0.6 * tall], [cx + s, cy + s * 0.6 * tall], [cx + s * 0.15, cy - s * 1.0 * tall]];
 
-  function drawJack(ctx, r, pose) {
-    ctx.translate(0, pose.bob);
-    const lg = pose.leg;
-    // legs + boots
-    for (const s of [-1, 1]) {
-      const fx = s * 2.3 + s * lg * 1.9, fy = -0.6 - Math.max(0, s * lg) * 1.3;
-      seg(ctx, s * 2.2, -5.5, fx, fy - 1, 2.5, H('#2b2238'), r);
-      stroke(ctx, fx + 0.9, fy - 0.2, 0.05, 3.6, 2.0, H('#1e130e'), r, { hi: 0.25 });
-    }
-    // back arm
-    seg(ctx, -4.2, -14, -6.2 - pose.arm * 1.5, -8.8, 2.4, COAT[1], r);
-    // scarf tail (behind)
-    seg(ctx, -3.5, -15.2, -8.4, -12.6 + pose.flut, 2.0, H('#c8341e'), r);
-    seg(ctx, -7.6, -13, -10.4, -11.4 + pose.flut * 1.4, 1.7, H('#e8502a'), r);
-    // coat
-    const coat = spline([[-4.4, -15.6], [0, -16], [4.4, -15.6], [5.6, -10.5], [6.9, -4.6], [3.2, -3.5], [0, -4.0], [-3.2, -3.5], [-6.9, -4.6], [-5.6, -10.5]], 3);
-    paint(ctx, coat, r, {
+  /* ---------- main character: carved gourd head, ultramarine coat, red scarf ---------- */
+  function jackLeg(ctx, r, k, swing, lift, bob) {
+    const hipX = k * 1.6, hipY = -5.8 + bob * 0.6;
+    const fx = k * 0.7 + swing * 4.0, fy = -0.4 - lift;
+    const kx = (hipX + fx) / 2 + 0.5 + lift * 0.55, ky = (hipY + fy) / 2 - lift * 0.2;
+    const col = k < 0 ? H('#1f192c') : H('#30273f');
+    seg(ctx, hipX, hipY, kx, ky, 2.7, col, r);
+    seg(ctx, kx, ky, fx, fy - 0.9, 2.4, col, r);
+    stroke(ctx, fx + 1.1, fy - 0.35, 0.05 - lift * 0.18, 3.9, 2.15, H(k < 0 ? '#140c08' : '#24170f'), r, { hi: 0.28 });
+  }
+  function jackArm(ctx, r, sx, sy, swing, raise, col, colHi) {
+    const hx = sx + swing * 3.2 + 0.7, hy = sy + 5.5 - raise * 5.4 - Math.abs(swing) * 0.5;
+    const ex = (sx + hx) / 2 + 0.6 - raise * 0.6, ey = (sy + hy) / 2 + 0.3;
+    seg(ctx, sx, sy, ex, ey, 2.7, col, r);
+    seg(ctx, ex, ey, hx, hy, 2.4, col, r);
+    seg(ctx, sx + 0.3, sy + 0.4, ex, ey - 0.3, 0.9, colHi, r, { a: 0.75 });
+    stroke(ctx, hx + 0.25, hy + 0.55, 0.6 + swing * 0.25, 1.9, 1.75, H('#e8cf9c'), r, { hi: 0.4 });
+  }
+  function drawJack(ctx, seed, q) {
+    ctx.scale(1 + (q.sq || 0) * 0.6, 1 - (q.sq || 0));
+    ctx.rotate(q.lean || 0);
+    const bob = q.bob || 0;
+    // legs behind the coat
+    jackLeg(ctx, RNG(seed, 1), -1, q.legB, q.liftB, bob);
+    jackLeg(ctx, RNG(seed, 2), 1, q.legF, q.liftF, bob);
+    ctx.save();
+    ctx.translate(0, bob);
+    // far arm
+    jackArm(ctx, RNG(seed, 3), -3.7, -14.1, q.armB, q.raiseB || 0, COAT[1], COAT[3]);
+    // coat – flared hem swings against the step, breathing lifts the shoulders
+    const br = (q.breath || 0) * 0.35, hm = q.hem || 0;
+    const coat = spline([[-4.4, -15.6 - br], [0, -16 - br], [4.4, -15.6 - br], [5.7, -10.5], [6.9 + hm * 0.5, -4.4], [3.2 + hm * 0.3, -3.3], [0, -3.9], [-3.2 + hm * 0.4, -3.3], [-7.1 + hm, -4.4 - Math.max(0, hm) * 0.4], [-5.6, -10.5]], 3);
+    paint(ctx, coat, RNG(seed, 4), {
       base: COAT[1], sp: 1.55, len: 4.2, wid: 1.5, jit: 0.15,
-      col: (x, y, rr) => rampPick(COAT, 2.2 - x * 0.28 + (rr.next() - 0.5) * 1.6),
+      col: (x, y, rr) => rampPick(COAT, 2.3 - x * 0.3 - (y + 10) * 0.05 + (rr.next() - 0.5) * 1.3),
       ang: (x) => -Math.PI / 2 + x * 0.07,
-      edge: { col: PRUSSIAN, w: 1.0, l: 3 },
+      edge: { col: PRUSSIAN, w: 1.05, l: 3 },
     });
-    stroke(ctx, 1.1, -11.2, 0.3, 1.3, 1.1, H('#f0c040'), r, { hi: 0.5 });
-    stroke(ctx, 1.3, -7.8, 0.3, 1.3, 1.1, H('#f0c040'), r, { hi: 0.5 });
-    // scarf
-    for (let i = 0; i < 4; i++) stroke(ctx, -3.8 + i * 2.5, -15.4 + Math.sin(i * 1.7) * 0.3, (r.next() - 0.5) * 0.4, 3.4, 2.1, i & 1 ? H('#e8502a') : H('#c8341e'), r);
-    stroke(ctx, 0.5, -15.8, 0.1, 4, 1.0, H('#f6883a'), r, { hi: 0.4 });
-    // front arm + hand
-    const hx = 6.6 + pose.arm * 1.6, hy = -8.6;
-    seg(ctx, 4.2, -14.2, hx, hy, 2.6, COAT[3], r);
-    seg(ctx, 4.6, -13.6, hx - 0.4, hy - 0.4, 1.0, COAT[5], r, { a: 0.8 });
-    stroke(ctx, hx + 0.3, hy + 0.6, 0.6, 1.8, 1.7, H('#e8cf9c'), r);
-    // head – carved pumpkin, ribs follow the meridians
-    const cx = 0.6, cy = -22.6, rx = 8.8, ry = 7.4;
+    const rb = RNG(seed, 5);
+    stroke(ctx, 1.1, -11.2, 0.3, 1.3, 1.1, H('#f0c040'), rb, { hi: 0.5 });
+    stroke(ctx, 1.3, -7.8, 0.3, 1.3, 1.1, H('#f0c040'), rb, { hi: 0.5 });
+    // belt of rope
+    seg(ctx, -5.3, -6.9, 5.9, -6.6, 1.1, H('#7a5a2a'), rb);
+    seg(ctx, -5.0, -7.1, 5.6, -6.9, 0.45, H('#c8a050'), rb, { a: 0.8 });
+    // scarf knot (the tail is drawn at runtime with lag)
+    for (let i = 0; i < 4; i++) stroke(ctx, -3.8 + i * 2.5, -15.5 - br + Math.sin(i * 1.7) * 0.3, (rb.next() - 0.5) * 0.4, 3.4, 2.2, i & 1 ? SCARF[2] : SCARF[1], rb);
+    stroke(ctx, 0.5, -15.9 - br, 0.1, 4, 1.0, SCARF[3], rb, { hi: 0.4 });
+    stroke(ctx, -3.6, -14.6 - br, 1.9, 2.6, 1.8, SCARF[1], rb);
+    // near arm
+    jackArm(ctx, RNG(seed, 6), 4.1, -14.1, q.armF, q.raiseF || 0, COAT[3], COAT[5]);
+    // head – carved gourd, ribs follow the meridians; lags the body a little (head bob + tilt)
+    ctx.translate(0.6, -22.6 - br * 0.6 + (q.hb || 0));
+    ctx.rotate(q.ht || 0);
+    const rh = RNG(seed, 7);
+    const cx = 0, cy = 0, rx = 8.8, ry = 7.4;
     const head = [];
     for (let i = 0; i < 44; i++) {
       const a = (i / 44) * TAU;
-      const k = 1 + 0.035 * Math.abs(Math.sin(a * 3.5)) + (r.next() - 0.5) * 0.02;
+      const k = 1 + 0.035 * Math.abs(Math.sin(a * 3.5)) + (rh.next() - 0.5) * 0.02;
       head.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k * (Math.sin(a) > 0 ? 0.97 : 1)]);
     }
     const merid = (x, y) => {
       const dx = x - cx, dy = y - cy;
-      const q = Math.sqrt(Math.max(0.06, 1 - (dy / ry) * (dy / ry)));
-      const kk = dx / (rx * q);
-      const slope = (-kk * rx * dy) / (ry * ry * q);
+      const qq = Math.sqrt(Math.max(0.06, 1 - (dy / ry) * (dy / ry)));
+      const kk = dx / (rx * qq);
+      const slope = (-kk * rx * dy) / (ry * ry * qq);
       return Math.atan2(1, slope);
     };
-    paint(ctx, head, r, {
+    paint(ctx, head, rh, {
       base: ORANGE[2], sp: 1.3, len: 3.6, wid: 1.45, jit: 0.12,
       col: (x, y, rr) => {
         const dx = (x - cx) / rx, dy = (y - cy) / ry;
-        return rampPick(ORANGE, 2.6 - dx * 1.5 - dy * 1.3 + (rr.next() - 0.5) * 1.3);
+        const l = -dx * 1.5 - dy * 1.3;
+        // cool reflected light in the core shadow (hue shift, not just darker)
+        if (l < -1.2 && rr.next() < 0.3) return H('#7a3a4a');
+        return rampPick(ORANGE, 2.6 + l + (rr.next() - 0.5) * 1.2);
       },
       ang: merid,
     });
     for (const kx of [-0.66, -0.24, 0.24, 0.66]) {
       const pts = [];
       for (let t = -0.82; t <= 0.83; t += 0.33) pts.push([cx + kx * rx * Math.sqrt(1 - t * t), cy + t * ry]);
-      polyStroke(ctx, pts, 0.75, 2.4, U.mul(ORANGE[1], 0.85), r, { a: 0.85 });
+      polyStroke(ctx, pts, 0.75, 2.4, U.mul(ORANGE[1], 0.85), rh, { a: 0.85 });
     }
-    contour(ctx, head, r, { col: PRUSSIAN, w: 1.1, l: 3.2 });
-    // stem + leaf
-    seg(ctx, cx + 0.3, cy - ry + 0.8, cx + 1.6, cy - ry - 2.8, 1.9, H('#4f6a26'), r);
-    seg(ctx, cx + 0.6, cy - ry + 0.2, cx + 1.4, cy - ry - 2.2, 0.7, H('#9ab048'), r);
-    stroke(ctx, cx - 1.6, cy - ry - 0.4, -0.5, 3.2, 1.4, H('#3f7a3a'), r);
+    contour(ctx, head, rh, { col: PRUSSIAN, w: 1.1, l: 3.2 });
+    // stem, leaf and a curling vine tendril – the characterful top of the silhouette
+    seg(ctx, cx + 0.3, cy - ry + 0.8, cx + 1.6, cy - ry - 2.9, 1.9, H('#4f6a26'), rh);
+    seg(ctx, cx + 0.6, cy - ry + 0.2, cx + 1.4, cy - ry - 2.3, 0.7, H('#9ab048'), rh);
+    stroke(ctx, cx - 1.9, cy - ry - 0.6, -0.55, 3.6, 1.6, H('#3f7a3a'), rh);
+    stroke(ctx, cx - 2.0, cy - ry - 0.8, -0.55, 2.2, 0.5, H('#80bc5c'), rh, { a: 0.8 });
+    const tend = [];
+    for (let i = 0; i <= 6; i++) { const t = i / 6, a = -0.6 + t * 4.6; tend.push([cx + 1.9 + Math.cos(a) * (2.2 - t * 1.4) + t * 1.6, cy - ry - 3.2 + Math.sin(a) * (2.2 - t * 1.4)]); }
+    polyStroke(ctx, tend, 0.55, 1.2, H('#6a8a30'), rh);
     // face (looking to +x)
     const fx = cx + 1.9;
-    carved(ctx, tri(fx - 2.9, cy - 1.6, 1.7, 1.25), r);
-    carved(ctx, tri(fx + 2.9, cy - 1.6, 1.7, 1.25), r);
-    carved(ctx, tri(fx, cy + 0.4, 0.65, 1), r);
+    carved(ctx, tri(fx - 2.9, cy - 1.6, 1.7, 1.25));
+    carved(ctx, tri(fx + 2.9, cy - 1.6, 1.7, 1.25));
+    carved(ctx, tri(fx, cy + 0.4, 0.65, 1));
     const m = [[-4.7, -0.2], [-3.4, 0.6], [-2.4, -0.2], [-1.2, 0.7], [0, -0.1], [1.2, 0.7], [2.4, -0.2], [3.4, 0.6], [4.7, -0.2], [3.8, 1.9], [1.6, 2.9], [-1.6, 2.9], [-3.8, 1.9]];
-    carved(ctx, m.map((p) => [fx + p[0], cy + 2.4 + p[1]]), r);
+    carved(ctx, m.map((p) => [fx + p[0], cy + 2.4 + p[1]]));
+    ctx.restore();
   }
 
-  const VIO = [hexes(['#34124c', '#55206f', '#763896', '#985ab6', '#c28cd8']), hexes(['#3e1040', '#661c5e', '#8a2e7c', '#ae5296', '#d488b8'])];
+  /* ---------- small creature: three root-bulb designs (turnip, radish, beet) ---------- */
+  const VIO = [hexes(['#34124c', '#55206f', '#763896', '#985ab6', '#c28cd8']), hexes(['#3e1040', '#661c5e', '#8a2e7c', '#ae5296', '#d488b8']), hexes(['#2a0c2a', '#46143e', '#62204e', '#82325e', '#a85478'])];
   const CREAM = [hexes(['#9c8656', '#c4ad78', '#e2d09a', '#f4e9c2', '#fffbe8']), hexes(['#a07a2a', '#c89e3e', '#e6c25a', '#f4dc8a', '#fff2c0'])];
-  function drawCreeper(ctx, r, pose, v) {
-    ctx.translate(0, pose.bob);
+  const CREEP = [
+    { cy: -12.6, rx: 8.6, ry: 8.2, pinch: 0.38, drop: 0.3, band: 0.5, V: 0, C: 0, leaves: 4, leafL: 6.4, leafW: 2.5, legs: 3, tail: 2.2 },     // turnip
+    { cy: -14.4, rx: 6.4, ry: 9.6, pinch: 0.5, drop: 0.55, band: 0.42, V: 1, C: 0, leaves: 2, leafL: 9.5, leafW: 2.2, legs: 2.4, tail: 4.2 },   // radish
+    { cy: -11.0, rx: 9.8, ry: 7.0, pinch: 0.25, drop: 0.18, band: 0.82, V: 2, C: 1, leaves: 3, leafL: 5.4, leafW: 3.0, legs: 3.6, tail: 1.6 },  // beet
+  ];
+  function drawCreeper(ctx, seed, q, v) {
+    const D = CREEP[v], V = VIO[D.V], C = CREAM[D.C];
+    // legs
+    const rl = RNG(seed, 1);
     for (const s of [-1, 1]) {
-      const fx = s * 3 + s * pose.leg * 1.7, fy = -0.5 - Math.max(0, s * pose.leg) * 1.2;
-      seg(ctx, s * 2.4, -4.6, fx, fy, 1.8, H('#a8865a'), r);
-      stroke(ctx, fx + s * 0.8, fy, s * 0.2, 2.2, 1.2, H('#7a5a38'), r);
+      const sw = s < 0 ? q.legL : q.legR, lift = s < 0 ? q.liftL : q.liftR;
+      const hx = s * 2.2, hy = -4.4 + q.bob * 0.5;
+      const fx = s * 1.4 + sw * 2.2 + 0.4, fy = -0.4 - lift;
+      seg(ctx, hx, hy, fx, fy, 1.8, H(s < 0 ? '#8a6a48' : '#a8865a'), rl);
+      stroke(ctx, fx + 0.9, fy, 0.1, 2.4, 1.3, H('#5a4028'), rl);
     }
-    ctx.translate(0, -10);
-    ctx.rotate(pose.tilt);
-    ctx.translate(0, 10);
-    const cx = 0, cy = -12.6, rx = 8.6, ry = 8.2;
-    // leaves behind the bulb
-    for (let i = 0; i < 4; i++) {
-      const a = -Math.PI / 2 + (-0.75 + i * 0.5) + pose.leaf * (i & 1 ? 1 : -0.6);
-      const bx = cx + 0.3, by = cy - ry + 1.2;
-      const L = 6.4 - Math.abs(i - 1.5) * 0.6;
-      stroke(ctx, bx + Math.cos(a) * L * 0.55, by + Math.sin(a) * L * 0.55, a, L, 2.5, LEAF[1 + (i & 1)], r, { hi: 0.22 });
-      stroke(ctx, bx + Math.cos(a) * L * 0.5, by + Math.sin(a) * L * 0.5, a, L * 0.7, 0.8, LEAF[4], r, { a: 0.85 });
+    ctx.save();
+    ctx.translate(0, q.bob);
+    ctx.scale(1 + q.sq * 0.6, 1 - q.sq);
+    ctx.translate(0, D.cy);
+    ctx.rotate(q.tilt);
+    ctx.translate(0, -D.cy);
+    const cx = 0, cy = D.cy, rx = D.rx, ry = D.ry;
+    // far root arm
+    const ra = RNG(seed, 2);
+    const arm = (s, sw, col) => {
+      const sx = cx + s * rx * 0.55 - 0.6, sy = cy + ry * 0.15;
+      const hx = sx + 2.4 + sw * 1.6, hy = sy + 3.6 - Math.abs(sw) * 0.6;
+      seg(ctx, sx, sy, hx, hy, 1.15, col, ra);
+      seg(ctx, hx, hy, hx + 1.3, hy + 0.9, 0.6, col, ra);
+      seg(ctx, hx, hy, hx + 0.5, hy + 1.6, 0.6, col, ra);
+    };
+    arm(-1, q.arm, H('#7a5a38'));
+    // leaves behind the bulb – they lag the body (overlapping action)
+    const rv = RNG(seed, 3);
+    const lf = D.leaves;
+    for (let i = 0; i < lf; i++) {
+      const spread = lf === 2 ? [-0.55, 0.15][i] : (-0.8 + (i / (lf - 1)) * 1.4);
+      const a = -Math.PI / 2 + spread - 0.25 + q.leaf * (1 + i * 0.25);
+      const bx = cx + 0.3, by = cy - ry + 1.3;
+      const L = D.leafL * (1 - Math.abs(spread) * 0.2);
+      const mx = bx + Math.cos(a) * L * 0.55, my = by + Math.sin(a) * L * 0.55;
+      stroke(ctx, mx, my, a, L, D.leafW, LEAF[1 + (i & 1)], rv, { hi: 0.22, bend: v === 2 ? 0.6 : 0.25 });
+      stroke(ctx, mx, my, a, L * 0.7, 0.75, LEAF[4], rv, { a: 0.85, bend: v === 2 ? 0.5 : 0.2 });
+      if (v === 1) stroke(ctx, bx + Math.cos(a) * L * 0.95, by + Math.sin(a) * L * 0.95, a - 0.6, 2.6, 1.6, LEAF[3], rv);   // radish leaf tips curl back
     }
+    if (v === 2) {   // beet: one curly leaf rolled over the top
+      const curl = [];
+      for (let i = 0; i <= 7; i++) { const t = i / 7, a = -2.2 + t * 3.6; curl.push([cx + 1 + Math.cos(a) * (3.6 - t * 1.6), cy - ry - 2.8 + Math.sin(a) * (3.0 - t * 1.4)]); }
+      polyStroke(ctx, curl, 1.5, 1.6, [LEAF[2], LEAF[3]], rv);
+    }
+    // bulb
     const body = [];
     for (let i = 0; i < 40; i++) {
       const a = (i / 40) * TAU, s = Math.sin(a);
-      const kx = s > 0 ? 1 - 0.38 * s * s : 1, ky = s > 0 ? 1 + 0.3 * s * s * s : 1;
+      const kx = s > 0 ? 1 - D.pinch * s * s : 1, ky = s > 0 ? 1 + D.drop * s * s * s : 1;
       body.push([cx + Math.cos(a) * rx * kx, cy + s * ry * ky]);
     }
-    const V = VIO[v], C = CREAM[v];
-    paint(ctx, body, r, {
-      base: V[1], sp: 1.25, len: 3.4, wid: 1.4, jit: 0.15,
+    const rb = RNG(seed, 4);
+    paint(ctx, body, rb, {
+      base: V[1], sp: 1.2, len: 3.3, wid: 1.4, jit: 0.15,
       col: (x, y, rr) => {
         const dx = (x - cx) / rx, dy = (y - cy) / ry;
-        const t = (dy + 1) / 2, b = 0.5 + 0.08 * Math.sin(x * 0.9 + v * 2);
+        const t = (dy + 1) / 2, b = D.band + 0.08 * Math.sin(x * 0.9 + v * 2);
         const l = -dx * 1.4 - dy * 0.6;
-        return t + (rr.next() - 0.5) * 0.2 < b ? rampPick(V, 2.1 + l + (rr.next() - 0.5) * 1.2) : rampPick(C, 2.3 + l + (rr.next() - 0.5) * 1.2);
+        if (v === 2 && rr.next() < 0.18) return rampPick(V, 3.4 + l);          // beet rings
+        return t + (rr.next() - 0.5) * 0.2 < b ? rampPick(V, 2.1 + l + (rr.next() - 0.5) * 1.1) : rampPick(C, 2.3 + l + (rr.next() - 0.5) * 1.1);
       },
-      ang: (x, y) => Math.atan2((x - cx) / (rx * rx), -(y - cy) / (ry * ry)) * 0.7,
-      edge: { col: H('#1d1036'), w: 0.95, l: 2.8 },
+      ang: (x, y) => (v === 2 ? Math.atan2(y - cy, x - cx) + Math.PI / 2 : Math.atan2((x - cx) / (rx * rx), -(y - cy) / (ry * ry)) * 0.7),
+      edge: { col: H('#1d1036'), w: 1.0, l: 2.8 },
     });
     // root tail
-    seg(ctx, cx + 0.3, cy + ry * 1.18, cx + 1.4, cy + ry * 1.18 + 2.2, 0.8, H('#8a6a48'), r);
-    // angry glowing eyes
-    const ex = cx + 1.2;
+    seg(ctx, cx - 0.2, cy + ry * (1 + D.drop) - 0.4, cx - 1.2, cy + ry * (1 + D.drop) + D.tail, 0.8, H('#8a6a48'), rb);
+    // near arm
+    arm(1, -q.arm, H('#a8865a'));
+    // face – big readable cadmium eyes, heavy brows
+    const rf = RNG(seed, 5);
+    const ex = cx + 1.4, ey = cy - (v === 1 ? 1.6 : 0.7);
+    const es = v === 2 ? 2.9 : v === 1 ? 2.1 : 2.6;
     for (const s of [-1, 1]) {
-      const x = ex + s * 2.6, y = cy - 0.7;
-      stroke(ctx, x, y, s * 0.35, 2.4, 1.6, H('#ffcf40'), r, { hi: 0.55, bend: 0 });
-      stroke(ctx, x + 0.3, y + 0.15, 0, 0.8, 0.8, H('#3a0a10'), r, { bend: 0 });
-      stroke(ctx, x - s * 0.1, y - 1.5, s * 0.45, 2.8, 0.9, H('#1d0f2a'), r, { bend: 0, hi: 0.1 });
+      const x = ex + s * es, y = ey;
+      stroke(ctx, x, y, s * 0.35, 2.5, 1.7, H('#ffcf40'), rf, { hi: 0.55, bend: 0 });
+      stroke(ctx, x + 0.35, y + 0.15, 0, 0.85, 0.85, H('#3a0a10'), rf, { bend: 0 });
+      stroke(ctx, x - s * 0.1, y - 1.55, s * (v === 2 ? 0.6 : 0.45), 2.9, v === 2 ? 1.2 : 0.9, H('#1d0f2a'), rf, { bend: 0, hi: 0.1 });
     }
-    stroke(ctx, ex + 0.3, cy + 2.8, 0, 3.0, 0.8, H('#2a0c22'), r, { bend: 0.25, hi: 0.1 });
+    stroke(ctx, ex + 0.3, ey + 3.4, 0, v === 1 ? 2.2 : 3.0, 0.8, H('#2a0c22'), rf, { bend: v === 2 ? -0.3 : 0.25, hi: 0.1 });
+    ctx.restore();
   }
 
+  /* ---------- fast creature: a hooded night wisp with a Starry-Night swirl for a tail ---------- */
   const GHO = hexes(['#3d64a6', '#6e9ec8', '#a2d0d2', '#cbece4', '#f2fbf4']);
-  function drawGhost(ctx, r, ph) {
+  function drawGhost(ctx, seed, ph) {
     const cx = 0, cy = -17.6;
-    const tx = -4.5 + Math.sin(ph) * 2.4, ty = -2.4 + Math.cos(ph) * 0.6;
+    const w1 = Math.sin(ph) * 0.7, w2 = Math.sin(ph + 1.6) * 0.7, w3 = Math.sin(ph + 3.1) * 0.6;
+    // swirl tail (behind) – dark under-stroke then light stroke = a painted contour on an open line
+    const rt = RNG(seed, 1);
+    const tail = [];
+    for (let i = 0; i <= 9; i++) {
+      const t = i / 9;
+      const a = 1.9 + t * 3.6 + Math.sin(ph + t * 2) * 0.25;
+      const R = 5.2 * (1 - t * 0.55);
+      tail.push([-2.6 - t * 5.2 + Math.cos(a) * R * t, -8.2 + t * 2.5 + Math.sin(a) * R * t * 0.8]);
+    }
+    for (let i = 0; i < tail.length - 1; i++) {
+      const t = i / (tail.length - 1), a = tail[i], b = tail[i + 1];
+      seg(ctx, a[0], a[1], b[0], b[1], 3.4 * (1 - t * 0.7) + 0.9, H('#1f3a78'), rt, { hi: 0.05 });
+    }
+    for (let i = 0; i < tail.length - 1; i++) {
+      const t = i / (tail.length - 1), a = tail[i], b = tail[i + 1];
+      seg(ctx, a[0], a[1], b[0], b[1], 3.0 * (1 - t * 0.7), GHO[t < 0.5 ? 3 : 2], rt, { hi: 0.35 });
+    }
+    // reaching arms (behind the body)
+    const rr0 = RNG(seed, 2);
+    const reach = Math.sin(ph + 0.8) * 0.8;
+    seg(ctx, 4.6, -13.4, 10.2, -12.0 + reach, 1.7, GHO[2], rr0, { a: 0.95 });
+    seg(ctx, 9.6, -12.0 + reach, 11.7, -13.0 + reach, 0.7, GHO[3], rr0);
+    seg(ctx, 9.6, -11.6 + reach, 11.6, -10.7 + reach, 0.7, GHO[3], rr0);
+    // hooded sheet
     const ctrl = [
-      [-7.2, -17], [-6.4, -21.5], [-3.6, -24.6], [0, -25.4], [3.6, -24.6], [6.4, -21.5], [7.2, -17],
-      [6.6, -12.5], [5.4, -8.6 + Math.sin(ph + 1) * 0.5], [3.4, -6 + Math.sin(ph + 2) * 0.6], [0.6, -4.2], [tx, ty], [tx + 1.6, -6.4], [-3.4, -7.4 + Math.sin(ph) * 0.6], [-5.8, -10.6], [-7, -13.8],
+      [-6.8, -16.6], [-6.4, -21.4], [-3.8, -24.6], [0.4, -25.6], [3.8, -24.4], [6.2, -21.2], [7.0, -16.8],
+      [6.4, -12.4], [5.0, -9.2 + w1], [2.6, -7.2 + w2], [0, -7.8 + w3], [-2.6, -7.4 + w2], [-5.0, -9.4], [-6.6, -12.8],
     ];
     const body = spline(ctrl, 3);
-    // reaching arms (behind)
-    const reach = Math.sin(ph) * 0.8;
-    seg(ctx, 4.5, -13, 10, -11.5 + reach, 1.6, GHO[2], r, { a: 0.95 });
-    seg(ctx, 9.4, -11.6 + reach, 11.4, -12.6 + reach, 0.7, GHO[3], r);
-    seg(ctx, 9.4, -11.2 + reach, 11.4, -10.4 + reach, 0.7, GHO[3], r);
-    paint(ctx, body, r, {
-      base: GHO[2], sp: 1.25, len: 3.8, wid: 1.35, jit: 0.15,
+    paint(ctx, body, RNG(seed, 3), {
+      base: GHO[2], sp: 1.2, len: 3.7, wid: 1.35, jit: 0.15,
       col: (x, y, rr) => {
-        const d = hyp(x - cx, y - cy) / 7.5;
-        return rampPick(GHO, 4.1 - d * 1.2 - Math.max(0, (y - cy) / 6) + (rr.next() - 0.5) * 1.3);
+        const d = hyp(x - cx + 1.5, y - cy + 2) / 7.5;
+        const l = 4.0 - d * 1.2 - Math.max(0, (y - cy) / 6) - Math.max(0, x - cx - 2) * 0.12;
+        if (l < 2.2 && rr.next() < 0.25) return H('#4a5ab0');                 // cobalt in the cool shadow
+        return rampPick(GHO, l + (rr.next() - 0.5) * 1.1);
       },
       ang: (x, y) => Math.atan2(y - cy - 2, x - cx) + Math.PI / 2 + 0.35,
-      edge: { col: H('#1f3a78'), w: 0.8, l: 2.5 },
+      edge: { col: H('#1f3a78'), w: 0.85, l: 2.5 },
     });
-    const ex = cx + 1.4;
-    ctx.fillStyle = '#0d1430';
+    // hood tip curls back and flutters
+    const rh = RNG(seed, 4);
+    const tipF = Math.sin(ph + 2.2) * 0.9;
+    polyStroke(ctx, [[-3.4, -24.4], [-6.4, -25.8 + tipF * 0.3], [-8.8, -25.0 + tipF], [-9.6, -23.0 + tipF]], 1.5, 2.2, [GHO[3], GHO[2]], rh);
+    seg(ctx, -9.6, -23.0 + tipF, -8.6, -21.8 + tipF, 0.9, GHO[1], rh);
+    // face: deep painted eye hollows with a faint cadmium glint, round open mouth
+    const rf = RNG(seed, 5);
+    const ex = cx + 1.5;
     for (const s of [-1, 1]) {
-      ctx.beginPath(); ctx.ellipse(ex + s * 2.4, cy - 0.8, 1.25, 1.75, s * 0.15, 0, TAU); ctx.fill();
+      stroke(ctx, ex + s * 2.4, cy - 0.9, Math.PI / 2 + s * 0.12, 3.4, 2.3, H('#0d1430'), rf, { bend: 0, hi: 0.06 });
+      stroke(ctx, ex + s * 2.4 + 0.35, cy - 1.5, 0, 0.7, 0.7, H('#ffd040'), rf, { bend: 0, hi: 0.6 });
     }
-    ctx.beginPath(); ctx.ellipse(ex + 0.2, cy + 3.6, 1.35, 2.0, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#26407e';
-    ctx.beginPath(); ctx.ellipse(ex + 0.4, cy + 4.2, 0.7, 1.0, 0, 0, TAU); ctx.fill();
-    ctx.fillStyle = 'rgba(160,220,230,0.8)';
-    for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(ex + s * 2.4 + 0.3, cy - 1.4, 0.3, 0, TAU); ctx.fill(); }
+    stroke(ctx, ex + 0.3, cy + 3.6, Math.PI / 2, 3.6, 2.4, H('#0d1430'), rf, { bend: 0, hi: 0.06 });
+    stroke(ctx, ex + 0.45, cy + 4.1, Math.PI / 2, 1.8, 1.0, H('#26407e'), rf, { bend: 0 });
   }
 
+  /* ---------- large creature: a hunched root colossus with glowing cracks and a leaf crown ---------- */
   const COLV = hexes(['#1c1220', '#2e1c30', '#46284a', '#603a62', '#7e5480', '#a27aa4']);
   const COLU = hexes(['#22160e', '#35231a', '#4c3322', '#664630', '#82603e', '#a07c52']);
   const DARKC = H('#0c0812');
@@ -773,40 +969,52 @@
     seg(ctx, x0, y0, (x0 + x1) / 2 + 0.8, (y0 + y1) / 2, w, pal[2], r);
     seg(ctx, (x0 + x1) / 2 + 0.8, (y0 + y1) / 2, x1, y1, w * 0.85, pal[2], r);
     seg(ctx, x0 - 0.6, y0 + 0.4, (x0 + x1) / 2, (y0 + y1) / 2, w * 0.35, pal[4], r, { a: 0.9 });
-    for (let i = -1; i <= 1; i++) seg(ctx, x1, y1, x1 + i * 1.8, y1 + 3 - Math.abs(i) * 0.6, 1.2, pal[1], r);
+    for (let i = -1; i <= 1; i++) seg(ctx, x1, y1, x1 + i * 1.9 + 0.6, y1 + 3.2 - Math.abs(i) * 0.6, 1.25, pal[1], r);
     contour(ctx, [[x0 - w / 2, y0], [x1 - w / 2, y1], [x1 + w / 2, y1], [x0 + w / 2, y0]], r, { col: DARKC, w: 0.9, l: 3, skip: (x, y, sh) => sh < -0.3 });
   }
-  function drawColossus(ctx, r, pose) {
-    ctx.translate(0, pose.bob);
-    // legs
+  function drawColossus(ctx, seed, q) {
+    // legs (stomping)
+    const rl = RNG(seed, 1);
     for (const s of [-1, 1]) {
-      const lift = Math.max(0, s * pose.lift) * 2.4;
-      const fx = s * 7.5, fy = -0.8 - lift;
-      seg(ctx, s * 7, -14, fx, fy - 1.5, 6.4, COLU[1], r);
-      seg(ctx, s * 7 - 1.4, -13.5, fx - 1.2, fy - 2, 1.8, COLU[3], r, { a: 0.9 });
-      stroke(ctx, fx + 1.2, fy - 0.4, 0.04, 8.4, 3.2, COLU[0], r, { hi: 0.22 });
-      for (let i = 0; i < 3; i++) seg(ctx, fx + 3.4 + i * 0.4, fy - 0.2, fx + 5.4 + i * 0.7, fy + 0.4 - i * 0.3, 0.9, COLU[2], r);
+      const lift = s < 0 ? q.liftL : q.liftR, sw = s < 0 ? q.legL : q.legR;
+      const fx = s * 6.6 + sw * 3.0, fy = -0.8 - lift * 2.6;
+      seg(ctx, s * 6.8, -14 + q.bob * 0.6, fx, fy - 1.5, 6.6, COLU[s < 0 ? 0 : 1], rl);
+      seg(ctx, s * 6.8 - 1.4, -13.5 + q.bob * 0.6, fx - 1.2, fy - 2, 1.8, COLU[3], rl, { a: 0.9 });
+      stroke(ctx, fx + 1.3, fy - 0.4, 0.04, 8.6, 3.3, COLU[0], rl, { hi: 0.22 });
+      for (let i = 0; i < 3; i++) seg(ctx, fx + 3.5 + i * 0.4, fy - 0.2, fx + 5.6 + i * 0.7, fy + 0.4 - i * 0.3, 0.9, COLU[2], rl);
     }
-    // back arm
-    rootArm(ctx, r, -14.5, -32, -18.5 - pose.arm, -15, 4.6, COLU.map((c) => U.mul(c, 0.8)));
-    // crown of leaves
+    ctx.save();
+    ctx.translate(0, q.bob);
+    ctx.scale(1 + q.sq * 0.5, 1 - q.sq);
+    ctx.translate(0, -28);
+    ctx.rotate(q.tilt);
+    ctx.translate(0, 28);
+    // back arm – hangs low, swings with lag
+    rootArm(ctx, RNG(seed, 2), -14.5, -32, -19 - q.armB * 2.2, -13.5 + Math.abs(q.armB) * 0.8, 4.6, COLU.map((c) => U.mul(c, 0.8)));
+    // crown of big leaves – bounces late after each stomp
+    const rc = RNG(seed, 3);
     for (let i = 0; i < 5; i++) {
-      const a = -Math.PI / 2 + (-0.95 + i * 0.47) + Math.sin(i * 2.1 + pose.lift) * 0.06;
-      const bx = 1, by = -42;
-      const L = 11 - Math.abs(i - 2) * 1.4;
-      stroke(ctx, bx + Math.cos(a) * L * 0.5, by + Math.sin(a) * L * 0.5, a, L, 3.8, LEAF[i & 1], r, { hi: 0.2 });
-      stroke(ctx, bx + Math.cos(a) * L * 0.5, by + Math.sin(a) * L * 0.5, a, L * 0.75, 1.0, LEAF[3], r, { a: 0.85 });
+      const a = -Math.PI / 2 + (-0.95 + i * 0.47) + q.leaf * (0.6 + Math.abs(i - 2) * 0.25);
+      const bx = 3, by = -43.5;
+      const L = 12 - Math.abs(i - 2) * 1.5;
+      stroke(ctx, bx + Math.cos(a) * L * 0.5, by + Math.sin(a) * L * 0.5, a, L, 4.0, LEAF[i & 1], rc, { hi: 0.2 });
+      stroke(ctx, bx + Math.cos(a) * L * 0.5, by + Math.sin(a) * L * 0.5, a, L * 0.75, 1.0, LEAF[3], rc, { a: 0.85 });
     }
+    // hunched body: high heavy shoulders, the head mass pushed forward
     const cx = 0, cy = -28.5, rx = 17.5, ry = 16.5;
-    const body = blob(cx, cy, rx, ry, 44, 0.07, r);
-    paint(ctx, body, r, {
+    const rb = RNG(seed, 4);
+    const body = blob(cx, cy, rx, ry, 44, 0.07, rb).map((p) => {
+      const t = (p[1] - cy) / ry;
+      return [p[0] + Math.max(0, -t) * 2.6 + (p[0] > 0 ? Math.max(0, -t) * 1.2 : 0), p[1] - Math.max(0, -t) * Math.abs(p[0] / rx) * 2.2];
+    });
+    paint(ctx, body, rb, {
       base: COLV[1], sp: 2.0, len: 5.4, wid: 2.05, jit: 0.25,
       col: (x, y, rr) => {
         const dx = (x - cx) / rx, dy = (y - cy) / ry;
         const l = -dx * 1.5 - dy * 1.2;
-        if (dx * 0.7 + dy * 0.7 < -0.75 && rr.next() < 0.55) return rr.next() < 0.6 ? H('#6fa4b0') : H('#b4d0c4');
+        if (dx * 0.7 + dy * 0.7 < -0.75 && rr.next() < 0.55) return rr.next() < 0.6 ? H('#6fa4b0') : H('#b4d0c4');   // moss on the lit back
         const t = (dy + 1) / 2 + (rr.next() - 0.5) * 0.25;
-        return t < 0.58 ? rampPick(COLV, 2.4 + l + (rr.next() - 0.5) * 1.4) : rampPick(COLU, 2 + l + (rr.next() - 0.5) * 1.4);
+        return t < 0.58 ? rampPick(COLV, 2.4 + l + (rr.next() - 0.5) * 1.3) : rampPick(COLU, 2 + l + (rr.next() - 0.5) * 1.3);
       },
       ang: (x, y) => {
         const dx = x - cx, dy = y - cy;
@@ -814,32 +1022,36 @@
         const m = hyp(tx, ty) + 1e-6;
         return Math.atan2(ty / m * 0.6 + 0.55, tx / m * 0.6 + Math.sin(y * 0.4) * 0.2);
       },
-      edge: { col: DARKC, w: 1.6, l: 4.4 },
+      edge: { col: DARKC, w: 1.7, l: 4.4 },
     });
-    // glowing cracks
+    // glowing cracks (pulse is added at runtime)
+    const rk = RNG(seed, 5);
     const cracks = [
       [[-1, -40], [1.4, -35], [0, -31], [3, -27.5], [1.2, -23], [4, -17.5]],
       [[0, -31], [-5, -28.5], [-8.5, -24], [-11.5, -22.5]],
       [[3, -27.5], [8, -29.5], [11.5, -26.5]],
       [[1.2, -23], [-2.5, -19], [-3.5, -15.5]],
     ];
-    for (const c of cracks) polyStroke(ctx, c, 2.0, 3, H('#1a0c08'), r, { hi: 0.05 });
-    for (const c of cracks) polyStroke(ctx, c, 1.15, 2.6, [H('#ffb030'), H('#ff9a20'), H('#ffc84a')], r, { hi: 0.45 });
-    for (const c of cracks) polyStroke(ctx, c, 0.45, 2.2, H('#fff2b0'), r, { hi: 0.6 });
+    for (const c of cracks) polyStroke(ctx, c, 2.0, 3, H('#1a0c08'), rk, { hi: 0.05 });
+    for (const c of cracks) polyStroke(ctx, c, 1.15, 2.6, [H('#ffb030'), H('#ff9a20'), H('#ffc84a')], rk, { hi: 0.45 });
+    for (const c of cracks) polyStroke(ctx, c, 0.45, 2.2, H('#fff2b0'), rk, { hi: 0.6 });
     for (let i = 0; i < 7; i++) {
       const a = (i / 7) * TAU;
-      stroke(ctx, 2.2 + Math.cos(a) * 1.4, -28 + Math.sin(a) * 1.4, a + Math.PI / 2, 2.2, 1.1, i & 1 ? H('#ffe070') : H('#fff6c8'), r, { hi: 0.6 });
+      stroke(ctx, 2.2 + Math.cos(a) * 1.4, -28 + Math.sin(a) * 1.4, a + Math.PI / 2, 2.2, 1.1, i & 1 ? H('#ffe070') : H('#fff6c8'), rk, { hi: 0.6 });
     }
-    // eyes + brows + mouth
+    // deep-set eyes under a heavy brow ridge, a grim mouth
+    const rf = RNG(seed, 6);
+    seg(ctx, -2, -38.6, 11.5, -38.2, 2.6, COLV[0], rf, { hi: 0.12 });
     for (const s of [-1, 1]) {
-      const x = 3 + s * 4.8, y = -36.4;
-      stroke(ctx, x, y, s * 0.3, 3.4, 1.5, H('#ffd040'), r, { hi: 0.6, bend: 0 });
-      stroke(ctx, x - s * 0.2, y - 1.9, s * 0.42, 5.2, 1.9, DARKC, r, { bend: 0, hi: 0.1 });
+      const x = 5 + s * 4.6, y = -36.4;
+      stroke(ctx, x, y, s * 0.3, 3.4, 1.6, H('#ffd040'), rf, { hi: 0.6, bend: 0 });
+      stroke(ctx, x - s * 0.2, y - 1.9, s * 0.42, 5.2, 1.9, DARKC, rf, { bend: 0, hi: 0.1 });
     }
-    stroke(ctx, 6, -31.5, -0.1, 4.8, 1.6, H('#140a10'), r, { bend: 0.2, hi: 0.05 });
-    stroke(ctx, 6, -31.3, -0.1, 3.2, 0.5, H('#ffb030'), r, { bend: 0.2, hi: 0.4 });
+    stroke(ctx, 8, -31.5, -0.1, 5.2, 1.6, H('#140a10'), rf, { bend: 0.2, hi: 0.05 });
+    stroke(ctx, 8, -31.3, -0.1, 3.4, 0.5, H('#ffb030'), rf, { bend: 0.2, hi: 0.4 });
     // front arm
-    rootArm(ctx, r, 14.5, -31.5, 18.5 + pose.arm, -15.5, 5, COLU);
+    rootArm(ctx, RNG(seed, 7), 15, -31.5, 19.5 + q.armF * 2.2, -14 + Math.abs(q.armF) * 0.8, 5, COLU);
+    ctx.restore();
   }
 
   /* ---------- small sprites ---------- */
@@ -852,21 +1064,31 @@
     stroke(ctx, 0.2 * s, 0.5 * s, 0.05, 3.2 * s, 0.7 * s, H('#c89a52'), r, { bend: 0 });
     contour(ctx, P, r, { col: H('#3a2410'), w: 0.55 * s, l: 1.4 * s });
   }
+  /** collectible: small = a golden painted star, big = a turquoise night crystal */
   function drawGemSprite(ctx, r, big) {
-    const s = big ? 1.6 : 1;
+    if (!big) {
+      const rays = [[0, 3.4, 1.5], [Math.PI / 2, 3.0, 1.4], [Math.PI, 3.4, 1.5], [-Math.PI / 2, 3.6, 1.5]];
+      for (const [a, L, w] of rays) stroke(ctx, Math.cos(a) * L * 0.42, -2.6 + Math.sin(a) * L * 0.42, a, L, w + 0.5, H('#7a3a10'), r, { bend: 0, hi: 0.1 });
+      for (const [a, L, w] of rays) stroke(ctx, Math.cos(a) * L * 0.42, -2.6 + Math.sin(a) * L * 0.42, a, L * 0.9, w, H('#f0a020'), r, { bend: 0, hi: 0.45 });
+      for (let k = 0; k < 4; k++) stroke(ctx, 0, -2.6, k * Math.PI / 2 + Math.PI / 4, 2.2, 0.8, H('#ffd84a'), r, { bend: 0, hi: 0.5 });
+      stroke(ctx, -0.2, -2.8, 0.4, 1.6, 1.5, H('#fff6c8'), r, { bend: 0, hi: 0.6 });
+      return;
+    }
+    const s = 1.6;
     const P = [];
     for (let i = 0; i < 20; i++) {
       const a = (i / 20) * TAU;
       const k = 1 + 0.5 * Math.max(0, -Math.sin(a)) ** 3;
       P.push([Math.cos(a) * 1.8 * s * (1 - 0.3 * Math.max(0, -Math.sin(a))), -2.2 * s + Math.sin(a) * 1.9 * s * k]);
     }
-    const pal = big ? hexes(['#2a8a9a', '#5cc4c8', '#a8ecdc', '#f4fff0']) : hexes(['#c8641a', '#f0a020', '#ffd84a', '#fff6c8']);
+    const pal = hexes(['#2a8a9a', '#5cc4c8', '#a8ecdc', '#f4fff0']);
     ctx.fillStyle = rgb(pal[1]);
     ctx.fill(pathOf(P));
-    stroke(ctx, 0.3 * s, -1.6 * s, -1.4, 2.8 * s, 1.6 * s, pal[1], r, { hi: 0.4 });
+    stroke(ctx, 0.5 * s, -1.6 * s, -1.4, 2.8 * s, 1.4 * s, H('#2f56b0'), r, { hi: 0.3 });
+    stroke(ctx, -0.3 * s, -1.9 * s, -1.4, 2.8 * s, 1.4 * s, pal[1], r, { hi: 0.4 });
     stroke(ctx, -0.5 * s, -2.6 * s, -1.6, 2.2 * s, 1.1 * s, pal[2], r, { hi: 0.5 });
     stroke(ctx, -0.6 * s, -2.8 * s, -1.2, 0.9 * s, 0.7 * s, pal[3], r, { hi: 0.6 });
-    contour(ctx, P, r, { col: big ? H('#0e2a40') : H('#3a1a08'), w: 0.5 * s, l: 1.3 * s });
+    contour(ctx, P, r, { col: H('#0e2a40'), w: 0.5 * s, l: 1.3 * s });
   }
   function drawTurnipLantern(ctx, r, f) {
     seg(ctx, -2.2, -11.8, 0, -13.6, 0.6, H('#1a1422'), r);
@@ -884,196 +1106,132 @@
     });
     for (let i = 0; i < 3; i++) stroke(ctx, (i - 1) * 1.3, -12, -Math.PI / 2 + (i - 1) * 0.5, 2.6, 0.9, LEAF[2 + (i & 1)], r);
     const g = f * 0.15;
-    carved(ctx, tri(-1.4, -7.2, 0.85 + g, 1), r);
-    carved(ctx, tri(1.4, -7.2, 0.85 + g, 1), r);
-    carved(ctx, [[-2.2, -4.9], [-1.1, -4.4], [0, -4.9], [1.1, -4.4], [2.2, -4.9], [1.2, -3.4], [-1.2, -3.4]], r);
-  }
-
-  /* ---------- FX sprites ---------- */
-  const FX = {};
-  const FXCOL = {
-    yellow: '#ffd040', orange: '#f08a2a', white: '#f6f0dc', violet: '#8a4aac', cream: '#eadcae', turq: '#8fd0cc',
-    blue: '#2f56b0', umber: '#5a3a24', red: '#d8452a', green: '#3f8a4a', gold: '#ffe27a', ghost: '#cdeee6', plum: '#4a2a5a',
-  };
-  function haloSprite(px, cols, rings) {
-    const { c, ctx } = cv(px, px);
-    const R = px / 2, r = U.rng(px * 7 + cols.length);
-    const g = ctx.createRadialGradient(R, R, 0, R, R, R * 0.5);
-    g.addColorStop(0, rgb(H(cols[0]), 0.55));
-    g.addColorStop(0.5, rgb(H(cols[1]), 0.18));
-    g.addColorStop(1, rgb(H(cols[1]), 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, px, px);
-    rings.forEach((rg, i) => {
-      const rr = rg[0] * R, n = Math.max(6, Math.round((TAU * rr) / (rg[2] * R * 0.85)));
-      const off = r.next() * TAU;
-      for (let k = 0; k < n; k++) {
-        const a = off + (k / n) * TAU + (r.next() - 0.5) * 0.12;
-        const col = H(cols[Math.min(cols.length - 1, i + (r.next() < 0.3 ? 1 : 0))]);
-        stroke(ctx, R + Math.cos(a) * rr, R + Math.sin(a) * rr, a + Math.PI / 2 + 0.12, rg[2] * R * (0.8 + r.next() * 0.4), rg[3] * R, col, r, { a: rg[1] * (0.7 + r.next() * 0.3), bend: 0.12 });
-      }
-    });
-    return gpuc(c);
-  }
-  function radial(px, stops) {
-    const { c, ctx } = cv(px, px);
-    const g = ctx.createRadialGradient(px / 2, px / 2, 0, px / 2, px / 2, px / 2);
-    for (const s of stops) g.addColorStop(s[0], s[1]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, px, px);
-    return gpuc(c);
-  }
-  function swirlSprite(px, cols, seed) {
-    const { c, ctx } = cv(px, px);
-    const R = px / 2, r = U.rng(seed);
-    for (let arm = 0; arm < 3; arm++) {
-      for (let i = 0; i < 16; i++) {
-        const t = i / 16, a = arm * (TAU / 3) + t * 4.2, rr = R * (0.18 + t * 0.74);
-        stroke(ctx, R + Math.cos(a) * rr, R + Math.sin(a) * rr, a + Math.PI / 2 + 0.25, R * (0.22 + t * 0.1), R * 0.09, H(cols[(i + arm) % cols.length]), r, { a: 0.55 + t * 0.45, bend: 0.15 });
-      }
-    }
-    return gpuc(c);
-  }
-  function buildFx() {
-    FX.halo = {
-      gold: haloSprite(160, ['#fff6c8', '#ffe070', '#ffc83a', '#f0a030', '#d08a26'], [[0.2, 0.9, 0.14, 0.07], [0.34, 0.75, 0.15, 0.065], [0.5, 0.55, 0.15, 0.06], [0.66, 0.38, 0.15, 0.055], [0.84, 0.22, 0.14, 0.05]]),
-      cool: haloSprite(128, ['#f4fff0', '#c8f0e4', '#8fd0cc', '#5aa8c0', '#3a7aa8'], [[0.22, 0.85, 0.16, 0.08], [0.4, 0.6, 0.16, 0.07], [0.6, 0.38, 0.16, 0.065], [0.8, 0.2, 0.15, 0.06]]),
-      small: haloSprite(64, ['#fff6c8', '#ffe070', '#f0a030'], [[0.3, 0.8, 0.22, 0.1], [0.56, 0.5, 0.2, 0.09], [0.82, 0.25, 0.18, 0.08]]),
-    };
-    FX.glow = radial(64, [[0, 'rgba(255,236,150,0.95)'], [0.35, 'rgba(255,190,70,0.45)'], [1, 'rgba(255,150,40,0)']]);
-    FX.pool = radial(64, [[0, 'rgba(255,200,90,0.5)'], [0.5, 'rgba(240,160,60,0.2)'], [1, 'rgba(240,140,40,0)']]);
-    FX.swirl = {
-      creeper: swirlSprite(96, ['#985ab6', '#e2d09a', '#55206f'], 11),
-      ghost: swirlSprite(96, ['#cbece4', '#6e9ec8', '#f2fbf4'], 12),
-      colossus: swirlSprite(96, ['#ffd040', '#603a62', '#a07c52'], 13),
-      gold: swirlSprite(128, ['#ffe070', '#fff6c8', '#f0a030'], 14),
-      blue: swirlSprite(96, ['#4a76cc', '#a2d0d2', '#26409a'], 15),
-    };
-    FX.dab = {};
-    let sd = 300;
-    for (const k in FXCOL) {
-      FX.dab[k] = [0, 1, 2].map(() => {
-        const r = U.rng(sd++);
-        const { c, ctx } = cv(28, 12);
-        ctx.scale(4, 4);
-        stroke(ctx, 3.5, 1.5, 0, 4.6, 1.9, H(FXCOL[k]), r, { bend: (r.next() - 0.5) * 0.5 });
-        return gpuc(c);
-      });
-    }
-    // painted shadow: dark ultramarine horizontal strokes
-    {
-      const { c, ctx } = cv(80, 32);
-      const r = U.rng(77);
-      ctx.scale(4, 4);
-      for (let i = 0; i < 16; i++) {
-        const a = r.next() * TAU, d = Math.sqrt(r.next());
-        stroke(ctx, 10 + Math.cos(a) * d * 6, 4 + Math.sin(a) * d * 2, (r.next() - 0.5) * 0.3, 7 - d * 3, 2.6 - d, H(i & 1 ? '#0c1030' : '#141a44'), r, { hi: 0.08, a: 0.75 });
-      }
-      FX.shadow = gpuc(c);
-    }
-    // star sparkle
-    {
-      const { c, ctx } = cv(40, 40);
-      const r = U.rng(78);
-      for (let i = 0; i < 4; i++) stroke(ctx, 20, 20, (i * Math.PI) / 4, i & 1 ? 20 : 34, i & 1 ? 4 : 6, H(i & 1 ? '#ffe070' : '#fff6c8'), r, { bend: 0 });
-      FX.star = gpuc(c);
-    }
-    // dash smear
-    {
-      const { c, ctx } = cv(120, 48);
-      const r = U.rng(79);
-      ctx.scale(4, 4);
-      for (let i = 0; i < 6; i++) stroke(ctx, 15, 4 + i * 0.9 + (r.next() - 0.5) * 0.4, 0, 22 - Math.abs(i - 2.5) * 3, 1.2, H(['#4a76cc', '#a2d0d2', '#f6aa3c', '#26409a'][i % 4]), r, { a: 0.8, bend: 0.06 });
-      FX.smear = gpuc(c);
-    }
-    // seed trail
-    {
-      const { c, ctx } = cv(64, 16);
-      const r = U.rng(80);
-      ctx.scale(4, 4);
-      stroke(ctx, 8, 2, 0, 15, 2.2, H('#f0a030'), r, { bend: 0 });
-      stroke(ctx, 9, 1.8, 0, 12, 0.9, H('#ffe070'), r, { bend: 0 });
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalCompositeOperation = 'destination-in';
-      const g = ctx.createLinearGradient(0, 0, 64, 0);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(1, 'rgba(0,0,0,0.9)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 64, 16);
-      FX.trail = gpuc(c);
-    }
+    carved(ctx, tri(-1.4, -7.2, 0.85 + g, 1));
+    carved(ctx, tri(1.4, -7.2, 0.85 + g, 1));
+    carved(ctx, [[-2.2, -4.9], [-1.1, -4.4], [0, -4.9], [1.1, -4.4], [2.2, -4.9], [1.2, -3.4], [-1.2, -3.4]]);
   }
 
   /* ---------- character frames ---------- */
   const SPR = {};
   function buildCharacters() {
-    let sd = 1000;
-    const jack = { idle: [], walk: [] };
-    for (let b = 0; b < 3; b++) {
-      jack.idle.push(withFlip(mk(34, 42, 17, 37, (ctx) => drawJack(ctx, U.rng(sd++), { leg: 0, bob: 0, arm: 0, flut: b * 0.4 }))));
+    const SEED = 1000;
+    // a point of the figure after drawJack's own transforms (squash, lean, bob) – anchors for the runtime scarf + glow
+    const xf = (q, X, Y) => {
+      const sq = q.sq || 0, l = q.lean || 0, yy = Y + (q.bob || 0);
+      return [(X * Math.cos(l) - yy * Math.sin(l)) * (1 + sq * 0.6), (X * Math.sin(l) + yy * Math.cos(l)) * (1 - sq)];
+    };
+    const jk = (q) => {
+      const s = withFlip(mk(40, 44, 19, 39, (ctx) => drawJack(ctx, SEED, q)));
+      s.neck = xf(q, -3.2, -15.0 - (q.breath || 0) * 0.35);
+      s.face = xf(q, 2.7, -21.6 + (q.hb || 0));
+      return s;
+    };
+    const jack = { idle: [], walk: [], dash: [], hurt: [] };
+    // idle: breathing loop, 4 poses (neutral – inhale – hold – exhale)
+    [0, 0.6, 1, 0.45].forEach((b, i) => jack.idle.push(jk({ legF: 0.06, legB: -0.06, liftF: 0, liftB: 0, armF: -0.05, armB: 0.08, breath: b, hb: -b * 0.3, ht: [0, 0.02, 0.035, 0.012][i], hem: -b * 0.15 })));
+    // walk: 8 poses – contact, down, passing, up for each foot; arms counter-swing, head lags the body
+    for (let i = 0; i < 8; i++) {
+      const ph = (i / 8) * TAU, s = Math.sin(ph), c = Math.cos(ph), sb = Math.sin(ph - 0.4), sh = Math.sin(ph - 1.0);
+      jack.walk.push(jk({ legF: s, legB: -s, liftF: Math.max(0, c) * 2.1, liftB: Math.max(0, -c) * 2.1, bob: (sb * sb - 0.5) * 1.7, armF: -s, armB: s, hem: -c * 0.8, hb: (sh * sh - 0.5) * 0.8, ht: 0.06 * Math.sin(2 * ph - 1.2), lean: 0.075 }));
     }
-    for (let p = 0; p < 4; p++) {
-      const ph = (p / 4) * TAU;
-      jack.walk.push(withFlip(mk(34, 42, 17, 37, (ctx) => drawJack(ctx, U.rng(sd++), { leg: Math.sin(ph), bob: -Math.abs(Math.cos(ph)) * 0.7, arm: -Math.sin(ph), flut: Math.cos(ph) }))));
-    }
+    // dash: anticipation crouch, then the stretched lunge
+    jack.dash.push(jk({ legF: 0.3, legB: -0.3, liftF: 0.4, liftB: 0, armF: -0.9, armB: -0.6, bob: 1.2, sq: 0.12, lean: -0.06, hem: 0.3, hb: 0.6 }));
+    jack.dash.push(jk({ legF: 1.25, legB: -1.35, liftF: 0.6, liftB: 0.9, armF: -1.4, armB: -1.2, bob: -0.6, sq: -0.07, lean: 0.3, hem: 1.0, hb: 0.4, ht: 0.08 }));
+    // hurt: recoil – leaning back, arms up, head tossed back
+    jack.hurt.push(jk({ legF: 0.5, legB: -0.4, liftF: 0.5, liftB: 0, armF: 0.4, armB: 0.6, raiseF: 1, raiseB: 0.8, bob: 0.4, sq: 0.06, lean: -0.2, hem: -0.6, hb: 0.5, ht: -0.16 }));
     SPR.jack = jack;
-    SPR.creeper = [0, 1].map((v) => {
+    // small creature: 3 designs x 6-pose waddle (contact squash, hop up, leaves lag behind)
+    SPR.creeper = [0, 1, 2].map((v) => {
       const fr = [];
-      for (let p = 0; p < 4; p++) {
-        const ph = (p / 4) * TAU;
-        fr.push(withFlip(mk(30, 34, 15, 29, (ctx) => drawCreeper(ctx, U.rng(sd++), { leg: Math.sin(ph), bob: -Math.abs(Math.cos(ph)) * 0.8, tilt: Math.sin(ph) * 0.07, leaf: Math.cos(ph) * 0.12 }, v))));
+      for (let p = 0; p < 6; p++) {
+        const ph = (p / 6) * TAU, s = Math.sin(ph), c = Math.cos(ph), as = Math.abs(s);
+        fr.push(withFlip(mk(30, 40, 15, 35, (ctx) => drawCreeper(ctx, 2000 + v * 10, {
+          legL: s, legR: -s, liftL: Math.max(0, c) * 1.3, liftR: Math.max(0, -c) * 1.3, bob: -(1 - as) * 1.2,
+          sq: as * as * as * 0.08 - (1 - as) * 0.03, tilt: 0.09 * s, leaf: -0.2 * Math.cos(ph - 0.9), arm: -s,
+        }, v))));
       }
       return fr;
     });
-    SPR.ghost = [[0, 1, 2].map((i) => withFlip(mk(30, 32, 15, 29, (ctx) => drawGhost(ctx, U.rng(sd++), (i / 3) * TAU))))];
+    // fast creature: 6 poses of the swirling tail and fluttering hood
+    // (the forward lean into the flight is baked in – a wisp is always on the move – so it blits without a rotation)
+    SPR.ghost = [[0, 1, 2, 3, 4, 5].map((i) => withFlip(mk(34, 34, 17, 31, (ctx) => { ctx.rotate(0.16); drawGhost(ctx, 3000, (i / 6) * TAU); })))];
+    // large creature: 6-pose heavy stomp
     SPR.colossus = [(() => {
       const fr = [];
-      for (let p = 0; p < 4; p++) {
-        const ph = (p / 4) * TAU;
-        fr.push(withFlip(mk(66, 64, 33, 58, (ctx) => drawColossus(ctx, U.rng(sd++), { lift: Math.sin(ph), bob: -Math.abs(Math.cos(ph)) * 1.0, arm: Math.sin(ph) * 1.2 }))));
+      for (let p = 0; p < 6; p++) {
+        const ph = (p / 6) * TAU, s = Math.sin(ph), c = Math.cos(ph), as = Math.abs(s);
+        fr.push(withFlip(mk(70, 66, 35, 60, (ctx) => drawColossus(ctx, 4000, {
+          legL: s * 0.8, legR: -s * 0.8, liftL: Math.max(0, c), liftR: Math.max(0, -c), bob: as * as * 1.4 - 0.4,
+          sq: Math.pow(as, 6) * 0.07, tilt: 0.05 * s, leaf: 0.12 * Math.sin(ph * 2 - 2.0), armF: -Math.sin(ph - 0.7), armB: Math.sin(ph - 0.7),
+        }))));
       }
       return fr;
     })()];
+    let sd = 4500;
     SPR.gem = [0, 1].map((i) => mk(8, 8, 4, 6, (ctx) => drawGemSprite(ctx, U.rng(sd++ + i), false), 6));
     SPR.gemBig = [0, 1].map((i) => mk(12, 12, 6, 9.5, (ctx) => drawGemSprite(ctx, U.rng(sd++ + i), true), 6));
     SPR.seed = [0, 1].map(() => mk(7, 5, 3.5, 2.5, (ctx) => drawSeedSprite(ctx, U.rng(sd++), false), 6));
     SPR.lantern = [0, 1, 2].map((f) => mk(12, 16, 6, 14.5, (ctx) => drawTurnipLantern(ctx, U.rng(sd++), f)));
+    // scarf tail segments (drawn at runtime with spring lag)
+    SPR.scarf = [SCARF[1], SCARF[2], SCARF[1]].map((c, i) => mk(7, 4, 0.6, 2, (ctx) => stroke(ctx, 2.9, 0, 0, 5.4 - i * 0.6, 2.2 - i * 0.35, c, U.rng(sd++), { bend: 0.15, hi: 0.35 })));
+    // paint puddles left by dissolving creatures
+    const puddle = (cols, rx, seed) => mk(rx * 2 + 6, rx + 4, rx + 3, (rx + 4) / 2, (ctx) => {
+      const r = U.rng(seed);
+      for (let i = 0; i < 14; i++) {
+        const a = r.next() * TAU, d = Math.sqrt(r.next());
+        stroke(ctx, Math.cos(a) * d * rx * 0.75, Math.sin(a) * d * rx * 0.32, (r.next() - 0.5) * 0.5, rx * (0.7 - d * 0.3), 2.2 + (1 - d) * 1.4, H(cols[i % cols.length]), r, { hi: 0.3 });
+      }
+    });
+    SPR.puddle = {
+      creeper: [puddle(['#55206f', '#e2d09a', '#763896', '#c4ad78'], 9, 61), puddle(['#661c5e', '#f4e9c2', '#8a2e7c'], 8, 62), puddle(['#46143e', '#82325e', '#c89e3e'], 10, 63)],
+      ghost: [puddle(['#6e9ec8', '#cbece4', '#a2d0d2'], 7, 64)],
+      colossus: [puddle(['#46284a', '#4c3322', '#ffb030', '#603a62', '#664630'], 18, 65)],
+    };
   }
 
   /* ======================================================================
      4. Props
      ====================================================================== */
   const PROPS = {};
+  /** cypress: a twisting dark flame – lobed tongues, moonlit olive on the left, ultramarine in the shadow */
   function drawCypress(ctx, r, Ht) {
     const ph = r.next() * 6;
-    const wAt = (t) => 7.6 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.16 + t * 0.86)), 0.75) * (1 - 0.25 * t) * (1 + 0.12 * Math.sin(t * 17 + ph));
-    const cAt = (t) => 2.4 * Math.sin(t * 4.6 + ph) * t;
+    const wAt = (t) => 7.2 * Math.pow(Math.sin(Math.PI * Math.min(1, 0.14 + t * 0.88)), 0.8) * (1 - 0.3 * t);
+    const cAt = (t) => 2.3 * Math.sin(t * 4.2 + ph) * t;
+    const lobe = (t, side) => 1 + 0.22 * Math.pow(Math.max(0, Math.sin(t * 19 + ph + (side > 0 ? 0 : 1.9))), 2);
     const L = [], R = [];
-    const N = 30;
+    const N = 40;
     for (let i = 0; i <= N; i++) {
       const t = i / N, y = -2 - t * Ht;
-      R.push([cAt(t) + wAt(t) * (1 + (r.next() - 0.5) * 0.12), y]);
-      L.push([cAt(t) - wAt(t) * (1 + (r.next() - 0.5) * 0.12), y]);
+      R.push([cAt(t) + wAt(t) * lobe(t, 1), y]);
+      L.push([cAt(t) - wAt(t) * lobe(t, -1), y]);
     }
     L.reverse();
-    const P = R.concat([[cAt(1) + 0.6, -Ht - 5]]).concat(L);
-    seg(ctx, 0, 0, 0.3, -6, 2.6, H('#2a1a14'), r);
+    const P = R.concat([[cAt(1) + 1.6, -Ht - 4.5], [cAt(1) + 0.4, -Ht - 6]]).concat(L);
+    seg(ctx, 0, 0, 0.3, -6, 2.8, H('#2a1a14'), r);
     const pal = hexes(['#081210', '#0e2018', '#153222', '#1e442c', '#2c5838', '#3f6e40']);
     paint(ctx, P, r, {
-      base: pal[1], sp: 1.9, len: 7.5, wid: 2.0, jit: 0.2,
+      base: pal[1], sp: 1.8, len: 7.5, wid: 2.0, jit: 0.2,
       col: (x, y, rr) => {
         const t = (-y - 2) / Ht, l = -(x - cAt(t)) / Math.max(1, wAt(t));
         const u = rr.next();
-        if (u < 0.08) return H('#22355f');
-        if (u < 0.12 && l > 0.2) return H('#6f7c34');
-        return rampPick(pal, 1.8 + l * 1.9 + (rr.next() - 0.5) * 1.6);
+        if (l < -0.35 && u < 0.16) return H('#22355f');                   // cool shadow side
+        if (l > 0.35 && u < 0.2) return rr.next() < 0.6 ? H('#6f7c34') : H('#9aa850');   // moonlit tongues
+        return rampPick(pal, 2.0 + l * 2.0 + (rr.next() - 0.5) * 1.2);
       },
       ang: (x, y) => {
         const t = (-y - 2) / Ht;
-        return -Math.PI / 2 + 0.6 * Math.sin(t * 11 + x * 0.35 + ph);
+        return -Math.PI / 2 + 0.55 * Math.sin(t * 11 + x * 0.35 + ph);
       },
       edge: { col: H('#04080a'), w: 1.3, l: 4.5 },
     });
+    // dark grooves between the flame tongues
+    for (let k = 0; k < 4; k++) {
+      const pts = [];
+      const t0 = 0.1 + k * 0.2;
+      for (let i = 0; i <= 5; i++) { const t = t0 + i * 0.035; pts.push([cAt(t) + Math.sin(t * 19 + ph + k) * wAt(t) * 0.5, -2 - t * Ht]); }
+      polyStroke(ctx, pts, 0.8, 3, H('#050c0a'), r, { a: 0.8 });
+    }
   }
   function drawOlive(ctx, r) {
     const tr = hexes(['#3a2c2a', '#5a4636', '#7a5e44']);
@@ -1116,7 +1274,51 @@
     });
     for (let i = 0; i < 6; i++) stroke(ctx, (r.next() - 0.5) * 22 * s, -1 + r.next() * 1.5, (r.next() - 0.5) * 0.5, 4, 1, H('#f0d062'), r);
   }
+  const WALL = hexes(['#a88a5a', '#c8ac76', '#dcc490', '#ecdcae', '#f6ecc8']);
+  function litWindow(ctx, r, x, y, w, h, lights) {
+    const P = [[x - w, y - h], [x + w, y - h], [x + w, y + h], [x - w, y + h]];
+    ctx.fillStyle = '#ffc93a';
+    ctx.fill(pathOf(P));
+    stroke(ctx, x - 0.3, y - 0.4, -Math.PI / 2, h * 1.5, w * 1.1, H('#fff0a0'), r, { hi: 0.5 });
+    contour(ctx, P, r, { col: H('#1a1430'), w: 0.8, l: 2 });
+    seg(ctx, x, y - h + 0.2, x, y + h - 0.2, 0.5, H('#3a2a20'), r);
+    seg(ctx, x - w + 0.1, y, x + w - 0.1, y, 0.5, H('#3a2a20'), r);
+    lights.push([x, y, 0.8]);
+  }
   function drawHouse(ctx, r, v) {
+    const lights = [];
+    if (v === 2) {   // village church: tall nave and a pointed steeple (Starry Night village)
+      const nave = [[-11, -0.5], [7, -0.5], [7.2, -15], [-11.2, -15]];
+      const roof = [[-12.6, -14.4], [8.4, -14.6], [5.6, -21], [-10, -21.4]];
+      const tower = [[6.8, -0.5], [13.4, -0.5], [13.4, -24], [6.8, -24]];
+      const spire = [[6, -23.6], [14.2, -23.6], [10.4, -40]];
+      const paintWall = (Pp, shade) => paint(ctx, Pp, r, {
+        base: WALL[1], sp: 1.5, len: 4.4, wid: 1.5, jit: 0.2,
+        col: (x, y, rr) => (rr.next() < 0.1 ? H('#6a7aa8') : rampPick(WALL, 2.4 - shade - x * 0.05 + (y + 8) * 0.05 + (rr.next() - 0.5) * 1.6)),
+        ang: (x, y, rr) => (rr.next() < 0.55 ? -Math.PI / 2 : 0), edge: { col: PRUSSIAN, w: 1.0, l: 3.2 },
+      });
+      paintWall(nave, 0);
+      paint(ctx, roof, r, {
+        base: H('#2a3a70'), sp: 1.5, len: 4.4, wid: 1.5,
+        col: (x, y, rr) => rampPick(hexes(['#1c2650', '#26346a', '#31458a', '#4a5ea8']), 2 - (y + 18) * 0.18 + (rr.next() - 0.5) * 1.6),
+        ang: () => -0.05, edge: { col: H('#0c1030'), w: 1.0, l: 3.2 },
+      });
+      paintWall(tower, 0.9);
+      paint(ctx, spire, r, {
+        base: H('#26346a'), sp: 1.3, len: 4.6, wid: 1.4,
+        col: (x, y, rr) => rampPick(hexes(['#1c2650', '#26346a', '#31458a', '#4a5ea8', '#6a7ac0']), 2.2 - (x - 10) * 0.25 + (rr.next() - 0.5) * 1.4),
+        ang: (x) => (x < 10 ? -1.25 : -1.9), edge: { col: H('#0c1030'), w: 1.0, l: 3.2 },
+      });
+      seg(ctx, 10.4, -40, 10.4, -44, 0.6, H('#1a1420'), r);
+      seg(ctx, 9.2, -42.6, 11.6, -42.6, 0.6, H('#1a1420'), r);
+      for (const wx of [-7.5, -2.6, 2.3]) litWindow(ctx, r, wx, -9, 1.3, 2.8, lights);
+      litWindow(ctx, r, 10.1, -17, 1.2, 2.4, lights);
+      const D = [[8.8, -0.6], [11.4, -0.6], [11.4, -6.8], [8.8, -6.8]];
+      ctx.fillStyle = '#1a2450';
+      ctx.fill(pathOf(D));
+      contour(ctx, D, r, { col: H('#0c1030'), w: 0.8, l: 2.2 });
+      return lights;
+    }
     const front = [[-12, -0.5], [10, -0.5], [10.3, -17], [-12.2, -16.8]];
     const side = [[10, -0.5], [16.6, -3.4], [16.6, -17.6], [13.2, -24.2], [10.3, -17]];
     const roof = [[-14, -16.2], [10.8, -16.4], [13.4, -24.6], [-9.6, -25.2]];
@@ -1125,10 +1327,9 @@
       col: (x, y, rr) => rampPick(hexes(['#2e3c6a', '#3a4a7a', '#4a5a8a', '#5e6c9a']), 1.5 + (rr.next() - 0.5) * 2),
       ang: () => -Math.PI / 2, edge: { col: PRUSSIAN, w: 1.0, l: 3.2 },
     });
-    const wall = hexes(['#a88a5a', '#c8ac76', '#dcc490', '#ecdcae', '#f6ecc8']);
     paint(ctx, front, r, {
-      base: wall[1], sp: 1.6, len: 4.6, wid: 1.6, jit: 0.2,
-      col: (x, y, rr) => (rr.next() < 0.08 ? H('#6a7aa8') : rampPick(wall, 2.4 - x * 0.06 + (y + 8) * 0.06 + (rr.next() - 0.5) * 1.8)),
+      base: WALL[1], sp: 1.6, len: 4.6, wid: 1.6, jit: 0.2,
+      col: (x, y, rr) => (rr.next() < 0.08 ? H('#6a7aa8') : rampPick(WALL, 2.4 - x * 0.06 + (y + 8) * 0.06 + (rr.next() - 0.5) * 1.8)),
       ang: (x, y, rr) => (rr.next() < 0.5 ? 0 : -Math.PI / 2), edge: { col: PRUSSIAN, w: 1.0, l: 3.2 },
     });
     const rp = hexes(['#7a2e1e', '#a8442a', '#c85a30', '#e07a40', '#f09a58']);
@@ -1139,22 +1340,11 @@
     });
     // chimney
     paint(ctx, [[4.5, -23], [7.4, -23], [7.4, -28.5], [4.5, -28.5]], r, {
-      base: wall[2], sp: 1.2, len: 2.4, wid: 1.2, col: (x, y, rr) => rampPick(wall, 2 + (rr.next() - 0.5) * 2), ang: () => -Math.PI / 2,
+      base: WALL[2], sp: 1.2, len: 2.4, wid: 1.2, col: (x, y, rr) => rampPick(WALL, 2 + (rr.next() - 0.5) * 2), ang: () => -Math.PI / 2,
       edge: { col: PRUSSIAN, w: 0.8, l: 2.4 },
     });
-    // windows + door
     const wins = v === 0 ? [[-8, -11.5], [4.6, -11.5]] : [[-7.5, -11.5], [-1, -11.5], [5.2, -11.5]];
-    const lights = [];
-    for (const w of wins) {
-      const P = [[w[0] - 2, w[1] - 2.6], [w[0] + 2, w[1] - 2.6], [w[0] + 2, w[1] + 2.6], [w[0] - 2, w[1] + 2.6]];
-      ctx.fillStyle = '#ffc93a';
-      ctx.fill(pathOf(P));
-      stroke(ctx, w[0] - 0.3, w[1] - 0.4, -Math.PI / 2, 4, 2.2, H('#fff0a0'), r, { hi: 0.5 });
-      contour(ctx, P, r, { col: H('#1a1430'), w: 0.8, l: 2 });
-      seg(ctx, w[0], w[1] - 2.4, w[0], w[1] + 2.4, 0.5, H('#3a2a20'), r);
-      seg(ctx, w[0] - 1.9, w[1], w[0] + 1.9, w[1], 0.5, H('#3a2a20'), r);
-      lights.push([w[0], w[1], 0.8]);
-    }
+    for (const w of wins) litWindow(ctx, r, w[0], w[1], 2, 2.6, lights);
     if (v === 0) {
       const D = [[-2.4, -0.6], [1.2, -0.6], [1.2, -8.6], [-2.4, -8.6]];
       ctx.fillStyle = '#1a2450';
@@ -1201,14 +1391,65 @@
       contour(ctx, blob(hx, hy, 5.2, 4.6, 20, 0.05, r), r, { col: H('#5a3a10'), w: 0.5, l: 1.4, skip: (x, y, sh) => sh < 0.2 });
     }
   }
+  /** irises (Saint-Rémy): a fan of blue-green sword leaves with ultramarine blooms and a cadmium beard */
+  function drawIris(ctx, r, n) {
+    const lv = hexes(['#1d4a40', '#2f6a5a', '#3f8a6a', '#5aa078']);
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + (i - 4) * 0.2 + (r.next() - 0.5) * 0.12, L = 9 + r.next() * 6 - Math.abs(i - 4) * 0.8;
+      const bx = (i - 4) * 0.9;
+      stroke(ctx, bx + Math.cos(a) * L * 0.5, Math.sin(a) * L * 0.5, a, L, 1.6, lv[(i + 1) % 4], r, { bend: (r.next() - 0.5) * 0.4, hi: 0.25 });
+    }
+    const pet = hexes(['#1e2470', '#2f3a9a', '#4a56c0', '#6a5ab8', '#8a7ad0']);
+    for (let k = 0; k < n; k++) {
+      const fx = (k - (n - 1) / 2) * 3.6 + (r.next() - 0.5) * 1.4, fy = -11 - r.next() * 6 - (k & 1) * 2.4;
+      seg(ctx, fx * 0.4, -2, fx, fy, 0.7, lv[1], r);
+      for (let p = 0; p < 3; p++) { const a = -Math.PI / 2 + (p - 1) * 1.05; stroke(ctx, fx + Math.cos(a) * 1.4, fy + Math.sin(a) * 1.4, a, 2.8, 1.7, pet[2 + (p & 1)], r, { hi: 0.4 }); }
+      for (let p = 0; p < 2; p++) { const a = Math.PI / 2 + (p ? 0.7 : -0.7); stroke(ctx, fx + Math.cos(a) * 1.5, fy + Math.sin(a) * 1.4, a, 2.8, 1.8, pet[1], r, { hi: 0.3 }); }
+      stroke(ctx, fx, fy + 0.6, Math.PI / 2, 1.2, 0.8, H('#f0c040'), r, { bend: 0, hi: 0.5 });
+      contour(ctx, blob(fx, fy, 2.8, 2.6, 14, 0.12, r), r, { col: H('#10143a'), w: 0.45, l: 1.3, skip: (x, y, sh) => sh < 0 });
+    }
+  }
+  /** stones by the paths: rounded forms, stroke direction wraps the form, warm moonlit top, cool shadow */
+  function drawStones(ctx, r, v) {
+    const pal = hexes(['#262a40', '#3a405a', '#545a74', '#6e7490', '#8e92a8', '#b0a888']);
+    const list = v === 0 ? [[0, -3.4, 6.4, 4.2]] : v === 1 ? [[-3.2, -2.8, 4.6, 3.4], [3.6, -2.0, 3.2, 2.4]] : [[0, -1.8, 8, 2.4], [5.4, -1.6, 2.4, 1.8]];
+    for (const [cx, cy, rx, ry] of list) {
+      const P = blob(cx, cy, rx, ry, 22, 0.08, r);
+      paint(ctx, P, r, {
+        base: pal[2], sp: 1.15, len: 2.8, wid: 1.25, jit: 0.2,
+        col: (x, y, rr) => {
+          const l = -(x - cx) / rx * 1.2 - (y - cy) / ry * 1.6;
+          if (l > 1.4 && rr.next() < 0.35) return pal[5];
+          return rampPick(pal, 2.4 + l + (rr.next() - 0.5) * 1.1);
+        },
+        ang: (x, y) => Math.atan2(y - cy, x - cx) + Math.PI / 2,
+        edge: { col: H('#10122a'), w: 0.85, l: 2.4, skip: (x, y, sh) => sh < -0.45 },
+      });
+    }
+    for (let i = 0; i < 4; i++) stroke(ctx, (r.next() - 0.5) * 12, 0.3, (r.next() - 0.5) * 0.4, 3, 1.2, LEAF[1 + (i & 1)], r, { a: 0.9 });
+  }
+  /**
+   * Wind poses baked at init: 5 skews of the sprite about its base (lean -1 … +1 × sway). The gust picks one
+   * per frame, so the plants move "on twos" in held poses and every blit stays axis-aligned (cheap).
+   */
+  function swayFrames(s) {
+    const A = s.sway, src = s.c, k = src.width / s.w, ayp = s.ay * k, extra = Math.ceil(A * ayp) + 2;
+    s.pose = [-1, -0.5, 0, 0.5, 1].map((q) => {
+      const kk = A * q, o = U.canvas(src.width + extra * 2, src.height);
+      o.ctx.setTransform(1, 0, kk, 1, extra - kk * ayp, 0);
+      o.ctx.drawImage(src, 0, 0);
+      return { c: o.c, f: s.f ? U.flipX(o.c) : null, w: o.c.width / k, h: s.h, ax: s.ax + extra / k, ay: s.ay };
+    });
+    return s;
+  }
   function buildProps() {
     let sd = 5000;
-    PROPS.cypress = [70, 82, 60].map((h) => { const s = withFlip(mk(30, h + 12, 15, h + 7, (ctx) => drawCypress(ctx, U.rng(sd++), h))); s.fade = [12, h]; return s; });
-    PROPS.olive = [0, 1].map(() => withFlip(mk(48, 44, 24, 40, (ctx) => drawOlive(ctx, U.rng(sd++)))));
+    PROPS.cypress = [70, 84, 58].map((h) => { const s = withFlip(mk(30, h + 14, 15, h + 7, (ctx) => drawCypress(ctx, U.rng(sd++), h))); s.fade = [12, h]; s.sway = 0.03; return s; });
+    PROPS.olive = [0, 1].map(() => { const s = withFlip(mk(48, 44, 24, 40, (ctx) => drawOlive(ctx, U.rng(sd++)))); s.sway = 0.025; return s; });
     PROPS.hay = [1, 0.8].map((s) => withFlip(mk(36, 30, 18, 26, (ctx) => drawHay(ctx, U.rng(sd++), s))));
-    PROPS.house = [0, 1].map((v) => {
+    PROPS.house = [0, 1, 2].map((v) => {
       let lights;
-      const s = withFlip(mk(40, 36, 18, 32, (ctx) => { lights = drawHouse(ctx, U.rng(sd++), v); }));
+      const s = withFlip(v === 2 ? mk(34, 50, 14, 46, (ctx) => { lights = drawHouse(ctx, U.rng(sd++), v); }) : mk(40, 36, 18, 32, (ctx) => { lights = drawHouse(ctx, U.rng(sd++), v); }));
       s.lights = lights;
       return s;
     });
@@ -1218,7 +1459,10 @@
       s.lights = lights;
       return s;
     });
-    PROPS.sun = [3, 2].map((n) => withFlip(mk(26, 38, 13, 35, (ctx) => drawSunflowers(ctx, U.rng(sd++), n))));
+    PROPS.sun = [3, 2].map((n) => { const s = withFlip(mk(26, 38, 13, 35, (ctx) => drawSunflowers(ctx, U.rng(sd++), n))); s.sway = 0.05; return s; });
+    PROPS.iris = [3, 5].map((n) => { const s = withFlip(mk(24, 26, 12, 23, (ctx) => drawIris(ctx, U.rng(sd++), n))); s.sway = 0.06; return s; });
+    PROPS.stone = [0, 1, 2].map((v) => withFlip(mk(22, 12, 11, 9, (ctx) => drawStones(ctx, U.rng(sd++), v))));
+    for (const t in PROPS) for (const s of PROPS[t]) if (s.sway) swayFrames(s);
   }
 
   /* ======================================================================
@@ -1556,8 +1800,164 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
 `;
   }
 
+
   /* ======================================================================
-     7. Runtime helpers
+     7. FX sprites – everything is paint: dabs, comma flicks, rings of strokes, swirls, puddles
+     ====================================================================== */
+  const FX = {};
+  const FXCOL = {
+    yellow: '#ffd040', orange: '#f08a2a', white: '#f6f0dc', violet: '#8a4aac', cream: '#eadcae', turq: '#8fd0cc',
+    blue: '#2f56b0', umber: '#5a3a24', red: '#d8452a', green: '#3f8a4a', gold: '#ffe27a', ghost: '#cdeee6', plum: '#4a2a5a',
+  };
+  function haloSprite(px, cols, rings) {
+    const { c, ctx } = cv(px, px);
+    const R = px / 2, r = U.rng(px * 7 + cols.length);
+    const g = ctx.createRadialGradient(R, R, 0, R, R, R * 0.5);
+    g.addColorStop(0, rgb(H(cols[0]), 0.55));
+    g.addColorStop(0.5, rgb(H(cols[1]), 0.18));
+    g.addColorStop(1, rgb(H(cols[1]), 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, px, px);
+    rings.forEach((rg, i) => {
+      const rr = rg[0] * R, n = Math.max(6, Math.round((TAU * rr) / (rg[2] * R * 0.85)));
+      const off = r.next() * TAU;
+      // hand-painted bands, not a target: the radius wobbles, strokes vary in length and overlap like commas
+      const wob = r.next() * TAU;
+      for (let k = 0; k < n; k++) {
+        const a = off + (k / n) * TAU + (r.next() - 0.5) * 0.16;
+        const rk = rr * (1 + 0.05 * Math.sin(a * 3 + wob) + (r.next() - 0.5) * 0.05);
+        const col = H(cols[Math.min(cols.length - 1, i + (r.next() < 0.3 ? 1 : 0))]);
+        stroke(ctx, R + Math.cos(a) * rk, R + Math.sin(a) * rk, a + Math.PI / 2 + 0.08 + (r.next() - 0.5) * 0.12, rg[2] * R * (0.75 + r.next() * 0.6), rg[3] * R * (0.8 + r.next() * 0.4), col, r, { a: rg[1] * (0.7 + r.next() * 0.3), bend: 0.22 });
+      }
+    });
+    return gpuc(c);
+  }
+  function radial(px, stops) {
+    const { c, ctx } = cv(px, px);
+    const g = ctx.createRadialGradient(px / 2, px / 2, 0, px / 2, px / 2, px / 2);
+    for (const s of stops) g.addColorStop(s[0], s[1]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, px, px);
+    return gpuc(c);
+  }
+  function swirlSprite(px, cols, seed) {
+    const { c, ctx } = cv(px, px);
+    const R = px / 2, r = U.rng(seed);
+    for (let arm = 0; arm < 3; arm++) {
+      for (let i = 0; i < 16; i++) {
+        const t = i / 16, a = arm * (TAU / 3) + t * 4.2, rr = R * (0.18 + t * 0.74);
+        stroke(ctx, R + Math.cos(a) * rr, R + Math.sin(a) * rr, a + Math.PI / 2 + 0.25, R * (0.22 + t * 0.1), R * 0.09, H(cols[(i + arm) % cols.length]), r, { a: 0.55 + t * 0.45, bend: 0.15 });
+      }
+    }
+    return gpuc(c);
+  }
+  /** a ring of tangential strokes (no glow) – paint shock rings */
+  function ringSprite(px, cols, seed) {
+    const { c, ctx } = cv(px, px);
+    const R = px / 2, r = U.rng(seed), n = 18;
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * TAU + (r.next() - 0.5) * 0.15, rr = R * (0.8 + (r.next() - 0.5) * 0.08);
+      stroke(ctx, R + Math.cos(a) * rr, R + Math.sin(a) * rr, a + Math.PI / 2 + 0.2, R * 0.36, R * 0.12, H(cols[k % cols.length]), r, { bend: 0.2 });
+    }
+    return gpuc(c);
+  }
+  function buildFx() {
+    FX.halo = {
+      gold: haloSprite(160, ['#fff6c8', '#ffe070', '#ffd040', '#9fd4dc', '#d6e6b0'], [[0.22, 0.95, 0.22, 0.085], [0.4, 0.72, 0.25, 0.075], [0.6, 0.45, 0.27, 0.065], [0.82, 0.22, 0.28, 0.055]]),
+      cool: haloSprite(128, ['#f4fff0', '#c8f0e4', '#8fd0cc', '#5aa8c0', '#3a7aa8'], [[0.24, 0.85, 0.24, 0.09], [0.46, 0.58, 0.26, 0.075], [0.72, 0.3, 0.28, 0.065]]),
+      small: haloSprite(64, ['#fff6c8', '#ffe070', '#f0a030'], [[0.3, 0.8, 0.22, 0.1], [0.56, 0.5, 0.2, 0.09], [0.82, 0.25, 0.18, 0.08]]),
+    };
+    FX.glow = radial(64, [[0, 'rgba(255,236,150,0.95)'], [0.35, 'rgba(255,190,70,0.45)'], [1, 'rgba(255,150,40,0)']]);
+    FX.pool = radial(64, [[0, 'rgba(255,200,90,0.5)'], [0.5, 'rgba(240,160,60,0.2)'], [1, 'rgba(240,140,40,0)']]);
+    FX.swirl = {
+      creeper: swirlSprite(96, ['#985ab6', '#e2d09a', '#55206f'], 11),
+      ghost: swirlSprite(96, ['#cbece4', '#6e9ec8', '#f2fbf4'], 12),
+      colossus: swirlSprite(96, ['#ffd040', '#603a62', '#a07c52'], 13),
+      gold: swirlSprite(128, ['#ffe070', '#fff6c8', '#f0a030'], 14),
+      blue: swirlSprite(96, ['#4a76cc', '#a2d0d2', '#26409a'], 15),
+    };
+    FX.ring = {
+      gold: ringSprite(96, ['#ffe070', '#fff6c8', '#f0a030'], 21),
+      red: ringSprite(96, ['#e8502a', '#f6883a', '#c8341e'], 22),
+      cool: ringSprite(96, ['#cbece4', '#8fd0cc', '#4a76cc'], 23),
+      violet: ringSprite(96, ['#985ab6', '#e2d09a', '#763896'], 24),
+    };
+    FX.dab = {};
+    FX.flick = {};
+    let sd = 300;
+    for (const k in FXCOL) {
+      FX.dab[k] = [0, 1, 2].map(() => {
+        const r = U.rng(sd++);
+        const { c, ctx } = cv(28, 12);
+        ctx.scale(4, 4);
+        stroke(ctx, 3.5, 1.5, 0, 4.6, 1.9, H(FXCOL[k]), r, { bend: (r.next() - 0.5) * 0.5 });
+        return gpuc(c);
+      });
+      // comma flick: a loaded blob that drags out into a thin tail (points along +x)
+      const r = U.rng(sd++);
+      const { c, ctx } = cv(48, 16);
+      ctx.scale(4, 4);
+      stroke(ctx, 6.5, 2, 0, 9, 1.3, H(FXCOL[k]), r, { bend: 0.25 });
+      stroke(ctx, 9.6, 2, 0, 3.4, 2.6, H(FXCOL[k]), r, { bend: 0, hi: 0.45 });
+      FX.flick[k] = gpuc(c);
+    }
+    // painted shadow: dark ultramarine horizontal strokes
+    {
+      const { c, ctx } = cv(80, 32);
+      const r = U.rng(77);
+      ctx.scale(4, 4);
+      for (let i = 0; i < 16; i++) {
+        const a = r.next() * TAU, d = Math.sqrt(r.next());
+        stroke(ctx, 10 + Math.cos(a) * d * 6, 4 + Math.sin(a) * d * 2, (r.next() - 0.5) * 0.3, 7 - d * 3, 2.6 - d, H(i & 1 ? '#0c1030' : '#141a44'), r, { hi: 0.08, a: 0.75 });
+      }
+      FX.shadow = gpuc(c);
+    }
+    // star flash: 8 rays (long/short), hot core
+    {
+      const { c, ctx } = cv(48, 48);
+      const r = U.rng(78);
+      for (let i = 0; i < 8; i++) stroke(ctx, 24 + Math.cos(i * Math.PI / 4) * (i & 1 ? 6 : 9), 24 + Math.sin(i * Math.PI / 4) * (i & 1 ? 6 : 9), (i * Math.PI) / 4, i & 1 ? 12 : 20, i & 1 ? 3.5 : 5.5, H(i & 1 ? '#ffd040' : '#ffe070'), r, { bend: 0 });
+      stroke(ctx, 24, 24, 0.4, 10, 9, H('#fff6c8'), r, { bend: 0, hi: 0.6 });
+      FX.star = gpuc(c);
+    }
+    // dash smear
+    {
+      const { c, ctx } = cv(120, 48);
+      const r = U.rng(79);
+      ctx.scale(4, 4);
+      for (let i = 0; i < 6; i++) stroke(ctx, 15, 4 + i * 0.9 + (r.next() - 0.5) * 0.4, 0, 22 - Math.abs(i - 2.5) * 3, 1.2, H(['#4a76cc', '#a2d0d2', '#f6aa3c', '#26409a'][i % 4]), r, { a: 0.8, bend: 0.06 });
+      FX.smear = gpuc(c);
+    }
+    // comet trail of the projectile: orange body, chrome-yellow core, fading tail
+    {
+      const { c, ctx } = cv(80, 16);
+      const r = U.rng(80);
+      ctx.scale(4, 4);
+      stroke(ctx, 10, 2, 0, 18, 2.4, H('#d86c1e'), r, { bend: 0.05 });
+      stroke(ctx, 11.5, 1.8, 0, 14, 1.2, H('#ffd040'), r, { bend: 0.05, hi: 0.5 });
+      stroke(ctx, 15.5, 1.9, 0, 6, 0.6, H('#fff6c8'), r, { bend: 0 });
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = 'destination-in';
+      const g = ctx.createLinearGradient(0, 0, 80, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(0.5, 'rgba(0,0,0,0.55)');
+      g.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 80, 16);
+      FX.trail = gpuc(c);
+    }
+    // a long translucent wind stroke for the atmosphere
+    {
+      const { c, ctx } = cv(240, 40);
+      const r = U.rng(81);
+      ctx.scale(4, 4);
+      for (let i = 0; i < 5; i++) stroke(ctx, 30 + (r.next() - 0.5) * 6, 5 + (i - 2) * 1.1, (r.next() - 0.5) * 0.05, 48 - Math.abs(i - 2) * 9, 1.3, H(['#a2c4e0', '#e8e0b8', '#7aa0d0'][i % 3]), r, { bend: 0.12, hi: 0.2 });
+      FX.wind = gpuc(c);
+    }
+  }
+
+  /* ======================================================================
+     8. Runtime helpers
      ====================================================================== */
   let BM = { a: 1, d: 1, e: 0, f: 0 };
   function rotDraw(ctx, img, x, y, ang, w, h, sq) {
@@ -1565,7 +1965,29 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
     ctx.setTransform(c, s * q, -s, c * q, BM.e + x * S, BM.f + y * S);
     ctx.drawImage(img, -w / 2, -h / 2, w, h);
   }
+  /** like rotDraw, but the image's anchor (ax, ay in drawn units) sits at (x, y) */
+  function rotDrawA(ctx, img, x, y, ang, w, h, ax, ay) {
+    const S = BM.a, c = Math.cos(ang) * S, s = Math.sin(ang) * S;
+    ctx.setTransform(c, s, -s, c, BM.e + x * S, BM.f + y * S);
+    ctx.drawImage(img, -ax, -ay, w, h);
+  }
   const resetT = (ctx) => ctx.setTransform(BM.a, 0, 0, BM.d, BM.e, BM.f);
+  /** sprite anchored at its feet, with squash/stretch (sx, sy) and a lean (rotation about the feet) */
+  function blitX(ctx, s, x, y, flip, sc, sx, sy, rot, img) {
+    const im = img || (flip ? s.f || s.c : s.c);
+    const ax = flip ? s.w - s.ax : s.ax;
+    const W = s.w * sc * sx, Hh = s.h * sc * sy;
+    if (!rot) { ctx.drawImage(im, x - ax * sc * sx, y - s.ay * sc * sy, W, Hh); return; }
+    const S = BM.a, c = Math.cos(rot) * S, sn = Math.sin(rot) * S;
+    ctx.setTransform(c, sn, -sn, c, BM.e + x * S, BM.f + y * S);
+    ctx.drawImage(im, -ax * sc * sx, -s.ay * sc * sy, W, Hh);
+    resetT(ctx);
+  }
+  function tintOf(s, flip, key, col) {
+    if (!s[key]) { s[key] = U.tint(s.c, col, 1); s[key + 'f'] = U.flipX(s[key]); }
+    return flip ? s[key + 'f'] : s[key];
+  }
+  const flashOf = (s, flip) => tintOf(s, flip, 'fl', '#fff0c8');
   let LIGHTS = [], LIGHTS_NEXT = [];
   let OVL = null;
   function buildOverlay(W, Hh) {
@@ -1619,6 +2041,7 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
     ghost: ['ghost', 'turq', 'white', 'blue'],
     colossus: ['umber', 'plum', 'yellow', 'orange', 'umber'],
   };
+  const MAINC = { creeper: 'violet', ghost: 'ghost', colossus: 'plum' };
   const HEIGHT = { creeper: 22, ghost: 22, colossus: 46 };
   function dabBurst(game, x, y, z, n, cols, sp, size) {
     for (let i = 0; i < n; i++) {
@@ -1630,15 +2053,161 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
       });
     }
   }
+  const easeOut = (t) => 1 - (1 - t) * (1 - t);
+  const easeInOut = (t) => t * t * (3 - 2 * t);
+  /**
+   * A swirl painted on stroke by stroke: each arm grows from the centre outwards (opaque loaded strokes, no
+   * alpha ghosting), the whole whorl turns slowly, then the outer strokes thin out and dry first.
+   */
+  const SWIRLC = {
+    creeper: ['violet', 'cream', 'plum'], ghost: ['ghost', 'turq', 'white', 'blue'], colossus: ['yellow', 'plum', 'umber', 'orange'],
+    gold: ['gold', 'yellow', 'white', 'orange', 'yellow'], blue: ['blue', 'turq', 'white'],
+  };
+  function paintSwirl(ctx, x, y, R, age, rot, key, arms, per, flat, hole) {
+    const cols = SWIRLC[key] || SWIRLC.gold;
+    const grow = 0.55 + 0.45 * easeOut(Math.min(1, age * 1.8));
+    for (let k = 0; k < arms; k++) {
+      for (let j = 0; j < per; j++) {
+        const t = j / (per - 1);
+        const rev = clamp01((age * 2.6 - t * 0.9) / 0.22);
+        if (rev <= 0) break;
+        const dry = 1 - U.smoothstep(0.5, 1, age + t * 0.14);
+        if (dry <= 0) continue;
+        const a = rot + k * (TAU / arms) + t * 4.0 + age * 1.4;
+        const rr = R * (0.14 + t * 0.82) * grow;
+        const sx = x + Math.cos(a) * rr, sy = y + Math.sin(a) * rr * flat;
+        // a swirl around a standing figure passes behind it: strokes in the figure's column above the feet are skipped
+        if (hole && sy < y + 2 && Math.abs(sx - x) < hole) continue;
+        const L = R * (0.42 + t * 0.18) * (0.4 + 0.6 * rev);
+        ctx.globalAlpha = dry > 0.35 ? 1 : dry / 0.35;
+        rotDraw(ctx, FX.dab[cols[(j + k) % cols.length]][(j + k * 2) % 3], sx, sy, a + 1.5708 + 0.14, L, L * 0.43 * (0.25 + 0.75 * dry));
+      }
+    }
+    resetT(ctx);
+    ctx.globalAlpha = 1;
+  }
+  /** the main character's scarf tail: a damped spring that lags behind the motion (follow-through) */
+  function scarfAngle(p, rt) {
+    let st = p.__vgScarf;
+    if (!st || rt < st.rt - 0.5) st = p.__vgScarf = { a: 2.0, va: 0, rt };
+    const dt = Math.min(0.05, Math.max(0, rt - st.rt));
+    st.rt = rt;
+    const dash = p.dashT > 0, mv = p.moving || dash;
+    const target = dash ? Math.PI + 0.22 : mv ? Math.PI + 0.06 + Math.sin(rt * 7.3) * 0.12 : 2.05 + Math.sin(rt * 1.7) * 0.12;
+    st.va += ((target - st.a) * 70 - st.va * 8) * dt;
+    st.a += st.va * dt;
+    return st;
+  }
+
+  /* ---------- creature states: painted-in spawn, smear-and-melt death ---------- */
+  function enemySpawn(ctx, e, fr, x, y, flip, sc, rt) {
+    const st = e.spawnT;
+    // a paint vortex spins up on the ground ...
+    const sw = FX.swirl[e.type] || FX.swirl.creeper;
+    const vr = e.r * (1.0 + 1.5 * easeOut(Math.min(1, st * 1.5)));
+    ctx.globalAlpha = Math.sin(Math.PI * Math.min(1, st * 1.15)) * 0.85;
+    rotDraw(ctx, sw, x, e.y - 1, -rt * 5 - st * 5 + e.seed * 6, vr * 2, vr * 2, 0.55);
+    resetT(ctx);
+    // ... and the creature is painted in from the ground up, the loaded brush riding on the edge,
+    // crouched while it appears, then a stretch overshoot that settles
+    const f = easeOut(clamp01((st - 0.12) / 0.6));
+    if (f <= 0) { ctx.globalAlpha = 1; return; }
+    let sx, sy;
+    if (st > 0.72) { const k = Math.sin((Math.PI * (st - 0.72)) / 0.28); sy = 1 + 0.12 * k; sx = 1 - 0.07 * k; }
+    else { sy = 0.88 + 0.12 * f; sx = 1.08 - 0.08 * f; }
+    const im = flip ? fr.f || fr.c : fr.c, ax = flip ? fr.w - fr.ax : fr.ax;
+    const iw = im.width, ih = im.height, cut = Math.floor(ih * (1 - f) * 0.92);
+    const top = y - fr.ay * sc * sy, Hd = fr.h * sc * sy;
+    ctx.globalAlpha = e.type === 'ghost' ? 0.9 : 1;
+    if (ih - cut > 0) ctx.drawImage(im, 0, cut, iw, ih - cut, x - ax * sc * sx, top + (cut / ih) * Hd, fr.w * sc * sx, ((ih - cut) / ih) * Hd);
+    if (f < 0.98) {
+      const ly = top + (cut / ih) * Hd, set = FX.dab[MAINC[e.type]] || FX.dab.violet;
+      const wid = e.r * 1.5 * sc;
+      for (let i = 0; i < 3; i++) rotDraw(ctx, set[i], x + (i - 1) * wid * 0.55 + Math.sin(rt * 21 + i * 2) * 1.2, ly + (i & 1) * 0.8, (i - 1) * 0.18, 7, 3);
+      resetT(ctx);
+    }
+    ctx.globalAlpha = 1;
+  }
+  /**
+   * Death: the figure "unpaints". A squash + warm flash as the blow lands (15 %), then the body slumps into its
+   * puddle (the wisp stretches up into its swirl) while its own strokes peel off the silhouette one after another
+   * and ride a spiral up into the wind – each chip stretches as it is pulled, then thins out.
+   */
+  const CHIPS = { creeper: 9, ghost: 8, colossus: 14 };
+  function enemyDeath(ctx, e, fr, vi, x, y, flip, sc) {
+    const d = clamp01(e.deathT);
+    const ghost = e.type === 'ghost', big = e.type === 'colossus';
+    const dir = Math.abs(e.kx || 0) > 2 ? Math.sign(e.kx) : flip ? 1 : -1;
+    const h = (HEIGHT[e.type] || 22) * sc;
+    if (!ghost) {
+      const pud = SPR.puddle[e.type][e.type === 'creeper' ? vi : 0];
+      const pa = easeOut(Math.min(1, d * 1.6));
+      ctx.globalAlpha = 0.85 * (d < 0.75 ? 1 : (1 - d) / 0.25);
+      blit(ctx, pud, x + dir * pa * 2, y + 1, false, sc * (0.4 + 0.7 * pa));
+    }
+    if (d < 0.15) {
+      const a = d / 0.15;
+      ctx.globalAlpha = 1;
+      blitX(ctx, fr, x, y, flip, sc, 1 + 0.24 * a, 1 - 0.2 * a, 0);
+      ctx.globalAlpha = 0.95 - a * 0.4;
+      blitX(ctx, fr, x, y, flip, sc, 1 + 0.24 * a, 1 - 0.2 * a, 0, flashOf(fr, flip));
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const b = (d - 0.15) / 0.85, eb = easeInOut(b), eo = easeOut(b);
+    if (ghost) {
+      ctx.globalAlpha = (1 - b) * 0.7;
+      rotDraw(ctx, FX.swirl.ghost, x, y - 15 - eb * 6, -b * 4 + e.seed * 6, 16 + eo * 20, 16 + eo * 20, 0.75);
+      resetT(ctx);
+    }
+    // the body: solid creatures slump and spread into the puddle, the wisp is drawn up and thinned
+    ctx.globalAlpha = Math.pow(1 - b, 1.5) * (ghost ? 0.9 : 1);
+    const ssx = ghost ? 1 - 0.4 * eb : 1 + 0.2 * eb, ssy = ghost ? 1 + 0.25 * eb : 1 - 0.62 * eb;
+    blitX(ctx, fr, x + (ghost ? 0 : dir * eb * 1.5), y - (ghost ? eb * 8 : 0), flip, sc, ssx, ssy, dir * eb * (ghost ? 0.25 : 0.1));
+    // its strokes peel off one after another and spiral away (staggered release, stretch, then thin out)
+    const n = CHIPS[e.type] || 9, cols = COLS[e.type] || COLS.creeper;
+    const cy = y - h * 0.52, R0 = h * (big ? 0.36 : 0.42), spin = ghost ? -dir : dir;
+    const s0 = (e.seed || 0) * 97.3;
+    for (let i = 0; i < n; i++) {
+      const u = U.fract(Math.sin(s0 + i * 12.9898) * 43758.5453), v = U.fract(u * 7.31 + i * 0.618);
+      const dl = v * 0.32;
+      const t = clamp01((b - dl) / (1 - dl));
+      if (t <= 0) continue;
+      const et = easeOut(t);
+      const ang = (i / n) * TAU + u * 0.8 + spin * et * (2.0 + v * 1.2);
+      const rr = R0 * (0.5 + 0.5 * u) * (1 + et * (big ? 1.2 : 1.6));
+      const px = x + Math.cos(ang) * rr, py = cy + Math.sin(ang) * rr * 0.62 - et * (big ? 12 : 15) * (0.6 + 0.6 * v);
+      const L = (big ? 6.8 : 4.8) * (0.7 + 0.5 * u) * (1 + 0.8 * Math.sin(Math.PI * Math.min(1, t * 1.5))) * (1 - t * t * 0.6);
+      ctx.globalAlpha = 1 - t * t;
+      rotDraw(ctx, FX.dab[cols[i % cols.length]][i % 3], px, py, ang + spin * 1.5708 + 0.25, L, L * 0.42);
+    }
+    resetT(ctx);
+    ctx.globalAlpha = 1;
+  }
+  function drawScarf(ctx, fr, x, y, fs, st, rt, moving) {
+    let px = x + fr.neck[0] * fs, py = y + fr.neck[1];
+    let a = st.a;
+    const curl = clamp(-st.va * 0.05, -0.45, 0.45);
+    for (let i = 0; i < 3; i++) {
+      const ang = a + curl * (i + 1) * 0.5 + Math.sin(rt * (moving ? 11 : 3) + i * 1.3) * (moving ? 0.1 : 0.05) * i;
+      const wa = fs > 0 ? ang : Math.PI - ang;
+      const s = SPR.scarf[i];
+      rotDrawA(ctx, s.c, px, py, wa, s.w, s.h, s.ax, s.ay);
+      const L = 4.6 - i * 0.6;
+      px += Math.cos(wa) * L; py += Math.sin(wa) * L;
+      a = ang;
+    }
+    resetT(ctx);
+  }
 
   /* ======================================================================
-     8. Registration
+     9. Registration
      ====================================================================== */
   Styles.register({
     id: 'vangogh',
     name: 'Sternennacht',
     family: 'Ölgemälde',
-    description: 'Ein lebendiges Ölgemälde der Nacht vor Mitternacht – dicke, wirbelnde Pinselstriche in Ultramarin, Kadmiumgelb und Viridian.',
+    description: 'A living Van Gogh night painting: thick, directional impasto strokes in ultramarine, viridian and cadmium yellow that follow every form.',
     groundColor: '#141c30',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1660,7 +2229,12 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
       hudTexturesAsync((T) => {
         self.css = makeCss(T);
         const tag = document.getElementById('style-css');
-        if (tag && document.body.classList.contains('style-vangogh')) tag.textContent = self.css;
+        if (tag) { if (document.body.classList.contains('style-vangogh')) tag.textContent = self.css; return; }
+        // pages that copied the (then still empty) css string at init get the finished sheet as its own
+        // <style> – it is scoped to body.style-vangogh like every style sheet, so it is inert elsewhere
+        let own = document.getElementById('vg-style-css');
+        if (!own) { own = document.createElement('style'); own.id = 'vg-style-css'; document.head.appendChild(own); }
+        own.textContent = self.css;
       });
       window.__vgInit = { atlas: Math.round(t1 - t0), chars: Math.round(t2 - t1), props: Math.round(t3 - t2), rest: Math.round(performance.now() - t3) };
     },
@@ -1671,51 +2245,89 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
       const out = [];
       const w = new Float32Array(5);
       const ok = (x, y) => !G.nearSpawn(x, y, 95);
-      const at = (x, y) => { fieldAt(x, y, w); return w; };
+      const at = (x, y) => fieldAt(x, y, w);
+      const clus = (x, y) => U.fbm(x / 70 + 1.7, y / 70 + 9.1, 81, 2);
+      // cypresses: a dense wall along the forest edge, thinning out towards the dark heart of the wood ...
       G.scatterOwned(info, 46, 9101, (x, y, r) => {
         if (!ok(x, y)) return;
+        const F = forestN(x, y);
+        if (F < 0.6 || !r.chance(F < 0.635 ? 0.55 : 0.22)) return;
         const f = at(x, y);
-        if (f[2] > 0.05 || f[4] > 0.05) return;
-        const pr = f[3] > 0.6 ? 0.5 : f[1] > 0.6 ? 0.025 : 0;
-        if (!r.chance(pr)) return;
-        const v = r.int(0, 2);
-        out.push({ x, y, t: 'cypress', v, flip: r.chance(0.5), sh: [8, 2.6], pad: 110 });
+        if (f[2] > 0.05 || f[4] > 0.05 || f[3] < 0.6) return;
+        out.push({ x, y, t: 'cypress', v: r.int(0, 2), flip: r.chance(0.5), sh: [8, 2.6], pad: 110 });
       });
-      G.scatterOwned(info, 110, 9102, (x, y, r) => {
-        if (!ok(x, y) || !r.chance(0.3)) return;
-        const f = at(x, y);
-        if (f[1] < 0.7) return;
+      // ... and designed groups of 2–3 standing together in open meadows
+      G.scatterOwned(info, 160, 9107, (x, y, r) => {
+        if (!ok(x, y) || !r.chance(0.42)) return;
+        if (at(x, y)[1] < 0.85) return;
+        const n = r.int(2, 3);
+        for (let i = 0; i < n; i++) {
+          const px = x + (i - (n - 1) / 2) * 9 + (r.next() - 0.5) * 3, py = y + (i & 1) * 4 + (r.next() - 0.5) * 3;
+          if (!ok(px, py) || at(px, py)[1] < 0.7) continue;
+          out.push({ x: px, y: py, t: 'cypress', v: i === 0 ? 1 : r.chance(0.5) ? 0 : 2, flip: r.chance(0.5), sh: [8, 2.6], pad: 110 });
+        }
+      });
+      // olive groves where the cluster field is high
+      G.scatterOwned(info, 62, 9102, (x, y, r) => {
+        if (!ok(x, y) || clus(x, y) < 0.6 || !r.chance(0.55)) return;
+        if (at(x, y)[1] < 0.8) return;
         out.push({ x, y, t: 'olive', v: r.int(0, 1), flip: r.chance(0.5), sh: [16, 4.5], pad: 70 });
       });
+      // haystacks in the wheat, often in pairs
       G.scatterOwned(info, 120, 9103, (x, y, r) => {
         if (!ok(x, y) || !r.chance(0.36)) return;
-        const f = at(x, y);
-        if (f[0] < 0.7) return;
+        if (at(x, y)[0] < 0.7) return;
         const v = r.int(0, 1);
         out.push({ x, y, t: 'hay', v, flip: r.chance(0.5), sh: [v ? 11 : 14, v ? 3.2 : 4] });
+        if (r.chance(0.5) && ok(x + 26, y + 8) && at(x + 26, y + 8)[0] > 0.7) out.push({ x: x + 26, y: y + 8, t: 'hay', v: 1 - v, flip: r.chance(0.5), sh: [v ? 14 : 11, v ? 4 : 3.2] });
       });
-      G.scatterOwned(info, 85, 9104, (x, y, r) => {
+      // sunflowers along the inner edge of the wheat fields
+      G.scatterOwned(info, 64, 9104, (x, y, r) => {
         if (!ok(x, y)) return;
+        const Wn = wheatN(x, y);
+        if (Wn < 0.5 || Wn > 0.535 || !r.chance(0.45)) return;
         const f = at(x, y);
-        if (!r.chance(f[0] > 0.6 ? 0.18 : f[1] > 0.6 ? 0.05 : 0)) return;
+        if (f[0] < 0.4) return;
         out.push({ x, y, t: 'sun', v: r.int(0, 1), flip: r.chance(0.5), sh: [8, 2.2] });
       });
+      // houses and a village church near the paths – each with a garden of sunflowers
       G.scatterOwned(info, 330, 9105, (x, y, r) => {
         if (!r.chance(0.5) || G.nearSpawn(x, y, 130)) return;
         const f = at(x, y);
         if (f[2] > 0.01 || f[4] > 0.01 || f[3] > 0.2) return;
         pathInfo(x, y, PI_);
         if (PI_.d > 70) return;
-        out.push({ x, y, t: 'house', v: r.int(0, 1), flip: r.chance(0.5), sh: [17, 4], pad: 70 });
+        const v = r.chance(0.22) ? 2 : r.int(0, 1);
+        out.push({ x, y, t: 'house', v, flip: r.chance(0.5), sh: v === 2 ? [15, 4] : [17, 4], pad: 80 });
+        if (r.chance(0.7)) out.push({ x: x - 22 + r.next() * 4, y: y + 6, t: 'sun', v: r.int(0, 1), flip: r.chance(0.5), sh: [8, 2.2] });
       });
+      // lamps along the paths
       G.scatterOwned(info, 120, 9106, (x, y, r) => {
         if (!ok(x, y) || !r.chance(0.65)) return;
-        const f = at(x, y);
-        if (f[4] > 0.05) return;
+        if (at(x, y)[4] > 0.05) return;
         pathInfo(x, y, PI_);
         if (PI_.d < 15 || PI_.d > 22) return;
         out.push({ x, y, t: 'lamp', v: 0, flip: false, sh: [4, 1.5], pad: 90 });
       });
+      // irises in clumps on the pond shores
+      G.scatterOwned(info, 20, 9108, (x, y, r) => {
+        if (!ok(x, y)) return;
+        const P = pondN(x, y);
+        if (P < 0.31 || P > 0.33 || clus(x, y) < 0.47 || !r.chance(0.6)) return;   // in clumps, with open shore between
+        if (forestN(x, y) > 0.59) return;
+        out.push({ x, y, t: 'iris', v: r.int(0, 1), flip: r.chance(0.5), sh: [7, 2] });
+      });
+      // stones by the paths
+      G.scatterOwned(info, 58, 9109, (x, y, r) => {
+        if (!ok(x, y) || !r.chance(0.4)) return;
+        pathInfo(x, y, PI_);
+        if (PI_.d < 13 || PI_.d > 19) return;
+        if (at(x, y)[4] > 0.05) return;
+        out.push({ x, y, t: 'stone', v: r.int(0, 2), flip: r.chance(0.5), sh: [8, 2.2] });
+      });
+      // the renderer already keeps 120 units below the view for tall props (the tallest cypress is ~98), so no
+      // extra cull margin is needed – fewer off-screen props and shadows per frame
+      for (const o of out) o.pad = 1;
       return out;
     },
 
@@ -1728,7 +2340,14 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
         if (pl.y < p.y - 1 && pl.y > p.y - s.fade[1] && Math.abs(pl.x - p.x) < s.fade[0]) a = 0.45;
       }
       ctx.globalAlpha = a;
-      blit(ctx, s, p.x, p.y, p.flip);
+      if (s.pose) {
+        // wind: a gust wave travels across the world, slower than the actors; the base stays planted
+        const ph = view.rt * 1.25 - p.x * 0.0085 - p.y * 0.004;
+        const q = 0.65 * Math.sin(ph) + 0.35 * Math.sin(ph * 2.3 + p.x * 0.1);
+        let idx = Math.round(q * 2 + 2);
+        idx = idx < 0 ? 0 : idx > 4 ? 4 : idx;
+        blit(ctx, s.pose[p.flip ? 4 - idx : idx], p.x, p.y, p.flip);
+      } else blit(ctx, s, p.x, p.y, p.flip);
       ctx.globalAlpha = 1;
       if (s.lights) {
         const rt = view.rt;
@@ -1761,24 +2380,15 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
         ctx.globalAlpha = 0.45;
         ctx.drawImage(FX.pool, LIGHTS[i] - R, LIGHTS[i + 1] - R * 0.5, R * 2, R);
       }
-      // Jack's glow on the ground
+      // the main character's glow on the ground
       const p = game.player;
-      ctx.globalAlpha = 0.3;
-      ctx.drawImage(FX.pool, p.x - 18, p.y - 7, 36, 14);
+      ctx.globalAlpha = 0.32;
+      ctx.drawImage(FX.pool, p.x - 20, p.y - 8, 40, 16);
       for (const o of game.orbitals) {
         ctx.globalAlpha = 0.35;
         ctx.drawImage(FX.pool, o.x - 14, o.y + 4 - 6, 28, 12);
       }
       ctx.globalCompositeOperation = 'source-over';
-      // spawn swirls of paint on the ground
-      for (const e of game.enemies) {
-        if (e.spawnT >= 1 || e.dying) continue;
-        const sw = FX.swirl[e.type] || FX.swirl.creeper;
-        const R = e.r * (1.2 + 1.4 * U.ease.outQuad(Math.min(1, e.spawnT * 1.4)));
-        ctx.globalAlpha = Math.sin(Math.PI * e.spawnT) * 0.9;
-        rotDraw(ctx, sw, e.x, e.y - 1, -view.rt * 5 - e.spawnT * 4 + e.seed * 6, R * 2, R * 2, 0.55);
-      }
-      resetT(ctx);
       ctx.globalAlpha = 1;
     },
 
@@ -1787,89 +2397,83 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
       if (o.kind === 'player') { rx = 8; ry = 2.8; }
       else if (o.kind === 'enemy') {
         if (o.dying) return;
-        const sp = o.spawnT < 1 ? o.spawnT : 1;
+        const sp = o.spawnT < 1 ? U.smoothstep(0.1, 0.8, o.spawnT) : 1;
         if (o.type === 'ghost') { rx = 5 * sp; ry = 1.8 * sp; } else { rx = o.r * 1.0 * sp; ry = rx * 0.34; }
         if (rx < 0.5) return;
       } else if (o.kind === 'prop') {
         if (!o.sh) return;
         rx = o.sh[0]; ry = o.sh[1];
       } else return;
+      // one light from the upper left: shadows fall a little to the lower right
       ctx.globalAlpha = o.type === 'ghost' ? 0.35 : 0.62;
-      ctx.drawImage(FX.shadow, o.x - rx + 0.6, o.y - ry + 0.4, rx * 2, ry * 2);
+      ctx.drawImage(FX.shadow, o.x - rx + rx * 0.12, o.y - ry + ry * 0.25, rx * 2, ry * 2);
       ctx.globalAlpha = 1;
     },
 
     drawGem(ctx, g, view) {
       const big = g.big;
       const pop = g.pop > 0 ? 1 + Math.sin(g.pop * Math.PI) * 0.7 : 1;
-      const bob = Math.sin(view.rt * 3 + g.seed * 20) * (big ? 1.0 : 0.5) - 0.5;
-      const R = (big ? 9 : 5) * pop;
+      const t = view.rt * (big ? 2.2 : 2.8) + g.seed * 20;
+      const bob = (Math.sin(t) + 0.3 * Math.sin(2 * t + 0.8)) * (big ? 0.9 : 0.5) - 0.6;
+      const tw = Math.pow(0.5 + 0.5 * Math.sin(view.rt * 4.3 + g.seed * 41), 3);
+      const R = (big ? 9 : 5.5) * pop * (0.9 + 0.2 * tw);
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.55 + 0.15 * Math.sin(view.rt * 5 + g.seed * 30);
-      rotDraw(ctx, big ? FX.halo.cool : FX.halo.small, g.x, g.y - (big ? 4 : 2.5) + bob, view.rt * 1.2 + g.seed * 9, R * 2, R * 2);
+      ctx.globalAlpha = 0.45 + 0.25 * tw;
+      rotDraw(ctx, big ? FX.halo.cool : FX.halo.small, g.x, g.y - (big ? 4 : 2.6) + bob, view.rt * 1.1 + g.seed * 9, R * 2, R * 2);
       resetT(ctx);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
       const s = (big ? SPR.gemBig : SPR.gem)[g.seed < 0.5 ? 0 : 1];
-      blit(ctx, s, g.x, g.y + bob, false, pop);
+      if (big) blit(ctx, s, g.x, g.y + bob, false, pop);
+      else {
+        const sc = pop * (0.94 + 0.12 * tw);
+        rotDraw(ctx, s.c, g.x, g.y + bob - 2.6 * sc, Math.sin(view.rt * 1.3 + g.seed * 7) * 0.25, s.w * sc, s.h * sc);
+        resetT(ctx);
+      }
     },
 
     drawEnemy(ctx, e, view) {
       const sets = SPR[e.type];
       if (!sets) return;
-      const vi = e.type === 'creeper' ? (e.seed < 0.5 ? 0 : 1) : 0;
-      const frames = sets[vi];
       const ghost = e.type === 'ghost', colossus = e.type === 'colossus';
-      const sc = 0.92 + e.seed * 0.16;
-      const rt = view.rt;
-      let y = e.y;
-      let fr;
-      if (ghost) {
-        y += -2 + Math.sin(rt * 3 + e.seed * 9) * 1.2;
-        fr = frames[Math.floor(rt * 5 + e.seed * 7) % 3];
-      } else {
-        fr = frames[Math.floor(e.anim * (colossus ? 0.45 : 0.75)) & 3];
-      }
+      const vi = e.type === 'creeper' ? Math.min(2, ((e.seed || 0) * 3) | 0) : 0;
+      const frames = sets[vi];
+      const sc = 0.92 + (e.seed || 0) * 0.16;
+      const rt = view.rt, ph = (e.seed || 0) * 17.3;
       const flip = e.facing < 0;
-      const ab = ghost ? 0.9 : 1;
-      if (e.dying) {
-        const d = e.deathT;
-        ctx.globalAlpha = ab * (1 - d) * (1 - d);
-        blit(ctx, fr, e.x, y - d * 3, flip, sc * (1 + d * 0.2));
-        if (d < 0.4) {
-          ctx.globalCompositeOperation = 'lighter';
-          ctx.globalAlpha = (0.4 - d) * 1.2;
-          blit(ctx, fr, e.x, y - d * 3, flip, sc * (1 + d * 0.2), flashOf(fr, flip));
-          ctx.globalCompositeOperation = 'source-over';
-        }
-        ctx.globalAlpha = 1;
-        return;
-      }
-      if (e.spawnT < 1) {
-        const st = e.spawnT;
-        const a = U.smoothstep(0.2, 0.9, st);
-        if (a <= 0) return;
-        ctx.globalAlpha = ab * a;
-        const sy = 0.35 + 0.65 * U.ease.outQuad(st), sx = 1.25 - 0.25 * st;
-        const im = flip ? fr.f : fr.c;
-        const ax = flip ? fr.w - fr.ax : fr.ax;
-        ctx.drawImage(im, e.x - ax * sc * sx, y - fr.ay * sc * sy, fr.w * sc * sx, fr.h * sc * sy);
-        ctx.globalAlpha = 1;
-        return;
-      }
-      ctx.globalAlpha = ab;
-      blit(ctx, fr, e.x, y, flip, sc);
+      let y = e.y, rot = 0, sx = 1, sy = 1, fi;
+      if (ghost) {
+        // eased hover (quick rise, slow sink – not a plain sine); the lean into the flight is baked into the frames
+        const t = rt * 2.4 + ph;
+        y += -2.6 + (Math.sin(t) + 0.35 * Math.sin(2 * t + 1.1)) * 1.1;
+        fi = Math.floor(rt * 9 + ph) % 6;
+      } else fi = Math.floor((e.anim || 0) * (colossus ? 3.6 : 3.3)) % 6;
+      const fr = frames[fi];
+      if (e.dying) { enemyDeath(ctx, e, fr, vi, e.x, y, flip, sc); return; }
+      if (e.spawnT < 1) { enemySpawn(ctx, e, fr, e.x, y, flip, sc, rt); return; }
+      // hit: a sharp squash and a lean back for ~150 ms, with a pale flash on top
+      let k = 0;
+      if (e.hitT !== undefined && e.hitT < 0.15) { k = 1 - e.hitT / 0.15; k *= k; }
+      sx += 0.17 * k; sy -= 0.15 * k;
+      rot += (flip ? 0.2 : -0.2) * k;
+      ctx.globalAlpha = ghost ? 0.92 : 1;
+      blitX(ctx, fr, e.x, y, flip, sc, sx, sy, rot);
       if (e.flash > 0) {
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = Math.min(0.55, e.flash * 0.9) * ab;
-        blit(ctx, fr, e.x, y, flip, sc, flashOf(fr, flip));
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = Math.min(0.9, Math.pow(e.flash, 1.5) * 0.9);
+        blitX(ctx, fr, e.x, y, flip, sc, sx, sy, rot, flashOf(fr, flip));
       }
       ctx.globalAlpha = 1;
       if (colossus) {
+        // stomp: dust dabs at the feet on the contact poses, pulsing light in the cracks
+        if (fi === 1 || fi === 4) {
+          const fx = e.x + (fi === 1 ? -1 : 1) * 7 * sc;
+          ctx.globalAlpha = 0.7;
+          for (let i = 0; i < 3; i++) rotDraw(ctx, FX.dab.umber[i], fx + (i - 1) * 4.5, e.y - 0.5 + (i & 1), (i - 1) * 0.5, 5, 2);
+          resetT(ctx);
+        }
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.28 + 0.12 * Math.sin(rt * 4 + e.seed * 9);
-        const gx = e.x + (flip ? -2.2 : 2.2) * sc, gy = y - 28 * sc;
+        ctx.globalAlpha = 0.26 + 0.14 * Math.sin(rt * 4 + ph);
+        const gx = e.x + (flip ? -2.2 : 2.2) * sc, gy = y - 28 * sc * sy;
         ctx.drawImage(FX.glow, gx - 12, gy - 12, 24, 24);
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
@@ -1877,54 +2481,50 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
     },
 
     drawPlayer(ctx, p, view) {
-      const rt = view.rt;
-      let fr, bob;
-      if (p.moving) {
-        const ph = p.anim * 0.9;
-        fr = SPR.jack.walk[Math.floor(ph) & 3];
-        bob = 0;
-      } else {
-        fr = SPR.jack.idle[Math.floor(rt * 3.5) % 3];
-        bob = Math.sin(rt * 2.4) * 0.4;
-      }
-      const flip = p.facing < 0;
-      const hx = p.x + (flip ? -1.2 : 1.2), hy = p.y + bob - 22;
-      // swirling halo of light strokes around the glowing face
+      const rt = view.rt, J = SPR.jack;
+      let fr;
+      if (p.dashT > 0) fr = J.dash[p.dashT > 0.165 ? 0 : 1];
+      else if (p.hurtT > 0.55) fr = J.hurt[0];
+      else if (p.moving) fr = J.walk[Math.floor(p.anim * 1.25) & 7];
+      else fr = J.idle[Math.floor(rt * 2.5) & 3];
+      const flip = p.facing < 0, fs = flip ? -1 : 1;
+      const x = p.x, y = p.y;
+      const hx = x + fr.face[0] * fs, hy = y + fr.face[1];
+      // one swirling halo of light strokes around the glowing head
       ctx.globalCompositeOperation = 'lighter';
       const hp = 0.85 + 0.15 * Math.sin(rt * 2.2);
-      ctx.globalAlpha = 0.6 * hp;
-      rotDraw(ctx, FX.halo.gold, hx, hy, rt * 0.6, 44, 44);
-      ctx.globalAlpha = 0.34 * hp;
-      rotDraw(ctx, FX.halo.gold, hx, hy, -rt * 0.4 + 1, 72, 72);
+      ctx.globalAlpha = 0.42 * hp;
+      rotDraw(ctx, FX.halo.gold, hx, hy, rt * 0.5, 40, 40);
       resetT(ctx);
       if (p.levelT > 0) {
         const R = 14 + (1 - p.levelT) * 40;
         ctx.globalAlpha = p.levelT * 0.9;
-        rotDraw(ctx, FX.swirl.gold, p.x, p.y - 2, rt * 3, R * 2, R * 2, 0.6);
+        rotDraw(ctx, FX.swirl.gold, x, y - 2, rt * 3, R * 2, R * 2, 0.6);
         resetT(ctx);
       }
       ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      // scarf tail behind the body – a spring that lags the motion
+      drawScarf(ctx, fr, x, y, fs, scarfAngle(p, rt), rt, p.moving || p.dashT > 0);
       if (p.dashT > 0) {
         for (let i = 2; i >= 1; i--) {
-          ctx.globalAlpha = 0.25 / i;
-          blit(ctx, fr, p.x - p.dashX * 7 * i, p.y - p.dashY * 7 * i + bob, flip);
+          ctx.globalAlpha = 0.22 / i;
+          blit(ctx, fr, x - p.dashX * 7 * i, y - p.dashY * 7 * i, flip);
         }
       }
       let a = 1;
       if (p.iframes > 0 && p.hurtT < 0.7 && Math.floor(rt * 16) % 2 === 0) a = 0.5;
       ctx.globalAlpha = a;
-      blit(ctx, fr, p.x, p.y + bob, flip);
+      blit(ctx, fr, x, y, flip);
       if (p.hurtT > 0.4) {
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = Math.min(0.7, (p.hurtT - 0.4) * 2);
-        blit(ctx, fr, p.x, p.y + bob, flip, 1, flashOf(fr, flip));
-        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = Math.min(0.8, (p.hurtT - 0.4) * 2.2);
+        blit(ctx, fr, x, y, flip, 1, tintOf(fr, flip, 'hr', '#ffb070'));
       }
-      // warm glow from inside the carved face
+      // candle flicker inside the carved face, on its own uneven clock
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = (0.32 + 0.08 * Math.sin(rt * 11) + 0.05 * Math.sin(rt * 23)) * a;
-      const fx = p.x + (flip ? -2.5 : 2.5), fy = p.y + bob - 21;
-      ctx.drawImage(FX.glow, fx - 8, fy - 7, 16, 14);
+      const fl = 0.3 + 0.08 * Math.sin(rt * 11) + 0.05 * Math.sin(rt * 23 + 1.3) - (U.fract(rt * 0.31) < 0.05 ? 0.12 : 0);
+      ctx.globalAlpha = fl * a;
+      ctx.drawImage(FX.glow, hx - 8, hy - 7, 16, 14);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
     },
@@ -1933,19 +2533,30 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
       const rt = view.rt;
       const bob = Math.sin(rt * 3 + o.idx * 1.7) * 1.1;
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.5 + 0.1 * Math.sin(rt * 9 + o.idx * 3);
-      rotDraw(ctx, FX.halo.gold, o.x, o.y - 5 + bob, rt * 0.9 + o.idx, 28, 28);
+      ctx.globalAlpha = 0.48 + 0.1 * Math.sin(rt * 9 + o.idx * 3);
+      rotDraw(ctx, FX.halo.gold, o.x, o.y - 5 + bob, rt * 0.9 + o.idx, 26, 26);
       resetT(ctx);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
-      blit(ctx, SPR.lantern[(Math.floor(rt * 5) + o.idx) % 3], o.x, o.y + 2 + bob, Math.cos(o.angle) < 0);
+      // the lantern hangs from its handle and swings behind the orbit (pendulum lag)
+      const sw = Math.sin(o.angle + 0.9) * 0.3 + Math.sin(rt * 5.3 + o.idx) * 0.06;
+      const s = SPR.lantern[(Math.floor(rt * 5) + o.idx) % 3];
+      rotDrawA(ctx, s.c, o.x, o.y + 2 + bob - 13.6, sw, s.w, s.h, s.ax, s.ay - 13.6);
+      resetT(ctx);
     },
 
     drawProjectile(ctx, pr) {
-      const tr = FX.trail;
-      ctx.globalAlpha = Math.min(1, pr.age * 10) * Math.min(1, pr.life * 5) * 0.9;
-      rotDraw(ctx, tr, pr.x - Math.cos(pr.angle) * 6, pr.y - Math.sin(pr.angle) * 6, pr.angle, 16, 4);
-      ctx.globalAlpha = Math.min(1, pr.life * 6);
+      const fade = Math.min(1, pr.life * 6), grow = Math.min(1, pr.age * 8);
+      const ca = Math.cos(pr.angle), sa = Math.sin(pr.angle);
+      const L = 8 + 10 * grow;
+      ctx.globalAlpha = fade * 0.95;
+      rotDraw(ctx, FX.trail, pr.x - ca * L * 0.5, pr.y - sa * L * 0.5, pr.angle, L, 3.6);
+      resetT(ctx);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.45 * fade;
+      ctx.drawImage(FX.glow, pr.x - 4.5, pr.y - 4.5, 9, 9);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = fade;
       const s = SPR.seed[pr.seed < 0.5 ? 0 : 1];
       rotDraw(ctx, s.c, pr.x, pr.y, pr.angle + pr.spin * 0.3, s.w, s.h);
       resetT(ctx);
@@ -1953,12 +2564,32 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
     },
 
     drawParticle(ctx, pt) {
-      const life = pt.life / pt.max;
+      const life = pt.life / pt.max, age = 1 - life;
       switch (pt.kind) {
         case 'swirl': {
-          const age = 1 - life, R = pt.size * (0.35 + 0.65 * U.ease.outQuad(Math.min(1, age * 1.5)));
-          ctx.globalAlpha = (1 - age) * 0.9;
-          rotDraw(ctx, FX.swirl[pt.col] || FX.swirl.gold, pt.x, pt.y, pt.rot + age * 3, R * 2, R * 2, 0.6);
+          const big = pt.size > 24;
+          paintSwirl(ctx, pt.x, pt.y, pt.size, age, pt.rot, pt.col, big ? 3 : 2, big ? 10 : 7, 0.6, pt.hole);
+          break;
+        }
+        case 'sstar': {
+          // a star flung out along a swirl arm: spiral path, staggered release, twinkles out
+          const t = clamp01((age - pt.dl) / (1 - pt.dl));
+          if (t <= 0) break;
+          const et = easeOut(t), a = pt.rot + et * 2.4;
+          const rr = 5 + et * pt.size * 4.4;
+          const sz = pt.size * (0.45 + 0.75 * Math.sin(Math.PI * Math.min(1, t * 1.25))) * (1 - t * 0.35);
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = 1 - t * t;
+          rotDraw(ctx, FX.star, pt.x + Math.cos(a) * rr, pt.y - 9 + Math.sin(a) * rr * 0.6 - et * 9, a * 1.5, sz, sz);
+          resetT(ctx);
+          ctx.globalCompositeOperation = 'source-over';
+          break;
+        }
+        case 'ring': {
+          const e = easeOut(Math.min(1, age * 1.2));
+          const R = pt.size * (pt.inv ? 1 - 0.75 * e : 0.3 + 0.7 * e);
+          ctx.globalAlpha = Math.pow(1 - age, 1.5) * 0.95;
+          rotDraw(ctx, FX.ring[pt.col] || FX.ring.gold, pt.x, pt.y - pt.z, pt.rot + age * 1.6, R * 2, R * 2, 0.7);
           resetT(ctx);
           break;
         }
@@ -1971,10 +2602,27 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
           ctx.globalCompositeOperation = 'source-over';
           break;
         }
+        case 'flick': {
+          const sp = hyp(pt.vx, pt.vy);
+          const a = sp > 1 ? Math.atan2(pt.vy, pt.vx) : pt.rot;
+          const L = pt.size * (3 + Math.min(4, sp * 0.04)) * (0.5 + 0.5 * life);
+          ctx.globalAlpha = Math.min(1, life * 3);
+          rotDraw(ctx, FX.flick[pt.col] || FX.flick.yellow, pt.x, pt.y - pt.z, a, L * 2.2, pt.size * 1.5);
+          resetT(ctx);
+          break;
+        }
         case 'smear': {
           ctx.globalAlpha = life * 0.8;
           rotDraw(ctx, FX.smear, pt.x, pt.y - pt.z, pt.rot, 30, 12);
           resetT(ctx);
+          break;
+        }
+        case 'stain': {
+          const set = SPR.puddle[pt.ptype];
+          if (!set) break;
+          const s = set[pt.v || 0] || set[0];
+          ctx.globalAlpha = Math.pow(life, 0.7) * 0.7;
+          blit(ctx, s, pt.x, pt.y, false, pt.size * (1.05 + 0.1 * Math.min(1, age * 4)));
           break;
         }
         case 'dab': {
@@ -2022,19 +2670,36 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
     },
 
     drawWorldOverlay(ctx, view) {
-      // fireflies / drifting star dabs – the painting is alive
-      const cell = 130, rt = view.rt;
-      const x0 = Math.floor(view.x0 / cell), x1 = Math.floor(view.x1 / cell), y0 = Math.floor(view.y0 / cell), y1 = Math.floor(view.y1 / cell);
+      const rt = view.rt;
+      // the wind made visible: a few long translucent strokes drift with it, each on its own slow clock
+      const wc = 300, wa = -0.45, wx = Math.cos(wa), wy = Math.sin(wa);
+      let x0 = Math.floor(view.x0 / wc) - 1, x1 = Math.floor(view.x1 / wc) + 1, y0 = Math.floor(view.y0 / wc), y1 = Math.floor(view.y1 / wc);
+      for (let cy = y0; cy <= y1; cy++) {
+        for (let cx = x0; cx <= x1; cx++) {
+          const h = U.hashInt(cx, cy, 991);
+          if ((h & 3) !== 0) continue;
+          const per = 7 + (h & 7) * 0.7, tt = U.fract(rt / per + ((h >>> 8) & 255) / 255);
+          const env = Math.sin(Math.PI * tt);
+          const bx = (cx + ((h >>> 4) & 255) / 255) * wc, by = (cy + ((h >>> 12) & 255) / 255) * wc;
+          const d = (tt - 0.5) * 70;
+          ctx.globalAlpha = 0.2 * env * env;
+          rotDraw(ctx, FX.wind, bx + wx * d, by + wy * d, wa + Math.sin(rt * 0.4 + (h & 15)) * 0.12, 64, 10);
+        }
+      }
+      resetT(ctx);
+      // fireflies – sparse, slow, twinkling on varied timings
+      const cell = 170;
+      x0 = Math.floor(view.x0 / cell); x1 = Math.floor(view.x1 / cell); y0 = Math.floor(view.y0 / cell); y1 = Math.floor(view.y1 / cell);
       ctx.globalCompositeOperation = 'lighter';
       for (let cy = y0; cy <= y1; cy++) {
         for (let cx = x0; cx <= x1; cx++) {
           const h = U.hashInt(cx, cy, 777);
-          if ((h & 3) === 0) continue;
-          const fx = (cx + ((h >>> 4) & 255) / 255) * cell + Math.sin(rt * 0.5 + (h & 15)) * 14;
-          const fy = (cy + ((h >>> 12) & 255) / 255) * cell + Math.sin(rt * 0.37 + ((h >>> 20) & 15)) * 10;
-          const tw = 0.5 + 0.5 * Math.sin(rt * 2.3 + (h & 63));
-          ctx.globalAlpha = 0.25 + 0.45 * tw;
-          rotDraw(ctx, FX.halo.small, fx, fy, rt + (h & 7), 7 + tw * 3, 7 + tw * 3);
+          if ((h & 1) === 0) continue;
+          const fx = (cx + ((h >>> 4) & 255) / 255) * cell + Math.sin(rt * 0.45 + (h & 15)) * 16;
+          const fy = (cy + ((h >>> 12) & 255) / 255) * cell + Math.sin(rt * 0.33 + ((h >>> 20) & 15)) * 11;
+          const tw = Math.pow(0.5 + 0.5 * Math.sin(rt * (1.7 + (h & 7) * 0.2) + (h & 63)), 2);
+          ctx.globalAlpha = 0.15 + 0.5 * tw;
+          rotDraw(ctx, FX.halo.small, fx, fy, rt + (h & 7), 6 + tw * 3, 6 + tw * 3);
         }
       }
       resetT(ctx);
@@ -2058,48 +2723,68 @@ ${S} #pausebox { font: 800 56px ${cin}; color: #ffe27a; text-shadow: 0 3px 0 #3a
       paintIcon(ctx, id, size >= 90);
     },
 
-    /* ---------- hooks ---------- */
+    /* ---------- hooks: layered effects – core flash, main shape, debris, lingering residue ---------- */
     onHit(game, e, src) {
       const h = (HEIGHT[e.type] || 22) * 0.5;
       const cols = COLS[e.type] || COLS.creeper;
-      for (let i = 0; i < 3; i++) {
-        const a = Math.random() * TAU, s = 30 + Math.random() * 50;
-        game.addParticle({ x: e.x, y: e.y, z: h, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 40, grav: 240, kind: 'dab', col: i === 0 ? (src === 'lantern' ? 'orange' : 'yellow') : cols[(Math.random() * cols.length) | 0], life: 0.5 + Math.random() * 0.4, size: 1.2 + Math.random() * 0.9, drag: 1.5, rot: a, vr: (Math.random() - 0.5) * 12, v: (Math.random() * 3) | 0 });
+      let dx = e.kx || 0, dy = e.ky || 0;
+      const dl = hyp(dx, dy);
+      if (dl > 1) { dx /= dl; dy /= dl; } else { const a = Math.random() * TAU; dx = Math.cos(a); dy = Math.sin(a); }
+      const base = Math.atan2(dy, dx);
+      game.addParticle({ x: e.x, y: e.y - h, z: 0, kind: 'star', life: 0.12, size: e.type === 'colossus' ? 13 : 9, drag: 0, rot: Math.random() * TAU, vr: 0 });
+      for (let i = 0; i < 2; i++) {
+        const a = base + (i ? 0.45 : -0.35) + (Math.random() - 0.5) * 0.3, s = 90 + Math.random() * 50;
+        game.addParticle({ x: e.x + dx * 3, y: e.y - h + dy * 2, z: 0, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.7, kind: 'flick', col: i === 0 ? (src === 'lantern' ? 'orange' : 'yellow') : cols[0], life: 0.22, size: 1.6, drag: 7, rot: a });
       }
-      game.addParticle({ x: e.x, y: e.y - h, z: 0, kind: 'star', life: 0.18, size: e.type === 'colossus' ? 12 : 8, drag: 0, rot: Math.random() * TAU, vr: 0 });
+      for (let i = 0; i < 3; i++) {
+        const a = base + (Math.random() - 0.5) * 1.6, s = 30 + Math.random() * 45;
+        game.addParticle({ x: e.x, y: e.y, z: h, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 40, grav: 240, kind: 'dab', col: cols[(Math.random() * cols.length) | 0], life: 0.6 + Math.random() * 0.4, size: 1.2 + Math.random() * 0.9, drag: 1.5, rot: a, vr: (Math.random() - 0.5) * 12, v: (Math.random() * 3) | 0 });
+      }
     },
     onKill(game, e) {
       const h = (HEIGHT[e.type] || 22) * 0.5;
       const big = e.type === 'colossus';
       const cols = COLS[e.type] || COLS.creeper;
-      dabBurst(game, e.x, e.y, h, big ? 22 : 9, cols, big ? 110 : 75, big ? 2.6 : 1.8);
-      game.addParticle({ x: e.x, y: e.y, kind: 'swirl', col: e.type, life: big ? 1.0 : 0.6, size: big ? 30 : 14, drag: 0, rot: Math.random() * TAU });
+      game.addParticle({ x: e.x, y: e.y - h, z: 0, kind: 'star', life: 0.12, size: big ? 18 : 11, drag: 0, rot: Math.random() * TAU });
+      game.addParticle({ x: e.x, y: e.y - h * 0.6, z: 0, kind: 'ring', col: e.type === 'ghost' ? 'cool' : big ? 'gold' : 'violet', life: 0.34, size: big ? 30 : 16, drag: 0, rot: Math.random() * TAU });
+      game.addParticle({ x: e.x, y: e.y - h * 0.4, kind: 'swirl', col: e.type, life: big ? 0.8 : 0.5, size: big ? 28 : 13, drag: 0, rot: Math.random() * TAU });
+      dabBurst(game, e.x, e.y, h, big ? 20 : 9, cols, big ? 110 : 75, big ? 2.6 : 1.8);
+      if (e.type !== 'ghost' && SPR.puddle[e.type]) {
+        game.addParticle({ x: e.x, y: e.y + 1, z: 0, kind: 'stain', ptype: e.type, v: e.type === 'creeper' ? Math.min(2, ((e.seed || 0) * 3) | 0) : 0, life: big ? 1.8 : 1.3, size: 0.92 + (e.seed || 0.5) * 0.16, drag: 0, rot: 0 });
+      }
     },
     onHurt(game, p) {
       dabBurst(game, p.x, p.y, 14, 8, ['red', 'orange', 'yellow', 'blue'], 70, 1.8);
-      game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'star', life: 0.25, size: 18, drag: 0, rot: Math.random() * TAU });
+      game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'star', life: 0.18, size: 16, drag: 0, rot: Math.random() * TAU });
+      game.addParticle({ x: p.x, y: p.y - 10, z: 0, kind: 'ring', col: 'red', life: 0.3, size: 18, drag: 0, rot: Math.random() * TAU });
     },
     onPickup(game, g) {
-      const n = g.big ? 5 : 1;
+      const n = g.big ? 5 : 2;
       for (let i = 0; i < n; i++) {
-        game.addParticle({ x: g.x + (Math.random() - 0.5) * 8, y: g.y, z: 5 + Math.random() * 8, vz: 12, kind: 'star', life: 0.35 + Math.random() * 0.2, size: g.big ? 9 : 6, drag: 2, rot: Math.random(), vr: 3 });
+        const a = (i / n) * TAU + Math.random() * 0.6;
+        game.addParticle({ x: g.x + Math.cos(a) * 3, y: g.y + Math.sin(a) * 2, z: 4 + Math.random() * 4, vx: -Math.sin(a) * 30, vy: Math.cos(a) * 18, vz: 22, kind: 'star', life: 0.32 + Math.random() * 0.2, size: g.big ? 8 : 5.5, drag: 3, rot: Math.random(), vr: 3 });
       }
+      game.addParticle({ x: g.x, y: g.y - 3, z: 0, kind: 'ring', col: g.big ? 'cool' : 'gold', inv: true, life: 0.28, size: g.big ? 13 : 9, drag: 0, rot: Math.random() * TAU });
     },
     onShoot(game, pr) {
-      if (Math.random() < 0.4) {
-        game.addParticle({ x: pr.x, y: pr.y + 4, z: 4, vx: pr.vx * 0.08 + (Math.random() - 0.5) * 20, vy: pr.vy * 0.08, vz: 25, grav: 200, kind: 'dab', col: 'orange', life: 0.45, size: 1.1, drag: 2, rot: pr.angle, vr: 6, v: (Math.random() * 3) | 0 });
+      if (Math.random() < 0.5) {
+        game.addParticle({ x: pr.x, y: pr.y, z: 0, vx: pr.vx * 0.25, vy: pr.vy * 0.25, kind: 'flick', col: 'orange', life: 0.14, size: 1.1, drag: 9, rot: pr.angle });
       }
     },
     onDash(game, p) {
+      // a puff of paint at the feet (the push-off), then the smear of the lunge
+      for (let i = 0; i < 4; i++) {
+        const a = Math.atan2(-p.dashY, -p.dashX) + (Math.random() - 0.5) * 1.6;
+        game.addParticle({ x: p.x, y: p.y, z: 1, vx: Math.cos(a) * (25 + Math.random() * 25), vy: Math.sin(a) * 14, vz: 18, grav: 120, kind: 'dab', col: i & 1 ? 'umber' : 'blue', life: 0.5, size: 1.4, drag: 4, rot: a, v: i % 3 });
+      }
       game.addParticle({ x: p.x - p.dashX * 4, y: p.y, z: 12, kind: 'smear', life: 0.35, size: 1, drag: 0, rot: Math.atan2(p.dashY, p.dashX), vr: 0 });
-      for (let i = 0; i < 4; i++) game.addParticle({ x: p.x, y: p.y, z: 0, vx: -p.dashX * (20 + Math.random() * 30) + (Math.random() - 0.5) * 20, vy: -p.dashY * 20 + (Math.random() - 0.5) * 14, kind: 'dab', col: i & 1 ? 'blue' : 'turq', life: 0.8, size: 1.5, drag: 4, rot: Math.atan2(p.dashY, p.dashX), v: i % 3 });
+      for (let i = 0; i < 3; i++) game.addParticle({ x: p.x, y: p.y, z: 0, vx: -p.dashX * (20 + Math.random() * 30) + (Math.random() - 0.5) * 20, vy: -p.dashY * 20 + (Math.random() - 0.5) * 14, kind: 'dab', col: i & 1 ? 'blue' : 'turq', life: 0.8, size: 1.5, drag: 4, rot: Math.atan2(p.dashY, p.dashX), v: i % 3 });
     },
     onLevelUp(game, p) {
-      game.addParticle({ x: p.x, y: p.y, kind: 'swirl', col: 'gold', life: 1.2, size: 44, drag: 0, rot: 0 });
-      for (let i = 0; i < 14; i++) {
-        const a = (i / 14) * TAU;
-        game.addParticle({ x: p.x, y: p.y, z: 14, vx: Math.cos(a) * 60, vy: Math.sin(a) * 40, vz: 40, grav: 60, kind: 'star', life: 0.8 + Math.random() * 0.4, size: 7 + Math.random() * 4, drag: 2.5, rot: Math.random() * 3, vr: (Math.random() - 0.5) * 6 });
-      }
+      const a0 = Math.random() * TAU;
+      game.addParticle({ x: p.x, y: p.y + 1, kind: 'swirl', col: 'gold', life: 1.0, size: 32, drag: 0, rot: a0, hole: 11 });
+      game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'star', life: 0.16, size: 22, drag: 0, rot: Math.random() * TAU });
+      for (let i = 0; i < 9; i++) game.addParticle({ x: p.x, y: p.y, z: 0, kind: 'sstar', life: 1.0, size: 5 + (i % 3) * 1.7, drag: 0, rot: a0 + (i % 3) * (TAU / 3) + Math.floor(i / 3) * 0.55, dl: (i / 9) * 0.36 });
     },
     onDeath(game, p) {
       dabBurst(game, p.x, p.y, 16, 26, ['orange', 'yellow', 'blue', 'red', 'gold'], 110, 2.4);

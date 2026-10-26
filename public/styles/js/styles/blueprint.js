@@ -792,6 +792,11 @@
       (signed-distance intersection -> constant width, crisp square ends). */
   const WHW = 15, RHW = 8;
   const bandV = (d, hw, md) => Math.max(Math.abs(d) - hw, -md);
+  /** Site zones: low = an equipment yard (fenced by a property line), high = a grove (edged by a tree line). */
+  const zoneAt = (x, y) => U.fbm(x / 520 + 13.1, y / 520 - 4.7, 909, 2)
+    // the first view of the sheet is composed: a grove to the right of the start, an equipment yard down-left
+    + 0.36 * Math.exp(-((x - 250) ** 2 + (y + 60) ** 2) / (115 * 115)) - 0.34 * Math.exp(-((x + 250) ** 2 + (y - 150) ** 2) / (120 * 120));
+  const YARD = 0.37, GROVE = 0.61;
   /** water value (negative = inside water), road value (negative = on the road) at a point. */
   function fieldsAt(x, y) {
     const e = GSTEP;
@@ -1451,6 +1456,33 @@ body.style-blueprint #pausebox { font: 400 56px 'Share Tech Mono', monospace; le
       }
       yield;
 
+      // 4b) site zones: dash-dot property lines round equipment yards, dotted tree lines round groves
+      {
+        const ZV = new Float32Array(tn * tn);
+        for (let j = 0; j < tn; j++) for (let i = 0; i < tn; i++) ZV[j * tn + i] = zoneAt(tx0 + i * TS, ty0 + j * TS);
+        const PL = [], TL = [];
+        const keep = (x1, y1, x2, y2) => { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2; return !((anyW && bil(WV, mx, my) < 4) || (anyR && bil(RV, mx, my) < 4)); };
+        contour(ZV, tn, tx0, ty0, TS, YARD, (x1, y1, x2, y2) => { if (keep(x1, y1, x2, y2)) PL.push(x1, y1, x2, y2); });
+        contour(ZV, tn, tx0, ty0, TS, GROVE, (x1, y1, x2, y2) => { if (keep(x1, y1, x2, y2)) TL.push(x1, y1, x2, y2); });
+        const run = (A) => { ctx.beginPath(); for (let i = 0; i < A.length; i += 4) { ctx.moveTo(A[i], A[i + 1]); ctx.lineTo(A[i + 2], A[i + 3]); } };
+        if (PL.length) {
+          ctx.lineCap = 'butt'; ctx.setLineDash([9, 1.6, 1.4, 1.6]); run(PL);
+          ctx.lineWidth = 0.75; ctx.strokeStyle = W_(0.36); ctx.stroke(); ctx.setLineDash([]);
+        }
+        if (TL.length) {
+          ctx.lineCap = 'round'; ctx.setLineDash([0.1, 2.6]); run(TL);
+          ctx.lineWidth = 1.25; ctx.strokeStyle = W_(0.34); ctx.stroke(); ctx.setLineDash([]); ctx.lineCap = 'butt';
+        }
+        G.scatter(info, 330, 909, 30, (x, y, rng) => {
+          if (!rng.chance(0.6)) return;
+          const z = zoneAt(x, y), f = fieldsAt(x, y);
+          if (f.w < 16 || f.r < 16) return;
+          if (z < YARD - 0.05) strokeText(ctx, 'YARD ' + 'ABCDEFGH'[rng.int(0, 7)], x, y, 4.6, W_(0.42), 0.5, 'center', true, 0.15, rng.int(1, 99));
+          else if (z > GROVE + 0.05) strokeText(ctx, 'GROVE', x, y, 4.2, W_(0.38), 0.45, 'center', true, 0.15, rng.int(1, 99));
+        });
+      }
+      yield;
+
       // 5) road surface (blank strip, covers the grid) + paper grain over everything
       if (anyR) mask(RV, U.hex('#0f538c'), 0.96, 1.6);
       if (GRAIN) {
@@ -1580,16 +1612,20 @@ body.style-blueprint #pausebox { font: 400 56px 'Share Tech Mono', monospace; le
 
     propsForChunk(info) {
       const out = [];
-      G.scatterOwned(info, 92, 4243, (x, y, rng) => {
+      // props follow the site plan: equipment inside the yards, trees and rocks in the groves,
+      // lamps and survey instruments along the road, only a few strays on the open sheet
+      G.scatterOwned(info, 66, 4243, (x, y, rng) => {
         if (G.nearSpawn(x, y, 90)) return;
         const r = rng.next();
-        if (r > 0.34) return;
         const f = fieldsAt(x, y);
         if (f.w < 12 || f.r < 10) return;
-        const q = rng.next();
-        let t;
-        if (q < 0.24) t = 'tree'; else if (q < 0.42) t = 'rock'; else if (q < 0.56) t = 'crate'; else if (q < 0.65) t = 'valve';
-        else if (q < 0.74) t = 'lamp'; else if (q < 0.83) t = 'theodolite'; else if (q < 0.92) t = 'tank'; else t = 'tower';
+        const q = rng.next(), z = zoneAt(x, y);
+        let t = null;
+        if (z < YARD - 0.02) { if (r < 0.5) t = q < 0.34 ? 'crate' : q < 0.6 ? 'tank' : q < 0.84 ? 'valve' : 'tower'; }
+        else if (z > GROVE + 0.02) { if (r < 0.52) t = q < 0.74 ? 'tree' : 'rock'; }
+        else if (f.r < 30) { if (r < 0.24) t = q < 0.55 ? 'lamp' : 'theodolite'; }
+        else if (r < 0.035) t = q < 0.5 ? 'rock' : 'tree';
+        if (!t) return;
         out.push({ x, y, t, v: rng.int(0, PROPS[t].n - 1), f: rng.chance(0.5), pad: t === 'tower' ? 90 : t === 'tree' || t === 'lamp' ? 70 : 40 });
       });
       return out;
@@ -1697,27 +1733,43 @@ body.style-blueprint #pausebox { font: 400 56px 'Share Tech Mono', monospace; le
         }
         return;
       }
-      // erased: the drawing is wiped away while a red-pencil X crosses it out
+      // exploded view: the parts separate along the vertical axis on a chain centre line, a red-pencil X
+      // strikes them out, then the eraser wipes them away
       if (e.dying) {
         const q = U.clamp(e.deathT, 0, 1);
-        const wipe = U.clamp(q * 1.25, 0, 1);
-        if (wipe < 1) {
-          ctx.globalAlpha = 1 - q * 0.5;
-          putCrop(ctx, V, s, e.x, y, sc, left, wipe, 1, 0, 1);
-          ctx.globalAlpha = 1;
+        const H = s.c.height, cuts = [0, Math.round(H * 0.42) / H, Math.round(H * 0.72) / H, 1];
+        const ex = U.ease.outQuad(U.clamp(q / 0.42, 0, 1)), big = e.type === 'colossus' ? 1.8 : 1;
+        const lifts = [-9 * big * ex, -4 * big * ex, 0];
+        const wipe = U.clamp((q - 0.5) / 0.45, 0, 1), fa = q > 0.8 ? 1 - (q - 0.8) / 0.2 : 1;
+        ctx.globalAlpha = 0.6 * fa;
+        ctx.setLineDash(CHAIN);
+        ctx.beginPath(); ctx.moveTo(e.x, y + 2); ctx.lineTo(e.x, y - (bodyH * 2.3 + 9 * big) * sc * Math.max(ex, 0.4));
+        ctx.lineWidth = 0.4; ctx.strokeStyle = W_(0.9); ctx.stroke(); ctx.setLineDash([]);
+        if (wipe < 1) for (let k = 0; k < 3; k++) {
+          ctx.globalAlpha = (1 - wipe * 0.45) * fa;
+          putCrop(ctx, V, s, e.x, y + lifts[k], sc, left, wipe, 1, cuts[k], cuts[k + 1]);
         }
-        const cx = e.x, cy = y - bodyH * sc, R = Math.max(5, e.r * 0.95);
-        const k1 = U.clamp(q / 0.4, 0, 1), k2 = U.clamp((q - 0.3) / 0.4, 0, 1), fa = q > 0.8 ? 1 - (q - 0.8) / 0.2 : 1;
+        ctx.globalAlpha = 1;
+        const cx = e.x, cy = y - bodyH * sc - 3 * big * ex, R = Math.max(5, e.r * 0.95);
+        const k1 = U.clamp((q - 0.22) / 0.3, 0, 1), k2 = U.clamp((q - 0.38) / 0.3, 0, 1);
         const strokeX = (ax, ay, bx, by, k) => { if (k <= 0) return; ctx.moveTo(ax, ay); ctx.lineTo(ax + (bx - ax) * k, ay + (by - ay) * k); };
         ctx.beginPath(); strokeX(cx - R, cy - R, cx + R, cy + R, k1); strokeX(cx + R, cy - R * 0.9, cx - R * 0.9, cy + R, k2);
         ctx.globalAlpha = fa; ctx.lineWidth = 2.6; ctx.strokeStyle = 'rgba(6,42,74,0.7)'; ctx.stroke();
         ctx.lineWidth = 1.2; ctx.strokeStyle = C.red; ctx.stroke(); ctx.globalAlpha = 1;
         return;
       }
+      const fl = e.flash, kd = fl > 0.02 ? (e.kx > 0 ? 1 : e.kx < 0 ? -1 : 0) : 0;
+      if (fl > 0.02) {
+        // hit: a second, misregistered pencil pass offset along the push (the drawing jolts), then a faint pale flash
+        ctx.globalAlpha = 0.55 * fl;
+        put(ctx, V, s, e.x - kd * 2.4 * fl, y - 0.8 * fl, sc, sc, rot - kd * 0.12 * fl, left);
+        ctx.globalAlpha = 1;
+        rot += kd * 0.14 * fl;
+      }
       if (e.type === 'ghost') {
         put(ctx, V, s, e.x, y, sc, sc, rot, left);
       } else if (e.type === 'colossus') {
-        put(ctx, V, s, e.x, y, sc, sc, 0, left);
+        put(ctx, V, s, e.x, y, sc, sc, rot * 0.5, left);
         // measurement callout on the boiler (drawn live so the lettering never mirrors)
         const f = left ? -1 : 1, fr = Math.floor(mod(e.anim * 0.3 + e.seed, 1) * 6) % 6, bob = -Math.abs(Math.sin(fr / 6 * TAU)) * 1.3 * sc;
         const ax = e.x - f * 10.5 * sc, ay = y + (-27 * sc) + bob, bx = e.x - f * 20 * sc, by = y - 35 * sc + bob, cx2 = e.x - f * 30 * sc;
@@ -1728,9 +1780,9 @@ body.style-blueprint #pausebox { font: 400 56px 'Share Tech Mono', monospace; le
       } else {
         put(ctx, V, s, e.x, y, sc, sc, rot, left);
       }
-      if (e.flash > 0.02) {
-        ctx.globalAlpha = Math.min(0.9, e.flash * 1.2);
-        put(ctx, V, s.flash, e.x, y, sc * (1 + 0.06 * e.flash), sc * (1 + 0.06 * e.flash), rot, left);
+      if (fl > 0.45) {
+        ctx.globalAlpha = Math.min(0.42, (fl - 0.45) * 1.2);
+        put(ctx, V, s.flash, e.x, y, sc * (1 + 0.06 * fl), sc * (1 + 0.06 * fl), rot, left);
         ctx.globalAlpha = 1;
       }
     },
@@ -1738,12 +1790,13 @@ body.style-blueprint #pausebox { font: 400 56px 'Share Tech Mono', monospace; le
     drawPlayer(ctx, p, view) {
       const V = tf(view), H = SPR.hero;
       let s, rot = 0, sx = 1, sy = 1, lift = 0;
-      if (p.dashT > 0) s = H.dash;
+      if (p.dashT > 0.165) { s = H.idle[0]; sx = 1.08; sy = 0.88; }    // anticipation: a quick crouch before the dash
+      else if (p.dashT > 0) s = H.dash;
       else if (p.moving) {
         const ph = mod(p.anim * 0.16, 1);
         s = H.walk[Math.floor(ph * 8) % 8];
       } else s = H.idle[Math.floor(mod(view.rt * 1.4, 1) * 4) % 4];
-      if (p.levelT > 0) { const w = Math.sin(p.levelT * PI * 3) * p.levelT; sx = 1 - 0.08 * w; sy = 1 + 0.1 * w; }
+      if (p.levelT > 0) { const w = Math.sin(p.levelT * PI * 3) * p.levelT; sx *= 1 - 0.08 * w; sy *= 1 + 0.1 * w; }
       if (p.shootT > 0) { sx *= 1 + 0.03 * p.shootT; sy *= 1 - 0.03 * p.shootT; }
       const hurt = p.hurtT > 0;
       const left = p.facing < 0;

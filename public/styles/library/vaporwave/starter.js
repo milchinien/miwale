@@ -45,19 +45,30 @@
   const blit = (ctx, s, x, y, sx, sy) => { const w = s.w * (sx || 1), h = s.h * (sy || 1); ctx.drawImage(s.img, x - s.ax * w, y - s.ay * h, w, h); };
 
   /* ---------- main character: wayfarer shades, cyan flattop, colour-block windbreaker ---------- */
+  /** Two-bone IK: [jointX, jointY, endX, endY]; bend -1 = joint in front (knee), +1 = behind (elbow). */
+  function ik(ax, ay, bx, by, l1, l2, bend) {
+    let dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 1e-3;
+    if (d > l1 + l2 - 0.02) { const k = (l1 + l2 - 0.02) / d; bx = ax + dx * k; by = ay + dy * k; dx *= k; dy *= k; d = l1 + l2 - 0.02; }
+    const q = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - q * q));
+    return [ax + (dx * q) / d - (dy / d) * h * bend, ay + (dy * q) / d + (dx / d) * h * bend, bx, by];
+  }
+  /** Walk pose ph 0..1: contact (0) – down (.125) – passing (.25) – up (.375); IK knees and elbows, the head lands late. */
   function heroPose(c, ph) {
-    const a = ph * TAU, s = Math.sin(a), bob = -Math.abs(s) * 1.1, hipY = -9.2 + bob;
-    const leg = (hx, p, back) => {
-      const fx = hx + Math.sin(p) * 3.6, fy = -Math.max(0, Math.cos(p)) * 1.8;
-      limb(c, [hx, hipY, (hx + fx) / 2 + 0.7, (hipY + fy) / 2 - 0.3, fx, fy - 1.6], 3.0, back ? '#33246e' : '#4a3699');
-      c.beginPath(); c.roundRect(fx - 2, fy - 2.6, 5.4, 2.7, 1.2); fs(c, back ? '#e4d8ff' : '#ffffff', 0.7);
+    const a = ph * TAU, bob = 0.9 * Math.sin(2 * a), hipY = -9.2 + bob;
+    const leg = (hx, fx, lift, back) => {
+      const [kx, ky, ax, ay] = ik(hx, hipY, fx, -lift - 1.6, 4.1, 4.0, -1), fy = ay + 1.6;
+      limb(c, [hx, hipY, kx, ky, ax, ay], 3.0, back ? '#33246e' : '#4a3699');
+      c.beginPath(); c.roundRect(ax - 2, fy - 2.6, 5.4, 2.7, 1.2); fs(c, back ? '#e4d8ff' : '#ffffff', 0.7);
     };
-    const arm = (sx, ang, back) => {
-      const sy = -16.4 + bob, ex = sx + Math.sin(ang * 0.6) * 3, ey = sy + Math.cos(ang * 0.6) * 3, hx = ex + Math.sin(ang) * 3, hy = ey + Math.cos(ang) * 3;
+    const arm = (sx, sw, back) => {
+      const sy = -16.4 + bob, [ex, ey, hx, hy] = ik(sx, sy, sx + Math.sin(sw) * 5.9, sy + Math.cos(sw) * 5.9 - Math.max(0, Math.sin(sw)) * 0.8, 3, 3, 1);
       limb(c, [sx, sy, ex, ey, hx, hy], 2.7, back ? '#d84ca8' : P.hot);
       c.beginPath(); c.arc(hx, hy + 0.3, 1.3, 0, TAU); fs(c, back ? P.skinShade : P.skin, 0.6);
     };
-    arm(-0.9, s * 0.85, true); leg(-1.3, a + Math.PI, true); leg(1.3, a, false);
+    const s = Math.cos(a); // front arm swings against the front leg
+    arm(-0.9, 0.75 * Math.cos(a), true);
+    leg(-1.3, -0.9 - 3.7 * Math.cos(a), 2.1 * Math.max(0, Math.sin(a)), true);
+    leg(1.3, 0.9 + 3.7 * Math.cos(a), 2.1 * Math.max(0, -Math.sin(a)), false);
     const torso = () => { c.beginPath(); c.moveTo(-4.5, -17.8 + bob); c.lineTo(4.7, -17.8 + bob); c.quadraticCurveTo(6.2, -13.2 + bob, 5.6, -8.4 + bob); c.lineTo(-5.1, -8.4 + bob); c.quadraticCurveTo(-6, -13.2 + bob, -4.5, -17.8 + bob); c.closePath(); };
     torso(); fs(c, grad(c, 0, -18 + bob, 0, -8 + bob, [0, '#ff9ae0', 1, '#ff4fb4']));
     c.save(); torso(); c.clip();
@@ -141,7 +152,7 @@
     if (SP) return SP;
     SP = { hero: [], dolphin: [] };
     for (let i = 0; i < 8; i++) SP.hero.push(bake(16, 40, 16, 6, (c) => heroPose(c, i / 8)));
-    for (let i = 0; i < 6; i++) SP.dolphin.push(bake(22, 28, 17, 6, (c) => dolphinPose(c, i / 6), { bloom: P.cyan }));
+    for (let i = 0; i < 8; i++) SP.dolphin.push(bake(22, 28, 17, 6, (c) => dolphinPose(c, i / 8), { bloom: P.cyan, bloomA: 0.45 }));
     SP.critter = bake(14, 24, 15, 6, critterPose);
     SP.palm = bake(28, 62, 31, 5, palmPose, { bloom: P.mint, bloomA: 0.4 });
     SP.column = bake(11, 42, 11, 4, columnPose, { bloom: P.lavender, bloomA: 0.4 });
@@ -160,10 +171,16 @@
   }
   function drawEnemy(ctx, x, y, t, kind) {
     const S = sprites();
-    if (kind === 'dolphin') { shadow(ctx, x, y, 10); blit(ctx, S.dolphin[Math.floor(t * 1.8 * 6) % 6], x, y - 3 - Math.sin(t * 2.4) * 1.4); return; }
-    const ph = t * 1.1 % 1, sq = Math.pow(Math.max(0, Math.cos(ph * TAU)), 3), sy = 1 - 0.18 * sq + 0.07 * (1 - sq);
+    if (kind === 'dolphin') { // quick rise, slow glide (eased hover)
+      const fb = (t * 0.42) % 1, up = fb < 0.35 ? fb / 0.35 : 1 - (fb - 0.35) / 0.65, e = up * up * (3 - 2 * up);
+      shadow(ctx, x, y, 10); blit(ctx, S.dolphin[Math.floor(t * 1.8 * 8) % 8], x, y - 2.4 - e * 3, 1 + 0.05 * (1 - e), 1 - 0.04 * (1 - e)); return;
+    }
+    // hop: a ground beat (land squash flowing into the anticipation crouch), then a stretched arc
+    const ph = t * 1.1 % 1; let hop = 0, sq = 0, st = 0;
+    if (ph < 0.26) sq = Math.sin((ph / 0.26) * Math.PI); else { const u = (ph - 0.26) / 0.74; hop = Math.sin(u * Math.PI); st = Math.max(0, 1 - u * 2.4); }
+    const sy = 1 - 0.22 * sq + 0.12 * st;
     shadow(ctx, x, y, 12);
-    blit(ctx, S.critter, x, y - Math.sin(ph * Math.PI) * 5.5, 1 / Math.sqrt(sy), sy);
+    blit(ctx, S.critter, x, y - hop * 6.2, 1 / Math.sqrt(sy), sy);
   }
 
   /* ---------- ground: 32-unit plaza blocks (marble / checker / pastel grid), white trims, a tiled pool ---------- */

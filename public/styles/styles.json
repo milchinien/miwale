@@ -67,7 +67,7 @@
         "Halloween / harvest themed projects",
         "seasonal pixel-art scenes"
       ],
-      "difficulty": 5,
+      "difficulty": 6,
       "pixelArt": true,
       "palette": [
         "#77963b",
@@ -456,6 +456,8 @@
         "#c8b6da",
         "#ebd3a0",
         "#daa070",
+        "#80cde2",
+        "#60b2d7",
         "#ff952b",
         "#ffd43f",
         "#2f9c95",
@@ -530,7 +532,7 @@
         "cozy",
         "autumn"
       ],
-      "summary": "A handmade craft-table diorama: cut construction-paper puppets with white sticker rims and brass split pins on layered kraft, felt and newsprint.",
+      "summary": "A handmade craft-table diorama: stop-motion paper puppets with cream sticker rims and brass split pins on layered kraft, felt and newsprint.",
       "mood": [
         "cozy",
         "handmade",
@@ -556,12 +558,13 @@
         "#f6eedc",
         "#fbf6ea",
         "#3b2a26",
-        "#301a0c",
+        "#2c1822",
         "#e57d2c",
         "#f59c4c",
         "#9c4618",
         "#6e3c6d",
         "#9c629a",
+        "#843a63",
         "#d6a43a",
         "#76a54e",
         "#4d7a35",
@@ -653,8 +656,10 @@
         "#dace98",
         "#8e9c92",
         "#828aa2",
+        "#acb880",
         "#e9ce88",
         "#d8b894",
+        "#6a84aa",
         "#e8832f",
         "#41528a",
         "#b4432f",
@@ -664,8 +669,7 @@
         "#d3dbe3",
         "#b06a3a",
         "#ffcf55",
-        "#e6a92f",
-        "#c23b2b"
+        "#e6a92f"
       ],
       "fonts": [
         "IM Fell English SC",
@@ -727,7 +731,7 @@
         "holographic",
         "additive"
       ],
-      "summary": "Glowing neon tube line-art with baked halos on a near-black holographic floor of circuit, hex and halftone regions.",
+      "summary": "Glowing neon tube line-art with baked halos on a calm near-black floor of glowing roads, pattern districts and water.",
       "mood": [
         "electric",
         "nocturnal",
@@ -765,7 +769,10 @@
         "#c3b5ff",
         "#6a5ad0",
         "#ff4fd8",
-        "#ff2a7a"
+        "#ff2a7a",
+        "#c06a18",
+        "#3a2f86",
+        "#2a7fd6"
       ],
       "fonts": [
         "Orbitron",
@@ -849,6 +856,8 @@
         "#9cb876",
         "#c98e57",
         "#e2cb9c",
+        "#6fb4c8",
+        "#c49a6c",
         "#f48a2c",
         "#e27526",
         "#ffc43a",
@@ -1010,7 +1019,7 @@
         "tiles",
         "black outline"
       ],
-      "summary": "A lost NES cartridge: strict 2C02 palette, black-outlined 3-colour sprites, tile-language meadows and checker-flicker ghosts.",
+      "summary": "A late NES cartridge: strict 2C02 palette, black-outlined sprites posed from parts, 8-frame walks and tile-language meadows.",
       "mood": [
         "nostalgic",
         "punchy",
@@ -1025,7 +1034,7 @@
         "quick prototypes with strict rules",
         "chiptune rhythm or score-attack games"
       ],
-      "difficulty": 3,
+      "difficulty": 4,
       "pixelArt": true,
       "palette": [
         "#000000",
@@ -1049,7 +1058,10 @@
         "#BCBCBC",
         "#7C7C7C",
         "#940084",
-        "#D800CC"
+        "#D800CC",
+        "#A80020",
+        "#FCA044",
+        "#F878F8"
       ],
       "fonts": [
         "Press Start 2P"
@@ -1127,7 +1139,7 @@
       "pixelArt": false,
       "palette": [
         "#17131c",
-        "#544e60",
+        "#c99030",
         "#2a6e48",
         "#5f7a33",
         "#a23a4e",
@@ -1147,7 +1159,7 @@
         "#704690",
         "#e3203c",
         "#3ac6c6",
-        "#d9ad4e"
+        "#93a5cf"
       ],
       "fonts": [
         "Cinzel Decorative",
@@ -1227,7 +1239,7 @@
       "palette": [
         "#76a454",
         "#8cac5a",
-        "#66507e",
+        "#806c96",
         "#986c4a",
         "#d6a262",
         "#7ebad2",
@@ -1301,10 +1313,11 @@
         "hand-drawn",
         "pastel",
         "hatching",
+        "line boil",
         "doodle",
         "school"
       ],
-      "summary": "Drawn live with pastel chalk on a slate-green school board: broken grainy strokes, loose hatching, eraser smears and doodles.",
+      "summary": "Drawn live with pastel chalk on a slate-green board: side-of-the-chalk fills, cool hatched shadows, eraser wipes and line boil on twos.",
       "mood": [
         "playful",
         "handmade",
@@ -1315,11 +1328,11 @@
       "bestFor": [
         "top-down action games",
         "kids and educational games",
-        "cozy Halloween games",
+        "cozy seasonal games",
         "puzzle and board-game adaptations",
         "sketchbook-themed platformers"
       ],
-      "difficulty": 5,
+      "difficulty": 6,
       "pixelArt": false,
       "palette": [
         "#25332d",
@@ -1328,6 +1341,7 @@
         "#f89c52",
         "#de6c34",
         "#c2acec",
+        "#9680ce",
         "#98deb2",
         "#70bc7e",
         "#f9e58c",
@@ -1688,7 +1702,7 @@
         "swirls",
         "painterly"
       ],
-      "summary": "A living Van Gogh night painting: every surface is thick, swirling impasto brush strokes in ultramarine, viridian and cadmium yellow.",
+      "summary": "A living Van Gogh night painting: thick, directional impasto strokes in ultramarine, viridian and cadmium yellow that follow every form.",
       "mood": [
         "dreamy",
         "vibrant",
@@ -1710,7 +1724,8 @@
         "#111733",
         "#2e5944",
         "#70944e",
-        "#142a20",
+        "#9aae4c",
+        "#173024",
         "#866c2a",
         "#bc9a3e",
         "#3d4180",
@@ -1722,6 +1737,7 @@
         "#ffd040",
         "#ffe070",
         "#fff6c8",
+        "#9fd4dc",
         "#763896",
         "#e2d09a",
         "#a2d0d2",
@@ -2099,21 +2115,22 @@
         "Japanese-inspired fantasy RPGs and card games",
         "story maps, menus and festival-themed projects"
       ],
-      "difficulty": 6,
+      "difficulty": 7,
       "pixelArt": false,
       "palette": [
         "#f2e8d2",
         "#fbf5e6",
         "#1e1b19",
         "#eee4c7",
-        "#c7cf98",
         "#e6cf96",
+        "#c7cf98",
+        "#d6e0ce",
         "#96aa74",
         "#dec48a",
         "#e7d4a8",
+        "#a8c5c9",
         "#24527e",
         "#1e456e",
-        "#a8c5c9",
         "#2d4a72",
         "#cf4a2c",
         "#c8402a",
@@ -2378,9 +2395,9 @@
         "washi",
         "pastel",
         "cozy",
-        "two-sided paper"
+        "stop-motion"
       ],
-      "summary": "A world folded from washi paper: flat facets with crisp mountain and valley creases on a giant crease-pattern sheet.",
+      "summary": "A world folded from washi paper: flat-lit facets, mountain and valley creases, hemmed pastel sheets and stop-motion paper puppets.",
       "mood": [
         "calm",
         "crafted",
@@ -2395,15 +2412,17 @@
         "zen, relaxing or seasonal projects",
         "papercraft-themed menus and map screens"
       ],
-      "difficulty": 5,
+      "difficulty": 6,
       "pixelArt": false,
       "palette": [
         "#f4eee1",
         "#d5e1c0",
+        "#b7cf9e",
         "#f2dca6",
         "#f3cebe",
         "#c3dfd6",
         "#88a8d8",
+        "#e8d9bc",
         "#e8755b",
         "#f3e9d6",
         "#4f62a6",
@@ -2417,8 +2436,7 @@
         "#cac3ba",
         "#3d3747",
         "#2a2433",
-        "#4e3848",
-        "#3d3852"
+        "#4e3848"
       ],
       "fonts": [
         "Zen Maru Gothic",
@@ -2510,10 +2528,10 @@
         "#d9d1c1",
         "#f4efe4",
         "#cfc8b9",
-        "#b2aa9a",
-        "#928a7c",
-        "#e4ddcd",
-        "#565047",
+        "#bdb6a6",
+        "#968e7f",
+        "#e5dece",
+        "#4e4840",
         "#978c7b",
         "#0c0a08",
         "#17130f",
@@ -2696,7 +2714,7 @@
         "zen, meditation and puzzle projects",
         "story maps, title screens and scroll-based menus"
       ],
-      "difficulty": 5,
+      "difficulty": 6,
       "pixelArt": false,
       "palette": [
         "#f3ecdd",
@@ -2708,11 +2726,10 @@
         "#beb8aa",
         "#322f2c",
         "#ce3c26",
-        "#a0261a",
+        "#a8281a",
         "#e47052",
         "#4e4b46",
         "#2a2622",
-        "#d6cebe",
         "#3a3630"
       ],
       "fonts": [
@@ -2969,7 +2986,7 @@
         "bright",
         "naive art"
       ],
-      "summary": "A child's wax-crayon drawing brought to life: toothy white paper, zigzag scribble fills that go outside the lines, wobbly boiling outlines.",
+      "summary": "A child's wax-crayon drawing brought to life: toothy paper, layered scribble fills that miss the lines, shade crayons, boiling outlines.",
       "mood": [
         "cheerful",
         "innocent",
@@ -2984,7 +3001,7 @@
         "doodle-themed menus, tutorials and level select screens",
         "party and casual mobile games"
       ],
-      "difficulty": 4,
+      "difficulty": 5,
       "pixelArt": false,
       "palette": [
         "#fbf8ef",
@@ -2998,13 +3015,17 @@
         "#42a8ea",
         "#2a5ec8",
         "#8c4cc4",
-        "#5c2c8c",
         "#f67eb4",
         "#94582c",
         "#d8a262",
         "#fcc698",
         "#929098",
-        "#a8d6f6"
+        "#a8d6f6",
+        "#166856",
+        "#b01c4a",
+        "#3a3096",
+        "#68382c",
+        "#606284"
       ],
       "fonts": [
         "Gochi Hand",

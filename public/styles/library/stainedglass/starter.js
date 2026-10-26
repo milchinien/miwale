@@ -18,6 +18,7 @@
     opal: ['#f0f5ff', '#dde8fb', '#f6ecfb', '#e0f3f4', '#e9e9fb', '#fbf6ec'], hollow: '#1e2452',
     brown: ['#6b4a32', '#7e5a3c', '#5a3b2a', '#8a6440', '#644530'], violet: ['#5e3a7a', '#704690', '#52306a', '#7c5098'],
     ruby: ['#e3203c', '#ff4a5a', '#b8142e', '#ff7080'], gem: ['#8ff6ea', '#3ac6c6', '#c4fff6', '#279fb0'],
+    goldStrip: ['#c99030', '#b57a26', '#d8a845', '#a86c22'], pearlStrip: ['#7f92c0', '#93a5cf', '#7183b4', '#a0b0d8'], legs: ['#3a2a50', '#4b3868'], sleeve: ['#1f5634', '#2c7244'],
   };
   const LEAD = PALETTE.lead, WARM = [255, 250, 232];
 
@@ -140,27 +141,45 @@
   }
 
   // ---------- figures (feet at 0,0, facing right, world units)
-  function heroParts(P, fr) {
-    const lo = [0, 2.2, 0, -2.2][fr], lift = [0, 0.8, 0, 0.8][fr];
-    P.piece(CAP(3.2, -8, 3.4 - lo, -1.2, 2.1, 2.2), PALETTE.boot[1], 3.2 - lo * 0.5, -4.5, 3.2);
-    P.piece(CAP(-3.2, -8, -3.4 + lo, -1.2 - lift, 2.1, 2.2), PALETTE.boot[0], -3.2 + lo * 0.5, -4.5, 3.2);
-    const cloak = [[-4.6, -17.2], [4.6, -17.2], [8.8, -4.6], [5.4, -2.6], [0.4, -3.6], [-5, -2.6], [-8.8, -4.6]];
-    P.part(PP(cloak), mosaic(cloak, 38, 7, (x, y, i) => PALETTE.cloak[i % 5]));
-    const hem = [[-8.8, -4.6], [-5, -2.6], [0.4, -3.6], [5.4, -2.6], [8.8, -4.6], [8.2, -6.6], [5, -4.9], [0.4, -5.9], [-5, -4.9], [-8.2, -6.6]];
-    P.part(PP(hem), [[-10, -2.2, '#f2c040'], [-2.2, 3, '#e0a830'], [3, 10, '#f2c040']].map(([a, b, col]) => ({ poly: rectPoly(a, -8, b, -1), col, cx: (a + b) / 2, cy: -4, r: 3 })), { ol: 0.5 });
-    P.piece(ELL(0, -15.6, 1.5, 1.5), '#f2c040', 0, -15.6, 1.5, { glow: true });
-    const tail = [[-6.2, -17.5], [-3.6, -17.8], [-4.4, -11.5], [-7.4, -12.4]];
-    P.piece(PP(tail), PALETTE.scarf[1], -5.4, -14.8, 2.6);
-    P.part(PP([[-6.4, -19.4], [6.4, -19.4], [6.8, -16.4], [-6.8, -16.4]]), [
-      { poly: [[-7, -20], [-1.2, -20], [-0.4, -16], [-7, -16]], cx: -3.6, cy: -18, r: 3, col: PALETTE.scarf[0] },
-      { poly: [[-1.2, -20], [7, -20], [7, -16], [-0.4, -16]], cx: 3.2, cy: -18, r: 3.4, col: PALETTE.scarf[2] }]);
-    P.piece((c) => { c.moveTo(-1.6, -31.2); c.quadraticCurveTo(-1.2, -34.5, 0.2, -36.2); c.lineTo(2.6, -35.4); c.quadraticCurveTo(1.4, -33.6, 1.7, -31.2); c.closePath(); }, PALETTE.stem, 0.4, -33.5, 2.4);
-    const L = leafPts(1.2, -33.4, -0.35, 6, 1.7); P.part(leafShape(L), leafCells(L, PALETTE.leaf[0], PALETTE.leaf[1]));
-    P.part(ELL(0, -24.6, 10.6, 8.4), ribCells(0, -24.6, 10.6, 8.4, [-1.05, -0.64, -0.22, 0.22, 0.64, 1.05], PALETTE.pumpkin));
-    const f = 1.5, face = [[[-5.9, -24.2], [-1.7, -24.2], [-3.9, -28.4]], [[1.5, -24.2], [5.7, -24.2], [3.5, -28.4]], [[-0.9, -22.2], [0.9, -22.2], [0, -23.9]],
-      [[-6.4, -21.2], [-4.6, -20.4], [-3.6, -21.6], [-2.2, -20.4], [-0.6, -21.7], [0.9, -20.4], [2.4, -21.6], [3.6, -20.4], [5.4, -21.2], [4.6, -18.6], [3.2, -17.6], [2.2, -18.8], [0.6, -17.2], [-1, -18.6], [-2.4, -17.4], [-3.6, -18.8], [-5.2, -18.4]]];
-    for (const q of face) { const p = q.map(([x, y]) => [x + f, y]), inf = polyInfo(p); P.piece(PP(p), PALETTE.face, inf.cx, inf.cy, inf.r * 1.2, { glow: true, ol: 0.5 }); }
+  // The main character is a leaded-glass PUPPET: body frames (legs + cloak), arms, head and scarf are separate
+  // sprites with pivots, so they can swing, lag and overshoot against each other.
+  const JW = 8;
+  function heroPose(i) { const ph = i / JW, s = Math.cos(ph * TAU), sn = Math.sin(ph * TAU); return { nf: 3.5 * s, ff: -3.5 * s, nl: Math.max(0, -sn) * 2.2, fl: Math.max(0, sn) * 2.2, hem: 1.2 * Math.sin(ph * TAU - 1.2) }; }
+  function heroLeg(P, hx, fx, lift, col, boot) {
+    const ay = -2.4 - lift; P.piece(CAP(hx, -8.6, fx, ay, 1.8, 1.5), col, (hx + fx) / 2, -5.6, 3);
+    P.piece((c) => { c.moveTo(fx - 2.1, ay + 0.1); c.quadraticCurveTo(fx - 2.3, ay + 2.5, fx - 0.5, ay + 2.5); c.lineTo(fx + 2.5, ay + 2.5); c.quadraticCurveTo(fx + 3.5, ay + 2.4, fx + 2.7, ay + 0.7); c.quadraticCurveTo(fx + 1.1, ay - 1.4, fx - 2.1, ay + 0.1); c.closePath(); }, boot, fx + 0.3, ay + 1, 2.6);
   }
+  const CLOAK = [[-4.9, -17.6], [4.9, -17.6], [7.1, -11.4], [8.8, -6.6], [5.6, -5.2], [2.2, -6.1], [-1.4, -5.1], [-5, -6], [-8.8, -6.6], [-7.1, -11.4]];
+  const HEM = [[-8.8, -6.6], [-5, -6], [-1.4, -5.1], [2.2, -6.1], [5.6, -5.2], [8.8, -6.6], [8.3, -8.5], [5.4, -7.2], [2.2, -8.1], [-1.4, -7.1], [-5, -8], [-8.3, -8.5]];
+  const CLOAK_CELLS = mosaic(rectPoly(-12, -19, 12, -3), 24, 7, (x, y, i) => PALETTE.cloak[i % 5]); // fixed glass, the outline moves over it
+  function heroBody(P, pose) {
+    heroLeg(P, -2.2, pose.ff - 0.5, pose.fl, PALETTE.legs[0], PALETTE.boot[0]); heroLeg(P, 2.2, pose.nf + 0.5, pose.nl, PALETTE.legs[1], PALETTE.boot[1]);
+    const c = P.ctx, k = pose.hem / 12.4; c.save(); c.transform(1, 0, k, 1, 17.6 * k, 0); // shear: shoulders fixed, hem swings behind the stride
+    P.part(PP(CLOAK), CLOAK_CELLS);
+    const xs = [-10, -6.6, -3.2, 0.4, 3.8, 7, 10];
+    P.part(PP(HEM), xs.slice(0, -1).map((x0, i) => ({ poly: rectPoly(x0, -9.5, xs[i + 1], -4), col: i & 1 ? '#d99e2c' : '#f2c445', cx: (x0 + xs[i + 1]) / 2, cy: -7.4, r: 2.4 })), { ol: 0.5, noGlint: true });
+    c.restore();
+    P.piece(ELL(0, -16, 1.5, 1.5), '#f2c040', 0, -16, 1.5, { glow: true });
+    P.part(PP([[-6.4, -19.8], [6.4, -19.8], [6.8, -16.7], [-6.8, -16.7]]), [
+      { poly: [[-7, -20.4], [-1.2, -20.4], [-0.4, -16.2], [-7, -16.2]], cx: -3.6, cy: -18.4, r: 3, col: PALETTE.scarf[0] },
+      { poly: [[-1.2, -20.4], [7, -20.4], [7, -16.2], [-0.4, -16.2]], cx: 3.2, cy: -18.4, r: 3.4, col: PALETTE.scarf[2] }]);
+  }
+  function heroArm(P, back) { // pivot = shoulder (0,0)
+    P.piece(CAP(0, 0, 0.3, 5.5, 1.95, 1.6), PALETTE.sleeve[back ? 0 : 1], 0, 2.4, 2.6);
+    P.piece(PP(rectPoly(-1.9, 4.7, 2.3, 6.2)), '#e0a830', 0.2, 5.4, 1.6, { ol: 0.5, noGlint: true });
+    P.piece(ELL(0.35, 7.5, 1.85, 1.7), back ? '#6a4026' : '#835434', 0.3, 7.2, 1.8);
+  }
+  function heroHead(P, v) { // pivot = neck (0,0); v: 0 looking ahead, 1 squint (blink)
+    const hy = -7.6;
+    P.piece((c) => { c.moveTo(-1.6, -14.6); c.quadraticCurveTo(-1.2, -18, 0.2, -19.6); c.lineTo(2.6, -18.8); c.quadraticCurveTo(1.4, -17, 1.7, -14.6); c.closePath(); }, PALETTE.stem, 0.4, -16.8, 2.4);
+    const L = leafPts(1.2, -16.7, -0.35, 6, 1.7); P.part(leafShape(L), leafCells(L, PALETTE.leaf[0], PALETTE.leaf[1]));
+    P.part(ELL(0, hy, 10.4, 8.2), ribCells(0, hy, 10.4, 8.2, [-1.05, -0.64, -0.22, 0.22, 0.64, 1.05], PALETTE.pumpkin));
+    const eyes = v ? [[[-6.1, -7.6], [-1.5, -7.8], [-3.9, -9.4]], [[1.3, -7.8], [5.9, -7.6], [3.5, -9.4]]] : [[[-5.9, -7.2], [-1.7, -7.2], [-3.9, -11.4]], [[1.5, -7.2], [5.7, -7.2], [3.5, -11.4]]];
+    const face = eyes.concat([[[-0.9, -5.2], [0.9, -5.2], [0, -6.9]], [[-6.4, -4.2], [-4.6, -3.4], [-3.6, -4.6], [-2.2, -3.4], [-0.6, -4.7], [0.9, -3.4], [2.4, -4.6], [3.6, -3.4], [5.4, -4.2], [4.6, -1.6], [3.2, -0.6], [2.2, -1.8], [0.6, -0.2], [-1, -1.6], [-2.4, -0.4], [-3.6, -1.8], [-5.2, -1.4]]]);
+    for (const q of face) { const p = q.map(([x, y]) => [x + 1.6, y]), inf = polyInfo(p); P.piece(PP(p), PALETTE.face, inf.cx, inf.cy, inf.r * 1.2, { glow: true, ol: 0.5 }); }
+  }
+  const heroTail = [(P) => P.piece(PP([[-1.3, -0.8], [1.4, -0.6], [1.1, 4.8], [-1.2, 5]]), PALETTE.scarf[1], 0, 1.8, 2.6),
+    (P) => { P.piece(PP([[-1.2, 0], [1.1, -0.2], [1.9, 4], [-0.5, 4.6]]), PALETTE.scarf[0], 0.3, 2, 2.6); P.piece(PP([[-0.5, 4.6], [1.9, 4], [2.3, 5.8], [-0.2, 6.3]]), '#f2c040', 0.9, 5.2, 1.4, { ol: 0.45, noGlint: true }); }];
   function turnipPath(c, cx, top, bot, w) {
     const h = bot - top; c.moveTo(cx, top);
     c.bezierCurveTo(cx + w * 1.3, top + h * 0.02, cx + w * 1.18, top + h * 0.72, cx + w * 0.16, bot - 1);
@@ -180,14 +199,17 @@
     for (const e of [[[-6.2, -11], [-1.6, -9.6], [-2.2, -7.6], [-5.6, -8.2]], [[1.6, -9.6], [6.2, -11], [5.6, -8.2], [2.2, -7.6]]]) { const f = polyInfo(e); P.piece(PP(e), PALETTE.ember, f.cx, f.cy, f.r * 1.3, { glow: true, ol: 0.5 }); }
     if (P.mode !== 'outline') { const c = P.ctx; c.strokeStyle = LEAD; c.lineWidth = 0.75; c.beginPath(); c.moveTo(-2, -4.9); c.quadraticCurveTo(0, -6.2, 2, -4.9); c.stroke(); }
   }
-  function ghostParts(P, fr) {
-    const ph = (fr / 4) * TAU;
-    P.piece(CAP(4, -12, 10.5, -13.5 + Math.sin(ph) * 0.8, 1.7, 1.1), PALETTE.opal[1], 7.5, -13, 3);
+  function ghostParts(P, fr) { // hood panels + vertical drapery strips + a 3-point hem that ripples (pieces follow form)
+    const ph = (fr / 4) * TAU, sw = Math.sin(ph) * 0.9, O = PALETTE.opal;
+    P.piece(CAP(4.2, -11.4, 10.2, -13.2 + Math.sin(ph + 0.8) * 1.1, 1.7, 1.1), O[1], 7.4, -12.6, 3);
+    const e = []; for (let i = 0; i <= 6; i++) { const t = i / 6, tip = (i & 1) === 0; e.push([6.2 - t * 12.4 + Math.sin(ph + t * 2.4) * 0.9, (tip ? 1.6 : -2.6) + Math.sin(ph + i * 1.3) * (tip ? 1.4 : 0.6)]); }
+    const strip = (x0, x1, b0, b1, col, cx) => ({ poly: [[x0, -14.2], [x1, -14.2], [x1 + b1, 4], [x0 + b0, 4]], col, cx, cy: -6, r: 6 });
     P.part((c) => {
-      c.moveTo(-7.6, -16.5); c.arc(0, -16.5, 7.6, PI, 0); c.bezierCurveTo(8.2, -11, 7.4, -7, 5.8 + Math.sin(ph) * 0.8, -2.6);
-      for (let i = 0; i < 4; i++) { const x0 = 5.8 - (i / 4) * 11.6, x1 = 5.8 - ((i + 1) / 4) * 11.6; c.quadraticCurveTo((x0 + x1) / 2, 1 + Math.sin(ph + i * 1.7) * 1.2, x1, -3.4 + Math.sin(ph + (i + 1) * 1.7) * 0.9); }
-      c.bezierCurveTo(-7.4, -7, -8.2, -11, -7.6, -16.5); c.closePath();
-    }, mosaic(rectPoly(-9, -25, 9, 1), 70, 31, (x, y, i) => PALETTE.opal[i % 6]), { jitter: 0.06 });
+      c.moveTo(-7.4, -16.5); c.arc(0, -16.5, 7.4, PI, 0); c.bezierCurveTo(8.3, -11, 7.6, -6.5, e[0][0], e[0][1]);
+      for (let i = 1; i < e.length; i++) c.quadraticCurveTo((e[i - 1][0] + e[i][0]) / 2 + 0.4, Math.max(e[i - 1][1], e[i][1]) + 0.6, e[i][0], e[i][1]);
+      c.bezierCurveTo(-7.6, -6.5, -8.3, -11, -7.4, -16.5); c.closePath();
+    }, [{ poly: rectPoly(-9, -26, -2.5, -14.2), col: O[3], cx: -4.6, cy: -19, r: 5 }, { poly: rectPoly(-2.5, -26, 2.5, -14.2), col: O[0], cx: 0, cy: -21, r: 5, glow: true }, { poly: rectPoly(2.5, -26, 9, -14.2), col: O[4], cx: 4.6, cy: -19, r: 5 },
+      strip(-9, -4.4, -0.6, sw - 0.4, O[2], -6), strip(-4.4, 0.2, sw - 0.4, sw, O[1], -2), strip(0.2, 4.6, sw, sw + 0.4, O[5], 2.4), strip(4.6, 9, sw + 0.4, 0.6, O[3], 6)], { jitter: 0.05 });
     for (const [x, y, rx, ry, r] of [[-2.6, -17.4, 1.7, 2.3, -0.2], [3.2, -17.4, 1.7, 2.3, 0.2], [0.6, -11.6, 2.1, 3, 0]]) P.piece(ELL(x, y, rx, ry, r), PALETTE.hollow, x, y, 2.4, { ol: 0.5, noGlint: true });
   }
   /** Fast floating creature: its tail dissolves via a destination-out gradient over the lower 9 units of the baked sprite. */
@@ -221,14 +243,35 @@
     if (SPR && SPR.K === K) return SPR;
     const pair = (box, fn, seed, post) => ({ n: build(box, fn, 'fill', seed, K, post), f: build(box, fn, 'flash', seed, K, post) });
     const G = [[0, 0.9], [0.25, 0.45], [0.6, 0.12], [1, 0]];
-    SPR = { K, hero: [0, 1, 2, 3].map((f) => pair([-14, -38, 14, 3], (P) => heroParts(P, f), 11 + f)),
+    SPR = { K, body: Array.from({ length: JW }, (_, f) => build([-13, -22, 14, 3], (P) => heroBody(P, heroPose(f)), 'fill', 11, K)),
+      arm: [true, false].map((b) => build([-4, -3, 4.5, 10], (P) => heroArm(P, b), 'fill', 23, K)), head: [0, 1].map((v) => build([-12, -23, 13, 2.5], (P) => heroHead(P, v), 'fill', 25, K)),
+      tail: [build([-3.5, -2, 3.5, 6.5], heroTail[0], 'fill', 28, K), build([-3, -1.5, 4, 8], heroTail[1], 'fill', 29, K)],
       enemy: [0, 1, 2].map((v) => [0, 1, 2, 3].map((f) => pair([-14, -34, 14, 4], (P) => enemyParts(P, f, v), 30 + v * 7 + f))),
-      ghost: [0, 1, 2, 3].map((f) => pair([-11, -27, 14, 3], (P) => ghostParts(P, f), 60 + f, ghostFade)),
-      brute: [0, 1, 2, 3].map((f) => pair([-31, -64, 31, 3], (P) => bruteParts(P, f), 80 + f)),
+      ghost: [0, 1, 2, 3].map((f) => pair([-11, -27, 14, 5], (P) => ghostParts(P, f), 60, ghostFade)),
+      brute: [0, 1, 2, 3].map((f) => pair([-31, -64, 31, 3], (P) => bruteParts(P, f), 80)),
       gem: build([-5.5, -7.5, 5.5, 4.5], gemParts, 'fill', 5, K), seed: build([-5.5, -4.5, 6, 4.5], seedParts, 'fill', 4, K),
       shard: ['#8a4ac0', '#f2deb0', '#58a83c', '#e8f0ff'].map((col) => SHARDS.map((sh, i) => build([-4, -4, 4, 4], (P) => { const f = polyInfo(sh); P.ol = 0.4; P.part(PP(sh), [{ poly: sh, col, cx: f.cx, cy: f.cy, r: f.r * 1.2 }]); }, 'fill', 90 + i, K))),
       warm: radial([255, 190, 80], 16, K, G), gold: radial([255, 210, 90], 10, K, G), aqua: radial([110, 240, 220], 10, K, G), cold: radial([150, 200, 255], 14, K, G), ruby: radial([255, 60, 80], 14, K, G) };
+    SPR.pieces = shatter(SPR.enemy[0][0].n, 9, 70, -11, K); // the creature's own glass, cut once
     return SPR;
+  }
+  /** Cut a finished sprite into convex pieces (BSP); each piece keeps its glass and gets new lead along the break. */
+  function shatter(spr, n, seed, cy0, K) {
+    const rnd = mulberry32(seed), W = spr.c.width, H = spr.c.height, polys = [], out = [], lw = 0.62 * K, ox = -spr.box[0] * K, oy = -spr.box[1] * K;
+    bsp(rectPoly(0, 0, W, H), (W * H) / n, rnd, polys, 0);
+    for (const poly of polys) {
+      const f = polyInfo(poly), xs = poly.map((p) => p[0]), ys = poly.map((p) => p[1]);
+      const x0 = Math.floor(Math.min(...xs) - lw), y0 = Math.floor(Math.min(...ys) - lw), c = document.createElement('canvas');
+      c.width = Math.ceil(Math.max(...xs) + lw) - x0; c.height = Math.ceil(Math.max(...ys) + lw) - y0;
+      const x = c.getContext('2d'); x.translate(-x0, -y0);
+      x.save(); x.beginPath(); polyPath(x, poly); x.clip(); x.drawImage(spr.c, 0, 0); x.restore();
+      x.lineJoin = 'round'; x.strokeStyle = LEAD; x.lineWidth = lw; x.beginPath(); polyPath(x, poly); x.stroke();
+      x.globalCompositeOperation = 'destination-in'; x.drawImage(spr.c, 0, 0);
+      const mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length, lx = (mx - ox) / K, ly = (my - oy) / K, l = Math.hypot(lx, ly - cy0) || 1;
+      if (f.r < K * 1.2) continue;
+      out.push({ s: { c, box: [-(mx - x0) / K, -(my - y0) / K, (c.width - (mx - x0)) / K, (c.height - (my - y0)) / K] }, lx, ly, dx: lx / l, dy: (ly - cy0) / l, d: 0.7 + rnd() * 0.6, vr: (rnd() - 0.5) * 9, up: 0.6 + rnd() * 0.8 });
+    }
+    return out;
   }
   /** Draw a baked sprite with its origin at world (x,y); 'lighter' + alpha for glows. */
   function blit(ctx, s, x, y, sx, sy, rot, alpha, add) {
@@ -240,10 +283,21 @@
 
   /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
-    const S = sprites(kFor(ctx)), ph = t * 1.6, fr = Math.floor(ph * 4) & 3, lift = Math.abs(Math.sin(ph * TAU)) * 2.2, fx = facing < 0 ? -1 : 1, k = 1.15;
-    blit(ctx, S.warm, x + fx * 1.2, y - 24 * k - lift, 1.25, 1.25, 0, 0.32 + 0.08 * Math.sin(t * 6.5), true);
-    blit(ctx, S.hero[fr].n, x, y - lift, k * fx, k * (1 + 0.02 * Math.sin(ph * TAU * 2)), 0.05 * fx * Math.sin(ph * TAU));
-    blit(ctx, S.gold, x + fx * 2, y - 23 * k - lift, 0.55, 0.55, 0, 0.28 + 0.12 * Math.sin(t * 9) * Math.sin(t * 5.3), true);
+    const S = sprites(kFor(ctx)), fx = facing < 0 ? -1 : 1, k = 1.15, ph = (t * 2.6) % 1, s = Math.cos(ph * TAU);
+    const lift = 0.55 * (1 + Math.cos(4 * PI * (ph - 0.375))), hl = 0.55 * (1 + Math.cos(4 * PI * (ph - 0.445))); // lowest after contact, head lags
+    const rot = 0.035 * Math.sin(ph * TAU), sx = k, sy = k * (1 + 0.03 * (lift / 1.1 - 0.5)), bx = x, by = y - lift, co = Math.cos(rot), si = Math.sin(rot);
+    const at = (lx, ly) => [bx + lx * sx * fx * co - ly * sy * si, by + lx * sx * fx * si + ly * sy * co];
+    const tail = 0.95 + 0.09 * Math.sin(t * 6.5), tail2 = tail * 0.6 + 0.16 * Math.sin(t * 7.3 + 1.2); // trailing scarf, lower segment lags
+    const hp = at(0, -17.6 - (hl - lift) * 0.9), tp = at(-5.6, -18.2), tr = rot + fx * tail, blink = (t / 3.3) % 1 < 0.035 ? 1 : 0;
+    blit(ctx, S.warm, hp[0] + fx * 1.2, hp[1] - 7 * sy, 1.25, 1.25, 0, 0.32 + 0.08 * Math.sin(t * 6.5), true);
+    blit(ctx, S.tail[1], tp[0] - Math.sin(tr) * 4.8 * sy, tp[1] + Math.cos(tr) * 4.8 * sy, sx * fx, sy, tr + fx * tail2);
+    blit(ctx, S.tail[0], tp[0], tp[1], sx * fx, sy, tr);
+    const ab = at(-6, -15.6), af = at(5.4, -15.6);
+    blit(ctx, S.arm[0], ab[0], ab[1], sx * fx, sy, rot - fx * 0.5 * s);                       // arms counter-swing the legs
+    blit(ctx, S.body[Math.floor(ph * JW + 0.5) % JW], bx, by, sx * fx, sy, rot);
+    blit(ctx, S.arm[1], af[0], af[1], sx * fx, sy, rot + fx * 0.55 * s);
+    blit(ctx, S.head[blink], hp[0], hp[1], sx * fx, sy, rot + fx * 0.05 * Math.sin(ph * TAU - 0.7));
+    blit(ctx, S.gold, hp[0] + fx * 2, hp[1] - 6 * sy, 0.55, 0.55, 0, 0.28 + 0.12 * Math.sin(t * 9) * Math.sin(t * 5.3), true);
   }
   /** Draws a typical creature (small root-bulb creature) with feet at (x, y). flash 0..1 = lit-glass flash. */
   function drawEnemy(ctx, x, y, t, variant, flash, facing) {
@@ -254,8 +308,9 @@
 
   // ---------- ground: per-pixel world-anchored Voronoi glass with antialiased lead + region lead
   const GSTEP = 4, PATH_HALF = 21, LANE = 7, LW = 0.78, LWR = 1.2;
-  const TESS = [{ C: 20, seed: 101, pal: PALETTE.meadow.map(hex), alt: PALETTE.meadowAlt.map(hex) }, { C: 15, seed: 202, pal: PALETTE.leafCarpet.map(hex) }, { C: 30, seed: 404, lanes: [PALETTE.pathLane, PALETTE.pathMid, PALETTE.pathLane].map((p) => p.map(hex)) }];
-  function fields(x, y) { return [fbm(x / 640 + 3.1, y / 640 - 7.7, 23, 3) - 0.53, fbm(x / 1150 + 0.37, y / 1150 + 0.11, 11, 2) - 0.5, fbm(x / 1150, y / 1150, 77, 2)]; }
+  const BAND = 6.5; // border strip of small pieces just inside the carpet edge
+  const TESS = [{ C: 24, seed: 101, pal: PALETTE.meadow.map(hex), alt: PALETTE.meadowAlt.map(hex) }, { C: 19, seed: 202, pal: PALETTE.leafCarpet.map(hex) }, { C: 30, seed: 404, lanes: [PALETTE.pathLane, PALETTE.pathMid, PALETTE.pathLane].map((p) => p.map(hex)) }, { C: 8, seed: 606, pal: PALETTE.goldStrip.map(hex) }];
+  function fields(x, y) { return [fbm(x / 760 + 3.1, y / 760 - 7.7, 23, 2) - 0.53, fbm(x / 1150 + 0.37, y / 1150 + 0.11, 11, 2) - 0.5, fbm(x / 1150, y / 1150, 77, 2)]; }
   function site(T, i, j) {
     const h = hashInt(i, j, T.seed), h2 = hashInt(i, j, T.seed + 7), sx = (i + 0.08 + ((h & 1023) / 1023) * 0.84) * T.C, sy = (j + 0.08 + (((h >>> 10) & 1023) / 1023) * 0.84) * T.C;
     const br = 0.93 + ((h2 >>> 16) & 255) / 256 * 0.14, a = ((h2 & 255) / 256) * PI, fr = 0.45 + ((h2 >>> 8) & 255) / 256 * 0.6;
@@ -277,36 +332,40 @@
       const lay = (L) => { const s0 = A[L] + (B[L] - A[L]) * u, s1 = C[L] + (D[L] - C[L]) * u, sv = s0 + (s1 - s0) * v, du = (B[L] - A[L]) * (1 - v) + (D[L] - C[L]) * v, dv = (C[L] - A[L]) * (1 - u) + (D[L] - B[L]) * u, g = Math.sqrt(du * du + dv * dv) / GSTEP; return g > 1e-9 ? sv / g : sv > 0 ? 99 : -99; };
       const dL = lay(0), across = lay(1), dPa = PATH_HALF - Math.abs(across), mt = (A[2] + B[2] + C[2] + D[2]) / 4;
       let m, re; if (dPa > 0) { m = 2; re = dPa; } else if (dL > 0) { m = 1; re = Math.min(dL, -dPa); } else { m = 0; re = Math.min(-dL, -dPa); }
+      if (m === 1 && dL < BAND) m = 3; // the strip uses its own small Voronoi
       const T = TESS[m], ix = Math.floor(x / T.C), iy = Math.floor(y / T.C);
       let b1 = 1e18, b2 = 1e18, b3 = 1e18, k1 = null, k2 = null, k3 = null;
       for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const st = getSite(m, ix + i, iy + j), dx = st.sx - x, dy = st.sy - y, d = dx * dx + dy * dy; if (d < b1) { b3 = b2; k3 = k2; b2 = b1; k2 = k1; b1 = d; k1 = st; } else if (d < b2) { b3 = b2; k3 = k2; b2 = d; k2 = st; } else if (d < b3) { b3 = d; k3 = st; } }
       const e1 = (b2 - b1) / (2 * Math.hypot(k2.sx - k1.sx, k2.sy - k1.sy)), e2 = (b3 - b1) / (2 * Math.hypot(k3.sx - k1.sx, k3.sy - k1.sy));
       let eP = smin(e1, e2, 1.6), col = k1.cols[0];
+      if (m === 3) eP = Math.min(eP, Math.abs(dL - BAND) - 0.25);
       if (m === 2) { const lane = across < -LANE ? 0 : across > LANE ? 2 : 1; eP = Math.min(eP, Math.abs(across - LANE), Math.abs(across + LANE)); col = k1.cols[lane]; }
       const streak = 1 + 0.055 * Math.sin((x * k1.dc + y * k1.ds) * k1.fr + k1.ph), e = Math.min(eP, re), tt = cl(e / (T.C * 0.34), 0, 1);
-      const lum = (0.6 + 0.38 * tt * tt * (3 - 2 * tt)) * streak * (0.86 + (mt - 0.3) * 0.5);
+      const lum = (0.52 + 0.36 * tt * tt * (3 - 2 * tt)) * streak * (0.82 + (mt - 0.3) * 0.5);
       let r = col[0] * lum, g = col[1] * lum, b = col[2] * lum;
       const cov = Math.max(LW - eP, LWR - re) * s + 0.5;
       if (cov > 0) { const k = Math.min(1, cov), tl = cl(Math.max(1 - eP / LW, 1 - re / LWR), 0, 1), q = tl * tl * 0.85; r += (28 + 56 * q - r) * k; g += (24 + 54 * q - g) * k; b += (34 + 62 * q - b) * k; }
       buf[py * Wp + px] = 0xff000000 | (Math.min(255, b) << 16) | (Math.min(255, g) << 8) | Math.min(255, r);
     }
     cx.putImageData(img, 0, 0);
-    // decals: leaded flowers on meadow, autumn leaves on the carpet, glass glints everywhere (world-anchored seeded scatter)
+    // decals in clusters, never an even sprinkle: flower sprays of 3-6 blossoms, leaf drifts on the carpet
     cx.setTransform(s, 0, 0, s, -ox * s, -oy * s); cx.lineJoin = 'round';
     const matAt = (x, y) => { const f = fields(x, y); return Math.abs(f[1]) < 0.02 ? 2 : f[0] > 0.01 ? 1 : 0; };
     const blob = (path, col, x, y, r, lw) => { const g = cx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.05, x, y, r * 1.25); g.addColorStop(0, rgb(mix(col, [255, 255, 255], 0.35))); g.addColorStop(0.5, rgb(col)); g.addColorStop(1, rgb(mul(col, 0.66))); cx.beginPath(); path(cx); cx.fillStyle = g; cx.fill(); cx.lineWidth = lw; cx.strokeStyle = LEAD; cx.stroke(); };
-    for (let gy = Math.floor(oy / 40); gy * 40 < oy + Hp / s; gy++) for (let gx = Math.floor(ox / 40); gx * 40 < ox + Wp / s; gx++) {
-      const rnd = mulberry32(hashInt(gx, gy, 9001)), x = (gx + rnd()) * 40, y = (gy + rnd()) * 40, mat = matAt(x, y);
-      if (mat === 0 && rnd() < 0.5) {
-        const col = ['#e8668a', '#f2c040', '#7ab8f0', '#efe6ff', '#c87ae8'].map(hex)[Math.floor(rnd() * 5)], rot = rnd() * TAU;
-        cx.save(); cx.translate(x, y); cx.scale(0.9, 0.72);
-        for (let i = 0; i < 5; i++) { const a = rot + (i / 5) * TAU, qx = Math.cos(a) * 2.5, qy = Math.sin(a) * 2.5; blob(ELL(qx, qy, 2.4, 1.5, a), mul(col, 0.92 + (i % 2) * 0.12), qx, qy, 2.2, 0.55); }
-        blob(ELL(0, 0, 1.35, 1.35), [240, 150, 40], 0, 0, 1.4, 0.55); cx.restore();
-      } else if (mat === 1 && rnd() < 0.7) {
-        const L = leafPts(x, y, rnd() * TAU, 7, 2.2); blob(leafShape(L), ['#e09a30', '#d0602a', '#f2c040', '#b8402a', '#e87a3a'].map(hex)[Math.floor(rnd() * 5)], L.mx, L.my, 3.5, 0.6);
-        cx.beginPath(); cx.moveTo(L.bx, L.by); cx.lineTo(L.tx, L.ty); cx.lineWidth = 0.5; cx.stroke();
-      }
-      const l = 1.6 + rnd() * 2.4, x2 = x + 17, y2 = y + 9; cx.strokeStyle = 'rgba(255,255,255,0.2)'; cx.lineWidth = 0.55; cx.beginPath(); cx.moveTo(x2 - l * 0.7, y2 + l * 0.7); cx.lineTo(x2 + l * 0.7, y2 - l * 0.7); cx.stroke();
+    const flower = (x, y, sc, rnd) => {
+      const col = ['#e8668a', '#f2c040', '#7ab8f0', '#efe6ff', '#c87ae8'].map(hex)[Math.floor(rnd() * 5)], rot = rnd() * TAU;
+      cx.save(); cx.translate(x, y); cx.scale(sc, sc * 0.8);
+      for (let i = 0; i < 5; i++) { const a = rot + (i / 5) * TAU, qx = Math.cos(a) * 2.5, qy = Math.sin(a) * 2.5; blob(ELL(qx, qy, 2.4, 1.5, a), mul(col, 0.92 + (i % 2) * 0.12), qx, qy, 2.2, 0.55); }
+      blob(ELL(0, 0, 1.35, 1.35), [240, 150, 40], 0, 0, 1.4, 0.55); cx.restore();
+    };
+    for (let gy = Math.floor(oy / 92) - 1; gy * 92 < oy + Hp / s + 30; gy++) for (let gx = Math.floor(ox / 92) - 1; gx * 92 < ox + Wp / s + 30; gx++) {
+      const rnd = mulberry32(hashInt(gx, gy, 9001)), x = (gx + rnd()) * 92, y = (gy + rnd()) * 92, mat = matAt(x, y);
+      if (rnd() > 0.6) continue;
+      const n = 3 + Math.floor(rnd() * 4), pts = [];
+      for (let i = 0; i < n; i++) { const a = rnd() * TAU, r = i ? 5 + rnd() * 8 : 0; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7, i ? 0.6 + rnd() * 0.3 : 1.15]); }
+      pts.sort((a, b) => a[1] - b[1]);
+      if (mat === 0) pts.forEach((p) => flower(p[0], p[1], p[2], rnd));
+      else if (mat === 1) pts.forEach((p) => { const L = leafPts(p[0], p[1], rnd() * TAU, 7 * p[2], 2.2 * p[2]); blob(leafShape(L), ['#e09a30', '#d0602a', '#f2c040', '#b8402a', '#e87a3a'].map(hex)[Math.floor(rnd() * 5)], L.mx, L.my, 3.5, 0.6); cx.beginPath(); cx.moveTo(L.bx, L.by); cx.lineTo(L.tx, L.ty); cx.lineWidth = 0.5; cx.stroke(); });
     }
     return cv;
   }
@@ -370,9 +429,12 @@
     const pq = (t * 1.4) % 1, px = cx + 12 + pq * 60, py = cy - 22 - pq * 18, ang = Math.atan2(-18, 60);
     ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.globalCompositeOperation = 'lighter'; const tg = ctx.createLinearGradient(0, 0, -16, 0); tg.addColorStop(0, 'rgba(255,214,120,0.75)'); tg.addColorStop(1, 'rgba(255,160,60,0)'); ctx.fillStyle = tg; ctx.beginPath(); ctx.moveTo(-1, -1.6); ctx.lineTo(-16, 0); ctx.lineTo(-1, 1.6); ctx.fill(); ctx.restore();
     blit(ctx, S.seed, px, py, 0.85, 0.85 * (0.6 + 0.4 * Math.abs(Math.cos(t * 20))), ang);
-    // shatter burst: a creature breaks into tumbling leaded shards (deterministic per t)
-    const bq = (t * 0.8) % 1, bx = cx - 95, by = cy + 30, rnd = mulberry32(5);
-    for (let i = 0; i < 9; i++) { const a = rnd() * TAU, sp = 30 + rnd() * 35, z = 11 + 60 * bq - 150 * bq * bq * 0.9 + rnd() * 6, tum = Math.cos(t * 10 + i * 3); blit(ctx, S.shard[i % 4][i % 3], bx + Math.cos(a) * sp * bq, by + Math.sin(a) * sp * bq * 0.6 - Math.max(0, z), 1, 0.25 + 0.75 * Math.abs(tum), a + t * 8 * (rnd() - 0.5), bq > 0.75 ? 1 - (bq - 0.75) / 0.25 : 1); }
+    // shatter: a creature cracks along its lead lines (0-14%), then its real pieces burst out, arc, drop and fade
+    const bq = (t * 0.7) % 1.3, bx = cx - 95, by = cy + 30;
+    if (bq < 1) for (const p of S.pieces) {
+      const u = cl((bq - 0.14) / 0.86, 0, 1), e = 1 - Math.pow(1 - u, 3), D = Math.min(1, bq / 0.14) * 0.5 + e * 15 * p.d;
+      blit(ctx, p.s, bx + p.lx * 0.92 + p.dx * D, by + p.ly * 0.92 + p.dy * D * 0.75 - 15 * p.up * 0.55 * Math.sin(u * PI * 0.85) + 7.5 * u * u, 0.92, 0.92, p.vr * u, 1 - sstep(0.68, 1, bq));
+    } else drawEnemy(ctx, bx, by, t, 0, 0, 1);
     drawNumber(ctx, '34', cx + 85, cy - 80 - ((t * 0.7) % 1) * 8, 12.5, true); drawNumber(ctx, '17', cx - 80, cy + 48, 9.2, false);
     // overlay
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(BG.ov.dark, 0, 0);

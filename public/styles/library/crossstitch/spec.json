@@ -14,7 +14,7 @@
     "folk"
   ],
   "summary": "The whole world is a living cross-stitch sampler on Aida cloth: every cell is a real thread X, contours are backstitched.",
-  "description": "The world is a piece of beige Aida fabric with visible holes. Everything that is not bare cloth is embroidered on a 3.2-unit stitch grid: characters and props are small cell grids where each cell is a two-stroke thread cross with shadow, sheen and ply twist, outlined with a dark backstitch. Flowers are French knots, water is satin stitch, collectibles are glass beads and buttons, and creatures are stitched into existence by a needle and unravel into loose threads when they disappear. It reads like grandma's Halloween sampler come to life: warm, cosy and tactile.",
+  "description": "The world is a piece of beige Aida fabric with visible holes. Everything that is not bare cloth is embroidered on a 3.2-unit stitch grid: characters and props are small cell grids where each cell is a two-stroke thread cross with shadow, sheen and ply twist, outlined with a dark backstitch. The cloth is composed like a sampler: solid stitched grass patches with half-stitch fringes, flower beds and tufted path verges, rare eight-point stars and hearts as focal motifs, and lots of calm bare linen. Characters animate on held poses that bob a whole stitch, creatures are stitched in by a needle and unpicked thread by thread when they disappear.",
   "mood": [
     "cozy",
     "handmade",
@@ -172,33 +172,36 @@
     }
   ],
   "world": {
-    "summary": "An infinite piece of Aida cloth. Noise fields classify every 3.2-unit cell into meadow, forest, field, pond or path; each material is embroidered differently, and every region border is backstitched. Baked per 256-unit chunk (80x80 cells).",
+    "summary": "An infinite piece of Aida cloth composed like a sampler. Noise fields classify every 3.2-unit cell into meadow, forest, field, pond or path; each material is embroidered differently, every region border is backstitched, and the open meadow is mostly bare linen with grass patches, flower beds, path verges and rare sampler motifs. Baked per 256-unit chunk (80x80 cells).",
     "layers": [
       "Aida fabric pattern (16x16-hole tile, 8 px per hole, base #dccaa5, scaled to 0.4 units per px) over the whole chunk",
       "Path cells (winding, half-width 7.5-12.5 units): no stitches, lightened with rgba(255,250,236,0.42) - bare linen",
-      "Fill stitches merged into per-colour row runs: sparse meadow greens (L/l/g, density 0.03 + 0.24*smoothstep(fbm) plus up to 0.36 near forests, Bayer + hash dither), dense rust forest (z/X/x with 1.8% gold and 1.6% orange accents), half-stitch crop rows in fields (every 4th row left empty)",
+      "Grass patches: meadow density = max(1.08 x smoothstep(0.515, 0.58, forest field), smoothstep(0.6, 0.73, fbm(x/230))) - a solid band around every forest and a few low-frequency beds; cells pass a Bayer (60%) + hash (40%) threshold, the fringe (density < 0.62) is worked in half stitches, everything else stays bare linen",
+      "Fill stitches merged into per-colour row runs: dense rust forest (z/X/x with 1.8% gold and 1.6% orange accents), half-stitch crop rows in fields (every 4th row left empty)",
       "Pond as satin stitch: blocks of up to 3 cells in a brick pattern, each 3 slanted threads, 4 depth tones W/u/n/N (#bcd6ea to #2b4b70)",
-      "Decals on a 21-unit jittered grid: French-knot flower clusters with stems, lazy-daisy flowers, three-stitch grass tufts, sequins, bead rows, red mushrooms, leaf motifs, lily pads, water ripple threads",
+      "Sampler motifs (one candidate per 520-unit cell, 55%, only on open meadow away from paths): a 15x15 eight-point star (square + diamond union with diagonal windows, red #c3312b / #7a1c24 or blue #43729e / #2b4b70 rings around a gold centre) or an 11x9 heart",
+      "Clustered decals on a 21-unit jittered grid: inside flower beds (fbm(x/240) > 0.635) French-knot clusters, lazy daisies, grass tufts, sequins, bead rows and mushrooms; path verges (a path cell 3 stitches away) get grass tufts and pebble knots; open linen only a rare single daisy (1%); forests get leaf motifs (10%) and mushroom clumps; ponds lily pads and ripple threads",
       "Backstitched region contours, 1.0 unit thread: navy #2b4b70 around ponds, brown #7c4a2b along paths, dark brown #45291c elsewhere",
       "Cloth light: low-res overlay of soft diagonal folds (warm white vs brown, max 15% alpha)"
     ]
   },
   "characters": {
-    "summary": "Characters are tiny cell grids written as strings of thread codes: a main character with a carved pumpkin head, red scarf and navy cloak (9x11 cells = 28.8x35.2 units), a small purple root creature with a leafy top (7x8), a fast pale-blue floating ghost (8x8, drawn at alpha 0.9) and a large purple-brown root colossus (15x17, procedural lit sphere with root arms). Each is baked into a sprite: blurred drop shadow, dark thread underlay, one cross stitch per cell, a #2b1d1d backstitch outline, optional inner backstitch contours and free backstitch segments for details. 3 frames, mirrored for left, plus a white-flash copy.",
+    "summary": "Characters are tiny cell grids written as strings of thread codes: a main character with a carved pumpkin head, red scarf and navy cloak (9x12 cells = 28.8x38.4 units, 9 poses), a small purple root creature with a leafy top (7x9, 4 hop poses + blink), a fast pale-blue floating ghost (8x8, drawn at alpha 0.9) and a large purple-brown root colossus (15x17, procedural lit sphere with root arms). Each pose is baked into a sprite: blurred drop shadow, dark thread underlay, one cross stitch per cell, a #2b1d1d backstitch outline, optional inner backstitch contours and free backstitch segments for details, mirrored for left, plus a white-flash copy.",
     "rules": [
       "Design on the cell grid only: 7-9 cells wide for small characters, ~15x17 for a large one. One letter = one stitch.",
       "Always outline the silhouette with a dark backstitch (2.2 sprite px); add an inner contour where two bright areas meet (the carved face uses #6c2817 around the yellow carving). The ghost is the exception: its outline thread is its own dark blue #3c5078, which keeps it airy.",
-      "Big readable faces: 1-cell eyes, 1-row mouths in yellow/cream on a darker field; fine lines (mouths, brows) are backstitch segments, not stitches.",
-      "Animate by swapping only the bottom row (legs) or top row (leaves/tail) between 3 frames; the body block never moves.",
-      "Snap the sprite origin to the world stitch grid (gx = round(x/3.2 - w/2), gy = round(y/3.2) - h) so characters move in whole stitches.",
-      "Make colour variants by remapping threads (e.g. purple p->#a8487a, P->#6c2550, m->#d888b0) instead of drawing new art.",
-      "Appear = progressive stitching (6 partial masks, bottom-up) with a darting needle, disappear = the same in reverse plus thread snippets - never fade or scale a motif."
+      "Big readable faces: 1-cell eyes, 1-row mouths in yellow/cream on a darker field; fine lines (mouths, brows, closed eyelids) are backstitch segments, not stitches.",
+      "Bob by re-stitching, not by moving pixels: 'down' poses have an empty top row and 3 body rows, 'up' poses 4 body rows, so the head drops one stitch at contact while the feet stay on the cloth.",
+      "Every pose changes something secondary: hands swing against the legs, the scarf end jumps between cells, leaf tufts swap their lean one frame behind the hop.",
+      "Snap the sprite origin to the world stitch grid (gx = round(x/3.2 - w/2), gy = round(y/3.2) - h) so characters move in whole stitches; reactions are whole-stitch offsets too (one stitch of recoil, one stitch of hop).",
+      "Make colour variants by remapping threads (e.g. purple p->#a8487a, P->#6c2550, m->#d888b0) instead of drawing new art. Keep pumpkin orange for the main character: tree canopies use rust, red, gold and green ramps.",
+      "Appear = progressive stitching (8 partial masks, bottom-up) with a darting needle and a final flash; disappear = a taut white flash with a one-stitch jolt, then a needle unpicks it top-down and pulls the thread out - never fade or scale a motif."
     ]
   },
   "props": {
     "summary": "Props are stitched motifs exactly like characters - cell grids with backstitch outline and blurred warm drop shadow - y-sorted with characters and snapped to the 3.2-unit grid: lit-sphere autumn trees, tiered pines, bare backstitch trees with a crow, pumpkins, gravestones, a scarecrow, a little house and fences.",
     "rules": [
-      "Round autumn trees are 13x16 cells: a wobbly lit-sphere crown quantised to one 4-thread ramp (orange Q q O o, red R r E o, gold F f h t or rust X q O h) with 5 bright accent cells, over a 3-cell stitched trunk k/b/z.",
+      "Round trees are 13x16 cells: a wobbly lit-sphere crown quantised to one 4-thread ramp (rust z X x f, red R r E h, gold F f h t or summer green G g l L) with 5 bright accent cells, over a 3-cell stitched trunk k/b/z. No pumpkin orange in canopies, so the main character stays the only orange figure.",
       "Pines are 11x17 cells in three stacked tiers; the thread is picked by side (light l on the left, g in the middle, dark G on the right) with 6% L sparkles.",
       "Bare trees are 13x16 cells whose branches are pure 2.4-px backstitch in #45291c, with a few leftover leaves and a small crow or owl on a branch.",
       "Small props stay tiny and iconic: pumpkin pair 12x6 / single 7x7 with curly backstitch tendrils, gravestones 5x7 (grey slab, wooden cross, engraved slab), scarecrow 9x13, house 13x12 with a red roof and yellow-lit windows.",
@@ -213,16 +216,16 @@
       "how": "A cream seed (gradient #fffaf0 to #c9a86a, outline #8a6a3a, 4 rib lines) with a 3-dash running-stitch trail in warm yellow rgba(255,214,120,0.35-0.75), rotated to the flight direction; 14x5 world units."
     },
     {
-      "name": "Impact",
-      "how": "A cream French knot pops for 0.18 s at the top of the struck creature plus, with 60% chance, one curly loose-thread snippet in its colours flung upward under gravity; the sprite gets an overlaid white-flash copy."
+      "name": "Impact star stitch",
+      "how": "Core: a white French knot (0.18 s). Main: a star stitch - eight straight stitches from one hole (gold #e3b24d long 5.5 units, cream short 3.7) around a yellow knot - growing 0.4 -> 1.15 with an ease-out over 0.17 s and fading after half its life. Debris: a 60% chance of one snipped thread arcing away. On the creature: white-flash copy at full strength and a one-stitch knock-back for the sharpest 40% of the flash."
     },
     {
       "name": "Unravel burst",
-      "how": "The creature un-stitches through the 6 partial masks, 7 (large creature: 16) curly thread snippets in its palette fly out with gravity 150 and spin, 1-5 glass beads bounce, a large creature drops a sewing button, and a dashed thread ring (dash 1.6/1.2, width 0.9) expands from 3 to 11 units."
+      "how": "On disappearing: 7 snipped threads (16 for the large creature) in the creature's own colours fly out with gravity 150 and spin, plus glass beads, a button for the large one, a dashed running-stitch ring, a larger star stitch, and 3-5 loose cross stitches that drop onto the cloth and lie there for ~1.3 s as residue."
     },
     {
-      "name": "Appear needle",
-      "how": "While a creature is being stitched in, a silver needle (gradient #8c8f96 to #f4f6fa) with red thread darts left and right across the motif at the current stitching row."
+      "name": "Needle (appear and unpick)",
+      "how": "Appearing: 8 partial stitch masks fill bottom-up while a silver needle darts across the current row; the last 16% adds a fading white-flash copy. Disappearing: after a 12% taut flash, the masks empty top-down while the needle rises above the current row, pulling a 0.75-unit thread in the creature's main colour out of the cloth."
     },
     {
       "name": "Collectibles",
@@ -234,7 +237,7 @@
     },
     {
       "name": "Celebration burst",
-      "how": "Two dashed embroidered ellipses (gold #e3b24d and red #c3312b, dash 2.4/1.6) expand from the main character from 8 to 54 units, 16 gold/red stitch sparks fly out in a ring and 4 buttons pop."
+      "how": "A wreath of 10 lazy daisies is stitched around the main character one after another (35 ms apart, ease-out-back pop), its radius growing 15 -> 23 units on a 0.55 ellipse while it turns slowly, then fades after 72% of 1.2 s; 16 gold/red cross-stitch sparks, 4 tumbling buttons and two dashed backstitch rings play with it."
     },
     {
       "name": "Speed trail and floating numbers",
@@ -259,28 +262,31 @@
     "css": ".tag { border: 5px solid transparent; border-radius: 12px; padding: 7px 16px 7px 10px;\n  background: url(aida.png) padding-box, repeating-linear-gradient(-52deg, #c0442c 0 2px, #8c2a1c 2px 3px, #e0704c 3px 4.5px) border-box;\n  outline: 2px dashed rgba(124,29,36,.55); outline-offset: -10px;\n  box-shadow: 0 4px 0 rgba(50,26,10,.35), 0 6px 14px rgba(20,10,4,.35);\n  font-family: 'Mali', 'Grandstander', sans-serif; color: #4a2c1e; }\n.bar { width: 216px; height: 18px; border-radius: 3px; background: #ddcba4;\n  box-shadow: inset 0 0 0 1px rgba(110,70,30,.45), inset 0 2px 3px rgba(60,30,10,.25); }\n.bar-fill { height: 100%; background: url(stitch-red.png) 0 1px/8px 8px; }\n.bar-text { font: 800 17px 'Grandstander', sans-serif; color: #7a1c24; text-shadow: 0 1px 0 rgba(255,255,255,.6); }\n.hoop { width: 138px; height: 138px; border-radius: 50%; border: 10px solid transparent;\n  background: url(aida.png) padding-box, repeating-radial-gradient(circle, #c98f55 0 2px, #b47842 2px 3.5px, #d9a46a 3.5px 5px) border-box;\n  box-shadow: inset 0 0 0 1px #7a4c26, 0 0 0 2px #6b4221, 0 0 0 5px #d39c60, 0 0 0 7px #6b4221, 0 8px 18px rgba(20,10,4,.4); }\n.stitched-title { font: 900 70px 'Grandstander', sans-serif; background: url(stitch-orange.png) 0 0/8px 8px;\n  -webkit-background-clip: text; background-clip: text; color: transparent;\n  filter: drop-shadow(0 3px 0 #3a1a0c) drop-shadow(0 0 1px #3a1a0c); }"
   },
   "motion": [
-    "Everything moves in whole stitches: character sprites snap to the 3.2-unit grid, so movement is slightly steppy like a stop-motion sampler.",
-    "Main character walk: 3 frames in the sequence 1,0,2,0, frame index = floor(distance / 5 units) & 3; idle = frame 0. Only the legs row changes.",
-    "Small creatures: sequence 0,1,0,2 driven by distance walked (floor(anim * 1.6) & 3). Fast ghost: frames cycle at 5 fps regardless of movement and it hovers 1-2 cells up, toggling with sin(t*2.2) > 0.3.",
-    "Appear: 6 steps of progressive stitching (bottom-up with jitter, about 1 s) while a needle darts across; disappear plays the steps in reverse with fading.",
+    "Everything moves in whole stitches: character sprites snap to the 3.2-unit grid, so movement is slightly steppy like a stop-motion sampler, and poses are held (on twos, ~10 fps).",
+    "Main character walk: contact A (down) - passing A (up) - contact B (down) - passing B (up), frame = 2 + (floor(distance x 0.11) & 3); the head bobs one stitch, the hands swing against the legs and the scarf end jumps between cells.",
+    "Main character idle: two held poses (the scarf end flutters every third beat of 1.5 Hz), a blink (closed backstitch lids) when fract(t/3.1 + 0.37) < 0.045, the carved-face glow dims while blinking. Throw = the contact-A stance with the hand forward; hurt = blink + one stitch of recoil; celebration = one stitch of hop.",
+    "Dash: 40 ms crouch pose (head one stitch down, hands out, feet wide), then the dash pose (torso one stitch forward, scarf streaming back) with three white-thread afterimages.",
+    "Small creatures: 4-frame hop (down, up, down, up) at floor(anim x 2.2) & 3, the leaf tuft swapping its lean a frame behind; blink frame when fract(t/2.9 + 7 x seed) < 0.06. Fast ghost: frames cycle at 5 fps and it hovers 1-2 cells up, toggling with sin(t*2.2) > 0.3. Large creature: 0,1,0,2 stomp at floor(anim x 1.6) & 3.",
+    "Appear: 8 steps of progressive stitching (bottom-up with jitter, 0.45 s) while a needle darts across, then a fading flash. Disappear (0.35 s): 12% flash with a one-stitch jolt, then the steps in reverse while the needle pulls the thread out.",
     "Glows flicker with two summed sines (e.g. 0.22 + 0.07 sin(9t) + 0.05 sin(23t)); collectibles bob 0.8 units at 3 rad/s; lanterns bob 0.8 at 4 rad/s; large buttons rock 0.3 sin(2t).",
-    "Flash and blink: a white-flash overlay fades over ~0.7 s; a blinking character alternates at 18 Hz to alpha 0.45."
+    "Flash and blink: a white-flash overlay fades over ~0.15 s on creatures and ~0.7 s on the main character; a protected main character alternates at 18 Hz to alpha 0.45."
   ],
   "do": [
     "Build every sprite from a cell grid of thread codes and render each cell as a real thread X with underside, top ply and sheen.",
     "Keep the Aida hole grid visible everywhere and aligned with the stitch grid (cells start at multiples of 3.2 units).",
     "Outline silhouettes and region borders with backstitch segments that stop just short of each hole.",
     "Use embroidery vocabulary for every effect: French knots, beads, buttons, sequins, satin stitch, running stitch, loose threads, needles.",
-    "Leave lots of bare fabric; use density (dithered sparse stitches) rather than colour to suggest meadow and transitions.",
-    "Bake stitch sprites (3 variants per colour) and ground chunks once; fill big areas with seamless stitch patterns."
+    "Leave lots of bare fabric: put grass into solid patches with half-stitch fringes around features, flowers into beds and tufts along paths, and add a rare sampler motif as a focal point.",
+    "Bake stitch sprites (3 variants per colour) and ground chunks once; fill big areas with seamless stitch patterns.",
+    "Animate by re-stitching whole poses: bob one stitch, swing hands, flip scarf ends and leaf tufts on alternate frames."
   ],
   "dont": [
     "Don't draw flat filled rectangles or smooth vector shapes for characters – it instantly reads as pixel art, not embroidery.",
     "Don't rotate, scale or sub-cell-offset stitched motifs (projectiles and round sprites like beads are the only rotating things).",
     "Don't use black or grey shadows, hard outlines in vector ink, or neon/saturated digital colours.",
-    "Don't stitch the whole ground densely – a solid carpet of stitches hides the fabric and ruins the handmade feel.",
+    "Don't sprinkle single stitches, tufts or flowers evenly over the linen, and don't stitch the whole ground densely - patches, beds and verges with calm bare cloth between them.",
     "Don't fade creatures out; they unravel stitch by stitch and leave threads.",
     "Don't use more than 3–4 threads per material ramp or invent intermediate colours."
   ],
-  "performance": "All stitch variants (3 per colour), characters (3 frames x 2 directions + flash + 5 partial appear masks), props, knots, beads and glows are baked at init. Ground chunks (256 units = 80x80 cells) are built incrementally with a generator: cells are merged into per-colour row runs and filled with one seamless 4x4-stitch pattern each, so a chunk needs ~a dozen fills instead of thousands of drawImage calls. Per frame only sprite blits plus a few additive glows are drawn - cheap even with hundreds of creatures. Hot spots: ground chunk building (noise per cell) and the blur filter used for motif shadows (only at bake time)."
+  "performance": "All stitch variants (3 per colour), characters (9 / 5 / 3 / 3 poses x 2 directions + flash + 7 partial appear masks), props, sampler motifs, knots, beads, the star stitch and glows are baked at init. Ground chunks (256 units = 80x80 cells) are built incrementally with a generator: cells are merged into per-colour row runs and filled with one seamless 4x4-stitch pattern each, so a chunk needs ~a dozen fills instead of thousands of drawImage calls. Per frame only sprite blits plus a few additive glows are drawn; a disappearing creature adds one short backstitch thread and a needle. Hot spots: ground chunk building (noise per cell) and the blur filter used for motif shadows (only at bake time)."
 }

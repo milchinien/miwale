@@ -65,10 +65,10 @@ Floating numbers (canvas): small = ink fill over a paper stroke of 0.3× font si
 2. **Carving toolkit** (all marks are *fills*, see Code): `lens(x0,y0,x1,y1,w,bend)` – two quadratic curves meeting in points; `taper` – blunt round start, sharp tip; `limb(pts,w0,w1)` – Catmull-Rom spline with tapering width and round caps; `smoothPath`; `crescent` – shape minus a shrunken copy shifted to the light, filled even-odd (heavy shadow contour); `holeSpot` – cut hole showing a misregistered spot plate.
 3. **Figure recipe**: fill the form (paper or ink) → print the orange plate offset → clip and carve (black lenses on paper / white lenses on black) → `crescent` on the shadow side → thin ink outline 0.5–0.75 → carved face → top details (stem, leaf, teeth).
 4. **Sprite bake `mk`**: draw at K px/unit with feet at the anchor; **paper halo** – a paper-tinted silhouette drawn 12× around a 0.5–0.9-unit circle with `destination-over`; **inkify** – per pixel: dark pixels where `VOID > 238` move 72% toward paper (pinholes), orange pixels get ×0.93–1.05 density and rare paper voids.
-5. **Derived sprites**: negative print (`invert`, luminance mapped paper↔ink, saturated pixels → ink) for flashes; shatter shards (4–5 wedges cut from the centre with jittered radial cuts, paper-coloured cut edges 0.7 units wide); orange-tinted copy of the main character for after-images.
-6. **Variants**: main character 4 walk + 2 idle poses × 2 carving variants (seeds `100 + v·7 + i`) × 2 facings (drawn mirrored, the orange offset mirrors too); creatures 4 × 2 × 2.
+5. **Derived sprites**: negative print (`invert`, luminance mapped paper↔ink, saturated pixels → ink) for flashes; a cracked block (carved paper cracks) and shatter shards (4–6 wedges cut from the centre with jittered radial cuts, paper-coloured cut edges 0.7 units wide); orange-tinted copy of the dash pose for overprint after-images; brayer, registration mark and drifting-leaf sprites.
+6. **Poses and pulls**: main character 8 computed walk poses + 4 idle breathing poses + blink + crouch + dash + recoil; each creature 6 poses. Every pose is baked as 2 carving pulls (jitter seeds `100 + v·17 + i`) × 2 facings (drawn mirrored, the orange offset mirrors too) plus a negative print.
 7. **Ground chunks** (256 units, ≤ 2.5 px/unit): generator; 84×84 field grid, distances via value/|gradient|, per-pixel analytic ink coverage `a` per region, then `paper + fibre → mix toward ink by a` with pinholes; then decals.
-8. **Per frame**: ground → splats → collectibles → hatched shadows → y-sorted props/creatures/main character → orbiting objects → projectiles → particles → floating numbers → ragged ink frame. Only `drawImage` of cached canvases; blit positions snapped to screen pixels.
+8. **Per frame**: ground → splats → collectibles → hatched shadows → y-sorted props/creatures/main character → orbiting objects → projectiles → particles → floating numbers → drifting leaves → registration marks + ragged ink frame. Only `drawImage` of cached canvases; blit positions snapped to screen pixels.
 
 ## World and ground
 
@@ -78,9 +78,9 @@ Fields (world units): `B = warped fbm(x/1000)` (biome), `D = fbm(x/300) + (B −
 
 Per-region carved pattern (analytic per pixel, coverage 0…1 anti-aliased with `(halfwidth − distance)·res + 0.5`):
 - **Paper** (base of everything): `#f0e7d2 + FIB` (1300 short curved fibres ±0.13 alpha, mottling ±4.5, grain ±3).
-- **Meadow** (mostly clean paper): grass ticks on a 9-unit hashed grid, density `0.1 + 0.5·smoothstep(0.32, 0.72, T)` (T = fbm/140); each tick has 1–3 tapered blades (angles 0.16, −0.5, 0.75 rad; length 2.2–3.55; half-width 0.46 → 0). Rare "chatter": 3–5 parallel short gouges on a 27-unit grid (30% of cells).
+- **Meadow** (mostly clean paper): grass ticks on a 9-unit hashed grid, but **only in clumps and drifts** – density `max(0.8·smoothstep(0.57, 0.72, T)·smoothstep(0.4, 0.62, M), 0.55·edge²)` with T = fbm/140 (clump field), M = fbm/19 (clump breakup) and `edge` = 1 at a region border fading out over 8 units. Each tick has 1–3 tapered blades (angles 0.16, −0.5, 0.75 rad; length 2.2–3.55; half-width 0.46 → 0). Between the clumps the paper stays bare except for rare "chatter": 3–5 parallel short gouges on a 27-unit grid (30% of cells). Flowers and pebbles use the same clump field, so they gather where the grass is.
 - **Ploughed field**: furrow lines from a warped scalar `F = (y + 0.22x + 110·(fbm − 0.5) + 9·perlin) / 4.4`; distance to the nearest line centre is `|frac(F) − 0.5| / |∇F|`; half-width `0.66·smoothstep(0.27, 0.7, M)·(0.72 + 0.56·T)` (34% of lines thinner). A carved ditch line 0.88 wide along the field edge. Leafy sprouts and clods are snapped onto furrows.
-- **Forest floor**: stipple dots r 0.3–0.54 on a 2.5-unit hashed grid, density 0.14–0.66; an 0.84-wide edge line 0.5 units inside the border and a clean gap behind it.
+- **Forest floor**: three carved edge cuts 0.5, 2.5 and 4.3 units inside the border (widths 0.84, 0.6, 0.4), a clean band behind them (smoothstep 7 → 17 units), then oriented litter flecks (cell 4.3, length 1.3–2.8, aligned with the flow field) whose density is `0.015 + 0.72·smoothstep(0.5, 0.7, T)` – almost bare floor with dense drifts of litter, mushrooms and leaves.
 - **Dark soil**: solid ink; two paper "echo" contours at 1.8 (width 0.6) and 3.4 (0.44) units inside the edge – the classic linocut outline ripple; deeper than 4.3 units, short oriented white gouge flecks (cell 4.3, 62% filled, length 1.3–2.8, aligned with the field direction ± 0.35 rad).
 - **Road** (22 units wide): a curb line, then cobbles from Worley noise (cell 4.4): paper joints `(f2 − f1)·2.2 < 0.36`, stones hatched with 45° lines on their shadow side, 1 in 16 stones solid ink.
 - **Ink texture**: all ink on the ground gets pinhole voids from the `VOID` map and paper fibres showing through.
@@ -88,51 +88,54 @@ Per-region carved pattern (analytic per pixel, coverage 0…1 anti-aliased with 
 
 ## Characters
 
-All figures share one construction: a paper-filled form carved with black lenses plus a solid-ink form carved with white gouges, the orange plate on one focal element, a crescent shadow at the lower right, a thin 0.5–0.75 ink outline and a carved face. Every sprite gets a 0.9-unit paper halo so it separates from black ground and from other figures, and 2 carving variants that swap at 6 fps.
+All figures share one construction: a paper-filled form carved with black lenses plus a solid-ink form carved with white gouges, the orange plate on one focal element, a crescent shadow at the lower right, a thin 0.5–0.75 ink outline and a carved face. Every sprite gets a 1.0–1.15-unit paper halo so it separates from black ground and from other figures. Every drawer works in a mirrored local space (`scale(f,1)`), so the lit side is local x-sign `LS = −f` – carved highlights always land on the screen's upper left.
 
-**Main character**, feet at (0,0), ~16 × 30 units, facing via `scale(f,1)`:
-- **Legs**: `limb` half-width 1.15 → 0.9, boots = ink ellipses 1.8 × 1.05 with a paper shine lens.
-- **Cloak**: 14-point polygon, solid ink, jittered ±0.125; **white carved folds** on the lit side: lenses of half-width 0.44, 0.34, 0.26 from the hem upward, plus an arm separation gouge.
-- **Scarf**: paper shape with a 0.45–0.5 ink outline and ink stripe lenses; tail flutters with `scarf` ±0.6.
-- **Hand**: paper disc r 1.25 with ink outline.
-- **Head**: a round, lobed orange gourd shape – 22-point lobed ellipse 7.3 × 6.2 (top flattened near the stem); paper fill, **orange plate offset** `(MX·f, MY)`; clipped carving: 4 rib lenses (half-width 0.26/0.34), 6 shading lenses on the right widening 0.16 → 0.44, 4 horizontal lenses at the bottom; **crescent** shift (−1.0, −0.85) scale 0.93; ink outline 0.75.
-- **Face** (shifted 0.95 toward facing): solid ink triangle eyes and nose, a jagged grin with two "teeth" notches; two white gouge highlights at the upper left of the head.
-- **Stem** taper 1.1 wide, one leaf (ink lens with a paper midrib).
-- Poses: `WALK` = 4 keyframes (feet `[3.3,0]/[-3,0]`, `[1,0]/[-0.4,-1.5]`…, bob −0.8 on passing poses), `IDLE` = 2.
+**Main character** – a pumpkin-headed wanderer, feet at (0,0), ~18 × 30 units:
+- **Legs**: two-bone legs – the knee is solved from hip, ankle and leg length (`kneeAt`, bent toward the facing direction); `limb` half-width 1.15 → 0.9; boots = ink ellipses with a paper shine lens; the near leg gets a paper gutter so it separates from the far one.
+- **Poncho**: a short, ragged solid-ink poncho with a V-cut hem; the front hem flutters (`hem`), the back hem trails (`hemBack`). Carved white folds fan from the neck to the hem points on the lit side; a **paper folk band** (zigzag with a dot in every tooth) and a stitched hem band.
+- **Scarf**: a long striped paper scarf wrapped at the neck; its tail hangs at rest and streams back when moving (`scarf`, `scarfLift`), waving with a lag.
+- **Arms**: far arm mostly hidden behind the poncho; near arm = ink sleeve behind a paper gutter, paper mitten.
+- **Head**: a lobed orange gourd – 22-point lobed ellipse 7.3 × 6.2; paper fill, **orange plate offset** `(MX·f, MY)`; clipped carving: rib lenses, shading lenses widening 0.16 → 0.44 on the shadow side; **crescent** shift (−1.0, −0.85) scale 0.93; outline 0.75. Carved face (triangle eyes, jagged grin), white gouge highlights on the lit side, a stem with a **curly leaf** that lags every move.
+- **Pose table** (`jackPose`): `bob, lean, legs[[x, lift, heel]×2], hand, farHand, hem, hemBack, scarf, scarfLift, headDy, tilt, leaf, eyes, mouth`.
+- **Walk** = 8 computed poses `ph = i/8·2π`: foot x = `0.2 + 3.4·cos(p)` (the other leg at p + π), lifted `−sin(p)·2.1` while swinging, heel up on the trailing foot; bob `0.85·sin(2ph)` (down at contact, up at passing), lean 0.07, hands counter-swing (`3.0 − 2.9·cos ph` / `−1.8 + 2.4·cos ph`). Follow-through: head `0.4·sin(2ph − 1.0)`, hem `0.75·sin(2ph − 1.1)`, leaf `1.1·sin(2ph − 1.6)`, scarf `sin(2ph − 1.8)` – each part arrives later than the body.
+- **Idle** = 4 held breathing poses (rise, hold, sink, settle; bob 0 / 0.3 / 0.5 / 0.22) with the head and leaf lagging the chest, plus a **blink** pose. **Crouch** (anticipation: bob 1.7, arms back), **dash** (lean 0.34, back hem 3.2, scarf lifted 2.2, leaf whipped back), **recoil** (thrown back −0.24, arm flung up, a foot off the ground, eyes wide, mouth open).
 
-**Small creature** (a root bulb on legs, ~16 × 28): root legs (`limb` 0.85 → 0.55 + two toe tapers), three leaves behind, smooth bulb; inside the clip a **solid ink crown** above a wavy line `y = −12.4 + 0.45·sin(0.95x + 0.6)`, an **engraved comb** of 13 tapers hanging into the paper underside (getting longer to the right = shadow), white crown highlights, ink lenses on the lower right; carved paper lens eyes with ink pupils, a black grimace lens with two paper teeth; crescent + 0.7 outline; root hairs.
+**Small creature** (a root bulb, ~23 × 30): root legs, root arms that swing against the legs, a curling tap root behind (lags the most), leaves behind the bulb that swing after the body; inside the bulb a **solid ink crown** with white highlights and a **carved paper rim** on the lit edge (keeps the dark crowns apart in a crowd); angry carved eyes and brow, a grimace with teeth. 6 poses.
 
-**Floating creature** (a paper spirit, ~15 × 24): paper body; **teal stipple plate** (230 candidate dots r 0.26–0.42, probability rising to the lower right) offset by (TX, TY); 4 ink shading lenses on the right; crescent; black eye/mouth ellipses; reaching tapered arms with 3 finger tapers; the tail dissolves into 3 shrinking ink dots. Hovers 2.2 units above its shadow.
+**Fast creature** (a hungry sheet-spirit, ~30 × 26): paper body with a **teal stipple plate** offset by (TX, TY), ink shading lenses on the shadow side, crescent; hollow eyes and a wailing mouth that opens and closes; a back arm and a front arm reaching alternately with claw fingers; a whipping tail that **breaks up into halftone dots**. Hovers 1.6–4.2 units above its shadow. 6 poses.
 
-**Large creature** (a towering root giant, ~37 × 57): solid ink body (18-point blob, narrowed top) with **concentric white arc gouges** on the upper left (6 arcs shrinking 14.4 → 2.9), white crack limbs from the core, a paper rim crescent on the lit edge, a **teal ring + orange core** in holes, a paper 4-point star and 10 carved rays; thick limbs 3.1 → 1.8 with root fingers; crown of 5 leaves.
+**Large creature** (a root giant, ~50 × 58): solid ink body with **concentric white arc gouges** on the upper left, white crack limbs from the core, a paper rim crescent on the lit edge, heavy arms with root fingers and a crown of leaves; the **glowing core** is an orange plate in a hole with a teal ring and carved rays and flickers between poses. 6 poses.
 
-**Shadows** under characters are hatched, never soft: horizontal ink lenses filling an ellipse (one per 0.75 units of height, half-width 0.33–0.45), shifted right (light from upper left). Main character 6.4 × 2.0, small creature 7.4 × 2.2, floating creature 4.6 × 1.4, large creature 16 × 4.
+**Shadows** are hatched, never soft: horizontal ink lenses filling an ellipse, shifted right (light from the upper left). Main character 6.4 × 2.0, small creature 7.4 × 2.2, fast creature 4.6 × 1.4 (shrinks as it rises), large creature 16 × 4.
 
 ## Props
 
-Scenery is carved the same way as the characters: y-sorted sprites with a paper halo, a hatched lens shadow and grass tufts at every base. Light comes from the upper left, so white gouges sit on the lit side and crescents on the shadow side.
+Scenery is carved the same way as the characters: y-sorted sprites with a paper halo and a hatched lens shadow. Light comes from the upper left, so white gouges sit on the lit side and crescents on the shadow side. Props are **placed by the land**, never sprinkled: spruces (40%), canopy trees and oaks in forest regions (62% of 92-unit cells deep inside, 30% near the edge), a few lone trees in meadows; stumps and boulders gather at forest edges and beside roads; lantern poles line the roads (4–12 units from the curb); graves cluster in graveyard zones (noise > 0.66); fences, scarecrows, crow posts and haystacks only in open meadows and fields.
 
-- **Bare oaks**: carved roots, trunk `limb` 4.4 → 3.0, recursive branches 3 levels deep with widths ×0.6, white bark gouges on the lit side, a knot hole.
-- **Crowned trees**: 8 ink lobes with 3 scalloped white arc gouges each.
-- **Spruces**: 6 toothed tiers with white lenses.
+- **Bare oak** (3 variants): carved roots, trunk `limb` 4.4 → 3.0, recursive branches 3 levels deep with widths ×0.6, white bark gouges on the lit side, a knot hole.
+- **Canopy tree** (3 variants, one tall and narrow): **one** black canopy mass whose leaves are carved as rows of **fish-scale U-cuts** following the outline – dense on the lit upper left, sparse on the shadow side – over a forked trunk that shows through a gap under the canopy; a few leaf points hang from the shadowed underside.
+- **Spruce** (2): 6 toothed tiers with white lenses.
+- **Stump** (2): paper cut face with carved growth rings and a check crack over an ink trunk.
+- **Boulders** (2): planar-carved ink masses – a cleared top facet hatched with parallel cuts, paper gutters between stones.
 - **Graves**: round with a cross, Celtic cross, slab with a carved skull.
-- **Fences** with a broken rail; a **scarecrow**; **lantern poles** with flat orange ray stars; **crows** (2-frame beak); **haystacks** (paper dome with 17 converging ink lenses).
-- **Roots**: every tree sends 4–6 tapered carved roots (9–16 units) into the ground decal layer.
-- **Shadows**: horizontal ink lens hatching, shifted right; tree shadow 19 × 4.6.
-- **Motion**: lantern-pole rays alternate at 3.2 fps; crows open their beak occasionally.
+- **Fences** with a broken rail; a **scarecrow** with a root-bulb head and hat; **lantern poles** with flat orange ray stars; **crow posts** (2-frame beak); **haystacks** (paper dome with 17 converging ink lenses).
+- **Roots**: every tree sends 4–6 tapered carved roots (9–16 units) into the ground decal layer – the tree's contact with the ground.
+- **Shadows**: horizontal ink lens hatching, shifted right; tree shadow 19 × 4.6, spruce 13 × 3.6.
+- **Motion**: lantern-pole rays alternate at 3.2 fps; crows open their beak every few seconds.
 
 ## Effects and particles
 
-- **Appear – block stamped down**: for `appearT < 0.5` draw the sprite at scale `1 + (1−k)²·0.9`, raised 10·(1−k) units, alpha 0.25 → 1; at contact stamp an **ink splat** (smooth 14-point blob with tapered spatters, 3 paper gouges) on the ground and squash `±sin(kπ)·0.14·(1−k)`.
-- **Impact**: negative-print sprite while `flash > 0.45`, a radial burst of 10 black lenses (orange 8-lens burst for lantern impacts), wood chips flying with gravity.
-- **Disappear – carved shatter**: 0.16 s negative print scaled 1 + t·0.6, then 4 (large creature 5) pre-cut shards fly out `2 + 12·outQuad(u)` units, rotate ±1.6 rad, fall `26u²`, alpha `1 − u²`; ink drops and a ground splat that fades in its last 0.5 s.
-- **Projectile**: orange seed plate offset under a black outlined seed with a carved shine; trail of 3 black lenses, scaled in over 0.12 s; rotation snapped to 45° steps.
+Every effect is layered – **core flash → main shape → debris → residue** – and every layer is a carved or printed object: knock-out stars, lens bursts, wood chips, ink drops, halftone puffs, ink splats.
+
+- **Appear – brayer print** (0.45 s): a **registration mark** (ink cross + misregistered orange copy) is set where the figure will stand (it pops from 60% to 100%); from `spawnT` 0.16 to 0.78 a black **brayer** (ink roller with handle) rolls upward and the figure is revealed from the feet up behind it (clip rect); at 0.78 an **ink splat** is stamped on the ground and the sprite squashes and recovers (`sin(kπ)·0.13·(1 − 0.4k)`).
+- **Hit** (0.16 s): the baked **negative print** (paper ↔ ink) is shown while `flash > 0.45`; the sprite squashes `0.17·cos(1.5πk)·(1 − k)` and is shoved 2.4 units along the knock-back with one overshoot. Particles: a paper-white knock-out **flash star** with ink rim (0.08 s) → a black 10-lens **burst** (0.2 s, the orange 8-lens burst for orbiting-object hits) → 2 ink drops and a wood chip with gravity.
+- **Disappear – split block** (0.35 s): 0–0.12 the negative print swells (`1 + t·0.9`); 0.12–0.27 a **cracked block** (carved paper cracks); then 4 (large creature 6) wedge **shards** with fresh paper cut edges fly out `(2 + 13·outQuad(u))·size`, rise and fall `−7u + 30u²`, tumble ±(1.4–2.2)·u rad in 10 held steps, shrink after half-way and fade over the last quarter. Debris: 6–16 wood chips (orange ones on the large creature), 4–8 ink drops, 2 halftone puffs. Residue: an **ink splat** that stays 2.2–3.2 s and sinks away in 4 steps.
+- **Projectile**: orange seed plate offset under a black outlined seed with a carved shine (2 pulls); trail of 3 black lenses, scaled in over 0.12 s; rotation snapped to 45° steps.
 - **Orbiting object**: a carved bulb lantern (ink top, comb, orange face holes) over a slowly rotating 14-spike orange ray star printed offset by (MX, MY).
-- **Collectibles**: small = orange 4-point star (offset plate) with ink outline and 4 ink spark lenses (2 frames: lengths 3.8/4.6); large = 8-point orange star, teal centre hole, 8 sparks.
-- **Dash after-images**: 2 orange-tinted copies (alpha 0.55/i) and a trail sprite.
-- **Celebration burst**: a 16-segment orange gouge-arc ring and a big rotating 18-spike orange ray star behind the main character.
+- **Collectibles**: small = orange 4-point star (offset plate) with ink outline and 4 ink spark lenses (2 frames); large = 8-point orange star, teal centre hole, 8 sparks. Hover on the held float curve, pop to ×1.7 when they appear; on pickup an orange star rises and 2–3 orange chips spring up.
+- **Dash**: crouch frame, then the orange plate printed twice behind the figure (6 and 12 units back, `multiply` = overprinting ink), two speed-lens trails, 3 halftone puffs.
+- **Glow-up**: a carved ripple **ring** (18 ink gouges with teeth + a 12-arc orange ring on the offset plate) expanding in 9 held steps, an orange lens burst, a flash star, 6 orange stars flying out, a rotating 18-spike orange ray star behind the main character.
 - **Halftone puff** (dust): hex grid of ink dots (spacing 1.55) whose radius shrinks toward the edge; 3 frames get lighter.
-- **Ink drops** (blobs + satellites) and **wood chips** (black or paper lenses with a carved line).
 
 ## Atmosphere and lighting
 
@@ -176,11 +179,14 @@ Scenery is carved the same way as the characters: y-sorted sprites with a paper 
 
 ## Motion and animation
 
-- **Carving boil**: 2 variants per pose, `v = floor(t·6 + seed·10) & 1` (6 fps).
-- **Main character**: walk pose `floor(anim·1.25) & 3`, idle `floor(t·2.2) & 1`. Flash: negative print while `flashT > 0.6`, then blink at 14 Hz for 0.75 s.
-- **Small creature**: `floor(anim·3.2) & 3`, bob −0.75·|sin|, tilt 0.075·cos; **large creature**: `anim·2.4`; **floating creature**: `floor(t·5 + seed·9) & 3`, hovering 2.2 units with a bob quantised to 0.4-unit steps (`round(sin·2.5)·0.4`) – even motion feels stepped.
-- **Collectibles**: 2 frames at 4 fps, bob ±0.7; pop to ×1.7 when collected.
-- **Props**: lantern pole rays alternate at 3.2 fps; crows open their beak occasionally.
+Linocut motion is **held**: poses are picked by step and two hand-pulled carving variants alternate, so even fast motion feels printed. Smooth transforms are used only for positions, squash and scale.
+
+- **Carving boil**: 2 pulls per pose, `v = floor(t·6 + seed·10) & 1` (6 fps).
+- **Main character**: walk pose `floor(anim·1.3) & 7` (8 poses ≈ one stride per 6 units travelled); idle pose `floor(t·2.6) & 3` (held ~0.38 s each), blink for 0.13 s every 3.4 s; dash = crouch while `dashT > 0.165` (anticipation), then the dash pose; hurt = negative recoil while `hurtT > 0.8`, recoil pose to 0.55, then a negative-print blink at 12 Hz during the invulnerable time.
+- **Creatures**: 6 poses each; small creature `floor(anim·3.2)`, large creature `floor(anim·2.8)`, fast creature `floor(t·9 + seed·13)`; pulls use `seed` too – every actor has its own phase, so a crowd never moves in lock-step.
+- **Float curve** (fast creature, collectibles, drifting leaves): an eased triangle wave quantised to 14 steps per cycle – `u = frac(floor(t·14)/14)`, `tri = u < .5 ? 2u : 2 − 2u`, `tri²(3 − 2·tri)` – it lingers at the top and bottom instead of a plain sine. The fast creature hovers `1.6 + 2.6·curve` and its shadow shrinks as it rises.
+- **States**: hit 0.16 s, disappearance 0.35 s, entrance 0.45 s (timings in Effects).
+- **Ambient**: 8 carved leaves drift with the wind (9–18 units/s), swaying 9 units on the float curve and tumbling through 4 poses at 8 fps; lantern rays alternate at 3.2 fps; crows open their beaks every few seconds.
 - **Floating numbers**: pop 1.7 → 1.0 in 0.07 s, fade in the last 0.22 s.
 - **UI**: transitions use `steps(2)` / `steps(3)` like a print being swapped.
 
@@ -192,15 +198,17 @@ Do:
 - Print orange on a separate offset plate (same `MX, MY` everywhere).
 - Shade with widening parallel lenses; put a crescent on the shadow side.
 - Bake a paper halo and ink pinholes into every sprite.
-- Use hatched-lens shadows and paper gutters between ground regions.
-- Keep animation stepped (variant swaps, quantised bobs).
+- Drive walks from computed contact/down/passing/up poses with lagging scarf, hem and leaf; hold poses and swap pulls at 6 fps.
+- Grow grass and litter in clumps and along edges; leave big areas of bare paper.
+- Stage entrances and exits as print-shop events: registration mark, brayer, stamp, split block.
 
 Don't:
 - Don't use gradients, blur, glow, or semi-transparent shading.
 - Don't add colours beyond orange and a hint of teal.
 - Don't register colour perfectly inside outlines.
 - Don't use constant-width vector strokes or hairlines as the main line.
-- Don't tween shapes smoothly.
+- Don't tween shapes smoothly or bob things on a plain sine.
+- Don't scatter tufts and dots evenly over the ground.
 - Don't place black figures on black areas without a paper halo.
 
 ## Implementation recipe
@@ -209,9 +217,9 @@ Don't:
 2. Copy the carving toolkit (`lens`, `taper`, `spline`, `limb`, `smoothPath`, `crescent`, `holeSpot`) and a seeded RNG.
 3. Build the paper fibre map and the ink void map once.
 4. Write `mk(box, draw, {halo, seed})`: draw at K px/unit → paper halo (12 offset silhouettes, destination-over) → inkify.
-5. Design each character as: one solid ink mass + one paper mass, carved with lenses; add the orange plate offset on its key element; crescent bottom-right; thin outline; carved face. Use 4 key poses as data tables (foot positions, bob, cloth swing).
-6. Bake 4 poses × 2 jitter seeds × 2 facings; derive negative prints and shatter shards.
-7. Ground: noise fields → signed distances → per-pixel coverage pattern per region (grass ticks, furrows, stipple, solid with echo contours, cobbles), 1.5-unit paper gutters, paper fibres and ink pinholes. Bake in chunks with a time budget.
+5. Design each character as: one solid ink mass + one paper mass, carved with lenses; add the orange plate offset on its key element; crescent bottom-right; thin outline; carved face. Drive it from a pose table (feet with lift and heel, bob, lean, hands, cloth, scarf, leaf) and compute 8 walk poses from one phase with delayed follow-through parts.
+6. Bake every pose × 2 jitter seeds × 2 facings; derive negative prints, a cracked block and shatter shards.
+7. Ground: noise fields → signed distances → per-pixel coverage pattern per region (clumped grass ticks, furrows, litter drifts, solid with echo contours, cobbles), 1.5-unit paper gutters, paper fibres and ink pinholes. Bake in chunks with a time budget.
 8. Decals: knock out a paper disc, then carve the motif.
 9. Shadows as horizontal lens hatching; effects as baked lens bursts, chips, drops, halftone puffs, orange stars/rays.
 10. HUD in DOM with the CSS above; floating numbers on canvas as two-plate prints.
@@ -354,10 +362,12 @@ Use the Linocut art style for my project:
 - Light from the upper left: heavy crescent (shape minus shifted shrunken copy) at the lower right,
   white gouge highlights upper left; shade = parallel black lenses getting wider.
 - Orange is printed on its own plate offset by (+0.8, +0.55) world units everywhere (misregistration).
-- Bake sprites with a 0.9-unit paper halo and ink pinholes; 4 poses × 2 jittered variants swapped at 6 fps.
-- Shadows = horizontal ink lens hatching. Flashes = negative print; disappearing = carved shards + ink splat.
-- Ground: fibrous paper with grass ticks, furrows, stipple forest, solid-ink soil with echo contours,
-  1.5-unit paper gutters between regions. Props (trees, graves, fences) carved the same way.
+- Bake sprites with a 1-unit paper halo and ink pinholes; 8 computed walk poses (contact/down/passing/up,
+  lagging scarf and hem) × 2 jittered pulls swapped at 6 fps; held poses, never smooth tweens.
+- Shadows = horizontal ink lens hatching. Hit = negative print + squash; appear = brayer rolls the figure on;
+  disappear = cracked block, tumbling shards, ink splat.
+- Ground: fibrous paper with clumped grass ticks, furrows, litter drifts in the forest, solid-ink soil with
+  echo contours, 1.5-unit paper gutters between regions, big calm paper areas. Props (trees, graves, fences) carved the same way.
 - Frame: ragged ink strips with an inner rule, no vignette.
 - UI: paper panels, 3px ink borders, hard 4px offset shadows, striped bars, Rye / Alfa Slab One / Special Elite.
 ```

@@ -361,89 +361,136 @@
   }
 
   /* ---- main character: a wandering traveller in a wide straw hat ---- */
-  // back foot x, back lift, front foot x, front lift, back sleeve, front sleeve (rad, + = forward)
-  const HERO_FR = [
-    [-2.3, 0, 2.5, 0, 0.08, -0.08],     // 0 idle
-    [-4.3, 0, 4.1, 0.25, 0.42, -0.4],   // 1 stride
-    [-1.3, 1.7, 1.6, 0, 0.12, -0.12],   // 2 passing
-    [4.0, 0.25, -4.2, 0, -0.38, 0.44],  // 3 stride (other leg)
-    [1.5, 0, -1.5, 1.7, -0.12, 0.12],   // 4 passing
-    [-3.4, 0, 3.6, 0, 0.32, 1.32],      // 5 throw: front sleeve thrust forward
+  /*
+   * Poses: far foot x / lift, near foot x / lift, body drop (by, + = down), lean, far + near sleeve swing
+   * (rad, + = forward), hat-cord streaming (0 hanging .. 1 straight back), hat lag, eye open.
+   * Walk = 8 poses (contact, down, passing, up for each leg); the sleeves lag one pose behind the legs,
+   * the hat lags the body drop and the cord trails up on the passing poses (overlapping action).
+   */
+  const HP = (bf, bl, ff, fl, by, lean, bs, fs, cord, hy, eye) => ({ bf, bl, ff, fl, by, lean, bs, fs, cord, hy, eye: eye === undefined ? 1 : eye });
+  const HERO_P = [
+    HP(-4.2, 0.3, 4.4, 0, 0.25, 0.5, 0.24, -0.26, 0.35, 0.2),     // 0 contact (near foot forward)
+    HP(-3.0, 1.1, 2.6, 0, 0.85, 0.6, 0.42, -0.46, 0.55, -0.3),    // 1 down
+    HP(0.4, 2.3, 0.2, 0, 0.05, 0.5, 0.3, -0.34, 0.75, 0.35),      // 2 passing
+    HP(2.8, 1.3, -2.2, 0.1, -0.55, 0.4, 0.04, -0.06, 0.5, 0.3),   // 3 up
+    HP(4.4, 0, -4.2, 0.3, 0.25, 0.5, -0.26, 0.24, 0.35, -0.4),    // 4 contact (far foot forward)
+    HP(2.6, 0, -3.0, 1.1, 0.85, 0.6, -0.46, 0.42, 0.55, -0.3),    // 5 down
+    HP(0.2, 0, 0.4, 2.3, 0.05, 0.5, -0.34, 0.3, 0.75, 0.35),      // 6 passing
+    HP(-2.2, 0.1, 2.8, 1.3, -0.55, 0.4, -0.06, 0.04, 0.5, 0.3),   // 7 up
+    HP(-2.0, 0, 2.3, 0, 0, 0, -0.04, 0.06, 0.05, 0),              // 8 idle
+    HP(-2.0, 0, 2.3, 0, -0.38, -0.1, 0.02, 0.12, 0.12, 0.18),     // 9 idle, breathing in
+    HP(-2.0, 0, 2.3, 0, 0, 0, -0.04, 0.06, 0.05, 0, 0),           // 10 idle, blink
+    HP(-3.4, 0, 3.8, 0, 0.45, 1.3, -0.5, 1.45, 0.65, -0.2),       // 11 throw: release
+    HP(-3.0, 0, 3.4, 0, 0.2, 0.7, -0.25, 0.85, 0.35, 0.25),       // 12 throw: follow-through
+    HP(-6.0, 1.9, 4.8, 0.8, 0.95, 2.3, -1.1, -0.95, 1, 0.4),      // 13 dash
+    HP(-1.2, 0, 3.2, 0.7, 0.3, -1.5, 0.65, 0.75, 0.85, -0.5, 0),  // 14 recoil
   ];
-  function heroLeg(c, hx, fx, lift, back) {
-    part(c, capsule(hx, -8.4, fx, -1.7 - lift, 1.55, 1.12), back ? '#6a809e' : bk(-8, -1, '#9db2ca', '#7a90ad'), { ink: 0.7 });
-    part(c, ell(fx + 0.75, -0.8 - lift, 2.3, 0.95), back ? C.ochreD : bk(-1.8 - lift, 0.2 - lift, C.ochreL, C.ochre), { ink: 0.55 });
-    line(c, [[fx - 0.3, -1.6 - lift], [fx + 1.7, -0.95 - lift]], 0.35, { col: C.vermD });
+  const HIDLE = 8, HBLINK = 10, HTHROW = 11, HDASH = 13, HREC = 14;
+    function heroLeg(c, hx, hy, fx, lift, back) {
+    // white kyahan leggings bound with sumi cords, straw waraji with vermilion straps
+    part(c, capsule(hx, hy, fx, -1.7 - lift, 1.6, 1.12), back ? '#b7ad93' : bk(hy, -1, '#f3ead2', '#cfc3a1'), {
+      ink: 0.7,
+      detail: (k) => { const mx = hx + (fx - hx) * 0.62, my = hy + (-1.7 - lift - hy) * 0.62; stroke(k, [[mx - 1.4, my - 0.2], [mx + 1.4, my + 0.3]], 0.34, back ? '#4a4438' : '#3a352e', 0.9); },
+    });
+    part(c, ell(fx + 0.75, -0.8 - lift, 2.35, 0.95), back ? C.ochreD : bk(-1.8 - lift, 0.2 - lift, C.ochreL, C.ochre), { ink: 0.55 });
+    line(c, [[fx - 0.4, -1.65 - lift], [fx + 1.8, -0.95 - lift]], 0.4, { col: back ? C.vermD : C.verm });
   }
   /** Small paper-white kasuri cross woven into the indigo cloth. */
   function kasuri(k, x, y) {
-    k.strokeStyle = 'rgba(246,238,220,0.88)'; k.lineWidth = 0.42; k.lineCap = 'round';
+    k.strokeStyle = 'rgba(246,238,220,0.92)'; k.lineWidth = 0.44; k.lineCap = 'round';
     k.beginPath(); k.moveTo(x - 0.55, y - 0.55); k.lineTo(x + 0.55, y + 0.55); k.moveTo(x + 0.55, y - 0.55); k.lineTo(x - 0.55, y + 0.55); k.stroke();
   }
+  /** Square traveller's sleeve hanging from the shoulder (sx, sy), swung by ang; the hand shows at the cuff. */
   function heroSleeve(c, sx, sy, ang, back) {
-    const loc = [[-1.9, -0.6], [1.9, -0.6], [2.6, 5.0], [2.3, 7.7], [-0.3, 8.5], [-2.5, 7.4], [-2.7, 3.0]];
-    const hand = xf([[0.3, 9.1]], sx, sy, 1, -ang)[0];
-    if (back) part(c, ell(hand[0], hand[1], 1.2, 1.1), C.skinD, { ink: 0.5 });
-    part(c, xf(spline(loc, true, 5), sx, sy, 1, -ang), back ? C.indigoD : lin(sx - 2, sy, sx + 2, sy + 8, [0, C.indigoL, 1, C.indigo]), {
-      ink: 0.85,
+    const loc = [[-2.0, -0.5], [2.0, -0.6], [2.8, 4.6], [2.6, 7.4], [-0.2, 8.4], [-2.6, 7.6], [-2.9, 3.0]];
+    const hand = xf([[1.1, 8.9]], sx, sy, 1, -ang)[0];
+    if (back) part(c, ell(hand[0], hand[1], 1.15, 1.05), C.skinD, { ink: 0.5 });
+    part(c, xf(spline(loc, true, 5), sx, sy, 1, -ang), back ? '#14233a' : lin(sx - 2, sy, sx + 2, sy + 8, [0, '#7393b8', 0.55, '#3f618d', 1, '#24406a']), {
+      ink: back ? 0.75 : 0.9,
       detail: back ? null : (k) => {
-        for (const p of xf([[-0.8, 2.4], [1.0, 4.6], [-1.2, 6.2]], sx, sy, 1, -ang)) kasuri(k, p[0], p[1]);
+        for (const p of xf([[-0.9, 2.2], [1.1, 4.4], [-1.2, 6.3], [1.2, 7.4]], sx, sy, 1, -ang)) kasuri(k, p[0], p[1]);
+        stroke(k, xf([[-2.4, 7.0], [-0.2, 7.9], [2.3, 7.0]], sx, sy, 1, -ang), 0.5, '#7ea6c4', 0.8);   // pale cuff lining
       },
     });
     if (!back) part(c, ell(hand[0], hand[1], 1.25, 1.15), C.skin, { ink: 0.5 });
   }
-  function heroParts(c, f) {
-    const F = HERO_FR[f];
-    // scabbard behind the body (black lacquer, gold end cap)
-    line(c, [[1.2, -12.8], [-12.0, -7.5]], 1.9, { taper: 0.4, vary: 0.05, side: 0 });
-    part(c, ell(-12.1, -7.45, 1.05, 1.05), C.gold, { ink: 0.45 });
-    heroSleeve(c, -2.6, -19.6, F[4], true);
-    // travel bundle (furoshiki) on the back
-    part(c, spline([[-6.2, -20.0], [-3.4, -19.6], [-3.0, -15.6], [-4.6, -13.2], [-7.6, -13.6], [-9.2, -16.4], [-8.4, -19.2]], true, 5),
-      bk(-20, -13, '#efe2bf', '#d4bf8f'), { ink: 0.75, detail(k) { for (const p of [[-7.4, -17.8], [-5.2, -16.4], [-7.2, -15.0], [-5.6, -18.6]]) dot(k, p[0], p[1], 0.5, C.indigo); } });
-    heroLeg(c, -1.4, F[0], F[1], true);
-    heroLeg(c, 1.5, F[2], F[3], false);
-    // kimono, tucked up for walking
-    const body = spline([[-4.4, -20.6], [0.2, -21.3], [4.6, -20.4], [5.6, -15.5], [6.4, -8.8], [5.2, -6.9], [0.2, -6.5], [-5.0, -6.9], [-6.0, -9.0], [-5.4, -15.5]], true, 5);
-    part(c, body, bk(-21.3, -6.5, C.indigoL, C.indigoD), {
-      ink: 1.0,
-      detail(k) {
-        for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) kasuri(k, -4.6 + i * 2.6 + (j & 1) * 1.3, -19.2 + j * 2.7);
-        // white under-collar
-        k.fillStyle = PAPER_W;
-        k.beginPath(); k.moveTo(-0.9, -21.0); k.lineTo(0.5, -21.2); k.lineTo(2.9, -14.6); k.lineTo(1.9, -14.4); k.closePath(); k.fill();
-      },
-    });
-    line(c, [[2.6, -14.3], [3.3, -6.8]], 0.45, { taper: 0.5 });
-    line(c, [[0.4, -21.0], [2.7, -14.4]], 0.4, { taper: 0.3 });
-    // vermilion obi
-    part(c, poly([[-5.75, -14.1], [5.85, -14.5], [6.1, -11.3], [-5.9, -11.0]], true, 0.7), bk(-14.5, -11, C.vermL, C.vermD), {
-      ink: 0.65, detail(k) { stroke(k, [[-5.8, -12.6], [6.0, -12.9]], 0.32, C.ochreL, 0.9); },
-    });
-    // sword hilt in front
-    line(c, [[3.0, -12.9], [8.7, -16.0]], 1.45, { taper: 0.3, side: 0 });
-    for (let i = 0; i < 3; i++) dot(c, 4.9 + i * 1.3, -14.0 - i * 0.72, 0.28, C.ochreL);
-    part(c, ell(3.4, -13.1, 0.75, 1.5, -0.5), C.gold, { ink: 0.4 });
-    // face under the hat
-    part(c, ell(-0.7, -21.0, 1.9, 2.0), SUMI, { ink: 0.35 });
-    part(c, ell(1.9, -20.3, 3.3, 2.85), bk(-23.2, -17.5, C.skin, C.skinD), { ink: 0.65 });
-    sline(c, [[3.0, -21.15], [3.85, -21.45], [4.7, -21.05]], 0.5);
-    line(c, [[5.0, -20.6], [5.35, -19.7]], 0.32, { taper: 0.25 });
-    line(c, [[4.0, -18.7], [4.7, -18.75]], 0.3);
-    dot(c, 3.0, -19.7, 0.55, 'rgba(214,120,100,0.55)');
-    // vermilion hat cord
-    // sugegasa: shallow straw cone
-    const apex = [0.9, -32.6];
-    const brim = arc(0.5, -24.2, 11.6, 1.5, 0, PI, 18);
-    const hat = poly([apex, [12.1, -24.2]], false, 0.8).concat(brim.slice(1, -1)).concat(poly([[-11.1, -24.2], apex], false, 0.8).slice(0, -1));
-    part(c, hat, lin(0, -32.5, 0, -22.7, [0, '#f3dea4', 0.5, '#dcb76a', 1, '#b48a43']), {
-      ink: 1.1,
-      detail(k) { stroke(k, arc(0.5, -24.4, 10.4, 0.9, 0.15, PI - 0.15, 14), 0.4, C.ochreD, 0.9); },
-    });
-    for (let i = -3; i <= 3; i++) {
-      const bx = 0.5 + i * 3.25, by = -23.5 - Math.abs(i) * 0.12;
-      line(c, [[0.9 + (bx - 0.9) * 0.12, -31.7], [bx, by]], 0.26, { col: '#6b5330', taper: 1.2 });
+  /** Two vermilion hat-cord tails behind the neck; s = 0 hanging, 1 streaming straight back. */
+  function heroCord(c, s) {
+    const a = 0.25 + s * 1.15;                         // angle from hanging down towards horizontal-back
+    const co = Math.cos(a), si = Math.sin(a);
+    for (const [len, off, wv] of [[7.2, 0, 0.9], [5.6, 0.7, -0.7]]) {
+      const pts = [];
+      for (let i = 0; i <= 4; i++) {
+        const t = i / 4, d = len * t;
+        const w = Math.sin(t * PI * 1.6 + off * 3) * wv * (0.4 + s * 0.6) * t;
+        pts.push([-1.6 - si * d - co * w * 0.4, -22.0 + off + co * d - si * w]);
+      }
+      sline(c, pts, 0.62, { col: off ? C.vermD : C.verm, taper: 1.6, side: 0 });
     }
+  }
+  function heroParts(c, P) {
+    const by = P.by, hip = -8.4 + by;
+    // ---- behind the body: scabbard, far sleeve, travel bundle, cord tails
+    const upper = (fn) => { c.save(); c.translate(0, hip); c.rotate(P.lean * 0.05); c.translate(P.lean * 0.18, -hip); c.translate(0, by); fn(); c.restore(); };
+    upper(() => {
+      line(c, [[1.2, -12.8], [-12.0, -7.5 - P.lean * 0.4]], 1.9, { taper: 0.4, vary: 0.05, side: 0 });
+      part(c, ell(-12.1, -7.45 - P.lean * 0.4, 1.05, 1.05), C.gold, { ink: 0.45 });
+      heroSleeve(c, -2.6, -19.6, P.bs, true);
+      part(c, spline([[-6.2, -20.0], [-3.4, -19.6], [-3.0, -15.6], [-4.6, -13.2], [-7.6, -13.6], [-9.2, -16.4], [-8.4, -19.2]], true, 5),
+        bk(-20, -13, '#efe2bf', '#cdb582'), { ink: 0.75, detail(k) { for (const p of [[-7.4, -17.8], [-5.2, -16.4], [-7.2, -15.0], [-5.6, -18.6]]) dot(k, p[0], p[1], 0.5, C.indigo); stroke(k, [[-8.8, -18.9], [-4.0, -14.2]], 0.4, '#a98a4c', 0.8); } });
+      heroCord(c, P.cord);
+    });
+    heroLeg(c, -1.4, hip, P.bf, P.bl, true);
+    heroLeg(c, 1.5, hip, P.ff, P.fl, false);
+    upper(() => {
+      // kimono, tucked up for walking: deep indigo with paper-white kasuri crosses
+      const body = spline([[-4.4, -20.6], [0.2, -21.3], [4.6, -20.4], [5.6, -15.5], [6.4, -8.8], [5.2, -6.9], [0.2, -6.5], [-5.0, -6.9], [-6.0, -9.0], [-5.4, -15.5]], true, 5);
+      part(c, body, bk(-21.3, -6.5, '#3b5b86', '#15253d'), {
+        ink: 1.05,
+        detail(k) {
+          for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) kasuri(k, -4.6 + i * 2.6 + (j & 1) * 1.3, -19.2 + j * 2.7);
+          k.fillStyle = PAPER_W;
+          k.beginPath(); k.moveTo(-0.9, -21.0); k.lineTo(0.5, -21.2); k.lineTo(2.9, -14.6); k.lineTo(1.9, -14.4); k.closePath(); k.fill();
+        },
+      });
+      line(c, [[2.6, -14.3], [3.3, -6.8]], 0.45, { taper: 0.5 });
+      line(c, [[0.4, -21.0], [2.7, -14.4]], 0.4, { taper: 0.3 });
+      // vermilion obi with an ochre cord
+      part(c, poly([[-5.75, -14.1], [5.85, -14.5], [6.1, -11.3], [-5.9, -11.0]], true, 0.7), bk(-14.5, -11, C.vermL, C.vermD), {
+        ink: 0.65, detail(k) { stroke(k, [[-5.8, -12.6], [6.0, -12.9]], 0.32, C.ochreL, 0.9); },
+      });
+      // sword hilt in front
+      line(c, [[3.0, -12.9], [8.7, -16.0 - P.lean * 0.3]], 1.45, { taper: 0.3, side: 0 });
+      for (let i = 0; i < 3; i++) dot(c, 4.9 + i * 1.3, -14.0 - i * 0.72 - P.lean * 0.1 * i, 0.28, C.ochreL);
+      part(c, ell(3.4, -13.1, 0.75, 1.5, -0.5), C.gold, { ink: 0.4 });
+      heroSleeve(c, 0.8, -19.8, P.fs, false);
+      // face under the hat
+      part(c, ell(-0.7, -21.0, 1.9, 2.0), SUMI, { ink: 0.35 });
+      part(c, ell(1.9, -20.3, 3.3, 2.85), bk(-23.2, -17.5, C.skin, C.skinD), { ink: 0.65 });
+      sline(c, [[2.9, -21.6], [3.8, -21.95], [4.7, -21.6]], 0.42);
+      if (P.eye) { dot(c, 3.85, -20.75, 0.5, SUMI); dot(c, 3.7, -20.95, 0.16, PAPER_W); }
+      else sline(c, [[3.2, -20.7], [3.9, -20.5], [4.5, -20.75]], 0.36);
+      line(c, [[5.0, -20.2], [5.35, -19.5]], 0.32, { taper: 0.25 });
+      line(c, [[4.0, -18.7], [4.7, -18.75]], 0.3);
+      dot(c, 3.0, -19.5, 0.55, 'rgba(214,120,100,0.55)');
+      // sugegasa: a shallow straw cone, mid-value so it reads on the pale meadow
+      c.save(); c.translate(0, P.hy);
+      const apex = [0.9, -32.6];
+      const brim = arc(0.5, -24.2, 11.6, 1.5, 0, PI, 18);
+      const hat = poly([apex, [12.1, -24.2]], false, 0.8).concat(brim.slice(1, -1)).concat(poly([[-11.1, -24.2], apex], false, 0.8).slice(0, -1));
+      part(c, hat, lin(0, -32.5, 0, -22.7, [0, '#ecc775', 0.45, '#cf9e4f', 1, '#94672b']), {
+        ink: 1.15,
+        detail(k) {
+          stroke(k, arc(0.5, -24.4, 10.4, 0.9, 0.15, PI - 0.15, 14), 0.55, '#6b4a22', 0.9);
+          stroke(k, arc(0.9, -29.4, 4.2, 0.5, 0.2, PI - 0.2, 10), 0.4, '#f6dc96', 0.8);
+        },
+      });
+      for (let i = -3; i <= 3; i++) {
+        const bx = 0.5 + i * 3.25, bly = -23.5 - Math.abs(i) * 0.12;
+        line(c, [[0.9 + (bx - 0.9) * 0.12, -31.7], [bx, bly]], 0.28, { col: '#5a4122', taper: 1.2 });
+      }
+      c.restore();
+    });
   }
 
   /* ---- small creature: kappa (water imp with a dish on its head) ---- */
@@ -747,17 +794,25 @@
       },
     });
   }
-  function bambooParts(c) {
-    const stalks = [[-7.2, 50, -1.6], [-3.0, 60, 0.6], [1.4, 54, 2.4], [5.2, 62, 1.0], [8.6, 46, 3.2]];
-    const r = U.rng(222);
+  function bambooParts(c, v) {
+    // v0: a mature grove of five culms; v1: a young leaning clump of three with a sprouting shoot
+    const stalks = v ? [[-4.6, 44, -5.6], [-0.4, 56, -2.2], [3.6, 40, 3.8]] : [[-7.2, 50, -1.6], [-3.0, 60, 0.6], [1.4, 54, 2.4], [5.2, 62, 1.0], [8.6, 46, 3.2]];
+    const r = U.rng(222 + v * 17);
     for (const [x, h, lean] of stalks) {
-      part(c, capsule(x, 0, x + lean, -h, 1.05, 0.75), lin(x - 1, 0, x + 1, 0, [0, '#a9c77c', 1, '#4f7a45']), { ink: 0.6 });
-      for (let y = -6; y > -h + 3; y -= 6.4) { const xx = x + lean * (-y / h); line(c, [[xx - 1.25, y], [xx + 1.25, y + 0.15]], 0.42, { taper: 0.3, side: 0 }); }
+      part(c, capsule(x, 0, x + lean, -h, 1.05 - v * 0.15, 0.75 - v * 0.1), lin(x - 1, 0, x + 1, 0, [0, '#a9c77c', 1, '#4f7a45']), { ink: 0.6 });
+      for (let y = -6; y > -h + 3; y -= 6.4 - v) { const xx = x + lean * (-y / h); line(c, [[xx - 1.2, y], [xx + 1.2, y + 0.15]], 0.42, { taper: 0.3, side: 0 }); }
     }
-    for (let i = 0; i < 16; i++) {
-      const s = stalks[i % 5], t = r.range(0.45, 0.95), x = s[0] + s[2] * t, y = -s[1] * t;
-      const a = r.range(-1.9, 1.9);
+    const nl = v ? 14 : 16;
+    for (let i = 0; i < nl; i++) {
+      const s = stalks[i % stalks.length], t = r.range(0.45, 0.97), x = s[0] + s[2] * t, y = -s[1] * t;
+      const a = r.range(-1.9, 1.9) + (v ? -0.5 : 0);
       part(c, lance(x, y, a, r.range(6, 8.5), r.range(0.9, 1.3)), bk(y - 6, y + 6, '#7f9f5c', C.pineD), { ink: 0.45 });
+    }
+    if (v) {
+      // takenoko: a striped shoot at the foot of the clump
+      part(c, spline([[6.4, 0], [6.9, -2.8], [8.0, -5.8], [8.8, -2.6], [9.6, 0]], true, 4), bk(-6, 0, '#b58a52', '#6b4f3c'), {
+        ink: 0.5, detail(k) { for (const yy of [-1.4, -3.0]) stroke(k, [[6.6, yy], [9.4, yy + 0.5]], 0.32, '#4a3628', 0.8); },
+      });
     }
   }
   function jizoParts(c) {
@@ -770,7 +825,21 @@
     sline(c, [[0.6, -14.8], [1.3, -14.5], [2.0, -14.8]], 0.3);
     part(c, spline([[-3.2, -16.0], [-2.2, -18.6], [0.2, -19.4], [2.6, -18.4], [3.2, -16.0], [0, -16.8]], true, 4), bk(-19.4, -16, C.vermL, C.verm), { ink: 0.55 });
   }
-  function reedParts(c) {
+  function reedParts(c, v) {
+    if (!v) {
+      // shore cattails: long arching olive blades, three stalks with brown velvet heads
+      const r = U.rng(733);
+      for (let i = 0; i < 9; i++) {
+        const bx = r.range(-4.5, 4.5), sd = bx < 0 ? -1 : 1, h = r.range(12, 20), out = r.range(2, 9) * sd;
+        part(c, ribbon([[bx, 0], [bx + out * 0.25, -h * 0.55], [bx + out * 0.7, -h * 0.92], [bx + out, -h + 2.5]], 0.75, 0.25), bk(-h, 0, '#9aa862', '#4f6a3a'), { ink: 0.36 });
+      }
+      for (const [x, h, b] of [[-2.4, 24, -1.6], [1.0, 28, 0.8], [3.6, 21, 2.6]]) {
+        line(c, [[x, 0], [x + b * 0.5, -h * 0.5], [x + b, -h - 3.5]], 0.5, { taper: 0.4, side: 0 });
+        part(c, capsule(x + b * 0.96, -h + 3.2, x + b, -h - 1.6, 1.25, 1.05), bk(-h - 2, -h + 4, '#9a6a3e', '#5a3a22'), { ink: 0.5 });
+      }
+      return;
+    }
+    // susuki: pampas plumes bowing over a fan of dry blades
     const r = U.rng(611);
     for (let i = 0; i < 13; i++) {
       const bx = r.range(-4, 4), side = bx < 0 ? -1 : 1, h = r.range(10, 17), out = r.range(3, 10) * side;
@@ -783,15 +852,66 @@
     }
   }
   const PROP_DEF = {
-    pine: { n: 2, box: [-27, -70, 32, 3], fn: pineParts, sh: [15, 4.6], pad: 80, sway: 0.018 },
-    maple: { n: 2, box: [-22, -54, 22, 3], fn: mapleParts, sh: [14, 4.4], pad: 70, sway: 0.022 },
-    cherry: { n: 2, box: [-28, -55, 28, 3], fn: cherryParts, sh: [16, 4.6], pad: 70, sway: 0.02 },
-    shrine: { n: 2, box: [-10, -36, 10, 2], fn: (c, v) => (v ? jizoParts(c) : toroParts(c)), sh: [7.4, 2.4], shv: [[7.4, 2.4], [5.2, 1.7]], pad: 40 },
-    gate: { n: 1, box: [-30, -47, 30, 2], fn: toriiParts, sh: [24, 3.2], pad: 60 },
-    stone: { n: 3, box: [-19, -21, 22, 2], fn: stoneParts, sh: [15, 4.2], pad: 34 },
-    bamboo: { n: 1, box: [-16, -66, 18, 2], fn: bambooParts, sh: [11, 3.4], pad: 80, sway: 0.03 },
-    reeds: { n: 1, box: [-17, -26, 17, 2], fn: reedParts, sh: [9, 2.6], pad: 30, sway: 0.05 },
+    pine: { n: 2, box: [-27, -70, 32, 3], fn: pineParts, pad: 80, sway: 0.018 },
+    maple: { n: 2, box: [-22, -54, 22, 3], fn: mapleParts, pad: 70, sway: 0.022 },
+    cherry: { n: 2, box: [-28, -55, 28, 3], fn: cherryParts, pad: 70, sway: 0.02 },
+    shrine: { n: 2, box: [-10, -36, 10, 2], fn: (c, v) => (v ? jizoParts(c) : toroParts(c)), pad: 40 },
+    gate: { n: 1, box: [-30, -47, 30, 2], fn: toriiParts, pad: 60 },
+    stone: { n: 3, box: [-19, -21, 22, 2], fn: stoneParts, pad: 34 },
+    bamboo: { n: 2, box: [-16, -66, 18, 2], fn: bambooParts, pad: 80, sway: 0.03 },
+    reeds: { n: 2, box: [-17, -34, 17, 2], fn: reedParts, pad: 36, sway: 0.05 },
   };
+
+  /* --------- ground stamps: each prop's contact with the ground (shadow + its own litter), baked once ---------- */
+  const SHADOW_INK = '#4b4f58';
+  const STAMP_BOX = {
+    pine: [-26, -9, 28, 10], maple: [-24, -9, 24, 10], cherry: [-30, -10, 30, 11], shrine: [-13, -6, 13, 7],
+    gate: [-30, -5, 30, 6], stone: [-22, -6, 24, 7], bamboo: [-18, -7, 20, 8], reeds: [-14, -5, 14, 6],
+  };
+  function shadowE(c, rx, ry, a) { c.globalAlpha = a; c.fillStyle = SHADOW_INK; c.beginPath(); c.ellipse(0.5, 0.35, rx, ry, 0, 0, TAU); c.fill(); c.globalAlpha = 1; }
+  /** n items spread in an ellipse with density falling off towards the rim (Gaussian-ish, deterministic). */
+  function carpet(r, n, rx, ry, cx, cy, fn) {
+    for (let i = 0; i < n; i++) {
+      const a = r.range(0, TAU), q = Math.sqrt(-2 * Math.log(1 - r.next() * 0.92)) * 0.5;
+      fn(cx + Math.cos(a) * rx * q, cy + Math.sin(a) * ry * q, i);
+    }
+  }
+  function stampParts(c, t, v) {
+    const r = U.rng(4100 + v * 31 + t.length * 7);
+    if (t === 'cherry') {
+      shadowE(c, 16, 4.6, 0.2);
+      carpet(r, 46, 22, 7.5, 1.5, 1.2, (x, y, i) => dPetal(c, x, y, 0.75 + r.next() * 0.35, r.range(0, TAU), i % 4 ? '#f1c6cb' : '#fbf1ea'));
+    } else if (t === 'maple') {
+      shadowE(c, 14, 4.4, 0.2);
+      const pal = MAPLE_PAL[v];
+      carpet(r, 18, 19, 6.5, 1, 1, (x, y, i) => mleaf(c, x, y, 1.05 + r.next() * 0.4, r.range(-0.8, 0.8), i % 3 ? pal[1] : pal[0]));
+    } else if (t === 'pine') {
+      shadowE(c, 15, 4.6, 0.2);
+      c.strokeStyle = '#6b5a3a'; c.lineWidth = 0.3; c.lineCap = 'round';
+      carpet(r, 22, 20, 6.5, 1, 1, (x, y) => { const a = r.range(0, PI); c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * 1.6, y + Math.sin(a) * 0.7); c.moveTo(x, y); c.lineTo(x + Math.cos(a + 0.5) * 1.5, y + Math.sin(a + 0.5) * 0.7); c.stroke(); });
+      for (let i = 0; i < 3; i++) { const x = r.range(-9, 11), y = r.range(-1.5, 3); dot(c, x, y, 0.75, '#7a5838'); dot(c, x - 0.2, y - 0.2, 0.35, '#a98458'); }
+    } else if (t === 'shrine') {
+      // raked gravel bed with two carved rake lines around the base
+      c.fillStyle = '#e2dccb'; c.beginPath(); c.ellipse(0, 0.6, 11.5, 4.6, 0, 0, TAU); c.fill();
+      c.strokeStyle = 'rgba(120,112,98,0.7)'; c.lineWidth = 0.3;
+      for (const k of [0.62, 0.84]) { c.beginPath(); c.ellipse(0, 0.6, 11.5 * k, 4.6 * k, 0, 0, TAU); c.stroke(); }
+      c.strokeStyle = 'rgba(30,27,25,0.55)'; c.lineWidth = 0.4; c.beginPath(); c.ellipse(0, 0.6, 11.5, 4.6, 0, 0, TAU); c.stroke();
+      shadowE(c, v ? 5.2 : 7.4, v ? 1.7 : 2.4, 0.24);
+    } else if (t === 'gate') {
+      for (const s of [-1, 1]) { c.fillStyle = '#dcd5c2'; c.beginPath(); c.ellipse(s * 18.1, 0.4, 4.6, 1.8, 0, 0, TAU); c.fill(); }
+      shadowE(c, 24, 3.2, 0.18);
+    } else if (t === 'stone') {
+      shadowE(c, 15, 4.2, 0.2);
+      for (let i = 0; i < 4; i++) dGrass(c, r.range(-13, 14), r.range(1, 3.5), 0.75, i & 1 ? '#56744c' : '#6c8858', r.next);
+      for (let i = 0; i < 3; i++) dPebble(c, r.range(-15, 17), r.range(0.5, 3.5), 0.8 + r.next() * 0.6, 0.55 + r.next() * 0.3, r.next() * 2);
+    } else if (t === 'bamboo') {
+      shadowE(c, 12, 3.5, 0.22);
+      carpet(r, 12, 15, 5, 1, 1, (x, y) => { c.save(); c.translate(x, y); c.rotate(r.range(-0.6, 0.6) + PI / 2); c.beginPath(); trace(c, lance(0, 0, 0, r.range(2.6, 3.6), 0.5)); c.fillStyle = r.next() < 0.5 ? '#c8b26a' : '#9aa862'; c.fill(); c.restore(); });
+    } else {
+      shadowE(c, 9, 2.6, 0.2);
+      if (!v) { c.strokeStyle = 'rgba(233,239,233,0.55)'; c.lineWidth = 0.35; for (const k of [1, 1.45]) { c.beginPath(); c.ellipse(0, 0.6, 8 * k, 2.4 * k, 0, PI * 0.05, PI * 0.95); c.stroke(); } }
+    }
+  }
 
   /* ============================================================ fx sprites */
   function slashPts(s) {
@@ -1003,13 +1123,14 @@
   }
 
   /* ================================================================ ground */
-  const GSTEP = 4, NL = 4, NF = 6;
+  const GSTEP = 4, NL = 4, NF = 8;
   const GREG = [0.8, 0.6];                 // ground colour blocks vs. key line
   // region layers (bottom -> top): 0 moss, 1 dry susuki field, 2 earth path, 3 water
   const LC = [[64, 90, 58], [146, 108, 50], [124, 92, 60], [30, 27, 25]];   // key line colour per layer
   const LHW = [0.3, 0.26, 0.3, 0.48];      // key line half width (world units)
   const LA = [0.85, 0.7, 0.8, 1];
-  const MEAD = [[230, 207, 150], [238, 228, 199], [199, 207, 152]];        // ochre, cream, sage
+  const MEAD = [[230, 207, 150], [238, 228, 199], [199, 207, 152]];        // ochre, cream, sage (moss skirt)
+  const SHORE_T = [214, 224, 206];                                          // celadon skirt along the water
   const MOSS = [[104, 133, 88], [150, 170, 116]];
   const FIELD = [[194, 150, 80], [222, 196, 138]];
   const PATH = [[194, 163, 114], [231, 212, 168]];
@@ -1021,25 +1142,38 @@
     out[0] = U.fbm(X / 460 + 2.1, Y / 460, 121, 3) - 0.575;
     out[1] = U.fbm(X / 820 - 4.3, Y / 820, 131, 2) - 0.605;
     const qx = U.perlin(x / 420, y / 420, 141) * 50, qy = U.perlin(x / 420 + 3.3, y / 420, 142) * 50;
-    out[2] = (0.0105 - Math.abs(U.perlin((x + qx) / 1500, (y + qy) / 1500, 143))) * 40;
+    const pp = U.perlin((x + qx) / 1500, (y + qy) / 1500, 143);
+    out[2] = (0.0105 - Math.abs(pp)) * 40;
+    out[6] = pp;                           // signed path field: its gradient gives the plank direction of bridges
     const pond = U.fbm(X / 620 + 11.3, Y / 620, 151, 3) - 0.655;
     const river = (0.0085 - Math.abs(U.perlin((x - qy) / 2300 + 5.5, (y + qx) / 2300, 153))) * 30;
-    const r2 = x * x + y * y;
-    out[3] = Math.max(pond, river) - (r2 < 67600 ? (1 - Math.sqrt(r2) / 260) * 0.3 : 0);
+    const r2 = x * x + y * y, sup = r2 < 67600 ? (1 - Math.sqrt(r2) / 260) * 0.3 : 0;
+    out[3] = pond - sup;
+    out[7] = river - sup;                  // ponds and rivers are separate fields: water = union of their distances
     out[4] = U.fbm(X / 700 + 9.1, Y / 700, 161, 2);
     out[5] = U.perlin(x / 26, y / 26, 171);
   }
-  const FT = new Float32Array(NF);
+  const FT = new Float32Array(NF), FTX = new Float32Array(NF), FTY = new Float32Array(NF);
   function matAt(x, y) {
     fieldsAt(x, y, FT);
-    for (let L = 3; L >= 0; L--) if (FT[L] > 0) return L + 1;
+    if (FT[3] > 0 || FT[7] > 0) return 4;
+    for (let L = 2; L >= 0; L--) if (FT[L] > 0) return L + 1;
     return 0;
   }
-  function matSafe(x, y, r) {
-    const m = matAt(x, y);
-    if (matAt(x + r, y) !== m || matAt(x - r, y) !== m || matAt(x, y + r) !== m || matAt(x, y - r) !== m) return -1;
-    return m;
+  /** Approximate signed distances (world units, + inside) to the four regions at (x, y) -> out[0..3]. */
+  function distsAt(x, y, out) {
+    fieldsAt(x, y, FT); fieldsAt(x + 2, y, FTX); fieldsAt(x, y + 2, FTY);
+    for (let L = 0; L <= NL; L++) {
+      const c = L === NL ? 7 : L;
+      const gx = (FTX[c] - FT[c]) / 2, gy = (FTY[c] - FT[c]) / 2;
+      const v = U.clamp(FT[c] / Math.max(Math.sqrt(gx * gx + gy * gy), 1e-7), -80, 80);
+      if (L < NL) out[L] = v; else if (v > out[3]) out[3] = v;
+    }
+    return out;
   }
+  const DQ = new Float32Array(4), WQ = new Float32Array(4);
+  const WDC = new Map();                     // cached water depth per ripple cell (drawGroundOverlay)
+  const TRAIL_E = new Float32Array(32);      // orbiting-crest trail ribbon edges (scratch)
   const pack = (r, g, b) => (255 << 24) | ((b < 0 ? 0 : b > 255 ? 255 : b | 0) << 16) | ((g < 0 ? 0 : g > 255 ? 255 : g | 0) << 8) | (r < 0 ? 0 : r > 255 ? 255 : r | 0);
   /** Seigaiha: distance of (x,y) from the centre of the fan that covers it (rows overlap downwards). */
   const SR = 7, SH = SR * 0.5;
@@ -1103,55 +1237,89 @@
       dot(c, x, y - 0.9, 0.45, '#e9c454');
     }
   }
-  /** Suyari-gasumi: stylised horizontal mist bands, stepped, rounded ends, one outline around the union. */
-  function kasumi(ctx, info) {
-    G.scatter(info, 300, 9191, 150, (x, y, rng) => {
-      if (rng.next() > 0.5) return;
-      const steps = 2 + ((rng.next() * 2) | 0), w = rng.range(110, 190), h = rng.range(9, 13);
-      ctx.beginPath();
-      for (let k = 0; k < steps; k++) {
-        const bx = x + rng.range(-35, 35) - w / 2, by = y + k * h * 0.78, bw = w * rng.range(0.6, 1);
-        trace(ctx, rrect(bx, by, bw, h, h / 2));
-      }
-      ctx.lineJoin = 'round';
-      ctx.lineWidth = 1.0; ctx.strokeStyle = 'rgba(156,118,92,0.8)'; ctx.stroke();
-      ctx.fillStyle = grad(ctx, 0, y, 0, y + steps * h * 0.8, [0, '#efd3c4', 0.5, '#f3e2d0', 1, '#f5ecda']);
-      ctx.fill('nonzero');
-    });
+  /** Susuki plume: a bowed stalk with a feathered cream head. */
+  function dSusuki(c, x, y, s, rnd) {
+    const lean = (rnd() - 0.35) * 5 * s, h = (7 + rnd() * 4) * s;
+    const tx = x + lean, ty = y - h;
+    c.strokeStyle = '#8c7134'; c.lineWidth = 0.4 * s;
+    c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + lean * 0.2, y - h * 0.6, tx, ty); c.stroke();
+    c.strokeStyle = '#efe0b8'; c.lineWidth = 0.55 * s; c.beginPath();
+    for (let k = 0; k < 4; k++) {
+      const q = 0.55 + k * 0.15, px = x + lean * q * q, py = y - h * q;
+      c.moveTo(px, py); c.lineTo(px + (1.6 + k * 0.3) * s * Math.sign(lean || 1), py + 1.1 * s);
+    }
+    c.stroke();
   }
-  function* decals(ctx, info) {
+  /** Reeds standing in the shallows: three dark stems and a pale ripple at their foot. */
+  function dReedW(c, x, y, s, rnd) {
+    c.strokeStyle = 'rgba(233,239,233,0.6)'; c.lineWidth = 0.32;
+    c.beginPath(); c.ellipse(x, y + 0.2, 2.4 * s, 0.8 * s, 0, PI * 1.05, PI * 1.95); c.stroke();
+    c.strokeStyle = '#4f5a2e'; c.lineWidth = 0.42 * s; c.beginPath();
+    for (let k = 0; k < 3; k++) {
+      const bx = x + (k - 1) * 0.9 * s, h = (5 + rnd() * 4) * s, b = (rnd() - 0.5) * 3 * s;
+      c.moveTo(bx, y); c.quadraticCurveTo(bx + b * 0.3, y - h * 0.6, bx + b, y - h);
+    }
+    c.stroke();
+  }
+  /**
+   * Ground decals, placed by the region distances of the chunk (dS fills d[0..3], + = inside):
+   * calm open meadow, grass drifts and skirts along every edge, flower patches with one colour each,
+   * fringed moss, susuki drifts, pebbles on the path verges, reeds and lily colonies in the shallows.
+   */
+  function* decals(ctx, info, dS) {
     const pts = [];
-    G.scatter(info, 11, 7001, 7, (x, y, rng) => { pts.push(x, y, rng.next(), rng.next(), rng.next()); });
+    G.scatter(info, 9, 7001, 7, (x, y, rng) => { pts.push(x, y, rng.next(), rng.next(), rng.next()); });
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const d = DQ;
     for (let i = 0; i < pts.length; i += 5) {
-      if (i % 250 === 245) yield;
+      if (i % 300 === 295) yield;
       const x = pts[i], y = pts[i + 1], r0 = pts[i + 2], r1 = pts[i + 3], r2 = pts[i + 4];
-      const m = matSafe(x, y, 4);
-      if (m < 0) continue;
+      dS(x, y, d);
+      if (d[2] > -1.5 && d[3] > -4) continue;                 // bridge deck
+      const m = d[3] > 0 ? 4 : d[2] > 0 ? 3 : d[1] > 0 ? 2 : d[0] > 0 ? 1 : 0;
+      const own = m ? d[m - 1] : 99;
+      let hi = 99;
+      for (let L = m; L < NL; L++) if (-d[L] < hi) hi = -d[L];
+      const clear = own < hi ? own : hi;
+      if (clear < 1.6) continue;
       const rnd = U.mulberry32(((r1 * 1e9) | 0) ^ 0x2c1b3c6d);
       if (m === 0) {
-        const dens = U.noise(x / 85, y / 85, 333);
-        if (r0 < 0.05 + 0.42 * U.smoothstep(0.42, 0.72, dens)) dGrass(ctx, x, y, 0.85 + r1 * 0.45, r2 < 0.5 ? '#6c8858' : '#56744c', rnd);
-        else if (r0 < 0.53 && dens < 0.36 && r2 < 0.05) dFlower(ctx, x, y, 0.8, r1 < 0.3 ? '#d0573d' : '#f6efe0');
-        else if (r0 < 0.25) dFlower(ctx, x, y, 0.85, r2 < 0.2 ? '#d0573d' : r2 < 0.6 ? '#f6efe0' : '#efc2c6');
-        else if (r0 < 0.28) dPetal(ctx, x, y, 0.85 + r2 * 0.3, r1 * TAU, r2 < 0.6 ? '#eab0b6' : '#f8e6e2');
+        // tight clumps (noise at 46 units, top ~15 %) with open paper between them – no even sprinkle
+        const drift = U.smoothstep(0.66, 0.8, U.noise(x / 46, y / 46, 333)) * 1.65;
+        const sk = (v, w) => (v > -w ? 1 + v / w : 0);
+        const skirt = Math.max(sk(d[0], 17), sk(d[3], 12), sk(d[2], 7) * 0.55, sk(d[1], 10) * 0.7);
+        const fc = U.noise(x / 36, y / 36, 444);
+        if (fc > 0.79 && r0 < 0.85 && clear > 2.4 && drift + skirt > 0.25) {
+          const hue = U.noise(x / 170, y / 170, 555);
+          const col = hue < 0.42 ? '#d0573d' : hue < 0.6 ? '#f6efe0' : '#efb9c0';
+          dFlower(ctx, x + (r1 - 0.5) * 4, y + (r2 - 0.5) * 3, 0.9 + r2 * 0.4, col);
+          if (r2 < 0.45) dGrass(ctx, x + 1.6, y + 1.3, 0.7, '#6c8858', rnd);
+        } else if (r0 < drift * 0.42 + skirt * skirt * 0.85 && (drift > 0.05 || skirt > 0.18)) {
+          dGrass(ctx, x, y, 0.78 + r1 * 0.45 + skirt * 0.3, r2 < 0.5 ? '#6c8858' : '#56744c', rnd);
+        }
       } else if (m === 1) {
-        if (r0 < 0.4) dGrass(ctx, x, y, 0.95 + r1 * 0.45, r2 < 0.5 ? '#3f5c3d' : '#4d6b45', rnd);
-        else if (r0 < 0.46) mleaf(ctx, x, y, 1.3 + r2 * 0.4, r1 * TAU, r2 < 0.6 ? '#c9502f' : '#dc9a3a');
+        const fringe = own < 15 ? 1 - own / 15 : 0;
+        const p = 0.08 + fringe * fringe * 0.7;
+        if (r0 < p) dGrass(ctx, x, y, 0.95 + r1 * 0.45, r2 < 0.5 ? '#3f5c3d' : '#4d6b45', rnd);
+        else if (own > 12 && r0 > 0.985) mleaf(ctx, x, y, 1.3 + r2 * 0.4, r1 * TAU, r2 < 0.6 ? '#c9502f' : '#dc9a3a');
       } else if (m === 2) {
-        if (r0 < 0.42) {
+        const dr = U.smoothstep(0.42, 0.7, U.noise(x / 48, y / 48, 777));
+        if (r0 < dr * 0.2 && clear > 3) dSusuki(ctx, x, y, 0.9 + r1 * 0.3, rnd);
+        else if (r0 < 0.1 + dr * 0.45) {
           ctx.strokeStyle = r2 < 0.5 ? '#a1803f' : '#8c7134'; ctx.lineWidth = 0.42; ctx.beginPath();
           for (let k = 0; k < 3; k++) { const a = (rnd() - 0.5) * 1.6, L = 3 + rnd() * 3; ctx.moveTo(x + k - 1, y); ctx.quadraticCurveTo(x + k - 1 + Math.sin(a) * L * 0.3, y - L * 0.7, x + k - 1 + Math.sin(a) * L, y - L * Math.cos(a * 0.5)); }
           ctx.stroke();
-        } else if (r0 < 0.5) dFlower(ctx, x, y, 0.7, '#f2e6c8');
+        }
       } else if (m === 3) {
-        if (r0 < 0.08) dPebble(ctx, x, y, 1.2 + r1, 0.8 + r2 * 0.6, r1 * 2);
-        else if (r0 < 0.3) { ctx.strokeStyle = 'rgba(150,118,78,0.7)'; ctx.lineWidth = 0.45; ctx.beginPath(); ctx.moveTo(x - 1.2, y); ctx.lineTo(x + 1.2, y + (r2 - 0.5)); ctx.stroke(); }
-      } else if (m === 4) {
-        if (r0 < 0.035 && matSafe(x, y, 7) === 4) dLily(ctx, x, y, 2.4 + r1 * 1.2, r2 * TAU, r1 < 0.25);
-        else if (r0 < 0.06) {
-          ctx.strokeStyle = 'rgba(233,239,233,0.55)'; ctx.lineWidth = 0.35;
-          for (let k = 1; k <= 2; k++) { ctx.beginPath(); ctx.ellipse(x, y, 1.8 * k, 0.8 * k, 0, 0.3, PI * 2 - 0.3); ctx.stroke(); }
+        if (own < 4.2) { if (r0 < 0.26) dPebble(ctx, x, y, 0.9 + r1 * 0.8, 0.6 + r2 * 0.5, r1 * 2); }
+        else if (r0 < 0.02) dPebble(ctx, x, y, 0.8 + r1 * 0.5, 0.5 + r2 * 0.3, r1 * 2);
+      } else {
+        const reed = U.smoothstep(0.42, 0.62, U.noise(x / 52, y / 52, 888));
+        if (own < 4.5 && r0 < reed * 0.7) dReedW(ctx, x, y, 0.9 + r2 * 0.3, rnd);
+        else if (own > 3.5 && own < 13 && U.noise(x / 40, y / 40, 999) > 0.64) { if (r0 < 0.42) dLily(ctx, x, y, 2.1 + r1 * 1.3, r2 * TAU, r1 < 0.2); }
+        else if (own > 8 && r0 < 0.012) {
+          ctx.strokeStyle = 'rgba(233,239,233,0.5)'; ctx.lineWidth = 0.35;
+          for (let k = 1; k <= 2; k++) { ctx.beginPath(); ctx.ellipse(x, y, 1.9 * k, 0.8 * k, 0, 0.3, PI * 2 - 0.3); ctx.stroke(); }
         }
       }
     }
@@ -1180,6 +1348,73 @@
     const k = 1 / K, h = s.oy * q;
     if (h < 1) return;
     ctx.drawImage(s.c, 0, 0, s.c.width, h, x - s.ox * k * sx, y - h * k * sy, s.c.width * k * sx, h * k * sy);
+  }
+  /** Half of a sprite, clipped by the line y = cy + slope * x in the sprite's own units (a cut through the print). */
+  function blitHalf(ctx, V, s, x, y, sx, sy, rot, cy, slope, upper) {
+    const S = V.S, co = Math.cos(rot) * S, si = Math.sin(rot) * S;
+    ctx.save();
+    ctx.setTransform(co * sx, si * sx, -si * sy, co * sy, V.ox + x * S, V.oy + y * S);
+    const X = 40, E = upper ? -90 : 12;
+    ctx.beginPath(); ctx.moveTo(-X, cy - slope * X); ctx.lineTo(X, cy + slope * X); ctx.lineTo(X, E); ctx.lineTo(-X, E); ctx.closePath();
+    ctx.clip();
+    const k = 1 / K;
+    ctx.drawImage(s.c, -s.ox * k, -s.oy * k, s.c.width * k, s.c.height * k);
+    ctx.restore();
+  }
+  /**
+   * Designed death (deathT 0..1): a key-block-only hit-stop, then
+   *  - kappa / oni: one diagonal cut, the upper half slides off down the cut and tips over, both halves burn
+   *    away from the top (paper -> sumi rim -> vermilion rim) and sink;
+   *  - paper lantern: the ribs fold flat like an accordion while the paper burns.
+   */
+  function deathSeq(ctx, V, e, set, dis, left, fs, y, sx, sy, rot, H, ghost) {
+    const q = e.deathT;
+    if (q >= 1) return;
+    if (q < 0.14) {
+      const k = 1 + (q / 0.14) * 0.1;
+      blitRot(ctx, V, left ? set.fl : set.f, e.x, y, sx * k * 1.06, sy * k * 0.94, rot);
+      return;
+    }
+    const t = (q - 0.14) / 0.86;
+    if (ghost) {
+      // paper lantern: ribs fold flat while the paper burns from the top
+      const di = t < 0.15 ? -1 : Math.min(2, Math.floor(((t - 0.15) / 0.85) * 3.2));
+      const spr = di < 0 ? (left ? set.nl : set.n) : left ? dis[di].l : dis[di].n;
+      ctx.globalAlpha = t > 0.7 ? Math.max(0, 1 - (t - 0.7) / 0.3) : 1;
+      blitRot(ctx, V, spr, e.x, y + 4.5 * t, sx * (1 + 0.28 * t), sy * (1 - 0.72 * t * t), rot + fs * 0.3 * t);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    // kappa / oni: cut, slide apart in full colour, then the colour blocks lift off and the key line fades
+    const cy = -H * 0.5, slope = -0.42 * fs;
+    const sep = U.clamp((t - 0.08) / 0.5, 0, 1), ease = 1 - (1 - sep) * (1 - sep) * (1 - sep);
+    const dist = H * 0.3 * ease, dl = Math.sqrt(1 + slope * slope);
+    const dx = (-fs / dl) * dist, dy = (Math.abs(slope) / dl) * dist + H * 0.16 * t * t;
+    const col = U.clamp((t - 0.38) / 0.3, 0, 1), A = t > 0.68 ? Math.max(0, 1 - (t - 0.68) / 0.32) : 1;
+    const sink = 1.6 * t * t;
+    for (let pass = 0; pass < 2; pass++) {
+      const spr = pass ? (left ? set.fl : set.f) : left ? set.nl : set.n;
+      const a = pass ? A * col : col < 1 ? A : 0;
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a;
+      blitHalf(ctx, V, spr, e.x, y + sink, sx * (1 + 0.04 * ease), sy * (1 - 0.14 * t), rot + fs * 0.06 * ease, cy, slope, false);
+      blitHalf(ctx, V, spr, e.x + dx, y + dy + sink, sx, sy, rot - fs * 0.55 * ease, cy, slope, true);
+    }
+    ctx.globalAlpha = 1;
+    if (t < 0.34) {
+      // the cut: a paper-white lens with a sumi edge and a vermilion core, thinning as it closes
+      const S = V.S, co = Math.cos(rot) * S, si = Math.sin(rot) * S, W = H * 0.66, th = (1.3 + H * 0.022) * (1 - t / 0.34);
+      ctx.save();
+      ctx.setTransform(co * sx, si * sx, -si * sy, co * sy, V.ox + e.x * S, V.oy + y * S);
+      const lens = (w) => {
+        ctx.beginPath(); ctx.moveTo(-W, cy - slope * W);
+        ctx.quadraticCurveTo(0, cy - w, W, cy + slope * W); ctx.quadraticCurveTo(0, cy + w, -W, cy - slope * W);
+      };
+      lens(th + 0.55); ctx.fillStyle = SUMI; ctx.fill();
+      lens(th); ctx.fillStyle = PAPER_W; ctx.fill();
+      lens(th * 0.3); ctx.fillStyle = C.verm; ctx.fill();
+      ctx.restore();
+    }
   }
   function shadow(ctx, x, y, rx, ry, a) {
     ctx.globalAlpha = a;
@@ -1339,9 +1574,8 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
 `;
 
   /* ================================================================ style */
-  const BOX_HERO = [-14, -34, 15, 2], BOX_KAPPA = [-11, -26, 12, 2], BOX_LANT = [-10, -25, 12, 3], BOX_ONI = [-22, -62, 22, 2];
+  const BOX_HERO = [-16, -36, 18, 2], BOX_KAPPA = [-11, -26, 12, 2], BOX_LANT = [-10, -25, 12, 3], BOX_ONI = [-22, -62, 22, 2];
   const HEIGHT = { creeper: 12, ghost: 16, colossus: 28 };
-  let lastStep = -1;
   Styles.register({
     id: 'ukiyoe',
     name: 'Ukiyo-e Woodblock',
@@ -1359,12 +1593,13 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       const S = (cssH * dpr) / 360;
       K = Math.max(3, Math.min(7, Math.round(S * 1.6)));
       makeFibres();
-      SPR.hero = HERO_FR.map((_, f) => {
-        const n = build(BOX_HERO, (c) => heroParts(c, f));
+      SPR.hero = HERO_P.map((P, f) => {
+        const n = build(BOX_HERO, (c) => heroParts(c, P));
+        if (f === HDASH) return { n, nl: flipS(n) };
         const h = remap(n, hurtFn);
-        const g = { c: U.tint(n.c, '#6f7a8c'), ox: n.ox, oy: n.oy };
-        return { n, nl: flipS(n), h, hl: flipS(h), g, gl: flipS(g) };
+        return { n, nl: flipS(n), h, hl: flipS(h) };
       });
+      { const d = SPR.hero[HDASH].n, g = { c: U.tint(d.c, '#6f7a8c'), ox: d.ox, oy: d.oy }; SPR.heroGhost = { n: g, l: flipS(g) }; }
       SPR.kappa = [0, 1, 2].map((v) => [0, 1, 2, 3].map((f) => set4(BOX_KAPPA, (c) => kappaParts(c, f, v))));
       SPR.lant = [0, 1, 2, 3].map((f) => set4(BOX_LANT, (c) => lanternParts(c, f)));
       SPR.oni = [0, 1].map((v) => [0, 1, 2, 3].map((f) => set4(BOX_ONI, (c) => oniParts(c, f, v))));
@@ -1378,6 +1613,8 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
         SPR.props[t] = [];
         for (let v = 0; v < d.n; v++) { const s = build(d.box, (c) => d.fn(c, v)); SPR.props[t].push({ n: s, l: flipS(s) }); }
       }
+      SPR.stamp = {};
+      for (const t in STAMP_BOX) SPR.stamp[t] = [0, 1, 2].slice(0, PROP_DEF[t].n).map((v) => { const s = plain(STAMP_BOX[t], (c) => stampParts(c, t, v)); return { n: s, l: flipS(s) }; });
       SPR.slash = plain([-7.5, -7, 3.5, 7], (c) => slashDraw(c, 1.05));
       SPR.trail = plain([-22, -3, 0.5, 3], (c) => {
         for (const [y, len, w] of [[-1.7, 13, 0.55], [-0.6, 19, 0.7], [0.5, 16, 0.6], [1.6, 10, 0.5]]) ink(c, [[-0.5, y * 0.6], [-len, y]], w, { col: 'rgba(40,40,46,0.7)', taper: 3, side: 0 });
@@ -1389,6 +1626,16 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       SPR.koban = build([-3.8, -4.8, 3.8, 4.8], (c) => kobanParts(c, false));
       SPR.oban = build([-5, -6.4, 5, 6.4], (c) => kobanParts(c, true));
       SPR.spark = plain([-4.5, -4.5, 4.5, 4.5], (c) => part(c, poly([[0, -4], [0.9, -0.9], [4, 0], [0.9, 0.9], [0, 4], [-0.9, 0.9], [-4, 0], [-0.9, -0.9]], true, 0.5), lin(-3, -3, 3, 3, [0, '#fff2bf', 1, C.gold]), { ink: 0.38, paper: false, reg: 0.5 }));
+      // impact star: a jagged paper-white burst with a sumi key line and an off-register vermilion heart
+      SPR.hitstar = plain([-8, -8, 8, 8], (c) => {
+        const pts = [];
+        for (let i = 0; i < 18; i++) {
+          const a = (i / 18) * TAU - PI / 2, rr = i & 1 ? 2.3 + (i % 3) * 0.3 : 5.0 + ((i * 7) % 5) * 0.45;
+          pts.push([Math.cos(a) * rr, Math.sin(a) * rr * 0.9]);
+        }
+        part(c, pts, PAPER_W, { ink: 0.62, reg: 0, vary: 0.15, side: 0.3 });
+        c.save(); c.translate(REG[0], REG[1]); c.beginPath(); trace(c, pts.map(([x, y]) => [x * 0.42, y * 0.42])); c.fillStyle = C.verm; c.fill(); c.restore();
+      });
       SPR.splat = [11, 23, 37].map((sd) => plain([-9, -9, 9, 9], (c) => splatDraw(c, sd, SUMI)));
       SPR.splatR = plain([-9, -9, 9, 9], (c) => splatDraw(c, 51, C.verm));
       SPR.splatB = plain([-9, -9, 9, 9], (c) => splatDraw(c, 61, C.prus));
@@ -1409,12 +1656,13 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
     /* ------------------------------------------------------------ ground */
     *renderGroundChunk(ctx, info) {
       const res = info.res, Wp = info.px, nc = Math.ceil(info.size / GSTEP);
-      const nf = nc + 5, nd = nc + 3;
+      // field grid covers the chunk + 12 units, distance grid + 8 units (decals that straddle the border match)
+      const nf = nc + 7, nd = nc + 5;
       const F = new Float32Array(nf * nf * NF), tmp = new Float32Array(NF);
       for (let j = 0; j < nf; j++) {
-        const y = info.wy + (j - 2) * GSTEP;
+        const y = info.wy + (j - 3) * GSTEP;
         for (let i = 0; i < nf; i++) {
-          fieldsAt(info.wx + (i - 2) * GSTEP, y, tmp);
+          fieldsAt(info.wx + (i - 3) * GSTEP, y, tmp);
           const o = (j * nf + i) * NF;
           for (let k = 0; k < NF; k++) F[o + k] = tmp[k];
         }
@@ -1423,16 +1671,23 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       // approximate signed distance (world units) per region: field / |gradient|
       const D = [0, 1, 2, 3].map(() => new Float32Array(nd * nd));
       const T = new Float32Array(nd * nd), Wb = new Float32Array(nd * nd);
+      const TX = new Float32Array(nd * nd), TY = new Float32Array(nd * nd);
       const inv2 = 1 / (2 * GSTEP);
       for (let j = 0; j < nd; j++) {
         for (let i = 0; i < nd; i++) {
           const fo = ((j + 1) * nf + (i + 1)) * NF, o = j * nd + i;
-          for (let L = 0; L < NL; L++) {
-            const gx = (F[fo + NF + L] - F[fo - NF + L]) * inv2, gy = (F[fo + nf * NF + L] - F[fo - nf * NF + L]) * inv2;
+          for (let L = 0; L <= NL; L++) {
+            const c = L === NL ? 7 : L;
+            const gx = (F[fo + NF + c] - F[fo - NF + c]) * inv2, gy = (F[fo + nf * NF + c] - F[fo - nf * NF + c]) * inv2;
             const g = Math.sqrt(gx * gx + gy * gy);
-            let d = F[fo + L] / Math.max(g, 1e-7);
-            D[L][o] = d > 60 ? 60 : d < -60 ? -60 : d;
+            let d = F[fo + c] / Math.max(g, 1e-7);
+            d = d > 60 ? 60 : d < -60 ? -60 : d;
+            if (L < NL) D[L][o] = d; else if (d > D[3][o]) D[3][o] = d;
           }
+          // path tangent from the signed path field (smooth across the centre line)
+          const qx = F[fo + NF + 6] - F[fo - NF + 6], qy = F[fo + nf * NF + 6] - F[fo - nf * NF + 6];
+          const ql = Math.sqrt(qx * qx + qy * qy) || 1;
+          TX[o] = -qy / ql; TY[o] = qx / ql;
           T[o] = F[fo + 4]; Wb[o] = F[fo + 5];
         }
       }
@@ -1444,21 +1699,24 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       const D0 = D[0], D1 = D[1], D2 = D[2], D3 = D[3];
       for (let py = 0; py < Wp; py++) {
         const ly = (py + 0.5) / res;
-        const gy = ly / GSTEP + 1, gy0 = gy | 0, fy = gy - gy0;
-        const cyv = (ly - GREG[1]) / GSTEP + 1, cy0 = cyv | 0, cfy = cyv - cy0;
+        const gy = ly / GSTEP + 2, gy0 = gy | 0, fy = gy - gy0;
+        const cyv = (ly - GREG[1]) / GSTEP + 2, cy0 = cyv | 0, cfy = cyv - cy0;
         const wy = info.wy + ly - GREG[1];
         const fibRow = (Math.floor((info.wy + ly) * 2) & 511) * 512;
         for (let px = 0; px < Wp; px++) {
           const lx = (px + 0.5) / res;
-          const gx = lx / GSTEP + 1, gx0 = gx | 0, fx = gx - gx0;
-          const cxv = (lx - GREG[0]) / GSTEP + 1, cx0 = cxv | 0, cfx = cxv - cx0;
+          const gx = lx / GSTEP + 2, gx0 = gx | 0, fx = gx - gx0;
+          const cxv = (lx - GREG[0]) / GSTEP + 2, cx0 = cxv | 0, cfx = cxv - cx0;
           const o = gy0 * nd + gx0, oc = cy0 * nd + cx0;
-          // meadow: ochre <-> cream <-> sage washes
-          let m = (bil(T, oc, cfx, cfy) - 0.34) * 3.4;
-          m = m < 0 ? 0 : m > 1 ? 1 : m;
-          let r, g, b;
-          if (m < 0.5) { const t = m * 2; r = MEAD[0][0] + (MEAD[1][0] - MEAD[0][0]) * t; g = MEAD[0][1] + (MEAD[1][1] - MEAD[0][1]) * t; b = MEAD[0][2] + (MEAD[1][2] - MEAD[0][2]) * t; }
-          else { const t = (m - 0.5) * 2; r = MEAD[1][0] + (MEAD[2][0] - MEAD[1][0]) * t; g = MEAD[1][1] + (MEAD[2][1] - MEAD[1][1]) * t; b = MEAD[1][2] + (MEAD[2][2] - MEAD[1][2]) * t; }
+          // meadow: broad ochre <-> cream wash, then bokashi skirts that follow the regions –
+          // sage spreading out from every moss edge, a pale celadon breath along the water
+          let m = (bil(T, oc, cfx, cfy) - 0.31) * 3.3;
+          m = m < 0 ? 0 : m > 1 ? 1 : m * m * (3 - 2 * m);
+          let r = MEAD[0][0] + (MEAD[1][0] - MEAD[0][0]) * m, g = MEAD[0][1] + (MEAD[1][1] - MEAD[0][1]) * m, b = MEAD[0][2] + (MEAD[1][2] - MEAD[0][2]) * m;
+          let sk = D0[oc] > -36 || D0[oc + nd + 1] > -36 ? (bil(D0, oc, cfx, cfy) + 30) / 28 : 0;
+          if (sk > 0) { sk = sk > 1 ? 0.8 : sk * sk * (3 - 2 * sk) * 0.8; r += (MEAD[2][0] - r) * sk; g += (MEAD[2][1] - g) * sk; b += (MEAD[2][2] - b) * sk; }
+          sk = D3[oc] > -24 || D3[oc + nd + 1] > -24 ? (bil(D3, oc, cfx, cfy) + 18) / 16 : 0;
+          if (sk > 0) { sk = sk > 1 ? 0.6 : sk * sk * (3 - 2 * sk) * 0.6; r += (SHORE_T[0] - r) * sk; g += (SHORE_T[1] - g) * sk; b += (SHORE_T[2] - b) * sk; }
           const wob = bil(Wb, o, fx, fy);
           for (let L = 0; L < NL; L++) {
             const A = L === 0 ? D0 : L === 1 ? D1 : L === 2 ? D2 : D3;
@@ -1496,6 +1754,11 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
                 const P = L === 0 ? MOSS : L === 1 ? FIELD : PATH, span = L === 0 ? 9 : L === 1 ? 8 : 5;
                 const t = dc > span ? 1 : dc / span;
                 lr = P[0][0] + (P[1][0] - P[0][0]) * t; lg = P[0][1] + (P[1][1] - P[0][1]) * t; lb = P[0][2] + (P[1][2] - P[0][2]) * t;
+                if (L === 2) {
+                  // two trodden ruts parallel to the verges
+                  let ru = (0.3 - Math.abs(dc - 4.6 - wob * 0.5)) * res + 0.5;
+                  if (ru > 0) { ru = (ru > 1 ? 1 : ru) * 0.13; lr -= lr * ru; lg -= lg * ru * 1.05; lb -= lb * ru * 1.15; }
+                }
               }
               r += (lr - r) * cov; g += (lg - g) * cov; b += (lb - b) * cov;
             }
@@ -1509,6 +1772,34 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
               r += (lc[0] - r) * a; g += (lc[1] - g) * a; b += (lc[2] - b) * a;
             }
           }
+          // plank bridge where a path crosses water: deck, vermilion rails with sumi posts, end beams, shadow
+          if (D2[o] > -4 && D3[o] > -8) {
+            const d2 = bil(D2, oc, cfx, cfy), d3 = bil(D3, oc, cfx, cfy) + 3.2;
+            if (d3 > -0.6) {
+              const tx = bil(TX, o, fx, fy), ty = bil(TY, o, fx, fy);
+              const tl = Math.sqrt(tx * tx + ty * ty) || 1;
+              const s = ((info.wx + lx) * tx + (info.wy + ly) * ty) / tl;
+              let cv = (d2 + 0.55) * res + 0.5, ev = (d3 + 0.1) * res + 0.5;
+              cv = cv > 1 ? 1 : cv; ev = ev > 1 ? 1 : ev;
+              const k = cv < ev ? cv : ev;
+              if (k > 0) {
+                let br, bg, bb;
+                if (d2 > 1.35) {
+                  const pk = Math.floor(s / 2.5), f = s / 2.5 - pk, h = U.hash2(pk, 3, 909);
+                  br = 182 + h * 30; bg = 142 + h * 26; bb = 92 + h * 18;
+                  const se = (0.075 - (f < 0.5 ? f : 1 - f)) * 2.5 * res + 0.5;      // seam between planks
+                  if (se > 0) { const a = (se > 1 ? 1 : se) * 0.75; br += (96 - br) * a; bg += (70 - bg) * a; bb += (46 - bb) * a; }
+                  if (d3 < 0.9) { br = 70; bg = 58; bb = 50; }                       // end beam
+                } else if (d2 > 0.35) {
+                  if (U.fract(s / 7.5) < 0.13) { br = 40; bg = 34; bb = 31; } else { br = 207; bg = 78; bb = 46; }
+                } else { br = 30; bg = 27; bb = 25; }
+                r += (br - r) * k; g += (bg - g) * k; b += (bb - b) * k;
+              } else if (d2 > -2.2 && d3 > 3.2) {
+                const a = (1 - (-d2 - 0.55) / 1.65) * 0.32;                         // deck shadow on the water
+                if (a > 0) { r -= r * a; g -= g * a; b -= b * a * 0.7; }
+              }
+            }
+          }
           const fv = 1 + 0.05 * FIB[fibRow + (Math.floor((info.wx + lx) * 2) & 511)];
           buf[py * Wp + px] = pack(r * fv, g * fv, b * fv);
         }
@@ -1516,42 +1807,72 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       }
       ctx.putImageData(img, 0, 0);
       yield;
-      yield* decals(ctx, info);
-      kasumi(ctx, info);
+      const x0 = info.wx - 2 * GSTEP, y0 = info.wy - 2 * GSTEP, mx = nd - 2.001;
+      const dS = (x, y, out) => {
+        let gx = (x - x0) / GSTEP, gy = (y - y0) / GSTEP;
+        gx = gx < 0 ? 0 : gx > mx ? mx : gx; gy = gy < 0 ? 0 : gy > mx ? mx : gy;
+        const ix = gx | 0, iy = gy | 0, o = iy * nd + ix;
+        for (let L = 0; L < NL; L++) out[L] = bil(D[L], o, gx - ix, gy - iy);
+      };
+      yield* decals(ctx, info, dS);
     },
 
     propsForChunk(info) {
       const out = [];
-      G.scatterOwned(info, 76, 5150, (x, y, rng) => {
+      const d = new Float32Array(4);
+      const add = (x, y, t, v, rng, extra) => {
+        out.push(Object.assign({ x, y, t, v, f: t === 'gate' ? false : rng.chance(0.5), sw: rng.next() * TAU, pad: PROP_DEF[t].pad }, extra));
+      };
+      // composed placement: every prop belongs to a feature of the ground
+      G.scatterOwned(info, 68, 5150, (x, y, rng) => {
         if (G.nearSpawn(x, y, 95)) return;
         const r = rng.next(), vr = rng.next();
-        const m = matAt(x, y);
+        distsAt(x, y, d);
+        if (d[2] > -2 && d[3] > -6) return;                       // bridges stay clear
+        const m = d[3] > 0 ? 4 : d[2] > 0 ? 3 : d[1] > 0 ? 2 : d[0] > 0 ? 1 : 0;
+        const shore = -d[3], road = -d[2], wood = -d[0];
         let t = null, v = 0;
         if (m === 0) {
-          if (r < 0.07) { t = 'pine'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.12) { t = 'cherry'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.16) { t = 'stone'; v = (vr * 3) | 0; }
-          else if (r < 0.185) { t = 'shrine'; v = 0; }
-          else if (r < 0.2) { t = 'shrine'; v = 1; }
-          else if (r < 0.218) t = 'gate';
-          else if (r < 0.235) t = 'reeds';
+          if (shore > 1 && shore < 10) { if (r < 0.6) { t = 'reeds'; v = vr < 0.7 ? 0 : 1; } }
+          else if (road > 3 && road < 11 && r < 0.26) { t = 'shrine'; v = vr < 0.5 ? 0 : 1; }   // stone lantern / jizo at the roadside
+          else if (wood > 1 && wood < 24 && r < 0.42) { t = vr < 0.62 ? 'pine' : 'cherry'; v = rng.int(0, 1); }
+          else if (road > 4 && road < 30) { if (r < 0.035) { t = 'stone'; v = 2; } }               // road verges belong to the avenues
+          else if (r < 0.045) { t = 'stone'; v = (vr * 3) | 0; }
+          else if (r < 0.06) { t = 'cherry'; v = rng.int(0, 1); }
         } else if (m === 1) {
-          if (r < 0.09) { t = 'pine'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.17) { t = 'maple'; v = vr < 0.65 ? 0 : 1; }
-          else if (r < 0.24) t = 'bamboo';
-          else if (r < 0.27) { t = 'stone'; v = (vr * 3) | 0; }
+          if (U.noise(x / 240, y / 240, 616) > 0.6) { if (r < 0.62) { t = 'bamboo'; v = vr < 0.55 ? 0 : 1; } }   // bamboo groves
+          else if (d[0] < 20 && r < 0.48) { t = 'pine'; v = vr < 0.5 ? 0 : 1; }                // pines on the forest rim
+          else if (r < 0.34) { t = vr < 0.6 ? 'maple' : 'pine'; v = rng.int(0, 1); }
+          else if (r < 0.39) { t = 'stone'; v = (vr * 3) | 0; }
         } else if (m === 2) {
-          if (r < 0.14) t = 'reeds';
-          else if (r < 0.18) { t = 'maple'; v = 1; }
-          else if (r < 0.2) { t = 'stone'; v = 1; }
-          else if (r < 0.21) { t = 'shrine'; v = 1; }
+          if (r < 0.24) { t = 'reeds'; v = 1; }
+          else if (d[1] < 14 && r < 0.34) { t = 'maple'; v = 1; }
+          else if (r < 0.37) { t = 'stone'; v = 1; }
         } else if (m === 3) {
-          if (r < 0.05) { t = 'shrine'; v = 0; }
-          else if (r < 0.1) t = 'gate';
-          else if (r < 0.1) { t = 'shrine'; v = 1; }
-        } else if (r < 0.05) { t = 'stone'; v = 1; }
-        if (!t) return;
-        out.push({ x, y, t, v, f: t === 'gate' ? false : rng.chance(0.5), sw: rng.next() * TAU, pad: PROP_DEF[t].pad });
+          // a torii astride a north-south stretch of road, flanked by two stone lanterns
+          const gx = FTX[6] - FT[6], gy = FTY[6] - FT[6];
+          if (d[2] > 5 && r < 0.16 && Math.abs(gx) > 2.4 * Math.abs(gy)) {
+            const cx = x - FT[6] / (gx / 2);
+            if (Math.abs(cx - x) < 8 && !G.nearSpawn(cx, y, 110)) {
+              add(cx, y, 'gate', 0, rng);
+              for (const s of [-1, 1]) if (matAt(cx + s * 27, y + 5) === 0) add(cx + s * 27, y + 5, 'shrine', 0, rng, { f: s > 0 });
+            }
+          }
+          return;
+        } else if (d[3] > 9 && r < 0.05) { t = 'stone'; v = 1; }                                // a rock in the pond
+        if (t) add(x, y, t, v, rng);
+      });
+      // Tokaido avenues: stretches of road lined on both verges with one kind of tree (pines or cherries),
+      // spaced like a planted row, with gaps where the avenue noise drops
+      G.scatterOwned(info, 30, 5160, (x, y, rng) => {
+        if (G.nearSpawn(x, y, 95)) return;
+        distsAt(x, y, d);
+        const road = -d[2];
+        if (road < 7 || road > 13 || d[0] > -6 || d[3] > -10 || d[1] > -3) return;
+        const av = U.noise(x / 520, y / 520, 626);
+        if (av < 0.44 || rng.next() > 0.62) return;
+        const pine = U.noise(x / 900 + 3.1, y / 900, 627) > 0.42;
+        add(x, y, pine ? 'pine' : 'cherry', rng.int(0, 1), rng);
       });
       return out;
     },
@@ -1573,7 +1894,11 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
     },
 
     drawShadow(ctx, o) {
-      if (o.kind === 'prop') { const d = PROP_DEF[o.t]; if (d) { const sh = d.shv ? d.shv[o.v] || d.sh : d.sh; shadow(ctx, o.x, o.y, sh[0], sh[1], 0.2); } return; }
+      if (o.kind === 'prop') {
+        const st = SPR.stamp[o.t];
+        if (st) { const s = st[o.v] || st[0]; blit(ctx, o.f ? s.l : s.n, o.x, o.y, 1, 1); }
+        return;
+      }
       if (o.kind === 'enemy') {
         let k = 1;
         if (o.dying) { if (o.deathT > 0.6) return; k = 1 - o.deathT / 0.6; }
@@ -1584,30 +1909,38 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
         else shadow(ctx, o.x, o.y, 8.2 * k, 2.7 * k, 0.22);
         return;
       }
-      const h = o.moving ? Math.abs(Math.sin(o.anim * 0.52 * PI)) : 0;
-      shadow(ctx, o.x, o.y, 9 - h * 0.8, 3 - h * 0.25, 0.22);
+      const up = o.dashT > 0 ? 0.3 : o.moving ? Math.max(0, -HERO_P[Math.floor(o.anim * 1.26) & 7].by) : 0;
+      shadow(ctx, o.x, o.y, 9 - up * 1.3, 3 - up * 0.4, 0.22);
     },
 
-    drawGroundOverlay(ctx, view, game) {
-      // creatures rise out of an ink pool with ripple rings
-      for (const e of game.enemies) {
-        if (e.dying || e.spawnT >= 1 || e.type === 'ghost') continue;
-        if (e.x < view.x0 - 40 || e.x > view.x1 + 40 || e.y < view.y0 - 20 || e.y > view.y1 + 60) continue;
-        const t = e.spawnT;
-        const a = t < 0.2 ? U.ease.outBack(t / 0.2) : t > 0.75 ? Math.max(0, 1 - (t - 0.75) / 0.25) : 1;
-        if (a <= 0.01) continue;
-        const big = e.type === 'colossus';
-        const rx = (big ? 19 : 10) * a, ry = rx * 0.38;
-        ctx.fillStyle = big ? 'rgba(30,27,25,0.88)' : 'rgba(23,58,94,0.88)';
-        ctx.beginPath(); ctx.ellipse(e.x, e.y, rx, ry, 0, 0, TAU); ctx.fill();
-        ctx.strokeStyle = big ? SUMI : C.prusD; ctx.lineWidth = 0.6;
-        for (let k = 1; k <= 2; k++) {
-          const s = 1 + k * 0.32 + t * 0.4;
-          ctx.globalAlpha = Math.max(0, 0.8 - t * 0.6) * (k === 1 ? 1 : 0.6);
-          ctx.beginPath(); ctx.ellipse(e.x, e.y, rx * s, ry * s, 0, 0, TAU); ctx.stroke();
+    drawGroundOverlay(ctx, view) {
+      // ambient water: slow paired ripple rings printed in paper white on deep water, one per 64-unit cell,
+      // each on its own 4-7 s period (water depth per cell is cached, so this costs a few ellipses per frame)
+      const cell = 64, rt = view.rt;
+      const x0 = Math.floor(view.x0 / cell) - 1, x1 = Math.floor(view.x1 / cell) + 1;
+      const y0 = Math.floor(view.y0 / cell) - 1, y1 = Math.floor(view.y1 / cell) + 1;
+      if (WDC.size > 6000) WDC.clear();
+      ctx.lineWidth = 0.38;
+      ctx.strokeStyle = 'rgb(236,240,232)';
+      for (let cy = y0; cy <= y1; cy++) {
+        for (let cx = x0; cx <= x1; cx++) {
+          const key = cx * 100003 + cy;
+          let dep = WDC.get(key);
+          const hx = U.hash2(cx, cy, 931), hy = U.hash2(cx, cy, 932);
+          const x = (cx + 0.2 + hx * 0.6) * cell, y = (cy + 0.2 + hy * 0.6) * cell;
+          if (dep === undefined) { distsAt(x, y, WQ); dep = WQ[3]; WDC.set(key, dep); }
+          if (dep < 9) continue;
+          const per = 4 + hx * 3, ph = U.fract(rt / per + hy);
+          const a = Math.sin(ph * PI);
+          if (a < 0.05) continue;
+          for (let k = 0; k < 2; k++) {
+            const q = U.clamp(ph * 1.15 - k * 0.18, 0, 1), rx = 2 + q * 8 + k * 1.5;
+            ctx.globalAlpha = a * (k ? 0.35 : 0.6) * (1 - q * 0.5);
+            ctx.beginPath(); ctx.ellipse(x, y, rx, rx * 0.36, 0, PI * 0.08, PI * 1.92); ctx.stroke();
+          }
         }
-        ctx.globalAlpha = 1;
       }
+      ctx.globalAlpha = 1;
     },
 
     drawWorldOverlay(ctx, view) {
@@ -1618,7 +1951,7 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       for (let cy = y0; cy <= y1; cy++) {
         for (let cx = x0; cx <= x1; cx++) {
           const h = U.hash2(cx, cy, 515);
-          if (h > 0.42) continue;
+          if (h > 0.3) continue;
           const life = 7 + h * 8, ph = U.fract(rt / life + U.hash2(cx, cy, 516));
           const bx = (cx + U.hash2(cx, cy, 517)) * cell, by = (cy + U.hash2(cx, cy, 518)) * cell;
           const x = bx - 70 + ph * 150 + Math.sin(rt * 1.3 + h * 40) * 9;
@@ -1662,112 +1995,147 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
 
     drawEnemy(ctx, e, view) {
       const V = tf(view);
-      const left = e.facing < 0;
-      let set, dis, sx = 1, sy = 1, rot = 0, y = e.y, alpha = 1;
+      const left = e.facing < 0, fs = left ? -1 : 1;
+      const ghost = e.type === 'ghost', big = e.type === 'colossus';
+      let set, dis, sx = 1, sy = 1, rot = 0, y = e.y, H;
       const scl = 0.94 + e.seed * 0.12;
-      if (e.type === 'ghost') {
-        const f = Math.floor(view.rt * 6 + e.seed * 4) & 3;
+      if (ghost) {
+        H = 21;
+        const f = Math.floor(view.rt * 6 + e.seed * 4) & 3;          // tongue sway, held poses on twos
         set = SPR.lant[f]; dis = SPR.lantD;
-        y -= 5 + Math.sin(view.rt * 2.4 + e.seed * 12) * 1.8;
-        rot = U.clamp(e.vx / 64, -1, 1) * 0.16 + Math.sin(view.rt * 3.1 + e.seed * 7) * 0.05;
-      } else if (e.type === 'colossus') {
+        const ph = view.rt * 2.3 + e.seed * 12;
+        const b = Math.sin(ph) + 0.3 * Math.sin(ph * 2 + 0.6);        // asymmetric hover: quick rise, slow sink
+        y -= 5.4 + b * 1.5;
+        const br = Math.cos(ph);                                      // paper ribs stretch rising, fold sinking
+        sy = 1 + 0.07 * br; sx = 1 - 0.05 * br;
+        rot = U.clamp(e.vx / 64, -1, 1) * 0.16 + Math.sin(ph * 1.3 + 1) * 0.045;
+      } else if (big) {
+        H = 56;
         const v = e.seed < 0.68 ? 0 : 1;
         const ph = e.anim * 0.3 + e.seed, f = Math.floor(ph * 4) & 3;
         set = SPR.oni[v][f]; dis = SPR.oniD[v];
-        const sn = Math.sin(ph * TAU), up = Math.abs(sn), contact = Math.pow(1 - up, 3);
+        const sn = Math.sin(ph * TAU), up = Math.abs(sn), contact = Math.pow(1 - up, 4);
         y -= up * 1.6;
-        sx = 1 + contact * 0.05; sy = 1 - contact * 0.05;
+        sx = 1 + contact * 0.06; sy = 1 - contact * 0.06;               // heavy footfall
         rot = sn * 0.03;
       } else {
+        H = 22;
         const v = Math.floor(e.seed * 3) % 3;
         const ph = e.anim * 0.36 + e.seed, f = Math.floor(ph * 4) & 3;
         set = SPR.kappa[v][f]; dis = SPR.kappaD[v];
-        const sn = Math.sin(ph * TAU);
-        y -= Math.abs(sn) * 0.9;
+        const sn = Math.sin(ph * TAU), up = Math.abs(sn);
+        y -= up * 0.9;
+        sx = 1 + (1 - up) * 0.05; sy = 1 - (1 - up) * 0.05 + up * 0.02; // waddle: squash on each footfall
         rot = sn * 0.07;
       }
       sx *= scl; sy *= scl;
-      if (e.dying) {
-        const q = e.deathT;
-        if (q >= 1) return;
-        if (q < 0.16) {
-          const k = 1 + (q / 0.16) * 0.14;
-          blitRot(ctx, V, left ? set.fl : set.f, e.x, y, sx * k, sy * k, rot);
-        } else {
-          const i = Math.min(2, Math.floor(((q - 0.16) / 0.84) * 3));
-          const d = dis[i];
-          ctx.globalAlpha = 1 - Math.max(0, q - 0.75) * 2;
-          blitRot(ctx, V, left ? d.l : d.n, e.x, y - (q - 0.16) * 6, sx * 1.14, sy * 1.14, rot);
-          ctx.globalAlpha = 1;
-        }
-        return;
-      }
+      if (e.dying) { deathSeq(ctx, V, e, set, dis, left, fs, y, sx, sy, rot, H, ghost); return; }
+      let alpha = 1;
       if (e.spawnT < 1) {
-        if (e.type === 'ghost') {
-          const q = U.clamp(e.spawnT / 0.8, 0, 1);
-          alpha = q;
-          const p = U.ease.outBack(q);
-          sx *= p; sy *= p;
+        const t = e.spawnT;
+        if (ghost) {
+          // the lantern unfolds from a flat disc, overshoots and lights up once
+          if (t < 0.25) { const u = t / 0.25; sy *= 0.1 + 0.2 * u; sx *= 1.3; alpha = u; }
+          else if (t < 0.75) { const u = (t - 0.25) / 0.5; sy *= 0.3 + 0.7 * U.ease.outBack(u); sx *= 1.3 - 0.3 * u; }
+          else { const u = (t - 0.75) / 0.25; sy *= 1 + 0.05 * Math.sin(u * PI); }
+          y += (1 - Math.min(1, t * 1.6)) * 4;
         } else {
-          // rises out of the ink pool
-          const q = U.clamp((e.spawnT - 0.08) / 0.8, 0, 1);
-          if (q <= 0) return;
-          blitRise(ctx, left ? set.nl : set.n, e.x, e.y, sx, sy, U.ease.outQuad(q));
-          return;
+          // rises out of an ink pool, then settles with a stretch and a squash
+          const a = t < 0.2 ? U.ease.outBack(t / 0.2) : t > 0.68 ? Math.max(0, 1 - (t - 0.68) / 0.32) : 1;
+          if (a > 0.01) {
+            const rx = (big ? 19 : 10) * a, ry = rx * 0.38;
+            ctx.fillStyle = big ? 'rgba(30,27,25,0.88)' : 'rgba(23,58,94,0.88)';
+            ctx.beginPath(); ctx.ellipse(e.x, e.y, rx, ry, 0, 0, TAU); ctx.fill();
+            ctx.strokeStyle = big ? SUMI : C.prusD; ctx.lineWidth = 0.6;
+            for (let k = 1; k <= 2; k++) {
+              const s = 1 + k * 0.32 + t * 0.5;
+              ctx.globalAlpha = Math.max(0, 0.85 - t * 0.7) * (k === 1 ? 1 : 0.6);
+              ctx.beginPath(); ctx.ellipse(e.x, e.y, rx * s, ry * s, 0, 0, TAU); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
+          const q = U.clamp((t - 0.08) / 0.6, 0, 1);
+          if (q < 1) { if (q > 0) blitRise(ctx, left ? set.nl : set.n, e.x, e.y, sx, sy, U.ease.outQuad(q)); return; }
+          const u = (t - 0.68) / 0.32, w = Math.sin(u * TAU) * (1 - u);
+          sy *= 1 + 0.1 * w; sx *= 1 - 0.08 * w;
         }
       }
+      // hit: full key-block flash held for ~60 ms, squash then rebound, knock-back lean away from the blow
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.12 * fl; sy *= 1 - 0.1 * fl; }
+      let x = e.x;
+      if (fl > 0) {
+        const q = 1 - fl, k = Math.cos(q * PI * 1.4) * (1 - q);
+        const kd = Math.abs(e.kx) > 4 ? Math.sign(e.kx) : -fs;
+        sx *= 1 + 0.15 * k; sy *= 1 - 0.13 * k;
+        rot += kd * 0.26 * Math.pow(1 - q, 1.5);
+        x += kd * 1.2 * (1 - q);
+      }
       ctx.globalAlpha = alpha;
-      if (rot) blitRot(ctx, V, left ? set.nl : set.n, e.x, y, sx, sy, rot); else blit(ctx, left ? set.nl : set.n, e.x, y, sx, sy);
-      if (fl > 0.02) {
-        ctx.globalAlpha = Math.min(1, fl * 1.4) * alpha;
-        if (rot) blitRot(ctx, V, left ? set.fl : set.f, e.x, y, sx, sy, rot); else blit(ctx, left ? set.fl : set.f, e.x, y, sx, sy);
+      if (rot) blitRot(ctx, V, left ? set.nl : set.n, x, y, sx, sy, rot); else blit(ctx, left ? set.nl : set.n, x, y, sx, sy);
+      const fa = fl > 0.02 ? (fl > 0.55 ? 1 : fl / 0.55) : ghost && e.spawnT > 0.3 && e.spawnT < 0.6 ? Math.sin((e.spawnT - 0.3) / 0.3 * PI) * 0.6 : 0;
+      if (fa > 0) {
+        ctx.globalAlpha = fa * alpha;
+        if (rot) blitRot(ctx, V, left ? set.fl : set.f, x, y, sx, sy, rot); else blit(ctx, left ? set.fl : set.f, x, y, sx, sy);
       }
       ctx.globalAlpha = 1;
     },
 
     drawPlayer(ctx, p, view) {
       const V = tf(view), game = view.game;
-      let frame = 0, lift = 0, sx = 1, sy = 1, rot = 0;
-      if (p.moving) {
-        const ph = p.anim * 0.13, f = Math.floor(ph * 4);
-        frame = 1 + (f & 3);
-        lift = Math.abs(Math.sin(ph * TAU)) * 1.0;
-        rot = Math.sin(ph * TAU * 2) * 0.025;
-        if (f !== lastStep) {
-          if (lastStep >= 0 && (f & 1) === 0 && game && game.state === 'play' && p.dashT <= 0 && Math.random() < 0.7) {
-            puff(game, p.x - p.facing * 3, p.y + 0.4, 1.2, 0.32, -p.vx * 0.12, -p.vy * 0.12, 0.4);
+      const ph = (p.x * 0.37 + p.y * 0.11) % 7;                     // per-actor phase (sheet clones differ)
+      let frame = HIDLE, sx = 1, sy = 1, rot = 0, lift = 0;
+      if (p.dashT > 0) frame = HDASH;
+      else if (p.hurtT > 0.55) frame = HREC;
+      else if (p.moving) {
+        // 8 held poses at ~11.6 per second (on twos), feet planted: no float, the bob is drawn into the poses
+        const f = Math.floor(p.anim * 1.26) & 7;
+        frame = f;
+        if (f !== p._uStep) {
+          if ((f === 0 || f === 4) && p._uStep !== undefined && game && game.state === 'play' && Math.random() < 0.75) {
+            const fx = p.x - p.facing * 4.6;
+            puff(game, fx, p.y + 1.6, 0.3, 0.2, -p.vx * 0.12, -p.vy * 0.12, 0.32);
           }
-          lastStep = f;
+          p._uStep = f;
         }
       } else {
-        lastStep = -1;
-        const b = Math.sin(view.rt * 2.2);
-        sy = 1 + 0.015 * b; sx = 1 - 0.01 * b;
-        if (p.shootT > 0.35) frame = 5;
+        p._uStep = undefined;
+        if (p.shootT > 0.6) frame = HTHROW;
+        else if (p.shootT > 0.22) frame = HTHROW + 1;
+        else {
+          // breathing on held poses (2.8 s cycle) and a blink every few seconds, timed per actor
+          const t = view.rt + ph, cyc = t / 2.8;
+          frame = U.fract(cyc) > 0.5 ? HIDLE + 1 : HIDLE;
+          const bt = t / 3.3, bk = Math.floor(bt);
+          if (U.fract(bt) < 0.045 + U.hash2(bk, 7, 31) * 0.02) frame = HBLINK;
+        }
       }
       if (p.levelT > 0) { lift += Math.sin(p.levelT * PI) * 5; const w = Math.sin(p.levelT * PI * 3) * p.levelT; sy *= 1 + 0.08 * w; sx *= 1 - 0.06 * w; }
       const hurt = p.hurtT > 0;
       let x = p.x;
-      if (hurt) { x += Math.sin(view.rt * 70) * p.hurtT * 1.1; sx *= 1 + 0.08 * p.hurtT; sy *= 1 - 0.07 * p.hurtT; }
+      if (hurt) { x += Math.sin(view.rt * 70) * p.hurtT * 0.9; sx *= 1 + 0.07 * p.hurtT; sy *= 1 - 0.06 * p.hurtT; }
       const left = p.facing < 0;
       const S = SPR.hero[frame];
       if (p.dashT > 0) {
+        // wind-up squash on the first 40 ms, then a stretched lunge with a three-print ghost trail
         const k = U.clamp(p.dashT / 0.2, 0, 1);
-        sx *= 1 + 0.1 * k;
-        rot += 0.12 * p.facing * k;
+        if (k > 0.8) { const q = (k - 0.8) / 0.2; sx *= 1 - 0.1 * q; sy *= 1 + 0.08 * q; }
+        else { sx *= 1 + 0.12 * k; sy *= 1 - 0.05 * k; }
+        rot += 0.05 * p.facing * k;
+        const G0 = SPR.heroGhost;
         for (let i = 3; i >= 1; i--) {
-          ctx.globalAlpha = (0.38 / i) * k;
-          blitRot(ctx, V, left ? S.gl : S.g, x - p.dashX * i * 7, p.y - p.dashY * i * 7 - lift, sx, sy, rot);
+          ctx.globalAlpha = (0.42 / i) * k;
+          blitRot(ctx, V, left ? G0.l : G0.n, x - p.dashX * i * 7, p.y - p.dashY * i * 7, sx, sy, rot);
         }
         ctx.globalAlpha = 1;
+      } else if (p.dashCd > 1.12 && p.dashCd < 1.2) {
+        const q = (1.2 - p.dashCd) / 0.08;                         // landing settle after the lunge
+        sy *= 1 - 0.07 * Math.sin(q * PI); sx *= 1 + 0.06 * Math.sin(q * PI);
       }
       let a = 1;
       if (p.iframes > 0 && !hurt && p.dashT <= 0 && (Math.floor(view.rt * 14) & 1)) a = 0.55;
       ctx.globalAlpha = a;
       blitRot(ctx, V, left ? S.nl : S.n, x, p.y - lift, sx, sy, rot);
-      if (hurt) {
+      if (hurt && S.h) {
         ctx.globalAlpha = Math.min(1, p.hurtT * 1.4);
         blitRot(ctx, V, left ? S.hl : S.h, x, p.y - lift, sx, sy, rot);
       }
@@ -1778,18 +2146,26 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       const V = tf(view);
       const bob = Math.sin(view.rt * 4 + o.idx * 1.7) * 1.2;
       const y = o.y - 6 + bob;
-      // wind trail behind the spinning crest
+      // wind trail behind the spinning crest: one tapered usuzumi ribbon (a single fill, no beads at joints)
       const tr = o._tr || (o._tr = []);
       tr.unshift(o.x, y);
       if (tr.length > 16) tr.length = 16;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#46506a';
-      for (let i = 2; i < tr.length; i += 2) {
-        const q = 1 - i / 16;
-        ctx.globalAlpha = 0.34 * q; ctx.lineWidth = 3.4 * q;
-        ctx.beginPath(); ctx.moveTo(tr[i - 2], tr[i - 1]); ctx.lineTo(tr[i], tr[i + 1]); ctx.stroke();
+      const n = tr.length >> 1;
+      if (n >= 3) {
+        const E = TRAIL_E;
+        for (let i = 0; i < n; i++) {
+          const j0 = i ? i - 1 : 0, j1 = i < n - 1 ? i + 1 : n - 1;
+          let dx = tr[j1 * 2] - tr[j0 * 2], dy = tr[j1 * 2 + 1] - tr[j0 * 2 + 1];
+          const l = Math.sqrt(dx * dx + dy * dy) || 1, w = 1.8 * (1 - i / (n - 1)) + 0.05;
+          dx /= l; dy /= l;
+          E[i * 4] = tr[i * 2] - dy * w; E[i * 4 + 1] = tr[i * 2 + 1] + dx * w; E[i * 4 + 2] = tr[i * 2] + dy * w; E[i * 4 + 3] = tr[i * 2 + 1] - dx * w;
+        }
+        ctx.fillStyle = 'rgba(70,80,106,0.3)';
+        ctx.beginPath(); ctx.moveTo(E[0], E[1]);
+        for (let i = 1; i < n; i++) ctx.lineTo(E[i * 4], E[i * 4 + 1]);
+        for (let i = n - 1; i >= 0; i--) ctx.lineTo(E[i * 4 + 2], E[i * 4 + 3]);
+        ctx.closePath(); ctx.fill();
       }
-      ctx.globalAlpha = 1;
       shadow(ctx, o.x, o.y + 4, 3.8, 1.3, 0.16);
       blitRot(ctx, V, SPR.tomoe, o.x, y, 1, 1, view.rt * 6 + o.idx * 2);
     },
@@ -1840,6 +2216,36 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
           const k = 1 / K;
           ctx.drawImage(spr.c, -spr.ox * k, -spr.oy * k, spr.c.width * k, spr.c.height * k);
           ctx.setTransform(S, 0, 0, S, V.ox, V.oy);
+          return;
+        }
+        case 'hitstar': {
+          // core flash: snaps open in 40 % of its life, then shrinks while it fades
+          const s = pt.size * (t < 0.4 ? 0.5 + 0.65 * U.ease.outQuad(t / 0.4) : 1.15 - (t - 0.4) * 0.5);
+          ctx.globalAlpha = t > 0.5 ? Math.max(0, 1 - (t - 0.5) / 0.5) : 1;
+          blitRot(ctx, V, SPR.hitstar, pt.x, pt.y - z, s, s, pt.rot);
+          ctx.globalAlpha = 1;
+          return;
+        }
+        case 'gash': {
+          // carved speed line: a sumi wedge that shoots out from the impact and is eaten from the inside
+          const L = pt.size, r1 = 2.5 + L * U.ease.outQuad(Math.min(1, t * 2.4)), r0 = 2.5 + L * (t < 0.3 ? 0 : U.ease.inQuad((t - 0.3) / 0.7));
+          if (r1 - r0 < 0.4) return;
+          const co = Math.cos(pt.rot), si = Math.sin(pt.rot) * 0.72, w = 0.62 * (1 - t * 0.4);
+          const y0 = pt.y - z, ax = pt.x + co * r0, ay = y0 + si * r0, bx = pt.x + co * r1, by = y0 + si * r1;
+          const mx = ax + (bx - ax) * 0.35, my = ay + (by - ay) * 0.35;
+          ctx.fillStyle = SUMI;
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(mx - si * w, my + co * w); ctx.lineTo(bx, by); ctx.lineTo(mx + si * w, my - co * w); ctx.closePath(); ctx.fill();
+          return;
+        }
+        case 'ring': {
+          // a printed gold ring on the ground that widens and thins out
+          const q = U.ease.outQuad(t), rx = pt.size * (2 + 6 * q), ry = rx * 0.4;
+          ctx.globalAlpha = 1 - t;
+          ctx.lineWidth = 1.1 * (1 - q) + 0.25; ctx.strokeStyle = C.gold;
+          ctx.beginPath(); ctx.ellipse(pt.x, pt.y, rx, ry, 0, 0, TAU); ctx.stroke();
+          ctx.lineWidth = 0.3; ctx.strokeStyle = SUMI;
+          ctx.beginPath(); ctx.ellipse(pt.x, pt.y, rx + 0.7, ry + 0.35, 0, PI * 0.1, PI * 0.9); ctx.stroke();
+          ctx.globalAlpha = 1;
           return;
         }
         case 'spark': {
@@ -1915,9 +2321,17 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
 
     /* --------------------------------------------------------------- hooks */
     onHit(game, e, src) {
-      const h = HEIGHT[e.type] || 12;
-      game.addParticle({ kind: 'splat', v: (Math.random() * 3) | 0, x: e.x + (Math.random() - 0.5) * 5, y: e.y + 0.5, z: h + (Math.random() - 0.5) * 4, life: 0.22, size: e.type === 'colossus' ? 0.75 : 0.5, rot: Math.random() * TAU, drag: 0 });
-      drops(game, e.x, e.y + 0.5, h, 2, 50, src === 'lantern' ? C.verm : SUMI);
+      // layered impact: paper-white star (0.15 s) -> ink splat (0.26 s) -> three carved speed lines thrown
+      // along the blow (0.2 s) -> two drops that fall and land
+      const h = HEIGHT[e.type] || 12, big = e.type === 'colossus';
+      const kx = e.kx || 0, ky = e.ky || 0, kl = Math.sqrt(kx * kx + ky * ky);
+      const ka = kl > 1 ? Math.atan2(ky, kx) : (e.facing || 1) > 0 ? PI : 0;
+      const x = e.x - Math.cos(ka) * (e.r || 9) * 0.3, y = e.y + 0.5, z = h + (Math.random() - 0.5) * 4;
+      // drawn in emit order: the splat sits under the paper-white star, the speed lines on top
+      game.addParticle({ kind: 'splat', v: (Math.random() * 3) | 0, x: x + (Math.random() - 0.5) * 3, y, z: z - 1, life: 0.26, size: big ? 0.7 : 0.46, rot: Math.random() * TAU, drag: 0 });
+      game.addParticle({ kind: 'hitstar', x, y, z, life: 0.15, size: big ? 1.25 : 0.86, rot: Math.random() * TAU, drag: 0 });
+      for (let i = 0; i < 3; i++) game.addParticle({ kind: 'gash', x, y, z, life: 0.2, size: (big ? 9 : 6) + Math.random() * 3, rot: ka + (i - 1) * 0.62 + (Math.random() - 0.5) * 0.25, drag: 0 });
+      drops(game, x, y, z, 2, 50, src === 'lantern' ? C.verm : SUMI);
     },
     onKill(game, e) {
       const x = e.x, y = e.y + 0.6, T = e.type, big = T === 'colossus', ghost = T === 'ghost';
@@ -1952,9 +2366,13 @@ body.style-ukiyoe #pausebox { font: 400 64px 'Zen Antique', serif; color: ${S_};
       petals(game, p.x, p.y + 0.5, 16, 3, 50, 0.9);
     },
     onPickup(game, g) {
-      const p = game.player;
+      // a gold ring printed on the ground + four-point sparks rising off the coin
       const n = g.big ? 3 : 1;
-      for (let i = 0; i < n; i++) game.addParticle({ kind: 'spark', x: p.x + (Math.random() - 0.5) * 12, y: p.y + 0.5, z: 8 + Math.random() * 16, vz: 6, life: 0.35, size: g.big ? 0.95 : 0.6, rot: Math.random(), drag: 0 });
+      game.addParticle({ kind: 'ring', x: g.x, y: g.y + 0.5, life: g.big ? 0.42 : 0.3, size: g.big ? 1.3 : 0.8, drag: 0 });
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * TAU + Math.random();
+        game.addParticle({ kind: 'spark', x: g.x + Math.cos(a) * (n > 1 ? 5 : 1), y: g.y + 0.5, z: 5 + i * 4 + Math.random() * 3, vz: 0, vx: Math.cos(a) * 6, vy: -4, drag: 2, grav: -30, life: 0.36 + i * 0.06, size: g.big ? 0.95 : 0.62, rot: Math.random(), vr: 2 });
+      }
     },
     onShoot(game, pr) {
       if (Math.random() < 0.35) game.addParticle({ kind: 'streak', x: pr.x, y: pr.y + 1, z: 0, vx: pr.vx * 0.05, vy: pr.vy * 0.05, life: 0.2, size: 0.5, rot: pr.angle, drag: 3 });

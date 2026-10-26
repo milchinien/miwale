@@ -97,16 +97,16 @@ The floor is a grid of square **bays** of 200 units. Each bay keeps a 14-unit ma
 
 **Bay frame** (all framed types): a stepped rectangle — each corner notched in two 7-unit steps — filled with onyx marble; a bevelled gold band of 1.25 units at 2.4 inset; a 0.45 pin-line at 7 inset (steps of 5). The inner field starts 9.5 units in, with 4.5-unit steps. Bay types are chosen by a hash of the bay index:
 
-- **Medallion (25 %).** A 58-unit sunburst: onyx disc, 16 emerald rays tapering from radius 15 to the rim (half-angle 0.105 rad), pin-lines along their edges, 16 short gold lines between the rays from r 24 to r 53, a thin ring at r 40, a polished gold ring of 3.4 at the rim, 32 gold beads (r 1) at r 63.6, a pin ring at r 67.5. Centre: an ivory marble disc r 14 with a gold ring and an 8-point gold star (radii 11.5 / 4.4) around an onyx dot. In each field corner, a quarter fan of six alternating emerald/onyx wedges (r 32) with a gold arc, an inner pin arc at r 22 and an ivory quarter disc r 7.
+- **Medallion (25 %).** A 58-unit sunburst in **one of three designed variants** picked per bay, so neighbouring medallions never read as one stamp: 16 emerald rays (half-angle 0.105 rad) with an 8-point star; 12 wide midnight-glass rays (0.15 rad, turned half a ray) with a 12-point star; 24 fine emerald rays (0.07 rad) with a 6-point star. Construction (16-ray variant): onyx disc, rays tapering from radius 15 to the rim, pin-lines along their edges, 16 short gold lines between the rays from r 24 to r 53, a thin ring at r 40, a polished gold ring of 3.4 at the rim, 32 gold beads (r 1) at r 63.6, a pin ring at r 67.5. Centre: an ivory marble disc r 14 with a gold ring and an 8-point gold star (radii 11.5 / 4.4) around an onyx dot. In each field corner, a quarter fan of six alternating emerald/onyx wedges (r 32) with a gold arc, an inner pin arc at r 22 and an ivory quarter disc r 7.
 - **Harlequin (17 %).** Emerald field with onyx diamonds of half-diagonal 12 on alternate rows; gold pin-lines (0.5) along both diagonal lattices; tiny ivory `#e9dcc0` lozenge studs at every vertex.
 - **Scallop (15 %).** Fish-scale fans: circles of r 12 every 24 units, rows 11 units apart, alternate rows offset by 12 and drawn top to bottom so each row overlaps the one above. Rows alternate a jade gradient (`#2a9c84` → `#125447` → `#0a2e2a`) and a lapis gradient (`#3a5a9e` → `#172a52` → `#0b1428`). Each scale: a gold arc of 0.7 with a highlight, an inner arc at 0.62 r, five short rays and a small gold half-sun at the base.
 - **Chevron (13 %).** Zigzag bands 13 units tall, period 26, amplitude 6.5, cycling onyx / emerald / onyx / midnight, each seam a gold line with a faint highlight. Centre inlay: an onyx diamond (half-diagonal 30) with a gold band, an ivory diamond (24), an onyx diamond (15) and a 4-point gold star.
 - **Pool (13 %).** Ivory marble coping (10 units) with a gold pin-line; water in a stepped rectangle, diagonal gradient `#1a4b6b` → `#123a57` → `#0a2136`, concentric ripple rings every 9 units at 14 % alpha, three-row zigzag wavelets in the corners, a faint diagonal sheen and a bevelled gold edge. Three ripple rings expand from the centre at runtime.
 - **Garden (17 %).** Hedge border `#082219` with a gold band; lawn `#0f3a2b` with 12-unit diagonal stripes `#123f2f`; four stepped parterre beds `#0a2f23` with a pin-line and 16 dotted planting rays (`rgba(70,170,130,.55)`, dash 1.5/1.7) around a small gold circle; terrazzo cross paths 14 wide with gold edges; a central basin (ivory ring r 15, water r 10.5, emerald 8-point star).
 
-After each bay, a **varnish** `rgba(4,5,9,.3)` darkens the whole bay so the promenades read as a brighter frame and the figures stay on top.
+After each bay, a **varnish** darkens it — `rgba(4,5,9,.44)` over the busy all-over patterns (harlequin, scallop, chevron), `rgba(4,5,9,.3)` over the focal bays (medallion, pool, garden). The promenades read as a brighter frame, the eye goes to the medallions, and the figures stay the clearest read.
 
-**Promenades:** 28-unit bands of midnight terrazzo along every grid line; bevelled gold borders at ±12.4 (w 1.1), pin-lines at ±9.6; ivory lozenge studs (2.4 × 1.3) every 20 units on the centre line. **Crossings:** a 24.8-unit gold-framed square with an onyx disc r 10.4, a polished ring, an 8-point gold compass star (9.2 / 3) with a brighter 4-point star over it and an ivory centre dot.
+**Promenades:** 28-unit bands of calm midnight terrazzo (only 560 chips per 160-px tile) along every grid line; bevelled gold borders at ±12.4 (w 1.1), pin-lines at ±9.6; ivory lozenge studs (2.4 × 1.3) every 20 units on the centre line. **Crossings:** a 24.8-unit gold-framed square with an onyx disc r 10.4, a polished ring, an 8-point gold compass star (9.2 / 3) with a brighter 4-point star over it and an ivory centre dot.
 
 **Textures:** marble = 192 px tileable texture: `n = fbmTile(u·4, v·4)`, `vein = (1 − |sin(2π(2u + v + 1.7n))|)^16`, a second finer vein with exponent 26 at 70 %, base mixed to cloud colour by `smoothstep(.3, .75, n)`. Used as a pattern at 0.62 (onyx), 0.55 (emerald), 0.6 (midnight), 0.5 (ivory) units per texel, rotated by a random multiple of 90° and offset per bay so neighbouring bays never match. Terrazzo = 160 px midnight base with 1100 polygon chips drawn with 9-offset wrapping.
 
@@ -118,7 +118,7 @@ After each bay, a **varnish** `rgba(4,5,9,.3)` darkens the whole bay so the prom
 - **Head:** a geometric champagne profile with a nose step, slicked black hair under the brim with a sheen line, a short closed-eye stroke, a brow and a thin moustache.
 - **Top hat:** satin crown (`#2a2b33` → `#0c0d11` → `#1a1b21`), curled brim, a gold band and a vertical sheen line.
 - **Legs:** black satin quads (1.85 → 1.3 half-width), black shoes with a shine line and ivory spats; arms are ivory sleeves with black cuffs and white gloves; the front hand holds a black cane with a gold knob and ferrule.
-- **Frames:** 6 walk frames (legs ±0.44 rad, foot lift 1.5 on the forward swing, arms ±0.36 opposite, cane swing) + 1 idle pose; mirrored for facing; a ruby-tinted flash `#ff8a7a` when hurt.
+- **Frames:** 6 walk frames (legs ±0.44 rad, foot lift 1.5 on the forward swing, arms ±0.36 opposite, cane swing) + 3 idle poses (standing; eyes closed as a 0.3-unit line; a cane tap with the arm lifted to −0.28 rad and the cane out to 0.72 rad); mirrored for facing; a ruby-tinted flash `#ff8a7a` when hurt.
 
 **Small creature — enamel scarab** (~39 × 23 units, baked at 1.3). A domed shell (upper half-ellipse 8.4 × 6.4 plus a shallow lower curve) filled with a three-stop enamel gradient — jade `#6fd8b8` / `#1f9a80` / `#0a4a40`, lapis `#86a8f2` / `#3460c0` / `#15296a` or onyx `#5a5d6b` / `#1f2129` / `#060709`. Clipped inside: 9 gold sunburst engraving lines fanning back from the front, two concentric arcs, a soft highlight. A gold split line, a bevelled gold rim, an onyx thorax plate with a gold edge, an onyx head with an ivory eye and a **gold sun disc** with 8 rays at the front. Six legs in two layers, the near ones with a gold highlight; 4-frame tripod gait.
 
@@ -126,7 +126,11 @@ After each bay, a **varnish** `rgba(4,5,9,.3)` darkens the whole bay so the prom
 
 **Large creature — guardian statue** (~42 × 64 units). A gilded rectangular mask with a tapering chin, glowing jade eye slits `#9ff7de` with a soft halo; a fan headdress of 11 alternating gold / emerald wedges behind the head; a stepped bronze torso (shoulder block ±15.5, chest steps to ±8.4) with a gold rim, a stack of three gold chevrons and a gold sun medallion with a jade gem; block arms with gold bracers and gold fists; a black pleated kilt with gold pleat lines; stepped legs with gold bands and onyx feet. 4 heavy stepping frames (foot lift 1.8, body bob 0.8).
 
-**Shared rules:** ink outline + gilded rim on every figure; hit flash = ivory silhouette up to 90 % with a 12 % squash; appearing = a gold sigil on the floor while the figure rises with outBack (the swift drops in from 26 units); vanishing = the gold silhouette swells 22 % and fades over 0.35 s.
+**Shared rules:** ink outline + gilded rim on every figure; hit flash = ivory silhouette up to 90 % with a 12 % squash and a 0.2 rad tilt away from the push.
+
+**Appearing** (0.45 s): a gold sigil opens on the floor; from 20 % the figure **rises out of it** — rows of the baked gold silhouette revealed bottom-up (ease-out cubic) behind a bright `#fff0b8` reveal line 0.7 units thick, lifting 5 units; from 80 % the enamel sprite takes over while the gold fades, with a decaying 8 % squash (`sin(2πv)(1 − v)`). The swift drops in from 26 units instead.
+
+**Vanishing** (0.35 s): for 18 % the figure gilds — gold silhouette swelling 6 % under a fading ivory flash; then it **splits into stepped horizontal bands** (6, or 9 for the large figure) drawn as row ranges of the gold silhouette, sliding apart alternately left and right with an ease-out cubic (spread 8 units, 12 for the large figure, growing towards the bottom), dropping with `u²` and fading from the top band down. Gold leaf and enamel chips take over.
 
 ## Props
 
@@ -150,7 +154,7 @@ Props cast a soft radial contact shadow; tall props become 55 % translucent whil
 - **Gold leaf burst** (a creature vanishes): 8–16 gold leaf flakes (3.2 × 1.8) flipping between a gradient front and a dark `#8a611d` back, light gravity and high drag; 4–8 enamel shards in the creature's colour with a gold edge; a double gold floor ring; 2–4 glints. The large creature adds a short screen shake.
 - **Impact:** a 4-point glint (white core, gold arms) plus a 10-ray sunburst and two gold flakes at hit height.
 - **Glow-up:** a large double gold floor ring, a flat 28-ray sunburst, an upright 16-ray burst, 20 gold leaves, 8 glints; an 18-ray sunburst halo rotates behind the main character.
-- **Dash:** three gold silhouettes trailing 7 units apart, three parallel gold streaks behind, small glints.
+- **Dash:** a 35 ms crouch first, then three gold silhouettes trailing 7 units apart, three parallel gold streaks behind, small glints.
 - **Hurt:** ruby-tinted rays `#ff7a6a`, ruby shards and a ruby flash over the main character.
 
 ## Atmosphere and lighting
@@ -175,10 +179,10 @@ Props cast a soft radial contact shadow; tall props become 55 % translucent whil
 
 ## Motion and animation
 
-- Main character: 6 walk frames over 5.6 animation units per cycle, |sin| bob 0.9 units, 0.03 rad lean; idle breathing ±1.2 %.
-- Dash: lean 0.16 rad, three gold afterimages at alpha 0.42 / i, gold streaks.
+- Main character: 6 walk frames over 5.6 animation units per cycle, |sin| bob 0.9 units, 0.03 rad lean; idle breathing ±1.2 % at 2.2 rad/s, a cane tap every 4.3 s (rising 0.4 units on the toes), a blink every 3.2 s.
+- Dash: 35 ms crouch (−10 % y, +7 % x), then lean 0.16 rad, three gold afterimages at alpha 0.42 / i, gold streaks. Hurt: 0.16 rad recoil.
 - Scarab: tripod gait, 4 frames; swift: 12 wing frames per second, hover bob ±1.6 units; guardian: slow 4-frame stomp with ±0.02 rad sway.
-- Appear 0.45 s: floor sigil grows (outQuad) and fades on a sine; vanish 0.35 s: gold swell and fade.
+- Appear 0.45 s: floor sigil grows (outQuad) and fades on a sine, the figure rises out of it (20–80 %) and settles (80–100 %); vanish 0.35 s: gilding (0–18 %), stepped bands sliding apart and falling (18–100 %).
 - Sunbursts expand with outQuad in 0.2–0.7 s; gold leaf flips at 10 rad/s; glints scale up in the first quarter of their life and shrink.
 - Ambient: lantern flicker ±6 % at 5 rad/s, fountain dashes 9 units/s, pool ripples every ~8 s, rising gold motes.
 - UI: rise-and-fade entrance (24 px, 0.5 s, staggered 0.08 s); hover lift 8 px with a slight brightening.
@@ -202,6 +206,8 @@ Props cast a soft radial contact shadow; tall props become 55 % translucent whil
 - Don't wrap every shape in dark lead lines (that is stained glass) or use pointed gothic arches.
 - Don't put neon glow or bloom on ordinary surfaces.
 - Don't let the floor become brighter than the figures.
+- Do make appearing and vanishing geometric: reveal figures from the floor sigil upwards, split them into stepped bands that slide apart — never a plain fade.
+- Don't repeat one medallion as a stamp; vary ray count, glass and star per bay and let the busy all-over patterns sit back.
 
 ## Implementation recipe
 
@@ -333,4 +339,5 @@ Use the "Art Deco Gold" art style for my project:
 - Atmosphere: warm light and faint rays from above, deep vignette, drifting gold dust, a stepped gold frame.
 - UI: panels with notched corners and gold double borders, sunburst card headers, Limelight capitals in gold
   gradient, Josefin Sans body text, Poiret One hints.
+- Motion: idle with blinks and a cane tap, a crouch before the dash; creatures rise out of a gold floor sigil (bottom-up gold reveal behind a bright line) and vanish by gilding and splitting into stepped bands that slide apart and fall; medallion bays come in 3 variants.
 ```

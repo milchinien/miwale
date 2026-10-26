@@ -128,8 +128,13 @@
   }
 
   /* ---- characters (feet at x, y; world units; facing 1 = right) ---- */
+  /** Buoyancy instead of a sine: a quick lift (40 % of the period), then a slow sink. Returns -1..1. */
+  function buoy(t, period, phase) {
+    const p = ((t / period + phase) % 1 + 1) % 1, e = (u) => u * u * (3 - 2 * u);
+    return (p < 0.4 ? e(p / 0.4) : 1 - e((p - 0.4) / 0.6)) * 2 - 1;
+  }
   function drawHero(ctx, x, y, t, facing) {
-    const f = facing < 0 ? -1 : 1, bob = Math.sin(t * 2.1) * 0.7;
+    const f = facing < 0 ? -1 : 1, bob = -buoy(t, 3.6, 0.1) * 0.55 - 0.55;
     light(ctx, P.cyan, x, y, 17, 0.4, 0.42);                               // aqua light pool
     light(ctx, P.lampGlow, x + f * 34, y, 30, 0.42, 0.36);                 // lamp pool on the floor ahead
     ctx.save(); ctx.translate(x, y + bob); ctx.scale(f, 1);
@@ -162,7 +167,7 @@
     light(ctx, P.lampGlow, x + f * 6.5, y + bob - 28.6, 5, 1);           // lamp lens
   }
   function drawEnemy(ctx, x, y, t) {                                      // the small creature: a jellyfish
-    const pulse = 0.5 + 0.5 * Math.cos(t * 5.3), rx = 6.2 + 2.3 * pulse, ry = 7.8 - 1.9 * pulse, rim = y - 15.5 - (1 - pulse) * 1.4 + Math.sin(t * 1.4) * 1.6;
+    const pulse = 0.5 + 0.5 * Math.cos(t * 5.3), rx = 6.2 + 2.3 * pulse, ry = 7.8 - 1.9 * pulse, rim = y - 15.5 - (1 - pulse) * 1.4 - buoy(t, 4.5, 0.3) * 1.6;
     light(ctx, P.pink, x, y, 21, 0.34, 0.42);
     for (let i = 0; i < 7; i++) {
       const x0 = x + (-0.82 + i * 0.273) * rx;
@@ -178,7 +183,7 @@
     light(ctx, P.pink, x, rim - ry * 0.4, 15, 0.6);
   }
   function lanternFish(ctx, x, y, t, f) {
-    const cy = y - 12 + Math.sin(t * 3.1) * 0.9, w = Math.sin(t * 14) * 0.38;
+    const cy = y - 12 - buoy(t, 2.0, 0.6) * 0.9, w = Math.sin(t * 14) * 0.38;
     light(ctx, P.cyan, x, y, 18, 0.24, 0.42);
     ctx.save(); ctx.translate(x, cy); ctx.scale(f, 1);
     ctx.save(); ctx.translate(-6.6, 0); ctx.rotate(w); ctx.beginPath(); ctx.moveTo(0.8, -1); ctx.lineTo(-5.6, -4.7); ctx.quadraticCurveTo(-3.8, 0, -5.6, 4.5); ctx.lineTo(0.8, 1); ctx.fillStyle = 'rgba(46,96,146,0.7)'; ctx.fill(); ctx.restore();
@@ -190,7 +195,7 @@
     for (let i = 0; i < 4; i++) light(ctx, P.cyan, x + f * (-3 + i * 3), cy + 2.4, 4, 0.7);
   }
   function angler(ctx, x, y, t, f) {
-    const cy = y - 24 + Math.sin(t * 0.9) * 1.4, j = 0.5 + 0.5 * Math.sin(t * 2.2);
+    const cy = y - 24 - buoy(t, 7.0, 0.2) * 1.4, j = 0.5 + 0.5 * Math.sin(t * 2.2);
     light(ctx, P.violet, x, y, 32, 0.2, 0.42);
     ctx.save(); ctx.translate(x, cy); ctx.scale(f, 1);
     ctx.beginPath(); ctx.moveTo(17.5, -5 - j * 0.6); ctx.bezierCurveTo(15.5, -13, 6, -17.5, -3, -16); ctx.bezierCurveTo(-11, -14.5, -16, -8, -16.5, -2);

@@ -3,12 +3,38 @@
   "name": "Thermal Vision",
   "originalName": "Thermal Vision",
   "family": "Infrared · False colour",
-  "tags": ["thermal", "infrared", "false colour", "ironbow", "night vision", "camera hud", "sci-fi", "dark"],
+  "tags": [
+    "thermal",
+    "infrared",
+    "false colour",
+    "ironbow",
+    "night vision",
+    "camera hud",
+    "sci-fi",
+    "dark"
+  ],
   "summary": "The world through an infrared camera: every surface is a temperature mapped through an ironbow ramp; warm bodies glow white-hot.",
   "description": "Nothing in this style is painted in colour. Every pixel – ground, props, creatures, particles, icons – is first a temperature between 0 and 1 and only then mapped through a single false-colour ramp: black, deep indigo, violet, magenta, crimson, orange, yellow, white. Cold ground and tree canopies sit in indigo and near-black, warm bodies glow orange with white-hot faces and cores, limbs read cooler at their rims and radiate a soft halo. A camera UI frames everything: corner brackets, a temperature scale bar, °C readouts, a blinking REC dot, a tracking box, sensor grain and heat shimmer above hot sources.",
-  "mood": ["surveillance", "nocturnal", "tense", "clinical", "eerie"],
-  "bestFor": ["stealth and infiltration games", "night-time hunting or rescue games", "sci-fi and military top-down shooters", "horror games about unseen creatures", "detective or drone-camera puzzle games"],
-  "avoidFor": ["cozy daylight farming sims", "colour-coded puzzle games that need many hues", "cute picture-book stories", "projects that need material colour (wood, fabric, skin tones)"],
+  "mood": [
+    "surveillance",
+    "nocturnal",
+    "tense",
+    "clinical",
+    "eerie"
+  ],
+  "bestFor": [
+    "stealth and infiltration games",
+    "night-time hunting or rescue games",
+    "sci-fi and military top-down shooters",
+    "horror games about unseen creatures",
+    "detective or drone-camera puzzle games"
+  ],
+  "avoidFor": [
+    "cozy daylight farming sims",
+    "colour-coded puzzle games that need many hues",
+    "cute picture-book stories",
+    "projects that need material colour (wood, fabric, skin tones)"
+  ],
   "difficulty": {
     "stars": 4,
     "why": "A new asset is just shapes filled with one temperature each – no palette decisions, the ramp guarantees consistency, and the shared heat bake adds rim cooling and halos automatically. The real work is thinking in temperature: every subject needs a hot focal point (face, core, eye), a cooler insulated or cold part for contrast, and enough temperature difference to its neighbours, otherwise two subjects merge into one orange blob."
@@ -24,35 +50,130 @@
     "texture": "Sensor texture only: tileable fbm noise in the ground (±0.034 and ±0.017 temperature), animated grain (4 tiles of light/dark speckles with fixed-pattern column stripes, cycled at 30 fps), heat shimmer above hot sources."
   },
   "palette": [
-    { "name": "Absolute cold", "hex": "#030108", "role": "Ramp 0.00 – deepest shadows, overlay text outline base" },
-    { "name": "Deep cold", "hex": "#0d0626", "role": "Ramp 0.08 – tree canopies, hedgerows, cold puddles" },
-    { "name": "Indigo ground", "hex": "#1d0b52", "role": "Ramp 0.18 – open soil, ground fallback colour (~45 % of the screen)" },
-    { "name": "Violet", "hex": "#3a0f78", "role": "Ramp 0.28 – warmer soil, stubble fields, cold metal" },
-    { "name": "Purple", "hex": "#64108a", "role": "Ramp 0.38 – road asphalt, dry-stone walls, rocks with stored warmth" },
-    { "name": "Magenta", "hex": "#96158a", "role": "Ramp 0.48 – halos, insulated clothing edges, warm metal" },
-    { "name": "Crimson", "hex": "#c4256a", "role": "Ramp 0.57 – cool rims of warm bodies, cooling particles" },
-    { "name": "Red-orange", "hex": "#e3443a", "role": "Ramp 0.65 – outer body zones; also REC dot and hot-spot marker" },
-    { "name": "Orange", "hex": "#f4701a", "role": "Ramp 0.73 – bodies, hot pipes" },
-    { "name": "Amber", "hex": "#fb9d12", "role": "Ramp 0.81 – warm cores, flanges, card hover" },
-    { "name": "Yellow", "hex": "#fdc52e", "role": "Ramp 0.88 – hot cores, eyes; UI accent labels" },
-    { "name": "Pale yellow", "hex": "#ffe777", "role": "Ramp 0.94 – near white-hot, floating digits" },
-    { "name": "White-hot", "hex": "#fffdf2", "role": "Ramp 1.00 – faces, furnace cores, flame centres, impact flash" },
-    { "name": "Camera white", "hex": "#eef3ff", "role": "All overlay lines, brackets, readouts and HUD borders" },
-    { "name": "HUD panel", "hex": "#05030c", "role": "HUD panel and label backgrounds" },
-    { "name": "Card lavender", "hex": "#c7b8f2", "role": "Card body text" }
+    {
+      "name": "Absolute cold",
+      "hex": "#030108",
+      "role": "Ramp 0.00 – deepest shadows, overlay text outline base"
+    },
+    {
+      "name": "Deep cold",
+      "hex": "#0d0626",
+      "role": "Ramp 0.08 – tree canopies, hedgerows, cold puddles"
+    },
+    {
+      "name": "Indigo ground",
+      "hex": "#1d0b52",
+      "role": "Ramp 0.18 – open soil, ground fallback colour (~45 % of the screen)"
+    },
+    {
+      "name": "Violet",
+      "hex": "#3a0f78",
+      "role": "Ramp 0.28 – warmer soil, stubble fields, cold metal"
+    },
+    {
+      "name": "Purple",
+      "hex": "#64108a",
+      "role": "Ramp 0.38 – road asphalt, dry-stone walls, rocks with stored warmth"
+    },
+    {
+      "name": "Magenta",
+      "hex": "#96158a",
+      "role": "Ramp 0.48 – halos, insulated clothing edges, warm metal"
+    },
+    {
+      "name": "Crimson",
+      "hex": "#c4256a",
+      "role": "Ramp 0.57 – cool rims of warm bodies, cooling particles"
+    },
+    {
+      "name": "Red-orange",
+      "hex": "#e3443a",
+      "role": "Ramp 0.65 – outer body zones; also REC dot and hot-spot marker"
+    },
+    {
+      "name": "Orange",
+      "hex": "#f4701a",
+      "role": "Ramp 0.73 – bodies, hot pipes"
+    },
+    {
+      "name": "Amber",
+      "hex": "#fb9d12",
+      "role": "Ramp 0.81 – warm cores, flanges, card hover"
+    },
+    {
+      "name": "Yellow",
+      "hex": "#fdc52e",
+      "role": "Ramp 0.88 – hot cores, eyes; UI accent labels"
+    },
+    {
+      "name": "Pale yellow",
+      "hex": "#ffe777",
+      "role": "Ramp 0.94 – near white-hot, floating digits"
+    },
+    {
+      "name": "White-hot",
+      "hex": "#fffdf2",
+      "role": "Ramp 1.00 – faces, furnace cores, flame centres, impact flash"
+    },
+    {
+      "name": "Camera white",
+      "hex": "#eef3ff",
+      "role": "All overlay lines, brackets, readouts and HUD borders"
+    },
+    {
+      "name": "HUD panel",
+      "hex": "#05030c",
+      "role": "HUD panel and label backgrounds"
+    },
+    {
+      "name": "Card lavender",
+      "hex": "#c7b8f2",
+      "role": "Card body text"
+    }
   ],
   "paletteRules": [
     "Every visible colour of the scene comes from ONE ramp lookup. Never pick a colour directly for a subject – pick its temperature.",
     "Temperature budget: water and canopies 0.03–0.14, open ground 0.12–0.30, roads/walls/rocks 0.30–0.46, warm metal and halos 0.45–0.65, bodies 0.50–0.85, faces/eyes/cores/flames 0.90–1.00.",
-    "Ground never goes above ~0.46 (purple-magenta) so every warm subject outshines it; subjects keep at least one spot above 0.9.",
+    "Ground never goes above ~0.46 (purple-magenta) so every warm subject outshines it; creatures stay below ~0.9 through their bake gain and only the main character face reaches white-hot.",
     "Each subject pairs a hot focal point with a cool part: white face + cold backpack, white eye + cool quills, white core + cool fur.",
     "The UI is the only thing outside the ramp: camera white #eef3ff lines and text with a dark #020008 outline, plus the ramp itself as gradients in bars.",
     "No greens, no cyans, no greys inside the image – a cyan or green pixel breaks the illusion immediately."
   ],
   "typography": [
-    { "family": "Share Tech Mono", "weights": [400], "role": "All readouts: °C values, timer, counters, bar labels, timestamps, card text, floating digits", "source": "Google Fonts", "sample": "SP1 36.6°C", "css": "font: 400 16px 'Share Tech Mono', monospace; color: #eef3ff; letter-spacing: 1px; text-shadow: 0 0 2px #000, 0 1px 3px #000;" },
-    { "family": "Orbitron", "weights": [500, 700, 900], "role": "Big panel titles (ramp-gradient text) and tiny spaced labels", "source": "Google Fonts", "sample": "PANEL TITLE", "css": "font: 900 50px/1 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; background: linear-gradient(180deg,#fffdf2 8%,#ffe777 30%,#fb9d12 52%,#e3443a 72%,#96158a 96%); -webkit-background-clip: text; background-clip: text; color: transparent;" },
-    { "family": "Chakra Petch", "weights": [400, 600, 700], "role": "Card titles and name plates", "source": "Google Fonts", "sample": "Thermal Vision", "css": "font: 600 18px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; color: #fffdf2;" }
+    {
+      "family": "Share Tech Mono",
+      "weights": [
+        400
+      ],
+      "role": "All readouts: °C values, timer, counters, bar labels, timestamps, card text, floating digits",
+      "source": "Google Fonts",
+      "sample": "SP1 36.6°C",
+      "css": "font: 400 16px 'Share Tech Mono', monospace; color: #eef3ff; letter-spacing: 1px; text-shadow: 0 0 2px #000, 0 1px 3px #000;"
+    },
+    {
+      "family": "Orbitron",
+      "weights": [
+        500,
+        700,
+        900
+      ],
+      "role": "Big panel titles (ramp-gradient text) and tiny spaced labels",
+      "source": "Google Fonts",
+      "sample": "PANEL TITLE",
+      "css": "font: 900 50px/1 'Orbitron', sans-serif; letter-spacing: .16em; text-transform: uppercase; background: linear-gradient(180deg,#fffdf2 8%,#ffe777 30%,#fb9d12 52%,#e3443a 72%,#96158a 96%); -webkit-background-clip: text; background-clip: text; color: transparent;"
+    },
+    {
+      "family": "Chakra Petch",
+      "weights": [
+        400,
+        600,
+        700
+      ],
+      "role": "Card titles and name plates",
+      "source": "Google Fonts",
+      "sample": "Thermal Vision",
+      "css": "font: 600 18px 'Chakra Petch', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; color: #fffdf2;"
+    }
   ],
   "world": {
     "summary": "A night-time patchwork landscape seen from above as a temperature field: Worley field cells (meadow, ploughed furrows, warm dry stubble, cold wet fields) separated by cold hedgerows or warm dry-stone walls, gently curving warm roads with cold gravel shoulders, flat cold ponds, faint buried heating pipes with warm manholes, and stamped residual-heat decals (boot-print trails, animal tracks, resting spots, compost heaps). Cells are ~380 units across, so a screen shows 2–4 fields and usually a road.",
@@ -71,12 +192,13 @@
     "summary": "Characters are heat signatures. The main character is a small explorer in a hooded insulated parka (~14 u wide, ~30 u tall): white-hot face (1.0) inside an orange fur ruff, warm chest (0.8), cooler sleeves and legs, and a cold dark backpack (0.27) that is the darkest shape of the figure and shows the facing. Creatures: a small quilled ground critter (~27 × 17 u) with a hot chest and white eye under a cooler quill ridge; a fast flickering wisp of hot gas (~12 × 24 u, hovering) with two cold eye holes; and a large hulking knuckle-walker (~42 × 50 u) with a white-hot furnace core and glowing fissures in its chest, cooler fur on the shoulders and warm fists on the ground.",
     "rules": [
       "Paint every part as a single temperature or a radial gradient from a warm core to a cooler edge; never choose colours.",
-      "One hot focal point per subject (face, eye, core, flame centre) at 0.95–1.0, and one clearly cooler part (backpack, quills, fur, eye holes) – that pairing is what makes small subjects readable.",
+      "One hot focal point per subject (face, eye, core, flame centre) and one clearly cooler part (backpack, quills, fur, eye holes) – that pairing is what makes small subjects readable; the main character owns the only white-hot point.",
       "Silhouette first: upright figure vs. horizontal four-legged critter vs. vertical flame vs. wide frontal hulk – types differ in shape, not hue.",
       "Bake with the shared heat pipeline: 0.55 u diffusion, limb cooling (rims up to 42 % cooler) and a 1.3–2.1 u halo for warm subjects only; this is what separates bodies in crowds.",
       "Far limbs are 0.06–0.08 cooler than near limbs; insulated clothing is cooler than skin; noses, tail tips and feet are the coldest parts of a body.",
       "Facing is a mirrored copy of the bake; flash, cooled-down and afterimage versions are re-mappings of the same temperature map.",
-      "Draw characters with normal source-over blending; only the baked halo provides glow, so a crowd of 60 stays readable instead of washing out."
+      "Draw characters with normal source-over blending; only the baked halo provides glow, so a crowd of 60 stays readable instead of washing out.",
+      "Heat ranking: only the main character reaches white-hot (gain 1.0, halo 0.72); creatures are baked through a gain that keeps them in lower bands – critter ×0.92, hulk ×0.9, wisp ×0.86 – so the face of the main character is always the hottest pixel on screen."
     ]
   },
   "props": {
@@ -90,14 +212,38 @@
     ]
   },
   "effects": [
-    { "name": "Hot-streak projectile", "how": "A white-hot head (r 2.3, 1.0 → 0.9, strong halo) in front of a 26-unit wedge-shaped trail painted as a temperature gradient 0.4 → 0.97 with alpha 0 → 1; the trail grows from 15 % to full length in its first 0.1 s and fades in its last 0.15 s." },
-    { "name": "Heat burst", "how": "On dissolve: an instant white-hot puff (radius 1.25–1.5 × body radius, 0.2 s), 5–10 rising puffs that grow 1.8x and cool from 0.98 down the ramp over 0.6–1.05 s, 9–18 ember streaks with gravity that cool from 1.0 to 0.45, and a shock ring 0.6r → 3.4r (5r large) at temperature 1.0 → 0.58." },
-    { "name": "Residual heat imprint", "how": "A flat soft ellipse where the body was (0.42 height ratio), temperature 0.5–0.62 cooling to half, fading over 2.6 s (4 s for the large creature); drawn under the actors." },
-    { "name": "Impact flash", "how": "The struck body is redrawn with the flash transfer t + (1 − t) × 0.86 (white-hot) at alpha = flash, plus 4 short hot sparks and a small white puff." },
-    { "name": "Collectibles", "how": "Small: a pulsing ember shard (diamond 6 × 9.6 u, core 0.8–0.93 over 6 frames at 5 fps). Large: a hot hexagonal cell (r 5.2, core 0.9–1.0, cooler inner ring). Both float ±0.8 u above a warm puff and leave two cooled afterimages while flying." },
-    { "name": "Orbiting heat orb", "how": "A white-hot orb (r 3.4) with a tilted cooler ring, pulsing ±6 %, trailing a 14-sample arc of residual heat whose segments cool from 0.9 to 0.45 and thin from 3.2 to 0.8 units." },
-    { "name": "Breath and footprints", "how": "The main character exhales warm clouds (0.62 → 0.32, growing 1.4 → 5 u) every 2.4 s and leaves warm footprints every 6.5 units that cool from 0.48 to 0.24 over 5 s; the large creature leaves big prints every 12 units for 7 s." },
-    { "name": "Spawn and dissolve", "how": "Spawning creatures appear as a cold silhouette (transfer 0.1 + 0.34 t) that warms up to full heat while a shrinking ring closes in; dissolving creatures cross-fade to the cold version while slumping (width +16 %, height −38 %)." }
+    {
+      "name": "Hot-streak projectile",
+      "how": "A white-hot head (r 2.3, 1.0 → 0.9, strong halo) in front of a 26-unit wedge-shaped trail painted as a temperature gradient 0.4 → 0.97 with alpha 0 → 1; the trail grows from 15 % to full length in its first 0.1 s and fades in its last 0.15 s."
+    },
+    {
+      "name": "Heat burst",
+      "how": "On dissolve: an instant white-hot puff (radius 1.25–1.5 × body radius, 0.2 s), 5–10 rising puffs that grow 1.8x and cool from 0.98 down the ramp over 0.6–1.05 s, 9–18 ember streaks with gravity that cool from 1.0 to 0.45, and a shock ring 0.6r → 3.4r (5r large) at temperature 1.0 → 0.58."
+    },
+    {
+      "name": "Residual heat imprint",
+      "how": "A flat soft ellipse where the body was (0.42 height ratio), temperature 0.5–0.62 cooling to half, fading over 2.6 s (4 s for the large creature); drawn under the actors."
+    },
+    {
+      "name": "Impact flash",
+      "how": "The struck body is redrawn with the flash transfer t + (1 − t) × 0.86 (white-hot) at alpha = flash, plus 4 short hot sparks and a small white puff."
+    },
+    {
+      "name": "Collectibles",
+      "how": "Small: a pulsing ember shard (diamond 6 × 9.6 u, core 0.8–0.93 over 6 frames at 5 fps). Large: a hot hexagonal cell (r 5.2, core 0.9–1.0, cooler inner ring). Both float ±0.8 u above a warm puff and leave two cooled afterimages while flying."
+    },
+    {
+      "name": "Orbiting heat orb",
+      "how": "A white-hot orb (r 3.4) with a tilted cooler ring, pulsing ±6 %, trailing a 14-sample arc of residual heat whose segments cool from 0.9 to 0.45 and thin from 3.2 to 0.8 units."
+    },
+    {
+      "name": "Breath and footprints",
+      "how": "The main character exhales warm clouds (0.62 → 0.32, growing 1.4 → 5 u) every 2.4 s and leaves warm footprints every 6.5 units that cool from 0.48 to 0.24 over 5 s; the large creature leaves big prints every 12 units for 7 s."
+    },
+    {
+      "name": "Spawn and dissolve",
+      "how": "Spawning creatures appear as a cold silhouette (transfer 0.1 + 0.34 t) that warms up to full heat while a shrinking ring closes in; dissolving creatures cross-fade to the cold version while slumping (width +16 %, height −38 %)."
+    }
   ],
   "atmosphere": {
     "summary": "The camera is the atmosphere: no light, no shadows – warm contact glows under bodies, a lens vignette that cools the frame edges, animated sensor grain with fixed-pattern column stripes, heat shimmer above hot sources, an auto-gain flash on strong heat events, and a full camera overlay: corner brackets, a centre reticle with a spot-meter readout, a vertical temperature scale bar, REC timer, timestamp, a NUC indicator and an auto-tracking box with a °C label on the hottest large subject.",
@@ -116,12 +262,12 @@
     "css": ".hud-panel{padding:6px 10px;background:linear-gradient(90deg,rgba(5,2,16,.78),rgba(5,2,16,.35));border-left:2px solid #eef3ff;font:400 16px 'Share Tech Mono',monospace;color:#fffdf2;text-shadow:0 0 2px #000,0 1px 3px #000}\n.bar{position:relative;width:236px;height:12px;background:rgba(5,2,16,.85);border:1px solid rgba(238,243,255,.8);box-shadow:0 0 0 1px rgba(0,0,0,.6)}\n.bar-fill{height:100%;background:linear-gradient(90deg,#3a0f78,#96158a 22%,#e3443a 48%,#fb9d12 72%,#ffe777 92%,#fffdf2)}\n.bar::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),rgba(5,2,16,.9) calc(10% - 1px) 10%)}\n.scale{height:13px;background:rgba(5,2,16,.82);border:1px solid rgba(238,243,255,.75)}\n.scale-fill{height:100%;background:linear-gradient(90deg,#1d0b52,#3a0f78 12%,#64108a 24%,#96158a 36%,#c4256a 47%,#e3443a 57%,#f4701a 67%,#fb9d12 77%,#fdc52e 86%,#ffe777 93%,#fffdf2);box-shadow:0 0 12px rgba(244,112,26,.5)}\n.readout{position:relative;padding:4px 18px 6px;font:400 36px/1.05 'Share Tech Mono',monospace;letter-spacing:4px;color:#fffdf2;text-shadow:0 0 2px #000,0 0 14px rgba(251,157,18,.55)}\n.readout::before,.readout::after{content:'';position:absolute;top:0;bottom:0;width:10px;border:2px solid rgba(238,243,255,.85)}\n.readout::before{left:0;border-right:0}.readout::after{right:0;border-left:0}\n.card{position:relative;padding:22px 16px 18px;background:linear-gradient(180deg,rgba(29,11,82,.62),rgba(5,2,16,.94) 46%);border:1px solid rgba(238,243,255,.28)}\n.card-title{font:600 18px 'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:1.5px;color:#fffdf2}"
   },
   "motion": [
-    "Main character walk: 8 baked frames, legs swing ±3.8 u with a 1.9 u foot lift, body bob 1.1 u, arms swing 0.8 rad against the legs; idle bobs sin(t·2.6) × 0.35 u; dash leans the figure 0.24 rad and leaves 4 cooled afterimages 6.5 u apart at 45/35/25/15 %.",
+    "Main character walk: 8 baked poses, legs swing ±3.8 u with a 1.9 u foot lift, the body lowest just after each contact (0.9·sin(2a − 2.33)), the hood landing late (+0.35 u), arms swinging 0.8 rad against the legs; idle: 8 poses over 3.4 s – breathing, forearms hugged in front against the cold with small shivers and a foot stamp at 56 % of the cycle; dash: launch crouch (0.3 rad) → streak (stretch 15 %) → brake with a landing squash, 4 cooled afterimages whose spacing grows with the dash; hurt: recoil pose with a gasping mouth.",
     "Small critter: 8 frames, four legs alternating ±1.9 u, body bob 0.8 u, tail sway; frame = anim × 0.4.",
-    "Wisp: 8 flicker frames played at 10 fps (flame tongues travel up the edge), hover 3 ± 1.5 u, alpha flicker 80–100 % at 24 Hz, two cooled afterimages at −0.06 s and −0.12 s of velocity.",
+    "Wisp: 8 flicker frames played at 8–13 fps per actor (flame tongues travel up the edge), hot gas rises quickly and sinks slowly (eased hover 2.2–5.4 u), alpha flicker 80–100 % at 24 Hz, two cooled afterimages at −0.06 s and −0.12 s of velocity.",
     "Large hulk: 8 frames, bob 1.3 u, arms swing alternately with fists lifting 2.8 u (knuckle walk), a cooling ring 14 → 30 u on each footfall, big warm footprints.",
     "Hot props: ember pits cross-fade between 3 frames at 2.4 Hz; vent plumes rise 30 u in 2.4 s while growing to 10 u and cooling from 0.8 to 0.38.",
-    "Temperature is the animation channel: things appear by warming up and vanish by cooling down; impacts flash white-hot for ~0.15 s; particles always cool as they age.",
+    "Temperature is the animation channel: things appear by rising from a crouch (scale 0.7 → 1 with a 7 % overshoot) while the cold silhouette warms through a mid-warm stage to full heat; they vanish with a white-hot flare and recoil (first 18 %) after which the heat drains hot → warm → cold while the body slumps into a puddle (46 % lower, 22 % wider) and a heat imprint stays on the ground; hits flash white-hot with a damped squash (15 %, ~250 ms) and a knock-back push; particles always cool as they age.",
     "Camera: REC dot blinks at 0.8 Hz, the spot meter jitters ±0.2 °C twice a second, the NUC label blinks every 16 s, the tracking box snaps in within 0.25 s."
   ],
   "do": [
@@ -142,5 +288,5 @@
     "Don't run a per-pixel colour pass over the full screen each frame – map temperatures once at bake time.",
     "Don't use soft rounded fonts or coloured panels; the UI is a measuring instrument."
   ],
-  "performance": "Baked once in init (~0.4 s): main character 8 walk + idle + dash, small critter 8, wisp 8, large hulk 8 frames, each through the JS heat pipeline (4 box blurs per sprite) with normal/flash/cold/afterimage variants and mirrored copies; collectibles 2 × 6 pulse frames, projectile head + trail, orb, 9 prop sprites, 16 puff sprites, grain tiles. Ground: chunk generator with ~80 short steps (grid rows, pixel rows, decal passes), 25–40 ms per 256-unit chunk, noise from periodic pixel tables, per-cell feature flags so open field skips the edge math. Per frame: one drawImage per sprite (2–3 for afterimages), particles as single strokes or puff blits, one grain pattern fill, up to 10 small strip copies for heat shimmer, one cached overlay image and a handful of cached text bitmaps."
+  "performance": "Baked once in init (~0.4 s): main character 8 walk + 8 idle + 3 dash + 1 recoil, small critter 8, wisp 8, large hulk 8 frames, each through the JS heat pipeline (4 box blurs per sprite) with normal/flash/cold/afterimage/warm variants and mirrored copies; collectibles 2 × 6 pulse frames, projectile head + trail, orb, 9 prop sprites, 16 puff sprites, grain tiles. Ground: chunk generator with ~80 short steps (grid rows, pixel rows, decal passes), 25–40 ms per 256-unit chunk, noise from periodic pixel tables, per-cell feature flags so open field skips the edge math. Per frame: one drawImage per sprite (2–3 for afterimages), particles as single strokes or puff blits, one grain pattern fill, up to 10 small strip copies for heat shimmer, one cached overlay image and a handful of cached text bitmaps. Measured against the previous version in the same session (heavily loaded machine): play frame x0.70, chunk build x0.80, dense stage x0.93 – i.e. no measurable extra cost; the new poses and variants only add bake time at init."
 }

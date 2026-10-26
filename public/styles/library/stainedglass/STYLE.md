@@ -2,7 +2,7 @@
 
 > A living cathedral window: jewel-tone glass pieces in dark lead came, lit from behind by warm light and coloured rays.
 
-The whole world is one backlit stained-glass window. Floor, props, characters, collectibles, HUD icons and even floating numbers are built from the same single unit: a **glass piece** with a luminous off-centre core, a darker rim, two faint cathedral-glass streaks and an occasional glint, separated from its neighbours by near-black **lead came** (`#17131c`). The floor is a per-pixel Voronoi mosaic whose material regions (green meadow, crimson leaf carpet, amber path lanes, night-blue glass, grey diamond quarries) are separated by heavier lead. Props cast coloured light pools on the floor, glowing faces shine through, and a slow layer of coloured light rays drifts over the screen. The module's cast – a cloaked main character with a round orange rib-cut head and a glowing carved face, jewel-capped root-bulb creatures, an opal floating spirit and a violet-and-brown giant with a ruby core – serves as the example throughout.
+The whole world is one backlit stained-glass window. Floor, props, characters, collectibles, HUD icons and even floating numbers are built from the same single unit: a **glass piece** with a luminous off-centre core, a darker rim, two faint cathedral-glass streaks and an occasional glint, separated from its neighbours by near-black **lead came** (`#17131c`). The floor is a per-pixel Voronoi mosaic composed like a real window: material regions (green meadow, crimson leaf carpet, amber path lanes, night-blue glass, grey diamond quarries) are filled with large calm pieces, edged inside by a strip of small gold, pearl or jewel pieces, separated by heavy lead and punctuated by rare rose-window medallions. Props cast coloured light pools on the floor, glowing faces shine through, and a slow layer of coloured light rays drifts over the screen. Figures are leaded-glass puppets whose arms, head and scarf move against the body, and they break apart along their own lead lines. The module's cast – a cloaked main character with a round orange rib-cut head and a glowing carved face, jewel-capped root-bulb creatures, an opal floating spirit and a violet-and-brown giant with a ruby core – serves as the example throughout.
 
 ## At a glance
 
@@ -43,15 +43,18 @@ Bad fits:
 | Amber path | `#c28a38` | Path centre lane `#cf9a44 #b98034 #d4a24c`; outer lanes `#a8742e #b07c33 #9c6a2a #b5813a` |
 | Night glass | `#304296` | Graveyard region; `#28388a #3a2e86 #46348e #243478 #2c4e90 #383a92` |
 | Clear quarry | `#646e8a` | Diamond-quarry plazas; `#5c6884 #6c7088 #58647e #6a6486 #62727e` |
+| Gold border strip | `#c99030` | Small pieces inside the leaf-carpet edge; `#b57a26 #d8a845 #a86c22` |
+| Pearl border strip | `#93a5cf` | Small pieces inside the night-glass edge; `#7f92c0 #7183b4 #a0b0d8` |
+| Jewel border strip | `#2c4aa8` | Alternating jewels inside the plaza edge; `#9e2a42 #a8323e #c0902e` |
 | Pumpkin orange | `#ff8a22` | Main character's head ribs `#e2681a #ffa63c`; gourd props `#c85a14 #e47820 #f39232` |
 | Candle gold | `#ffd23a` | Carved faces, flames (`#ff9a2a`, `#fff2a0`), lantern faces `#ffe066` |
 | Hem gold | `#f2c040` | Clasps, hems (`#e0a830`), fruit jewels, stars |
-| Cloak green | `#2a6e40` | Main character's clothes; `#1f5a34 #184a2c #2f7a3c #22603e` |
+| Cloak green | `#2a6e40` | Main character's cloak; `#1f5a34 #184a2c #2f7a3c #22603e`; sleeves `#2c7244 / #1f5634`, leggings `#4b3868 / #3a2a50` |
 | Scarf red | `#c4283e` | Main character's accent; `#a51d34 #d8404e` |
 | Amethyst | `#9351c8` | Caps of the small root-bulb creatures, variants `[#7a3fae #9351c8 #6a3298]`, `[#a8378c #c24ca2 #8e2c76]`, `[#5a48b8 #7060d0 #4a3a9e]` |
 | Ivory | `#f4e2b4` | Small creature bodies `#e8cc90`, roots `#e6cf9a #cfae72`, seeds `#fff0c4 #e6c27a` |
 | Ember | `#ff5a26` | Angry glowing creature eyes |
-| Opal | `#e9e9fb` | Floating spirit mosaic; `#f0f5ff #dde8fb #f6ecfb #e0f3f4 #fbf6ec`; hollow eyes `#1e2452` |
+| Opal | `#e9e9fb` | Floating spirit hood panels and drapery strips; `#f0f5ff #dde8fb #f6ecfb #e0f3f4 #fbf6ec`; hollow eyes `#1e2452` |
 | Earth brown | `#7e5a3c` | Large creature body, trunks; `#6b4a32 #5a3b2a #8a6440 #644530` |
 | Dusk violet | `#704690` | Large creature shoulders/arms; `#5e3a7a #52306a #7c5098` |
 | Ruby | `#e3203c` | Large creature core, hearts, red status bar; `#ff4a5a #b8142e #ff7080` |
@@ -62,6 +65,7 @@ Palette rules:
 - **Lead is the only dark.** About 12–18 % of floor pixels are lead. No glass piece goes darker than its colour × 0.6; pure black/white never appear as a surface.
 - **Floor = cool/earthy mid tones, figures = warmer, paler, brighter.** Ivory-and-amethyst root creatures, opal spirits and an orange round head all separate from green/crimson floor glass.
 - **Gold and yellow mean "light source"**: faces, eyes, flames, jewels, UI numbers. Don't spend gold on large surfaces.
+- **Strips in the complementary metal**: gold round crimson, pearl round night blue, ruby/blue jewels round grey quarries; the open meadow has none.
 - **Never flat**: every piece picks a random swatch from a 4–7 colour family and gets ±6–7 % brightness jitter.
 - Dark accents inside figures (mouths `#3a1a2a`, hollow eyes `#1e2452`) are still glass, not lead.
 
@@ -91,8 +95,8 @@ The visible world is 360 world units tall; the main character is ~24 units wide 
 At init:
 1. Compute the sprite resolution `K = clamp(round(screenPxPerUnit × 1.5), 3, 5)` px per world unit.
 2. **Bake every figure with the two-pass Painter** (`build(box, fn, mode, seed)`): a figure is a function that declares parts back-to-front. Pass 1 (`outline`) fills *and* strokes each part's shape in lead with lineWidth `2 × 0.95` units — the union becomes one clean fat outer came. Pass 2 (`fill`) clips into each part, paints its glass cells, then strokes the part border at `0.55 × 1.2` units and every cell edge at 0.55 units.
-3. Bake a **flash copy** of every animated frame with mode `flash` (each piece mixed 58 % toward warm white `rgb(255,250,232)`, glow pieces 40 %) — the lead stays dark.
-4. Bake glow sprites (radial gradients), glint stars, shard sprites (3 shapes × 12 colours), projectile, trail, beams, props (3 trees, 2 bushes, 2 arches, 2 candle groups, 3 graves, 3 gourd groups) and HUD icons with the same Painter (icons at outline 2.0 / inner 1.15).
+3. Bake a **flash copy** of every animated frame and part with mode `flash` (each piece mixed 58 % toward warm white `rgb(255,250,232)`, glow pieces 40 %) — the lead stays dark.
+4. Cut **shatter pieces** from the finished creature sprites (BSP into 5–16 convex pieces, each re-leaded along the cut, see Code). Bake glow sprites (radial gradients), glint stars, the impact starburst, the rose medallion, shard sprites (3 shapes × 12 colours), projectile, trail, beams, props (3 trees, 2 bushes, 2 arches, 2 candle groups, 3 graves, 3 gourd groups) and HUD icons with the same Painter (icons at outline 2.0 / inner 1.15).
 5. Bake the screen overlay per screen size (vignette, frame, ripples) plus a half-resolution light layer.
 
 Per frame (renderer order):
@@ -100,53 +104,51 @@ Per frame (renderer order):
 2. Collectibles → shadows/light pools under figures → y-sorted props, creatures and main character → orbiting objects → projectiles → particles → floating numbers.
 3. Screen overlay: dark layer with `source-over`, light layer with `lighter`, offset `sin(t·0.12) × 2.5 % W`.
 
-Every figure draw is just `drawImage` of a baked canvas with `setTransform(S·sx, 0, 0, S·sy, …)`, optional rotation, plus 1–3 additive glow blits.
+Every figure draw is just `drawImage` of baked canvases with `setTransform(S·sx, 0, 0, S·sy, …)` and optional rotation: the main character is 6 part blits (scarf ×2, back arm, body frame, front arm, head) placed through one shared body transform, a creature 1–3 blits, plus 1–3 additive glow blits.
 
 **Glass piece shading** (`Painter.glass`): colour × (1 ± 0.06) → radial gradient from `(cx − 0.25r, cy − 0.3r, 0.05r)` to `(cx, cy, 1.3r)` with stops `0: mix(col, white, .3)`, `.48: col`, `1: col × .64`. Glow pieces: `0: mix(col, rgb(255,255,236), .78)`, `1: col × .9`. Pieces with r > 1.4 units get two curved streaks (white 12 %, width 0.16 r, random angle) and, with 50 % chance and r > 1.6, an elliptical glint (0.26 r × 0.1 r, rotated −0.7, white 55 %) at the upper left.
 
 ## World and ground
 
-The floor is computed **per pixel** in world space so it is seamless and identical between chunks. Its glass cells are large (15–30 units) and in cool or earthy mid tones, so figures with smaller, brighter pieces stand out against it.
+The floor is computed **per pixel** in world space so it is seamless and identical between chunks. It is composed like a real window, with three scales of detail: **large calm pieces** (19–30 units) inside each region, a **border strip of small 8-unit pieces** just inside the edge of every leaf, night and plaza region, and **heavy lead** between regions. Rare **rose medallions** are the focal points. Figures, with smaller and brighter pieces, stand out against it.
 
-1. **Fields** on a 4-unit grid (`GSTEP = 4`), 5 layers: leaf carpet `warped(x/640, …) − 0.565`, night glass `warped(x/860, …) − 0.585`, path = a domain-warped fbm at scale 1150 (iso-line), plaza `fbm(x/520) − 0.66`, macro brightness `fbm(x/1150)`.
-2. Per pixel the 4 surrounding nodes are interpolated bilinearly; value divided by the bilinear gradient magnitude gives a **signed distance in world units** — this makes borders smooth curves of constant lead width. A path pixel is where `21 − |d| > 0` (42 units wide).
-3. Material priority: plaza > path > night > leaf carpet > meadow. `re` = distance to the nearest region border.
-4. **Voronoi glass**: jittered grid (sites at `(i + 0.08 + 0.84·hash) × C`), cell size C: meadow 20, leaf carpet 15, night 23, path 30. Find the 3 nearest sites in the 3×3 neighbourhood; edge distance `e = (d2² − d1²) / (2·|s2 − s1|)` for the 2nd and 3rd site, combined with `smin(e1, e2, 1.6)` so vertices round off. The path additionally splits into 3 lanes at ±7 units (different palettes, extra lead along the lane lines). Plazas use 45° diamond quarries: `(x ± y) / 17`, distance to the diamond edge × 0.7071.
-5. **Per-piece colour**: hashed swatch × brightness 0.93–1.07; meadow switches to the olive family where `hash < smoothstep(0.42, 0.6, fbm(site/380))`.
-6. **Luminance**: `(0.6 + 0.38·smoothstep(e / (0.34·C))) × streak × (0.86 + (macro − 0.3)·0.5)`, streak = `1 + 0.055·sin((x·cos a + y·sin a)·f + φ)` per piece.
-7. **Lead**: coverage `max(0.78 − eP, 1.2 − re) × res + 0.5` (antialiased over one pixel); colour ramps from `rgb(28,24,34)` at the edge to `rgb(84,78,96)` at the centre with `q = tl² × 0.85` — a soft metallic ridge.
-8. **Decals** (seeded jittered scatter, only where the material is safe within a radius): 5-petal leaded flowers (`#e8668a #f2c040 #7ab8f0 #efe6ff #c87ae8`, orange centre) with two leaves on meadow every ~44 units; autumn leaves (`#e09a30 #d0602a #f2c040 #b8402a #e87a3a`) with a lead midrib on the carpet; 5-point gold stars on night glass; amber roundels on the path; seedy bubbles on quarries. Each decal piece is a `glassBlob` (gradient + 0.55–0.65 unit lead).
-9. **Glints**: every ~24 units, 32 % chance, a diagonal white stroke (alpha 0.2, width 0.55, length 1.6–4) — sometimes doubled.
-10. **Prop pools** baked into the chunk: contact shadow `rgba(16,12,24,0.38)` ellipse, then additive coloured radial pools (e.g. arch window: red, blue, gold pools at alpha 0.26; candles warm `rgb(255,180,70)` 0.3; graves cold `rgb(150,200,255)` 0.12).
+1. **Fields** on a 4-unit grid (`GSTEP = 4`), 5 layers: leaf carpet `warped(x/760, …, warp 0.95, 2 octaves) − 0.565`, night glass `warped(x/980, …, 1.05, 2) − 0.585`, path = a domain-warped fbm at scale 1150 (iso-line), plaza `fbm(x/520) − 0.66`, macro brightness `fbm(x/1150)`. Two octaves keep region outlines broad and calm (few islands).
+2. Per pixel the 4 surrounding nodes are interpolated bilinearly; value divided by the bilinear gradient magnitude gives a **signed distance in world units**, so borders are smooth curves of constant lead width. A path pixel is where `21 − |d| > 0` (42 units wide).
+3. Material priority: plaza > path > night > leaf carpet > meadow. `re` = distance to the nearest region border; `od` = distance to the region's *own* outline.
+4. **Voronoi glass**: jittered grid (sites at `(i + 0.08 + 0.84·hash) × C`), cell size C: meadow 24, leaf carpet 19, night 27, path 30. Find the 3 nearest sites in the 3×3 neighbourhood; edge distance `e = (d2² − d1²) / (2·|s2 − s1|)` for the 2nd and 3rd site, combined with `smin(e1, e2, 1.6)` so vertices round off. The path splits into 3 lanes at ±7 units (different palettes, extra lead along the lane lines). Plazas use 45° diamond quarries: `(x ± y) / 17`, distance to the diamond edge × 0.7071.
+5. **Border strip**: where `od < 6.5` inside a leaf, night or plaza region the pixel uses an 8-unit Voronoi instead, coloured from the strip palette of that region (gold `#c99030 #b57a26 #d8a845 #a86c22` round the crimson carpet, pearl `#7f92c0 #93a5cf #7183b4 #a0b0d8` round the night glass, jewels `#9e2a42 #2c4aa8 #a8323e #c0902e` round the quarries). A lead line marks the strip's inner edge (`eP = min(eP, |od − 6.5| − 0.25)`). The meadow has no strip. Cells within 6.4 + 1.2 + 1.5 + 6.5 units of a border are classified per pixel, all others as a whole.
+6. **Per-piece colour**: hashed swatch × brightness 0.93–1.07; meadow switches to the olive family where `hash < smoothstep(0.42, 0.6, fbm(site/380))`.
+7. **Luminance**: `(0.52 + 0.36·smoothstep(e / (0.34·C))) × streak × (0.82 + (macro − 0.3)·0.5)`, streak = `1 + 0.055·sin((x·cos a + y·sin a)·f + φ)` per piece. The floor stays a little darker than the figures.
+8. **Lead**: coverage `max(0.78 − eP, 1.2 − re) × res + 0.5` (antialiased over one pixel); colour ramps from `rgb(28,24,34)` at the edge to `rgb(84,78,96)` at the centre with `q = tl² × 0.85`, a soft metallic ridge.
+9. **Rose medallions**: one candidate per 430-unit cell (60 %), only where the material is the same for 34 units around and not at the start point. Radius 22–27: dark base disc, a ring of 16 alternating sectors between 0.8 R and R, 8 pointed petals between 0.24 R and 0.76 R (two alternating colours), an ivory centre and a jewel centre piece, lead rings 1.5 and 1.05 units wide. Palettes per region (meadow: gold/ruby petals on deep teal; carpet: gold/amber on wine; plaza: blue/ruby on slate).
+10. **Clustered decals** (seeded jittered scatter, only where the material is safe within a radius): **flower sprays** of 3–6 leaded 5-petal blossoms (`#e8668a #f2c040 #7ab8f0 #efe6ff #c87ae8`, one large 1.15, the rest 0.6–0.9) on 92-unit cells, mostly within 48 units of a meadow edge; **leaf drifts** of 3–5 overlapping autumn leaves in a row on the carpet; **constellations** of 3–5 gold stars joined by thin gold lines `rgba(240,206,120,.42)` on night glass; sparse amber roundels on the path; seedy bubbles on quarries. No even sprinkle and no scattered glints.
+11. **Prop pools** baked into the chunk: contact shadow `rgba(16,12,24,0.38)` ellipse, then additive coloured radial pools (arch window: red, blue, gold pools at alpha 0.26; candles warm `rgb(255,180,70)` 0.3; graves cold `rgb(150,200,255)` 0.12).
 
 ## Characters
 
-All figures use the same two-pass Painter: one fat outer lead came (1.9 units), glass pieces with their own gradients, inner lead 0.55. Each is baked in 4 frames plus a lit flash copy; facing = horizontal flip.
+All figures use the same two-pass Painter: one fat outer lead came (1.9 units), glass pieces with their own gradients, inner lead 0.55, a lit flash copy of every frame; facing = horizontal flip with mirrored part angles. Pieces always follow form; nothing is cut randomly across a face.
 
-**Main character** (sprite box −14…14 × −38…3, drawn ×1.15):
-- **Boots**: two capsules (`CAP`) r ≈ 2.1, `#4a2f22 / #5d3b29`, swinging ±2.2 units over 4 frames.
-- **Cloak**: 7-point trapezoid (−8.8…8.8 wide at the hem, 4.6 at the shoulders, −17.2…−2.6 tall) BSP-cut into pieces ≤ 38 units² in 5 greens.
-- **Golden hem**: zig-zag band split into 3 gold pieces (`#f2c040 #e0a830 #f2c040`) with thinner outline (0.5).
-- **Clasp jewel**: a 1.5-unit glowing gold circle.
-- **Scarf**: back tail piece + front band split diagonally into two reds.
-- **Stem + leaf**: curved stem `#4f7c2c`, one leaf as two half pieces split on the midrib.
-- **Head**: a round orange gourd-like ellipse, rx 10.6, ry 8.4 centred at y −24.6, divided into 5 vertical **rib lenses** (boundaries −1.05, −0.64, −0.22, 0.22, 0.64, 1.05) coloured dark-mid-light-mid-dark orange — this gives roundness without any shading pass.
-- **Face**: triangle eyes, triangle nose and a 17-point jagged grin as **glow pieces** in `#ffd23a`, offset 1.5 units towards the facing side, plus two additive glows (warm halo r 16 × 1.25 at alpha ~0.32, gold r 10 × 0.55 flickering).
-- 4 walk frames (feet offsets `[0, 2.2, 0, −2.2]`, back-foot lift `[0, .8, 0, .8]`); facing = horizontal flip.
-- A warm additive light pool on the floor under the main character (r 20 × 0.4 squashed, ×1.6) pulsing 0.85 ± 0.15.
+**Main character** (drawn ×1.15, ~24 wide, ~42 tall with stem) is a **layered puppet** so parts can move against each other:
+- **Body frames** (box −13…14 × −22…3), 10 of them: 8 walk poses, stand and dash. Each has two legs (plum leggings `#4b3868 / #3a2a50` as capsules from the hip at y −8.6, rounded boots `#4a2f22 / #5d3b29` with the toe forward) and the cloak. Pose `i`: near foot x = 3.5·cos(2πi/8), far foot the opposite, the foot swinging forward lifts up to 2.2 units.
+- **Cloak**: 10-point trapezoid (4.9 wide at the shoulders, 8.8 at the hem, y −17.6…−5) with a fixed BSP mosaic in 5 greens, a lead centre seam, and a **golden hem band** of 6 alternating gold pieces (`#f2c445 / #d99e2c`). The cloak and hem are drawn through a shear `x' = x + k(y + 17.6)`, so the hem swings ±1.2 units behind the stride while the glass pattern stays fixed.
+- **Clasp jewel** 1.5-unit gold glow piece; a front **scarf band** in two reds.
+- **Arms** (separate sprites on shoulder pivots at (±5.4…6, −15.6)): sleeve capsule `#2c7244` (back arm `#1f5634`), gold cuff, leather mitten.
+- **Head** (separate sprite on the neck pivot, y −17.6): a round orange gourd-like ellipse rx 10.4, ry 8.2, cut into 5 vertical **rib lenses** (boundaries −1.05, −0.64, −0.22, 0.22, 0.64, 1.05), stem `#4f7c2c` and a two-piece leaf. Three faces as **glow pieces** in `#ffd23a`: looking ahead (offset 1.6 units towards the facing), looking at the viewer (centred, wider grin) and squint (flat slit eyes for blinks and pain).
+- **Scarf tail**: two segments (upper `#a51d34`, lower `#c4283e` with a gold fringe) hanging from the knot at (−5.6, −18.2), each on its own spring.
+- Glows: a warm halo (r 16 × 1.25, alpha ~0.32) behind the head and a flickering gold glow on the face; a warm light pool on the floor under the feet.
 
-**Small creature** (a root bulb on legs, box −14…14 × −34…4, drawn ×0.92): bulb = bezier outline, cut into 3 coloured cap pieces (one of 3 jewel variants: amethyst, magenta, indigo) over 2 ivory pieces with a jagged seam; 3 leaves fanning out of the top swaying ±0.12 rad; two root-leg capsules; two angry quad eyes as ember glow pieces; a lead frown line. Hops with ±0.09 rad rock.
+**Small creature** (a root bulb on legs, ×0.92): bulb = bezier outline cut into 3 jewel cap pieces (amethyst, magenta or indigo variant) over 2 ivory pieces with a jagged seam; two ember glow eyes and a lead frown; two root-leg capsules (6 frames). The **leaf crown** (3 leaves) is a separate sprite pivoting on the bulb top, and **blink lids** (cap-coloured pieces with a lead line) are a separate overlay.
 
-**Fast floating creature** (a sheet-like spirit, box −11…14 × −27…3): arched sheet with a 4-scallop animated hem, cut into opal mosaic pieces ≤ 70 units² with low jitter (0.06), hollow navy eye/mouth ellipses, a reaching arm capsule, cold pupils `rgba(160,220,255,.9)`. After baking, the bottom 9 units are erased with a `destination-out` gradient (0 → 0.85) so it dissolves. Drawn at alpha 0.86, floating 4 units up with a cold additive glow.
+**Fast floating creature** (a hooded spirit): a dome hood split into 3 panels (the centre one glowing) above a lead seam, 4 vertical **drapery strips** that lean with the sway, and a hem of 3 rippling points (6 frames). Hollow navy eyes and mouth `#1e2452` with cold pupils, a reaching arm. The bottom 10 units fade out with a `destination-out` gradient; drawn at alpha 0.88 with a cold glow.
 
-**Large creature** (a root giant, box −31…31 × −64…3): egg body (bezier, ~44 wide × 40 tall) BSP-cut into pieces ≤ 78 units², violet above y −31 and brown below (with ±3 unit noise on the boundary); capsule legs and arms with their own mosaics; a leaf crown of 5 leaves; a 4-facet **ruby core** of glow pieces with a pulsing ruby glow (0.45 ± 0.25); amber glow eyes; a jagged dark maw. Ground contact: a dark ellipse 19 × 5.5 plus an additive ruby glow on the floor.
+**Large creature** (a root giant, box −32…32 × −64…3, 6 frames): egg body BSP-cut into pieces ≤ 78 units², violet above y −31 and brown below; capsule legs that lift alternately up to 3.4 units and arms that swing ±2.8 against them; a crown of 5 leaves leaning behind the stride; a 4-facet **ruby core** with a pulsing ruby glow; amber glow eyes; a jagged dark maw.
 
-**Readability with many figures**: every figure has the same fat lead outline, so overlapping groups read as stacked cut-outs; creature colours (ivory, amethyst, opal) are deliberately absent from floor palettes; eyes glow; there are only 3 recurring creature silhouettes with distinct sizes (small 26 units, floating 28, large 64); and shadows are simple dark ellipses that anchor each one.
+**Readability with many figures**: the same fat lead outline everywhere (groups read as stacked cut-outs), creature colours absent from floor palettes, glowing eyes, only 3 creature silhouettes with distinct sizes (small 26 units, floating 28, large 64), dark ellipse shadows.
 
 General construction rules for any new character:
-- Big readable primitives first (ellipse, capsule, polygon), then cut them into glass with: `mosaic()` (BSP cuts with jittered angle ±0.6 rad until each piece ≤ maxArea), `ribCells()` for round fruit/heads, `leafCells()` for leaves/wings/ears, explicit polygon cells for faces and facets.
+- Big readable primitives first (ellipse, capsule, polygon), then cut them into glass with `mosaic()` (BSP), `ribCells()` for round shapes, `leafCells()` for leaves, wings and ears, explicit polygon cells for faces, folds and facets.
 - Piece area roughly 30–80 units² on bodies, 3–15 units² on faces and details.
-- One idea per colour family per part; jitter does the rest.
+- Bake every part that should move (limbs, head, crowns, tails, cloth ends) as its own sprite with a pivot; keep large parts in the body frames.
 
 ## Props
 
@@ -162,16 +164,17 @@ Props use the same Painter and the same two-pass construction as the characters 
 
 ## Effects and particles
 
-- **Shatter (disappearing)**: 8 shards for small creatures, 6 for floating spirits, 16 for the large creature, in the figure's colours (e.g. cap colour, cream, green). Shards are baked leaded triangles/quads (outline 0.4). Physics: speed 55–75 × 0.5–1.2, vz 70, gravity 300, drag 1.4, life 0.9–1.4 s, spin ±8 rad/s, fake tumble via y-scale `0.25 + 0.75·|cos|`, glint flash when edge-on. Plus 2–5 glints and, for the large creature, a ruby ring.
-- **Disappear pop**: for 0.22 s the flash copy is drawn scaled 1 → 1.18 and fading.
-- **Appear**: 6–10 shards swirl in from radius 30–50 units (ease-out quad over 0.85 s), the body fades in from 60 %, the flash copy fades out, and a warm glow pulses.
-- **Impact**: flash copy blitted at `min(0.62, flash × 0.9)` alpha, sprite squash (+12 % x, −8 % y), one glint star, 45 % chance of one shard.
-- **Glint star**: baked 16 × 16-unit sprite: radial white core r 3 + 4 curved spikes 7.5 units, added with `lighter`, rotates slightly; tints warm, cold, rose, mint.
-- **Projectile**: seed sprite rotated to heading, a 16-unit tapered additive trail, small gold glow at alpha 0.35.
-- **Collectibles**: a kite split into 4 facets around (0, −1.4), two of them glowing, aqua (large: gold with a ruby centre); bobs ±1.1 units, aqua additive halo, rare twinkle glint.
-- **Dash**: 3 additive flash-copy after-images behind the main character at 7-unit spacing, alpha `0.32/i`.
-- **Celebration burst**: gold ring, 12 coloured vertical light beams (3.2 × 40 units; gold, rose, blue, mint) and 10 glints.
-- **Ring shockwave**: ellipse ring (ry = 0.45 rx) stroked twice — lead at width w + 1.4, then the colour additively at w = 2.6 × (1 − t).
+Every effect is made of glass, light or lead, and layers a core flash, a main shape, debris and residue with their own timing.
+
+- **Shatter (disappearing)**: the creature's own finished sprite, cut at init into 9 (small), 8 (floating) or 16 (large) convex pieces, each re-leaded (0.62 units) along the cut. 0–14 % of the death time: the lit pieces crack apart by 0.5 units over a white-hot additive glow; 14–100 %: they fly out with an ease-out cubic (reach 15 / 14 / 26 units × 0.7–1.3), rise and fall in an arc, spin up to ±4.5 rad; lit pieces switch to normal glass at 28 % and everything fades over the last third. Residue: 6–16 loose shard particles (3 baked leaded shapes in the figure's colours, gravity 300, drag 1.4, life 0.9–1.4 s, tumble via y-scale `0.25 + 0.75·|cos|`) fall and rest on the floor, glinting when edge-on.
+- **Appearing**: a coarse cut of the lit sprite (5 pieces, 8 for the large creature) flies in from 1.5 × reach along curved paths with an ease-out cubic over 70 % of 0.45 s while a warm glow grows; then the whole figure flashes and settles with a decaying squash `sin(2πu)(1 − u) × 12 %`.
+- **Impact**: core = white glint star; main = the **leaded starburst** (8 lens rays `#f2c040 / #fff2c0`, 5 and 7.6 units, white-hot centre) over a warm glow, growing 0.35 → 1.15 × size with an ease-out over 0.17 s and fading after 45 %; debris = one shard (55 %). On the figure: lit copy at `min(0.75, flash × 1.1)`, +14 % x / −10 % y squash, a 0.24 rad tilt away from the push.
+- **Burst flare**: an additive glow in the creature's colour (violet, cold blue, ruby) decaying quadratically over 0.18 s (large: 0.3 s); the large creature adds a ring made of short glass pieces (lead ellipse + dashed colour stroke 3.6 / 1.1 added on top, ry = 0.45 rx).
+- **Glint star**: baked 16 × 16-unit sprite: white core r 3 + 4 curved spikes 7.5 units, added with `lighter`; tints warm, cold, rose, mint.
+- **Projectile**: seed sprite rotated to heading, y-scale 0.6–1 by spin, a 16-unit tapered additive trail, small gold glow at alpha 0.35.
+- **Collectibles**: a kite split into 4 facets around (0, −1.4), two of them glowing, aqua (large: gold with a ruby centre); bobs ±1.1 units, aqua halo, rare twinkle; the large one leaves a small gold ring when collected.
+- **Dash**: 3 additive lit after-images of the dash body and head at 7-unit spacing, alpha `0.3/i`.
+- **Rose-window light (celebration)**: the rose medallion sprite (r 23) projected onto the floor with `lighter` (alpha 0.62, flattened to 0.48), unfolding with an ease-out-back over 28 % of 1.1 s, holding and fading after 65 %; 12 vertical light beams (3.2 × 40 units; gold, rose, blue, mint), a gold ring and 10 glints on top.
 - **Main character flash**: one rose glint and 5 orange/gold shards; full shatter = 18 shards.
 
 ## Atmosphere and lighting
@@ -226,33 +229,41 @@ Props use the same Painter and the same two-pass construction as the characters 
 
 ## Motion and animation
 
-- **4 baked frames** per animated figure; `frame = floor(phase × 4) & 3`. Main character phase = distance × 0.42, small creature × 0.85, large creature × 0.32, floating spirit = time × 6 fps.
-- **Main character**: walk lift `|sin(phase·2π)| × 2.2` units, rock `0.05 × facing × sin`, y-squash ±2 %; idle breathing y +2.5 % / x −1.5 % at 3 rad/s; action squash −4 % y; celebration wobble `sin(T·4π) × T × 12 %`.
-- **Small creature**: hop `|sin| × 1.2` units, rock ±0.09 rad. **Floating spirit**: +4 units float, bob ±1.5 at 2.4 rad/s, tilt by velocity up to 0.14 rad. **Large creature**: lift 1.8 units, landing squash `(1 − up)^4 × 5 %`.
-- **Flash** decays 1 → 0; blinking alternates at 14 Hz between alpha 1 and 0.55.
+Smooth, interpolated motion (baked frames for the shapes, continuous transforms for weight and timing); every figure has its own phase offset.
+
+- **Main character walk**: phase = fract(distance × 0.3); body frame = nearest of 8. Lift `0.55 × (1 + cos(4π(phase − 0.375)))`: lowest just after contact, highest at passing. y-stretch ±1.5 % with the lift, rock `0.035·sin(2π·phase)`, arms counter-swing ±0.55 rad against the legs, the head bobs 0.07 of a cycle late and tilts ±0.05 rad, the hem shears behind the stride.
+- **Scarf tail**: damped springs (upper: stiffness 150, damping 10; lower: 70 / 7) towards `0.2 + min(0.95, speed × 0.0105)` rad (+0.3 while dashing) plus flutter `0.09·sin(6.5t)`; the lower segment aims at 0.6 × the upper angle plus its own flutter, so it lags, bends and overshoots on stops and turns.
+- **Idle**: breathing y ±1.8 % / x ∓1 % at 1.9 rad/s, head lagging 0.7 rad, arms drift ±0.05 rad, head tilt ±0.03 rad at 0.7 rad/s; squint blink when `fract(t/3.3 + φ) < 0.035` (~0.11 s), looks at the viewer when `fract(t/5.3 + φ) > 0.82` (~1 s).
+- **Dash** (0.2 s): first 20 % a crouch (y −14 %, x +10 %, arms back 0.5), then the dash frame leaning 0.2 rad, x +10 %, arms swept back 1.05 / 0.85 rad, head tilted back, lifted 1.3 units, easing out over the last 30 %.
+- **Throw**: the near arm swings forward to −1.45 rad and eases back as the action timer decays (0.2 s), body squash −3 %. **Hurt**: squint face, 0.2 rad recoil, +5 % x / −5 % y, arms flung, lit copy for 0.33 s; blinking alternates at 14 Hz between alpha 1 and 0.55 while protected.
+- **Small creature**: phase = distance × 0.55 + 3·seed, 6 frames, two hops per cycle (lift `|sin| × 1.4`, contact squash `(1 − up)³ × 7 %`), waddle ±0.08 rad; crown swings `0.16·sin(2π·phase − 1.5)` and dips on contact; blink lids when `fract(t/2.7 + 5.3·seed) < 0.05`.
+- **Floating spirit**: hem frames at 8 fps (`fract(1.35t + 3·seed)`), hover 4.6 units with an eased bob `1.5·(sin w + 0.32·sin(2w + 1.1))`, w = 2.3t + 12·seed; tilt by velocity up to 0.16 rad, +5 % x stretch with speed.
+- **Large creature**: phase = distance × 0.3 + seed, 6 frames, lift `|sin| × 1.8` units, landing squash `(1 − up)⁴ × 5 %`, rock ±0.025 rad.
+- **Appear** 0.45 s (pieces in, flash, settle), **disappear** 0.35 s (crack, burst, fade), **hit** ~0.14 s (see Effects).
 - **Flicker**: candle flames `0.75 + 0.25·sin(11t)·sin(7.3t)`, face glow `0.28 + 0.12·sin(9t)·sin(5.3t)`, collectible halos `0.55 + 0.15·sin(6t)`.
-- **Sway**: trees/bushes skew 0.02 / 0.03 at 1.1 rad/s; light rays drift at 0.12 rad/s.
+- **Ambient**: trees/bushes skew 0.02 / 0.03 at 1.1 rad/s; light rays drift at 0.12 rad/s; 26 dust motes rise slowly and twinkle at 0.8–1.8 rad/s.
 - **Numbers**: scale 0.4 → 1.25 in 12 % of life, settle to 1 by 26 %, shrink 50 % and fade in the last 20–25 %.
 
 ## Do and don't
 
 Do:
-- Draw every figure in two passes: lead outline pass, then glass pieces with inner lead.
+- Draw every figure part in two passes: lead outline pass, then glass pieces with inner lead.
 - Give every piece its own off-centre radial gradient and ±6 % brightness jitter.
-- Split shapes where a glazier would: ribs, midribs, folds, facets.
+- Split shapes where a glazier would: ribs, midribs, folds, hood and drapery strips, facets.
+- Bake moving parts (arms, head, crown, scarf) as separate leaded sprites so they can swing, lag and overshoot.
 - Make faces, eyes, flames and jewels glow pieces plus an additive glow sprite.
-- Anchor the floor tessellation in world space; separate regions with heavier lead.
-- Cast coloured additive light pools from props.
-- Pre-bake every sprite and its lit flash copy.
-- Keep the overlay: vignette, lead frame with gold fillet, slow coloured rays.
+- Compose the floor: large calm cells inside regions, small pieces in border strips along the edges, heavy lead between regions, rare rose medallions.
+- Break figures along their own lead lines when they disappear, and assemble them from the same glass when they appear.
+- Cast coloured additive light pools from props; keep the window overlay.
 
 Don't:
-- Don't use flat fills without lead seams — it becomes generic vector art.
+- Don't use flat fills without lead seams; it becomes generic vector art.
 - Don't flash figures pure white; the flash copy keeps the lead.
-- Don't make floor pieces as small as figure pieces (floor 15–30 units, figures 2–8).
+- Don't cut a random mosaic across a face.
+- Don't make the floor one even tessellation, and don't make floor pieces as small as figure pieces (floor 19–30 units, strips 8, figures 2–8).
+- Don't sprinkle flowers, stars or glints evenly; cluster them along edges or as constellations.
 - Don't use thin or coloured outlines; lead is always `#17131c`.
 - Don't add directional drop shadows or realistic lighting.
-- Don't use figure colours that match the floor region they stand on.
 - Don't compute the per-pixel ground every frame.
 
 ## Implementation recipe
@@ -260,11 +271,11 @@ Don't:
 1. Set up a world of 360 units visible height; `S = canvasHeight / 360`. Choose `K = clamp(round(S × 1.5), 3, 5)` for sprite baking.
 2. Implement the helpers: `mulberry32`, `hashInt`, colour `mix/mul`, `perlin/fbm`, `splitPoly`, `bsp`, `mosaic`, `ribCells`, `leafPts/leafShape/leafCells`, path helpers `ELL`, `CAP`, `PP`.
 3. Implement the **Painter** with modes `outline`, `fill`, `flash` and methods `part(shape, cells, opts)`, `piece(shape, col, cx, cy, r, opts)`, `glass(cell)` exactly as in the Code section.
-4. For each figure write `parts(P, frame)` declaring pieces back-to-front, with frame-dependent offsets for 4 frames. Bake `{n, f}` pairs per frame with `build(box, fn, mode, seed)`.
-5. Write the ground: field nodes on a 4-unit grid, bilinear signed distances, material priority, Voronoi per material with `smin` edges, luminance curve, antialiased lead ramp. Render in chunks (256 units) into ImageData, time-sliced, cached.
-6. Add decals per material with a seeded scatter, then glints, then prop contact shadows and additive light pools.
+4. For each figure write `parts(P, pose)` declaring pieces back-to-front. Split the main character into body frames (8 walk poses + stand + dash), arms, head faces and scarf segments, each with a pivot; bake `{n, f}` pairs with `build(box, fn, mode, seed)` using the same seed for all frames of a part (so the glass jitter does not flicker). Cut shatter pieces from the finished creature sprites.
+5. Write the ground: field nodes on a 4-unit grid, bilinear signed distances, material priority, Voronoi per material with `smin` edges, the 8-unit border strip inside each region edge, luminance curve, antialiased lead ramp. Render in chunks (256 units) into ImageData, time-sliced, cached.
+6. Add rose medallions, clustered decals (flower sprays near edges, leaf drifts, constellations), then prop contact shadows and additive light pools.
 7. Bake glow sprites, glint star, shard sprites, projectile, trail; draw them with `lighter`.
-8. Per frame: blit ground chunks, y-sort figures and props, blit sprites with flip/scale/rotation, glow blits, particles, numbers.
+8. Per frame: blit ground chunks, y-sort figures and props, compose the puppet parts through one body transform, run the scarf springs, blit creatures with crown/lids, play spawn and death with the cut pieces, glow blits, particles, numbers.
 9. Bake and draw the overlay (vignette + frame + ripples, then the half-res light layer additively).
 10. Build the HUD with the CSS recipes: lead border, gold fillet ring, jewel gradients, mullioned bars, Cinzel fonts with lead text-shadow.
 
@@ -370,6 +381,36 @@ function glassPixel(x, y, s1, s2, s3, d1, d2, d3, re, res) {
 }
 ```
 
+Shatter: cut a finished sprite into re-leaded pieces once, then animate them:
+
+```js
+/** spr = { c: canvas, ox, oy } (anchor in px); n pieces; K = px per unit; cy0 = centre height (units, negative = up). */
+function shatter(spr, n, seed, cy0, K) {
+  const rnd = mulberry32(seed), W = spr.c.width, H = spr.c.height, out = [], lw = 0.62 * K;
+  for (const poly of bsp([[0, 0], [W, 0], [W, H], [0, H]], (W * H) / n, rnd)) {
+    const xs = poly.map((p) => p[0]), ys = poly.map((p) => p[1]);
+    const x0 = Math.floor(Math.min(...xs) - lw), y0 = Math.floor(Math.min(...ys) - lw);
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(Math.max(...xs) + lw) - x0; cv.height = Math.ceil(Math.max(...ys) + lw) - y0;
+    const c = cv.getContext('2d'); c.translate(-x0, -y0);
+    const path = () => { c.beginPath(); poly.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); };
+    c.save(); path(); c.clip(); c.drawImage(spr.c, 0, 0); c.restore();
+    c.lineJoin = 'round'; c.strokeStyle = '#17131c'; c.lineWidth = lw; path(); c.stroke(); // new lead along the break
+    c.globalCompositeOperation = 'destination-in'; c.drawImage(spr.c, 0, 0);            // keep it inside the figure
+    const mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
+    const lx = (mx - spr.ox) / K, ly = (my - spr.oy) / K, l = Math.hypot(lx, ly - cy0) || 1;
+    out.push({ cv, ox: mx - x0, oy: my - y0, lx, ly, dx: lx / l, dy: (ly - cy0) / l, d: 0.7 + rnd() * 0.6, vr: (rnd() - 0.5) * 9, up: 0.6 + rnd() * 0.8 });
+  }
+  return out; // (drop pieces whose canvas is almost empty)
+}
+/** Offset of a piece at death progress q (0..1), reach in world units. */
+function pieceOffset(p, q, reach) {
+  const u = Math.min(1, Math.max(0, (q - 0.14) / 0.86)), e = 1 - Math.pow(1 - u, 3);
+  const D = Math.min(1, q / 0.14) * 0.5 + e * reach * p.d;
+  return { x: p.dx * D, y: p.dy * D * 0.75 - reach * p.up * 0.55 * Math.sin(u * Math.PI * 0.85) + reach * 0.5 * u * u, rot: p.vr * u };
+}
+```
+
 Rib lenses for round heads and fruit (roundness without shading):
 
 ```js
@@ -391,7 +432,8 @@ function ribCells(cx, cy, rx, ry, fs, cols) { // fs e.g. [-1.05,-0.64,-0.22,0.22
 Keep fixed (this *is* the style):
 - Lead `#17131c`, outer came 1.9 units, inner 0.55, floor lead 0.78 / 1.2 half-widths with the metallic ridge.
 - The per-piece radial gradient (30 % white core, ×0.64 rim) and brightness jitter.
-- Two-pass Painter, flash copies that keep the lead, shatter-into-shards disappearing.
+- Two-pass Painter, flash copies that keep the lead, figures that break along their own lead lines.
+- The composed floor: large calm cells, border strips of small pieces, heavy region lead.
 - Glow pieces + additive glow sprites for every light source; coloured light pools; the window overlay.
 
 May change:
@@ -404,9 +446,9 @@ May change:
 
 ## Performance notes
 
-- Sprites: ~70 canvases baked at init (main character 4×2, small creature 3 variants × 4 × 2, floating spirit 4×2, large creature 4×2, 15 prop variants, 36 shards, glows). Baking takes tens of ms; never repaint glass per frame.
-- Ground: the expensive part — per pixel a bilinear field lookup, a 3×3 Voronoi search and the lead ramp. Render it once per 256-unit chunk as a time-sliced generator (yield every 2 rows) at ≤ 2.5 px per unit, cache chunks, precompute site arrays per chunk and field nodes in a shared map (cleared above 60 000 entries). Classify 4-unit cells far from any border as a single material to skip the per-pixel region test.
-- Per frame: 1–3 `drawImage` per figure + a few additive glows, so 300+ figures stay cheap. Avoid `ctx.filter` and `shadowBlur`.
+- Sprites: ~150 canvases baked at init (main character 10 body frames + 2 arms + 3 heads + 2 scarf segments, each ×2; small creature 3 variants × 6 frames × 2 + crown + lids; floating spirit and large creature 6 × 2; ~80 shatter pieces cut once with one `getImageData` each; 15 prop variants, 36 shards, glows, starburst, rose). Baking takes ~100 ms; never repaint glass per frame.
+- Ground: the expensive part — per pixel a bilinear field lookup, a 3×3 Voronoi search (region or border-strip sites) and the lead ramp. Render it once per 256-unit chunk as a time-sliced generator (yield every 2 rows) at ≤ 2.5 px per unit, cache chunks, precompute site arrays per chunk and field nodes in a shared map (cleared above 60 000 entries). Classify 4-unit cells far from any border as a single material to skip the per-pixel region test.
+- Per frame: the main character is 6 part blits, a creature 1–3, an appearing creature 5–8 pieces, a breaking one 8–16 pieces (one pass: lit pieces switch to normal ones at 28 %), so 300+ figures stay cheap. Avoid `ctx.filter` and `shadowBlur`.
 - Overlay: baked per screen size; the light layer is half resolution and only stretched.
 - Floating numbers are cached as sprites by value + size variant (cache cleared at 400 entries).
 
@@ -419,10 +461,10 @@ Use the Cathedral Glass art style for my project (Canvas 2D, procedural, no imag
 - Draw every figure in two passes: (1) fill+stroke every part in lead with lineWidth 1.9 world units = one fat outer outline; (2) clip into each part, paint its glass cells, stroke inner lead 0.55.
 - Cut shapes like a glazier: BSP mosaics for bodies/clothes, vertical rib lenses for round fruit/heads, leaves split on the midrib, faceted gems.
 - Faces, eyes, flames, jewels are glow pieces (78% warm-white core) plus additive radial glow sprites ('lighter').
-- Pre-bake each figure in 4 walk frames plus a "flash" copy (pieces mixed 58% to warm white, lead kept).
-- Floor: per-pixel world-anchored Voronoi glass (cells 15-30 units), material regions from noise signed distances (meadow greens, crimson leaf carpet, amber 3-lane path, night blue, grey diamond quarries), lead 0.78 / 1.2 units with a metallic ridge rgb(84,78,96).
-- Leaded decals (flowers, leaves, stars), white glint strokes, coloured additive light pools under props (trees, arches, candles, graves).
-- Figures shatter into tumbling leaded shards when they disappear; impacts add a four-point glint star.
+- Main character = layered puppet: 8 walk body frames + stand + dash, separate arms (counter-swing), head with 3 faces (ahead, viewer, squint blink), 2-segment scarf on springs that lags and overshoots. Every part baked with a "flash" copy (pieces mixed 58% to warm white, lead kept).
+- Floor: per-pixel world-anchored Voronoi glass, large calm cells (19-30 units) inside broad noise regions (meadow greens, crimson leaf carpet, amber 3-lane path, night blue, grey diamond quarries), a strip of 8-unit pieces inside each region edge (gold, pearl, jewels), lead 0.78 / 1.2 units with a metallic ridge rgb(84,78,96), rare rose-window medallions.
+- Clustered leaded decals (flower sprays near edges, leaf drifts, star constellations), never an even sprinkle; coloured additive light pools under props (trees, arches, candles, graves).
+- Figures crack along their own lead lines and burst into their real pieces when they disappear, and assemble from flying pieces when they appear; impacts add a leaded gold starburst; celebrations project a rose window as light onto the floor.
 - Atmosphere: dark-violet vignette, lead window frame with gold #d9ad4e fillet, slowly drifting coloured diagonal light rays.
 - UI: lead-bordered glass panels with gold fillet rings, gothic arch tops, mullioned bars; fonts Cinzel Decorative 900 + Cinzel with lead text-shadow outlines.
 - Figures brighter/paler than the floor region; gold only for light sources. 360 world units visible vertically.

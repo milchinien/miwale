@@ -182,17 +182,17 @@
     }
   ],
   "world": {
-    "summary": "Warm newsprint split into large organic regions (meadow, autumn field, night, graveyard) crossed by winding paths. Each region has its own paper tint and its own rotated dot screen (angle 15°–60°, spacing 2.8–3.3 units, dot radius 15–36 % of spacing modulated by a tone noise). Regions are separated by brush-ink contours 0.84–2.08 units wide, paths get diagonal speed hatching along their edges, and small ink decals (grass tufts, flowers, leaves, cracks, splats) are scattered on top. Computed per pixel in world space so dots never swim.",
+    "summary": "Warm newsprint split into large organic regions (meadow, autumn field, night, graveyard) crossed by winding paths. Each region has its own paper tint and its own rotated dot screen (angle 15°–60°, spacing 2.8–3.3 units, dot radius 15–36 % of spacing modulated by a tone noise). Regions are separated by brush-ink contours 0.84–2.08 units wide, paths get diagonal speed hatching along their edges, and small ink decals (grass tufts, flowers, leaves, cracks, splats) gather in clumps and in drifts along the contour lines, leaving calm printed areas between them. Computed per pixel in world space so dots never swim.",
     "layers": [
       "Paper tint per region (meadow #ede9c7, autumn #fad880, night #c8d2e8, graveyard #e0d3de, path #f9e9aa) × large-scale yellowing (±4 %)",
       "Rotated anti-aliased dot screen per region, multiply-blended, radius from tone noise (paths have none)",
       "Paper grain (hash noise ±2.3 % plus faint fibres)",
       "Ink contour lines between regions (half-width 0.42–1.04 units, varying with noise) + diagonal hatching within 14 units of path edges",
-      "Ink decals every ~15 units: 3-blade grass tufts, 5-petal white/pink flowers, red/yellow leaves, white glints, cracks, pebbles, rare ink splats"
+      "Ink decals on a 15-unit grid, kept only in clumps (noise /130, smoothstep 0.5–0.72) and as grass-tuft drifts along region contours: 3-blade tufts, 5-petal white/pink flowers, red/yellow leaves, white glints, cracks, pebbles, rare ink splats"
     ]
   },
   "characters": {
-    "summary": "Chunky, readable cartoon figures built from 10–20 primitive parts (ellipses, capsules, polygons, superellipses, bezier blobs). Main character: a round orange pumpkin head with a carved glowing yellow face, blue cape, red scarf, ~21 × 34 units (baked at 1.12×). Small creature: a two-tone magenta or violet root creature with a leafy crown and angry yellow eyes, ~17 × 28 (0.92×). Fast creature: a floating white ghost sheet with cyan-dot shade and a wavy tail, ~25 × 26. Large creature: a plum-and-clay root colossus with a glowing yellow star core, ~48 × 66. Parts are painted back-to-front (back leg, back arm, body, front leg, front arm, head). Four walk frames (idle, contact A, passing, contact B) plus a yellow flash copy of every frame, both facings.",
+    "summary": "Chunky, readable cartoon figures built from 10–20 primitive parts (ellipses, capsules, polygons, superellipses, bezier blobs). Main character: a round orange pumpkin head with a carved glowing yellow face, blue cape, red scarf, ~21 × 34 units (baked at 1.12×) with a 1.1-unit paper-white keyline knocked out around the whole figure so it is always the clearest read. Small creature: a two-tone magenta or violet root creature with a leafy crown, angry yellow eyes, little root arms and a curling tap root, ~22 × 28 (0.92×). Fast creature: a floating white ghost sheet with cyan-dot shade, a wavy tail and claw hands that reach in turn, ~27 × 26. Large creature: a plum-and-clay root colossus with a glowing yellow star core, ~48 × 66. Parts are painted back-to-front (back leg, back arm, body, front leg, front arm, head). Main character: 8 computed walk poses, 3 breathing poses, crouch, dash and recoil; small and fast creature 6 poses, large creature 4 – each with a yellow flash copy, both facings and cyan/magenta plate copies.",
     "rules": [
       "Outline everything; the outline is the silhouette. Heads/bodies get thicker outlines (1.1–1.45) than limbs (0.8–0.85).",
       "Each part has exactly one shade crescent on the bottom-right and one thinner spot-black crescent inside it.",
@@ -200,7 +200,9 @@
       "Faces are carved holes (black rim + yellow #ffe23a inside shifted down-right) or solid ink shapes with tiny white or cyan catchlights.",
       "Every figure type gets a different dominant colour and a different silhouette (round pumpkin head, teardrop root body, wavy-tailed ghost, huge colossus).",
       "A cyan plate behind solid figures, a magenta plate behind ghosts – this fringe sells the print look.",
-      "Bake once facing right and mirror for left; the face is offset +1.4 units toward the facing."
+      "Bake once facing right and mirror for left; the face is offset +1.4 units toward the facing.",
+      "Main character pose table: feet (with lift), arm angles, cape flare, body bob, head lag and tilt, scarf wave and lean; everything above the hips is drawn in a space that bobs and leans around the hip point, the head on its own neck pivot.",
+      "Only the main character gets the paper keyline (white #fffdf2, 1.1 units, 8 offset silhouettes behind the sprite, then the cyan plate behind that) – creatures stay keyline-free so the figure reads first."
     ]
   },
   "props": {
@@ -212,7 +214,7 @@
       "Each prop casts a halftone contact shadow sized to its footprint (tree 15, fence 17, bush/pumpkin 11, rock 9 units half-width); gravestones sit on a dotted base ellipse instead.",
       "Fine ink detail lines 0.4–0.7 units: bark marks, rock cracks, straw strokes, inscriptions, stitched faces.",
       "Trees sway by a horizontal skew of ±0.02 at 1.2 rad/s; all other props are static and randomly mirrored.",
-      "Props follow the region: meadow trees/bushes/rocks/fences/signs, autumn pumpkins/scarecrows/hay, night dead trees and lit pumpkins, graveyard dense gravestones."
+      "Props follow the region: meadow trees/bushes/rocks/fences/signs, autumn pumpkins/scarecrows/hay, night dead trees and lit pumpkins, graveyard dense gravestones. Props cluster into groves and patches (a 330-unit noise field multiplies their probability by 0.3–1.8)."
     ]
   },
   "effects": [
@@ -226,7 +228,7 @@
     },
     {
       "name": "Onomatopoeia balloon",
-      "how": "Bangers 11 units text centered in a 13-point jagged star balloon (inner 0.72) with a darker offset plate (-0.8, +0.7, 70 %), dot rim outside 62 % of the radius, 1.0 ink outline, text with a 0.9-unit hard drop shadow, 0.2 × font-size ink stroke. Max 3 on screen, at most one every 1.3 s, 30 % chance per big burst; always on large-creature bursts."
+      "how": "Bangers 11 units text centered in a 13-point jagged star balloon (inner 0.72) with a darker offset plate (-0.8, +0.7, 70 %), dot rim outside 62 % of the radius, 1.0 ink outline, text with a 0.9-unit hard drop shadow, 0.2 × font-size ink stroke. Max 3 on screen, at most one every 1.3 s, 30 % chance per big burst; always on large-creature bursts. Words: POW!, ZAP!, BAM!, WHAM!, BONK!, ZONK!, SPLAT!; large bursts KABOOM!, KRAKOOM!, BLAM!"
     },
     {
       "name": "Pop-up number",
@@ -251,6 +253,18 @@
     {
       "name": "Collectibles and orbiting lantern",
       "how": "Small collectible = cyan teardrop gem with #0a5a9a dot shade, large = magenta 5-point star with yellow dots; both bob ±1 unit over a tiny dot shadow with a magenta plate. Orbiting object = a small purple root-shaped lantern with a leaf crown and a carved glowing face, bobbing ±1.4 units over a flickering yellow dot glow."
+    },
+    {
+      "name": "Disappear: plates come apart",
+      "how": "First 0.06 s the yellow flash frame inflates 1 -> 1.28 and squashes wide; then the magenta and cyan plate copies slide 6 units apart (outQuad) and fade while the figure is flung up 9 units, falls back (6u²), spins up to 1.1 rad, shrinks to 50 % and fades (1 - u²). The big burst, chunks, ink drops and a balloon play around it."
+    },
+    {
+      "name": "Hit knock-back",
+      "how": "The flash copy is laid over the figure at alpha min(cap, flash × 1.4), the figure squashes (sx +18 %, sy −14 %), is shoved 2.6 units along the knock-back direction and tilts 0.24 rad away, all easing out with flash² over ~0.14 s."
+    },
+    {
+      "name": "Blink slip",
+      "how": "While the main character is invulnerable, every other 1/12 s its magenta and cyan plate copies are printed 1.3 units out of register on either side – the figure never turns see-through."
     }
   ],
   "atmosphere": {
@@ -270,13 +284,13 @@
     "css": ".hud-panel { background: #ffe23a; border: 3px solid #1b1620; border-radius: 0; box-shadow: 5px 5px 0 #1b1620; padding: 4px 18px 5px; transform: rotate(-1deg); font-family: 'Bangers', Impact, sans-serif; font-size: 38px; letter-spacing: 2px; color: #1b1620; text-shadow: 2px 2px 0 #e8262c; }\n.bar { width: 250px; height: 28px; background: radial-gradient(circle, rgba(27,22,32,.22) 1.1px, transparent 1.6px) 0 0/6px 6px, #f4ecd4; border: 3px solid #1b1620; border-radius: 0; box-shadow: 4px 4px 0 #1b1620; transform: skewX(-10deg); overflow: hidden; }\n.bar-fill-red { height: 100%; background: radial-gradient(circle, #8a0c22 1.8px, transparent 2.3px) 0 0/6px 6px, #e8262c; border-right: 3px solid #1b1620; }\n.bar-fill-cyan { height: 100%; background: radial-gradient(circle, #1474b8 1.7px, transparent 2.2px) 0 0/6px 6px, #2ec4ef; border-right: 3px solid #1b1620; }\n.card { background: #fbf5e2; border: 4px solid #1b1620; box-shadow: 8px 8px 0 #1b1620; transform: rotate(-1.5deg); }"
   },
   "motion": [
-    "Walk: frames 1,2,3,2 (contact A, passing, contact B, passing; frame 0 = idle) at anim × 0.4 cycles; body lifts sin(f·π) × 1.8 units and tilts ±0.05 rad per step.",
-    "Idle: breathing squash sy = 1 + 0.025·sin(3.2 t), sx = 1 − 0.018·sin(3.2 t).",
-    "Small creature: 4 frames at anim × 0.85, waddle rotation sin × 0.09 rad, hop 1.2 units, 5 % squash at ground contact.",
+    "Main character walk: 8 computed poses per stride at anim × 0.4 cycles (contact, down, passing, up for each leg). Swing foot lifts up to 2.3 units, body bob 0.95·sin(2ph) (lowest after contact, highest at passing), arms counter-swing ±0.9 rad, lean 0.07 rad; head (delay 0.9 rad), cape flare (1.3) and scarf wave (1.9) follow through. A dust puff on every contact pose.",
+    "Idle: 3 held breathing poses (exhale, mid, inhale) picked on an eased 2.6 s clock, so the figure lingers at both ends; the head lags the chest and the scarf settles after it.",
+    "Dash: one crouch pose (anticipation, while dashT > 0.165) then a stretched forward lean (0.24 rad) with cape and scarf streaming back, cyan/magenta smear copies and tapered speed lines. Hurt: recoil pose (thrown back, arms up) with the flash copy on top and a 0.12 rad tilt.",
+    "Small creature: 6 waddle poses at anim × 0.85 (feet lift 1.8, root arms counter-swing, leaves lag 0.17 rad, tap root whips, mouth chews), plus runtime rotation sin × 0.09, hop 1.2 units and 5 % squash at contact; each creature has its own phase (seed).",
     "Large creature: 4 frames at anim × 0.32, contact squash (1 − up)^3 × 7 %, rotation ±0.03 rad – heavy and slow.",
-    "Ghost: 4 frames at 7 fps (tail wave), floats 4.5 units up and bobs ±1.6 at 2.6 rad/s, leans into velocity ±0.14 rad.",
-    "Pops use overshoot easing (outBack / outElastic); numbers pop 0.3 -> 1.35 -> 1.0 scale in the first 24 % of life.",
-    "Impact flash decays quickly; vanishing = 0.2 s inflate to 1.25× in the yellow flash frame, then shrink to 0 by 0.42 s while the burst takes over.",
+    "Fast creature: 6 frames at 7 fps (tail wave, claws reach in turn, mouth wails), hovers 3.2–6.6 units on an eased triangle curve (lingers top and bottom) with its own clock per spirit, leans into velocity ±0.14 rad.",
+    "Pops use overshoot easing (outBack / outElastic); numbers pop 0.3 -> 1.35 -> 1.0 scale in the first 24 % of life; entrances pop out of a jagged action-burst panel with outElastic.",
     "HUD shake: 0.22 s steps(3) jitter of ±4 px and ±1.5°."
   ],
   "do": [
@@ -287,7 +301,8 @@
     "Keep characters fully saturated and the ground pale so crowds read against the floor.",
     "Use jagged star balloons + Bangers for every loud moment, but rate-limit them (max 3 at once).",
     "Use hard offset drop shadows (no blur) on all UI panels.",
-    "Keep the light top-left for every object, including UI icons."
+    "Keep the light top-left for every object, including UI icons.",
+    "Give the main character a paper keyline and a full pose set (8 walk poses, breathing idle, crouch, dash, recoil) so it is the clearest, liveliest read."
   ],
   "dont": [
     "Don't use gradients, blur, shadowBlur or soft glows – everything is dots or flat.",
@@ -296,7 +311,8 @@
     "Don't fill the screen with onomatopoeia; more than 3 balloons turns into noise.",
     "Don't give creatures the same dominant colour as the ground region they walk on.",
     "Don't round UI corners or use translucent glassy panels.",
-    "Don't draw per-pixel halftone for sprites every frame – bake it."
+    "Don't draw per-pixel halftone for sprites every frame – bake it.",
+    "Don't sprinkle decals evenly or blink figures with transparency – clump decals, slip the colour plates instead."
   ],
-  "performance": "All figures (4 frames × normal/flash × 2 facings), props, bursts, chunks, shadows and glows are baked once in init at 3–5 px per unit; runtime is pure drawImage, so 300+ figures are fine. Text sprites are cached per value (cleared above 600 entries). The hot spot is the ground: every pixel evaluates up to 4 region distances (bilinear from a 4-unit noise grid with gradient-based signed distance), 1 rotated dot screen, grain and hatching – done per 256-unit chunk as a generator that yields every 2 rows, resolution capped at 2.5 px/unit. The screen overlay is baked once per resolution and only non-empty tiles are blitted."
+  "performance": "All figures (main character 14 poses, creatures 6/6/4 poses × normal/flash × 2 facings + cyan/magenta plate copies), props, bursts, chunks, shadows and glows are baked once in init at 3–5 px per unit; runtime is pure drawImage (a vanishing figure blits 3 copies), so 300+ figures are fine. Text sprites are cached per value (cleared above 600 entries). The hot spot is the ground: every pixel evaluates up to 4 region distances (bilinear from a 4-unit noise grid with gradient-based signed distance), 1 rotated dot screen, grain and hatching – done per 256-unit chunk as a generator that yields every 2 rows, resolution capped at 2.5 px/unit. The screen overlay is baked once per resolution and only non-empty tiles are blitted."
 }

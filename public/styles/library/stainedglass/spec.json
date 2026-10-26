@@ -3,10 +3,24 @@
   "name": "Cathedral Glass",
   "originalName": "Kirchenfenster",
   "family": "Mosaic · Stained Glass",
-  "tags": ["stained glass", "mosaic", "lead lines", "jewel tones", "voronoi", "gothic", "backlit"],
+  "tags": [
+    "stained glass",
+    "mosaic",
+    "lead lines",
+    "jewel tones",
+    "voronoi",
+    "gothic",
+    "backlit"
+  ],
   "summary": "A living cathedral window: jewel-tone glass pieces in dark lead came, lit from behind by warm light and coloured rays.",
-  "description": "The whole world is one backlit stained-glass window. Floor, props, characters, collectibles, icons and even floating numbers are built from the same unit: a glass piece with a luminous off-centre core, a darker rim, faint streaks and a glint, separated by near-black lead came with a soft metallic ridge. Material regions (meadow, autumn leaf carpet, amber path, night glass, clear diamond quarries) are separated by heavier lead, and props cast coloured light pools onto the floor. It feels sacred, festive and handcrafted while staying readable because every figure has a fat lead silhouette.",
-  "mood": ["luminous", "sacred", "festive", "handcrafted", "storybook"],
+  "description": "The whole world is one backlit stained-glass window. Floor, props, characters, collectibles, icons and floating numbers are built from the same unit: a glass piece with a luminous off-centre core, a darker rim, faint streaks and a glint, separated by near-black lead came. The floor is composed like a real window: large calm pieces inside each region, a border strip of small pieces (gold, pearl or jewel) along every region edge, heavy lead between regions and rare rose-window medallions as focal points. Figures are leaded-glass puppets whose parts move against each other, and they appear and break apart along their own lead lines.",
+  "mood": [
+    "luminous",
+    "sacred",
+    "festive",
+    "handcrafted",
+    "storybook"
+  ],
   "bestFor": [
     "top-down action games with many figures on screen",
     "fairy-tale action RPGs",
@@ -22,76 +36,187 @@
   ],
   "difficulty": {
     "stars": 7,
-    "why": "Every new asset has to be cut into glass pieces the way a glazier would (ribs, midribs, folds, facets), drawn in two passes (lead outline, then shaded pieces with inner lead) and given a lit flash copy. Splitting a figure sensibly while keeping it readable on an already busy mosaic floor takes careful design for each new character or prop."
+    "why": "Every new asset has to be cut into glass pieces the way a glazier would (ribs, midribs, folds, facets), drawn in two passes (lead outline, then shaded pieces with inner lead) and given a lit flash copy. Animated figures are split into separately baked parts (body frames, arms, head, loose cloth) so they can move, and the shatter pieces are cut from the finished sprite. Keeping all of that readable on an already busy mosaic floor takes careful design for each new character or prop."
   },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": false,
     "resolution": "Native resolution. Actor and prop sprites are baked once at K = clamp(round(screenScale x 1.5), 3, 5) px per world unit; the ground is rendered per pixel in 256-unit chunks at up to 2.5 px per world unit.",
-    "summary": "Each figure is a list of parts drawn twice: an outline pass fills and strokes every part in lead (one fat outer came), then a fill pass clips glass pieces (BSP-cut polygons, rib lenses, half-leaves) into each part, shades each with an off-centre radial gradient and strokes inner lead. The ground is a per-pixel world-anchored Voronoi with an antialiased lead ramp.",
-    "linework": "Lead colour #17131c everywhere. Actors: outer came = 0.95 world units each side (lineWidth 1.9), inner lead 0.55 units, part borders 0.66 units, small faces/eyes use ol 0.4-0.6. Floor: piece lead half-width 0.78 units, region-border lead 1.2 units, with a lighter ridge (rgb 84,78,96) along the centre. lineJoin and lineCap round.",
-    "shading": "Per glass piece: radial gradient from (cx-0.25r, cy-0.3r) to centre, stops 0 = colour mixed 30% with white, 0.48 = base colour (±6% brightness jitter), 1 = colour x0.64. Glowing pieces (faces, eyes, jewels) use 78% warm white core and x0.9 rim. Floor pieces get luminance 0.6 at the lead rising to 0.98 at the centre (smoothstep over 0.34 x cell size).",
+    "summary": "Each figure part is a list of pieces drawn twice: an outline pass fills and strokes every part in lead (one fat outer came), then a fill pass clips glass pieces (BSP-cut polygons, rib lenses, half-leaves) into each part, shades each with an off-centre radial gradient and strokes inner lead. The ground is a per-pixel world-anchored Voronoi with an antialiased lead ramp, large cells inside regions and a strip of 8-unit pieces along each region edge.",
+    "linework": "Lead colour #17131c everywhere. Actors: outer came = 0.95 world units each side (lineWidth 1.9), inner lead 0.55 units, part borders 0.66 units, small faces/eyes use ol 0.4-0.6; shatter pieces get a 0.62-unit lead edge where they broke. Floor: piece lead half-width 0.78 units, border-strip inner line ~1 unit, region-border lead 1.2 units, with a lighter ridge (rgb 84,78,96) along the centre. Rose medallions: 1.5 and 1.05 unit lead rings. lineJoin and lineCap round.",
+    "shading": "Per glass piece: radial gradient from (cx-0.25r, cy-0.3r) to centre, stops 0 = colour mixed 30% with white, 0.48 = base colour (±6% brightness jitter), 1 = colour x0.64. Glowing pieces (faces, eyes, jewels) use 78% warm white core and x0.9 rim. Floor pieces get luminance 0.52 at the lead rising to 0.88 at the centre (smoothstep over 0.34 x cell size), a touch darker than the figures so the lit actors are the clearest read.",
     "lighting": "Backlit glass: light comes through the window, not from a direction. Warm additive glow sprites behind carved faces, candles and gems; coloured elliptical light pools under props (additive, alpha 0.1-0.3); a screen layer of five coloured diagonal light rays plus a warm centre, added with 'lighter' and slowly drifting.",
-    "texture": "Cathedral-glass streaks (two curved white strokes at 12% alpha per piece), elliptical glints on half the pieces, sinusoidal ripple banding in floor pieces (±5.5%), seedy bubbles in clear quarries, scattered diagonal white glint strokes on the floor and faint screen-anchored wavy ripple lines."
+    "texture": "Cathedral-glass streaks (two curved white strokes at 12% alpha per piece), elliptical glints on half the pieces, sinusoidal ripple banding in floor pieces (±5.5%), seedy bubbles in clear quarries, faint screen-anchored wavy ripple lines and 26 slow dust motes in the light shafts. No glints sprinkled over the floor."
   },
   "palette": [
-    { "name": "Lead came", "hex": "#17131c", "role": "All outlines, piece seams, text strokes, UI borders" },
-    { "name": "Lead ridge", "hex": "#544e60", "role": "Soft metallic highlight in the middle of floor lead lines" },
-    { "name": "Meadow green", "hex": "#2a6e48", "role": "Main floor glass (with #327a4e, #265f44, #3a8250, #2a7058, #2f6c40), ~45% of the screen" },
-    { "name": "Olive meadow", "hex": "#5f7a33", "role": "Alternate meadow patches (with #55702f, #4c652b, #687f38, #59702d)" },
-    { "name": "Leaf carpet crimson", "hex": "#a23a4e", "role": "Autumn region (with #8e2a3c, #7c2234, #ad4c38, #963046, #a35c2c, #b0405a)" },
-    { "name": "Amber path", "hex": "#c28a38", "role": "Path centre lane; outer lanes #a8742e / #b07c33 / #9c6a2a / #b5813a" },
-    { "name": "Night glass", "hex": "#304296", "role": "Dark blue graveyard region (with #28388a, #3a2e86, #46348e, #243478, #2c4e90)" },
-    { "name": "Clear quarry", "hex": "#646e8a", "role": "Grey-blue diamond quarry plazas (with #5c6884, #6c7088, #58647e, #6a6486)" },
-    { "name": "Pumpkin orange", "hex": "#ff8a22", "role": "Main character's round head ribs (#e2681a, #ffa63c), gourd props" },
-    { "name": "Candle gold", "hex": "#ffd23a", "role": "Glowing carved faces, flames, jewels" },
-    { "name": "Hem gold", "hex": "#f2c040", "role": "Clasps, hems, fruit jewels, star decals" },
-    { "name": "Cloak green", "hex": "#2a6e40", "role": "Main character's clothing pieces (#1f5a34, #184a2c, #2f7a3c, #22603e)" },
-    { "name": "Scarf red", "hex": "#c4283e", "role": "Main character's accent (#a51d34, #d8404e)" },
-    { "name": "Amethyst", "hex": "#9351c8", "role": "Caps of the small root-bulb creatures (variants #7a3fae, #c24ca2, #7060d0)" },
-    { "name": "Ivory", "hex": "#f4e2b4", "role": "Small creature bodies, roots, seeds (#e8cc90)" },
-    { "name": "Ember", "hex": "#ff5a26", "role": "Angry glowing creature eyes" },
-    { "name": "Opal", "hex": "#e9e9fb", "role": "Mosaic of the fast floating spirit (#f0f5ff, #dde8fb, #f6ecfb, #e0f3f4, #fbf6ec)" },
-    { "name": "Earth brown", "hex": "#7e5a3c", "role": "Large creature body, tree trunks (#6b4a32, #5a3b2a, #8a6440)" },
-    { "name": "Dusk violet", "hex": "#704690", "role": "Large creature shoulders and arms (#5e3a7a, #52306a, #7c5098)" },
-    { "name": "Ruby", "hex": "#e3203c", "role": "Large creature core, hearts, the red status bar (#ff4a5a, #b8142e, #ff7080)" },
-    { "name": "Aqua gem", "hex": "#3ac6c6", "role": "Small faceted collectibles (#8ff6ea, #c4fff6, #279fb0), the aqua progress bar" },
-    { "name": "Window gold fillet", "hex": "#d9ad4e", "role": "Thin gold ring inside every UI lead border" }
+    {
+      "name": "Lead came",
+      "hex": "#17131c",
+      "role": "All outlines, piece seams, text strokes, UI borders"
+    },
+    {
+      "name": "Gold border strip",
+      "hex": "#c99030",
+      "role": "Strip of small pieces inside the leaf-carpet edge (#b57a26, #d8a845, #a86c22)"
+    },
+    {
+      "name": "Meadow green",
+      "hex": "#2a6e48",
+      "role": "Main floor glass (with #327a4e, #265f44, #3a8250, #2a7058, #2f6c40), large 24-unit pieces, ~45% of the screen"
+    },
+    {
+      "name": "Olive meadow",
+      "hex": "#5f7a33",
+      "role": "Alternate meadow patches (with #55702f, #4c652b, #687f38, #59702d)"
+    },
+    {
+      "name": "Leaf carpet crimson",
+      "hex": "#a23a4e",
+      "role": "Autumn region (with #8e2a3c, #7c2234, #ad4c38, #963046, #a35c2c, #b0405a)"
+    },
+    {
+      "name": "Amber path",
+      "hex": "#c28a38",
+      "role": "Path centre lane; outer lanes #a8742e / #b07c33 / #9c6a2a / #b5813a"
+    },
+    {
+      "name": "Night glass",
+      "hex": "#304296",
+      "role": "Dark blue graveyard region (with #28388a, #3a2e86, #46348e, #243478, #2c4e90)"
+    },
+    {
+      "name": "Clear quarry",
+      "hex": "#646e8a",
+      "role": "Grey-blue diamond quarry plazas (with #5c6884, #6c7088, #58647e, #6a6486)"
+    },
+    {
+      "name": "Pumpkin orange",
+      "hex": "#ff8a22",
+      "role": "Main character's round head ribs (#e2681a, #ffa63c), gourd props"
+    },
+    {
+      "name": "Candle gold",
+      "hex": "#ffd23a",
+      "role": "Glowing carved faces, flames, jewels"
+    },
+    {
+      "name": "Hem gold",
+      "hex": "#f2c040",
+      "role": "Clasps, hems, fruit jewels, star decals"
+    },
+    {
+      "name": "Cloak green",
+      "hex": "#2a6e40",
+      "role": "Main character's cloak and sleeves (#1f5634, #2c7244, #184a2c, #2f7a3c); leggings #4b3868 / #3a2a50"
+    },
+    {
+      "name": "Scarf red",
+      "hex": "#c4283e",
+      "role": "Main character's accent (#a51d34, #d8404e)"
+    },
+    {
+      "name": "Amethyst",
+      "hex": "#9351c8",
+      "role": "Caps of the small root-bulb creatures (variants #7a3fae, #c24ca2, #7060d0)"
+    },
+    {
+      "name": "Ivory",
+      "hex": "#f4e2b4",
+      "role": "Small creature bodies, roots, seeds (#e8cc90)"
+    },
+    {
+      "name": "Ember",
+      "hex": "#ff5a26",
+      "role": "Angry glowing creature eyes"
+    },
+    {
+      "name": "Opal",
+      "hex": "#e9e9fb",
+      "role": "Hood and drapery strips of the fast floating spirit (#f0f5ff, #dde8fb, #f6ecfb, #e0f3f4, #fbf6ec)"
+    },
+    {
+      "name": "Earth brown",
+      "hex": "#7e5a3c",
+      "role": "Large creature body, tree trunks (#6b4a32, #5a3b2a, #8a6440)"
+    },
+    {
+      "name": "Dusk violet",
+      "hex": "#704690",
+      "role": "Large creature shoulders and arms (#5e3a7a, #52306a, #7c5098)"
+    },
+    {
+      "name": "Ruby",
+      "hex": "#e3203c",
+      "role": "Large creature core, rosette centre jewels, jewel border strip round the plaza (#9e2a42, #2c4aa8), the red status bar"
+    },
+    {
+      "name": "Aqua gem",
+      "hex": "#3ac6c6",
+      "role": "Small faceted collectibles (#8ff6ea, #c4fff6, #279fb0), the aqua progress bar"
+    },
+    {
+      "name": "Pearl border strip",
+      "hex": "#93a5cf",
+      "role": "Strip of small pieces inside the night-glass edge (#7f92c0, #7183b4, #a0b0d8)"
+    }
   ],
   "paletteRules": [
     "Every colour is a saturated jewel tone at mid value; pure white and pure black never appear as surface colour (only lead #17131c and highlight mixes).",
     "Lead is the only dark: roughly 12-18% of floor pixels are lead. Never draw a glass piece darker than its colour x0.6.",
     "Background regions use cool or earthy mid tones (greens, crimson, blue, grey); characters use brighter, warmer or paler pieces (orange, ivory, opal, amethyst) so they pop against the floor.",
     "Anything that 'emits' (faces, eyes, flames, gems, cores) uses glow pieces: warm-white core plus an additive glow sprite. Reserve gold/yellow for these and for UI numbers.",
-    "Each region picks a random swatch per piece from a 5-7 colour family with ±7% brightness; never use a single flat colour for a whole area."
+    "Each region picks a random swatch per piece from a 5-7 colour family with ±7% brightness; never use a single flat colour for a whole area.",
+    "Border strips use the complementary metal of their region: gold round crimson, pearl blue round night blue, alternating ruby/blue jewels round grey quarries. The open meadow has no strip."
   ],
   "typography": [
-    { "family": "Cinzel Decorative", "weights": [700, 900], "role": "Titles, clock / timer, counters, floating numbers, announcement headings", "source": "Google Fonts", "sample": "REJOICE!", "css": "font: 900 34px/1.05 'Cinzel Decorative', 'Cinzel', serif; letter-spacing: 2px; color: #ffdf7e; text-shadow: 2.5px 0 0 #17131c, -2.5px 0 0 #17131c, 0 2.5px 0 #17131c, 0 -2.5px 0 #17131c, 0 0 14px rgba(255,200,90,.7);" },
-    { "family": "Cinzel", "weights": [500, 700, 900], "role": "Body text, labels, bar value text, card descriptions", "source": "Google Fonts", "sample": "Lit From Within", "css": "font: 700 11px/1 'Cinzel', Georgia, serif; letter-spacing: 3px; color: #cfdaff; text-shadow: 0 1px 2px #17131c;" }
+    {
+      "family": "Cinzel Decorative",
+      "weights": [
+        700,
+        900
+      ],
+      "role": "Titles, clock / timer, counters, floating numbers, announcement headings",
+      "source": "Google Fonts",
+      "sample": "REJOICE!",
+      "css": "font: 900 34px/1.05 'Cinzel Decorative', 'Cinzel', serif; letter-spacing: 2px; color: #ffdf7e; text-shadow: 2.5px 0 0 #17131c, -2.5px 0 0 #17131c, 0 2.5px 0 #17131c, 0 -2.5px 0 #17131c, 0 0 14px rgba(255,200,90,.7);"
+    },
+    {
+      "family": "Cinzel",
+      "weights": [
+        500,
+        700,
+        900
+      ],
+      "role": "Body text, labels, bar value text, card descriptions",
+      "source": "Google Fonts",
+      "sample": "Lit From Within",
+      "css": "font: 700 11px/1 'Cinzel', Georgia, serif; letter-spacing: 3px; color: #cfdaff; text-shadow: 0 1px 2px #17131c;"
+    }
   ],
   "world": {
-    "summary": "A per-pixel, world-anchored stained-glass floor. Smooth noise fields decide the material region; each material is a jittered-grid Voronoi tessellation (cell 15-30 units) whose seams and region borders become antialiased lead with a metallic ridge. Leaded glass decals (flowers, leaves, stars, roundels) and glints are drawn on top, then prop light pools.",
+    "summary": "A per-pixel, world-anchored stained-glass floor composed like a real window. Smooth, broad noise fields decide the material region; each material is a jittered-grid Voronoi (large calm cells), every leaf, night and plaza region gets a border strip of small pieces just inside its edge, heavy lead separates regions, and rare rose-window medallions sit in calm areas as focal points. Decals are clustered, never evenly sprinkled.",
     "layers": [
-      "Material field: 5 noise layers sampled on a 4-unit grid, bilinear value / bilinear gradient = signed distance in world units; priority plaza > path (|d| < 21) > night > leaf carpet > meadow.",
-      "Voronoi glass per material: meadow cell 20, leaf carpet 15, night 23, path 30 (3 lanes split at ±7 units), plaza = 45° diamond quarries every 17 units.",
-      "Per-piece shading: luminance 0.6 at the lead to 0.98 in the middle, sinusoidal streak ±5.5%, macro brightness from a 1150-unit noise.",
+      "Material field: 5 noise layers sampled on a 4-unit grid (leaf carpet at 1/760, night at 1/980, 2-octave warped fbm), bilinear value / bilinear gradient = signed distance in world units; priority plaza > path (|d| < 21) > night > leaf carpet > meadow.",
+      "Voronoi glass per material: meadow cell 24, leaf carpet 19, night 27, path 30 (3 lanes split at ±7 units), plaza = 45° diamond quarries every 17 units.",
+      "Border strip: inside the own edge of leaf, night and plaza regions (signed distance < 6.5 units) the pixel switches to an 8-unit Voronoi coloured from the strip palette; a lead line marks its inner edge.",
+      "Per-piece shading: luminance 0.52 at the lead to 0.88 in the middle, sinusoidal streak ±5.5%, macro brightness from a 1150-unit noise.",
       "Lead: piece seams half-width 0.78, region borders 1.2, colour ramp from rgb(28,24,34) at the edge to rgb(84,78,96) at the centre ridge.",
-      "Decals: leaded flowers (5 petals) on meadow, autumn leaves on the carpet, gold stars on night glass, amber roundels on the path, seedy bubbles on quarries.",
-      "Glints: short diagonal white strokes at 20% alpha scattered every ~24 units.",
+      "Rose medallions (one per ~430-unit cell, 60%, only where 34 units around are one material): dark disc, 16-piece outer ring, 8 pointed petals, ivory centre, jewel centre, heavy lead rings.",
+      "Clustered decals: flower sprays of 3-6 blossoms mostly within 48 units of a meadow edge; drifts of 3-5 leaves on the carpet; constellations of 3-5 gold stars joined by thin gold lines on night glass; sparse amber roundels on the path; seedy bubbles in quarries.",
       "Prop contact shadows (rgba(16,12,24,0.38)) and additive coloured light pools baked into the chunk."
     ]
   },
   "characters": {
-    "summary": "Chunky, chibi figures (main character drawn x1.15, ~24 units wide and ~42 tall incl. stem) assembled from 10-25 glass pieces: round heads from 5 vertical rib lenses, clothes from BSP-cut mosaics, leaves from two half-pieces split on the midrib, carved faces as glowing gold polygons. Creatures: small root-bulb creatures with jewel caps and ivory bodies, a fast opal floating spirit with a dissolving hem, a large violet-and-brown giant with a ruby core. Pre-rendered in 4 walk frames plus a 'flash' (lit glass) copy of each frame.",
+    "summary": "Chunky, chibi figures assembled from 10-25 glass pieces each. The main character (x1.15, ~24 wide, ~42 tall with stem) is a layered puppet: 10 baked body frames (legs + cloak: 8 walk poses, stand, dash) with a sheared swinging hem, two arms on shoulder pivots, a head with three faces (looking ahead, looking at the viewer, squint) and a two-segment scarf tail on springs. Creatures: small root-bulb creatures with jewel caps, a separate leaf crown and blink lids; a fast hooded opal spirit made of designed drapery strips with a rippling three-point hem; a large violet-and-brown giant with a ruby core. Every body frame has a lit 'flash' copy.",
     "rules": [
-      "Every figure has one fat outer lead came (1.9 units wide) from the outline pass, so silhouettes read on the busy floor.",
+      "Every figure part has one fat outer lead came (1.9 units wide) from the outline pass, so silhouettes read on the busy floor.",
       "Faces and eyes are glow pieces (warm-white core) plus an additive glow sprite: the face is the brightest thing on any figure.",
-      "Pieces get smaller where detail matters (face, hands) and larger on bodies; never more than ~25 pieces on a small figure. Body pieces 30-80 units², face/detail pieces 3-15 units².",
+      "Pieces follow form, never cut randomly across a face: hood panel and vertical drapery strips on the spirit, rib lenses on round heads, midrib halves on leaves.",
       "Figures are warmer, paler or more saturated than the floor region they stand on; creature colours (ivory, amethyst, opal) are absent from the floor palettes.",
       "Three distinct creature silhouettes and sizes: small ~26 units tall, floating ~28, large ~64; each anchored by a flat dark ellipse shadow.",
-      "Facing = horizontal flip of the baked sprite; carved faces are drawn offset 1.5 units towards the facing side.",
-      "Flash = blit the pre-baked flash copy (pieces mixed 58% toward warm white, lead kept) at alpha <= 0.62 over the normal sprite.",
-      "Disappearing = the figure shatters into 6-16 leaded shards in its own colours; appearing = shards fly in and assemble."
+      "Facing = horizontal flip of every part; part angles are mirrored with the facing so the puppet stays consistent.",
+      "Hit = lit copy at alpha <= 0.75, 14% squash, a 0.24 rad tilt away from the push and a white glint for ~0.14 s.",
+      "Appearing = the figure's own pieces (5-8 coarse cuts) fly in along curved paths and lock together, flash, then settle with a decaying squash; disappearing = it cracks along lead lines (white-hot) and the 8-16 pieces burst out, arc up, drop and fade."
     ]
   },
   "props": {
@@ -103,18 +228,38 @@
       "Candles: ivory pieces + layered flame glow pieces + a flickering warm glow (0.75 + 0.25 sin(11t) sin(7.3t)); warm pool rgb(255,180,70) at 0.3.",
       "Graves: grey mosaic slabs with an inlaid pale-blue glowing cross; cold pool rgb(150,200,255) at 0.12.",
       "Gourds: rib-lens pieces in #c85a14 / #e47820 / #f39232, sometimes carved with a glowing face.",
-      "15 prop variants are baked once at init (3 trees, 2 bushes, 2 arches, 2 candle groups, 3 graves, 3 gourd groups)."
+      "15 prop variants are baked once at init (3 trees, 2 bushes, 2 arches, 2 candle groups, 3 graves, 3 gourd groups). Trees, bushes and gourds gather along region edges (forest edges); the open meadow stays calm."
     ]
   },
   "effects": [
-    { "name": "Shatter", "how": "When a figure disappears, 6 (floating spirit), 8 (small) or 16 (large) shard sprites: 3 baked triangle/quad shapes with lead outline, coloured from the figure palette. They fly out with gravity 300, drag 1.4, life 0.9-1.4 s, spin ±8 rad/s and fake 3D tumble by scaling y with |cos|; when edge-on they flash a glint." },
-    { "name": "Impact glint", "how": "Four-point star sprite (white core, tinted halo, curved spikes 7.5 units) added with 'lighter', scale ramps in over 30% of life then out; 45% chance of a single shard." },
-    { "name": "Seed projectile", "how": "A two-piece leaded seed sprite rotated to its heading, y-scale 0.6-1 by spin, with a 16-unit additive tapered trail (rgba 255,214,120 .75 to 0) and a small gold glow." },
-    { "name": "Collectibles", "how": "A kite split into 4 facets around (0, -1.4), two of them glowing, in aqua (large: gold with a ruby centre); bobs ±1.1 units with an aqua additive halo and a rare twinkle glint." },
-    { "name": "Glow sprites", "how": "Radial gradients baked once (stops 0:0.9, 0.25:0.45, 0.6:0.12, 1:0 alpha) in warm, gold, aqua, cold and ruby, blitted with globalCompositeOperation 'lighter' behind faces, collectibles, candles and creature cores." },
-    { "name": "Celebration beams", "how": "12 vertical light beams (3.2 x 40 units, gradient 0 / 0.7 / 0 with a white 0.8-unit core) in gold, rose, blue and mint around the main character plus a lead-and-gold expanding ellipse ring and 10 glints." },
-    { "name": "Ring shockwave", "how": "Ellipse ring (ry = 0.45 rx) stroked twice: lead at width w+1.4, then the colour additively at width w = 2.6 x (1-t)." },
-    { "name": "Floating numbers", "how": "Cinzel Decorative 900 at 9.2 units (12.5 for the large variant), stroked twice in lead (width 0.26 x font size, once offset down), filled with a vertical gradient (large #fff6c0 > #ffcf40 > #ff7a1a, small #ffffff > #e6eeff > #a9c0ee), white 50% band over the top; pop 0.4 > 1.25 > 1." }
+    {
+      "name": "Shatter",
+      "how": "Death of a figure: its finished sprite is cut by a BSP into 8-16 convex pieces at init; each keeps its painted glass and gets a 0.62-unit lead edge. Over the death time the pieces first crack apart by 0.5 units (lit copy, white-hot glow), then fly out with an ease-out cubic, rise and fall in an arc, spin up to ±4.5 rad and fade over the last third. Loose shard particles (3 baked shapes) keep falling and resting on the floor as residue."
+    },
+    {
+      "name": "Impact starburst",
+      "how": "Eight leaded lens rays (gold #f2c040 and pale #fff2c0, 5 and 7.6 units long) around a white-hot centre piece, over a warm additive glow; it grows from 0.35 to 1.15 x size with an ease-out, turns 0.7 rad and fades after 45% of its 0.17 s life. Plus a four-point glint and a 55% chance of one shard."
+    },
+    {
+      "name": "Burst flare and ring",
+      "how": "An additive glow in the creature's colour (violet, cold blue, ruby) decays quadratically over 0.18-0.3 s; the large creature also gets a ring of short glass pieces: a lead ellipse with a dashed coloured stroke (3.6 on, 1.1 off) added on top, ry = 0.45 rx."
+    },
+    {
+      "name": "Seed projectile",
+      "how": "A two-piece leaded seed sprite rotated to its heading, y-scale 0.6-1 by spin, with a 16-unit additive tapered trail (rgba 255,214,120 .75 to 0) and a small gold glow."
+    },
+    {
+      "name": "Collectibles",
+      "how": "A kite split into 4 facets around (0, -1.4), two of them glowing, in aqua (large: gold with a ruby centre); bobs ±1.1 units with an aqua additive halo and a rare twinkle glint; the large one leaves a small gold ring when collected."
+    },
+    {
+      "name": "Rose-window light",
+      "how": "Celebration: a rose medallion sprite (r 23) is projected onto the floor additively (alpha 0.62, ry 0.48), unfolds with an ease-out-back over 28% of 1.1 s, holds and fades; 12 vertical light beams (3.2 x 40 units) in gold, rose, blue and mint, a lead-and-gold ring and 10 glints play on top."
+    },
+    {
+      "name": "Floating numbers",
+      "how": "Cinzel Decorative 900 at 9.2 units (12.5 for the large variant), stroked twice in lead (width 0.26 x font size, once offset down), filled with a vertical gradient (large #fff6c0 > #ffcf40 > #ff7a1a, small #ffffff > #e6eeff > #a9c0ee), white 50% band over the top; pop 0.4 > 1.25 > 1."
+    }
   ],
   "atmosphere": {
     "summary": "No directional light: the light comes through the glass. Highlights sit at the upper left of every piece, light sources are glow pieces plus additive glow sprites, props cast coloured pools, and a baked window overlay (vignette, lead frame with gold fillet, pane ripples, drifting coloured rays) sits over the whole screen.",
@@ -125,7 +270,8 @@
       "Vignette like a deep window embrasure: radial from 0.28 H to 0.56 x diagonal, rgba(14,8,26, 0 / .1 @ .55 / .36 @ .85) to rgba(10,6,20,.62).",
       "Window frame (s = H/900): lead stroke 10 s at inset 5 s (rgba(16,12,22,.85)), gold fillet 2 s at inset 11 s (rgba(214,170,80,.35)), dark corner rosettes r 110 s.",
       "70 faint wavy ripple lines (white 2.8% / navy 3%), screen-anchored like real pane distortion.",
-      "Light layer at 55% x 50% resolution: warm centre rgba(255,226,170,.16) plus five diagonal coloured rays (rose, gold, blue, amber, lilac) at alpha 0.075 -> 0.028 -> 0, slanted 0.45 H, added with 'lighter', stretched to 110% width and drifting ±2.5% of the width at 0.12 rad/s."
+      "Light layer at 55% x 50% resolution: warm centre rgba(255,226,170,.16) plus five diagonal coloured rays (rose, gold, blue, amber, lilac) at alpha 0.075 -> 0.028 -> 0, slanted 0.45 H, added with 'lighter', stretched to 110% width and drifting ±2.5% of the width at 0.12 rad/s.",
+      "Ambient: 26 dust motes (1.4-3.2 px at 900 px height, #ffecbe at 10-26% alpha) drift slowly up through the screen and twinkle on their own timings."
     ]
   },
   "ui": {
@@ -133,32 +279,35 @@
     "css": ".hud-panel { padding: 8px 30px 9px; border: 4px solid #17131c; border-radius: 70px 70px 16px 16px / 56px 56px 16px 16px; background: radial-gradient(ellipse at 50% 30%, rgba(255,230,170,.28), transparent 60%), radial-gradient(ellipse at 50% 35%, #4a63c8 0%, #26357e 55%, #141b48 100%); box-shadow: 0 0 0 2px #d9ad4e, 0 0 0 6px #17131c, 0 8px 18px rgba(0,0,0,.55), inset 0 0 18px rgba(0,0,30,.6); font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; color: #ffdf7e; }\n.bar { position: relative; width: 250px; height: 26px; border: 3px solid #17131c; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #2a0c16, #4a1626 50%, #22080f); box-shadow: 0 0 0 2px #d9ad4e, 0 0 0 5px #17131c, 0 5px 12px rgba(0,0,0,.55), inset 0 3px 5px rgba(0,0,0,.6); }\n.bar-fill { height: 100%; background: repeating-linear-gradient(90deg, transparent 0 46px, #17131c 46px 49px), linear-gradient(180deg, #ffc0b4 0%, #ec3c52 44%, #9a1630 100%); box-shadow: 0 0 12px rgba(255,90,110,.6); }\n.bar-fill::after { content: ''; position: absolute; left: 7px; right: 7px; top: 3px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.5); }"
   },
   "motion": [
-    "4 baked walk frames per figure; main character cycles at 0.42 x distance, small creature at 0.85, large creature at 0.32; frame = floor(phase x 4) & 3.",
-    "Main character walk: lift |sin(phase x TAU)| x 2.2 units, rock ±0.05 rad, y-squash ±2%; idle breath ±2.5% y / ∓1.5% x at 3 rad/s.",
-    "Small creature hops: lift |sin| x 1.2 units and rocks ±0.09 rad. Floating spirit hovers 4 units up, bobs ±1.5 at 2.4 rad/s, tilts with velocity up to 0.14 rad, 6 fps frames, alpha 0.86.",
-    "Large creature stomps: lift 1.8 units, contact squash (1-up)^4 x 5%.",
-    "Glows flicker with products of two sines (e.g. sin(9t) x sin(5.3t)); candle flames 0.75 + 0.25 sin(11t) sin(7.3t).",
-    "Trees and bushes sway as a horizontal skew of 0.02-0.03 at 1.1 rad/s; the screen light rays drift ±2.5% of the width at 0.12 rad/s.",
-    "Flash decays from 1 to 0; disappearing is a 0.22 s flash-copy pop (scale 1 to 1.18, fading) followed by shards; appearing assembles shards over 0.85 s."
+    "Main character walk: 8 body frames picked by phase = fract(distance x 0.3); lift 0.55 x (1 + cos(4π(phase - 0.375))) so the body is lowest just after contact and highest at passing; head bob lags by 0.07 of a cycle; rock ±0.035 rad; arms counter-swing ±0.55 rad against the legs; the cloak hem shears ±1.2 units behind the stride.",
+    "Scarf tail: two segments on damped springs (stiffness 150 / 70, damping 10 / 7) towards a trailing angle of 0.2 + min(0.95, speed x 0.0105) rad plus a small flutter; the lower segment follows the upper one with lag, so stops and turns overshoot.",
+    "Idle: breathing ±1.8% y at 1.9 rad/s with the head lagging 0.7 rad, arms drift ±0.05 rad, a squint blink every ~3.3 s for 0.11 s and a look at the viewer for ~1 s every 5.3 s, all phase-offset per figure.",
+    "Dash: a 40 ms crouch (y -14%, x +10%, arms back), then the dash frame leaning 0.2 rad with arms swept back 1 rad and three lit afterimages. Throw: the near arm swings forward to -1.45 rad and eases back over 0.2 s. Hurt: squint face, 0.2 rad recoil, lit copy.",
+    "Small creature: 6 frames, two hops per cycle (lift |sin| x 1.4, contact squash (1-up)^3 x 7%), waddle ±0.08 rad; the leaf crown is a separate sprite on the bulb top that swings ±0.16 rad a quarter cycle behind; blink lids every ~2.7 s with a per-creature phase.",
+    "Floating spirit: 6 hem frames at 8 fps, hovers 4.6 units up with an eased bob 1.5 x (sin w + 0.32 sin 2w), tilts with velocity up to 0.16 rad and stretches 5% with speed. Large creature: 6 frames, lift 1.8 units, contact squash (1-up)^4 x 5%, crown leaves lean behind the stride.",
+    "Appearing (0.45 s): pieces fly in over 70% with an ease-out cubic, then a squash-and-stretch settle sin(2πu)(1-u) of 12%. Disappearing (0.35 s): crack 0-14%, burst 14-100%, fade over the last third.",
+    "Glows flicker with products of two sines (e.g. sin(9t) x sin(5.3t)); candle flames 0.75 + 0.25 sin(11t) sin(7.3t); trees and bushes sway as a horizontal skew of 0.02-0.03 at 1.1 rad/s; the screen light rays drift ±2.5% of the width at 0.12 rad/s."
   ],
   "do": [
     "Draw every figure in two passes: a lead outline pass first, then the glass pieces with inner lead.",
     "Give each glass piece its own off-centre radial gradient (light core, dark rim) and brightness jitter.",
-    "Split shapes where a real glazier would: head ribs, leaf midribs, cloak folds, facets of a gem.",
+    "Split shapes where a real glazier would: head ribs, leaf midribs, cloak folds, hood and drapery strips, facets of a gem.",
     "Make faces, eyes, flames and jewels glow pieces plus an additive glow sprite.",
     "Anchor the floor tessellation in world space and separate material regions with heavier lead.",
     "Cast coloured additive light pools from props onto the floor.",
     "Pre-bake every sprite and a lit 'flash' copy at init; blit at runtime.",
-    "Keep the overlay: vignette, lead window frame with gold fillet and slow coloured light rays."
+    "Keep the overlay: vignette, lead window frame with gold fillet and slow coloured light rays.",
+    "Bake moving parts (arms, head, crown, scarf) as separate leaded sprites so they can swing, lag and overshoot."
   ],
   "dont": [
     "Don't use flat fills without lead seams; it instantly becomes generic vector art.",
     "Don't flash figures pure white: the flash copy keeps the lead and only lights the glass.",
-    "Don't make floor pieces as small as figure pieces; floor cells are 15-30 units, figure pieces 2-8 units.",
+    "Don't make the floor one even tessellation: keep large calm cells inside regions and put the small pieces into border strips along the edges.",
     "Don't use thin or coloured outlines; lead is always the same near-black #17131c.",
     "Don't add drop shadows with hard offsets or realistic directional lighting.",
     "Don't use dark or desaturated figure colours on the same-hued region (e.g. green creatures on meadow).",
-    "Don't compute the per-pixel ground every frame; bake it in chunks."
+    "Don't compute the per-pixel ground every frame; bake it in chunks.",
+    "Don't sprinkle flowers, stars or glints evenly; cluster them along edges or as constellations."
   ],
-  "performance": "All figure/prop/icon sprites (main character 4 frames x2, 3 small-creature variants x4 frames x2, floating spirit and large creature 4x2, props, shards, glows) are baked once at init at 3-5 px per unit. The ground is the hot spot: per-pixel field bilinear + 3x3 Voronoi search + lead ramp, done as a time-sliced generator per 256-unit chunk at up to 2.5 px/unit and cached. Per frame: only drawImage blits, a handful of additive glow blits and two overlay drawImages (overlay baked per screen size, light layer at half resolution). Hundreds of figures are fine because each is one or two blits."
+  "performance": "All figure/prop/icon sprites are baked once at init at 3-5 px per unit: main character 10 body frames + 2 arms + 3 heads + 2 scarf segments (each with a lit copy), 3 small-creature variants x 6 frames + crown + lids, spirit and large creature 6 frames each, shatter pieces (cut with getImageData once), props, shards, glows. The ground is the hot spot: per-pixel field bilinear + 3x3 Voronoi search (region or border-strip sites) + lead ramp, done as a time-sliced generator per 256-unit chunk at up to 2.5 px/unit and cached. Per frame: drawImage blits only; the main character is 6 blits, a creature 1-3, a shattering creature 5-16 small pieces; two overlay drawImages plus 26 mote rects."
 }

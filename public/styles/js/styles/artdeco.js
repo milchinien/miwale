@@ -157,6 +157,31 @@
     ctx.setTransform(S, 0, 0, S, V.ox, V.oy);
   }
 
+  /** Draws rows fy0..fy1 (0..1 of the sprite canvas) of sprite s, like blit (with rotation and flip), offset by (dx, dy) world units. */
+  function blitRows(ctx, V, s, x, y, sx, sy, rot, flip, fy0, fy1, dx, dy) {
+    const S = V.S, f = flip ? -1 : 1, k = 1 / K, W = s.c.width, H = s.c.height;
+    const r0 = Math.max(0, Math.floor(fy0 * H)), r1 = Math.min(H, Math.ceil(fy1 * H));
+    if (r1 - r0 < 1) return;
+    const X = V.ox + (x + (dx || 0)) * S, Y = V.oy + (y + (dy || 0)) * S;
+    if (rot) { const co = Math.cos(rot) * S, si = Math.sin(rot) * S; ctx.setTransform(co * sx * f, si * sx * f, -si * sy, co * sy, X, Y); }
+    else ctx.setTransform(S * sx * f, 0, 0, S * sy, X, Y);
+    ctx.drawImage(s.c, 0, r0, W, r1 - r0, -s.ox * k, (r0 - s.oy) * k, W * k, (r1 - r0) * k);
+    ctx.setTransform(S, 0, 0, S, V.ox, V.oy);
+  }
+  /** Death: the gilded figure splits into stepped horizontal bands that slide apart alternately, drop and fade. */
+  function drawBands(ctx, V, s, x, y, sx, sy, rot, flip, n, u, spread) {
+    const e = 1 - Math.pow(1 - u, 3);
+    for (let b = 0; b < n; b++) {
+      const t = b / (n - 1);
+      const a = 1 - U.smoothstep(0.3 + t * 0.3, 0.72 + t * 0.26, u);
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a;
+      const dir = b & 1 ? 1 : -1;
+      blitRows(ctx, V, s, x, y, sx, sy, rot, flip, b / n, (b + 1) / n + 0.004, dir * spread * (0.5 + t * 0.7) * e, spread * 0.9 * u * u * (1.2 - t));
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /* ============================================================ characters */
   /* ---- main character: a dapper gentleman in an ivory dinner jacket and top hat ---- */
   function gentParts(c, P) {
@@ -221,7 +246,8 @@
     c.beginPath(); c.moveTo(-3.0, -29.2); c.lineTo(0.8, -30.5); c.strokeStyle = 'rgba(140,146,170,.6)'; c.lineWidth = 0.3; c.stroke();
     c.beginPath(); c.moveTo(-1.9, -27.2); c.quadraticCurveTo(-1.2, -27.9, -1.5, -28.8); c.strokeStyle = 'rgba(150,110,70,.7)'; c.lineWidth = 0.35; c.stroke();
     c.lineCap = 'round';
-    c.beginPath(); c.moveTo(1.7, -28.6); c.lineTo(2.9, -28.5); c.strokeStyle = INK; c.lineWidth = 0.6; c.stroke();
+    if (P.blink) { c.beginPath(); c.moveTo(1.6, -28.35); c.lineTo(3.0, -28.25); c.strokeStyle = INK; c.lineWidth = 0.3; c.stroke(); }
+    else { c.beginPath(); c.moveTo(1.7, -28.6); c.lineTo(2.9, -28.5); c.strokeStyle = INK; c.lineWidth = 0.6; c.stroke(); }
     c.beginPath(); c.moveTo(1.4, -29.6); c.lineTo(3.1, -29.7); c.lineWidth = 0.35; c.stroke();
     c.beginPath(); c.moveTo(2.3, -26.4); c.lineTo(3.7, -26.1); c.lineWidth = 0.5; c.stroke();
     c.lineCap = 'butt';
@@ -235,6 +261,8 @@
     arm(4.4, P.af, false, P.cane);
   }
   function gentPose(f) {
+    if (f === -2) return { lf: 0.07, lb: -0.07, af: -0.05, ab: 0.1, cane: 0.32, liftF: 0, liftB: 0, blink: true };
+    if (f === -3) return { lf: 0.05, lb: -0.09, af: -0.28, ab: 0.12, cane: 0.72, liftF: 0, liftB: 0 }; // cane tap / twirl
     if (f < 0) return { lf: 0.07, lb: -0.07, af: -0.05, ab: 0.1, cane: 0.32, liftF: 0, liftB: 0 };
     const ph = (f / 6) * TAU, s = Math.sin(ph), co = Math.cos(ph);
     return { lf: s * 0.44, lb: -s * 0.44, af: -s * 0.36, ab: s * 0.36, cane: -s * 0.2 + 0.3, liftF: Math.max(0, co) * 1.5, liftB: Math.max(0, -co) * 1.5 };
@@ -663,7 +691,7 @@
     const ctx = tex.canvas.getContext('2d');
     const rng = U.rng(seed);
     const cols = [['#d9ccaa', 0.1], ['#c4953e', 0.08], ['#2c7d6a', 0.12], ['#0b1020', 0.3], ['#33467a', 0.4]];
-    for (let i = 0; i < 1100; i++) {
+    for (let i = 0; i < 560; i++) { // fewer chips: a calm walkway, not a speckle
       let r = rng.next(), col = cols[cols.length - 1][0];
       for (const cc of cols) { if (r < cc[1]) { col = cc[0]; break; } r -= cc[1]; }
       const x = rng.next() * size, y = rng.next() * size, rad = 0.5 + rng.next() * rng.next() * 2.6, n = 3 + ((rng.next() * 3) | 0), rot = rng.next() * TAU;
@@ -701,9 +729,12 @@
   }
   function clipField(c, f) { c.save(); c.beginPath(); stepRect(c, f.x0, f.y0, f.x1, f.y1, f.s); c.clip(); }
 
+  // three designed medallion variants (ray count, ray glass, star points, rotation) so neighbouring bays never read as one stamp
+  const MEDAL = [{ n: 16, w: 0.105, star: 8, rot: 0, glass: 'bemer' }, { n: 12, w: 0.15, star: 12, rot: PI / 12, glass: 'night' }, { n: 24, w: 0.07, star: 6, rot: PI / 24, glass: 'bemer' }];
   function bayMedallion(c, P, bx, by) {
     const f = frameField(c, P, bx + WALK, by + WALK, bx + BAY - WALK, by + BAY - WALK);
     const cx = bx + BAY / 2, cy = by + BAY / 2;
+    const MV = MEDAL[U.hashInt(Math.round(bx / BAY), Math.round(by / BAY), 919) % 3];
     clipField(c, f);
     // corner fans
     const corners = [[f.x0, f.y0, 0], [f.x1, f.y0, 0.5], [f.x1, f.y1, 1], [f.x0, f.y1, 1.5]];
@@ -711,7 +742,7 @@
       const a0 = q[2] * PI;
       for (let k = 0; k < 6; k++) {
         c.beginPath(); c.moveTo(q[0], q[1]); c.arc(q[0], q[1], 32, a0 + (k / 6) * PI * 0.5, a0 + ((k + 1) / 6) * PI * 0.5); c.closePath();
-        c.fillStyle = k & 1 ? P.bonyx : P.bemer; c.fill();
+        c.fillStyle = k & 1 ? P.bonyx : P[MV.glass === 'night' ? 'night' : 'bemer']; c.fill();
       }
       c.beginPath(); for (let k = 1; k < 6; k++) { const a = a0 + (k / 6) * PI * 0.5; c.moveTo(q[0] + Math.cos(a) * 7, q[1] + Math.sin(a) * 7); c.lineTo(q[0] + Math.cos(a) * 32, q[1] + Math.sin(a) * 32); }
       pin(c, 0.4);
@@ -724,16 +755,16 @@
     const R = 58;
     c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fillStyle = P.bonyx; c.fill();
     c.beginPath();
-    for (let k = 0; k < 16; k++) {
-      const a = (k / 16) * TAU - PI / 2, w = 0.105;
+    for (let k = 0; k < MV.n; k++) {
+      const a = (k / MV.n) * TAU - PI / 2 + MV.rot, w = MV.w;
       c.moveTo(cx + Math.cos(a) * 15, cy + Math.sin(a) * 15);
       c.lineTo(cx + Math.cos(a - w) * R, cy + Math.sin(a - w) * R);
       c.arc(cx, cy, R, a - w, a + w);
       c.closePath();
     }
-    c.fillStyle = P.bemer; c.fill(); pin(c, 0.45);
+    c.fillStyle = P[MV.glass === 'night' ? 'night' : 'bemer']; c.fill(); pin(c, 0.45);
     c.beginPath();
-    for (let k = 0; k < 16; k++) { const a = ((k + 0.5) / 16) * TAU - PI / 2; c.moveTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24); c.lineTo(cx + Math.cos(a) * (R - 5), cy + Math.sin(a) * (R - 5)); }
+    for (let k = 0; k < MV.n; k++) { const a = ((k + 0.5) / MV.n) * TAU - PI / 2 + MV.rot; c.moveTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24); c.lineTo(cx + Math.cos(a) * (R - 5), cy + Math.sin(a) * (R - 5)); }
     pin(c, 0.55, GOLD.lt);
     c.beginPath(); c.arc(cx, cy, 40, 0, TAU); pin(c, 0.5);
     ringG(c, cx, cy, R, 3.4);
@@ -742,7 +773,7 @@
     c.beginPath(); c.arc(cx, cy, R + 9.5, 0, TAU); pin(c, 0.5);
     c.beginPath(); c.arc(cx, cy, 14, 0, TAU); c.fillStyle = P.ivory; c.fill();
     ringG(c, cx, cy, 14, 2.4);
-    c.beginPath(); starPath(c, cx, cy, 8, 11.5, 4.4, -PI / 2);
+    c.beginPath(); starPath(c, cx, cy, MV.star, 11.5, MV.star > 8 ? 6 : 4.4, -PI / 2);
     const sg = c.createRadialGradient(cx - 2, cy - 3, 0.5, cx, cy, 12); sg.addColorStop(0, GOLD.hi); sg.addColorStop(0.5, '#e2b553'); sg.addColorStop(1, '#8a611d');
     c.fillStyle = sg; c.fill(); c.strokeStyle = GOLD.dk; c.lineWidth = 0.35; c.stroke();
     c.beginPath(); c.arc(cx, cy, 2.4, 0, TAU); c.fillStyle = C.onyx; c.fill(); pin(c, 0.45, GOLD.lt);
@@ -1227,7 +1258,7 @@ ${X} #pausebox { font-family: 'Limelight', Georgia, serif; font-weight: 400; fon
       // main character
       const gbox = [-13, -42, 15, 2.5];
       const gset = (f) => set3(gbox, (c) => { c.scale(1.1, 1); gentParts(c, gentPose(f)); }, 0.6, '#ff8a7a', 1.06);
-      SPR.gent = { idle: gset(-1), walk: [0, 1, 2, 3, 4, 5].map(gset) };
+      SPR.gent = { idle: gset(-1), blink: gset(-2), tap: gset(-3), walk: [0, 1, 2, 3, 4, 5].map(gset) };
       SPR.scarab = [0, 1, 2].map((v) => [0, 1, 2, 3].map((f) => set3([-14, -16, 16, 2], (c) => scarabParts(c, f, v), 0.5, null, 1.3)));
       SPR.swift = [0, 1, 2, 3].map((f) => set3([-16, -16, 14, 16], (c) => swiftParts(c, f), 0.5, null, 1.12));
       SPR.guard = [0, 1, 2, 3].map((f) => set3([-21, -64, 21, 2], (c) => guardParts(c, f), 0.8));
@@ -1268,8 +1299,10 @@ ${X} #pausebox { font-family: 'Limelight', Georgia, serif; font-weight: 400; fon
           P.bemer = bayPat(ctx, TEX.emer, 0.55, i, j, 202);
           ctx.save();
           ctx.beginPath(); ctx.rect(i * BAY, j * BAY, BAY, BAY); ctx.clip();
-          BAY_FN[bayType(i, j)](ctx, P, i * BAY, j * BAY);
-          ctx.fillStyle = 'rgba(4,5,9,.3)'; ctx.fillRect(i * BAY, j * BAY, BAY, BAY);
+          const bt = bayType(i, j);
+          BAY_FN[bt](ctx, P, i * BAY, j * BAY);
+          // value hierarchy: the busy all-over patterns sit back, medallions, pools and gardens stay the focal bays
+          ctx.fillStyle = bt === 'harlequin' || bt === 'scallop' || bt === 'chevron' ? 'rgba(4,5,9,.44)' : 'rgba(4,5,9,.3)'; ctx.fillRect(i * BAY, j * BAY, BAY, BAY);
           ctx.restore();
           yield;
         }
@@ -1473,21 +1506,42 @@ ${X} #pausebox { font-family: 'Limelight', Georgia, serif; font-weight: 400; fon
       if (e.spawnT < 1 && !e.dying) {
         const q = U.clamp(e.spawnT, 0, 1);
         if (e.type === 'ghost') { y -= (1 - q) * 26; alpha = q; }
-        else { const p = U.ease.outBack(U.clamp((q - 0.15) / 0.85, 0, 1)); if (p <= 0.01) return; sy *= p; sx *= 0.6 + 0.4 * Math.min(1, p); alpha = Math.min(1, q * 2); }
+        else {
+          // rises out of the sunburst sigil: revealed bottom-up in gold behind a bright reveal line, then settles
+          if (q < 0.2) return;
+          if (q < 0.8) {
+            const u = (q - 0.2) / 0.6, ev = 1 - Math.pow(1 - u, 3), top = 1 - ev, lift = (1 - ev) * 5;
+            blitRows(ctx, V, set.g, e.x, y + lift, sx, sy, rot, flip, top, 1, 0, 0);
+            const H = set.g.c.height / K, yl = y + lift - set.g.oy / K + top * H;
+            ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.9;
+            ctx.fillStyle = GOLD.hi; ctx.fillRect(e.x - (e.type === 'colossus' ? 17 : 11), yl - 0.35, e.type === 'colossus' ? 34 : 22, 0.7);
+            ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+            return;
+          }
+          const v = (q - 0.8) / 0.2, wob = Math.sin(v * TAU) * (1 - v);
+          sy *= 1 - 0.08 * wob; sx *= 1 + 0.06 * wob;
+          blit(ctx, V, set.n, e.x, y, sx, sy, rot, flip);
+          ctx.globalAlpha = 1 - v; blit(ctx, V, set.g, e.x, y, sx, sy, rot, flip); ctx.globalAlpha = 1;
+          return;
+        }
       }
       if (e.dying) {
-        // turns to gold, swells and fades while the gold leaf takes over
+        // gilds (lit ivory flash over gold), then splits into stepped bands that slide apart and fall away as gold leaf
         const q = U.clamp(e.deathT, 0, 1);
         if (q >= 1) return;
-        const k = 1 + U.ease.outQuad(q) * 0.22;
-        ctx.globalAlpha = Math.pow(1 - q, 1.4);
-        blit(ctx, V, set.g, e.x, y - q * 3, sx * k, sy * k, rot, flip);
-        ctx.globalAlpha = 1;
+        const big = e.type === 'colossus';
+        if (q < 0.18) {
+          const w = q / 0.18;
+          blit(ctx, V, set.g, e.x, y, sx * (1 + 0.06 * w), sy * (1 + 0.06 * w), rot, flip);
+          ctx.globalAlpha = 1 - w; blit(ctx, V, set.f, e.x, y, sx * (1 + 0.06 * w), sy * (1 + 0.06 * w), rot, flip); ctx.globalAlpha = 1;
+          return;
+        }
+        drawBands(ctx, V, set.g, e.x, y, sx * 1.06, sy * 1.06, rot, flip, big ? 9 : 6, (q - 0.18) / 0.82, big ? 12 : e.type === 'ghost' ? 7 : 8);
         return;
       }
       ctx.globalAlpha = alpha;
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.12 * fl; sy *= 1 - 0.08 * fl; }
+      if (fl > 0) { sx *= 1 + 0.12 * fl; sy *= 1 - 0.08 * fl; if (e.type !== 'ghost') rot -= 0.2 * fl * (e.kx > 0 ? 1 : e.kx < 0 ? -1 : 1) * (flip ? -1 : 1); }
       blit(ctx, V, set.n, e.x, y, sx, sy, rot, flip);
       if (fl > 0.02) { ctx.globalAlpha = Math.min(0.9, fl * 1.2) * alpha; blit(ctx, V, set.f, e.x, y, sx, sy, rot, flip); }
       ctx.globalAlpha = 1;
@@ -1523,6 +1577,9 @@ ${X} #pausebox { font-family: 'Limelight', Georgia, serif; font-weight: 400; fon
         set = SPR.gent.idle;
         const b = Math.sin(rt * 2.2);
         sy *= 1 + b * 0.012; sx *= 1 - b * 0.006;
+        const tap = U.fract(rt / 4.3 + 0.2);
+        if (tap < 0.09) { set = SPR.gent.tap; lift = Math.sin((tap / 0.09) * PI) * 0.4; }   // cane tap with a little rise on the toes
+        else if (U.fract(rt / 3.2 + 0.55) < 0.04) set = SPR.gent.blink;
       }
       if (p.levelT > 0) {
         // sunburst halo behind the figure
@@ -1538,8 +1595,10 @@ ${X} #pausebox { font-family: 'Limelight', Georgia, serif; font-weight: 400; fon
         ctx.fillStyle = '#e6c15a'; ctx.fill();
         ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
       }
+      if (p.dashT > 0.165) { sy *= 0.9; sx *= 1.07; lift = -0.4; }            // anticipation: a quick crouch
+      if (p.hurtT > 0) { rot -= 0.16 * p.hurtT * (flip ? -1 : 1); sx *= 1 + 0.04 * p.hurtT; }
       if (p.dashT > 0) {
-        const k = U.clamp(p.dashT / 0.2, 0, 1);
+        const k = U.clamp(p.dashT / 0.2, 0, 1) * (p.dashT > 0.165 ? 0.2 : 1);
         rot += 0.16 * (p.dashX >= 0 ? 1 : -1) * k;
         for (let i = 3; i >= 1; i--) {
           ctx.globalAlpha = (0.42 / i) * k;

@@ -116,26 +116,26 @@
   "world": {
     "summary": "A procedural autumn farmland seen from straight above, painted only in rust, pumpkin and cream (never ink), baked per 256-unit chunk (128x128 art px) directly into ImageData: warped Voronoi road net, Voronoi patchwork of furrowed pumpkin fields, noise blobs of tall grass, plazas with flagstones, then 1-bit decals.",
     "layers": [
-      "Cream #f6d7a1 meadow with staggered 'v' grass tufts in pumpkin (6x5 px cells, density 0.06 + 0.5 * macro noise)",
+      "Calm cream #f6d7a1 meadow: pumpkin ‘v’ tufts gather along roads, fields and tall grass (density 0.008 + 0.62 · edge² within 18 world units of an edge, plus clumps where macro noise > 0.7) instead of covering the whole field",
       "Roads on the edges of a domain-warped Voronoi net (cell 1150 world units): pumpkin fill with rust speckle every 4 px, 12.5 world units half-width (footpaths 7), checkerboard-dithered 1 px fringe",
       "Fields: furrow rows every 6 art px in one of 4 orientations (rows, columns, '/', '\\'), rust clods, crisp 1 px border (rust on the bottom edge, pumpkin elsewhere)",
       "Tall grass: 4x4 motif (rows staggered by 2) with a rust bottom edge and a pumpkin top/side edge",
       "Plazas on road junctions: Worley flagstones 6.5 x 4.6 art px with pumpkin joints (graveyards or village squares)",
       "Dithered checker drop shadow on meadow pixels directly below a field or tall-grass edge",
-      "Decals stamped from text glyphs: flowers, daisies, stones, pebbles, mini pumpkins, leaves, mushrooms, bones, cracks; field pumpkins snapped onto furrows"
+      "Decals stamped from text glyphs, placed by feature: flower beds where a 150-unit Perlin field is high, stones and pebbles by the roads, blades along tall grass, rare mini pumpkins; leaves and mushrooms in wild patches; bones and cracks on plazas; field pumpkins snapped onto furrows"
     ]
   },
   "characters": {
-    "summary": "All characters are 10-26 px wide text grids (chars '0'-'3' = palette index, '.' = empty), composed from parts (head + body rows), then given an automatic 1 px ink outline. The main character is a 12x14 pumpkin-headed figure with an extra cream halo outline (16x18 art px = 32x36 world units); creatures are a small rust root bulb with a leafy crown, a cream floating ghost and a large banded root colossus.",
+    "summary": "Figures are char grids converted to 4-tone index grids with an automatic 1 px ink outline; the main character and the small and fast creatures are posed from parts and baked per pose. The main character (12 x 16 grid, 16 x 20 px with outline and cream halo) has a pumpkin head with a carved ink face and cream glints, a cream scarf with a trailing tail, a rust coat with a pumpkin belt and dark legs; creatures are a hopping root with a leaf crown (round or pale long variant), a cream hooded ghost with pumpkin shade and a dither-dissolving tail, and a large banded root colossus.",
     "rules": [
-      "Main character: big round pumpkin-orange head with cream carved eyes and grin and rust ribs/stem over a small rust body with cream collar buttons; double outline (ink then cream) so it reads on every ground and is the only figure with a light rim.",
-      "Small creature (10x12): dark rust body, pumpkin leaf crown that sways 1 px, cream belly band, ink/cream eyes, 4 leg frames.",
-      "Fast creature (11x14 ghost): cream body with ink eyes, 3 tail frames; lower rows dissolve with a Bayer threshold (rows < 9 100%, 9-10 75%, 11-12 50%, 13+ 30%); hovers 3-4 px above its shadow.",
-      "Large creature (26x27): procedural ellipse rx 8.8 / ry 8.6 with banded dither (rust top, pumpkin middle, cream bottom), a darker right flank, a checkered rim light on the upper left, ink cracks and brows, a pulsing cream chest core, root arms and a leaf crown.",
-      "Silhouette and value mass, not hue, separate the creature types (dark blob, light blob with dither tail, huge banded oval).",
-      "Every sprite exists as right, left (mirrored) and palette-inverted copies (flash frame).",
-      "Feet anchor at the bottom centre; sprites are snapped to whole art pixels when blitted and sit 1 px below their logical position so they stand on their shadow.",
-      "Animation is frame swapping only: 2 idle, 4 walk, 4 small-creature, 3 ghost, 4 stomp frames; a 1 px vertical bob on odd frames."
+      "Main character walk: 8 computed poses (contact, down, passing, up × 2) with body offsets [0,1,0,-1,…], counter-swinging arms, the head using the previous frame’s offset so it lands late, and the scarf tail flapping a frame behind the step.",
+      "Idle: breath every 1.1 s with the head 0.12 s behind, leaf flick, blink every 3.4 s, scarf flutter every 4.3 s; dash = 50 ms crouch → split stretch with checker afterimages → 120 ms skid; throw arm ~90 ms; hurt = recoil pose alternating with its inverted copy, then flicker.",
+      "Small creature (12 x 14): rust top, checker seam, pumpkin (or cream) bottom, cream eyes under ink brows, ink grin with cream teeth, pumpkin leaf crown; 4-frame squash & stretch hop where the crown lags.",
+      "Fast creature (13 x 16 ghost): cream hood, pumpkin shade on the back and lower body, two 2 x 2 ink eye holes, reaching arm, opening mouth, 4 tail frames; lower rows dissolve with a Bayer threshold; eased float [0,0,1,2,3,3,2,1] px.",
+      "Large creature (26 x 27): procedural banded root colossus with ink cracks, a pulsing chest core, root arms and a leaf crown; 4 stomp frames.",
+      "Hit ~130 ms: inverted palette + squash pose with shut eyes + 2 px recoil. Appear: a dirt mound heaves, the creature climbs out and lands (ghosts fade in through dither levels). Disappear: an inverted blinking pop, then a 4-frame puff (ghosts rise and dither away).",
+      "Every figure has its own phase offset; silhouette and value mass, not hue, separate the creature types.",
+      "Feet anchor at the bottom centre and every blit snaps to whole art pixels (2 world units)."
     ]
   },
   "props": {
@@ -152,36 +152,36 @@
   },
   "effects": [
     {
-      "name": "Impact flash",
-      "how": "Draw the palette-inverted sprite copy (0<->3, 1<->2) while flash > 0.4; plus 3 single-pixel sparks in ink and cream flying out at speed 40-80 for 0.22 s."
+      "name": "Impact",
+      "how": "3 frames over 0.2 s: a 7 x 7 cream cross with an ink rim → a 9 x 9 ink/rust X of sparks around a cream core → four far ink dots; plus 3 debris pixels (ink, rust, cream) with gravity 200."
     },
     {
-      "name": "Vanish puff",
-      "how": "The inverted frame for 0.22 s, then a 4-frame pixel puff (one blob, five blobs, ring of six, ring of seven loose pumpkin dots; cream with pumpkin underside, ink outline) scaled 0.6 / 1 / 1.7 by creature size, plus 5-16 pixel particles in all four shades with gravity 260."
+      "name": "Disappear sequence",
+      "how": "An inverted pop in the squash pose blinking for ~90 ms, then 4 puff frames (round cream blob → five clustered blobs with pumpkin undersides → six small blobs in a rust-outlined ring → seven pumpkin specks); ghosts rise 10 px while dithering away."
     },
     {
-      "name": "Emerge from the ground",
-      "how": "Sprite is clipped at the feet and pushed up by its height * outQuad(t); a small puff plays at the feet. Ghosts instead fade in through 3 Bayer dither masks (25 / 50 / 75%)."
+      "name": "Debris and residue",
+      "how": "7-14 rust/pumpkin/ink chunks with gravity 260, tumbling 2 x 2 outlined rust leaf scraps from root creatures, rising cream sparks from ghosts, and a small puff that drifts up and lingers 0.55-0.8 s."
     },
     {
-      "name": "Projectile seeds",
-      "how": "4 rotation frames of a tiny outlined seed (cream/pumpkin), with a 2-pixel trail: rust at 2.4 x and pumpkin at 1.2 x the velocity times 16 ms behind."
+      "name": "Appear sequence",
+      "how": "A rust/pumpkin dirt mound heaves for 0.13 s, the creature climbs out with only its top rows drawn (outQuad) behind the mound, then lands in its squash frame; ghosts fade in through 25/50/75/100 % Bayer levels."
     },
     {
-      "name": "Orbiting lanterns",
-      "how": "7x8 lantern grids with a lit and an unlit frame plus a dithered pumpkin halo ring (haloSprite r0 3..5, r1 7..8.5); flicker when sin(t*11)+sin(t*27) > -0.6."
+      "name": "Collect ring",
+      "how": "An expanding diamond outline (radius 2, 4, 6: ink, rust with a cream inner line, then broken) plus a star sparkle."
     },
     {
-      "name": "Collectible gems",
-      "how": "3x3 or 5x7 outlined gems with a two-frame blink (pumpkin-edged vs. all-cream) at 3 fps, a rust 2x1 drop dot underneath and a pop-in hop of sin(pop * PI) * 4 px; big gems emit a 3x3 cream star."
+      "name": "Light column",
+      "how": "A 7 x 30 px column (cream core, pumpkin every third row, rust checker sides, ink edge ticks, 2 phases at 8 fps) shrinking from the top over 0.55 s, with a ring and orbiting stars."
     },
     {
-      "name": "Dash afterimage",
-      "how": "Two copies of the dash frame filled with a pumpkin checkerboard, offset 9 and 18 world units back along the dash direction, plus 3 puffs."
+      "name": "Lantern glow",
+      "how": "The 7 x 8 orbiting lantern flickers lit/unlit from two summed sines; while lit a Bayer-dithered pumpkin halo ring (radius 3-7) surrounds it."
     },
     {
-      "name": "Ring burst and blink",
-      "how": "6 cream 3x3 stars orbit the main character on a ring expanding 12 -> 28 units; an alert ring of 10 2x2 ink/rust particles, then the sprite blinks by skipping every other 1/15 s step."
+      "name": "Seed projectile",
+      "how": "4 rotation frames of an outlined seed chosen from its spin, with one pumpkin and one rust trail pixel behind it."
     }
   ],
   "atmosphere": {
@@ -202,32 +202,30 @@
     "css": ".win{background:#f6d7a1;border:4px solid #2a1712;border-radius:0;box-shadow:0 0 0 4px #f6d7a1,0 0 0 8px #2a1712;font-family:'Press Start 2P',monospace;color:#2a1712;}\n.bar{width:208px;height:24px;background:#f6d7a1;border:4px solid #2a1712;border-radius:0;}\n.bar-fill{height:100%;background:repeating-linear-gradient(90deg,transparent 0 8px,#f6d7a1 8px 12px),linear-gradient(#e0812c 0 4px,#7c3a1e 4px);transition:none;}\n.bar-wide-fill{background:repeating-linear-gradient(90deg,transparent 0 12px,#f6d7a1 12px 16px),linear-gradient(#f6d7a1 0 4px,#e0812c 4px 16px,#7c3a1e 16px);}\n.big-number{font-size:32px;line-height:36px;text-shadow:4px 4px 0 #e0812c;}\n.label{font-size:8px;color:#7c3a1e;text-transform:uppercase;}\n.tag{background:#2a1712;color:#f6d7a1;font-size:16px;padding:0 10px;}\n.alert .win{background:#2a1712;color:#f6d7a1;}\n.overlay{background:repeating-conic-gradient(#2a1712 0 25%,transparent 0 50%) 0 0/10px 10px;}\n@keyframes blink{0%{opacity:1}60%{opacity:0}}"
   },
   "motion": [
-    "No tweening of position on the art grid: everything snaps to whole art pixels (2 world units).",
-    "Main character idle: 2 frames (head drops 1 px) at 2.2 fps; walk: 4 leg frames, frame = floor(anim * 0.9) & 3, 1 px up-bob on odd frames; a throw frame and a dash frame with afterimages.",
-    "Small creature: 4 frames at anim * 1.1, leaves on the head sway 1 px on frames 1 and 3; large creature: 4 stomp frames at anim * 0.6 with alternating legs lifted 2 px, body bob 1 px and arms swinging 1 px.",
-    "Ghost: 3 tail frames at 6 fps, hovers 3-4 px above its shadow with a 1 px bob at 3 fps.",
-    "Collectibles blink between 2 frames at 3 fps, bob 1 px at 2 fps and hop by sin(pop * PI) * 4 px when they appear.",
-    "Floating numbers rise, are 1 px higher in the first 20% of life and blink out at 20 Hz in the last 25%.",
+    "Held poses on the handheld beat (8-12 fps); everything snaps to whole art pixels (2 world units), no tweening on the art grid.",
+    "Main character: 8-pose walk at floor(anim × 1.3) & 7 with the head one frame behind the body and the scarf one frame behind the step; idle breath 1.1 s (head 0.12 s later), blink every 3.4 s, leaf 1.5 fps, scarf flutter every 4.3 s.",
+    "Dash 50 ms wind-up → stretch → 120 ms skid; throw arm ~90 ms; hurt recoil ~150 ms alternating with its inverted copy, then a 15 Hz flicker.",
+    "Small creature: 4-frame squash & stretch hop at floor(anim × 1.6 + phase) & 3 with a lagging leaf crown; large creature: 4 stomp frames at anim × 0.6 + phase.",
+    "Ghost: 4 tail frames at 7 fps, eased lift [0,0,1,2,3,3,2,1] px at 5 fps, arm 3 fps, mouth open 0.5 s every 2.6 s.",
+    "Every figure has its own phase offset so crowds never move in lock-step.",
+    "Collectibles blink between 2 frames at 3 fps, bob 1 px at 2 fps and hop by sin(pop × PI) × 4 px when they appear; numbers blink out at 20 Hz in the last 25 %.",
     "Lights flicker by frame swap (lit / unlit), never by alpha; UI blinks use steps(1)."
   ],
   "do": [
-    "Keep every art-buffer pixel on one of the four palette indices; write sprites as text grids.",
-    "Auto-outline every sprite with 1 px ink (and give the main character an extra cream halo).",
-    "Fake shadows, transparency and glow with Bayer dither or checkerboards locked to the world grid.",
-    "Render at 2 world units per pixel into a small buffer and upscale by an integer with smoothing off.",
-    "Separate creature types by silhouette and value (dark rust body vs. cream ghost vs. big banded oval).",
-    "Reserve ink for outlines and details - the ground uses only rust, pumpkin and cream.",
-    "Use palette inversion for flash frames and frame swaps for flicker.",
-    "Keep the ground busy but low-contrast (mostly cream with pumpkin marks) so ink-outlined characters and props pop."
+    "Use exactly the four tones everywhere: world, sprites, effects, HUD and icons.",
+    "Pose figures from parts on a char grid (legs table, arm table, head, scarf or crown) and bake each pose once.",
+    "Give every cycle real poses and one lagging feature (head a frame late, scarf or crown a frame behind).",
+    "Give every state its own sequence: wind-up before a dash, squash and recoil on hit, a mound before an appearance, an inverted pop before a puff.",
+    "Keep the meadow calm: tufts gather along edges, flowers grow in small beds.",
+    "Use palette inversion for flash frames and frame swaps for flicker; keep ink for outlines, faces and the darkest accents."
   ],
   "dont": [
-    "No fifth colour, no gradients and no globalAlpha inside the art buffer.",
-    "No sub-pixel positions, rotation or scaling of sprites - rotate by switching pre-drawn frames.",
-    "No image smoothing when upscaling, no anti-aliased canvas paths in the world.",
-    "No ink on large ground areas - it destroys the contrast with outlined characters.",
-    "No blurred glows or soft drop shadows - halos are dithered rings, shadows are checkered ellipses.",
-    "Don't make sprites much bigger than 26 px; detail comes from economy, not resolution.",
-    "Don't rely on hue to distinguish groups - there is only one hue."
+    "Don’t add a fifth colour, a tint or any alpha blending.",
+    "Don’t animate with a 2-pixel leg shuffle or a plain bob on everything; don’t let crowds share one phase.",
+    "Don’t sprinkle tufts or decals evenly over the meadow.",
+    "Don’t draw a light figure on the light ground without an ink outline and a darker shade side.",
+    "Don’t use smooth gradients or sub-pixel positions.",
+    "Don’t put ink on the ground (only rust, pumpkin and cream)."
   ],
-  "performance": "Very cheap per frame: sprites (all frames, mirrored and inverted copies, shadows, halos, number sprites) are baked once into small canvases and blitted with drawImage at integer positions. Ground chunks (128x128 art px) are generated per pixel into Uint32 ImageData by a generator that yields every 16 rows; the noise field is sampled on a coarse 4 px grid and bilinearly interpolated. The LCD overlay is rebuilt only on resize. Hot spot: the per-pixel ground generation when the camera moves fast."
+  "performance": "Very cheap per frame: sprites (all frames, mirrored and inverted copies, shadows, halos, number sprites) are baked once into small canvases and blitted with drawImage at integer positions. Ground chunks (128x128 art px) are generated per pixel into Uint32 ImageData by a generator that yields every 16 rows; the noise field is sampled on a coarse 4 px grid and bilinearly interpolated. The LCD overlay is rebuilt only on resize. Hot spot: the per-pixel ground generation when the camera moves fast. Posed figures are baked lazily into a Map keyed by the pose fields (walk, idle, dash, hit, ghost dither levels are warmed at init); per frame only drawImage blits of cached canvases, including one source-rect blit for the climb-out and the light column."
 }

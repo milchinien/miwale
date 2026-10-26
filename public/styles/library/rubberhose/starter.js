@@ -8,8 +8,9 @@
   const PALETTE = {
     ink: '#16120e', soot: '#3a342d', slate: '#6d665b', slateShade: '#4f493f', ash: '#a0988a', fog: '#cdc5b5',
     paper: '#efe9dc', white: '#faf7ef', face: '#e6dece', faceShade: '#c9c0ae', shoe: '#d9d1c1', shoeShade: '#a59d8e',
-    sheet: '#f4efe4', sheetShade: '#cbc3b3', ground: '#cfc8b9', meadow: '#b2aa9a', meadowRim: '#bfb8a9',
-    hummock: '#928a7c', path: '#e4ddcd', gate: '#0c0a08', card: '#17130f',
+    sheet: '#f4efe4', sheetShade: '#cbc3b3', ground: '#cfc8b9', meadow: '#bdb6a6', meadowRim: '#c6bfb0',
+    hill: '#968e7f', hillRim: '#aaa293', road: '#e5dece', roadRim: '#d6cebe', pond: '#4e4840', pondRim: '#6e675c',
+    gate: '#0c0a08', card: '#17130f',
   };
   const P = PALETTE, INK = P.ink, TAU = Math.PI * 2, PI = Math.PI;
   const OL = 1.0; // outline weight in world units
@@ -67,20 +68,35 @@
       detail(c) { c.fillStyle = P.white; c.globalAlpha = 0.9; c.beginPath(); c.ellipse(cx + 0.6 * s, cy - 1.0 * s, 1.3 * s, 0.45 * s, ang - 0.15, 0, TAU); c.fill(); } });
   }
 
-  /* ---------- main character: jaunty ink cat-fellow, feet at (x, y), 8-phase bouncy walk ---------- */
+  /* ---------- main character: jaunty ink cat-fellow, feet at (x, y) ----------
+     The walk is a pose table, not a sine: 8 drawn frames = contact, down, passing, up (twice, legs swapped).
+     x/l/a = foot x, foot lift and shoe angle of the near foot; the far foot runs half a cycle behind.
+     bob (+ = lower) is per quarter. Arms swing against the leg on their side ONE FRAME LATE (overlapping
+     action) and the hose bows behind the motion. 1.84 cycles per second = 14.7 frames per second. */
+  const WALK = {
+    x: [6.2, 3.2, 0.2, -3.0, -6.0, -3.6, 1.0, 4.6],
+    l: [0, 0, 0, 0.5, 1.3, 3.4, 4.6, 2.4],
+    a: [-0.38, -0.05, 0, 0.22, 0.52, 0.35, 0.05, -0.25],
+    bob: [0.3, 1.3, -0.7, -1.9],
+  };
+  function walkArm(sx, y0, f, side, k) {
+    const s = -WALK.x[(f + 7) % 8] / 6.2, sp = -WALK.x[(f + 6) % 8] / 6.2;     // one frame late + its previous frame
+    return [sx, y0, sx + 0.9 * side + s * k, y0 + 6.2 - s * s * 1.8 - Math.max(0, s) * 1.1, side * (0.8 + (s - sp) * 3.2)];
+  }
   function heroParts(p, t, walking) {
-    const ph = t * TAU * 1.84, s = Math.sin(ph), cc = Math.cos(ph);
-    const b = walking ? -1.8 * (1 - Math.abs(s)) : -0.6 * Math.pow(Math.max(0, Math.cos(t * BPS * PI)), 6);
-    const up = Math.max(0, cc), upB = Math.max(0, -cc);
-    const near = walking ? [1.5 + 4.7 * s, -3 * up, up > 0.05 ? -(1.1 + 2.6 * up) : 1.0] : [3.6, 0, 0.9];
-    const far = walking ? [-0.9 - 4.7 * s, -3 * upB, upB > 0.05 ? -(1.1 + 2.6 * upB) : 1.0] : [-3.0, 0, -0.9];
+    const f = Math.floor(t * 14.7) % 8, g = (f + 4) % 8;
+    const beatQ = Math.pow(Math.max(0, Math.cos(t * BPS * PI)), 6);
+    const b = walking ? WALK.bob[f % 4] : 1.2 * beatQ - 0.3;                        // idle: dip on the beat
+    const foot = (k) => [WALK.x[k] * (k === f ? 1 : 0.92) + (k === f ? 1.0 : -1.0), -WALK.l[k], WALK.l[k] > 0.3 ? -(1.1 + 0.6 * WALK.l[k]) : 1.0, WALK.a[k]];
+    const near = walking ? foot(f) : [3.8, 0, 0.9, 0], far = walking ? foot(g) : [-3.2, 0, -0.9, 0.06];
     const c = p.c; c.save(); c.transform(1, 0, -0.05, 1, 0, 0);
-    p.hose(-3.2, -9.6 + b, -8.6, -15.8 + b + s * 1.4, 2.4, 1.05, INK);                          // tail
+    const tw = walking ? Math.sin((f / 8) * TAU - 1.3) : Math.sin(t * 3);              // the tail trails a quarter cycle
+    p.hose(-3.2, -9.6 + b, -8.6, -15.8 + b + tw * 1.4, 2.4, 1.05, INK);
     const arm = (A) => glove(p, A[2], A[3], p.hose(A[0], A[1], A[2], A[3], A[4], 1.45, INK), 1);
-    const fArm = walking ? [-1.8, -15.8 + b, -1.6 + 4.4 * s, -9.4 + b, -2.4 * cc] : [-1.8, -15.8 + b, -5.0, -11 + b, 2.8];
-    const nArm = walking ? [2.3, -15.4 + b, 2.6 - 4.4 * s, -9.0 + b, 2.4 * cc] : [2.3, -15.4 + b, 5.4, -10.8 + b, -2.8];
+    const fArm = walking ? walkArm(-1.8, -15.8 + b, g, -1, 5.0) : [-1.8, -15.8 + b, -5.0, -11 + b, 2.8];
+    const nArm = walking ? walkArm(2.3, -15.4 + b, f, 1, 6.0) : [2.3, -15.4 + b, 5.4, -10.8 + b, -2.8];
     arm(fArm);
-    for (const F of [far, near]) { p.hose(F === far ? -0.9 : 1.5, -8.2 + b, F[0] + 0.2, F[1] - 1.6, F[2], 1.75, INK); shoe(p, F[0], F[1], 0); }
+    for (const F of [far, near]) { p.hose(F === far ? -0.9 : 1.5, -8.2 + b, F[0] + 0.2, F[1] - 1.6, F[2], 1.75, INK); shoe(p, F[0], F[1], F[3]); }
     p.part(E(0.3, -13.2 + b, 4.0, 4.7), INK, {});
     p.part((k) => { k.moveTo(-4.3, -11.6 + b); k.lineTo(4.5, -11.6 + b); k.lineTo(5.0, -6.9 + b); k.lineTo(-4.8, -6.9 + b); k.closePath(); }, P.slate, { shade: P.slateShade, sh: [-0.9, -0.7],
       detail(k) { k.fillStyle = P.white; for (const x of [1.0, 3.3]) { k.beginPath(); k.ellipse(x, -9.9 + b, 0.72, 0.92, 0, 0, TAU); k.fill(); } } });
@@ -101,13 +117,18 @@
   }
   function drawHero(ctx, x, y, t, facing) { paint(ctx, x, y, 1, facing < 0, (p) => heroParts(p, t, true)); }
 
-  /* ---------- small creature: a hopping ink imp ---------- */
+  /* ---------- small creature: a hopping ink imp ----------
+     6 frames: 0 crouch (anticipation), 1 take-off stretch, 2 rise, 3 apex, 4 fall stretch, 5 landing squash.
+     IMP_SQ: + squash (wider, lower), - stretch. About 2 hops per second = 12 fps, on twos. */
+  const IMP_AIR = [0, 0.42, 0.86, 1.0, 0.62, 0.1];
+  const IMP_SQ = [0.9, -0.8, -0.35, 0.05, -0.5, 0.6];
   function impParts(p, t) {
-    const air = Math.abs(Math.sin(t * PI * 1.8)), by = -7.8 - air * 3.2;
+    const fr = Math.floor(t * 12) % 6, air = IMP_AIR[fr], sq = IMP_SQ[fr];
+    const by = -7.8 + Math.max(0, sq) * 1.1 * (1 - air) - air * 3.8, rx = 6.5 * (1 + 0.11 * sq), ry = 5.9 * (1 - 0.13 * sq);
     p.hose(-4.6, by + 2.2, -8.6, by - 5.8, -2.4, 0.85, INK);
     p.part((k) => { k.moveTo(-10.6, by - 5); k.lineTo(-8.4, by - 9.4); k.lineTo(-6.6, by - 5.4); k.closePath(); }, INK, {});
     for (const sx of [-1, 1]) { const fx = sx * 2.7, fy = -air * 2.2; p.hose(sx * 1.9, by + 4.1, fx + 0.3, fy - 1, -sx * 0.9 * (1 - air), 1.25, INK); shoe(p, fx - 0.5, fy + 0.3, 0, 0.58); }
-    p.part(E(0, by, 6.5, 5.9), INK, { detail(k) { k.strokeStyle = P.white; k.globalAlpha = 0.8; k.lineWidth = 0.5; k.beginPath(); k.ellipse(0, by, 5.2, 4.6, 0, PI * 1.1, PI * 1.42); k.stroke(); } });
+    p.part(E(0, by, rx, ry), INK, { detail(k) { k.strokeStyle = P.white; k.globalAlpha = 0.8; k.lineWidth = 0.5; k.beginPath(); k.ellipse(0, by, rx * 0.8, ry * 0.78, 0, PI * 1.1, PI * 1.42); k.stroke(); } });
     for (const h of [[-2.6, -0.5], [2.8, 0.45]]) p.part((k) => { const x = h[0], y = by - 5.0; k.moveTo(x - 1.4, y + 0.6); k.quadraticCurveTo(x - 0.8 + h[1] * 2, y - 2.2, x + h[1] * 3.4, y - 4); k.quadraticCurveTo(x + 0.6 + h[1], y - 1.6, x + 1.4, y + 0.6); k.closePath(); }, P.fog, { shade: P.ash, sh: [-0.3, 0] });
     p.part(E(2.2, by + 0.6, 4.0, 3.9), P.face, { shade: P.faceShade, sh: [-0.5, -0.6] });
     p.detail((k) => {
@@ -135,8 +156,9 @@
       p.part(E(h[0], h[1], 2.0, 1.9), INK, { detail(k) { k.fillStyle = P.white; k.beginPath(); k.ellipse(h[0] - 0.7, h[1] - 0.5, 0.38, 0.6, 0, 0, TAU); k.ellipse(h[0] + 0.7, h[1] - 0.5, 0.38, 0.6, 0, 0, TAU); k.fill(); } });
     }
   }
-  function dance(ctx, x, y, t, amp, fn) {
-    const b = t * BPS, ph = b - Math.floor(b), q = Math.pow(Math.max(0, Math.cos(ph * PI)), 6) + Math.pow(Math.max(0, -Math.cos(ph * PI)), 6);
+  /** Props dance on the shared beat; lag (s) makes tall things follow through after it. */
+  function dance(ctx, x, y, t, amp, fn, lag) {
+    const b = (t - (lag || 0)) * BPS, ph = b - Math.floor(b), q = Math.pow(Math.max(0, Math.cos(ph * PI)), 6) + Math.pow(Math.max(0, -Math.cos(ph * PI)), 6);
     ctx.save(); ctx.translate(x, y); ctx.transform(1 + amp * 0.6 * q, 0, -Math.cos(b * PI) * amp, 1 - amp * q, 0, 0);
     paint(ctx, 0, 0, 1, false, fn); ctx.restore();
   }
@@ -185,20 +207,42 @@
     const S = h / 360, W = w / S;
     ctx.save(); ctx.scale(S, S); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.fillStyle = P.ground; ctx.fillRect(0, 0, W, 360);
-    wash(ctx, [[-20, 40], [W * 0.3, 10], [W * 0.42, 120], [W * 0.18, 190], [-20, 160]], P.meadow, P.meadowRim);
-    wash(ctx, [[W * 0.62, 230], [W * 0.95, 200], [W + 30, 330], [W * 0.7, 380], [W * 0.55, 320]], P.hummock, '#a39b8c');
-    ctx.beginPath(); ctx.moveTo(-10, 270); ctx.bezierCurveTo(W * 0.3, 230, W * 0.55, 300, W + 10, 150);
-    ctx.lineWidth = 42; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 40.4; ctx.strokeStyle = P.path; ctx.stroke();
-    const r = rng(7); ctx.strokeStyle = 'rgba(22,18,14,0.75)'; ctx.lineWidth = 0.5;
-    for (let i = 0; i < 160; i++) { const x = r() * W, y = r() * 360; ctx.beginPath(); ctx.moveTo(x - 0.7, y); ctx.lineTo(x - 2, y - 2); ctx.moveTo(x, y); ctx.lineTo(x, y - 3); ctx.moveTo(x + 0.7, y); ctx.lineTo(x + 2, y - 1.9); ctx.stroke(); }
-    const items = [[W * 0.16, 120, 'tree'], [W * 0.82, 110, 'tree'], [W * 0.34, 330, 'daisy'], [W * 0.7, 300, 'daisy'], [W * 0.5 + Math.sin(t * 0.5) * 30, 205, 'hero'], [W * 0.28, 210, 'imp'], [W * 0.72, 215, 'imp']].sort((a, b) => a[1] - b[1]);
+    const meadow = [[-20, 40], [W * 0.3, 10], [W * 0.42, 120], [W * 0.18, 190], [-20, 160]];
+    const hill = [[W * 0.6, 62], [W * 0.9, 46], [W + 30, 130], [W * 0.86, 196], [W * 0.58, 158]];
+    const pond = [[W * 0.66, 262], [W * 0.84, 250], [W * 0.9, 300], [W * 0.76, 336], [W * 0.62, 312]];
+    wash(ctx, meadow, P.meadow, P.meadowRim);
+    wash(ctx, hill, P.hill, P.hillRim);
+    // hills: ink hatch on the shade side (light from the upper left)
+    ctx.strokeStyle = 'rgba(22,18,14,0.55)'; ctx.lineWidth = 0.5;
+    for (let i = 0; i < 8; i++) { const x = W * 0.74 + i * 5.5, y = 176 - i * 2.2; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 4.5, y - 6); ctx.stroke(); }
+    wash(ctx, pond, P.pond, P.pondRim);
+    // the road: a constant-width band with rims, ink edges and pebbles along both shoulders
+    const road = (w, col) => { ctx.beginPath(); ctx.moveTo(-10, 270); ctx.bezierCurveTo(W * 0.3, 230, W * 0.5, 300, W * 0.6, 200); ctx.bezierCurveTo(W * 0.66, 150, W * 0.75, 170, W + 10, 175); ctx.lineWidth = w; ctx.strokeStyle = col; ctx.stroke(); };
+    road(22.6, INK); road(21, P.roadRim); road(17.4, P.road);
+    const r = rng(7);
+    // decals only where features meet: tuft clumps (one tall tuft + smaller ones along an arc) on region edges
+    const tuft = (x, y, s) => { ctx.beginPath(); ctx.moveTo(x - 0.7 * s, y); ctx.lineTo(x - 2 * s, y - 2 * s); ctx.moveTo(x, y); ctx.lineTo(x, y - 3 * s); ctx.moveTo(x + 0.7 * s, y); ctx.lineTo(x + 2 * s, y - 1.9 * s); ctx.stroke(); };
+    ctx.strokeStyle = 'rgba(22,18,14,0.75)'; ctx.lineWidth = 0.5;
+    for (const poly of [meadow, hill, pond]) for (let i = 0; i < poly.length; i++) {
+      if (r() < 0.35) continue;
+      const a = poly[i], b = poly[(i + 1) % poly.length], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      tuft(mx, my, 1.7); for (let j = 1; j < 4; j++) tuft(mx + j * 4.2, my + j * j * 0.45, 1.4 - j * 0.22);
+    }
+    // ripple arcs follow the shore, paper pebbles line the road
+    ctx.strokeStyle = 'rgba(239,233,220,0.7)'; ctx.lineWidth = 0.6;
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(W * 0.76, 295, 26 - i * 6, 9 - i * 2, 0, PI * 1.1, PI * 1.6); ctx.stroke(); }
+    ctx.fillStyle = P.paper; ctx.strokeStyle = INK; ctx.lineWidth = 0.35;
+    for (let i = 0; i < 14; i++) { const x = W * (0.03 + i * 0.04), y = 270 - (x / W) * 40 + (i & 1 ? -12 : 12); ctx.beginPath(); ctx.ellipse(x, y, 1.4, 0.9, 0, 0, TAU); ctx.fill(); ctx.stroke(); }
+    // props in groups that belong to a feature: a grove on the hill rim, daisies in the meadow, reeds by the pond
+    const items = [[W * 0.64, 70, 'tree', 0.07], [W * 0.77, 58, 'tree', 0.07], [W * 0.14, 128, 'tree', 0.07], [W * 0.24, 120, 'daisy', 0.02],
+      [W * 0.63, 268, 'daisy', 0.02], [W * 0.5 + Math.sin(t * 0.5) * 30, 205, 'hero'], [W * 0.28, 210, 'imp', 0.13], [W * 0.42, 172, 'imp', 0.61]].sort((a, b) => a[1] - b[1]);
     for (const it of items) shadow(ctx, it[0], it[1], it[2] === 'tree' ? 14 : 8);
     for (const it of items) {
-      const [x, y, k] = it;
-      if (k === 'tree') dance(ctx, x, y, t, 0.04, treeParts);
-      else if (k === 'daisy') dance(ctx, x, y, t, 0.08, daisyParts);
+      const [x, y, k, o] = it;
+      if (k === 'tree') dance(ctx, x, y, t, 0.045, treeParts, o);
+      else if (k === 'daisy') dance(ctx, x, y, t, 0.09, daisyParts, o);
       else if (k === 'hero') drawHero(ctx, x, y, t, Math.cos(t * 0.5) >= 0 ? 1 : -1);
-      else drawEnemy(ctx, x, y, t + x * 0.01);
+      else drawEnemy(ctx, x, y, t + o);                                             // every actor its own phase
     }
     ctx.restore();
     film(ctx, w, h, t);

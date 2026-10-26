@@ -264,17 +264,34 @@
   function withFlip(s) { return { n: s, l: flipS(s) }; }
 
   /* ============================================================ characters */
-  // Jack: idle + 3-frame walk (A, pass, B). back foot x,y | front foot x,y | back arm, front arm | cape flare
-  const JACK_FR = [
-    [-2.2, 0, 2.3, 0, 0.2, -0.2, 0],
-    [-3.4, -0.3, 3.7, -0.9, 0.85, -0.75, 1],
-    [-0.5, -1.9, 1.1, 0, 0.12, 0.05, 0.45],
-    [3.3, -0.6, -2.9, -0.2, -0.75, 0.85, 1],
-  ];
-  function jackParts(P, f) {
-    const F = JACK_FR[f], fl = F[6];
+  /* Main character pose table: back / front foot [x, y] (y < 0 = lifted), back / front arm angle (0 = hanging,
+     + = forward), cape flare, body bob (+ = down), head lag + tilt, scarf wave, lean (rad, + = forward). */
+  function jp(o) { return Object.assign({ bf: [-2.2, 0], ff: [2.3, 0], ba: 0.2, fa: -0.2, fl: 0, b: 0, hd: 0, ht: 0, sw: 0, lean: 0 }, o); }
+  /* walk: 8 computed poses – contact, down, passing, up for each leg. The swing foot lifts, the body dips after every
+     contact and rises on the passing pose, the arms counter-swing, and head, cape and scarf follow through with growing
+     phase delays (overlapping action). */
+  const JACK_WALK = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = (i / 8) * TAU;
+    const foot = (p) => [0.3 + 3.7 * Math.cos(p), Math.sin(p) < 0 ? Math.sin(p) * 2.3 : 0];
+    JACK_WALK.push(jp({
+      ff: foot(ph), bf: foot(ph + PI), fa: -0.9 * Math.cos(ph), ba: 0.9 * Math.cos(ph),
+      b: 0.95 * Math.sin(2 * ph), hd: 0.5 * Math.sin(2 * ph - 0.9), ht: 0.04 * Math.sin(ph - 0.6),
+      fl: 0.55 + 0.45 * Math.sin(2 * ph - 1.3), sw: Math.sin(2 * ph - 1.9), lean: 0.07,
+    }));
+  }
+  /* idle: 3 held breathing poses (exhale, mid, inhale) – the head lags the chest, the scarf settles after it */
+  const JACK_IDLE = [jp({}), jp({ b: -0.22, hd: 0.12, sw: 0.25, ba: 0.24, fa: -0.24 }), jp({ b: -0.42, hd: -0.04, sw: 0.5, ba: 0.28, fa: -0.28, fl: 0.12 })];
+  /* dash: a crouch (anticipation), then a stretched forward lean with cape and scarf streaming back; recoil: thrown back */
+  const JACK_CROUCH = jp({ b: 1.9, bf: [-3.4, 0], ff: [3.1, 0], ba: -0.7, fa: -0.9, fl: 0.3, hd: 0.7, sw: 0.4, lean: -0.06 });
+  const JACK_DASH = jp({ b: 0.3, bf: [-5.6, -1.8], ff: [4.6, -0.5], ba: -1.4, fa: -1.15, fl: 1.7, hd: -0.4, sw: 2.1, lean: 0.24 });
+  const JACK_RECOIL = jp({ b: -0.4, bf: [-3.0, 0], ff: [2.6, -1.6], ba: 2.3, fa: 2.6, fl: -0.5, hd: -0.7, ht: -0.2, sw: -1.1, lean: -0.22 });
+  function jackParts(P, F) {
+    const fl = F.fl, c0 = P.c, HIP = -8.6 + F.b;
+    // everything above the hips is drawn in a space that bobs and leans around the hip point
+    const upper = (fn) => { c0.save(); c0.translate(0, HIP); c0.rotate(F.lean); c0.translate(0, 8.6); fn(); c0.restore(); };
     const leg = (hx, fx, fy, back) => {
-      P.part(CAP(hx, -8.6, fx, fy - 1.5, 1.35), back ? C.pantsSh : C.pants, { ol: 0.85 });
+      P.part(CAP(hx, HIP, fx, fy - 1.5, 1.35), back ? C.pantsSh : C.pants, { ol: 0.85 });
       P.part(E(fx + 0.9, fy - 1.05, 2.25, 1.35), INK, { ol: 0.6, hi: [[fx + 0.4, fy - 1.65, 0.75, 0.32, -0.15]] });
     };
     const arm = (sx, sy, a, back) => {
@@ -282,14 +299,13 @@
       P.part(CAP(sx, sy, ex, ey, 1.25), back ? C.capeDot : C.cape, { ol: 0.85, dots: back ? null : [C.capeDot, 0.35] });
       P.part(E(ex, ey + 0.2, 1.55, 1.5), C.glove, { ol: 0.8, sh: [-0.6, -0.6], shade: [C.cyanDot, 0.5] });
     };
-    // scarf tail (behind everything)
-    const wv = Math.sin(f * 1.7) * 0.9;
-    P.part(POLY([[-1.2, -17.2], [-6.2 - fl * 1.6, -17.6 + wv], [-8.4 - fl * 2.2, -15.6 + wv * 1.4], [-6.6 - fl * 1.2, -14.9 + wv], [-1.6, -15.2]]), C.scarf, {
+    // scarf tail (behind everything) waves with its own lag
+    const wv = F.sw * 0.9;
+    upper(() => P.part(POLY([[-1.2, -17.2], [-6.2 - fl * 1.6, -17.6 + wv], [-8.4 - fl * 2.2, -15.6 + wv * 1.4], [-6.6 - fl * 1.2, -14.9 + wv], [-1.6, -15.2]]), C.scarf, {
       ol: 0.8, sh: [0, -0.8], shade: [C.scarfDot, 0.5],
-    });
-    leg(-1.4, F[0], F[1], true);
-    arm(-2.0, -14.0, F[4], true);
-    // cape
+    }));
+    leg(-1.4, F.bf[0], F.bf[1], true);
+    upper(() => arm(-2.0, -14.0, F.ba, true));
     const cape = (c) => {
       c.moveTo(-2.7, -16.6); c.lineTo(2.9, -16.6);
       c.quadraticCurveTo(4.8, -12.2, 5.2, -6.9);
@@ -298,50 +314,79 @@
       c.quadraticCurveTo(-5.0, -12.2, -2.7, -16.6);
       c.closePath();
     };
-    leg(1.4, F[2], F[3], false);
-    P.part(cape, C.cape, {
-      sh: [1.7, -1.3], shade: [C.capeDot, 0.55], spot: [0.75, -0.55],
-      ink(c) {
-        c.lineWidth = 0.5;
-        c.beginPath(); c.moveTo(-0.4, -14.2); c.quadraticCurveTo(-1.6, -10.5, -2.4, -7.2);
-        c.moveTo(2.0, -13.6); c.quadraticCurveTo(2.6, -10.2, 2.4, -7.0); c.stroke();
-      },
-    });
-    arm(2.5, -13.8, F[5], false);
-    // scarf knot
-    P.part(E(0.4, -16.4, 3.9, 1.55), C.scarf, { ol: 0.85, sh: [0, -0.7], shade: [C.scarfDot, 0.5] });
-    // head
-    const hx = 0.4, hy = -22.6, rx = 8.4, ry = 6.9;
-    P.part(CAP(0.4, -28.6, 1.5, -31.6, 1.05), C.stem, { ol: 0.8, spot: [-0.6, 0] });
-    P.part(PUMPKIN(hx, hy, rx, ry), C.orange, {
-      sh: [-2.3, -1.9], shade: [C.orangeDot, 0.55], spot: [-0.85, -0.75], ol: 1.15,
-      detail(c) {
-        c.strokeStyle = C.rib; c.lineWidth = 0.55;
-        for (const k of [-0.62, -0.25, 0.25, 0.62]) {
-          c.beginPath(); c.moveTo(hx + k * rx * 0.25, hy - ry * 0.92);
-          c.quadraticCurveTo(hx + k * rx * 1.25, hy, hx + k * rx * 0.25, hy + ry * 0.95); c.stroke();
-        }
-      },
-      hi: [[hx - 4.4, hy - 3.6, 2.1, 0.85, -0.6], [hx - 6.3, hy - 1.4, 0.5, 0.5, 0]],
-    });
-    P.detail((c, flash) => {
-      const fx = hx + 1.4, y = hy;
-      carve(c, flash, POLY([[fx - 4.5, y - 0.4], [fx - 1.1, y - 0.6], [fx - 2.9, y - 3.9]]));
-      carve(c, flash, POLY([[fx + 1.0, y - 0.6], [fx + 4.4, y - 0.3], [fx + 2.5, y - 3.9]]));
-      carve(c, flash, POLY([[fx - 5.4, y + 1.6], [fx - 3.4, y + 2.5], [fx - 2.6, y + 1.5], [fx - 1.4, y + 2.8], [fx + 0.6, y + 2.8], [fx + 1.6, y + 1.5],
-        [fx + 2.5, y + 2.5], [fx + 4.9, y + 1.4], [fx + 3.6, y + 4.3], [fx + 1.2, y + 5.2], [fx + 0.5, y + 4.2], [fx - 0.6, y + 5.3], [fx - 3.4, y + 4.6]]), 0.25, 0.6);
+    leg(1.4, F.ff[0], F.ff[1], false);
+    upper(() => {
+      P.part(cape, C.cape, {
+        sh: [1.7, -1.3], shade: [C.capeDot, 0.55], spot: [0.75, -0.55],
+        ink(c) {
+          c.lineWidth = 0.5;
+          c.beginPath(); c.moveTo(-0.4, -14.2); c.quadraticCurveTo(-1.6, -10.5, -2.4 - fl * 0.6, -7.2);
+          c.moveTo(2.0, -13.6); c.quadraticCurveTo(2.6, -10.2, 2.4, -7.0); c.stroke();
+        },
+      });
+      arm(2.5, -13.8, F.fa, false);
+      P.part(E(0.4, -16.4, 3.9, 1.55), C.scarf, { ol: 0.85, sh: [0, -0.7], shade: [C.scarfDot, 0.5] });
+      // head: lags the body (hd) and tilts on the neck (ht)
+      c0.translate(0.4, -16.4 + F.hd); c0.rotate(F.ht); c0.translate(-0.4, 16.4);
+      const hx = 0.4, hy = -22.6, rx = 8.4, ry = 6.9;
+      P.part(CAP(0.4, -28.6, 1.5 - F.hd * 0.8, -31.6, 1.05), C.stem, { ol: 0.8, spot: [-0.6, 0] });
+      P.part(PUMPKIN(hx, hy, rx, ry), C.orange, {
+        sh: [-2.3, -1.9], shade: [C.orangeDot, 0.55], spot: [-0.85, -0.75], ol: 1.15,
+        detail(c) {
+          c.strokeStyle = C.rib; c.lineWidth = 0.55;
+          for (const k of [-0.62, -0.25, 0.25, 0.62]) {
+            c.beginPath(); c.moveTo(hx + k * rx * 0.25, hy - ry * 0.92);
+            c.quadraticCurveTo(hx + k * rx * 1.25, hy, hx + k * rx * 0.25, hy + ry * 0.95); c.stroke();
+          }
+        },
+        hi: [[hx - 4.4, hy - 3.6, 2.1, 0.85, -0.6], [hx - 6.3, hy - 1.4, 0.5, 0.5, 0]],
+      });
+      P.detail((c, flash) => {
+        const fx = hx + 1.4, y = hy;
+        carve(c, flash, POLY([[fx - 4.5, y - 0.4], [fx - 1.1, y - 0.6], [fx - 2.9, y - 3.9]]));
+        carve(c, flash, POLY([[fx + 1.0, y - 0.6], [fx + 4.4, y - 0.3], [fx + 2.5, y - 3.9]]));
+        carve(c, flash, POLY([[fx - 5.4, y + 1.6], [fx - 3.4, y + 2.5], [fx - 2.6, y + 1.5], [fx - 1.4, y + 2.8], [fx + 0.6, y + 2.8], [fx + 1.6, y + 1.5],
+          [fx + 2.5, y + 2.5], [fx + 4.9, y + 1.4], [fx + 3.6, y + 4.3], [fx + 1.2, y + 5.2], [fx + 0.5, y + 4.2], [fx - 0.6, y + 5.3], [fx - 3.4, y + 4.6]]), 0.25, 0.6);
+      });
     });
   }
+  /** Paper keyline: a 1.1-unit white knock-out around the main character, so it pops off any ground (comic cover trick). */
+  function keyline(cv, ctx) {
+    const w = Math.max(1, Math.round(1.1 * K)), tn = U.tint(cv, '#fffdf2');
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-over';
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; ctx.drawImage(tn, Math.round(Math.cos(a) * w), Math.round(Math.sin(a) * w)); }
+    ctx.restore();
+  }
+  /** Cyan + magenta plate copies of a sprite set (built lazily): dash smear, blink slip, plates drifting apart. */
+  function plateOf(s) {
+    if (!s.pl) s.pl = { c: [U.tint(s.n.c, C.cyan), U.tint(s.n.c, C.mag)], cl: [U.tint(s.nl.c, C.cyan), U.tint(s.nl.c, C.mag)] };
+    return s.pl;
+  }
+  function drawPlate(ctx, s, left, i, x, y, sx, sy) {
+    const img = plateOf(s)[left ? 'cl' : 'c'][i], src = left ? s.nl : s.n, kk = 1 / K;
+    ctx.drawImage(img, x - src.ox * kk * sx, y - src.oy * kk * sy, img.width * kk * sx, img.height * kk * sy);
+  }
 
-  // Rüben-Schleicher
-  const CR_FR = [[-2.6, 0, 2.6, 0], [-3.4, -1.5, 2.2, 0], [-2.6, 0, 2.6, 0], [-2.2, 0, 3.4, -1.5]];
+  // small creature: a 6-pose waddle – feet alternate with a lift, root arms swing against them, the leafy top and the
+  // curling tap root lag behind the body
+  const CR_N = 6;
   function creeperParts(P, f, v) {
-    const col = CRV[v], F = CR_FR[f];
+    const col = CRV[v], ph = (f / CR_N) * TAU;
+    const foot = (p) => [2.5 * Math.cos(p), Math.sin(p) < 0 ? Math.sin(p) * 1.8 : 0];
+    const fb = foot(ph + PI), ff = foot(ph);
+    const lag = Math.sin(2 * ph - 1.4) * 0.17, tail = Math.sin(ph - 1.2);
+    const limbO = { ol: 0.75, sh: [-0.4, 0], shade: [col.botDot, 0.5] };
+    // tap root behind the bulb, whipping after the steps
+    P.part(CAP(-6.2, -6.6, -9.4, -5.0 + tail * 0.7, 0.75), col.bot, limbO);
+    P.part(CAP(-9.4, -5.0 + tail * 0.7, -10.6 - tail * 0.4, -7.3 + tail * 1.1, 0.45), col.bot, limbO);
     for (const q of [[-0.66, 7.0, 2.3], [0.6, 6.4, 2.2], [0.02, 8.4, 2.5]]) {
-      P.part(LEAF(0.2, -19.4, q[0], q[1], q[2]), col.leaf, { ol: 0.8, spot: [-1.0, 0.25], dots: [C.leafDot, 0.3] });
+      P.part(LEAF(0.2, -19.4, q[0] + lag * (1 + q[0]), q[1], q[2]), col.leaf, { ol: 0.8, spot: [-1.0, 0.25], dots: [C.leafDot, 0.3] });
     }
-    P.part(CAP(-1.9, -4.5, F[0], F[1] - 0.6, 1.05), col.bot, { ol: 0.8, sh: [-0.5, 0], shade: [col.botDot, 0.5] });
-    P.part(CAP(1.9, -4.5, F[2], F[3] - 0.6, 1.05), col.bot, { ol: 0.8, sh: [-0.5, 0], shade: [col.botDot, 0.5] });
+    // back root arm, legs
+    const sw = 1.5 * Math.cos(ph);
+    P.part(CAP(-6.8, -11.2, -9.6 + sw * 0.6, -7.4 - sw * 0.3, 0.7), col.bot, limbO);
+    P.part(CAP(-1.9, -4.5, -1.9 + fb[0], fb[1] - 0.6, 1.05), col.bot, { ol: 0.8, sh: [-0.5, 0], shade: [col.botDot, 0.5] });
+    P.part(CAP(1.9, -4.5, 1.9 + ff[0], ff[1] - 0.6, 1.05), col.bot, { ol: 0.8, sh: [-0.5, 0], shade: [col.botDot, 0.5] });
     P.part(TURNIP(0, -20.6, -2.6, 8.5), twoTone(col.top, col.dot, 0.42, col.bot, col.botDot, 0.22, -12.2, 0.9, 0.9), {
       sh: [-2.3, -1.5], shade: [col.sh, 0.6], spot: [-0.95, -0.6], ol: 1.1,
       hi: [[-4.4, -16.2, 1.6, 0.7, -0.8]],
@@ -350,6 +395,9 @@
         c.beginPath(); c.arc(0.4, -21.5, 3.2, 0.5, 1.2); c.moveTo(-5.2, -5.3); c.quadraticCurveTo(-3, -3.7, -0.6, -3.5); c.stroke();
       },
     });
+    // front root arm with three root fingers, swinging against the front foot
+    const hx = 10.2 - sw * 0.7, hy = -7.6 + sw * 0.35;
+    P.part(CAP(6.9, -11.0, hx, hy, 0.75), col.bot, { ...limbO, ink(c) { c.lineWidth = 0.45; c.beginPath(); for (let k = -1; k <= 1; k++) { c.moveTo(hx, hy); c.lineTo(hx + 1.3 + k * 0.2, hy + 0.9 + k * 0.9); } c.stroke(); } });
     P.detail((c, flash) => {
       const fx = 1.3;
       for (const ex of [fx - 2.4, fx + 2.4]) {
@@ -362,12 +410,13 @@
       c.moveTo(fx - 4.6, -15.6); c.lineTo(fx - 0.7, -13.7); c.lineTo(fx - 0.9, -12.9); c.lineTo(fx - 4.4, -14.4); c.closePath();
       c.moveTo(fx + 4.6, -15.6); c.lineTo(fx + 0.7, -13.7); c.lineTo(fx + 0.9, -12.9); c.lineTo(fx + 4.4, -14.4); c.closePath();
       c.fill();
-      // jagged frown
+      // jagged frown that chews with the steps
+      const mo = 0.5 * Math.abs(Math.sin(ph));
       c.beginPath();
-      c.moveTo(fx - 3.3, -6.6); c.quadraticCurveTo(fx, -10.4, fx + 3.3, -6.6); c.lineTo(fx + 2.2, -5.5); c.quadraticCurveTo(fx, -7.4, fx - 2.2, -5.5); c.closePath();
+      c.moveTo(fx - 3.3, -6.6); c.quadraticCurveTo(fx, -10.4 - mo, fx + 3.3, -6.6); c.lineTo(fx + 2.2, -5.5 + mo); c.quadraticCurveTo(fx, -7.4 + mo, fx - 2.2, -5.5 + mo); c.closePath();
       c.fill();
       c.fillStyle = flash ? '#fff' : '#ff5a6a';
-      c.beginPath(); c.ellipse(fx, -6.9, 1.3, 0.5, 0, 0, TAU); c.fill();
+      c.beginPath(); c.ellipse(fx, -6.9 + mo * 0.5, 1.3, 0.5, 0, 0, TAU); c.fill();
       c.fillStyle = '#fff';
       c.beginPath(); c.moveTo(fx - 2.0, -8.0); c.lineTo(fx - 0.9, -8.75); c.lineTo(fx - 1.3, -7.3); c.closePath();
       c.moveTo(fx + 0.9, -8.75); c.lineTo(fx + 2.0, -8.0); c.lineTo(fx + 1.3, -7.3); c.closePath(); c.fill();
@@ -387,11 +436,12 @@
     c.quadraticCurveTo(-8.2, -5.2, -7, -9.5);
     c.closePath();
   }
+  const GH_N = 6;
   function ghostParts(P, f) {
-    const ph = (f / 4) * TAU;
+    const ph = (f / GH_N) * TAU;
     const shape = (c) => ghostPath(c, ph);
     const arm = (x0, y0, x1, y1) => P.part(CAP(x0, y0, x1, y1, 0.95), C.white, { ol: 0.75, sh: [0, -0.7], shade: [C.cyanDot, 0.55] });
-    arm(3.0, -11.4, 9.0, -9.4 + Math.sin(ph) * 0.8);
+    arm(3.0, -11.4, 8.6 + Math.sin(ph) * 1.6, -9.6 + Math.sin(ph) * 1.4);
     P.part(shape, C.white, {
       sh: [-2.6, -1.6], shade: [C.cyanDot, 0.62], spot: [-0.75, -0.45], ol: 1.0,
       detail(c, P2) {
@@ -399,8 +449,9 @@
       },
       hi: [[-3.6, -19.8, 1.8, 0.75, -0.7]],
     });
-    arm(4.2, -9.2, 10.2, -7.4 + Math.cos(ph) * 0.8);
-    P.part(E(10.3, -7.5 + Math.cos(ph) * 0.8, 1.2, 1.1), C.white, { ol: 0.7 });
+    const rx2 = 10.0 - Math.sin(ph) * 1.8, ry2 = -7.4 - Math.sin(ph) * 1.2;
+    arm(4.2, -9.2, rx2, ry2);
+    P.part(E(rx2 + 0.1, ry2, 1.2, 1.1), C.white, { ol: 0.7, ink(c) { c.lineWidth = 0.45; c.beginPath(); for (let k = -1; k <= 1; k++) { c.moveTo(rx2 + 0.8, ry2); c.lineTo(rx2 + 2.3, ry2 + k * 1.0); } c.stroke(); } });
     P.detail((c, flash) => {
       const fx = 1.3;
       c.fillStyle = INK;
@@ -409,7 +460,7 @@
       c.beginPath(); c.arc(fx - 2.2, -15.7, 0.5, 0, TAU); c.arc(fx + 2.5, -15.8, 0.48, 0, TAU); c.fill();
       // gaping mouth
       c.fillStyle = INK;
-      c.beginPath(); c.ellipse(fx - 0.1, -10.6, 2.0, 3.0 + Math.sin(ph) * 0.3, 0, 0, TAU); c.fill();
+      c.beginPath(); c.ellipse(fx - 0.1, -10.6, 2.0 + Math.cos(ph) * 0.25, 3.0 + Math.sin(ph) * 0.8, 0, 0, TAU); c.fill();
       c.fillStyle = flash ? FLASH_DOT : '#3a2c6a';
       c.beginPath(); c.ellipse(fx - 0.1, -9.6, 1.1, 1.4, 0, 0, TAU); c.fill();
       // starving brow wrinkles
@@ -743,7 +794,7 @@
   // materials: 0 meadow (base), 1 autumn field, 2 night, 3 graveyard, 4 path
   const MATS = [
     { p: [237, 233, 199], sc: [{ ink: [104, 176, 98], sp: 3.3, a: 0.785, r0: 0.17, r1: 0.33 }] },
-    { p: [250, 216, 128], sc: [{ ink: [232, 98, 62], sp: 3.0, a: 0.26, r0: 0.15, r1: 0.31 }] },
+    { p: [250, 216, 128], sc: [{ ink: [232, 98, 62], sp: 3.0, a: 0.26, r0: 0.1, r1: 0.36 }] },
     { p: [200, 210, 232], sc: [{ ink: [86, 104, 178], sp: 3.0, a: 0.785, r0: 0.22, r1: 0.36 }] },
     { p: [224, 211, 222], sc: [{ ink: [134, 96, 160], sp: 2.8, a: 1.05, r0: 0.2, r1: 0.36 }] },
     { p: [249, 233, 170], sc: [], hatch: true },
@@ -852,29 +903,33 @@
       if (i % 120 === 114) yield;
       const x = pts[i], y = pts[i + 1], r0 = pts[i + 2], r1 = pts[i + 3], r2 = pts[i + 4];
       const m = matSafe(x, y, 5);
-      if (m < 0) continue;
+      // along every region contour a drift of grass tufts underlines the brush line
+      if (m < 0) { if (r0 < 0.34 && matAt(x, y) !== 4) dTuft(ctx, x, y, 0.75 + r1 * 0.35); continue; }
       const rr = U.mulberry32(((pts[i + 5] * 1e9) | 0) ^ 0x5bd1e995);
       if (r0 > 0.985) { dSplat(ctx, x, y, 0.7 + r1 * 0.5, rr); continue; }
+      // decals gather in clumps (noise field), leaving calm printed areas between them
+      const keep = U.smoothstep(0.5, 0.72, U.noise(x / 130, y / 130, 7373));
+      const q0 = r0 / (0.05 + 1.15 * keep);
       if (m === 0) {
-        if (r0 < 0.3) dTuft(ctx, x, y, 0.8 + r1 * 0.4);
-        else if (r0 < 0.36) dFlower(ctx, x, y, 0.85 + r2 * 0.3, r1 < 0.6 ? '#ffffff' : '#ff9ac8');
+        if (q0 < 0.3) dTuft(ctx, x, y, 0.8 + r1 * 0.4);
+        else if (q0 < 0.36) dFlower(ctx, x, y, 0.85 + r2 * 0.3, r1 < 0.6 ? '#ffffff' : '#ff9ac8');
       } else if (m === 1) {
-        if (r0 < 0.24) dLeaf(ctx, x, y, 0.9 + r2 * 0.4, r2 * TAU, r1 < 0.5 ? C.red : C.yellow);
-        else if (r0 < 0.4) {
+        if (q0 < 0.24) dLeaf(ctx, x, y, 0.9 + r2 * 0.4, r2 * TAU, r1 < 0.5 ? C.red : C.yellow);
+        else if (q0 < 0.4) {
           ctx.strokeStyle = INK; ctx.lineWidth = 0.4; ctx.beginPath();
           for (let k = 0; k < 3; k++) { const a = -0.5 + rr() * 1.0; ctx.moveTo(x + k * 1.1, y); ctx.lineTo(x + k * 1.1 + Math.cos(a) * 2.4, y + Math.sin(a) * 1.2 - 1.2); }
           ctx.stroke();
         }
       } else if (m === 2) {
-        if (r0 < 0.12) dGlint(ctx, x, y, 0.8 + r1 * 0.6);
-        else if (r0 < 0.3) dTuft(ctx, x, y, 0.75 + r1 * 0.3);
+        if (q0 < 0.12) dGlint(ctx, x, y, 0.8 + r1 * 0.6);
+        else if (q0 < 0.3) dTuft(ctx, x, y, 0.75 + r1 * 0.3);
       } else if (m === 3) {
-        if (r0 < 0.14) dCrack(ctx, x, y, rr, 2.4 + r1 * 1.6);
-        else if (r0 < 0.24) dStone(ctx, x, y, 1.4 + r1, 0.9 + r2 * 0.5, (r1 - 0.5) * 0.6);
-        else if (r0 < 0.38) dTuft(ctx, x, y, 0.75 + r1 * 0.3);
+        if (q0 < 0.14) dCrack(ctx, x, y, rr, 2.4 + r1 * 1.6);
+        else if (q0 < 0.24) dStone(ctx, x, y, 1.4 + r1, 0.9 + r2 * 0.5, (r1 - 0.5) * 0.6);
+        else if (q0 < 0.38) dTuft(ctx, x, y, 0.75 + r1 * 0.3);
       } else {
-        if (r0 < 0.14) dStone(ctx, x, y, 1.1 + r1 * 0.9, 0.7 + r2 * 0.4, (r1 - 0.5) * 0.6);
-        else if (r0 < 0.24) { ctx.fillStyle = INK; ctx.beginPath(); for (let k = 0; k < 3; k++) { const px = x + rr() * 4 - 2, py = y + rr() * 3 - 1.5; ctx.moveTo(px + 0.35, py); ctx.arc(px, py, 0.35, 0, TAU); } ctx.fill(); }
+        if (q0 < 0.14) dStone(ctx, x, y, 1.1 + r1 * 0.9, 0.7 + r2 * 0.4, (r1 - 0.5) * 0.6);
+        else if (q0 < 0.24) { ctx.fillStyle = INK; ctx.beginPath(); for (let k = 0; k < 3; k++) { const px = x + rr() * 4 - 2, py = y + rr() * 3 - 1.5; ctx.moveTo(px + 0.35, py); ctx.arc(px, py, 0.35, 0, TAU); } ctx.fill(); }
       }
     }
   }
@@ -953,8 +1008,8 @@
     textCache.set(key, s);
     return s;
   }
-  const WORDS = ['POW!', 'ZACK!', 'KRACH!', 'PENG!', 'BÄM!', 'ZONK!', 'PLOPP!'];
-  const BIG_WORDS = ['WUMMS!', 'KRACH!', 'RUMMS!'];
+  const WORDS = ['POW!', 'ZAP!', 'BAM!', 'WHAM!', 'BONK!', 'ZONK!', 'SPLAT!'];
+  const BIG_WORDS = ['KABOOM!', 'KRAKOOM!', 'BLAM!'];
   const WORD_COL = [[C.yellow, C.red, C.orangeDot], [C.red, C.yellow, '#8a0c22'], [C.cyan, '#ffffff', '#0a5a9a'], ['#ffffff', C.red, C.cyan]];
   function wordSprite(word, v, rt) {
     const ok = fontReady(rt);
@@ -1236,7 +1291,7 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
     id: 'popart',
     name: 'Pop-Art Comic',
     family: 'Comic',
-    description: 'Gedrucktes Horror-Comicheft der 60er: dicke Tuschekonturen, Ben-Day-Punkte, verrutschte Farbplatten und knallende Lautmalereien.',
+    description: 'A printed 1960s comic book come alive: brush-ink outlines, flat process colours, Ben-Day dots and slipped colour plates.',
     groundColor: '#ece6c8',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1249,11 +1304,14 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
       const S = (cssH * dpr) / 360;
       K = Math.max(3, Math.min(5, Math.round(S * 1.4)));
       buildGrain();
-      SPR.jack = [0, 1, 2, 3].map((f) => set4([-11, -33, 10, 1.5], (P) => jackParts(P, f), C.cyan));
-      SPR.jackPlate = SPR.jack.map((s) => ({ c: [U.tint(s.n.c, C.cyan), U.tint(s.n.c, C.mag)], cl: [U.tint(s.nl.c, C.cyan), U.tint(s.nl.c, C.mag)], ox: s.n.ox, oy: s.n.oy, oxl: s.nl.ox }));
-      SPR.creep = [0, 1].map((v) => [0, 1, 2, 3].map((f) => set4([-10, -29, 10, 1.5], (P) => creeperParts(P, f, v), C.cyan)));
-      SPR.ghost = [0, 1, 2, 3].map((f) => set4([-13, -24, 12, 2], (P) => ghostParts(P, f), C.mag, ghostFade));
+      // main character: 8 walk + 3 idle + crouch + dash + recoil poses, each with a paper keyline; creatures 6 / 6 / 4 poses
+      const jset = (F) => set4([-13, -35, 15, 1.5], (P) => jackParts(P, F), C.cyan, keyline);
+      SPR.jWalk = JACK_WALK.map(jset); SPR.jIdle = JACK_IDLE.map(jset);
+      SPR.jCrouch = jset(JACK_CROUCH); SPR.jDash = jset(JACK_DASH); SPR.jRecoil = jset(JACK_RECOIL);
+      SPR.creep = [0, 1].map((v) => Array.from({ length: CR_N }, (_, f) => set4([-13, -29, 13, 1.5], (P) => creeperParts(P, f, v), C.cyan)));
+      SPR.ghost = Array.from({ length: GH_N }, (_, f) => set4([-13, -24, 14, 2], (P) => ghostParts(P, f), C.mag, ghostFade));
       SPR.colo = [0, 1, 2, 3].map((f) => set4([-24, -66, 24, 1.5], (P) => colossusParts(P, f), C.cyan));
+      for (const st of [...SPR.jWalk, ...SPR.jIdle, SPR.jCrouch, SPR.jDash, SPR.jRecoil, ...SPR.creep[0], ...SPR.creep[1], ...SPR.ghost, ...SPR.colo]) plateOf(st);
       SPR.lantern = build([-8, -20, 8, 1], lanternParts, 'n', C.cyan, 0.6);
       SPR.seed = build([-4, -3, 4.5, 3], seedParts, 'n', C.mag, 0.6);
       SPR.gemS = build([-3.5, -8, 3.5, 0], (P) => gemParts(P, false), 'n', C.mag, 0.6);
@@ -1415,7 +1473,8 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
       const out = [];
       G.scatterOwned(info, 88, 5151, (x, y, rng) => {
         if (G.nearSpawn(x, y, 95)) return;
-        const r = rng.next(), vr = rng.next();
+        const cl = U.smoothstep(0.36, 0.66, U.noise(x / 330, y / 330, 5252));
+        const r = rng.next() / (0.3 + 1.5 * cl), vr = rng.next();
         const m = matSafe(x, y, 10);
         if (m < 0) return;
         let t = null, v = 0;
@@ -1532,7 +1591,7 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
       let cap = 0.9;
       if (e.type === 'creeper') {
         const ph = e.anim * 0.85 + e.seed;
-        const f = Math.floor(ph * 4) & 3;
+        const f = ((Math.floor(ph * CR_N) % CR_N) + CR_N) % CR_N;
         set = SPR.creep[e.seed < 0.55 ? 0 : 1][f];
         scl *= CREEP_SCALE;
         const sn = Math.sin(ph * TAU);
@@ -1541,9 +1600,11 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
         y -= up * 1.2;
         sx = 1 + (1 - up) * 0.05; sy = 1 - (1 - up) * 0.05 + up * 0.03;
       } else if (e.type === 'ghost') {
-        const f = Math.floor(view.rt * 7 + e.seed * 4) & 3;
+        const f = Math.floor(view.rt * 7 + e.seed * 6) % GH_N;
         set = SPR.ghost[f];
-        y -= 4.5 + Math.sin(view.rt * 2.6 + e.seed * 12) * 1.6;
+        // eased hover (lingers at the top and the bottom), every spirit on its own clock
+        const u = (view.rt * 0.42 + e.seed * 3.1) % 1, tri = u < 0.5 ? u * 2 : 2 - u * 2;
+        y -= 3.2 + tri * tri * (3 - 2 * tri) * 3.4;
         rot = U.clamp(e.vx / 64, -1, 1) * 0.14;
         alpha = 0.94;
       } else {
@@ -1572,85 +1633,98 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
         }
       }
       if (e.dying) {
-        // impact frame: inflate in yellow, then gone (the explosion burst takes over)
+        // 1) impact frame: the yellow flash print inflates and squashes wide (0.06 s)
+        // 2) the colour plates come apart: magenta and cyan copies slide out of register while the figure is flung up,
+        //    spins and shrinks – a misprint falling off the page; the burst, chunks and word take over around it
         const q = e.deathT;
-        if (q >= 0.42) return;
-        const k = q < 0.2 ? 1 + U.ease.outQuad(q / 0.2) * 0.25 : 1.25 * (1 - U.ease.inQuad((q - 0.2) / 0.22));
-        ctx.globalAlpha = alpha;
-        const s = left ? set.fl : set.f;
-        blitRot(ctx, V, s, e.x, y, sx * k, sy * k, rot + (q - 0.2) * 0.6);
+        if (q < 0.16) {
+          const k = 1 + U.ease.outQuad(q / 0.16) * 0.28;
+          ctx.globalAlpha = alpha;
+          blitRot(ctx, V, left ? set.fl : set.f, e.x, y, sx * k * 1.08, sy * k * 0.9, rot);
+          ctx.globalAlpha = 1;
+          return;
+        }
+        const u = (q - 0.16) / 0.84, eu = U.ease.outQuad(u);
+        const dir = e.facing < 0 ? 1 : -1, big = e.type === 'colossus' ? 1.6 : 1;
+        const k = 1.12 - 0.62 * u, yy = y - 9 * big * eu + 6 * u * u;
+        ctx.globalAlpha = 0.8 * (1 - u) * alpha;
+        drawPlate(ctx, set, left, 1, e.x - 6 * eu * big, yy - 2.5 * eu, sx * k, sy * k);
+        drawPlate(ctx, set, left, 0, e.x + 6 * eu * big, yy + 2 * eu, sx * k, sy * k);
+        ctx.globalAlpha = Math.max(0, 1 - u * u) * alpha;
+        blitRot(ctx, V, left ? set.nl : set.n, e.x, yy, sx * k, sy * k, rot + dir * u * 1.1);
         ctx.globalAlpha = 1;
         return;
       }
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.18 * fl; sy *= 1 - 0.14 * fl; }
+      let hx = e.x;
+      if (fl > 0) {
+        // hit: squash + a knock-back shove and tilt away from the blow, easing back (flash fades over ~0.14 s)
+        sx *= 1 + 0.18 * fl; sy *= 1 - 0.14 * fl;
+        const kl = Math.hypot(e.kx, e.ky) || 1, k2 = fl * fl;
+        hx += (e.kx / kl) * 2.6 * k2; y += (e.ky / kl) * 1.4 * k2; rot += (e.kx / kl) * 0.24 * fl;
+      }
       ctx.globalAlpha = alpha;
       const s = left ? set.nl : set.n;
-      if (rot) blitRot(ctx, V, s, e.x, y, sx, sy, rot); else blit(ctx, s, e.x, y, sx, sy);
+      if (rot) blitRot(ctx, V, s, hx, y, sx, sy, rot); else blit(ctx, s, hx, y, sx, sy);
       if (fl > 0.02) {
         ctx.globalAlpha = Math.min(cap, fl * 1.4) * alpha;
         const f2 = left ? set.fl : set.f;
-        if (rot) blitRot(ctx, V, f2, e.x, y, sx, sy, rot); else blit(ctx, f2, e.x, y, sx, sy);
+        if (rot) blitRot(ctx, V, f2, hx, y, sx, sy, rot); else blit(ctx, f2, hx, y, sx, sy);
       }
       ctx.globalAlpha = 1;
     },
 
     drawPlayer(ctx, p, view) {
       const V = tf(view), game = view.game;
-      let frame = 0, sx = 1, sy = 1, lift = 0, rot = 0;
-      if (p.moving) {
-        const ph = p.anim * 0.4;
-        const step = Math.floor(ph * 4);
-        const seq = [1, 2, 3, 2];
-        frame = seq[step & 3];
-        const f = ph * 2 - Math.floor(ph * 2);
-        lift = Math.sin(f * PI) * 1.8;
-        rot = 0.05 * p.facing * Math.sin(f * PI);
-        if ((step & 1) === 0 && step !== lastStep) {
-          lastStep = step;
-          if (game && game.state === 'play' && p.dashT <= 0 && Math.random() < 0.5) puff(game, p.x - p.facing * 4, p.y + 0.5, 1, 0.3, -p.vx * 0.12, -p.vy * 0.12, 0.3);
-        }
+      let sx = 1, sy = 1, rot = 0, set;
+      if (p.hurtT > 0.45) set = SPR.jRecoil;
+      else if (p.dashT > 0) set = p.dashT > 0.165 ? SPR.jCrouch : SPR.jDash; // one crouch frame of anticipation
+      else if (p.moving) {
+        const i = Math.floor(p.anim * 0.4 * 8) & 7;
+        set = SPR.jWalk[i];
+        // a dust puff on every contact pose
+        if ((i & 3) === 0 && i !== lastStep && game && game.state === 'play' && Math.random() < 0.6) puff(game, p.x - p.facing * 4, p.y + 0.5, 1, 0.3, -p.vx * 0.12, -p.vy * 0.12, 0.3);
+        lastStep = i;
       } else {
-        const b = Math.sin(view.rt * 3.2);
-        sy = 1 + 0.025 * b; sx = 1 - 0.018 * b;
+        // held breathing: exhale - mid - inhale - mid on an eased 2.6 s clock (lingers at both ends)
+        const br = 0.5 - 0.5 * Math.cos(((view.rt / 2.6) % 1) * TAU);
+        set = SPR.jIdle[br < 0.3 ? 0 : br < 0.75 ? 1 : 2];
       }
       if (p.shootT > 0) { sy *= 1 - 0.05 * p.shootT; sx *= 1 + 0.04 * p.shootT; }
       if (p.levelT > 0) { const w = Math.sin(p.levelT * PI * 4) * p.levelT; sy *= 1 + 0.16 * w; sx *= 1 - 0.1 * w; }
       const hurt = p.hurtT > 0;
-      if (hurt) { sx *= 1 + 0.14 * p.hurtT; sy *= 1 - 0.12 * p.hurtT; }
-      sx *= JACK_SCALE; sy *= JACK_SCALE; lift *= JACK_SCALE;
+      if (hurt) { sx *= 1 + 0.14 * p.hurtT; sy *= 1 - 0.12 * p.hurtT; rot = -p.facing * 0.12 * p.hurtT; }
+      sx *= JACK_SCALE; sy *= JACK_SCALE;
       const left = p.facing < 0;
-      const set = SPR.jack[frame];
       if (p.dashT > 0) {
-        // dash smear: misregistered cyan / magenta colour-plate copies + speed lines
+        // dash smear: misregistered cyan / magenta colour-plate copies + tapered speed lines
         const k = U.clamp(p.dashT / 0.2, 0, 1);
-        const pl = SPR.jackPlate[frame];
-        const kk = 1 / K;
         for (let i = 2; i >= 1; i--) {
-          const img = (left ? pl.cl : pl.c)[i - 1];
-          const ox = left ? pl.oxl : pl.ox;
           ctx.globalAlpha = 0.6 * k;
-          const x = p.x - p.dashX * i * 6, y = p.y - p.dashY * i * 6 - lift;
-          ctx.drawImage(img, x - ox * kk * sx, y - pl.oy * kk * sy, img.width * kk * sx, img.height * kk * sy);
+          drawPlate(ctx, set, left, i - 1, p.x - p.dashX * i * 6, p.y - p.dashY * i * 6, sx, sy);
         }
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = INK; ctx.lineWidth = 0.7; ctx.lineCap = 'round';
+        ctx.fillStyle = INK;
         ctx.beginPath();
         for (let i = 0; i < 4; i++) {
           const off = (i - 1.5) * 4.5, nx = -p.dashY, ny = p.dashX;
           const x0 = p.x + nx * off - p.dashX * 6, y0 = p.y - 12 + ny * off - p.dashY * 6;
-          const len = (16 + (i % 2) * 8) * k;
-          ctx.moveTo(x0, y0); ctx.lineTo(x0 - p.dashX * len, y0 - p.dashY * len);
+          const len = (16 + (i % 2) * 8) * k, w = 0.45;
+          ctx.moveTo(x0 + nx * w, y0 + ny * w); ctx.lineTo(x0 - p.dashX * len, y0 - p.dashY * len); ctx.lineTo(x0 - nx * w, y0 - ny * w); ctx.closePath();
         }
-        ctx.stroke();
+        ctx.fill();
       }
-      let a = 1;
-      if (p.iframes > 0 && !hurt && p.dashT <= 0 && (Math.floor(view.rt * 16) & 1)) a = 0.45;
-      ctx.globalAlpha = a;
-      blitRot(ctx, V, left ? set.nl : set.n, p.x, p.y - lift, sx, sy, rot);
+      // invulnerable blink = the plates slip out of register (never a see-through main character)
+      if (p.iframes > 0 && !hurt && p.dashT <= 0 && (Math.floor(view.rt * 12) & 1)) {
+        ctx.globalAlpha = 0.85;
+        drawPlate(ctx, set, left, 1, p.x - 1.3, p.y - 0.6, sx, sy);
+        drawPlate(ctx, set, left, 0, p.x + 1.3, p.y + 0.6, sx, sy);
+        ctx.globalAlpha = 1;
+      }
+      blitRot(ctx, V, left ? set.nl : set.n, p.x, p.y, sx, sy, rot);
       if (hurt) {
         ctx.globalAlpha = Math.min(0.9, p.hurtT * 1.4);
-        blitRot(ctx, V, left ? set.fl : set.f, p.x, p.y - lift, sx, sy, rot);
+        blitRot(ctx, V, left ? set.fl : set.f, p.x, p.y, sx, sy, rot);
       }
       ctx.globalAlpha = 1;
     },
@@ -1829,7 +1903,7 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
       game.addParticle({ kind: 'impact', x: p.x, y: p.y + 0.5, z: 16, life: 0.2, size: 1.2, rot: Math.random() * TAU, drag: 0 });
       game.addParticle({ kind: 'lines', x: p.x, y: p.y + 0.5, z: 16, life: 0.25, size: 1.6, rot: Math.random() * TAU, drag: 0 });
       if (game.time < lastHurtWordT) lastHurtWordT = -9;
-      if (game.time - lastHurtWordT > 2.2) { lastHurtWordT = game.time; addWord(game, p.x + 8, p.y, 38, 'AUTSCH!', 3, false); }
+      if (game.time - lastHurtWordT > 2.2) { lastHurtWordT = game.time; addWord(game, p.x + 8, p.y, 38, 'OUCH!', 3, false); }
     },
     onPickup(game, g) {
       const p = game.player;
@@ -1850,7 +1924,7 @@ ${B} #pausebox { font-family: 'Bangers', Impact, sans-serif; font-weight: 400; f
     },
     onDeath(game, p) {
       game.addParticle({ kind: 'boom', tint: 2, x: p.x, y: p.y + 0.5, z: 14, life: 0.7, size: 2.2, rot: 0, drag: 0 });
-      addWord(game, p.x, p.y, 44, 'AUWEIA!', 1, true);
+      addWord(game, p.x, p.y, 44, 'KA-POW!', 1, true);
     },
   });
 })();

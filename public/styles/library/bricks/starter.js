@@ -128,13 +128,14 @@
     const w = r.x1 - r.x0, h = r.y1 - r.y0, x0 = r.x0 + w * 0.2, x1 = r.x1 - w * 0.2, y0 = r.y0 + h * 0.42, y1 = r.y0 + h * 0.8;
     g.fillStyle = P.print; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2, y0 + (y1 - y0) * 0.35, x1, y0); g.quadraticCurveTo((x0 + x1) / 2, y1 + (y1 - y0) * 0.5, x0, y0); g.fill();
   }
-  function beetle(f) {                       // small creature: red brick beetle, 4 x 3 x 6 cells
-    const m = model(4, 3, 6), a = f & 1 ? 1 : 0, b = 1 - a;
+  function beetle(f) {                       // small creature: red brick beetle, 4 x 3 x 7 cells, 6 scuttle poses
+    // feet jump a whole stud, the body hops a whole plate, the eye bricks lag the hop by one pose (follow-through in clicks)
+    const m = model(4, 3, 7), a = [0, 0, 1, 1, 1, 0][f], b = 1 - a, bob = [0, 1, 0, 0, 1, 0][f], eyeZ = 4 + Math.max(bob, [0, 0, 1, 0, 0, 1][f]);
     part(m, 0, a, 0, 1, 2, 1, P.black); part(m, 3, b, 0, 1, 2, 1, P.black);
-    part(m, 1, 0, 0, 2, 3, 1, P.darkGrey);
-    part(m, 1, 0, 1, 2, 3, 3, P.red, { print: grin });
-    part(m, 1, 0, 4, 2, 2, 1, '#9e1d18');
-    part(m, 1, 2, 4, 1, 1, 2, P.white, { round: true, print: eye }); part(m, 2, 2, 4, 1, 1, 2, P.white, { round: true, print: eye });
+    part(m, 1, 0, bob, 2, 3, 1, P.darkGrey);
+    part(m, 1, 0, 1 + bob, 2, 3, 3, P.red, { print: grin });
+    part(m, 1, 0, 4 + bob, 2, 2, 1, '#9e1d18');
+    part(m, 1, 2, eyeZ, 1, 1, 2, P.white, { round: true, print: eye }); part(m, 2, 2, eyeZ, 1, 1, 2, P.white, { round: true, print: eye });
     return m;
   }
   function tree() {                          // prop: stepped brick tree with round fruit plates
@@ -155,15 +156,18 @@
     return gr;
   }
   function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  /** Walk pose f (0-7) of the toy figure: rigid legs on the hip pin, arms counter-swinging on the shoulder pins, hop at passing. */
+  const figPose = (f) => { const L = [0.42, 0.28, 0, -0.28, -0.42, -0.28, 0, 0.28][f]; return { legs: [L, -L], arms: [-L * 1.25, L * 1.25], bob: f % 4 === 2 ? -1.2 : f % 4 === 3 ? -0.4 : 0, hatLag: f % 4 === 3 ? -0.4 : 0 }; };
   function drawHero(ctx, x, y, t, facing = 1) {
-    const fx = facing < 0 ? -1 : 1, sw = Math.sin(t * 9), bob = -Math.abs(Math.cos(t * 9)) * 0.5;
+    const fx = facing < 0 ? -1 : 1, q = figPose(Math.floor(t * 12) % 8), bob = q.bob; // poses held and stepped on twos (~12 fps), like a brickfilm
     ctx.save(); ctx.translate(x, y);
     ctx.fillStyle = 'rgba(10,25,45,0.3)'; ctx.beginPath(); ctx.ellipse(1.6, 0.6, 7.5, 2.8, 0, 0, TAU); ctx.fill();
-    const legTop = -9.4 + bob;
-    for (const [lx, ext] of [[-4.3, sw * 1.5], [0.15, -sw * 1.5]].sort((a, b) => a[1] - b[1])) {
-      const bot = Math.min(0.9, ext);
-      ctx.fillStyle = vGrad(ctx, lx, lx + 4.15, ext < -0.2 ? shade(P.figLegs, 0.8) : P.figLegs); rr(ctx, lx, legTop, 4.15, bot - legTop, 0.7); ctx.fill();
-      ctx.fillStyle = shade(P.figLegs, 0.66); rr(ctx, lx, bot - 1.6, 4.15, 1.6, 0.6); ctx.fill();
+    const legTop = -9.4 + bob, len = 10.3 - Math.min(0, bob);
+    for (const [px, a] of [[-2.22, q.legs[0]], [2.22, q.legs[1]]].sort((p, r) => p[1] - r[1])) { // back leg first, darker
+      ctx.save(); ctx.translate(px, legTop); ctx.rotate(-a * fx);
+      ctx.fillStyle = vGrad(ctx, -2.07, 2.07, a < -0.05 ? shade(P.figLegs, 0.8) : P.figLegs); rr(ctx, -2.07, 0, 4.15, len, 0.7); ctx.fill();
+      ctx.fillStyle = shade(P.figLegs, 0.66); rr(ctx, -2.07, len - 1.6, 4.15, 1.6, 0.6); ctx.fill();
+      ctx.restore();
     }
     ctx.fillStyle = shade(P.figLegs, 0.9); rr(ctx, -4.6, legTop - 1.9, 9.2, 2.4, 0.6); ctx.fill();
     const tT = -19.6 + bob, tB = -10.9 + bob;
@@ -172,19 +176,21 @@
     ctx.strokeStyle = '#6b3a1c'; ctx.lineWidth = 1.15; ctx.beginPath(); ctx.moveTo(-fx * 3.2, tT); ctx.lineTo(fx * 4.4, tB - 1.4); ctx.stroke();
     ctx.fillStyle = '#6b3a1c'; ctx.fillRect(-4.7, tB - 1.7, 9.4, 1.05);
     ctx.fillStyle = P.red; ctx.beginPath(); ctx.moveTo(-2.5, tT); ctx.lineTo(2.5, tT); ctx.lineTo(fx * 0.7, tT + 3.1); ctx.fill();
-    for (const s of [-1, 1]) {                                       // arms + C-shaped claw hands
-      const hX = s * 6.2, hY = tB - 1.6 + s * sw * 1.4;
+    [-1, 1].forEach((s, k) => {                                      // arms rotate on the shoulder pins + C-shaped claw hands
+      const th = -q.arms[k] * fx, shX = s * 3.75, shY = tT + 1.1, vx = s * 2.45, vy = 6.0;
+      const hX = shX + vx * Math.cos(th) - vy * Math.sin(th), hY = shY + vx * Math.sin(th) + vy * Math.cos(th);
       ctx.strokeStyle = shade(P.figShirt, 0.86); ctx.lineWidth = 3; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(s * 3.75, tT + 1.1); ctx.quadraticCurveTo(s * 5.6, tT + 2.3, hX, hY - 1.1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(shX, shY); ctx.quadraticCurveTo((shX + hX) / 2 + s, (shY + hY) / 2 + 0.4, hX, hY - 1.1); ctx.stroke();
       ctx.fillStyle = vGrad(ctx, hX - 1.4, hX + 1.4, P.figSkin); ctx.beginPath(); ctx.arc(hX, hY, 1.4, 0, TAU); ctx.fill();
       ctx.fillStyle = shade(P.figSkin, 0.55); ctx.beginPath(); ctx.arc(hX + s * 0.25, hY + 0.55, 0.62, 0, TAU); ctx.fill();
-    }
+    });
     const hT = -27.1 + bob, hB = -20.2 + bob, fo = fx * 0.85, ey = -23.9 + bob;  // cylinder head + printed face
     ctx.fillStyle = vGrad(ctx, -3.6, 3.6, P.figSkin);
     ctx.beginPath(); ctx.moveTo(-3.6, hT); ctx.lineTo(-3.6, hB - 0.9); ctx.ellipse(0, hB - 0.9, 3.6, 0.95, 0, Math.PI, 0, true); ctx.lineTo(3.6, hT); ctx.fill();
     ctx.fillStyle = P.print;
     for (const ex of [-1.35, 1.35]) { ctx.beginPath(); ctx.ellipse(fo + ex, ey, 0.5, 0.76, 0, 0, TAU); ctx.fill(); }
     ctx.strokeStyle = P.print; ctx.lineWidth = 0.48; ctx.beginPath(); ctx.arc(fo, ey + 0.7, 1.5, 0.22 * Math.PI, 0.78 * Math.PI); ctx.stroke();
+    ctx.translate(0, q.hatLag);                                       // the helmet is a separate piece that lags the hop
     ctx.fillStyle = shade(P.figHat, 0.66); ctx.beginPath(); ctx.ellipse(0, hT + 0.95, 5.8, 1.95, 0, 0, TAU); ctx.fill();   // pith helmet
     ctx.fillStyle = vGrad(ctx, -5.8, 5.8, P.figHat); ctx.beginPath(); ctx.ellipse(0, hT + 0.5, 5.8, 1.85, 0, 0, TAU); ctx.fill();
     ctx.beginPath(); ctx.ellipse(0, hT, 4.05, 4.5, 0, Math.PI, TAU); ctx.closePath(); ctx.fill();
@@ -197,7 +203,7 @@
   let cache = null;
   function bake(w, h) {
     const k = h / 360;
-    const S = { k, w, h, beetle: [0, 1].map((f) => render(beetle(f), k * 1.5)), tree: render(tree(), k * 1.5), bg: makeCanvas(w, h) };
+    const S = { k, w, h, beetle: [0, 1, 2, 3, 4, 5].map((f) => render(beetle(f), k * 1.5)), tree: render(tree(), k * 1.5), bg: makeCanvas(w, h) };
     const g = S.bg.getContext('2d'), W = w / k;
     const mat = (i, j) => {                      // baseplate, a pond of transparent-blue plates, a tiled road
       const x = (i + 0.5) * SX, y = (j + 0.5) * SY;
@@ -223,11 +229,12 @@
         const mt = mat(i, j);
         if (mt === 'road') continue;
         const cx = (i + 0.5) * SX * k, cy = ((j + 0.5) * SY - (mt === 'water' ? -PH : 0)) * k;
-        const hv = hash(i, j, 7);
-        if (mt !== 'water' && hv < 0.012) {                                   // a toy flower part instead of a stud
+        const hv = hash(i, j, 7), bx = Math.floor((i * SX) / 70), by = Math.floor((j * SY) / 50);
+        const bed = hash(bx, by, 11) < 0.22 && Math.hypot(((i * SX) % 70) - 35, ((j * SY) % 50) - 25) < 20; // flower beds, not a sprinkle
+        if ((mt === 'plate' || mt === 'dark') && bed && hv < 0.35) {          // a toy flower part instead of a stud
           for (let q = 0; q < 5; q++) {
             const a = (q / 5) * TAU;
-            g.fillStyle = [P.red, P.yellow, P.white][(hv * 150 | 0) % 3]; g.beginPath(); g.ellipse(cx + Math.cos(a) * 1.6 * k, cy + Math.sin(a) * 1.3 * k - k, 1.2 * k, k, 0, 0, TAU); g.fill();
+            g.fillStyle = [P.red, P.yellow, P.white][Math.floor(hash(bx, by, 12) * 3)]; // one colour per bed g.beginPath(); g.ellipse(cx + Math.cos(a) * 1.6 * k, cy + Math.sin(a) * 1.3 * k - k, 1.2 * k, k, 0, 0, TAU); g.fill();
           }
           g.fillStyle = P.yellow; g.beginPath(); g.ellipse(cx, cy - k, 0.8 * k, 0.7 * k, 0, 0, TAU); g.fill();
           continue;
@@ -242,7 +249,7 @@
   /* ---------- 7. creature + scene ---------- */
   function drawEnemy(ctx, x, y, t) {
     if (!cache) return;
-    const s = cache.beetle[Math.floor(t * 6) & 1], k = cache.k * 1.5;
+    const s = cache.beetle[Math.floor(t * 10) % 6], k = cache.k * 1.5;
     ctx.fillStyle = 'rgba(10,25,45,0.28)'; ctx.beginPath(); ctx.ellipse(x + 2, y + 1, 13, 5, 0, 0, TAU); ctx.fill();
     ctx.drawImage(s.c, x - s.ax / k, y - s.ay / k, s.c.width / k, s.c.height / k);
   }

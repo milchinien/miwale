@@ -196,7 +196,7 @@
     const sx = gx + ((cy & 1) ? 3 : 0);
     const cx = Math.floor(sx / 6);
     const h = U.hashInt(cx, cy, 77);
-    const dens = 0.06 + 0.5 * mac;
+    const dens = mac;   // density comes in from the caller (edge proximity + clumps)
     if ((h & 1023) / 1024 < dens) {
       const tx = (h >>> 10) % 4, ty = (h >>> 13) % 3;
       const lx = sx - cx * 6 - tx, ly = gy - cy * 5 - ty;
@@ -283,96 +283,181 @@
      ====================================================================== */
   const SPR = {};
 
-  /* ---------- Jack ---------- */
-  const JACK_HEAD = [
-    '....11....',
-    '.22211222.',
-    '2221221222',
-    '2223222322',
-    '2233323332',
-    '2222222221',
-    '2322222231',
-    '2333233332',
-    '.22322322.',
-    '..222222..',
-  ];
-  const JB0 = '...113311...';
-  const JACK_BODY = {
-    idle: [JB0, '..21111112..', '...111111...', '...11..11...'],
-    w0: [JB0, '.321111112..', '...111111...', '..11...11...'],
-    w1: [JB0, '.321111112..', '...111111...', '...11.11....'],
-    w2: [JB0, '.321111112..', '...111111...', '...11...11..'],
-    w3: [JB0, '.321111112..', '...111111...', '....11.11...'],
-    throw: ['...1133112..', '..2111111...', '...111111...', '...11..11...'],
-    dash: [JB0, '3321111112..', '..1111111...', '.11.....11..'],
+  /* ---------- posed figures: parts on a char grid → 4-tone index grid, baked lazily per pose ---------- */
+  const POSES = new Map();
+  function posed(key, build) {
+    let s = POSES.get(key);
+    if (!s) { s = build(); POSES.set(key, s); }
+    return s;
+  }
+  const phaseOf = (o) => (o.__ph === undefined ? (o.__ph = o.seed !== undefined ? o.seed * 10 : Math.random() * 10) : o.__ph);
+  function charGrid(w, h) {
+    const a = []; for (let y = 0; y < h; y++) a.push(new Array(w).fill('.'));
+    a.set = (x, y, ch) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < w && y < h) a[y][x] = ch; };
+    a.toIG = (map) => { const g = IG(w, h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = map[a[y][x]]; if (v !== undefined) g.set(x, y, v); } return g; };
+    return a;
+  }
+
+  /* ---------- main character: pumpkin head with a carved, glowing face, light scarf, brown coat ---------- */
+  // tones: 0 darkest, 1 brown, 2 orange, 3 light
+  const JMAP = { o: 2, d: 1, h: 3, y: 0, Y: 3, g: 0, l: 1, s: 3, S: 2, c: 1, b: 2, n: 0, k: 1, w: 3, r: 0 };
+  const JW = 12, JH = 16, JF = JH - 3;
+  const JLEGS = {
+    stand: { far: [[4, 4, 0], [4, 4, 1], [3, 4, 2]], near: [[6, 6, 0], [6, 6, 1], [6, 7, 2]] },
+    cA: { far: [[4, 4, 0], [3, 3, 1], [2, 3, 2]], near: [[6, 6, 0], [7, 7, 1], [7, 8, 2]] },
+    pA: { far: [[4, 4, 0], [5, 6, 1]], near: [[5, 5, 0], [5, 5, 1], [5, 6, 2]] },
+    uA: { far: [[5, 5, 0], [6, 7, 1]], near: [[5, 5, 0], [5, 5, 1], [4, 5, 2]] },
+    cB: { far: [[5, 5, 0], [6, 6, 1], [6, 7, 2]], near: [[4, 4, 0], [3, 3, 1], [2, 3, 2]] },
+    pB: { far: [[5, 5, 0], [5, 5, 1], [4, 5, 2]], near: [[6, 6, 0], [7, 8, 1]] },
+    uB: { far: [[5, 5, 0], [5, 5, 1], [4, 5, 2]], near: [[6, 6, 0], [7, 9, 1]] },
+    crouch: { far: [[2, 3, 2]], near: [[7, 8, 2]] },
+    split: { far: [[4, 4, 0], [2, 3, 1]], near: [[7, 7, 0], [8, 9, 1]] },
+    skid: { far: [[4, 4, 0], [3, 3, 1], [2, 3, 2]], near: [[6, 6, 0], [7, 7, 1], [7, 9, 2]] },
+    hurt: { far: [[4, 4, 0], [3, 3, 1], [2, 3, 2]], near: [[6, 6, 0], [7, 7, 1], [8, 8, 2]] },
   };
-  function jackFrame(body, headDy = 0, headDx = 0) {
-    const g = IG(12, 14);
-    g.rows(JACK_BODY[body], 0, 10);
-    g.rows(JACK_HEAD, 1 + headDx, headDy);
-    return sset(outline(outline(g), 3)); // dark outline + light LCD halo so Jack pops on every ground
+  const JARM_N = { n: [[5, 1]], f: [[6, 1], [7, 1]], b: [[4, 1], [3, 1]], t: [[6, 0], [7, 0], [8, 0]], up: [[7, 0], [8, -1]], dash: [[4, 1], [3, 1]] };
+  const JHAND_N = { n: [5, 2], f: [8, 2], b: [2, 2], t: [9, 0], up: [9, -2], dash: [2, 1] };
+  const JARM_F = { f: [[8, 1]], b: [[2, 1]], up: [[2, 0]], dash: [[2, 1]] };
+  const JHAND_F = { f: [9, 2], b: [1, 2], up: [1, -1], dash: [1, 1] };
+  const JSCARF = { hang: [[2, 0], [2, 1], [1, 2, 'S']], w0: [[2, 0], [1, 0], [0, 1, 'S']], w1: [[2, 0], [1, 1], [0, 1, 'S']], dash: [[2, 0], [1, 0], [0, -1, 'S']] };
+  function jackGrid(o) {
+    const g = charGrid(JW, JH), T = JF - 4 + o.bob, tx = o.tx || 0, hx = o.hx || 0;
+    const put = (pts, ch, dx, dy) => { for (const q of pts) g.set(q[0] + dx, q[1] + dy, q[2] || ch); };
+    if (JARM_F[o.fa]) { put(JARM_F[o.fa], 'k', tx, T); g.set(JHAND_F[o.fa][0] + tx, JHAND_F[o.fa][1] + T, 'w'); }
+    const L = JLEGS[o.legs];
+    for (const [leg, ch] of [[L.far, 'k'], [L.near, 'n']]) {
+      for (const s of leg) for (let x = s[0]; x <= s[1]; x++) g.set(x, JF + s[2], ch);
+      if (o.bob < 0) for (let x = leg[0][0]; x <= leg[0][1]; x++) g.set(x, JF - 1, ch);
+    }
+    put(JSCARF[o.sc], 's', tx, T);
+    for (let y = 0; y < 4; y++) for (let x = 3; x <= 7; x++) {
+      if (y === 3 && (x === 3 || x === 7)) continue;
+      g.set(x + tx, T + y, y === 0 ? 's' : y === 2 ? (x === 5 ? 's' : 'b') : y === 3 ? 'n' : 'c');
+    }
+    if (JARM_N[o.na]) { put(JARM_N[o.na], 'n', tx, T); g.set(JHAND_N[o.na][0] + tx, JHAND_N[o.na][1] + T, 'w'); }
+    const Ht = T - 6 + (o.hb || 0), X = 1 + hx;
+    for (let y = 0; y < 7; y++) for (let x = 0; x < 10; x++) {
+      const nx = (x + 0.5 - 5) / 5, ny = (y + 0.5 - 3.5) / 3.5;
+      if (nx * nx + ny * ny > 1.08) continue;
+      g.set(x + X, Ht + y, ny > 0.6 || ((x === 2 || x === 7) && (y === 0 || y === 6)) ? 'd' : 'o');
+    }
+    g.set(X + 2, Ht + 1, 'h'); g.set(X + 3, Ht + 1, 'h');
+    for (const cx of [4, 7]) {
+      if (o.face === 'blink') { g.set(X + cx - 1, Ht + 3, 'y'); g.set(X + cx, Ht + 3, 'y'); }
+      else if (o.face === 'hurt') { for (let k = -1; k <= 1; k++) g.set(X + cx + k, Ht + 3, 'y'); }
+      else { g.set(X + cx - 1, Ht + 2, 'Y'); g.set(X + cx, Ht + 2, 'y'); g.set(X + cx - 1, Ht + 3, 'y'); g.set(X + cx, Ht + 3, 'y'); }
+    }
+    if (o.face === 'hurt') { g.set(X + 5, Ht + 4, 'y'); g.set(X + 6, Ht + 4, 'y'); g.set(X + 5, Ht + 5, 'y'); g.set(X + 6, Ht + 5, 'y'); }
+    else { for (let x = 3; x <= 8; x++) g.set(X + x, Ht + 5, x === 5 ? 'Y' : 'y'); g.set(X + 2, Ht + 4, 'y'); g.set(X + 9, Ht + 4, 'y'); }
+    g.set(X + 5, Ht - 1, 'g');
+    if (o.leaf) { g.set(X + 6, Ht - 2, 'l'); g.set(X + 7, Ht - 2, 'l'); } else { g.set(X + 6, Ht - 1, 'l'); g.set(X + 7, Ht - 1, 'l'); }
+    return g.toIG(JMAP);
   }
-
-  /* ---------- Rüben-Schleicher (walking rutabaga) ---------- */
-  const CREEP = [
-    '..2..2..2.',
-    '..22.2.22.',
-    '...21212..',
-    '..111111..',
-    '.11111111.',
-    '1113010311',
-    '1113313311',
-    '2121212121',
-    '.33300332.',
-    '..333322..',
-  ];
-  const CREEP_LEGS = [
-    ['..1.32.1..', '.1......1.'],
-    ['..1.32.1..', '..1....1..'],
-    ['..1.32.1..', '.1......1.'],
-    ['..1.321...', '..1...1...'],
-  ];
-  function creeperFrame(f) {
-    const g = IG(10, 12);
-    g.rows(CREEP, 0, 0);
-    g.rows(CREEP_LEGS[f], 0, 10);
-    // leaves sway
-    if (f === 1) { g.set(2, 0, -1); g.set(1, 0, 2); }
-    if (f === 3) { g.set(8, 0, -1); g.set(9, 0, 2); }
-    return sset(outline(g));
+  function jackSprite(o) {
+    const key = o.legs + o.bob + '|' + (o.hb || 0) + (o.hx || 0) + (o.tx || 0) + o.na + o.fa + o.sc + o.face + o.leaf;
+    return posed('j' + key, () => sset(outline(outline(jackGrid(o)), 3)));   // dark outline + light LCD halo
   }
+  function jackAfter(o) {
+    return posed('ja' + o.legs, () => {
+      const g = jackGrid(o), a = IG(g.w + 4, g.h + 4);
+      for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.a[y * g.w + x] >= 0 && ((x + y) & 1) === 0) a.set(x + 2, y + 2, 2);
+      const c = toCanvas(a);
+      return { r: c, l: U.flipX(c) };
+    });
+  }
+  const JWALK = [
+    { legs: 'cA', bob: 0, na: 'b', fa: 'f' }, { legs: 'cA', bob: 1, na: 'b', fa: 'f' },
+    { legs: 'pA', bob: 0, na: 'n', fa: 'h' }, { legs: 'uA', bob: -1, na: 'n', fa: 'h' },
+    { legs: 'cB', bob: 0, na: 'f', fa: 'b' }, { legs: 'cB', bob: 1, na: 'f', fa: 'b' },
+    { legs: 'pB', bob: 0, na: 'n', fa: 'h' }, { legs: 'uB', bob: -1, na: 'n', fa: 'h' },
+  ];
+  JWALK.forEach((w, i) => {
+    w.hb = JWALK[(i + 7) & 7].bob - w.bob;             // the head lands one frame after the body
+    w.sc = (((i + 1) >> 1) & 1) ? 'w1' : 'w0';          // scarf flaps a frame behind the step
+    w.leaf = w.hb > 0 ? 1 : 0; w.face = 'n';
+  });
+  const JDASH_WIND = { legs: 'crouch', bob: 2, hb: 0, na: 'b', fa: 'b', sc: 'hang', face: 'n', leaf: 1 };
+  const JDASH_GO = { legs: 'split', bob: 0, hb: 1, hx: 1, tx: 1, na: 'dash', fa: 'dash', sc: 'dash', face: 'n', leaf: 0 };
+  const JSKID = { legs: 'skid', bob: 1, hb: 0, hx: -1, na: 'f', fa: 'b', sc: 'w1', face: 'n', leaf: 1 };
+  const JHURT = { legs: 'hurt', bob: 0, hb: -1, hx: -1, na: 'up', fa: 'up', sc: 'w0', face: 'hurt', leaf: 1 };
 
-  /* ---------- Hungergeist (dithered, wispy) ---------- */
-  const GHOST_BODY = [
-    '...33333...',
-    '..3333333..',
-    '.333333333.',
-    '.333003003.',
-    '3333003003.',
-    '33333333323',
-    '3333330032.',
-    '3333330032.',
-    '.333333332.',
-    '..3333332..',
+  /* ---------- small creature: hopping root (round beet / long pale radish) with a leaf crown ---------- */
+  const CHOP = [
+    { w: 5.3, h: 6, b: 11, legs: 0, sp: 2 },   // land: squash, crown flops
+    { w: 4.5, h: 7, b: 11, legs: 1, sp: 1 },   // push
+    { w: 3.9, h: 8, b: 9, legs: 2, sp: 2 },    // air: stretch, crown lags down
+    { w: 4.5, h: 7, b: 10, legs: 3, sp: 0 },   // fall: crown lifts
   ];
-  const GHOST_TAIL = [
-    ['..33332....', '..332......', '.33........', '.3.........'],
-    ['...33332...', '...3332....', '....33.....', '.....3.....'],
-    ['..33332....', '.3332......', '.33........', '3..........'],
+  const CCROWN = [
+    [[[0, -1, 'G'], [0, -2], [0, -3], [-1, -1], [-2, -2], [1, -1], [2, -2]],
+      [[0, -1, 'G'], [0, -2], [1, -3], [-1, -1], [-2, -2], [-3, -2], [1, -1], [2, -1], [3, -2]],
+      [[0, -1, 'G'], [1, -2], [-1, -1], [-2, -1], [-3, -1], [1, -1], [2, -1], [3, -1]]],
+    [[[0, -1, 'G'], [-1, -2], [-1, -3], [1, -2], [1, -3], [2, -4]],
+      [[0, -1, 'G'], [-1, -2], [-2, -3], [1, -2], [2, -3], [3, -3]],
+      [[0, -1, 'G'], [-1, -1], [-2, -2], [-3, -2], [1, -1], [2, -2], [3, -1]]],
   ];
-  function ghostFrame(f) {
-    const solid = IG(11, 14).rows(GHOST_BODY).rows(GHOST_TAIL[f], 0, 10);
-    const o = outline(solid);
-    // dithered transparency: the lower body and the tail dissolve into the ground
-    const g = IG(o.w, o.h);
-    for (let y = 0; y < o.h; y++) {
-      const lv = y < 9 ? 1 : y < 11 ? 0.75 : y < 13 ? 0.5 : 0.3;
-      for (let x = 0; x < o.w; x++) {
-        const v = o.a[y * o.w + x];
-        if (v >= 0 && bay(x + f, y + f * 2) < lv) g.a[y * o.w + x] = v;
+  const CLEGS = [[[3, 1], [2, 2], [9, 1], [10, 2]], [[4, 1], [4, 2], [8, 1], [8, 2]], [[5, 1], [7, 1], [6, 2]], [[4, 1], [3, 2], [8, 1], [9, 2]]];
+  function creeperGrid(f, kind, face) {
+    const g = charGrid(12, 14), H = CHOP[f];
+    const w = H.w - kind * 0.5, h = H.h + kind, top = H.b - h + 1, cy = top + h / 2, cx = 6;
+    for (let y = top; y <= H.b; y++) for (let x = 0; x < 12; x++) {
+      const nx = (x + 0.5 - cx) / w, ny = (y + 0.5 - cy) / (h / 2);
+      if (nx * nx + ny * ny > 1.04) continue;
+      let ch = ny < -0.05 ? 'T' : ny < 0.2 ? (((x + y) & 1) ? 'T' : 'B') : 'B';
+      if (nx > -0.75 && nx < -0.2 && ny > -0.9 && ny < -0.45) ch = 'p';
+      g.set(x, y, ch);
+    }
+    const ey = top + Math.max(1, Math.round(h * 0.3)), my = top + Math.round(h * 0.66);
+    if (face === 'hit') { for (const ex of [4, 7]) { g.set(ex, ey, 'k'); g.set(ex + 1, ey, 'k'); } g.set(6, my, 'k'); g.set(6, my + 1, 'k'); g.set(5, my, 'k'); }
+    else {
+      for (const ex of [4, 7]) { g.set(ex, ey, 'e'); g.set(ex + 1, ey, 'k'); }
+      g.set(5, ey - 1, 'k'); g.set(7, ey - 1, 'k');                       // angry brows
+      for (let x = 4; x <= 8; x++) g.set(x, my, x === 5 || x === 7 ? 'e' : 'k');
+      for (let x = 5; x <= 7; x++) g.set(x, my + 1, 'k');
+    }
+    for (const q of CCROWN[kind][H.sp]) g.set(6 + q[0], top + q[1] + 1, q[2] || 'L');
+    for (const [x, y] of CLEGS[H.legs]) g.set(x, H.b + y, 'T');
+    return g.toIG({ T: 1, B: kind ? 3 : 2, p: 2, e: 3, k: 0, L: 2, G: 1 });
+  }
+  function creeperSprite(f, kind, face) { return posed('c' + f + kind + face, () => sset(outline(creeperGrid(f, kind, face)))); }
+
+  /* ---------- fast creature: hooded ghost, dark eyes, reaching arm, waving tail that dithers away ---------- */
+  function ghostGrid(f, mouth, arm) {
+    const g = charGrid(13, 16);
+    for (let y = 0; y < 16; y++) {
+      let hw, off = 0;
+      if (y <= 4) { const ny = (4.6 - y) / 4.9; hw = 4.7 * Math.sqrt(Math.max(0, 1 - ny * ny)); }
+      else if (y < 9) hw = 4.7 - (y - 5) * 0.12;
+      else { const k = (y - 9) / 7; hw = 4 * (1 - k) + 0.5; off = Math.round(Math.sin(f * Math.PI / 2 + y * 0.85) * 1.2 - k * 2.6); }
+      for (let x = 0; x < 13; x++) {
+        const dx = x + 0.5 - 6.5 - off;
+        if (Math.abs(dx) > hw) continue;
+        let ch = 'W';
+        if (y >= 6 && dx < -hw + 1.8) ch = 'S';                           // shade on the back
+        if (y >= 8 && y < 9) ch = dx < 1 ? 'S' : 'W';
+        if (y >= 9) ch = Math.abs(dx) > hw - 1.2 ? 'D' : 'S';
+        g.set(x, y, ch);
       }
     }
-    return g;
+    g.set(5, 0, 'W'); g.set(4, 0, 'S');                                   // hood peak
+    for (const [x, y] of [[6, 2], [7, 2], [6, 3], [7, 3], [9, 2], [10, 2], [9, 3], [10, 3]]) g.set(x, y, 'k');
+    
+    
+    if (mouth) { g.set(8, 6, 'k'); g.set(9, 6, 'k'); g.set(8, 7, 'k'); g.set(9, 7, 'k'); } else { g.set(8, 7, 'k'); g.set(9, 7, 'k'); }
+    if (arm) { g.set(11, 5, 'W'); g.set(12, 6, 'W'); } else { g.set(11, 6, 'W'); g.set(12, 6, 'S'); }
+    return g.toIG({ W: 3, S: 2, D: 1, k: 0 });
+  }
+  function ghostSprite(f, mouth, arm, level) {
+    return posed('g' + f + mouth + arm + level, () => {
+      const o = outline(ghostGrid(f, mouth, arm));
+      // the lower body and tail dissolve into the ground with ordered dither; `level` < 1 fades the whole figure
+      const g = IG(o.w, o.h);
+      for (let y = 0; y < o.h; y++) {
+        const lv = (y < 10 ? 1 : y < 12 ? 0.75 : y < 14 ? 0.55 : 0.35) * level;
+        for (let x = 0; x < o.w; x++) { const v = o.a[y * o.w + x]; if (v >= 0 && bay(x + f, y + f * 2) < lv) g.a[y * o.w + x] = v; }
+      }
+      return sset(g);
+    });
   }
 
   /* ---------- Steckrüben-Koloss (procedural, 4 stomp frames) ---------- */
@@ -498,6 +583,48 @@
       frames.push(toCanvas(f < 3 ? outline(g, f === 2 ? 1 : 0) : g));
     });
     return frames;
+  }
+  /* ---------- layered effect frames (4 tones, dark-outlined where they sit on the light LCD) ---------- */
+  function hitFrames() {
+    return [
+      ['...0...', '..030..', '.03330.', '0333330', '.03330.', '..030..', '...0...'],
+      ['0.......0', '.0.....0.', '..1...1..', '....3....', '...303...', '....3....', '..1...1..', '.0.....0.', '0.......0'],
+      ['0.........0', '...........', '...........', '...........', '...........', '...........', '...........', '...........', '...........', '...........', '0.........0'],
+    ].map((r) => toCanvas(IG(r[0].length, r.length).rows(r)));
+  }
+  function ringFrames() {
+    return [2, 4, 6].map((R) => {
+      const S = 2 * R + 1, g = IG(S, S);
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const d = Math.abs(x - R) + Math.abs(y - R);
+        if (d === R && !(R === 6 && ((x + y) & 1))) g.set(x, y, R === 2 ? 0 : 1);
+        else if (d === R - 1 && R < 6) g.set(x, y, 3);
+      }
+      return toCanvas(g);
+    });
+  }
+  function beamFrames() {
+    return [0, 1].map((par) => {
+      const g = IG(7, 30);
+      for (let y = 0; y < 30; y++) for (let x = 0; x < 7; x++) {
+        if (x === 0 || x === 6) { if (((y + par) & 3) === 0) g.set(x, y, 0); }
+        else if (x >= 2 && x <= 4) { if ((y + par) % 3) g.set(x, y, 3); else g.set(x, y, 2); }
+        else if (((x + y + par) & 1) === 0) g.set(x, y, 1);
+      }
+      return toCanvas(g);
+    });
+  }
+  const leafBits = () => [['11', '.1'], ['1.', '11'], ['.1', '11'], ['11', '1.']].map((r) => toCanvas(outline(IG(2, 2).rows(r))));
+  function moundFrames(big) {
+    const W = big ? 18 : 10;
+    return [0, 1, 2].map((f) => {
+      const h = [2, 3, 4][f] + (big ? 2 : 0), g = IG(W, h + 1);
+      for (let y = 0; y <= h; y++) for (let x = 0; x < W; x++) {
+        const nx = (x + 0.5 - W / 2) / (W / 2), ny = (h - y + 0.5) / (h + 0.5);
+        if (nx * nx + ny * ny <= 1) g.set(x, y, y === 0 || (x * 7 + y * 3 + f) % 5 === 0 ? 2 : 1);
+      }
+      return toCanvas(outline(g));
+    });
   }
   /** Dithered shadow ellipse (two checker phases so the pattern always locks to the world grid). */
   const SHADOWS = new Map();
@@ -965,7 +1092,7 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
     id: 'kuerbisboy',
     name: 'Kürbis-Boy',
     family: 'Pixel Art · 4 Farben',
-    description: 'Ein Handheld-Abenteuer auf kürbisgetöntem LCD: genau vier Farben, Raster-Dithering und knackige Mini-Sprites.',
+    description: 'A pumpkin-tinted handheld LCD: exactly four shades, Bayer dithering, crisp outlined mini sprites at 2 world units per pixel.',
     pixelArt: { scale: PS },
     groundColor: HEX[3],
     chunkSize: 256,
@@ -973,26 +1100,23 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
     css: CSS,
 
     init() {
-      SPR.jack = {
-        idle: [jackFrame('idle', 0), jackFrame('idle', 1)],
-        walk: [jackFrame('w0'), jackFrame('w1'), jackFrame('w2'), jackFrame('w3')],
-        throw: jackFrame('throw'),
-        dash: jackFrame('dash', 1, 1),
-      };
-      SPR.jackGhost = [0, 1].map((ph) => {
-        const g = SPR.jack.dash.g;
-        const o = IG(g.w, g.h);
-        for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.a[y * g.w + x] >= 0 && ((x + y + ph) & 1) === 0) o.set(x, y, 2);
-        const c = toCanvas(o);
-        return { r: c, l: U.flipX(c) };
-      });
-      SPR.creeper = [0, 1, 2, 3].map(creeperFrame);
-      SPR.ghost = [0, 1, 2].map((f) => {
-        const g = ghostFrame(f);
-        const full = sset(g);
-        full.fade = [0.25, 0.5, 0.75].map((lv) => sset(ditherMask(g, lv)));
-        return full;
-      });
+      // figures bake lazily per pose; warm the common ones
+      POSES.clear();
+      for (const w of JWALK) { jackSprite(w); jackSprite(Object.assign({}, w, { na: 't' })); }
+      for (const [bob, hb] of [[0, 0], [0, 1], [1, 0], [1, -1]]) for (const sc of ['hang', 'w0', 'w1']) for (const face of ['n', 'blink']) for (const leaf of [0, 1]) jackSprite({ legs: 'stand', bob, hb, na: 'n', fa: 'h', sc, face, leaf });
+      for (const o of [JDASH_WIND, JDASH_GO, JSKID, JHURT]) jackSprite(o);
+      jackAfter(JDASH_GO);
+      for (let f = 0; f < 4; f++) {
+        for (const k of [0, 1]) { creeperSprite(f, k, 'n'); creeperSprite(f, k, 'hit'); }
+        for (const m of [0, 1]) for (const a of [0, 1]) ghostSprite(f, m, a, 1);
+        for (const lv of [0.25, 0.5, 0.75]) { ghostSprite(f, 0, 0, lv); ghostSprite(f, 1, 1, lv); }
+      }
+      SPR.hit = hitFrames();
+      SPR.ring = ringFrames();
+      SPR.beam = beamFrames();
+      SPR.leaf = leafBits();
+      SPR.mound = moundFrames(false);
+      SPR.moundL = moundFrames(true);
       SPR.colossus = [0, 1, 2, 3].map(colossusFrame);
       SPR.seed = seedSprites();
       SPR.lantern = lanternSprites();
@@ -1081,7 +1205,12 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
               c = fieldPx(gx, gy, grid[(gj * gw + gi) * CH + 5]);
             }
             else if (tv > 0) { m = M_TALL; c = tallPx(gx, gy); }
-            else { m = M_GRASS; c = grassPx(gx, gy, mac); }
+            else {
+              // distance to the nearest other region (road, field, tall grass) in world units → tufts line the edges
+              const dE = Math.min(rv, -fv, -tv * 320);
+              const edgeK = U.clamp(1 - dE / 18, 0, 1);
+              m = M_GRASS; c = grassPx(gx, gy, 0.008 + 0.62 * edgeK * edgeK + 0.32 * U.smoothstep(0.7, 0.85, mac));
+            }
           }
           const k = j * E + i;
           mat[k] = m; col[k] = c;
@@ -1122,12 +1251,15 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
           else if (r < 0.88) put(x, y, DEC.mush);
           return;
         }
-        if (r < 0.13) put(x, y, DEC.flower);
-        else if (r < 0.2) put(x, y, DEC.flower2);
-        else if (r < 0.25) put(x, y, DEC.daisy);
-        else if (r < 0.31) put(x, y, DEC.stone);
-        else if (r < 0.35) put(x, y, DEC.pumpkinS);
-        else if (r < 0.44) put(x, y, DEC.blades);
+        const bed = U.perlin(x / 150, y / 150, 91);
+        if (bed > 0.28) {                                   // flower beds: a few heads clustered together
+          if (r < 0.5) put(x, y, r < 0.2 ? DEC.flower : r < 0.35 ? DEC.daisy : DEC.flower2);
+          if (r < 0.3) put(x + 5, y + 3, DEC.flower2);
+          return;
+        }
+        if (ff.rv < 22) { if (r < 0.3) put(x, y, r < 0.2 ? DEC.stone : DEC.pebble2); return; }   // stones by the roads
+        if (ff.tv > -0.05) { if (r < 0.4) put(x, y, DEC.blades); return; }                       // blades by the tall grass
+        if (r < 0.025) put(x, y, DEC.pumpkinS);
       });
       yield;
       // pumpkins + leaves sitting on the furrows
@@ -1284,23 +1416,27 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
 
     /* ---------------- entities ---------------- */
     drawPlayer(ctx, p, view) {
-      const J = SPR.jack;
-      const left = p.facing < 0;
+      const left = p.facing < 0, t = view.rt + phaseOf(p);
+      let o;
+      const since = 1.4 - p.dashCd;
+      if (p.dashT > 0) o = 0.2 - p.dashT < 0.05 ? JDASH_WIND : JDASH_GO;
+      else if (p.hurtT > 0.55) o = JHURT;
+      else if (p.dashCd > 0 && since < 0.32) o = JSKID;
+      else if (p.moving) o = JWALK[Math.floor(p.anim * 1.3) & 7];
+      else {
+        // idle: breath on a 1.1 s beat with the head 0.12 s behind, stem leaf in the wind, blink, scarf fidget
+        const br = Math.floor(t / 1.1) & 1, hb = (Math.floor((t - 0.12) / 1.1) & 1) - br, sc = t % 4.3;
+        o = { legs: 'stand', bob: br, hb, na: 'n', fa: 'h', sc: sc < 0.36 ? (sc < 0.18 ? 'w0' : 'w1') : 'hang', face: (t % 3.4) < 0.13 ? 'blink' : 'n', leaf: Math.floor(t * 1.5) & 1 };
+      }
+      if (p.shootT > 0.6 && o !== JDASH_GO && o !== JDASH_WIND && o !== JHURT) o = Object.assign({}, o, { na: 't' });
       if (p.dashT > 0) {
-        for (let i = 2; i >= 1; i--) {
-          const gi = SPR.jackGhost[i & 1];
-          blit(ctx, left ? gi.l : gi.r, p.x - p.dashX * i * 9, p.y - p.dashY * i * 9 + PS, 0.5, 1, 1);
-        }
+        const gi = jackAfter(JDASH_GO);
+        for (let i = 2; i >= 1; i--) blit(ctx, left ? gi.l : gi.r, p.x - p.dashX * i * 9, p.y - p.dashY * i * 9 + PS, 0.5, 1, 1);
       }
       // invulnerability flicker (classic handheld blink)
-      if (p.iframes > 0 && p.dashT <= 0 && p.hurtT < 0.6 && Math.floor(view.rt * 15) % 2 === 0) return;
-      let fr, oy = 0;
-      if (p.dashT > 0) fr = J.dash;
-      else if (p.shootT > 0.55) fr = J.throw;
-      else if (p.moving) { const k = Math.floor(p.anim * 0.9) & 3; fr = J.walk[k]; oy = (k & 1) ? -1 : 0; }
-      else fr = J.idle[Math.floor(view.rt * 2.2) & 1];
-      const inv = p.hurtT > 0.6;
-      blit(ctx, inv ? (left ? fr.li : fr.ri) : (left ? fr.l : fr.r), p.x, p.y + PS, 0.5, 1, oy + 1);
+      if (p.iframes > 0 && p.dashT <= 0 && p.hurtT <= 0.55 && Math.floor(view.rt * 15) % 2 === 0) return;
+      const fr = jackSprite(o), inv = p.hurtT > 0.55 && (Math.floor(view.rt * 15) & 1) === 0;
+      blit(ctx, inv ? (left ? fr.li : fr.ri) : (left ? fr.l : fr.r), p.x, p.y + PS, 0.5, 1, 1);
       if (p.levelT > 0) {
         const n = 6, rr = 12 + (1 - p.levelT) * 16;
         for (let i = 0; i < n; i++) {
@@ -1310,54 +1446,54 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
       }
     },
     drawEnemy(ctx, e, view) {
-      const set = SPR[e.type];
-      const nfr = set.length;
-      const left = e.facing < 0;
-      const ghost = e.type === 'ghost', big = e.type === 'colossus';
+      const left = e.facing < 0, ghost = e.type === 'ghost', big = e.type === 'colossus';
+      const ph = phaseOf(e), t = view.rt + ph, kind = e.seed < 0.55 ? 0 : 1;
+      const pick = (fr, inv) => (inv ? (left ? fr.li : fr.ri) : (left ? fr.l : fr.r));
+      // ---- disappear: an inverted pop in the squash pose, then a 4-frame puff (ghosts dither away upwards)
       if (e.dying) {
-        const t = e.deathT;
-        if (t < 0.22) {
-          const fr = set[0];
-          blit(ctx, left ? fr.li : fr.ri, e.x, e.y + PS, 0.5, 1, ghost ? -3 : 0);
-        } else {
-          const pf = big ? SPR.puffL : ghost ? SPR.puffS : SPR.puff;
-          const k = Math.min(3, Math.floor((t - 0.22) / 0.78 * 4));
-          blit(ctx, pf[k], e.x, e.y - (big ? 22 : ghost ? 16 : 11), 0.5, 0.5);
-        }
-        return;
-      }
-      let f;
-      if (ghost) f = Math.floor(view.rt * 6 + e.seed * 9) % nfr;
-      else f = Math.floor(e.anim * (big ? 0.6 : 1.1) + e.seed * 7) % nfr;
-      const fr = set[f];
-      let oy = 0;
-      if (ghost) oy = -3 - (Math.floor(view.rt * 3 + e.seed * 6) & 1);
-      else if (!big && (f & 1)) oy = -1;
-      if (e.spawnT < 1) {
-        const t = e.spawnT;
-        if (ghost) {
-          const fd = fr.fade[Math.min(2, Math.floor(t * 3.2))];
-          blit(ctx, left ? fd.l : fd.r, e.x, e.y + PS, 0.5, 1, oy);
+        const k = e.deathT;
+        if (k < 0.25) {
+          const fr = ghost ? ghostSprite(0, 1, 1, 1) : big ? SPR.colossus[0] : creeperSprite(0, kind, 'hit');
+          blit(ctx, pick(fr, (Math.floor(k * 16) & 1) === 0), e.x, e.y + PS, 0.5, 1, ghost ? -3 - Math.round(k * 8) : 0);
           return;
         }
-        // rise out of the ground: clip at the feet, push the sprite up
-        const img = left ? fr.l : fr.r;
-        const h = img.height;
-        const rise = Math.round(h * U.ease.outQuad(U.clamp((t - 0.15) / 0.85, 0, 1)));
-        if (rise > 0) {
-          const bx = Math.round(e.x / PS - img.width / 2) * PS, by = (Math.round(e.y / PS) + 1) * PS;
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(bx, by - h * PS, img.width * PS, h * PS);
-          ctx.clip();
-          ctx.drawImage(img, bx, by - rise * PS, img.width * PS, h * PS);
-          ctx.restore();
+        if (ghost) {
+          const lv = Math.max(0.25, Math.ceil((1 - (k - 0.25) / 0.75) * 4) / 4);
+          blit(ctx, pick(ghostSprite(Math.floor(t * 7) & 3, 1, 1, lv), false), e.x, e.y + PS, 0.5, 1, -5 - Math.round(k * 10));
+          return;
         }
-        blit(ctx, (big ? SPR.puff : SPR.puffS)[Math.min(3, Math.floor(t * 4))], e.x, e.y - 1, 0.5, 0.5);
+        const f = Math.min(3, Math.floor((k - 0.25) / 0.75 * 4));
+        blit(ctx, (big ? SPR.puffL : SPR.puff)[f], e.x, e.y - (big ? 22 : 11), 0.5, 0.5);
         return;
       }
-      const inv = e.flash > 0.4;
-      blit(ctx, inv ? (left ? fr.li : fr.ri) : (left ? fr.l : fr.r), e.x, e.y + PS, 0.5, 1, oy);
+      // ---- appear: ghosts fade in through the dither levels; roots heave a mound, climb out and land
+      if (e.spawnT < 1) {
+        const s = e.spawnT;
+        if (ghost) { blit(ctx, pick(ghostSprite(Math.floor(t * 7) & 3, 0, 0, Math.max(0.25, Math.ceil(s * 4) / 4)), false), e.x, e.y + PS, 0.5, 1, -3); return; }
+        const mound = big ? SPR.moundL : SPR.mound;
+        if (s < 0.3) { blit(ctx, mound[Math.floor(view.rt * 10) & 1], e.x, e.y + PS, 0.5, 1); return; }
+        const fr = big ? SPR.colossus[1] : creeperSprite(s < 0.8 ? 2 : 0, kind, 'n');
+        if (s < 0.8) {
+          const img = left ? fr.l : fr.r, h = img.height;
+          const rise = Math.max(1, Math.round(h * U.ease.outQuad((s - 0.3) / 0.5)));
+          const bx = Math.round(e.x / PS - img.width / 2) * PS, by = (Math.round(e.y / PS) + 1) * PS;
+          ctx.drawImage(img, 0, 0, img.width, rise, bx, by - rise * PS, img.width * PS, rise * PS);
+          blit(ctx, mound[2], e.x, e.y + PS * 2, 0.5, 1);
+          return;
+        }
+        blit(ctx, pick(fr, false), e.x, e.y + PS, 0.5, 1);
+        return;
+      }
+      // ---- alive: hit = inverted palette + squash pose with shut eyes + 2-px recoil for ~130 ms
+      const hit = e.hitT < 0.13 && e.flash > 0.05, inv = e.flash > 0.4;
+      const rec = hit ? Math.round((1 - e.hitT / 0.13) * 2) * (left ? 1 : -1) : 0;
+      let fr, oy = 0;
+      if (ghost) {
+        fr = ghostSprite(Math.floor(t * 7) & 3, (t % 2.6) < 0.5 ? 1 : 0, Math.floor(t * 3) & 1, 1);
+        oy = -3 - [0, 0, 1, 2, 3, 3, 2, 1][Math.floor(t * 5) & 7];          // eased float, holds top and bottom
+      } else if (big) fr = SPR.colossus[Math.floor(e.anim * 0.6 + ph) & 3];
+      else fr = creeperSprite(hit ? 0 : Math.floor(e.anim * 1.6 + ph) & 3, kind, hit ? 'hit' : 'n');
+      blit(ctx, pick(fr, inv), e.x, e.y + PS, 0.5, 1, oy, rec);
     },
     drawOrbital(ctx, o, view) {
       const lit = (Math.sin(view.rt * 11 + o.idx * 2.1) + Math.sin(view.rt * 27 + o.seed * 9)) > -0.6;
@@ -1382,6 +1518,17 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
     },
     drawParticle(ctx, pt, view) {
       const life = pt.life / pt.max;
+      const at = (img, ay = 0.5) => blit(ctx, img, pt.x, pt.y - pt.z, 0.5, ay);
+      if (pt.kind === 'hitfx') { at(SPR.hit[Math.min(2, Math.floor((1 - life) * 3))]); return; }
+      if (pt.kind === 'ring') { at(SPR.ring[Math.min(2, Math.floor((1 - life) * 3))]); return; }
+      if (pt.kind === 'leaf') { if (life < 0.3 && (Math.floor(view.rt * 20 + pt.seed * 5) & 1)) return; at(SPR.leaf[(Math.floor((1 - life) * 12) + (pt.seed * 4 | 0)) & 3]); return; }
+      if (pt.kind === 'beam') {
+        if (life < 0.3 && (Math.floor(view.rt * 15) & 1)) return;
+        const img = SPR.beam[Math.floor(view.rt * 8) & 1], keep = Math.max(3, Math.round(img.height * (0.4 + 0.6 * life)));
+        const bx = Math.round(pt.x / PS - img.width / 2) * PS, by = Math.round((pt.y - pt.z) / PS) * PS;
+        ctx.drawImage(img, 0, img.height - keep, img.width, keep, bx, by - keep * PS, img.width * PS, keep * PS);
+        return;
+      }
       if (pt.kind === 'puff') {
         blit(ctx, (pt.big ? SPR.puff : SPR.puffS)[Math.min(3, Math.floor((1 - life) * 4))], pt.x, pt.y - pt.z, 0.5, 0.5);
         return;
@@ -1421,21 +1568,25 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
     /* ---------------- hooks: all particles in the 4 LCD colours ---------------- */
     onHit(game, e) {
       const y = e.y - (e.type === 'colossus' ? 22 : e.type === 'ghost' ? 16 : 10);
+      game.addParticle({ x: e.x + (Math.random() - 0.5) * 4, y, kind: 'hitfx', life: 0.2, drag: 0 });       // core flash
       for (let i = 0; i < 3; i++) {
         const a = Math.random() * U.TAU, s = 40 + Math.random() * 40;
-        px(game, e.x, y, i === 0 ? 0 : 3, { vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.7, life: 0.22 });
+        px(game, e.x, y, i === 0 ? 0 : i === 1 ? 1 : 3, { vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.7, z: 2, vz: 30, grav: 200, life: 0.3 });
       }
     },
     onKill(game, e) {
       const big = e.type === 'colossus', ghost = e.type === 'ghost';
-      const n = big ? 16 : ghost ? 5 : 8;
+      const n = big ? 14 : ghost ? 5 : 7;
       const y = e.y - (big ? 18 : 8);
       for (let i = 0; i < n; i++) {
         const a = Math.random() * U.TAU, s = (big ? 70 : 50) * (0.5 + Math.random());
-        const ci = ghost ? (i & 1 ? 3 : 2) : [1, 2, 3, 0][i & 3];
+        const ci = ghost ? (i & 1 ? 3 : 2) : [1, 2, 0, 1][i & 3];
         px(game, e.x, y, ci, { vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, z: 4, vz: 40 + Math.random() * 60, grav: 260, life: 0.5 + Math.random() * 0.3, size: i % 3 === 0 ? 2 : 1, drag: 1.5 });
       }
       if (ghost) for (let i = 0; i < 3; i++) px(game, e.x + (Math.random() - 0.5) * 10, y - 6, 3, { vy: -30 - Math.random() * 20, life: 0.6, drag: 1 });
+      else for (let i = 0; i < (big ? 4 : 2); i++) game.addParticle({ x: e.x + (i - 0.5) * 6, y: e.y, z: big ? 40 : 18, vx: (i & 1 ? 1 : -1) * (18 + Math.random() * 18), vz: 60 + Math.random() * 30, grav: 150, drag: 0.6, life: 0.8 + Math.random() * 0.3, kind: 'leaf' });
+      // residue: a small puff that lingers and drifts up
+      game.addParticle({ x: e.x, y: e.y - 4, z: 2, vz: 10, grav: -1, drag: 0, kind: 'puff', life: big ? 0.8 : 0.55 });
     },
     onHurt(game, p) {
       for (let i = 0; i < 10; i++) {
@@ -1444,6 +1595,7 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
       }
     },
     onPickup(game, g) {
+      game.addParticle({ x: g.x, y: g.y - 3, kind: 'ring', life: 0.22, drag: 0 });
       if (g.big || Math.random() < 0.3) game.addParticle({ x: game.player.x + (Math.random() - 0.5) * 12, y: game.player.y - 20, vy: -24, kind: 'star', life: 0.3, drag: 2 });
     },
     onShoot() {},
@@ -1451,6 +1603,8 @@ ${B} #pausebox{${WIN}font-size:32px;font-weight:400;color:${C0};text-shadow:4px 
       for (let i = 0; i < 3; i++) game.addParticle({ x: p.x - p.dashX * i * 7, y: p.y - 2, kind: 'puff', life: 0.32 + i * 0.05, drag: 4, vx: -p.dashX * 20, vy: -p.dashY * 20 });
     },
     onLevelUp(game, p) {
+      game.addParticle({ x: p.x, y: p.y + 2, kind: 'beam', life: 0.55, drag: 0 });
+      game.addParticle({ x: p.x, y: p.y - 12, kind: 'ring', life: 0.3, drag: 0 });
       for (let i = 0; i < 8; i++) {
         const a = i / 8 * U.TAU;
         game.addParticle({ x: p.x, y: p.y - 12, vx: Math.cos(a) * 80, vy: Math.sin(a) * 60, kind: 'star', life: 0.5, drag: 3 });

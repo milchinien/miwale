@@ -13,8 +13,8 @@
     "tiles",
     "black outline"
   ],
-  "summary": "A lost NES cartridge: strict 2C02 palette, black-outlined 3-colour sprites, tile-language meadows and checker-flicker ghosts.",
-  "description": "Looks like it came from a forgotten NES/Famicom cartridge. Every colour comes from the NES PPU palette, every sprite has at most three colours plus a 1-px black outline, and the world is built from flat colour areas with hard tile-style edges: dark-green meadow with light-green lips, brown forest floor behind black cliff lines, ochre dirt roads, navy ponds, grey brick plazas with tombstones. There is no anti-aliasing, no gradient and no alpha anywhere in the world; transparency is a checkerboard and blinking is sprite flicker, so the screen reads like real 1986 hardware.",
+  "summary": "A late NES cartridge: strict 2C02 palette, black-outlined sprites posed from parts, 8-frame walks and tile-language meadows.",
+  "description": "Looks like it came from a late-era NES/Famicom cartridge. Every colour comes from the NES PPU palette, every sprite part has at most three colours plus a 1-px black outline, and the world is built from flat colour areas with hard tile-style edges: a dark-green meadow whose tufts gather along the edges, brown forest floor behind black cliff lines with a dithered canopy-shade band, ochre roads with wheel ruts, navy ponds ringed with cattails and grey brick plazas with tombstones. Figures are posed from parts and animate in held frames: an 8-frame walk with counter-swinging arms and a head that lands a frame late, hopping beets that squash and stretch, ghosts that unroll in checker pixels. There is no anti-aliasing, gradient or alpha in the world; transparency is a checkerboard and blinking is sprite flicker.",
   "mood": [
     "nostalgic",
     "punchy",
@@ -36,8 +36,8 @@
     "high-resolution UI-heavy strategy"
   ],
   "difficulty": {
-    "stars": 3,
-    "why": "New assets are small text grids (one char per pixel) with at most 3 colours plus an automatic black outline, and only 2 frames each; the strict NES palette and rules actually help, because there are fewer decisions to make. Variants are palette swaps of existing grids."
+    "stars": 4,
+    "why": "Assets are small char grids with at most 3 colours per part plus an automatic black outline, but figures are posed from part tables (legs, arms, head, crown), so every cycle needs 4–8 thought-through poses with a lagging feature; the strict NES palette keeps colour decisions easy."
   },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
@@ -45,9 +45,9 @@
       "scale": 1.5
     },
     "resolution": "1 art pixel = 1.5 world units, so the 360-unit-tall view is a 240-row art buffer (NES height). Display scale up = max(1, round(screenH / 240)), buffer = ceil(screen / up), nearest-neighbour upscale. Ground chunks of 256 world units bake at 171 × 171 px.",
-    "summary": "All sprites are text grids (one char per pixel) mapped to NES colours by a builder that adds a 1-px black outline automatically; the ground is a material map evaluated on a 2×2-pixel block grid with tile-language edge rules (lip, cliff, ring) and hashed decal glyphs. Everything is blitted at whole art pixels.",
+    "summary": "Sprites are char grids mapped to NES colours by a builder that adds a 1-px black outline; figures are composed from posed parts (legs table, sleeve/hand table, head, scarf or leaf crown) and baked lazily per pose. The ground is a material map on a 2×2-pixel block grid with tile-language edge rules, a canopy dither band, wheel ruts and clustered glyph decals.",
     "linework": "1-px pure black #000000 outline around every sprite, generated from the 4-neighbourhood of filled pixels (8-neighbour for number digits). Ground boundaries are single 1-px lines: black between grass and forest/water/plaza, light-green #00A800 lip on grass, ochre lip on forest, dark-brown edge on roads, sand lip where road meets water.",
-    "shading": "Flat colour fills. Volume comes from one light and one dark accent per sprite (e.g. tree canopy: light #58D854 crescent upper-left, black arc lower-right) and checkerboard dithering of black for shade. No gradients, no blending.",
+    "shading": "Flat colour fills. Volume comes from one light and one dark accent per part (canopy: light #58D854 crescent upper left, black arc lower right; pumpkin head: #FCA044 glint, #881400 ribs and underside; bulbs: #F878F8 highlight), black far limbs for depth and checkerboard dithering of black for shade. No gradients, no blending.",
     "lighting": "No light system. The world is evenly lit; the only 'lighting' is the lantern sprite blinking between gold #F8B800 and white glass at 4 Hz and white-hot burst cores.",
     "texture": "No noise texture. Surfaces get NES tile decals instead: 2-row grass tufts on an 8-px grid, 3×3 flowers, 1–2 px red/ochre leaf litter and black twigs on forest floor, pebbles on roads, a 12 × 6 running-bond brick tile on plazas, 2-frame animated wave glyphs on water."
   },
@@ -125,7 +125,7 @@
     {
       "name": "Navy",
       "hex": "#0000BC",
-      "role": "Water base"
+      "role": "Water base; main character's trousers, hem and near sleeve"
     },
     {
       "name": "Blue",
@@ -160,15 +160,30 @@
     {
       "name": "Magenta",
       "hex": "#D800CC",
-      "role": "Second small-creature palette variant"
+      "role": "Spare accent"
+    },
+    {
+      "name": "Crimson",
+      "hex": "#A80020",
+      "role": "Radish creature top"
+    },
+    {
+      "name": "Light orange",
+      "hex": "#FCA044",
+      "role": "Warm 3-px glint on the main character's head"
+    },
+    {
+      "name": "Pink",
+      "hex": "#F878F8",
+      "role": "2-px highlights on creature bulbs, lantern cap glint"
     }
   ],
   "paletteRules": [
     "Only colours from the NES 2C02 master palette; no tints, no mixes, no alpha in the world.",
-    "Each sprite layer uses at most 3 colours plus the black outline (the main character's head and body share orange, yellow, green, blue as two stacked NES sprites).",
+    "Each sprite part uses at most 3 colours plus the black outline; the main character is stacked from parts (head orange/dark red/light-orange glint, yellow face glow, green stem and scarf, blue/navy/cream tunic, brown belt and boots) and its far limbs are black.",
     "Ground is roughly 50% #005800 green, 25% #503000 forest floor, 10% #AC7C00 road, the rest water/stone/decals.",
-    "Every creature family is a palette swap: same grid, different map (purple vs magenta root creatures, white+cyan ghosts).",
-    "Flash is a palette swap to white/red/pink, never a white overlay.",
+    "Creature variants are designed: the purple beet and the crimson radish share a builder but differ in bulb proportions, crown shape and palette; ghosts are white with cyan shade.",
+    "Flash is a palette swap, never an overlay: white body with a red outline and face for root creatures and the large creature, yellow/red for ghosts, alternating all-white and all-red for the main character.",
     "Pure black is reserved for outlines, cliff lines, shadows and UI windows."
   ],
   "typography": [
@@ -184,30 +199,32 @@
     }
   ],
   "world": {
-    "summary": "A top-down overworld made of five flat materials (grass, forest floor, road, water, stone plaza) classified on a 2×2-art-pixel block grid from noise fields, then outlined with NES tile edge rules and stamped with tiny decal glyphs. No noise texture; water waves animate with 2 frames.",
+    "summary": "A top-down overworld made of five flat materials (grass, forest floor, road, water, stone plaza) classified on a 2×2-art-pixel block grid from noise fields, outlined with NES tile edge rules, given a dithered canopy-shade band inside forests and wheel ruts on roads, then stamped with clustered glyph decals: tufts line every edge, flowers grow in small beds, the open meadow stays calm.",
     "layers": [
       "Material map per 2×2 px block: plaza (octagon rect) > water (warped noise < 0.335) > road (distance to two noise-curve roads < 11 units) > forest (warped noise > 0.555) > grass",
       "Base fills: grass #005800, forest #503000, road #AC7C00, water #0000BC, plaza brick tile #7C7C7C/#BCBCBC/#000000",
       "Edge pixels: grass lip #00A800, black cliff forest/grass, ochre forest lip vs road/water, dark-brown road edge, sand road lip vs water, black + blue ring around water, black + light-grey ring around plazas",
-      "Decals (never on edge pixels): grass tufts on 8-px grid, flowers on 19-px grid, leaf litter on 5-px grid and twigs on 17-px grid on forest, pebbles on 7-px grid on roads",
-      "Per frame: 2-frame wave glyphs (cyan or blue, 5×2 px) toggling at 2.2 Hz on water anchors"
+      "Per frame: 2-frame wave glyphs (cyan or blue, 5×2 px) toggling at 2.2 Hz on water anchors",
+      "Canopy shade: black checker pixels inside the forest within 2 px of grass (sparser at 3 px), so forests read as a raised, shaded mass",
+      "Wheel ruts: #503000 pixels where the road-centre distance is 5.4 ± 0.6 units, broken on ~1 in 7 hashed 8-px cells",
+      "Clustered decals: tufts within 5 px of other materials (70 %) and in fbm patches, 1.8 % on open meadow; flower beds of 3–6 heads on a 23-px grid; clumped leaf litter; pebbles only on road shoulders"
     ]
   },
   "characters": {
-    "summary": "All figures are text grids through one outline builder. Main character: a 13 × 19 px grid (+1 px outline = 15 × 21, about 22 × 31 world units) — a 10-row pumpkin head (orange #E45C10 with yellow #F8D878 carved eyes and zig-zag mouth, green stem) over a 7-row blue #0078F8 overall body with green vine sleeves and 2-row legs. Creatures: 14 × 15 px purple (#940084 or #D800CC) root creatures with leafy tops, slit eyes and a cream checkered mouth; white #FCFCFC floating ghosts with cyan shading and a checkered, outline-free tail; a 22 × 27 px purple-and-ochre root giant with gold eyes, cracks and long arms.",
+    "summary": "Figures are posed from parts on char grids and baked per pose. Main character (16 × 20 grid, ~18 × 27 units of body): a round orange #E45C10 pumpkin head with #881400 ribs, a #FCA044 glint and a carved #F8D878 face, a curled stem with a leaf, a green scarf with a trailing tail, a #0078F8 tunic with brown belt and cream buckle, navy trousers, brown boots, black far limbs. Small creatures (15 × 18): a purple beet with a three-leaf fan crown and a crimson radish with two curling leaves, angry brows and a toothy grin, hopping on root legs. Fast creature: a white hooded ghost with solid black eyes, a reaching arm and a waving checker tail. Large creature (28 × 34): a beet-headed burlap sack golem with gold eyes, a stitched grin, swinging root arms and stumpy legs.",
     "rules": [
-      "Every sprite is a text grid; the builder adds the 1-px black outline, never draw it by hand",
-      "Max 3 colours + black per sprite part; big round head on a small body (the main character's head is 10 of 19 rows)",
-      "Faces are 1–3 px black or yellow eyes and a checkered mouth row (k/c alternation) — readable at 1×",
-      "Exactly 2 animation frames per figure; facing = horizontal flip of the canvas",
-      "Feet anchor: sprite bottom row sits on the figure's world y, snapped to whole art pixels",
-      "Families differ by silhouette first, palette second; variants are palette swaps of one grid",
-      "Ethereal figures get a checker tail (rows from tailFrom keep every other pixel, no outline, parity flips per frame)",
-      "Flash = palette swap (white head, red body); blinking = skip drawing every other 2-frame window"
+      "Every part ≤ 3 colours + the automatic 1-px black outline; far arm and far leg are black for depth; facing = horizontal flip",
+      "Main character walk: 8 computed poses (contact, down, passing, up × 2) with body offsets [0,1,0,-1,…], counter-swinging arms, the head using the previous frame's offset (lands late), scarf flapping a frame behind",
+      "Idle: breath every 1.1 s with the head following 0.12 s later, leaf flick, blink every 3.4 s, scarf flutter every 4.3 s; every figure has its own phase offset",
+      "Dash: 50 ms crouch wind-up → split stretch pose with two checker afterimages → 120 ms skid; throw arm snaps out for 90 ms after a shot; hurt = recoil pose in alternating white/red palettes, then flicker",
+      "Small creatures hop in 4 frames: squash 6.3 × 8 → push → stretch 4.7 × 10 (2 px up) → fall; the leaf crown lags (droops going up, lifts falling)",
+      "Ghost: 4 tail frames at 7 fps, eased lift [0,0,1,2,3,3,2,1] at 5 fps, reaching arm, mouth opening every 2.6 s",
+      "Large creature: 4-frame stomp with a 1-px body drop and dust on each contact, arms swinging opposite to the legs",
+      "Hit ~130 ms: squash pose + shut eyes + 2-px recoil + flash palette; appear: dirt mound heaves → climb-out clip → land (ghosts unroll in checker); disappear: 100 ms white/red pop → 4-frame burst"
     ]
   },
   "props": {
-    "summary": "Outlined NES sprites standing on the ground, built with the same grid builder: circle-built round trees (24 × 28, green or 16% autumn ochre/yellow) and bushes (18 × 10), grey dead trees (22 × 30), small rocks, orange pumpkins (11 × 8), ochre fences (16 × 9) and signposts, white tombstones and a stone pumpkin statue (14 × 22) on brick plazas.",
+    "summary": "Outlined NES sprites standing on the ground, built with the same grid builder: circle-built round trees (24 × 28, green or 16 % autumn), tiered pines (17 × 31) in forest interiors, bushes, cattail stands at pond shores, grey dead trees, rocks, orange pumpkins, ochre fences and signposts, white tombstones and a stone pumpkin statue on brick plazas.",
     "rules": [
       "Same rules as figures: 1-px black outline, max 3 colours + black, flat fills, feet anchor on whole art pixels, y-sorted with the figures",
       "Tree and bush canopies are overlapping circles: black lower-right rim (dd > 0.72 && nx + ny > 0.45), light upper-left crescent, global checker shade over the lower right",
@@ -220,36 +237,36 @@
   },
   "effects": [
     {
-      "name": "Disappear burst",
-      "how": "4 procedural frames on a (ceil(18R)|1)² grid, no outline: white core + gold cross, white/gold disc with red diagonal rays, red/gold checker ring, 8 flying bits. R = 1, 1.7 for the large creature. Each frame lasts 1/4 of 1 s."
+      "name": "Impact",
+      "how": "3 frames over 0.2 s: 7 × 7 white cross flash → 9 × 9 gold/red X of sparks around a white core → four far gold corner dots; plus 3 debris bits in the struck figure's colours (gravity 170)."
     },
     {
-      "name": "Appear puff",
-      "how": "3 frames of white/light-grey circle blobs on a 17 × 15 grid (outlined), last frame 7 small grey dots in a ring without outline; 0.2 s per frame."
+      "name": "Disappear sequence",
+      "how": "The figure's own white pop with a red outline in its squash pose (~100 ms), then 4 procedural burst frames on a (ceil(18R)|1)² grid: white core + gold cross, white/gold disc with red rays, red/gold checker ring, 8 flying bits. R = 1 or 1.7. Ghosts instead lose rows from the bottom while rising 14 px."
+    },
+    {
+      "name": "Debris and residue",
+      "how": "6–12 chunks in the figure's colours (2-px chunks get a black 1-px rim like sprites, gravity 230), tumbling 2 × 2 leaf scraps from root creatures, rising cyan stars from ghosts; a small smoke puff lingers 0.6–0.8 s and flickers out."
+    },
+    {
+      "name": "Appear sequence",
+      "how": "A 12-px (20-px for the large creature) ochre/brown dirt mound heaves for 0.16 s, the creature climbs out (only its top rows drawn, the mound covers the cut) and lands in its squash frame; ghosts unroll from the hood down in flickering checker pixels."
     },
     {
       "name": "Checker transparency",
-      "how": "Ghost tails and the main character's afterimages drop every other pixel ((x + y + parity) & 1); parity flips every 2 frames so the tail shimmers like NES sprite multiplexing."
+      "how": "Ghost tails, afterimages and see-through trees drop every other pixel ((x + y + parity) & 1); parity flips every 2 frames so tails shimmer like NES sprite multiplexing."
     },
     {
-      "name": "Pixel particles",
-      "how": "Impact and burst debris are 1–2 px squares in the struck figure's own colours with gravity 160–220; they blink (skip odd frames) in their last 30% of life."
+      "name": "Collect ring",
+      "how": "An expanding diamond outline (radius 3, 5, 7) in cyan or gold, a rising star and 3 pixels thrown upwards."
     },
     {
-      "name": "Star sparkle",
-      "how": "3-frame white/gold (cyan for small collectibles) plus-star: 3×3 plus, 5×5 star, 4 corner dots. Used when collecting, on a flash, and as a ring of 10 stars."
+      "name": "Light column",
+      "how": "A 9 × 40 px checker pillar (white core, gold sides, 2 parities alternating every 4 frames) that shrinks from the top over 0.55 s, with a gold ring and 10 outward stars."
     },
     {
-      "name": "Spinning collectibles and orbiting lantern",
-      "how": "Small collectibles are 5 × 6 px cyan/blue diamonds, large ones 7 × 8 px gold/orange, spinning through 4 frames whose width shrinks to a sliver; the orbiting lantern is a 9 × 10 px purple-capped cream lantern whose glass blinks gold/white at 4 Hz."
-    },
-    {
-      "name": "Seed projectile",
-      "how": "2×2 cream/white square (outlined to 4×4), alternating colour every frame, with a 1-px gold/cream dot 4 px behind and an orange dot 7 px behind."
-    },
-    {
-      "name": "Floating numbers",
-      "how": "3×5 bitmap digits with 1-px gap, white; highlighted numbers gold at 2× scale; 8-neighbour black outline; blink in the last 25% of life."
+      "name": "Collectibles and lantern",
+      "how": "Cyan 5 × 6 and gold 7 × 8 diamonds spin through 4 frames, bob [0,1,2,1] and flash a star glint every ~1.8 s; the 9 × 12 orbiting lantern flickers gold → yellow → white in the sequence 0,1,0,2,1,0 at 9 fps with a trailing gold spark."
     }
   ],
   "atmosphere": {
@@ -269,30 +286,31 @@
     "css": ".hud { font-family: 'Press Start 2P', monospace; color: #fcfcfc; background: #000; padding: 14px 32px 12px; box-shadow: 0 4px 0 #000; image-rendering: pixelated; }\n.hud .label { font-size: 16px; color: #f83800; text-transform: uppercase; }\n.hud .clock { font-size: 32px; color: #fcfcfc; text-shadow: none; }\n.bar { height: 16px; background: #000; box-shadow: 0 0 0 4px #fcfcfc; border-radius: 0; }\n.bar-fill { height: 100%; background: repeating-linear-gradient(90deg, #3cbcfc 0 8px, #0058f8 8px 12px, #000 12px 16px); transition: none; }\n.window { background: #000; border: 4px solid #fcfcfc; border-radius: 0; box-shadow: 0 0 0 4px #000, inset 0 0 0 4px #000, inset 0 0 0 8px #fcfcfc; }\n.dim { background: repeating-conic-gradient(#000 0 25%, transparent 0 50%) 0 0 / 8px 8px; }\n@keyframes nesblink { 0% { opacity: 1; } 50% { opacity: 0; } }\n.blink { animation: nesblink 1s steps(1) infinite; }"
   },
   "motion": [
-    "Exactly 2 frames for every walk cycle: main character at the base anim rate, small creatures at anim × 1.6, the large creature at anim × 1.2 (one dust puff per footfall).",
-    "Idle bob: 1 art pixel toggled at 1.8 Hz; ghosts hover 3–4 px above their shadow, toggling at 2 Hz.",
-    "Collectibles spin with the frame sequence 0,0,0,1,2,3 at 9 fps and bob 1 px at 2.5 Hz.",
+    "Held poses on the NES beat (8–12 fps): main character walk = floor(anim × 1.3) & 7 over 8 poses (~0.67 s cycle), small creatures floor(anim × 2.2 + phase) & 3, large creature floor(anim × 1.6 + phase) & 3.",
+    "Follow-through: the main character's head uses the previous frame's body offset, the scarf flaps one frame behind, the stem leaf lifts when the head drops; beet crowns droop going up and lift falling; ghost tails wave through 4 frames.",
+    "Idle life on varied timers with a per-figure phase: breath 1.1 s, blink 3.4 s, leaf 1.5 fps, scarf flutter 4.3 s; ghosts float on the eased lift [0,0,1,2,3,3,2,1] at 5 fps.",
+    "States: dash wind-up 50 ms → stretch → skid 120 ms; hit ~130 ms squash + flash + recoil; appear 0.45 s mound → climb → land; disappear 0.35 s pop → burst.",
+    "Collectibles spin 0,0,0,1,2,3 at 9 fps and bob [0,1,2,1] at 4 fps; lanterns flicker 0,1,0,2,1,0 at 9 fps.",
     "No easing and no sub-pixel motion: positions round to whole art pixels; CSS transitions are none and blinks use steps(1).",
-    "Blinking flicker: skip drawing when (frameCounter & 2); fading particles and numbers blink the same way.",
-    "Water waves and lanterns use 2-frame toggles (2.2 Hz and 4 Hz)."
+    "Blinking flicker: skip drawing when (frameCounter & 2); fading particles and numbers blink the same way. Water waves toggle at 2.2 Hz."
   ],
   "do": [
-    "Encode every sprite as a text grid with a char→colour map and let the builder add the black outline.",
-    "Keep each sprite to 3 colours + black and choose all colours from the NES palette list.",
-    "Snap every blit to whole art pixels (Math.round of the screen position) and upscale with smoothing off.",
-    "Use checkerboard pixels for transparency and shadows, flicker for blinking.",
-    "Make new creatures by palette-swapping existing grids before drawing new ones.",
-    "Give ground boundaries a 1-px lip or black cliff line so areas read like NES tiles.",
-    "Use Press Start 2P at multiples of 8 px for all text, uppercase labels in red #F83800."
+    "Build figures from posed parts on a char grid (legs table, sleeve/hand table, head, scarf or crown) and bake each pose once.",
+    "Keep each sprite part to 3 colours + black from the NES palette list; make far limbs black for depth.",
+    "Animate with real held poses: 8-frame walks, 4-frame squash & stretch hops and stomps, a head or crown that lands a frame late, per-figure phase offsets.",
+    "Give every state its own sequence: wind-up before a dash, squash on hit, a dirt mound before an appearance, a white pop before a burst.",
+    "Cluster ground decals along edges and in patches; leave open meadow calm.",
+    "Snap every blit to whole art pixels and upscale with smoothing off; use checkerboard pixels for transparency and flicker for blinking.",
+    "Use Press Start 2P at multiples of 8 px for all text, with uppercase red labels."
   ],
   "dont": [
     "No gradients, glows, blur, alpha fades or anti-aliased shapes in the world.",
     "No colours outside the NES palette (no #333 greys, no pastel tints).",
-    "No outlines in a colour other than black, and no 2-px outlines.",
-    "No rotation or scaling of sprites — use extra frames or flips instead.",
-    "No more than 2 animation frames for ordinary figures.",
-    "No smooth tweened UI: no rounded corners, no drop-shadow blur, no transitions.",
-    "No noise textures on the ground — only flat fills plus small glyph decals."
+    "No coloured or 2-px outlines on figures (the red outline of the hit flash is the only exception).",
+    "No rotation or scaling of sprites — use extra poses or flips instead.",
+    "No 2-frame leg toggles or plain sine bobs, and no crowds sharing one animation phase.",
+    "No evenly sprinkled tufts, pebbles or leaves over a whole material; no noise textures on the ground.",
+    "No smooth tweened UI: no rounded corners, no drop-shadow blur, no transitions."
   ],
-  "performance": "Cheap. All sprites (2 frames × 2 facings × palette variants, effect frames, shadows) are baked once at init into tiny canvases; floating numbers are cached per value. Ground chunks (171 × 171 px) are baked incrementally with a generator that samples the noise fields on an 8-px grid and bilinearly interpolates; per frame only drawImage blits, a handful of wave fillRects and an optional scanline pattern (only when the upscale is ≥ 3) are drawn."
+  "performance": "Cheap. Sprites are tiny canvases baked once per pose into a Map (walk, hop, float and stomp poses are warmed at init, rare poses bake on first use in well under a millisecond); effect frames and shadows are baked at init; floating numbers are cached per value. Ground chunks (171 × 171 px) bake incrementally in a generator that samples the noise fields on an 8-px grid, stores the road distance per pixel for ruts and checks decal neighbours inside a 14-px margin so stamps stay seamless. Per frame only drawImage blits (some with a source rect for climb-out and dissolve clips), a few wave fillRects and an optional scanline pattern."
 }

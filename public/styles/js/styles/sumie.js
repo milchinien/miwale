@@ -14,7 +14,7 @@
   const U = window.U, G = window.G;
   const TAU = Math.PI * 2;
   const K = 3;                         // prop sprite resolution: px per world unit
-  const KC = 4;                        // character sprite resolution
+  const KC = 5;                        // character sprite resolution
   const PAPER = [243, 236, 221];
   const PAPER_CSS = '#f3ecdd';
   const PAPER_HI = '#f9f4e8';          // unpainted, brightest paper (eyes, flash)
@@ -497,13 +497,40 @@
     ctx.filter = 'none';
     return { c, f: U.flipX(c), ax: s.ax, ay: s.ay, wu: s.wu, hu: s.hu };
   }
-  /** death: the figure dissolves into the paper – ink spreads (blur), pales and breaks along fibres */
+  /** pale-ink copy of a sprite (dash afterimages): the figure painted again with diluted ink */
+  function paleOf(s) {
+    const { c, ctx } = U.canvas(s.c.width, s.c.height);
+    ctx.drawImage(s.c, 0, 0);
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = T[3];
+    ctx.fillRect(0, 0, c.width, c.height);
+    return { c, f: U.flipX(c), ax: s.ax, ay: s.ay, wu: s.wu, hu: s.hu, k: s.k };
+  }
+  /**
+   * death: frame 0 – the ink goes wet and pools (darker, swollen); then it bleeds into the paper,
+   * pales and breaks up along the fibres until only a few dry fragments are left
+   */
   function dissolveFrames(s, n, seed) {
     const w = s.c.width, h = s.c.height;
     const out = [];
     for (let f = 0; f < n; f++) {
-      const t = (f + 1) / (n + 1);
+      const t = f === 0 ? 0 : 0.18 + 0.8 * (f / (n - 1));
       const { c, ctx } = U.canvas(w, h);
+      if (f === 0) {
+        ctx.filter = 'blur(' + (0.5 * s.k).toFixed(1) + 'px)';
+        ctx.drawImage(s.c, 0, 0);
+        ctx.filter = 'none';
+        ctx.drawImage(s.c, 0, 0);
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = T[0];
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        out.push({ c, f: U.flipX(c), ax: s.ax, ay: s.ay, wu: s.wu, hu: s.hu });
+        continue;
+      }
       ctx.filter = 'blur(' + (t * 2.2 * s.k).toFixed(1) + 'px)';
       ctx.drawImage(s.c, 0, 0);
       ctx.filter = 'none';
@@ -535,16 +562,22 @@
   }
 
   /* ======================================================================
-     3. World fields: ponds, streams, pale wash regions
+     3. World fields: ponds, streams, pale hill washes, footpaths
      ====================================================================== */
-  const T_W = 0.625, T_M = 0.6;
+  const T_W = 0.625, T_M = 0.615, PATH_HW = 4.2;
   const fWater = (x, y) => U.warped(x / 820 + 13.7, y / 820 - 4.1, 61, 1.1, 3);
   const fMist = (x, y) => U.warped(x / 500 - 21.3, y / 500 + 8.8, 71, 0.9, 3);
   const fDen = (x, y) => 0.7 + 0.6 * U.fbm(x / 300 + 3.3, y / 300, 73, 2);
   const fGrass = (x, y) => U.noise(x / 140, y / 140, 75);
+  const fGrove = (x, y) => U.noise(x / 300, y / 300, 77);
   function fRiver(x, y) {
     const qx = x + 70 * U.perlin(x / 280, y / 280, 81), qy = y + 70 * U.perlin(x / 280 + 9.1, y / 280 - 3.3, 82);
     return U.perlin(qx / 860, qy / 860, 83);
+  }
+  // footpaths: the zero line of a warped noise – long winding tracks that lead across the land
+  function fPath(x, y) {
+    const qx = x + 90 * U.perlin(x / 360, y / 360, 95), qy = y + 90 * U.perlin(x / 360 + 5.3, y / 360 - 7.7, 96);
+    return U.perlin(qx / 700, qy / 700, 97);
   }
   // streams exist only where the mask allows: long sparse runs that thin out and end in mist
   function riverHW(x, y) {
@@ -571,9 +604,24 @@
     const k = d / g2;
     return [x - gx * k - (gx / gl) * off, y - gy * k - (gy / gl) * off];
   }
+  /** pale hill wash: signed distance (> 0 inside), inward normal and edge tangent */
+  function mistAt(x, y) {
+    const e = 1.5, p = fMist(x, y), gx = (fMist(x + e, y) - p) / e, gy = (fMist(x, y + e) - p) / e, g = hyp(gx, gy) || 1e-6;
+    return { d: (p - T_M) / g, nx: gx / g, ny: gy / g, tx: -gy / g, ty: gx / g };
+  }
+  function snapMist(x, y, off) { const m = mistAt(x, y), k = m.d - off; return [x - m.nx * k, y - m.ny * k]; }
+  /** footpath: signed distance to the path edge (> 0 on the path) and its direction */
+  function pathAt(x, y) {
+    const e = 1.5, q = fPath(x, y), gx = (fPath(x + e, y) - q) / e, gy = (fPath(x, y + e) - q) / e, g = hyp(gx, gy) || 1e-6;
+    return { d: PATH_HW - Math.abs(q) / g, tx: -gy / g, ty: gx / g, s: q > 0 ? 1 : -1, nx: gx / g, ny: gy / g };
+  }
+  const pathD = (x, y) => pathAt(x, y).d;
+  /** point at signed distance `off` from the path centre line (off > 0: towards +normal) */
+  function snapPath(x, y, off) { const p = pathAt(x, y), k = (PATH_HW - p.d) * p.s - off; return [x - p.nx * k, y - p.ny * k]; }
 
   /* ======================================================================
-     4. Ground chunk shader: xuan paper + bleeding pale washes + bare water
+     4. Ground chunk shader: xuan paper + hill washes with one hard upper edge,
+        bare-paper water with washed banks, clean-swept footpaths
      ====================================================================== */
   function sst(t) {
     if (t <= -1) return 0;
@@ -587,7 +635,7 @@
   function* groundGen(ctx, info) {
     const res = info.res, W = info.px, wx = info.wx, wy = info.wy;
     const gr = Math.floor((W - 1) / ST) + 6, N = gr * gr;
-    const fW = new Float32Array(N), fR = new Float32Array(N), fM = new Float32Array(N);
+    const fW = new Float32Array(N), fR = new Float32Array(N), fM = new Float32Array(N), fPa = new Float32Array(N);
     const cH = new Float32Array(N), cD = new Float32Array(N);
     const sp = ST / res;
     for (let j = 0; j < gr; j++) {
@@ -595,12 +643,12 @@
       const y = wy + (j - 2) * sp;
       for (let i = 0; i < gr; i++) {
         const x = wx + (i - 2) * sp, o = j * gr + i;
-        fW[o] = fWater(x, y); fR[o] = fRiver(x, y); fM[o] = fMist(x, y);
+        fW[o] = fWater(x, y); fR[o] = fRiver(x, y); fM[o] = fMist(x, y); fPa[o] = fPath(x, y);
         cH[o] = riverHW(x, y); cD[o] = fDen(x, y);
       }
     }
     yield;
-    const dW = new Float32Array(N), dM = new Float32Array(N);
+    const dW = new Float32Array(N), dM = new Float32Array(N), nM = new Float32Array(N), dPa = new Float32Array(N);
     const inv = 1 / (2 * sp);
     for (let j = 1; j < gr - 1; j++) {
       if ((j & 7) === 7) yield;
@@ -612,10 +660,14 @@
         const dR = clamp(cH[o] - Math.abs(fR[o]) / Math.max(Math.sqrt(gx * gx + gy * gy), 1e-5), -60, 60);
         dW[o] = dP > dR ? dP : dR;
         gx = (fM[o + 1] - fM[o - 1]) * inv; gy = (fM[o + gr] - fM[o - gr]) * inv;
-        dM[o] = clamp((fM[o] - T_M) / Math.max(Math.sqrt(gx * gx + gy * gy), 1e-5), -60, 60);
+        const gm = Math.max(Math.sqrt(gx * gx + gy * gy), 1e-5);
+        dM[o] = clamp((fM[o] - T_M) / gm, -60, 60);
+        nM[o] = gy / gm;   // > 0: the wash lies below this edge – its upper, hard edge
+        gx = (fPa[o + 1] - fPa[o - 1]) * inv; gy = (fPa[o + gr] - fPa[o - gr]) * inv;
+        dPa[o] = clamp(PATH_HW - Math.abs(fPa[o]) / Math.max(Math.sqrt(gx * gx + gy * gy), 1e-5), -60, 60);
       }
     }
-    const rW = new Float32Array(gr), rM = new Float32Array(gr), rD = new Float32Array(gr);
+    const rW = new Float32Array(gr), rM = new Float32Array(gr), rD = new Float32Array(gr), rN = new Float32Array(gr), rP = new Float32Array(gr);
     if (!IMG || IMG.width !== W) IMG = ctx.createImageData(W, W);
     const img = IMG, d = img.data;
     const PR = PAPER[0], PGc = PAPER[1], PB = PAPER[2];
@@ -629,6 +681,8 @@
         rW[c] = dW[a] + (dW[b] - dW[a]) * fy;
         rM[c] = dM[a] + (dM[b] - dM[a]) * fy;
         rD[c] = cD[a] + (cD[b] - cD[a]) * fy;
+        rN[c] = nM[a] + (nM[b] - nM[a]) * fy;
+        rP[c] = dPa[a] + (dPa[b] - dPa[a]) * fy;
       }
       const gy = gy0 + py;
       const rowP = (gy & 255) << 8, rowA = (gy & 511) << 9, rowB = ((gy + 211) & 511) << 9, rowF = (gy & 511) << 9;
@@ -638,6 +692,8 @@
         const vW = rW[c0] + (rW[c1] - rW[c0]) * fx;
         const vM = rM[c0] + (rM[c1] - rM[c0]) * fx;
         const vD = rD[c0] + (rD[c1] - rD[c0]) * fx;
+        const vN = rN[c0] + (rN[c1] - rN[c0]) * fx;
+        const vP = rP[c0] + (rP[c1] - rP[c0]) * fx;
         const gx = gx0 + px;
         const P = PAP[rowP | (gx & 255)];
         const Gr = GRA[rowP | ((gx + 91) & 255)];
@@ -648,24 +704,30 @@
         const eW = vW + (wa - 0.5) * 4 + (P - 0.5) * 0.6;
         const inW = sst(eW / 1.2);
         const shoreD = inW * Math.exp(-(eW > 0 ? eW : 0) / 9) * (0.07 + 0.12 * clamp01((wb - 0.35) * 2.2));
-        // pale ink wash on land: one hard edge where the wet ink dried, a long soft fade inwards,
-        // feathered into the paper fibres
-        const eM = vM + (wa - 0.5) * 18 + (F - 0.5) * 10;
         const land = 1 - inW;
-        const soft = 1.5 + 12 * wb;
-        const mM = sst(eM / soft) * land;
+        // footpath: swept paper, the washes stop at its edge
+        const eP = vP + (wa - 0.5) * 2.2 + (F - 0.5) * 1.6;
+        const onP = sst(eP / 1.4) * land;
+        // hill wash: one hard edge on its upper side where the wet ink dried, a long soft fade
+        // downwards into mist; the other edges dissolve into the paper fibres
+        const top = vN < 0.05 ? 0 : vN > 0.6 ? 1 : (vN - 0.05) / 0.55;
+        const eM = vM + (wa - 0.5) * (18 - 11 * top) + (F - 0.5) * (10 - 4 * top);
+        const soft = 1.4 + 3 * wb + 15 * (1 - top);
+        const mM = sst(eM / soft) * land * (1 - onP * 0.85);
         const de = eM - 1.1;
-        const rimM = Math.exp(-(de * de) / 1.6) * land * clamp01((wb - 0.4) * 3);
-        const inner = Math.exp(-(eM > 0 ? eM : 0) / (10 + 26 * wa));
-        let dens = mM * vD * (0.03 + 0.09 * inner) * (1 + (Gr - 0.5) * 1.0) + rimM * 0.055;
-        dens += mM * clamp01((wb - 0.7) * 5) * 0.06;
+        const rimM = Math.exp(-(de * de) / 1.6) * mM * clamp01((wb - 0.35) * 3) * top;
+        const inner = Math.exp(-(eM > 0 ? eM : 0) / (9 + 24 * wa));
+        let dens = mM * vD * (0.022 + 0.1 * inner * (0.35 + 0.65 * top)) * (1 + (Gr - 0.5) * 1.0) + rimM * 0.07;
+        dens += mM * clamp01((wb - 0.72) * 5) * 0.05;
         dens += shoreD;
         // banks: a wash on the land side, darkest at the water, fading away from it
         const bankK = clamp01((wa - 0.3) * 2.2);
-        dens += land * Math.exp(-(eW < 0 ? -eW : 0) / (8 + 16 * wb)) * (0.04 + 0.13 * bankK) * (1 + (Gr - 0.5) * 0.8);
+        dens += land * Math.exp(-(eW < 0 ? -eW : 0) / (8 + 16 * wb)) * (0.045 + 0.14 * bankK) * (1 + (Gr - 0.5) * 0.8) * (1 - onP * 0.6);
+        // a hair of grey where the track meets the grass
+        dens += land * Math.exp(-Math.abs(eP) * 1.1) * 0.035 * clamp01((wb - 0.25) * 2.5);
         // paper: tooth, fibres, a few aged foxing spots
         const fox = clamp01((wb - 0.88) * 7) * clamp01((wa - 0.55) * 3) * 0.015;
-        const L = 0.966 + (P - 0.5) * 0.05 + (F - 0.5) * 0.12 * (1 - 0.45 * inW) + inW * 0.012 - fox;
+        const L = 0.966 + (P - 0.5) * 0.05 + (F - 0.5) * 0.12 * (1 - 0.45 * inW) + inW * 0.014 + onP * 0.01 - fox;
         const kd = 1 - dens;
         d[o] = PR * L * kd + GINK[0] * dens;
         d[o + 1] = PGc * L * kd + GINK[1] * dens;
@@ -677,7 +739,7 @@
     yield* decals(ctx, info);
   }
 
-  /* ---------- ground decals: a few brush marks on a lot of empty paper ---------- */
+  /* ---------- ground decals: a few brush marks, gathered at features, on a lot of empty paper ---------- */
   function* scat(info, cell, seed, margin, fn, every) {
     every = every || 30;
     const x0 = Math.floor((info.wx - margin) / cell), x1 = Math.floor((info.wx + info.size + margin) / cell);
@@ -703,6 +765,15 @@
       const tx = bx + Math.cos(ang) * len, ty = y + Math.sin(ang) * len;
       const bend = (r.next() < 0.5 ? -1 : 1) * (0.6 + r.next()) * s;
       brush(ctx, [[bx, y], [(bx + tx) / 2 + bend, (y + ty) / 2], [tx + bend * 0.8, ty + 0.4 * s]], { w: (0.55 + r.next() * 0.35) * s, c: tone, a, ta: 0.08, tb: 0.8, press: 0.35, wv: 0.1, steps: 4 }, r);
+    }
+  }
+  /** a loose clump: bigger, darker tufts in the middle, small pale ones at the rim, never a single tick */
+  function grassClump(ctx, x, y, r, R, s) {
+    const n = 3 + r.int(0, 3);
+    for (let i = 0; i < n; i++) {
+      const a = r.next() * TAU, dd = Math.pow(r.next(), 1.4) * R;
+      const k = 1 - dd / (R * 1.6);
+      grassTuft(ctx, x + Math.cos(a) * dd, y + Math.sin(a) * dd * 0.55, r, s * (0.7 + 0.45 * k), dd < R * 0.45 ? TONE[1] : TONE[2], 0.75 + 0.15 * k);
     }
   }
   function pebble(ctx, x, y, s, r, a) {
@@ -733,27 +804,26 @@
   function* decals(ctx, info) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    // long dry-brush strokes that suggest the lie of the land
-    yield* scat(info, 120, 901, 90, (x, y, r) => {
-      if (!r.chance(0.42)) return;
-      if (waterD(x, y) > -8) return;
-      const n = 1 + (r.next() < 0.45 ? 1 : 0) + (r.next() < 0.2 ? 1 : 0);
-      const ang = (r.next() - 0.5) * 0.4;
-      for (let i = 0; i < n; i++) {
-        const L = 26 + r.next() * 46, ox = x + (r.next() - 0.5) * 16, oy = y + i * (5 + r.next() * 5);
-        const ca = Math.cos(ang), sa = Math.sin(ang), sag = (r.next() - 0.35) * L * 0.12;
-        const ex = ox + ca * L, ey = oy + sa * L;
-        if (waterD(ex, ey) > -4) continue;
-        brush(ctx, [[ox, oy], [(ox + ex) / 2 - sa * sag, (oy + ey) / 2 + ca * sag], [ex, ey]], {
-          w: 1.8 + r.next() * 2.6, c: r.next() < 0.6 ? TONE[2] : TONE[3], c2: TONE[4], a: 0.38 + r.next() * 0.2, ta: 0.03, tb: 0.35, press: 0.6, dry: 0.8 + r.next() * 0.15, steps: 10, wv: 0.2, nb: 14, gs: 0.9,
-        }, r);
+    // hill crests: long broken dry strokes along the hard upper edge of the washes – found here, lost there
+    yield* scat(info, 30, 901, 50, (x, y, r) => {
+      if (!r.chance(0.6) || U.noise(x / 120, y / 120, 93) < 0.42) return;
+      const m = mistAt(x, y);
+      if (m.d > 7 || m.d < -5 || m.ny < 0.4) return;
+      if (waterD(x, y) > -6 || pathD(x, y) > -3) return;
+      const L = 16 + r.next() * 30, pts = [];
+      for (let i = 0; i < 4; i++) { const t = i / 3 - 0.5; pts.push(snapMist(x + m.tx * L * t, y + m.ty * L * t, 0.6 + (r.next() - 0.5) * 1.2)); }
+      brush(ctx, pts, { w: 1.0 + r.next() * 1.5, c: r.next() < 0.55 ? TONE[2] : TONE[1], c2: TONE[3], a: 0.72, ta: 0.06, tb: 0.5, press: 0.55, dry: 0.45 + r.next() * 0.35, steps: 6, wv: 0.25 }, r);
+      if (r.chance(0.5)) {
+        // moss dots (dian) gathered on the crest
+        const c = pts[1 + r.int(0, 1)], n = 3 + r.int(0, 4);
+        for (let i = 0; i < n; i++) dot(ctx, c[0] + (r.next() - 0.5) * 8, c[1] + 0.8 + (r.next() - 0.5) * 2.4, 0.35 + r.next() * 0.45, r.next() < 0.7 ? TONE[0] : TONE[1], 0.85, r, (r.next() - 0.5) * 0.8);
       }
-    }, 4);
+    }, 6);
     // shore: long broken strokes that follow the bank – the paper inside stays water
     yield* scat(info, 15, 902, 26, (x, y, r) => {
       const w = waterAt(x, y);
       if (w.d > 3 || w.d < -3) return;
-      if (U.noise(x / 80, y / 80, 91) < 0.34 || !r.chance(0.5)) return;
+      if (U.noise(x / 80, y / 80, 91) < 0.36 || !r.chance(0.5)) return;
       const L = 11 + r.next() * 20;
       const pts = [];
       for (let i = 0; i < 4; i++) {
@@ -761,11 +831,12 @@
         pts.push(snapShore(x + w.tx * L * t, y + w.ty * L * t, 0.6 + (r.next() - 0.5) * 0.8));
       }
       brush(ctx, pts, { w: 0.9 + r.next() * 1.5, c: r.next() < 0.55 ? TONE[1] : TONE[2], c2: TONE[3], a: 0.8, ta: 0.1, tb: 0.5, press: 0.5, dry: 0.35 + r.next() * 0.4, steps: 6, wv: 0.3 }, r);
+      if (r.chance(0.12)) { const q = pts[1 + r.int(0, 1)]; pebble(ctx, q[0], q[1] + 1.2, 0.8 + r.next() * 0.6, r, 0.85); }
     }, 12);
-    // ripples: two or three flowing lines in open water
-    yield* scat(info, 22, 903, 40, (x, y, r) => {
+    // ripples: one or two flowing lines in open water, sparse
+    yield* scat(info, 26, 903, 40, (x, y, r) => {
       const w = waterAt(x, y);
-      if (w.d < 4 || !r.chance(w.river ? 0.6 : 0.36)) return;
+      if (w.d < 5 || !r.chance(w.river ? 0.45 : 0.22)) return;
       const L = Math.min(9 + r.next() * 26, w.d * 2.4);
       let dx = 1, dy = (r.next() - 0.5) * 0.18;
       if (w.river) { dx = w.tx; dy = w.ty; }
@@ -780,13 +851,15 @@
           const t = i / 4 - 0.5, wv = Math.sin(i * 1.7 + ph) * 0.7;
           pts.push([x + dx * (t * L2 + sh) + nx * (wv + off), y + dy * (t * L2 + sh) + ny * (wv + off)]);
         }
-        brush(ctx, pts, { w: 0.55 + r.next() * 0.4, c: r.next() < 0.5 ? TONE[2] : TONE[3], a: 0.7, ta: 0.3, tb: 0.45, wv: 0.25, steps: 5 }, r);
+        brush(ctx, pts, { w: 0.55 + r.next() * 0.4, c: r.next() < 0.5 ? TONE[2] : TONE[3], a: 0.65, ta: 0.3, tb: 0.45, wv: 0.25, steps: 5 }, r);
       }
+      // now and then a fallen petal drifts on the water
+      if (!w.river && r.chance(0.1)) petal(ctx, x + (r.next() - 0.5) * 6, y + 2, 0.75, r.next() * TAU, 0.85);
     }, 12);
-    // reeds along the banks
+    // reeds along the banks, in stands
     yield* scat(info, 22, 904, 26, (x, y, r) => {
       const d = waterD(x, y);
-      if (d > 1.5 || d < -7 || U.noise(x / 90, y / 90, 92) < 0.5 || !r.chance(0.55)) return;
+      if (d > 1.5 || d < -7 || U.noise(x / 90, y / 90, 92) < 0.52 || !r.chance(0.55)) return;
       const n = 4 + r.int(0, 4), lean = (r.next() - 0.5) * 0.5;
       for (let i = 0; i < n; i++) {
         const bx = x + (i - n / 2) * 1.1 + (r.next() - 0.5), h = 7 + r.next() * 9, a = lean + (r.next() - 0.5) * 0.5;
@@ -795,42 +868,29 @@
         if (r.chance(0.25)) brush(ctx, [[tx - Math.sin(a) * 0.4, ty + 3], [tx, ty + 0.4]], { w: 1.2, c: TONE[0], a: 0.85, ta: 0.2, tb: 0.3 }, r);
       }
     }, 10);
-    // grass tufts in loose clusters
-    yield* scat(info, 14, 905, 10, (x, y, r) => {
-      const g = fGrass(x, y);
-      if (!r.chance(U.smoothstep(0.56, 0.84, g) * 0.42 + 0.012)) return;
-      if (waterD(x, y) > -3) return;
-      grassTuft(ctx, x, y, r, 0.8 + r.next() * 0.5, r.next() < 0.7 ? TONE[1] : TONE[2], 0.8);
-    }, 25);
-    // moss dots (dian)
-    yield* scat(info, 24, 906, 6, (x, y, r) => {
-      if (!r.chance(U.smoothstep(0.5, 0.8, fGrass(x, y)) * 0.3 + 0.03)) return;
-      if (waterD(x, y) > -2) return;
-      const n = 3 + r.int(0, 5);
-      for (let i = 0; i < n; i++) dot(ctx, x + (r.next() - 0.5) * 7, y + (r.next() - 0.5) * 3.5, 0.35 + r.next() * 0.5, r.next() < 0.7 ? TONE[0] : TONE[1], 0.85, r, (r.next() - 0.5) * 0.8);
+    // footpath edges: broken dry strokes just off the track, a clump of grass or a pebble now and then
+    yield* scat(info, 14, 910, 30, (x, y, r) => {
+      const pa = pathAt(x, y);
+      if (pa.d < -3 || pa.d > 3 || !r.chance(0.5) || U.noise(x / 70, y / 70, 94) < 0.38) return;
+      if (waterD(x, y) > -4) return;
+      const side = r.chance(0.5) ? 1 : -1, L = 7 + r.next() * 13, pts = [];
+      for (let i = 0; i < 3; i++) { const t = i / 2 - 0.5; pts.push(snapPath(x + pa.tx * L * t, y + pa.ty * L * t, side * (PATH_HW + 0.6 + r.next() * 0.8))); }
+      brush(ctx, pts, { w: 0.6 + r.next() * 0.8, c: r.next() < 0.6 ? TONE[2] : TONE[3], c2: TONE[4], a: 0.7, ta: 0.1, tb: 0.5, dry: 0.45 + r.next() * 0.35, steps: 4 }, r);
+      if (r.chance(0.16)) { const q = pts[1]; grassClump(ctx, q[0] + pa.nx * side * 3, q[1] + pa.ny * side * 3, r, 5, 0.8); }
+      else if (r.chance(0.1)) { const q = pts[2]; pebble(ctx, q[0] + pa.nx * side * 1.5, q[1] + pa.ny * side * 1.5, 0.7 + r.next() * 0.5, r, 0.85); }
+    }, 10);
+    // stepping stones where a path crosses water
+    yield* scat(info, 8, 911, 4, (x, y, r) => {
+      if (!r.chance(0.6) || pathD(x, y) < 1) return;
+      if (waterD(x, y) < 1.5) return;
+      pebble(ctx, x, y, 1.3 + r.next() * 0.5, r, 1);
     }, 30);
-    // pebbles (also stepping stones in the water)
-    yield* scat(info, 44, 907, 8, (x, y, r) => {
-      if (!r.chance(0.08)) return;
-      const n = r.chance(0.3) ? 2 : 1;
-      for (let i = 0; i < n; i++) pebble(ctx, x + i * 4, y + (r.next() - 0.5) * 2, 0.9 + r.next() * 1.3, r, 0.9);
-    }, 20);
-    // ink flicked from the brush
-    yield* scat(info, 90, 908, 14, (x, y, r) => {
-      if (!r.chance(0.16) || waterD(x, y) > -2) return;
-      const dir = r.next() * TAU, n = 3 + r.int(0, 7);
-      dot(ctx, x, y, 0.8 + r.next() * 0.8, TONE[0], 0.75, r);
-      for (let i = 0; i < n; i++) {
-        const dd = 2 + r.next() * 9, an = dir + (r.next() - 0.5) * 0.7;
-        dot(ctx, x + Math.cos(an) * dd, y + Math.sin(an) * dd * 0.8, 0.12 + Math.pow(r.next(), 2) * 0.45, TONE[0], 0.7, r);
-      }
-    }, 20);
-    // a few fallen vermilion petals
-    yield* scat(info, 70, 909, 4, (x, y, r) => {
-      if (!r.chance(0.12) || waterD(x, y) > 2) return;
-      const n = 1 + r.int(0, 2);
-      for (let i = 0; i < n; i++) petal(ctx, x + (r.next() - 0.5) * 6, y + (r.next() - 0.5) * 3, 0.7 + r.next() * 0.4, r.next() * TAU, 0.85);
-    }, 30);
+    // grass in loose clumps where the meadow is lush – never sprinkled singly
+    yield* scat(info, 46, 905, 16, (x, y, r) => {
+      if (!r.chance(U.smoothstep(0.6, 0.82, fGrass(x, y)) * 0.65)) return;
+      if (waterD(x, y) > -4 || pathD(x, y) > -2) return;
+      grassClump(ctx, x, y, r, 9, 0.85 + r.next() * 0.3);
+    }, 8);
   }
 
   /* ======================================================================
@@ -1010,7 +1070,8 @@
   }
   function rockShape(r, w, h, tall) {
     const pts = tall
-      ? [[-w * 0.45, 0], [-w * 0.55, -h * 0.35], [-w * 0.3, -h * 0.7], [-w * 0.42, -h], [w * 0.1, -h * 0.92], [w * 0.45, -h * 0.62], [w * 0.35, -h * 0.3], [w * 0.5, 0]]
+      // scholar rock: a lumpy column with two waists, heavier at the top than at the foot
+      ? [[-w * 0.36, 0], [-w * 0.48, -h * 0.17], [-w * 0.26, -h * 0.38], [-w * 0.52, -h * 0.6], [-w * 0.4, -h * 0.88], [-w * 0.06, -h], [w * 0.3, -h * 0.9], [w * 0.54, -h * 0.72], [w * 0.28, -h * 0.5], [w * 0.44, -h * 0.26], [w * 0.46, 0]]
       : [[-w * 0.5, 0], [-w * 0.46, -h * 0.45], [-w * 0.2, -h * 0.95], [w * 0.12, -h], [w * 0.4, -h * 0.62], [w * 0.52, -h * 0.2], [w * 0.45, 0]];
     return spline(jit(pts, Math.min(w, h) * 0.05, r), true, 5);
   }
@@ -1022,8 +1083,11 @@
     wash(ctx, P, { c: T[4], blobs: [{ x: w * 0.2, y: -h * 0.3, rx: w * 0.35, ry: h * 0.35, c: T[3], a: 0.7, blur: 1.6 }, { x: -w * 0.2, y: -h * 0.75, rx: w * 0.25, ry: h * 0.15, c: PAPER_HI, a: 0.6, blur: 1.5 }], rim: 0.9, edge: T[3], rimA: 0.5, gran: 0.7, alpha: 0.95 });
     if (tall) {
       // scholar-rock holes
-      for (const [hx, hy, hr] of [[-1.5, -h * 0.62, 2.2], [2.5, -h * 0.35, 1.5]]) {
-        wash(ctx, spline(blobPts(hx, hy, hr, hr * 1.2, 0.15, r, 8), true, 4), { c: T[2], rim: 0.6, edge: T[1], rimA: 0.8, gran: 0.4 });
+      // scholar-rock holes: a dark core pressed into the stone, a hard ink lip on top, a pale worn lip below
+      for (const [hx, hy, hr] of [[-1.2, -h * 0.66, 2.1], [2.2, -h * 0.4, 1.4], [-2.4, -h * 0.24, 0.9]]) {
+        wash(ctx, spline(blobPts(hx, hy, hr, hr * 1.25, 0.2, r, 9, 0.3), true, 4), { c: T[2], blobs: [{ x: hx + 0.2, y: hy - hr * 0.35, rx: hr * 0.75, ry: hr * 0.8, c: T[0], a: 0.9, blur: 0.5 }], rim: 0.4, edge: T[1], rimA: 0.7, gran: 0.4 });
+        brush(ctx, arcPts(hx, hy, hr * 1.05, hr * 1.3, Math.PI * 1.05, Math.PI * 1.95, 5), { w: 0.75, c: TONE[0], a: 0.95, ta: 0.15, tb: 0.5, press: 0.4 }, r);
+        brush(ctx, arcPts(hx, hy + 0.2, hr * 1.1, hr * 1.35, Math.PI * 0.15, Math.PI * 0.8, 4), { w: 0.5, c: PAPER.map((v) => v + 5), a: 0.75, ta: 0.2, tb: 0.5 }, r);
       }
     }
     const b = bbox(P);
@@ -1034,11 +1098,18 @@
     brush(ctx, seg(0, mid).filter((_, i) => i % 3 === 0), { w: 1.6 * Math.sqrt(s), c: TONE[1], c2: TONE[2], a: 0.95, ta: 0.05, tb: 0.35, press: 0.6, dry: 0.5, steps: 3 }, r);
     brush(ctx, seg(mid + 2, n - 2).filter((_, i) => i % 3 === 0), { w: 1.05 * Math.sqrt(s), c: TONE[2], a: 0.9, ta: 0.1, tb: 0.5, dry: 0.65, steps: 3 }, r);
     void top;
-    // axe-cut texture strokes
-    for (let i = 0; i < (tall ? 4 : 3 + s * 2); i++) {
-      const x = b.x0 + b.w * (0.25 + r.next() * 0.55), y = b.y0 + b.h * (0.3 + r.next() * 0.5);
-      brush(ctx, [[x, y], [x + 1.5 * s, y + 2.6 * s]], { w: 1.2 * s, c: r.next() < 0.5 ? TONE[2] : TONE[3], a: 0.75, ta: 0, tb: 0.5, press: 0.6, dry: 0.7, steps: 3 }, r);
+    // the rock turns away from the light along one facet line; on the shadow face beyond it, broad slanted
+    // axe-cut strokes (cun) are stacked, shortening towards the base – texture only where the form turns
+    ctx.save();
+    trace(ctx, P); ctx.clip();
+    const fx0 = b.x0 + b.w * (0.46 + r.next() * 0.1);
+    brush(ctx, [[fx0 - b.w * 0.1, b.y0 + b.h * 0.1], [fx0 + b.w * 0.03, b.y0 + b.h * 0.48], [fx0 - b.w * 0.03, b.y1 - b.h * 0.06]], { w: 0.95 * Math.sqrt(s), c: TONE[2], c2: TONE[3], a: 0.85, ta: 0.1, tb: 0.45, press: 0.45, dry: 0.55, steps: 4 }, r);
+    const nC = tall ? 4 : 3 + Math.round(s);
+    for (let i = 0; i < nC; i++) {
+      const u = (i + 0.5) / nC, x = fx0 + b.w * (0.03 + r.next() * 0.07), y = b.y0 + b.h * (0.16 + u * 0.64), L = b.w * (0.3 - u * 0.12);
+      brush(ctx, [[x, y], [x + L * 0.5, y + L * 0.16], [x + L, y + L * 0.42]], { w: (1.6 - u * 0.5) * Math.sqrt(s), c: i % 2 ? TONE[3] : TONE[2], c2: TONE[4], a: 0.72, ta: 0, tb: 0.5, press: 0.8, dry: 0.75, steps: 3, nb: 7 }, r);
     }
+    ctx.restore();
     // moss dots on the top
     for (let i = 0; i < 4 + r.int(0, 4); i++) {
       const p = P[Math.floor(n * (0.15 + r.next() * 0.45))];
@@ -1179,6 +1250,66 @@
     }
     for (let i = 0; i < 3; i++) dot(ctx, (r.next() - 0.5) * 3, 0, 0.5, TONE[0], 0.9, r, 0);
   }
+  /** stone lantern: v0 a tall post lantern, v1 a low snow-viewing lantern with a wide roof on curved legs */
+  function drawLantern(ctx, r, v) {
+    const yk = v === 1, pt = yk ? -5.6 : -10.1, rw = yk ? 8.8 : 6.6;
+    baseWash(ctx, yk ? 10 : 8, 2.2, r, 0.45);
+    if (yk) {
+      for (const [x0, x1, tn, w] of [[-4.6, -2.4, TONE[0], 1.0], [4.6, 2.4, TONE[1], 0.9], [0.8, 0.5, TONE[2], 0.8]]) {
+        brush(ctx, [[x0, 0.2], [x0 * 0.7 + x1 * 0.3 + (x0 < 0 ? -0.5 : 0.5), -3.0], [x1, pt + 0.2]], { w, c: tn, a: 0.95, ta: 0, tb: 0.2, press: 0.3, dry: 0.3, steps: 3 }, r);
+      }
+    } else {
+      wash(ctx, spline([[-4.8, 0.3], [4.8, 0.3], [4.0, -2.0], [-4.0, -2.0]], true, 2), { c: T[3], blobs: [{ x: 2.5, y: -1, rx: 2, ry: 1, c: T[2], a: 0.6, blur: 0.8 }], gran: 0.7, alpha: 0.95 });
+      brush(ctx, [[-4.9, -2.0], [0, -2.3], [4.9, -2.0]], { w: 0.9, c: TONE[1], a: 0.9, ta: 0.05, tb: 0.3, dry: 0.4 }, r);
+      wash(ctx, spline([[-1.7, -2.1], [1.7, -2.1], [1.4, pt], [-1.4, pt]], true, 2), { c: T[4], blobs: [{ x: 1.0, y: -6, rx: 1, ry: 3.4, c: T[3], a: 0.75, blur: 0.8 }], gran: 0.6 });
+      brush(ctx, [[-1.6, -2.2], [-1.45, -6], [-1.35, pt]], { w: 0.85, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.2, press: 0.3, dry: 0.3 }, r);
+      brush(ctx, [[1.6, -2.2], [1.4, pt]], { w: 0.55, c: TONE[2], a: 0.85, ta: 0.1, tb: 0.3, dry: 0.5 }, r);
+    }
+    // platform, light box with a bare-paper window, a wide cap with upturned tips, the finial
+    wash(ctx, spline([[-4.2, pt + 0.2], [4.2, pt + 0.2], [3.4, pt - 1.3], [-3.4, pt - 1.3]], true, 2), { c: T[3], gran: 0.6 });
+    brush(ctx, [[-4.6, pt + 0.1], [0, pt - 0.3], [4.6, pt + 0.1]], { w: 1.2, c: TONE[1], a: 0.92, ta: 0.05, tb: 0.3, press: 0.4, dry: 0.35 }, r);
+    const b0 = pt - 1.1, b1 = b0 - 4.8;
+    wash(ctx, spline([[-3.0, b0], [3.0, b0], [3.0, b1], [-3.0, b1]], true, 2), { c: T[3], blobs: [{ x: 2, y: (b0 + b1) / 2, rx: 1.4, ry: 2.5, c: T[2], a: 0.7, blur: 0.8 }], gran: 0.6 });
+    ctx.fillStyle = PAPER_HI; ctx.fillRect(-1.4, b1 + 1.0, 2.8, 3.0);
+    brush(ctx, [[-3.0, b0], [-3.0, b1]], { w: 0.8, c: TONE[0], ta: 0, tb: 0.1, dry: 0.3 }, r);
+    brush(ctx, [[0, b1 + 1.0], [0, b0 - 0.8]], { w: 0.35, c: TONE[1], a: 0.8, ta: 0.1, tb: 0.1 }, r);
+    const e = b1, pk = e - (yk ? 2.6 : 3.6);
+    wash(ctx, spline([[-rw, e], [-rw * 0.48, e - 1.3], [0, pk], [rw * 0.48, e - 1.3], [rw, e], [0, e - 0.5]], true, 3), { c: T[2], blobs: [{ x: -2, y: e - 1.6, rx: 2.4, ry: 0.9, c: T[3], a: 0.6, blur: 0.7 }], gran: 0.6 });
+    brush(ctx, [[-rw - 0.6, e - 0.6], [-rw * 0.78, e + 0.1], [0, e - 0.4], [rw * 0.78, e + 0.1], [rw + 0.6, e - 0.6]], { w: 1.4, c: TONE[0], a: 0.98, ta: 0.05, tb: 0.15, press: 0.5, dry: 0.35, steps: 4 }, r);
+    brush(ctx, [[-rw * 0.94, e - 0.4], [-rw * 0.45, e - 1.6], [0, pk]], { w: 0.7, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.3, dry: 0.4 }, r);
+    dot(ctx, 0, pk - 1.0, 0.95, TONE[0], 1, r, Math.PI / 2);
+    brush(ctx, [[0, pk - 1.8], [0.1, pk - 3.0]], { w: 0.5, c: TONE[0], ta: 0, tb: 0.7 }, r);
+    for (let i = 0; i < 5; i++) dot(ctx, (r.next() - 0.5) * rw * 1.4, e - 0.6 + r.next() * 0.6, 0.3 + r.next() * 0.3, TONE[0], 0.9, r);
+    for (let i = 0; i < 4; i++) dot(ctx, (r.next() - 0.5) * 9, -0.2 - r.next(), 0.3 + r.next() * 0.3, TONE[0], 0.9, r);
+    grassTuft(ctx, -4.6, 0.3, r, 0.75, TONE[1], 0.85);
+  }
+  /** a fishing boat on still water: pale hull, one bold gunwale stroke, a seated fisherman with a long pole */
+  function drawBoat(ctx, r, v) {
+    wash(ctx, spline(blobPts(0, 0.8, 18, 3.2, 0.15, r, 12), true, 4), { c: T[4], gran: 0.5, feather: 1.6, alpha: 0.5 });
+    for (let i = 0; i < 4; i++) {
+      const y = 1.4 + i * 1.3, x = (r.next() - 0.5) * 6, L = 10 - i * 2 + r.next() * 4;
+      brush(ctx, [[x - L, y], [x, y + 0.2], [x + L, y - 0.1]], { w: 0.5, c: i ? TONE[3] : TONE[2], a: 0.75, ta: 0.3, tb: 0.4 }, r);
+    }
+    const hull = [[-14, -3.6], [-6, -2.2], [6, -2.2], [14.5, -4.6], [11, -0.8], [0, 0.4], [-10.5, -0.6]];
+    wash(ctx, spline(hull, true, 4), { c: T[3], blobs: [{ x: 2, y: -0.8, rx: 9, ry: 1.2, c: T[2], a: 0.7, blur: 1 }], gran: 0.6 });
+    brush(ctx, [[14.8, -4.8], [8, -2.6], [0, -2.0], [-8, -2.4], [-14.4, -3.8]], { w: 1.4, c: TONE[0], c2: TONE[2], a: 0.97, ta: 0.02, tb: 0.3, press: 0.6, dry: 0.4, steps: 5 }, r);
+    brush(ctx, [[14.2, -4.4], [10.5, -0.9], [0, 0.4], [-10.4, -0.7], [-14, -3.4]], { w: 0.7, c: TONE[1], a: 0.85, ta: 0.1, tb: 0.3, dry: 0.5, steps: 5 }, r);
+    if (v === 1) {
+      // a woven awning over the stern
+      wash(ctx, spline([[-11, -2.4], [-10.4, -7.6], [-6, -9.6], [-1.6, -7.8], [-1.2, -2.2]], true, 4), { c: T[3], blobs: [{ x: -4, y: -5, rx: 3, ry: 2.4, c: T[2], a: 0.7, blur: 1 }], gran: 0.7 });
+      brush(ctx, [[-11.2, -2.6], [-10.4, -7.8], [-6, -9.8], [-1.4, -7.8], [-1.0, -2.4]], { w: 1.0, c: TONE[1], a: 0.92, ta: 0.05, tb: 0.3, dry: 0.45, steps: 4 }, r);
+      for (const x of [-8.6, -6, -3.4]) brush(ctx, [[x, -2.6], [x + 0.2, -8.6 + Math.abs(x + 6) * 0.3]], { w: 0.4, c: TONE[2], a: 0.75, ta: 0.2, tb: 0.3 }, r);
+    }
+    const fx = v === 1 ? 4.5 : -2;
+    wash(ctx, spline([[fx - 2.2, -2.2], [fx - 1.8, -6.8], [fx + 0.6, -7.6], [fx + 2.4, -5.0], [fx + 2.2, -2.2]], true, 3), { c: T[4], blobs: [{ x: fx + 1.4, y: -4, rx: 1, ry: 1.6, c: T[3], a: 0.7, blur: 0.6 }], gran: 0.5 });
+    brush(ctx, [[fx - 1.9, -2.4], [fx - 1.6, -6.6]], { w: 1.1, c: TONE[0], ta: 0.05, tb: 0.3, dry: 0.3 }, r);
+    wash(ctx, spline([[fx - 3.6, -7.6], [fx + 0.3, -10.2], [fx + 3.8, -7.4], [fx + 0.2, -7.0]], true, 3), { c: T[3], gran: 0.6 });
+    brush(ctx, [[fx - 3.9, -7.5], [fx + 0.2, -7.0], [fx + 4.1, -7.4]], { w: 0.9, c: TONE[0], ta: 0.05, tb: 0.3, press: 0.5 }, r);
+    brush(ctx, [[fx + 1.6, -5], [fx + 9, -11.5], [fx + 15.5, -16.5]], { w: 0.42, c: TONE[1], a: 0.92, ta: 0, tb: 0.6 }, r);
+    ctx.strokeStyle = T[3]; ctx.lineWidth = 0.15; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.moveTo(fx + 15.5, -16.5); ctx.quadraticCurveTo(fx + 17.2, -8, fx + 16.4, 1.6); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   function buildProps() {
     const mk = (wu, hu, ax, ay, fn, seed) => { const s = mkSprite(wu, hu, ax, ay, K); fn(s.ctx, U.rng(seed)); return finish(s, { flash: false, paper: 0.35 }); };
     PROPS.bamboo = [0, 1, 2].map((v) => mk(62, 96, 31, 92, (c, r) => drawBamboo(c, r, 3 + v, 64 + v * 10), 1100 + v));
@@ -1187,17 +1318,21 @@
     PROPS.rock = [0, 1, 2].map((v) => mk(38, 30, 19, 27, (c, r) => drawRock(c, r, v), 1400 + v));
     PROPS.mountain = [0, 1].map((v) => mk(96, 124, 48, 120, (c, r) => drawMountain(c, r, v), 1500 + v));
     PROPS.hut = [mk(42, 30, 21, 27, (c, r) => drawHut(c, r), 1600)];
+    PROPS.lantern = [0, 1].map((v) => mk(22, 26, 11, 24, (c, r) => drawLantern(c, r, v), 1650 + v));
     PROPS.reeds = [0, 1].map((v) => mk(34, 32, 17, 29, (c, r) => drawReeds(c, r), 1700 + v));
     PROPS.orchid = [0, 1].map((v) => mk(46, 30, 23, 27, (c, r) => drawOrchid(c, r), 1800 + v));
+    PROPS.boat = [0, 1].map((v) => mk(44, 30, 22, 24, (c, r) => drawBoat(c, r, v), 1900 + v));
   }
 
+
   /* ======================================================================
-     6. Characters – a handful of strokes each, read by value contrast
+     6. Characters – ink animals and a wandering calligrapher, a handful of
+        strokes each, read by value contrast. Every part has its own seeded
+        random stream, so the strokes stay put from frame to frame.
      ====================================================================== */
   const SPR = {};
-  const HEIGHT = { creeper: 15, ghost: 22, colossus: 42 };
+  const HEIGHT = { creeper: 12, ghost: 26, colossus: 40 };
   const VERM_D = [160, 38, 24];
-  const PAPER_HI_RGB = [249, 244, 232];
   function eye(ctx, x, y, rr, look) {
     ctx.fillStyle = PAPER_HI;
     ctx.beginPath(); ctx.ellipse(x, y, rr, rr * 1.1, 0, 0, TAU); ctx.fill();
@@ -1209,151 +1344,361 @@
     for (let i = 0; i <= n; i++) { const a = a0 + (a1 - a0) * (i / n); out.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); }
     return out;
   }
+  const rot2 = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+  const lerp2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
-  /* ---------- main character: a wandering calligrapher with a giant brush and a vermilion sash ---------- */
-  function drawSage(ctx, pose, r) {
-    const walk = pose.ph !== null;
-    const s = walk ? Math.sin(pose.ph) : 0, c = walk ? Math.cos(pose.ph) : 0;
-    const wave = pose.wave, br = pose.br || 0;
-    // the giant brush carried across the back, bristles up
-    brush(ctx, [[-7.6, -2.4], [-0.8, -18], [5.9, -33.2]], { w: 1.25, c: TONE[2], c2: TONE[3], a: 0.96, ta: 0, tb: 0, wv: 0.03, steps: 3 }, r);
-    for (const t of [0.12, 0.42, 0.72]) { const x = -7.6 + t * 13.5, y = -2.4 - t * 30.8; brush(ctx, [[x - 0.8, y + 0.2], [x + 0.8, y - 0.25]], { w: 0.55, c: TONE[0], ta: 0.2, tb: 0.3 }, r); }
-    brush(ctx, [[5.6, -32.6], [6.5, -34.6]], { w: 1.9, c: TONE[1], ta: 0, tb: 0 }, r);
-    brush(ctx, [[6.3, -34.2], [7.4, -37], [8.6, -40.2]], { w: 2.9, c: TONE[0], c2: TONE[2], a: 1, ta: 0, tb: 0.8, tp: 0.75, press: 0.35, dry: 0.35, bleed: 0.35 }, r);
-    // sash tails flowing back
-    brush(ctx, [[-2, -12.9], [-5.8, -12.3 + wave * 0.6], [-9.4, -11.4 - wave * 0.9], [-13.2, -10.2 + wave * 1.2]], { w: 1.8, c: VERM, c2: VERM_D, a: 0.96, ta: 0, tb: 0.6, wv: 0.25, steps: 6 }, r);
-    brush(ctx, [[-2, -12.2], [-5.2, -10.5 - wave * 0.5], [-8.4, -9.2 + wave * 0.8], [-11, -8.2 - wave * 0.7]], { w: 1.35, c: VERM, c2: VERM_D, a: 0.92, ta: 0, tb: 0.65, wv: 0.25, steps: 6 }, r);
-    // legs and sandals
-    const lift = (v) => (walk ? Math.max(0, v) * 1.5 : 0);
-    for (const [hx, dx, li, back] of [[-1.7, -2.5 * s, lift(-c), 1], [1.7, 2.5 * s, lift(c), 0]]) {
-      const fx = hx + dx, fy = -0.8 - li;
-      brush(ctx, [[hx * 0.7, -7.6], [hx + dx * 0.55, -4.1], [fx, fy - 0.5]], { w: 2.4, c: back ? TONE[2] : TONE[1], a: 0.96, ta: 0, tb: 0.1, dry: 0.3, steps: 4 }, r);
-      dab(ctx, fx + 0.9, fy + 0.1, 0.95, TONE[0], 0.95, r);
-    }
-    // robe: a pale wash given its form by a few bold, dry strokes
-    const robe = [[-3.4, -21.2 - br], [0.2, -21.8 - br], [3.4, -21.0 - br], [4.8, -17], [5.4, -11.6], [6.6 + s * 0.4, -5.6], [2.2, -4.6], [-2.2, -4.9], [-6.9 - s * 0.4, -5.4], [-5.9, -11.4], [-5.1, -17.2]];
-    wash(ctx, spline(jit(robe, 0.12, r), true, 5), {
-      c: T[4], blobs: [{ x: 3.6, y: -9.5, rx: 3, ry: 5, c: T[3], a: 0.8, blur: 1.6 }, { x: -4.2, y: -8, rx: 2.4, ry: 3.5, c: T[3], a: 0.6, blur: 1.4 }, { x: -1, y: -15, rx: 2.5, ry: 2.5, c: PAPER_HI, a: 0.4, blur: 1.4 }],
-      rim: 0.7, edge: T[3], rimA: 0.5, gran: 0.6, bleed: 0.7, bleedA: 0.25,
+  /* ---------- main character: a wandering calligrapher – wide straw hat, giant brush on the back, vermilion sash ---------- */
+  function drawSage(ctx, P, q) {
+    const by = P.by, br = P.breath, lean = P.lean, arm = P.arm, hem = P.hem, L = P.legs;
+    // the upper body pivots around the hips: lean, breathing and the body drop of the walk
+    const upper = (fn) => { ctx.save(); ctx.translate(0, -5 + by); ctx.rotate(lean); ctx.translate(0, 5 - br); fn(); ctx.restore(); };
+    // giant brush strapped across the back, bristles above the shoulder; it lags behind the body (follow-through)
+    upper(() => {
+      const r = q(1);
+      ctx.save(); ctx.translate(0.5, -15); ctx.rotate(P.brush); ctx.translate(-0.5, 15);
+      brush(ctx, [[5.0, -7.5], [0.2, -18.5], [-4.4, -30.4]], { w: 1.2, c: TONE[2], c2: TONE[3], a: 0.96, ta: 0, tb: 0, wv: 0.03, steps: 3 }, r);
+      for (const t of [0.2, 0.52, 0.82]) { const x = 5.0 - t * 9.4, y = -7.5 - t * 22.9; brush(ctx, [[x - 0.75, y - 0.3], [x + 0.75, y + 0.25]], { w: 0.5, c: TONE[0], ta: 0.2, tb: 0.3 }, r); }
+      brush(ctx, [[-4.2, -30.0], [-5.1, -32.0]], { w: 1.8, c: TONE[1], ta: 0, tb: 0 }, r);
+      brush(ctx, [[-4.9, -31.6], [-5.9, -34.6], [-7.3, -38.0]], { w: 2.8, c: TONE[0], c2: TONE[2], a: 1, ta: 0, tb: 0.8, tp: 0.75, press: 0.35, dry: 0.35, bleed: 0.35 }, r);
+      ctx.restore();
     });
-    brush(ctx, [[-3.2, -21.4 - br], [-5.3, -16.4], [-6.1, -10.4], [-7.4 - s * 0.4, -5.0]], { w: 3.0, c: TONE[0], c2: TONE[3], a: 0.96, ta: 0.05, tb: 0.25, press: 0.6, dry: 0.6, steps: 6, wv: 0.18 }, r);
-    brush(ctx, [[3.6, -20.8 - br], [5.0, -16.0], [5.6, -10.8], [7.0 + s * 0.4, -5.5]], { w: 1.4, c: TONE[1], c2: TONE[3], a: 0.9, ta: 0.05, tb: 0.4, dry: 0.55, steps: 5 }, r);
-    brush(ctx, [[-7.0, -5.2], [-2.2, -4.3], [2.4, -4.6], [7.0, -5.5]], { w: 1.1, c: TONE[1], c2: TONE[3], a: 0.85, ta: 0.1, tb: 0.3, dry: 0.65, steps: 4 }, r);
-    brush(ctx, [[1.0, -11.4], [1.7, -8.2], [1.1, -5.0]], { w: 1.0, c: TONE[1], a: 0.85, ta: 0.15, tb: 0.5, dry: 0.5 }, r);
-    brush(ctx, [[-2.4, -10.8], [-3.0, -7.6], [-3.8, -5.2]], { w: 0.8, c: TONE[2], a: 0.8, ta: 0.15, tb: 0.5, dry: 0.5 }, r);
-    // collar: a dark V
-    brush(ctx, [[-2.4, -21.4 - br], [0.6, -17.0]], { w: 1.0, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.35, press: 0.4 }, r);
-    brush(ctx, [[0.8, -17.2], [3.2, -21.0 - br]], { w: 0.7, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.3 }, r);
-    // vermilion sash
-    brush(ctx, [[-5.8, -13.3], [0, -12.4], [5.7, -13.1]], { w: 2.1, c: VERM, c2: VERM_D, a: 0.98, ta: 0, tb: 0.04, press: 0.3, steps: 4 }, r);
-    dot(ctx, -1.9, -12.7, 0.95, VERM_D, 1, r, 0);
-    // front sleeve, swinging: one sweeping stroke over a pale wash
-    const sw = s * 1.1;
-    const SL = [[2.4, -20.4 - br], [5.2, -19.4], [7.4 + sw, -14.6], [7.8 + sw, -12.2], [5.0 + sw * 0.6, -12.6], [3.6, -16.4]];
-    wash(ctx, spline(jit(SL, 0.1, r), true, 4), { c: T[4], blobs: [{ x: 6, y: -14, rx: 2, ry: 2.5, c: T[3], a: 0.8, blur: 1 }], rim: 0.6, edge: T[3], gran: 0.5 });
-    brush(ctx, [[2.8, -20.6 - br], [5.8, -19.0], [7.6 + sw, -14.4], [8.1 + sw, -11.9]], { w: 2.2, c: TONE[0], c2: TONE[3], a: 0.95, ta: 0.05, tb: 0.35, press: 0.5, dry: 0.55, steps: 5 }, r);
-    brush(ctx, [[4.8 + sw * 0.6, -12.6], [8.0 + sw, -12.0]], { w: 0.8, c: TONE[1], ta: 0.1, tb: 0.2 }, r);
-    ctx.fillStyle = PAPER_HI; ctx.beginPath(); ctx.ellipse(7.2 + sw, -11.2, 1.0, 0.9, 0, 0, TAU); ctx.fill();
-    brush(ctx, arcPts(7.2 + sw, -11.2, 1.0, 0.9, -0.3, 2.6, 5), { w: 0.35, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.4 }, r);
-    // head: bare paper face in one contour, hair gathered into a topknot with a vermilion tie
-    const hx = 1.1, hy = -25 - br, R = 3.3;
-    ctx.fillStyle = PAPER_HI; ctx.beginPath(); ctx.ellipse(hx, hy, R, R * 1.08, 0, 0, TAU); ctx.fill();
-    brush(ctx, arcPts(hx, hy, R, R * 1.08, -0.6, 2.2, 6), { w: 0.6, c: TONE[1], a: 0.92, ta: 0.15, tb: 0.45 }, r);
-    const hair = [[hx - 0.6, hy - R - 0.3], [hx + 2.0, hy - R + 0.1], [hx + 3.1, hy - 1.9], [hx + 1.0, hy - 2.3], [hx - 0.9, hy - 0.9], [hx - 1.4, hy + 1.6], [hx - 1.1, hy + 3.0], [hx - 3.1, hy + 2.1], [hx - 3.7, hy - 0.9], [hx - 2.8, hy - 3.0]];
-    wash(ctx, spline(jit(hair, 0.08, r), true, 4), { c: T[0], blobs: [{ x: hx - 1.2, y: hy - 2.3, rx: 1.4, ry: 0.9, c: T[2], a: 0.5, blur: 0.6 }], gran: 0.3, bleed: 0.45, bleedA: 0.35 });
-    dot(ctx, hx - 0.6, hy - R - 1.5, 1.45, TONE[0], 1, r, 0);
-    brush(ctx, [[hx - 1.9, hy - R - 0.4], [hx - 0.6, hy - R], [hx + 0.7, hy - R - 0.6]], { w: 0.75, c: VERM, a: 1, ta: 0, tb: 0.1 }, r);
-    brush(ctx, [[hx - 1.8, hy - R - 0.3], [hx - 3.8, hy - R + 0.9 + wave * 0.4], [hx - 5.6, hy - R + 1.8 - wave * 0.5]], { w: 0.65, c: VERM, a: 0.95, ta: 0, tb: 0.6 }, r);
-    brush(ctx, [[hx + 1.4, hy - 0.1], [hx + 2.4, hy - 0.3]], { w: 0.6, c: TONE[0], ta: 0.1, tb: 0.4, press: 0.5 }, r);
-    brush(ctx, [[hx + 0.9, hy - 1.4], [hx + 2.1, hy - 1.8], [hx + 2.8, hy - 1.6]], { w: 0.45, c: TONE[0], ta: 0.1, tb: 0.5 }, r);
-    brush(ctx, [[hx + R - 0.15, hy + 0.4], [hx + R + 0.3, hy + 1.1], [hx + R - 0.1, hy + 1.4]], { w: 0.35, c: TONE[1], ta: 0.1, tb: 0.3 }, r);
+    // legs: far leg paler (depth by value), straw sandals as pressed dabs
+    const leg = (hx, fx, lift, near, r) => {
+      const fy = -0.5 - lift, ky = -3.4 - lift * 0.6 + by * 0.5;
+      brush(ctx, [[hx, -7 + by], [(hx + fx) * 0.5 + (near ? 0.3 : -0.3), ky], [fx, fy - 0.4]], { w: near ? 2.3 : 2.0, c: near ? TONE[1] : TONE[2], a: 0.96, ta: 0, tb: 0.1, dry: 0.25, steps: 4 }, r);
+      dab(ctx, fx + 0.9, fy + 0.1, 0.95, near ? TONE[0] : TONE[1], 0.95, r);
+    };
+    leg(-1.3, L.bx, L.bl, false, q(2));
+    leg(1.3, L.ax, L.al, true, q(3));
+    upper(() => {
+      // robe: a pale wash, its form given by one bold dry stroke on the back and a lighter one in front
+      const r = q(4), h = hem;
+      const robe = [[-3.6, -20.6], [0.2, -21.3], [3.4, -20.4], [4.8, -16.5], [5.3, -11.4], [6.5 + h * 0.7, -4.6], [2.3 + h * 0.4, -3.9], [-2.2 + h * 0.5, -4.2], [-6.9 + h, -4.9], [-5.9 + h * 0.3, -11.2], [-5.0, -16.8]];
+      wash(ctx, spline(jit(robe, 0.1, r), true, 5), {
+        c: T[4], blobs: [{ x: 3.8, y: -9.5, rx: 3, ry: 5, c: T[3], a: 0.85, blur: 1.6 }, { x: -4.4 + h * 0.5, y: -8, rx: 2.4, ry: 3.5, c: T[3], a: 0.55, blur: 1.4 }, { x: -1.2, y: -17, rx: 2.6, ry: 2.4, c: PAPER_HI, a: 0.5, blur: 1.4 }],
+        rim: 0.7, edge: T[3], rimA: 0.5, gran: 0.6, bleed: 0.7, bleedA: 0.25,
+      });
+      brush(ctx, [[-3.4, -21], [-5.4, -16.4], [-6.1 + h * 0.3, -10.4], [-7.4 + h, -4.8]], { w: 3.0, c: TONE[0], c2: TONE[3], a: 0.96, ta: 0.05, tb: 0.25, press: 0.6, dry: 0.6, steps: 6, wv: 0.18 }, r);
+      brush(ctx, [[3.6, -20.6], [5.0, -16.0], [5.6, -10.8], [7.0 + h * 0.7, -5.0]], { w: 1.4, c: TONE[1], c2: TONE[3], a: 0.9, ta: 0.05, tb: 0.4, dry: 0.55, steps: 5 }, r);
+      brush(ctx, [[-7.0 + h, -5.0], [-2.2 + h * 0.5, -4.1], [2.4 + h * 0.4, -4.3], [7.0 + h * 0.7, -5.2]], { w: 1.05, c: TONE[1], c2: TONE[3], a: 0.85, ta: 0.1, tb: 0.3, dry: 0.65, steps: 4 }, r);
+      brush(ctx, [[1.0, -11.4], [1.6 + h * 0.2, -8.2], [1.2 + h * 0.4, -5.0]], { w: 0.95, c: TONE[1], a: 0.8, ta: 0.15, tb: 0.5, dry: 0.5 }, r);
+      brush(ctx, [[-2.4, -10.8], [-3.0 + h * 0.3, -7.6], [-3.8 + h * 0.6, -5.2]], { w: 0.75, c: TONE[2], a: 0.75, ta: 0.15, tb: 0.5, dry: 0.5 }, r);
+      brush(ctx, [[-2.2, -21.0], [0.8, -16.8]], { w: 1.0, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.35, press: 0.4 }, r);
+      brush(ctx, [[1.0, -17.0], [3.2, -20.6]], { w: 0.7, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.3 }, r);
+      // vermilion sash, knotted at the back – the two tails are painted live (secondary motion)
+      brush(ctx, [[-5.6, -13.2], [0, -12.3], [5.5, -13.0]], { w: 2.1, c: VERM, c2: VERM_D, a: 0.98, ta: 0, tb: 0.04, press: 0.3, steps: 4 }, r);
+      dot(ctx, -5.2, -12.9, 1.15, VERM_D, 1, r, 0);
+      // near sleeve, swinging against the near leg
+      const a = arm, r2 = q(5);
+      const SL = [[2.4, -20.2], [5.2, -19.2], [7.2 + a, -14.6], [7.7 + a, -12.0], [4.9 + a * 0.6, -12.4], [3.5, -16.2]];
+      wash(ctx, spline(jit(SL, 0.08, r2), true, 4), { c: T[4], blobs: [{ x: 6 + a * 0.6, y: -14, rx: 2, ry: 2.5, c: T[3], a: 0.8, blur: 1 }], rim: 0.6, edge: T[3], gran: 0.5 });
+      brush(ctx, [[2.8, -20.4], [5.8, -18.8], [7.5 + a, -14.4], [8.0 + a, -11.8]], { w: 2.2, c: TONE[0], c2: TONE[3], a: 0.95, ta: 0.05, tb: 0.35, press: 0.5, dry: 0.55, steps: 5 }, r2);
+      brush(ctx, [[4.8 + a * 0.6, -12.4], [7.9 + a, -11.9]], { w: 0.8, c: TONE[1], ta: 0.1, tb: 0.2 }, r2);
+      ctx.fillStyle = PAPER_HI; ctx.beginPath(); ctx.ellipse(7.1 + a, -11.0, 1.0, 0.9, 0, 0, TAU); ctx.fill();
+      brush(ctx, arcPts(7.1 + a, -11.0, 1.0, 0.9, -0.3, 2.6, 5), { w: 0.35, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.4 }, r2);
+      // head under a wide sedge hat: bare-paper face, one eye stroke
+      const r3 = q(6);
+      ctx.save(); ctx.translate(1.0, -24.5); ctx.rotate(P.tilt); ctx.translate(-1.0, 24.5);
+      // head in three-quarter profile: a knot of hair at the nape, a bare-paper face shaded by the brim,
+      // one stroke for brow-nose-chin, a dash for the eye, a small ear
+      const back = P.eye === 2;
+      wash(ctx, spline([[-2.4, -24.3], [-0.2, -24.4], [0.2, -22.6], [-0.6, -21.4], [-2.0, -21.6], [-2.8, -22.8]], true, 3), { c: T[0], blobs: [{ x: -1.6, y: -23.6, rx: 0.9, ry: 0.5, c: T[2], a: 0.5, blur: 0.4 }], gran: 0.3, bleed: 0.35, bleedA: 0.3 });
+      const face = back ? [[2.2, -24.3], [2.0, -23.0], [1.2, -21.2], [-0.4, -21.1], [-1.2, -22.4], [-1.4, -24.3]] : [[-0.4, -24.3], [3.7, -24.3], [4.1, -23.2], [3.7, -22.6], [3.1, -21.4], [1.0, -20.9], [-0.1, -22.2]];
+      trace(ctx, spline(face, true, 3)); ctx.fillStyle = PAPER_HI; ctx.fill();
+      ctx.fillStyle = T[4]; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.ellipse(1.6, -24.2, 2.6, 0.75, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+      brush(ctx, back ? [[2.1, -24.0], [1.9, -22.8], [1.1, -21.3]] : [[3.6, -24.1], [4.1, -23.2], [3.6, -22.6], [3.2, -21.6], [2.4, -21.0]], { w: 0.48, c: TONE[1], a: 0.92, ta: 0.15, tb: 0.45, steps: 3 }, r3);
+      brush(ctx, arcPts(back ? 0.9 : 0.4, -22.7, 0.55, 0.65, -1.4, 1.6, 4), { w: 0.36, c: TONE[1], a: 0.85, ta: 0.1, tb: 0.4 }, r3);
+      if (P.eye === 1) brush(ctx, [[2.1, -23.3], [2.65, -23.05], [3.2, -23.3]], { w: 0.4, c: TONE[0], ta: 0.2, tb: 0.4 }, r3);
+      else { const ex = back ? 1.0 : 2.4; brush(ctx, [[ex, -23.45], [ex + 0.8, -23.35]], { w: 0.66, c: TONE[0], ta: 0.1, tb: 0.4, press: 0.5 }, r3); }
+      const hat = [[-8.8, -25.4], [-4.2, -27.9], [0.1, -30.3], [1.3, -30.4], [5.4, -28.0], [9.6, -24.9], [4.4, -24.2], [-2.8, -24.5]];
+      wash(ctx, spline(jit(hat, 0.08, r3), true, 4), {
+        c: T[3], blobs: [{ x: 4.5, y: -25.8, rx: 4.2, ry: 1.6, c: T[2], a: 0.8, blur: 1.2 }, { x: -2.8, y: -27.6, rx: 2.8, ry: 1.2, c: PAPER_HI, a: 0.55, blur: 1.0 }],
+        rim: 0.6, edge: T[2], rimA: 0.6, gran: 0.7,
+      });
+      brush(ctx, [[0.6, -29.8], [-3.4, -25.4]], { w: 0.4, c: TONE[2], a: 0.7, ta: 0.2, tb: 0.5 }, r3);
+      brush(ctx, [[0.9, -29.8], [4.6, -25.0]], { w: 0.4, c: TONE[2], a: 0.7, ta: 0.2, tb: 0.5 }, r3);
+      brush(ctx, [[-8.6, -25.5], [-4.4, -28.0], [0.4, -30.4]], { w: 1.1, c: TONE[1], a: 0.92, ta: 0.05, tb: 0.3, press: 0.4, dry: 0.3, steps: 4 }, r3);
+      brush(ctx, [[1.4, -30.3], [5.4, -27.9], [9.4, -25.0]], { w: 0.8, c: TONE[2], a: 0.85, ta: 0.1, tb: 0.35, dry: 0.5, steps: 4 }, r3);
+      // the brim: one confident stroke, pressed at the back, running dry at the front
+      brush(ctx, [[-9.2, -25.2], [-3, -24.4], [3.6, -24.2], [9.9, -24.9]], { w: 1.5, c: TONE[0], c2: TONE[2], a: 0.98, ta: 0.02, tb: 0.3, press: 0.7, dry: 0.45, steps: 5 }, r3);
+      dot(ctx, 0.75, -30.7, 0.55, TONE[0], 1, r3, 0);
+      ctx.restore();
+    });
+  }
+  /** where the sash knot sits in a pose (the live sash tails start there) */
+  function sageKnot(P) {
+    const k = rot2(-5.2, -7.9 - P.breath, P.lean);
+    return [k[0], k[1] - 5 + P.by];
+  }
+  function sagePoses() {
+    const base = { by: 0, breath: 0, lean: 0, arm: 0, hem: 0, brush: 0, tilt: 0, eye: 0, legs: { ax: 1.6, al: 0, bx: -1.5, bl: 0 } };
+    const P = (o) => Object.assign({}, base, o);
+    // idle: neutral, inhale (held), blink, a look back over the shoulder
+    const idle = [P({}), P({ breath: 0.42, brush: -0.02, arm: 0.15, tilt: -0.015 }), P({ eye: 1 }), P({ eye: 2, tilt: -0.06, lean: -0.025, arm: -0.2 })];
+    // walk: 8 drawn poses – contact, down, passing, up for each foot; arms counter-swing, hem trails, brush and hat lag
+    const BY = [0, 0.75, 0.25, -0.55, 0, 0.75, 0.25, -0.55];
+    const walk = [];
+    for (let i = 0; i < 8; i++) {
+      const p = i / 8, c = Math.cos(p * TAU), s = Math.sin(p * TAU);
+      walk.push(P({
+        by: BY[i], lean: 0.06, arm: -1.5 * c, hem: -0.7 + 0.35 * c, brush: 0.05 * Math.sin(p * 2 * TAU - 1.0), tilt: 0.035 * Math.sin(p * 2 * TAU - 0.6),
+        legs: { ax: 3.0 * c + 0.3, al: Math.max(0, -s) * 1.7, bx: -3.0 * c - 0.2, bl: Math.max(0, s) * 1.7 },
+      }));
+    }
+    // dash: a crouched wind-up, then the lunge; hurt: a recoil with the eyes squeezed shut
+    const dash = [P({ by: 1.3, lean: 0.12, arm: -1.2, hem: -0.4, tilt: 0.06, legs: { ax: 1.8, al: 0, bx: -2.6, bl: 0 } }),
+      P({ by: 0.6, lean: 0.34, arm: -3.0, hem: -2.4, brush: -0.12, tilt: -0.12, legs: { ax: 5.4, al: 0.9, bx: -5.0, bl: 0.2 } })];
+    const hurt = [P({ by: 0.3, lean: -0.24, arm: 1.8, hem: 1.1, brush: 0.16, tilt: -0.2, eye: 1, legs: { ax: 2.4, al: 0, bx: -1.1, bl: 0.5 } })];
+    return { idle, walk, dash, hurt };
   }
 
-  /* ---------- small creature: an ink blot with legs and two bare-paper eyes ---------- */
-  function drawBlot(ctx, pose, r, v) {
-    const s = Math.sin(pose.ph), c = Math.cos(pose.ph);
-    const sq = 1 + c * 0.06, by = -7.2 - Math.abs(s) * 0.7;
-    for (let i = 0; i < 4; i++) {
-      const lx = -4.2 + i * 2.8, ph = i % 2 ? s : -s;
-      brush(ctx, [[lx * 0.8, by + 4], [lx + ph * 1.3, -0.4 - Math.max(0, ph) * 0.9]], { w: 1.1, c: TONE[0], a: 0.95, ta: 0, tb: 0.45, press: 0.3 }, r);
+  /* ---------- small creature A: a crow – wet black body, dry-brush wing, a sharp beak; it hops ---------- */
+  function drawCrow(ctx, P, q) {
+    const Lf = P.lift, sx = P.sx, sy = P.sy, wg = P.wing, tl = P.tail;
+    const tp = (x, y) => [x * sx, (y + 6.5) * sy - 6.5 - Lf];
+    const r0 = q(1);
+    const hips = [tp(0.4, -4.6), tp(2.0, -4.4)];
+    for (let i = 0; i < 2; i++) {
+      const h = hips[i], f = P.feet[i], k = [(h[0] + f[0]) / 2 + 0.9, (h[1] + f[1]) / 2 - 0.2];
+      brush(ctx, [h, k, f], { w: 0.6, c: TONE[0], a: 0.95, ta: 0, tb: 0.1, steps: 3 }, r0);
+      brush(ctx, [f, [f[0] + 1.6, f[1] + 0.1]], { w: 0.42, c: TONE[0], ta: 0, tb: 0.6 }, r0);
+      brush(ctx, [f, [f[0] + 1.1, f[1] + 0.6]], { w: 0.36, c: TONE[0], ta: 0, tb: 0.6 }, r0);
+      brush(ctx, [f, [f[0] - 0.9, f[1] + 0.2]], { w: 0.36, c: TONE[0], ta: 0, tb: 0.6 }, r0);
     }
-    if (v) brush(ctx, [[-6.2, by + 1], [-9.6, by - 1.5 + s * 0.6], [-10.2, by - 5], [-8.2, by - 6.2 + c * 0.5]], { w: 1.4, c: TONE[1], a: 0.95, ta: 0, tb: 0.7, dry: 0.4, steps: 5 }, r);
-    const P = spline(blobPts(0, by, 7.6 * sq, 6.3 / sq, 0.1, r, 14), true, 4);
-    wash(ctx, P, {
-      c: v ? T[2] : T[0],
-      blobs: v
-        ? [{ x: -2, y: by - 2, rx: 3, ry: 2.5, c: T[1], a: 0.85, blur: 1.4 }, { x: 3, y: by + 2.5, rx: 3, ry: 2, c: T[3], a: 0.6, blur: 1.4 }]
-        : [{ x: 2.5, y: by + 2.4, rx: 3.6, ry: 2.2, c: T[2], a: 0.5, blur: 1.6 }, { x: -3, y: by - 2.5, rx: 2.5, ry: 2, c: T[1], a: 0.4, blur: 1.2 }],
-      rim: 1.0, edge: T[0], rimA: 0.75, rimBlur: 0.5, gran: 0.45, bleed: 1.1, bleedA: 0.4,
+    ctx.save(); ctx.translate(0, -Lf - 6.5); ctx.scale(sx, sy); ctx.translate(0, 6.5);
+    // wings: folded along the back, raised (upstroke) or swept down
+    const fold = [[2.6, -10.6], [-1.6, -10.0], [-6.6, -7.6]], up = [[2.0, -10.9], [-1.4, -15.4], [-4.0, -19.6]], dn = [[2.0, -10.4], [-1.6, -6.4], [-4.6, -2.6]];
+    const W = wg >= 0 ? fold.map((p, i) => lerp2(p, up[i], wg)) : fold.map((p, i) => lerp2(p, dn[i], -wg));
+    const wingStroke = (pts, tone, wd, r) => {
+      brush(ctx, pts, { w: wd, c: tone, c2: TONE[2], a: 0.97, ta: 0.08, tb: 0.35, press: 0.4, dry: 0.5, steps: 5, nb: 9 }, r);
+      const e = pts[2], m = pts[1], dx = e[0] - m[0], dy = e[1] - m[1], dl = hyp(dx, dy) || 1;
+      for (let k = 0; k < 3; k++) {
+        const a = Math.atan2(dy, dx) + (k - 1) * 0.32, s0 = lerp2(m, e, 0.55 + k * 0.15);
+        brush(ctx, [s0, [s0[0] + Math.cos(a) * 3.2, s0[1] + Math.sin(a) * 3.2]], { w: wd * 0.42, c: tone, a: 0.95, ta: 0.05, tb: 0.8 }, r);
+      }
+      void dl;
+    };
+    wingStroke(W.map((p) => [p[0] + 1.4, p[1] - 0.8]), TONE[2], 2.6, q(2));       // far wing, paler (hidden when folded)
+    const r1 = q(3);
+    for (const [ex, ey, w] of [[-11.2, -9.6, 1.5], [-11.9, -7.9, 1.35], [-10.9, -6.1, 1.2]]) {
+      brush(ctx, [[-5.6, -7.4], [(ex - 5.6) / 2 - 0.4, (ey - 7.4) / 2 + tl * 0.5], [ex, ey + tl]], { w, c: TONE[0], c2: TONE[2], a: 0.96, ta: 0.05, tb: 0.75, dry: 0.3, steps: 4 }, r1);
+    }
+    const body = [[6.4, -12.2], [4.8, -13.5], [2.6, -13.1], [0.8, -11.5], [-2.8, -10.7], [-5.6, -9.1], [-6.9, -7.4], [-5.4, -5.2], [-2.4, -3.8], [1.2, -3.6], [3.6, -5.0], [5.4, -7.6], [6.6, -10.2]];
+    wash(ctx, spline(jit(body, 0.1, r1), true, 4), {
+      c: T[1], blobs: [{ x: 4.2, y: -10.8, rx: 2.8, ry: 2.4, c: T[0], a: 0.95, blur: 0.8 }, { x: 2.8, y: -6.4, rx: 2.6, ry: 2.2, c: T[0], a: 0.7, blur: 1.2 }, { x: -1.8, y: -9.0, rx: 3.0, ry: 1.3, c: T[2], a: 0.55, blur: 1.2 }],
+      rim: 0.8, edge: T[0], rimA: 0.7, gran: 0.4, bleed: 0.9, bleedA: 0.4,
     });
-    for (let i = 0; i < 7; i++) {
-      const a = -Math.PI * (0.16 + (i / 6) * 0.68) + (r.next() - 0.5) * 0.15;
-      const x0 = Math.cos(a) * 6.4 * sq, y0 = by + Math.sin(a) * 5.2 / sq, L = 2 + r.next() * 2.3;
-      brush(ctx, [[x0, y0], [x0 + Math.cos(a) * L, y0 + Math.sin(a) * L]], { w: 1.05, c: TONE[0], a: 0.95, ta: 0, tb: 0.8, dry: 0.35 }, r);
-    }
-    for (let i = 0; i < 3; i++) { const a = -0.4 - r.next() * 2.4; dot(ctx, Math.cos(a) * 9.6, by + Math.sin(a) * 7.8, 0.35 + r.next() * 0.4, TONE[0], 0.85, r); }
-    eye(ctx, 3.5, by - 1.3, 1.8);
-    eye(ctx, -0.1, by - 1.6, 1.5);
+    wingStroke(W, TONE[0], 3.3, q(4));
+    // beak: two strokes with a hair of bare paper between them; a small sharp eye
+    const r2 = q(5);
+    brush(ctx, [[5.9, -12.1], [8.9, -11.3], [10.7, -10.6]], { w: 1.55, c: TONE[0], a: 1, ta: 0, tb: 0.8, press: 0.4, steps: 4 }, r2);
+    brush(ctx, [[6.2, -10.4], [8.4, -10.3], [9.6, -10.5]], { w: 0.9, c: TONE[0], a: 1, ta: 0, tb: 0.7, steps: 3 }, r2);
+    ctx.fillStyle = PAPER_HI; ctx.beginPath(); ctx.arc(5.3, -11.7, 0.72, 0, TAU); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(5.55, -11.65, 0.4, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  function crowPoses() {
+    const P = (o) => Object.assign({ lift: 0, sx: 1, sy: 1, wing: 0, tail: 0, feet: [[0.4, 0], [2.6, 0]] }, o);
+    return [
+      P({ sx: 1.08, sy: 0.86, tail: -1.4, feet: [[0.8, 0], [3.0, 0]] }),                  // crouch: anticipation
+      P({ lift: 2.2, sx: 0.94, sy: 1.1, wing: 0.45, tail: -0.4, feet: [[-1.2, -0.2], [0.2, -0.1]] }), // push off, stretched
+      P({ lift: 5.0, wing: 1, tail: 0.3, feet: [[-0.6, -5.4], [0.8, -5.2]] }),             // rise, wings up
+      P({ lift: 4.4, wing: -1, tail: 0.5, feet: [[1.6, -3.8], [3.0, -3.6]] }),             // downstroke
+      P({ lift: 0.8, sx: 1.02, sy: 0.97, wing: 0.35, tail: -1.3, feet: [[2.8, 0], [4.2, 0]] }),  // land, tail up for balance
+      P({ sx: 1.04, sy: 0.94, wing: 0.05, tail: -0.5, feet: [[0.6, 0], [2.8, 0]] }),       // settle
+    ];
   }
 
-  /* ---------- fast creature: a wisp of pale ink smoke ---------- */
-  function drawWisp(ctx, pose, r) {
-    const s = Math.sin(pose.ph), c = Math.cos(pose.ph);
-    const hx = 0.6, hy = -16;
-    brush(ctx, [[hx - 0.5, hy + 3], [hx - 2.6 + s * 0.8, hy + 7.5], [hx - 4.7 + c * 0.9, hy + 11], [hx - 3.0 + s, hy + 14.2], [hx + 0.2, hy + 13.4], [hx - 0.7 + c * 0.4, hy + 11.6]], { w: 3.6, c: TONE[3], c2: TONE[4], a: 0.88, ta: 0, tb: 0.85, dry: 0.45, steps: 6, bleed: 0.8 }, r);
-    const head = [];
-    for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; head.push([hx + Math.cos(a) * 5.2, hy + Math.sin(a) * 4.9]); }
-    head[3] = [hx + 0.8, hy + 6.6]; head[4] = [hx - 2.8, hy + 7.6];
-    wash(ctx, spline(jit(head, 0.25, r), true, 4), {
-      c: T[4], blobs: [{ x: hx + 1.6, y: hy - 1.6, rx: 3, ry: 2.6, c: PAPER_HI, a: 0.65, blur: 1.4 }, { x: hx - 2, y: hy + 4, rx: 3, ry: 2.4, c: T[3], a: 0.75, blur: 1.4 }],
-      rim: 1.0, edge: T[2], rimA: 0.65, gran: 0.5, feather: 0.45, bleed: 1.2, bleedA: 0.3,
+  /* ---------- small creature B: a crab – a few wet dabs for the shell, jointed dry strokes for legs ---------- */
+  function drawCrab(ctx, P, q) {
+    const sw = Math.sin(P.ph * TAU), cw = Math.cos(P.ph * TAU);
+    const bx = sw * 0.55, cy = -5.6 - Math.abs(cw) * 0.4;
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 4; i++) {
+        const r = q(10 + i + (side > 0 ? 4 : 0));
+        const setA = (i + (side > 0 ? 1 : 0)) % 2 === 0, lift = Math.max(0, setA ? sw : -sw) * 1.5;
+        const ax = bx + side * (4.4 + i * 0.35), ay = cy + 0.9 - i * 0.55;
+        const kx = bx + side * (7.2 + i * 0.9), ky = cy - 2.6 + i * 0.35 - lift * 0.6;
+        const fx = bx * 0.4 + side * (8.8 + i * 1.55), fy = 0.6 - i * 0.6 - lift;
+        brush(ctx, [[ax, ay], [kx, ky]], { w: 1.25 - i * 0.08, c: TONE[1], a: 0.96, ta: 0.05, tb: 0.25, press: 0.25 }, r);
+        brush(ctx, [[kx + side * 0.25, ky + 0.15], [(kx + fx) / 2 + side * 0.5, (ky + fy) / 2 - 0.3], [fx, fy]], { w: 0.95 - i * 0.06, c: TONE[0], a: 0.96, ta: 0, tb: 0.8, steps: 3 }, r);
+      }
+    }
+    // claws, raised in turn
+    for (let side = -1; side <= 1; side += 2) {
+      const r = q(20 + side), up = Math.max(0, sw * side) * 1.1;
+      const s0 = [bx + side * 3.0, cy - 2.4], el = [bx + side * 5.8, cy - 4.8 - up * 0.5], pb = [bx + side * 6.5, cy - 7.2 - up];
+      brush(ctx, [s0, el, pb], { w: 1.15, c: TONE[1], a: 0.96, ta: 0.05, tb: 0.15, press: 0.3, steps: 3 }, r);
+      wash(ctx, spline(blobPts(pb[0] + side * 0.3, pb[1] - 1.2, 1.9, 1.35, 0.12, r, 8, side * 0.5), true, 3), { c: T[0], blobs: [{ x: pb[0] + side * 0.7, y: pb[1] - 1.4, rx: 0.9, ry: 0.6, c: T[2], a: 0.6, blur: 0.4 }], gran: 0.3, bleed: 0.4, bleedA: 0.35 });
+      brush(ctx, [[pb[0] - side * 0.3, pb[1] - 2.2], [pb[0] - side * 1.0, pb[1] - 3.6], [pb[0] - side * 1.9, pb[1] - 4.3]], { w: 0.95, c: TONE[0], ta: 0, tb: 0.8 }, r);
+      brush(ctx, [[pb[0] + side * 1.0, pb[1] - 2.3], [pb[0] + side * 0.4, pb[1] - 3.9], [pb[0] - side * 0.6, pb[1] - 4.9]], { w: 0.8, c: TONE[0], ta: 0, tb: 0.85 }, r);
+    }
+    // the shell: three wet dabs merging, dark front edge, two dots of texture, eyes on stalks
+    const r = q(30);
+    wash(ctx, spline(blobPts(bx, cy, 6.4, 3.7, 0.08, r, 14), true, 4), {
+      c: T[1], blobs: [{ x: bx - 2.1, y: cy - 0.6, rx: 2.7, ry: 1.9, c: T[0], a: 0.85, blur: 1.0 }, { x: bx + 2.7, y: cy + 0.5, rx: 2.3, ry: 1.6, c: T[2], a: 0.65, blur: 1.2 }, { x: bx + 0.4, y: cy - 2.2, rx: 3, ry: 0.9, c: T[3], a: 0.35, blur: 0.8 }],
+      rim: 0.9, edge: T[0], rimA: 0.7, gran: 0.5, bleed: 0.8, bleedA: 0.35,
     });
-    brush(ctx, [[hx - 3, hy + 2.2], [hx - 1, hy + 3.8], [hx + 2, hy + 3], [hx + 2.6, hy + 1]], { w: 0.6, c: TONE[2], a: 0.75, ta: 0.2, tb: 0.5 }, r);
-    brush(ctx, arcPts(hx, hy, 5.3, 5.0, -2.0, 1.1, 7), { w: 0.85, c: TONE[1], c2: TONE[2], a: 0.88, ta: 0.2, tb: 0.5, dry: 0.3 }, r);
-    brush(ctx, [[hx + 0.7, hy - 1.1], [hx + 1.9, hy - 0.5]], { w: 1.0, c: TONE[0], ta: 0.1, tb: 0.3, press: 0.5 }, r);
-    brush(ctx, [[hx + 3.0, hy - 0.5], [hx + 4.0, hy - 1.0]], { w: 0.9, c: TONE[0], ta: 0.1, tb: 0.3, press: 0.5 }, r);
-    dot(ctx, hx + 2.7, hy + 1.7, 0.5, TONE[1], 0.9, r, 0);
-    brush(ctx, [[hx - 2, hy - 5], [hx - 3.4, hy - 7.2 + s * 0.5], [hx - 2.2, hy - 8.8]], { w: 0.75, c: TONE[3], a: 0.7, ta: 0.1, tb: 0.6, dry: 0.4 }, r);
+    brush(ctx, [[bx - 5.4, cy - 1.6], [bx, cy - 3.7], [bx + 5.4, cy - 1.7]], { w: 0.95, c: TONE[0], a: 0.95, ta: 0.1, tb: 0.35, press: 0.4, dry: 0.3, steps: 4 }, r);
+    dot(ctx, bx - 1.5, cy - 0.2, 0.55, TONE[0], 0.9, r, 0.3);
+    dot(ctx, bx + 1.4, cy + 0.6, 0.45, TONE[0], 0.85, r, -0.3);
+    for (let side = -1; side <= 1; side += 2) {
+      brush(ctx, [[bx + side * 1.3, cy - 3.2], [bx + side * 1.8, cy - 5.1]], { w: 0.45, c: TONE[0], ta: 0, tb: 0.1 }, r);
+      dot(ctx, bx + side * 1.85, cy - 5.3, 0.55, TONE[0], 1, r, 0);
+    }
   }
 
-  /* ---------- large creature: a shaggy beast of splashed ink with horns ---------- */
-  function drawBeast(ctx, pose, r) {
-    const s = Math.sin(pose.ph), c = Math.cos(pose.ph);
-    const by = -18.5 - Math.abs(c) * 0.7;
-    for (const [lx, ph] of [[-9, s], [5, -s]]) brush(ctx, [[lx, by + 6], [lx + ph * 2.2 - 0.6, -5.2], [lx + ph * 3, -0.7]], { w: 4.6, c: TONE[2], a: 0.95, ta: 0, tb: 0.05, dry: 0.4, steps: 4 }, r);
-    brush(ctx, [[-13.5, by - 1], [-19.5, by - 6 + s], [-21.5, by - 14], [-18, by - 18 + c]], { w: 3.9, c: TONE[0], c2: TONE[2], a: 0.95, ta: 0, tb: 0.75, press: 0.3, dry: 0.65, steps: 6 }, r);
-    wash(ctx, spline(blobPts(-1, by, 16.5, 12.3, 0.1, r, 16), true, 4), {
-      c: T[0], blobs: [{ x: -6, y: by + 4, rx: 6, ry: 4, c: T[2], a: 0.6, blur: 2.4 }, { x: 4, y: by - 6, rx: 5, ry: 3, c: T[1], a: 0.6, blur: 2 }, { x: -10, y: by - 4, rx: 3.5, ry: 2.5, c: T[3], a: 0.45, blur: 1.8 }],
-      rim: 1.5, edge: T[0], rimA: 0.7, gran: 0.5, bleed: 2.2, bleedA: 0.45,
+  /* ---------- fast creature: a pale ink carp that swims through the air, trailing mist ---------- */
+  function drawCarp(ctx, P, q) {
+    const ph = P.ph, N = 9, TH = [1.1, 2.7, 3.6, 3.9, 3.7, 3.1, 2.3, 1.5, 0.95];
+    ctx.save(); ctx.translate(0, -13.5); ctx.scale(1.14, 1.14); ctx.translate(0, 13.5);
+    const lift = 0.6 * Math.sin(ph * TAU + 0.6);
+    const S = [];
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1), amp = 0.25 + 1.9 * u * u;
+      S.push([9.5 - i * 2.15, -13.5 + lift + amp * Math.sin(ph * TAU - u * 2.6)]);
+    }
+    const NX = [], NY = [];
+    for (let i = 0; i < N; i++) {
+      const a = S[Math.max(0, i - 1)], b = S[Math.min(N - 1, i + 1)];
+      let tx = a[0] - b[0], ty = a[1] - b[1];
+      const l = hyp(tx, ty) || 1; tx /= l; ty /= l;
+      NX.push(ty); NY.push(-tx);
+    }
+    const up = S.map((p, i) => [p[0] + NX[i] * TH[i], p[1] + NY[i] * TH[i]]);
+    const dn = S.map((p, i) => [p[0] - NX[i] * TH[i] * 0.9, p[1] - NY[i] * TH[i] * 0.9]);
+    const tb = S[N - 1], ta = 0.5 * Math.sin(ph * TAU - 3.3), wv = Math.sin(ph * TAU - 3.9);
+    const at = (x, y) => { const v = rot2(x, y, ta); return [tb[0] + v[0], tb[1] + v[1]]; };
+    // mist trail: a broad pale dry stroke the fish leaves behind
+    brush(ctx, [at(0.5, 0), at(-5.5, wv * 0.8), at(-12, wv * 1.6)], { w: 5.2, c: TONE[4], a: 0.45, ta: 0, tb: 0.6, dry: 0.85, bleed: 0.7, steps: 5, nb: 10 }, q(1));
+    // tail fin: two lobes of dry brush around a pale wash
+    const r0 = q(2), U1 = at(-7.4, -5.4), D1 = at(-7.0, 5.0), M1 = at(-3.4, 0.3);
+    wash(ctx, spline([at(0.3, -0.9), U1, M1, D1, at(0.3, 0.9)], true, 3), { c: T[4], blobs: [{ x: M1[0] + 1, y: M1[1], rx: 2, ry: 2.6, c: T[3], a: 0.6, blur: 0.9 }], gran: 0.4, alpha: 0.9 });
+    brush(ctx, [at(0, -0.7), at(-3.4, -2.4 + wv * 0.4), U1], { w: 2.0, c: TONE[1], c2: TONE[3], a: 0.92, ta: 0.05, tb: 0.8, dry: 0.6, steps: 4, nb: 7 }, r0);
+    brush(ctx, [at(0, 0.7), at(-3.4, 2.3 + wv * 0.4), D1], { w: 1.8, c: TONE[2], c2: TONE[3], a: 0.9, ta: 0.05, tb: 0.8, dry: 0.6, steps: 4, nb: 7 }, r0);
+    // body: pale wash, darker wet back, bare-paper belly
+    const r1 = q(3);
+    wash(ctx, spline(up.concat(dn.slice().reverse()), true, 3), {
+      c: T[4], blobs: [{ x: S[3][0], y: up[3][1] + 1.1, rx: 6.5, ry: 1.6, c: T[3], a: 0.85, blur: 1.4 }, { x: S[1][0] - 0.5, y: up[1][1] + 1.0, rx: 2.4, ry: 1.4, c: T[2], a: 0.6, blur: 1 }, { x: S[4][0], y: dn[4][1] - 1.0, rx: 5, ry: 1.3, c: PAPER_HI, a: 0.6, blur: 1 }],
+      rim: 0.6, edge: T[3], rimA: 0.55, gran: 0.6, bleed: 0.8, bleedA: 0.3,
     });
-    // dry-brush fur along the back
-    for (let i = 0; i < 9; i++) {
-      const a = -Math.PI * (0.55 + (i / 8) * 0.42), x0 = -1 + Math.cos(a) * 15, y0 = by + Math.sin(a) * 11.4, L = 3 + r.next() * 3;
-      brush(ctx, [[x0, y0], [x0 + Math.cos(a - 0.4) * L, y0 + Math.sin(a - 0.4) * L]], { w: 1.8, c: TONE[0], a: 0.9, ta: 0, tb: 0.8, dry: 0.55 }, r);
+    for (let i = 3; i <= 6; i++) brush(ctx, arcPts(S[i][0] + 0.2, (S[i][1] + up[i][1]) / 2 + 0.2, 1.05, 1.0, -0.6 * Math.PI, 0.6 * Math.PI, 4).map((p) => [p[0] - 0.9, p[1]]), { w: 0.34, c: TONE[3], a: 0.6, ta: 0.2, tb: 0.4, steps: 2 }, r1);
+    brush(ctx, up.slice(0, 8), { w: 1.1, c: TONE[1], c2: TONE[3], a: 0.92, ta: 0.1, tb: 0.5, dry: 0.5, steps: 3 }, r1);
+    brush(ctx, dn.slice(1, 6), { w: 0.6, c: TONE[2], a: 0.7, ta: 0.15, tb: 0.6, steps: 3 }, r1);
+    // dorsal fin, pectoral fin (flapping), gill arc, eye, mouth and two trailing barbels
+    const r2 = q(4);
+    brush(ctx, [up[2], [up[3][0] + NX[3] * 1.7 - 0.6, up[3][1] + NY[3] * 1.7], [up[5][0] + NX[5] * 1.2, up[5][1] + NY[5] * 1.2], up[6]], { w: 1.25, c: TONE[1], c2: TONE[2], a: 0.92, ta: 0.05, tb: 0.6, dry: 0.5, steps: 4, nb: 7 }, r2);
+    brush(ctx, [dn[5], [dn[6][0] - 1.0, dn[6][1] + 1.6 + wv * 0.5], [dn[7][0] - 2.6, dn[7][1] + 2.4 + wv]], { w: 1.1, c: TONE[2], c2: TONE[3], a: 0.85, ta: 0.05, tb: 0.75, dry: 0.5, steps: 3 }, r2);
+    const pf = rot2(-2.6, 1.9, 0.45 * Math.sin(ph * 2 * TAU));
+    brush(ctx, [dn[2], [dn[2][0] + pf[0] * 0.5, dn[2][1] + pf[1] * 0.5 + 0.2], [dn[2][0] + pf[0], dn[2][1] + pf[1]]], { w: 1.2, c: TONE[2], a: 0.88, ta: 0.05, tb: 0.7, dry: 0.4 }, r2);
+    brush(ctx, [[S[2][0] + 0.5, up[2][1] + 0.7], [S[2][0] - 0.5, S[2][1]], [S[2][0] + 0.2, dn[2][1] - 0.5]], { w: 0.85, c: TONE[1], a: 0.92, ta: 0.1, tb: 0.5, press: 0.4 }, r2);
+    ctx.fillStyle = PAPER_HI; ctx.beginPath(); ctx.arc(S[1][0] + 0.4, S[1][1] - 0.7, 0.85, 0, TAU); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(S[1][0] + 0.6, S[1][1] - 0.7, 0.46, 0, TAU); ctx.fill();
+    dot(ctx, S[0][0] + 0.5, S[0][1] + 0.3, 0.5, TONE[1], 0.9, r2, 0);
+    const bw = 0.7 * Math.sin(ph * TAU - 1.6);
+    for (const k of [0, 1]) brush(ctx, [[S[0][0], S[0][1] + 0.5 + k * 0.3], [S[0][0] - 1.3, S[0][1] + 1.7 + bw * 0.6 + k * 0.4], [S[0][0] - 3.1 - k * 0.5, S[0][1] + 2.6 + bw + k * 0.6]], { w: 0.3, c: TONE[1], a: 0.85, ta: 0, tb: 0.7, steps: 3 }, r2);
+    ctx.restore();
+  }
+
+  /* ---------- large creature: a tiger – pale body, a few bold pressed stripes, a fierce face, a swinging tail ---------- */
+  function drawTiger(ctx, P, q) {
+    const ph = P.ph;
+    const by = 0.55 * Math.cos(ph * 2 * TAU), hb = 0.65 * Math.cos(ph * 2 * TAU - 0.9), sway = 1.8 * Math.sin(ph * TAU - 1.3);
+    const legPos = (off) => { const a = (ph - off) * TAU; return { dx: 3.6 * Math.cos(a), lift: Math.max(0, -Math.sin(a)) * 2.3 }; };
+    const leg = (hx, hy, off, near, front, r) => {
+      const Lg = legPos(off), fx = hx + Lg.dx + (front ? 0.8 : -0.6), fy = -0.3 - Lg.lift;
+      const kx = (hx + fx) / 2 + (front ? -0.7 : 1.8), ky = (hy + by + fy) / 2 + 0.6 - Lg.lift * 0.3;
+      const top = [hx, hy + by], knee = [kx, ky], foot = [fx, fy - 1.1];
+      if (near) {
+        brush(ctx, [top, knee, foot], { w: 4.6, c: TONE[4], a: 1, ta: 0, tb: 0.04, steps: 4 }, r);
+        brush(ctx, [[hx + 2.0, hy + 1 + by], [kx + 1.8, ky], [fx + 1.8, fy - 1.3]], { w: 0.9, c: TONE[1], a: 0.92, ta: 0.05, tb: 0.3, dry: 0.4, steps: 4 }, r);
+        brush(ctx, [[hx - 2.0, hy + 2 + by], [kx - 1.8, ky + 0.4], [fx - 1.6, fy - 1.1]], { w: 0.8, c: TONE[2], a: 0.85, ta: 0.1, tb: 0.3, dry: 0.55, steps: 4 }, r);
+        for (const [a, b, t] of [[top, knee, 0.55], [knee, foot, 0.35]]) {
+          const m = lerp2(a, b, t);
+          brush(ctx, [[m[0] - 2.1, m[1] - 0.5], [m[0] - 0.2, m[1] + 0.2], [m[0] + 1.4, m[1] + 0.9]], { w: 1.35, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.75, press: 0.4 }, r);
+        }
+        ctx.fillStyle = T[4]; ctx.beginPath(); ctx.ellipse(fx + 0.9, fy - 0.8, 2.5, 1.3, 0, 0, TAU); ctx.fill();
+        brush(ctx, arcPts(fx + 0.9, fy - 0.8, 2.5, 1.3, -2.9, 0.2, 5), { w: 0.6, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.3 }, r);
+        for (let k = 0; k < 3; k++) brush(ctx, [[fx + 1.6 + k * 0.75, fy - 1.2], [fx + 2.1 + k * 0.8, fy - 0.1]], { w: 0.42, c: TONE[0], ta: 0, tb: 0.6 }, r);
+      } else {
+        brush(ctx, [top, knee, foot], { w: 4.0, c: TONE[3], a: 0.95, ta: 0, tb: 0.05, dry: 0.2, steps: 4 }, r);
+        const m = lerp2(top, knee, 0.6);
+        brush(ctx, [[m[0] - 1.8, m[1] - 0.4], [m[0] + 1.2, m[1] + 0.6]], { w: 1.1, c: TONE[2], a: 0.9, ta: 0.05, tb: 0.7 }, r);
+        dab(ctx, fx + 0.8, fy - 0.7, 1.7, TONE[2], 0.9, r);
+      }
+    };
+    leg(-14.5, -13, 0.5, false, false, q(1));
+    leg(5.2, -13, 0.75, false, true, q(2));
+    // tail: an S-curve that swings with a lag, ringed, with a dark tip
+    const rt = q(3);
+    const tail = [[-17.4, -18.2 + by], [-21.6, -15.6 + by + sway * 0.3], [-25.0, -18.2 + sway * 0.8], [-25.6, -23.6 + sway * 1.3], [-23.4, -27.0 + sway * 1.7]];
+    brush(ctx, tail, { w: 2.5, c: TONE[3], c2: TONE[2], a: 0.97, ta: 0, tb: 0.25, steps: 6 }, rt);
+    for (let k = 1; k < 4; k++) {
+      const a = tail[k], b = tail[k + 1], m = lerp2(a, b, 0.4), dx = b[0] - a[0], dy = b[1] - a[1], dl = hyp(dx, dy) || 1, nx = -dy / dl, ny = dx / dl;
+      brush(ctx, [[m[0] - nx * 1.5, m[1] - ny * 1.5], [m[0] + nx * 1.5, m[1] + ny * 1.5]], { w: 1.0, c: TONE[0], a: 0.95, ta: 0.1, tb: 0.4 }, rt);
     }
-    const hx = 10, hy = by - 6;
-    for (let i = 0; i < 16; i++) {
-      const a = -Math.PI * 0.95 + (i / 15) * Math.PI * 1.25 + (r.next() - 0.5) * 0.15, R0 = 6, L = 5 + r.next() * 5;
-      brush(ctx, [[hx + Math.cos(a) * R0 * 0.6, hy + Math.sin(a) * R0 * 0.6], [hx + Math.cos(a) * (R0 + L * 0.5), hy + Math.sin(a) * (R0 + L * 0.5) + 0.4], [hx + Math.cos(a + 0.2) * (R0 + L), hy + Math.sin(a + 0.2) * (R0 + L)]], { w: 2.4, c: TONE[0], c2: TONE[2], a: 0.95, ta: 0, tb: 0.8, dry: 0.6, steps: 3 }, r);
+    brush(ctx, [lerp2(tail[3], tail[4], 0.35), tail[4], [tail[4][0] + 1.2, tail[4][1] - 1.0]], { w: 2.1, c: TONE[0], a: 0.97, ta: 0, tb: 0.8, press: 0.2 }, rt);
+    // body: pale wash, darker wet back, bare-paper belly; bold back contour, a light broken belly line
+    const rb = q(4);
+    const B = [[-17.2, -19.2], [-13, -21.0], [-6, -19.9], [0, -19.4], [6, -21.4], [10.8, -21.6], [13.4, -17.4], [12.2, -12.6], [9, -10.2], [3, -10.0], [-3, -9.4], [-9, -10.0], [-14, -11.2], [-17.6, -14.4], [-18.3, -17.2]].map((p) => [p[0], p[1] + by]);
+    wash(ctx, spline(jit(B, 0.12, rb), true, 4), {
+      c: T[4], blobs: [{ x: -4, y: -18 + by, rx: 12, ry: 2.6, c: T[3], a: 0.8, blur: 2 }, { x: 6, y: -19.5 + by, rx: 5, ry: 2, c: T[3], a: 0.7, blur: 1.6 }, { x: -2, y: -11.6 + by, rx: 10, ry: 1.8, c: PAPER_HI, a: 0.65, blur: 1.8 }],
+      rim: 0.8, edge: T[3], rimA: 0.5, gran: 0.7, bleed: 1.0, bleedA: 0.25,
+    });
+    const back = [[-17.6, -18.6], [-13, -21.2], [-6, -20.2], [0, -19.7], [6, -21.8], [11, -21.9]].map((p) => [p[0], p[1] + by]);
+    brush(ctx, back, { w: 1.9, c: TONE[1], c2: TONE[3], a: 0.95, ta: 0.05, tb: 0.2, press: 0.4, dry: 0.5, steps: 6 }, rb);
+    brush(ctx, [[11.6, -12.6], [9, -10.0], [3, -9.8], [-3, -9.2], [-9, -9.8], [-14, -11.0]].map((p) => [p[0], p[1] + by]), { w: 0.9, c: TONE[2], a: 0.8, ta: 0.1, tb: 0.4, dry: 0.6, steps: 4 }, rb);
+    brush(ctx, [[-14, -11.2 + by], [-17.6, -14.4 + by], [-18.3, -17.4 + by]], { w: 1.1, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.4, dry: 0.5 }, rb);
+    // stripes: pressed at the spine, tapering down the flank, grouped on shoulder and haunch
+    const backY = (x) => {
+      for (let i = 0; i < back.length - 1; i++) if (x >= back[i][0] && x <= back[i + 1][0]) return back[i][1] + (back[i + 1][1] - back[i][1]) * (x - back[i][0]) / (back[i + 1][0] - back[i][0]);
+      return back[back.length - 1][1];
+    };
+    const rs = q(5);
+    // [x on the spine, length, width, curl, start below the spine, tone, fork]
+    for (const [x, len, w, cv, dy, tn, fork] of [[9.2, 4.2, 1.5, 0.4, 0.6, 1, 0], [6.8, 7.6, 2.1, -0.6, 0, 0, 0], [4.4, 4.8, 1.3, 0.5, 1.6, 1, 0], [0.8, 8.2, 1.9, 0.8, 0, 0, 1], [-1.6, 4.2, 1.1, -0.3, 2.2, 1, 0],
+      [-5.2, 8.8, 2.2, -0.9, 0, 0, 0], [-9.0, 6.4, 1.7, 1.1, 0.4, 0, 0], [-11.3, 8.4, 2.3, -0.5, 0, 0, 1], [-14.6, 5.6, 1.6, 0.7, 0.6, 1, 0], [-16.9, 3.2, 1.2, 0, 1.2, 0, 0]]) {
+      // stripes wrap the volume: on the shoulder they rake forward, mid-flank they hang, on the haunch they sweep back
+      const y = backY(x) + 0.3 + dy, ln = x > 3 ? 1.3 : x < -8 ? -3.0 : -1.2;
+      brush(ctx, [[x, y], [x + ln * 0.22 + cv, y + len * 0.38], [x + ln * 0.6 - cv * 0.6, y + len * 0.74], [x + ln, y + len]], { w, c: TONE[tn], a: 0.96, ta: 0.12, tb: 0.85, press: 0.3, dry: 0.25, steps: 4 }, rs);
+      if (fork) brush(ctx, [[x - 0.4 + cv, y + len * 0.34], [x + 0.7 + cv, y + len * 0.56], [x + 1.2, y + len * 0.8]], { w: w * 0.5, c: TONE[0], a: 0.92, ta: 0.1, tb: 0.8 }, rs);
     }
-    for (const [lx, ph] of [[-5, -s], [9.5, s]]) {
-      const fx = lx + ph * 3, fy = -0.6 - Math.max(0, ph) * 1.2;
-      brush(ctx, [[lx, by + 5], [lx + ph * 2.2 + 0.5, -5.5], [fx, fy]], { w: 5.2, c: TONE[0], c2: TONE[1], a: 0.97, ta: 0, tb: 0.05, dry: 0.35, steps: 4 }, r);
-      for (let k = 0; k < 3; k++) brush(ctx, [[fx + 1 + k * 1.1, fy - 0.6], [fx + 2 + k * 1.2, fy + 0.4]], { w: 0.6, c: TONE[1], ta: 0, tb: 0.6 }, r);
+    leg(-11.8, -12.5, 0, true, false, q(6));
+    leg(8.2, -13.5, 0.25, true, true, q(7));
+    // head (bobs a beat after the body): ruff, ears, brow stripes, fierce eyes, nose, whiskers
+    const rh = q(8), H = (x, y) => [x, y + hb];
+    ctx.save(); ctx.translate(0, hb);
+    wash(ctx, spline(blobPts(16.2, -21.6, 6.9, 6.1, 0.1, rh, 12), true, 4), {
+      c: T[4], blobs: [{ x: 15.5, y: -26.2, rx: 4.6, ry: 2, c: T[3], a: 0.75, blur: 1.4 }, { x: 20.8, y: -19.4, rx: 3, ry: 2.4, c: PAPER_HI, a: 0.75, blur: 1 }],
+      rim: 0.7, edge: T[3], rimA: 0.55, gran: 0.6,
+    });
+    for (const [x, y] of [[12.8, -27.4], [16.8, -28.6]]) {
+      ctx.fillStyle = T[4]; ctx.beginPath(); ctx.ellipse(x + 0.1, y - 0.1, 1.4, 1.2, 0, 0, TAU); ctx.fill();
+      brush(ctx, [[x - 1.5, y + 1.1], [x - 0.7, y - 1.0], [x + 0.9, y - 1.1], [x + 1.6, y + 0.8]], { w: 1.1, c: TONE[0], a: 0.95, ta: 0.1, tb: 0.4, press: 0.3, steps: 4 }, rh);
     }
-    wash(ctx, spline(blobPts(hx + 2.2, hy + 1, 6.2, 5.4, 0.1, r, 12), true, 4), { c: T[2], blobs: [{ x: hx + 3, y: hy - 1, rx: 3, ry: 2, c: T[3], a: 0.6, blur: 1 }], rim: 0.9, edge: T[0], rimA: 0.6, gran: 0.5 });
-    brush(ctx, [[hx - 1, hy - 4.4], [hx - 4, hy - 9], [hx - 8.5, hy - 10.6], [hx - 10.2, hy - 8.6]], { w: 2.2, c: TONE[3], c2: TONE[2], a: 0.98, ta: 0, tb: 0.75, press: 0.3, steps: 5 }, r);
-    brush(ctx, [[hx + 3, hy - 4.8], [hx + 1.6, hy - 10], [hx - 2, hy - 12.6], [hx - 3.8, hy - 11]], { w: 2.5, c: TONE[4], c2: TONE[3], a: 1, ta: 0, tb: 0.75, press: 0.3, steps: 5 }, r);
-    brush(ctx, [[hx + 3.6, hy - 4.6], [hx + 2.4, hy - 10.2], [hx - 1.6, hy - 13.2]], { w: 0.55, c: TONE[0], a: 0.9, ta: 0.1, tb: 0.6, steps: 4 }, r);
-    brush(ctx, [[hx + 0.4, hy - 2.7], [hx + 3, hy - 1.5], [hx + 5.8, hy - 2.5]], { w: 1.6, c: TONE[0], ta: 0.1, tb: 0.5, press: 0.6 }, r);
-    eye(ctx, hx + 4.8, hy - 0.4, 1.55, 0.45);
-    eye(ctx, hx + 1.5, hy - 0.2, 1.3, 0.45);
-    brush(ctx, [[hx + 1, hy + 3.4], [hx + 4, hy + 4.3], [hx + 7.6, hy + 3.2]], { w: 1.25, c: TONE[0], ta: 0.1, tb: 0.4 }, r);
-    for (const fx of [hx + 2.6, hx + 5.8]) {
-      ctx.beginPath(); ctx.moveTo(fx - 0.8, hy + 3.9); ctx.lineTo(fx, hy + 6.2); ctx.lineTo(fx + 0.8, hy + 3.9); ctx.closePath();
-      ctx.fillStyle = PAPER_HI; ctx.fill(); ctx.lineWidth = 0.25; ctx.strokeStyle = T[1]; ctx.stroke();
+    brush(ctx, [[12.0, -25.4], [15, -27.9], [19, -27.4], [22.2, -24.2]], { w: 1.1, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.4, dry: 0.4, steps: 4 }, rh);
+    for (const [x0, y0, x1, y1, w] of [[16.4, -26.9, 19.0, -26.6, 0.9], [16.0, -25.7, 18.6, -25.5, 0.8], [14.6, -24.0, 13.0, -22.3, 1.1], [15.2, -21.0, 13.4, -19.8, 1.0]]) {
+      brush(ctx, [[x0, y0], [x1, y1]], { w, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.7, press: 0.5 }, rh);
     }
-    dot(ctx, hx + 7.4, hy + 0.9, 0.75, TONE[0], 1, r, 0);
+    for (const [x0, y0, x1, y1] of [[13.2, -22.4, 10.4, -20.6], [13.6, -19.6, 11.0, -17.2], [14.8, -17.2, 13.0, -14.6]]) {
+      brush(ctx, [[x0, y0], [x1, y1]], { w: 1.2, c: TONE[1], a: 0.85, ta: 0.05, tb: 0.8, dry: 0.55 }, rh);
+    }
+    // eyes: bare-paper almonds under angled brows (the brows tilt down to the nose)
+    ctx.fillStyle = PAPER_HI;
+    ctx.beginPath(); ctx.ellipse(17.5, -22.6, 1.35, 0.78, -0.1, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(21.0, -22.7, 0.95, 0.62, -0.1, 0, TAU); ctx.fill();
+    ctx.fillStyle = INK;
+    ctx.beginPath(); ctx.arc(17.9, -22.6, 0.52, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(21.25, -22.7, 0.4, 0, TAU); ctx.fill();
+    brush(ctx, [[15.8, -24.2], [17.4, -23.7], [18.8, -23.2]], { w: 1.25, c: TONE[0], a: 0.98, ta: 0.05, tb: 0.6, press: 0.5 }, rh);
+    brush(ctx, [[19.9, -23.9], [21.7, -23.4]], { w: 0.95, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.6, press: 0.4 }, rh);
+    brush(ctx, [[19.4, -24.6], [21.5, -22.0], [22.7, -20.7]], { w: 0.7, c: TONE[1], a: 0.9, ta: 0.1, tb: 0.4 }, rh);
+    dot(ctx, 23.1, -20.5, 0.95, TONE[0], 1, rh, 0);
+    brush(ctx, [[22.6, -19.5], [21.0, -18.4], [18.8, -18.2]], { w: 0.85, c: TONE[0], a: 0.95, ta: 0.05, tb: 0.5, press: 0.3 }, rh);
+    brush(ctx, [[18.6, -17.4], [20.6, -16.4], [17.4, -15.2]], { w: 0.6, c: TONE[2], a: 0.8, ta: 0.1, tb: 0.4 }, rh);
+    for (const [x1, y1] of [[25.8, -20.9], [26.2, -19.3], [25.3, -17.8]]) brush(ctx, [[21.6, -19.5], [x1, y1]], { w: 0.26, c: TONE[1], a: 0.75, ta: 0, tb: 0.8 }, rh);
+    ctx.restore();
+    void H;
   }
 
   /* ---------- seals (hanko): vermilion with eroded edges and carved strokes ---------- */
@@ -1423,12 +1768,37 @@
     };
     FX.splash = [splash(2200, T[0]), splash(2201, T[0])];
     FX.splashR = [splash(2210, VERM_CSS)];
-    // ink-bleed ring: a pale disc with a darker ragged rim where the water stopped
-    {
-      const s = mkSprite(28, 28, 14, 14, 5), r = U.rng(2300);
-      wash(s.ctx, spline(blobPts(0, 0, 11.5, 11.5, 0.08, r, 18), true, 4), { c: 'rgba(170,164,152,0.34)', rim: 1.3, edge: T[1], rimA: 0.9, rimBlur: 0.5, gran: 0.5, feather: 0.4, alpha: 0.9 });
-      FX.ring = s;
-    }
+    // directional splatter (thrown along +x): a pressed blot, streaks and drops flung forward
+    FX.splatD = [0, 1].map((v) => {
+      const s = mkSprite(28, 18, 9, 9, 6), r = U.rng(2250 + v), t = s.ctx;
+      blot(s, r, 2.5, T[0], true);
+      for (let i = 0; i < 7; i++) {
+        const a = (r.next() - 0.5) * 1.2, d = 4 + r.next() * 11, rr = 0.25 + r.next() * 0.55;
+        brush(t, [[Math.cos(a) * 1.4, Math.sin(a) * 1.4], [Math.cos(a) * d * 0.55, Math.sin(a) * d * 0.55], [Math.cos(a) * d, Math.sin(a) * d]], { w: rr * 1.7, c: TONE[0], ta: 0, tb: 0.75, dry: 0.3 }, r);
+        t.fillStyle = T[0]; t.beginPath(); t.arc(Math.cos(a) * (d + 1.3), Math.sin(a) * (d + 1.3), rr * 0.9, 0, TAU); t.fill();
+      }
+      return s;
+    });
+    // a crow feather: one dry-brush stroke along a fine quill
+    FX.feather = [0, 1].map((v) => {
+      const s = mkSprite(11, 5, 5.5, 2.5, 10), r = U.rng(2260 + v);
+      brush(s.ctx, [[-4.4, 0.4], [0, -0.3 - v * 0.3], [4.4, 0.2]], { w: 1.7, c: TONE[0], c2: TONE[2], ta: 0.35, tb: 0.55, dry: 0.5, nb: 8 }, r);
+      brush(s.ctx, [[-4.9, 0.5], [3.8, 0.1]], { w: 0.22, c: TONE[1], ta: 0, tb: 0.3 }, r);
+      return s;
+    });
+    // ink-bleed bloom: the water spreads the ink into a pale, uneven stain; where it stopped it dried into a
+    // darker tide line, and two or three backruns (cauliflower lobes) pushed out of the edge. Two variants.
+    FX.ring = [0, 1].map((v) => {
+      const s = mkSprite(30, 30, 15, 15, 5), r = U.rng(2300 + v * 7);
+      const lobes = [];
+      for (let i = 0; i < 2 + v; i++) { const a = (i / (2 + v)) * TAU + r.next() * 1.6, d = 8.6 + r.next() * 1.8; lobes.push([Math.cos(a) * d, Math.sin(a) * d, 2.4 + r.next() * 1.6]); }
+      for (const [x, y, R] of lobes) wash(s.ctx, spline(blobPts(x, y, R, R * 0.85, 0.22, r, 10), true, 3), { c: 'rgba(176,170,158,0.22)', rim: 0.7, edge: T[2], rimA: 0.75, rimBlur: 0.35, gran: 0.6, feather: 0.25, alpha: 0.9 });
+      wash(s.ctx, spline(blobPts(0, 0, 10.4, 10, 0.16, r, 24, r.next() * TAU), true, 4), {
+        c: 'rgba(170,164,152,0.3)', blobs: [{ x: (r.next() - 0.5) * 4, y: (r.next() - 0.5) * 3, rx: 5.5, ry: 4.5, c: PAPER_HI, a: 0.55, blur: 2.2 }, { x: (r.next() - 0.5) * 6, y: (r.next() - 0.5) * 6, rx: 3, ry: 2.4, c: T[3], a: 0.35, blur: 1.6 }],
+        rim: 1.25, edge: T[1], rimA: 0.85, rimBlur: 0.45, gran: 0.6, feather: 0.35, alpha: 0.9,
+      });
+      return s;
+    });
     // ensō: the one-stroke circle (large for the glow-up, small for orbiting objects)
     const enso = (R, w, k, seed) => {
       const s = mkSprite(R * 2 + w * 2 + 2, R * 2 + w * 2 + 2, R + w + 1, R + w + 1, k), r = U.rng(seed);
@@ -1454,6 +1824,12 @@
       const s = mkSprite(32, 32, 16, 16, 4), r = U.rng(2700);
       wash(s.ctx, spline(blobPts(0, 0, 12, 12, 0.16, r, 16), true, 4), { c: T[2], blobs: [{ x: 0, y: 0, rx: 6, ry: 6, c: T[0], a: 0.8, blur: 3 }], rim: 1.6, edge: T[1], rimA: 0.6, gran: 0.6, feather: 1.4, bleed: 2, bleedA: 0.4 });
       FX.stain = s;
+    }
+    {
+      const s = mkSprite(24, 24, 12, 12, 5), r = U.rng(2650);
+      brush(s.ctx, arcPts(0, 0, 10, 10, -2.7, 0.3, 10), { w: 0.9, c: TONE[2], a: 0.9, ta: 0.3, tb: 0.4, steps: 3 }, r);
+      brush(s.ctx, arcPts(0, 0, 10, 10, 0.9, 2.8, 8), { w: 0.6, c: TONE[3], a: 0.8, ta: 0.3, tb: 0.4, steps: 3 }, r);
+      FX.ripple = s;
     }
     FX.shadow = radialSprite(64, [[0, 'rgba(58,54,48,0.34)'], [0.55, 'rgba(58,54,48,0.17)'], [1, 'rgba(58,54,48,0)']]);
     // collectibles: a bead of ink (small) and a vermilion seal (large)
@@ -1495,21 +1871,27 @@
      7. Build all sprites
      ====================================================================== */
   function frames(wu, hu, ax, ay, poses, fn, seed) {
-    return poses.map((pose) => { const s = mkSprite(wu, hu, ax, ay, KC); fn(s.ctx, pose, U.rng(seed)); return finish(s, { paper: 0.28 }); });
+    return poses.map((pose) => {
+      const s = mkSprite(wu, hu, ax, ay, KC);
+      fn(s.ctx, pose, (n) => U.rng(hsh(seed, n, 913)));
+      return finish(s, { paper: 0.28 });
+    });
   }
+  const seq = (n) => Array.from({ length: n }, (_, i) => ({ ph: i / n }));
   function buildCharacters() {
-    const idle = [{ ph: null, wave: 0.4, br: 0 }, { ph: null, wave: -0.35, br: 0.22 }];
-    const walk = [0, 1, 2, 3].map((p) => ({ ph: (p / 4) * TAU, wave: Math.sin(p * 1.6) }));
-    const sf = frames(28, 44, 14, 41.5, idle.concat(walk), drawSage, 5000);
-    SPR.sage = { idle: sf.slice(0, 2), walk: sf.slice(2) };
-    const poses4 = [0, 1, 2, 3].map((p) => ({ ph: (p / 4) * TAU }));
-    SPR.creeper = [0, 1].map((v) => frames(26, 23, 13, 20, poses4, (c, pose, r) => drawBlot(c, pose, r, v), 6000 + v * 100));
-    SPR.ghost = [frames(22, 30, 10.5, 27, poses4, drawWisp, 7000)];
-    SPR.colossus = [frames(58, 54, 31, 50, poses4, drawBeast, 8000)];
+    const SP = sagePoses();
+    const mkS = (list) => frames(40, 46, 20, 42.5, list, drawSage, 5000).map((s, i) => { s.knot = sageKnot(list[i]); return s; });
+    SPR.sage = { idle: mkS(SP.idle), walk: mkS(SP.walk), dash: mkS(SP.dash), hurt: mkS(SP.hurt) };
+    SPR.sage.after = paleOf(SPR.sage.dash[1]);
+    const crow = crowPoses();
+    SPR.creeper = [frames(30, 32, 14, 30, crow, drawCrow, 6000), frames(32, 23, 16, 20, seq(4), drawCrab, 6100)];
+    SPR.creeper[0].forEach((s, i) => { s.lift = crow[i].lift; });
+    SPR.ghost = [frames(42, 22, 28, 25, seq(6), drawCarp, 7000)];
+    SPR.colossus = [frames(56, 34, 28, 32, seq(8), drawTiger, 8000)];
     SPR.soft = {}; SPR.death = {};
     for (const type of ['creeper', 'ghost', 'colossus']) {
       SPR.soft[type] = SPR[type].map((set) => softOf(set[0], 5));
-      SPR.death[type] = SPR[type].map((set, i) => dissolveFrames(set[1], 4, 37 + i * 11 + type.length * 5));
+      SPR.death[type] = SPR[type].map((set, i) => dissolveFrames(set[type === 'creeper' && i === 0 ? 5 : 1], 5, 37 + i * 11 + type.length * 5));
     }
   }
 
@@ -1593,13 +1975,10 @@
     const r = U.rng(hsh(id.length * 31, id.charCodeAt(0), id.charCodeAt(id.length - 1)));
     switch (id) {
       case 'kills': {
-        const P = spline(blobPts(50, 58, 27, 22, 0.1, r, 14), true, 4);
-        wash(ctx, P, { c: T[0], blobs: [{ x: 58, y: 68, rx: 12, ry: 8, c: T[2], a: 0.5, blur: 5 }], rim: 3, edge: T[0], rimA: 0.7, gran: 0.4, bleed: 3, bleedA: 0.4 });
-        for (let i = 0; i < 7; i++) {
-          const a = -Math.PI * (0.16 + (i / 6) * 0.68), x0 = 50 + Math.cos(a) * 24, y0 = 58 + Math.sin(a) * 19;
-          brush(ctx, [[x0, y0], [x0 + Math.cos(a) * 10, y0 + Math.sin(a) * 10]], { w: 4, c: TONE[0], ta: 0, tb: 0.8, dry: 0.35 }, r);
-        }
-        eye(ctx, 61, 52, 6.6); eye(ctx, 44, 51, 5.6);
+        // the small creature itself: the crow, settled after a hop, painted with the same strokes
+        ctx.save(); ctx.translate(46, 86); ctx.scale(4.1, 4.1);
+        drawCrow(ctx, crowPoses()[5], (n) => U.rng(hsh(6000, n, 913)));
+        ctx.restore();
         break;
       }
       case 'hp-heart': {
@@ -1825,14 +2204,82 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
   /* ======================================================================
      11. Runtime helpers
      ====================================================================== */
-  function inkBurst(game, x, y, z, n, sp, size, red) {
+  /**
+   * flung ink: most drops leave in a fan along the blow (dir, radians), big heavy ones fall short, small ones fly
+   * far – the splatter has a direction and a size gradient instead of an even ring of dots
+   */
+  function inkBurst(game, x, y, z, n, sp, size, red, dir) {
+    const aimed = dir !== undefined;
     for (let i = 0; i < n; i++) {
-      const a = Math.random() * TAU, s = sp * (0.35 + Math.random() * 0.8);
+      const fan = aimed && i < n * 0.75, k = Math.random();
+      const a = fan ? dir + (Math.random() + Math.random() - 1) * 0.85 : Math.random() * TAU;
+      const s = sp * (fan ? 0.3 + k * 1.0 : 0.25 + k * 0.45);
       game.addParticle({
         x, y, z, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.65, vz: 30 + Math.random() * 70, grav: 260,
-        life: 1.0 + Math.random() * 0.8, size: size * (0.45 + Math.random() * 0.9), kind: 'drop', red: !!red && Math.random() < red, drag: 1.6, v: (Math.random() * 3) | 0,
+        life: 1.0 + Math.random() * 0.8, size: size * (fan ? 1.25 - k * 0.8 : 0.4 + Math.random() * 0.4), kind: 'drop', red: !!red && Math.random() < red, drag: 1.6, v: (Math.random() * 3) | 0,
       });
     }
+  }
+  const ENEMY_ANIM = { creeper: [2.6, 2.4], ghost: [1.4], colossus: [3.8] };
+  /** walk/hop/swim frame of a creature – driven by distance travelled, each actor on its own tempo */
+  function enemyFrame(e) {
+    const sets = SPR[e.type];
+    if (!sets) return null;
+    const vi = e.type === 'creeper' ? (e.seed < 0.5 ? 0 : 1) : 0, set = sets[vi];
+    const i = Math.floor((e.anim || 0) * ENEMY_ANIM[e.type][vi] * (0.9 + e.seed * 0.2));
+    return set[((i % set.length) + set.length) % set.length];
+  }
+  /** the two vermilion sash tails, painted live: they hang and sway at rest, stream back when walking, fly flat in a dash */
+  function drawSash(ctx, kx, ky, fd, rt, mv) {
+    const m = Math.min(1, mv), N = 7;
+    for (let k = 1; k >= 0; k--) {
+      const len = (k ? 5.8 : 7.4) * (1 + 0.22 * m + (mv > 1 ? 0.3 : 0)), w0 = k ? 1.2 : 1.55;
+      const ang = U.lerp(1.05, 0.3, m) - (mv > 1 ? 0.18 : 0) + k * 0.3;
+      const dx = -fd * Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx;
+      const ph = rt * (1.8 + 6 * m) + k * 1.9, amp = 0.22 + 0.85 * m;
+      ctx.beginPath();
+      const Lp = [], Rp = [];
+      for (let i = 0; i < N; i++) {
+        const u = i / (N - 1), wv = amp * u * Math.sin(ph - u * 3.4) + 0.25 * u * u * Math.sin(rt * 0.9 + k);
+        const x = kx + dx * len * u + nx * wv, y = ky + dy * len * u + ny * wv + u * u * 0.8 * (1 - m);
+        const w = w0 * (1 - 0.78 * u) * 0.5;
+        Lp.push(x + nx * w, y + ny * w); Rp.push(x - nx * w, y - ny * w);
+      }
+      ctx.moveTo(Lp[0], Lp[1]);
+      for (let i = 2; i < Lp.length; i += 2) ctx.lineTo(Lp[i], Lp[i + 1]);
+      for (let i = Rp.length - 2; i >= 0; i -= 2) ctx.lineTo(Rp[i], Rp[i + 1]);
+      ctx.closePath();
+      ctx.fillStyle = k ? VERM_DK : VERM_CSS;
+      ctx.fill();
+    }
+  }
+  const SWAY = { bamboo: 1, reeds: 1.5, orchid: 0.7, plum: 0.25, pine: 0.18 };
+  /** living water: rings open slowly on ponds and streams, one after another (spots cached per cell) */
+  const RIP = new Map();
+  function drawRipples(ctx, view) {
+    const cs = 80, t = view.rt;
+    for (let cy = Math.floor(view.y0 / cs); cy <= Math.floor(view.y1 / cs); cy++) {
+      for (let cx = Math.floor(view.x0 / cs); cx <= Math.floor(view.x1 / cs); cx++) {
+        const key = cx + ',' + cy;
+        let sp = RIP.get(key);
+        if (sp === undefined) {
+          const h = hsh(cx, cy, 6060), r1 = (h & 1023) / 1023, r2 = ((h >>> 10) & 1023) / 1023, r3 = ((h >>> 20) & 1023) / 1023;
+          const x = (cx + 0.15 + r1 * 0.7) * cs, y = (cy + 0.15 + r2 * 0.7) * cs;
+          sp = r3 < 0.6 && waterD(x, y) > 6 ? { x, y, ph: r3 * 17, per: 3.6 + r1 * 2.6 } : null;
+          if (RIP.size > 4000) RIP.clear();
+          RIP.set(key, sp);
+        }
+        if (!sp) continue;
+        for (let j = 0; j < 2; j++) {
+          const age = ((t + sp.ph + j * 0.8) % sp.per) / sp.per;
+          if (age > 0.6) continue;
+          const u = age / 0.6, R = 1.5 + 9.5 * U.ease.outQuad(u);
+          ctx.globalAlpha = 0.6 * (1 - u) * (j ? 0.55 : 1);
+          ctx.drawImage(FX.ripple.c, sp.x - R, sp.y - R * 0.42, R * 2, R * 0.84);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
   }
   const landed = (pt) => pt.z <= 0.3 && Math.abs(pt.vz) < 25;
   let groundLive = false, groundFrame = -1;
@@ -1841,10 +2288,18 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
       const set = pt.red ? FX.dropR : FX.drop, s = pt.size * 1.2;
       ctx.globalAlpha = Math.min(1, (pt.life / pt.max) * 3) * 0.85;
       ctx.drawImage(set[(pt.v || 0) % set.length].c, pt.x - s / 2, pt.y - s * 0.3, s, s * 0.6);
+    } else if (pt.kind === 'stamp') {
+      // a seal pressed onto the paper: it comes down a little large, sits, then the vermilion soaks in
+      const age = 1 - pt.life / pt.max, k = age < 0.12 ? 1.45 - 0.45 * U.ease.outQuad(age / 0.12) : 1, s = pt.size * k;
+      ctx.globalAlpha = (age < 0.12 ? 0.6 + age * 3 : 1) * (1 - U.smoothstep(0.45, 1, age)) * 0.9;
+      ctx.save(); ctx.translate(pt.x, pt.y); ctx.rotate(pt.rot); ctx.scale(1, 0.62);
+      ctx.drawImage(FX.seal.c, -s / 2, -s / 2, s, s);
+      ctx.restore();
     } else {
-      const age = 1 - pt.life / pt.max, R = pt.size * (0.3 + 0.7 * U.ease.outQuad(Math.min(1, age * 1.5)));
-      ctx.globalAlpha = (1 - age) * 0.8;
-      ctx.drawImage(FX.ring.c, pt.x - R, pt.y - R * 0.6, R * 2, R * 1.2);
+      // the stain spreads fast while wet, then holds and soaks away into the paper
+      const age = 1 - pt.life / pt.max, R = pt.size * (0.3 + 0.7 * U.ease.outQuad(Math.min(1, age * 1.8)));
+      ctx.globalAlpha = 0.8 * (1 - U.smoothstep(0.3, 1, age)) * Math.min(1, age * 12);
+      ctx.drawImage(FX.ring[((pt.seed || 0) * 2) | 0].c, pt.x - R, pt.y - R * 0.6, R * 2, R * 1.2);
     }
     ctx.globalAlpha = 1;
   }
@@ -1885,39 +2340,75 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
       const out = [];
       const land = (x, y, m) => waterD(x, y) < -m;
       const ok = (x, y, r0) => !G.nearSpawn(x, y, r0 || 90);
-      G.scatterOwned(info, 300, 7111, (x, y, r) => {
-        if (!r.chance(0.45) || !ok(x, y, 125) || !land(x, y, 30)) return;
+      const off = (x, y, m) => pathD(x, y) < -m;
+      const inChunk = (x, y) => x >= info.wx && x < info.wx + info.size && y >= info.wy && y < info.wy + info.size;
+      // crags: rare landmarks deep inside the pale hill washes
+      G.scatterOwned(info, 340, 7111, (x, y, r) => {
+        if (!r.chance(0.55) || !ok(x, y, 140) || fMist(x, y) < T_M + 0.035 || !land(x, y, 30) || !off(x, y, 30)) return;
         out.push({ x, y, t: 'mountain', v: r.int(0, 1), flip: r.chance(0.5), pad: 150, fade: [44, 116] });
       });
-      G.scatterOwned(info, 130, 7102, (x, y, r) => {
-        if (!r.chance(0.3) || !ok(x, y) || !land(x, y, 14)) return;
-        out.push({ x, y, t: 'pine', v: r.int(0, 1), flip: r.chance(0.5), sh: [15, 4, 3], pad: 90, fade: [26, 74] });
+      // pines stand on the hill washes, in twos and threes
+      G.scatterOwned(info, 105, 7102, (x, y, r) => {
+        const hill = fMist(x, y) > T_M - 0.012;
+        if (!r.chance(hill ? 0.5 : 0.04) || !ok(x, y) || !land(x, y, 14) || !off(x, y, 12)) return;
+        const v = r.int(0, 1);
+        out.push({ x, y, t: 'pine', v, flip: r.chance(0.5), sh: [15, 4, 3], pad: 90, fade: [26, 74] });
+        if (hill && r.chance(0.55)) {
+          const a = r.next() * TAU, x2 = x + Math.cos(a) * 30, y2 = y + Math.sin(a) * 15;
+          if (land(x2, y2, 12) && off(x2, y2, 12)) out.push({ x: x2, y: y2, t: 'pine', v: 1 - v, flip: r.chance(0.5), sh: [15, 4, 3], pad: 90, fade: [26, 74] });
+        }
       });
-      G.scatterOwned(info, 66, 7103, (x, y, r) => {
-        if (U.noise(x / 300, y / 300, 77) < 0.66 || !r.chance(0.45) || !ok(x, y) || !land(x, y, 10)) return;
+      // bamboo only in groves: clumps close together, thinning at the grove's edge
+      G.scatterOwned(info, 46, 7103, (x, y, r) => {
+        const g = fGrove(x, y);
+        if (g < 0.66 || !r.chance(U.smoothstep(0.66, 0.76, g) * 0.6) || !ok(x, y) || !land(x, y, 10) || !off(x, y, 8)) return;
         out.push({ x, y, t: 'bamboo', v: r.int(0, 2), flip: r.chance(0.5), sh: [13, 3.6, 2], pad: 100, fade: [20, 86] });
       });
-      G.scatterOwned(info, 160, 7104, (x, y, r) => {
-        if (!r.chance(0.3) || !ok(x, y) || !land(x, y, 10)) return;
+      // plum trees lean over the water
+      G.scatterOwned(info, 120, 7104, (x, y, r) => {
+        const w = waterD(x, y);
+        if (!r.chance(w > -34 && w < -9 ? 0.5 : 0.03) || !ok(x, y) || !off(x, y, 8)) return;
         out.push({ x, y, t: 'plum', v: r.int(0, 1), flip: r.chance(0.5), sh: [12, 3.4, 2], pad: 70, fade: [24, 58] });
       });
-      G.scatterOwned(info, 95, 7105, (x, y, r) => {
-        if (!r.chance(0.3) || !ok(x, y, 60)) return;
+      // rocks keep to paths and shores; an orchid often grows at their foot
+      G.scatterOwned(info, 64, 7105, (x, y, r) => {
+        const pd = pathD(x, y), w = waterD(x, y);
+        const near = (pd < -5 && pd > -15) || (w < -3 && w > -13);
+        if (!r.chance(near ? 0.42 : 0.03) || !ok(x, y, 60) || pd > -5) return;
         out.push({ x, y, t: 'rock', v: r.int(0, 2), flip: r.chance(0.5), sh: [9, 2.6, 1.5] });
+        if (r.chance(0.4)) { const s = r.chance(0.5) ? 1 : -1; out.push({ x: x + s * 13, y: y + 3, t: 'orchid', v: r.int(0, 1), flip: s < 0 }); }
       });
-      G.scatterOwned(info, 420, 7106, (x, y, r) => {
-        if (!r.chance(0.5) || !ok(x, y, 120) || !land(x, y, 8)) return;
-        out.push({ x, y, t: 'hut', v: 0, flip: r.chance(0.5), sh: [17, 3.4, 2] });
+      // homesteads: a hut just off a path, a stone lantern by the door, bamboo or a plum behind
+      G.scatterOwned(info, 150, 7106, (x, y, r) => {
+        const pd = pathD(x, y);
+        if (pd > -9 || pd < -24 || !r.chance(0.45) || !ok(x, y, 120) || !land(x, y, 10)) return;
+        const s = r.chance(0.5) ? 1 : -1;
+        out.push({ x, y, t: 'hut', v: 0, flip: s < 0, sh: [17, 3.4, 2] });
+        const lx = x + s * 21, ly = y + 5;
+        if (off(lx, ly, 2) && land(lx, ly, 4)) out.push({ x: lx, y: ly, t: 'lantern', v: r.int(0, 1), flip: r.chance(0.5), sh: [5, 1.8, 1] });
+        const bx = x - s * 14, by = y - 12;
+        if (land(bx, by, 6) && off(bx, by, 8)) out.push(r.chance(0.5) ? { x: bx, y: by, t: 'bamboo', v: 0, flip: r.chance(0.5), sh: [13, 3.6, 2], pad: 100, fade: [20, 86] } : { x: bx, y: by, t: 'plum', v: r.int(0, 1), flip: s > 0, sh: [12, 3.4, 2], pad: 70, fade: [24, 58] });
       });
+      // a lone lantern where a path bends
+      G.scatterOwned(info, 200, 7110, (x, y, r) => {
+        const pd = pathD(x, y);
+        if (pd > -5 || pd < -10 || !r.chance(0.18) || !ok(x, y, 70) || !land(x, y, 6)) return;
+        out.push({ x, y, t: 'lantern', v: r.int(0, 1), flip: r.chance(0.5), sh: [5, 1.8, 1] });
+      });
+      // reeds in stands at the water's edge
       G.scatterOwned(info, 34, 7107, (x, y, r) => {
         const d = waterD(x, y);
-        if (d > 2 || d < -6 || !r.chance(0.45) || !ok(x, y, 60)) return;
+        if (d > 2 || d < -6 || U.noise(x / 90, y / 90, 92) < 0.45 || !r.chance(0.6) || !ok(x, y, 60)) return;
         out.push({ x, y, t: 'reeds', v: r.int(0, 1), flip: r.chance(0.5) });
       });
-      G.scatterOwned(info, 80, 7108, (x, y, r) => {
-        if (!r.chance(0.16) || !ok(x, y, 60) || !land(x, y, 4)) return;
-        out.push({ x, y, t: 'orchid', v: r.int(0, 1), flip: r.chance(0.5) });
+      // a fishing boat out on a pond
+      G.scatterOwned(info, 240, 7109, (x, y, r) => {
+        if (!r.chance(0.55)) return;
+        const w = waterAt(x, y);
+        if (w.d < 24 || w.river || !ok(x, y, 80)) return;
+        out.push({ x, y, t: 'boat', v: r.int(0, 1), flip: r.chance(0.5), seed: r.next() });
       });
+      void inChunk;
       return out;
     },
 
@@ -1928,38 +2419,55 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
         const pl = view.game.player;
         if (pl.y < p.y - 1 && pl.y > p.y - p.fade[1] && Math.abs(pl.x - p.x) < p.fade[0]) ctx.globalAlpha = 0.45;
       }
-      blit(ctx, s, p.x, p.y, p.flip);
+      const t = view.rt, sw = SWAY[p.t];
+      if (sw) {
+        // wind: a slow swell with gusts riding on it, travelling across the land – the tops lean, the base stays
+        const k = sw * (0.028 * Math.sin(t * 0.7 + p.x * 0.011 + p.y * 0.004) + 0.02 * Math.sin(t * 1.9 + p.x * 0.027) * (0.5 + 0.5 * Math.sin(t * 0.29 + p.x * 0.006)));
+        ctx.save();
+        ctx.transform(1, 0, k, 1, -k * p.y, 0);
+        blit(ctx, s, p.x, p.y, p.flip);
+        ctx.restore();
+      } else if (p.t === 'boat') {
+        // the boat rocks on the swell
+        const ph = t * 1.1 + (p.seed || 0) * 9;
+        ctx.save();
+        ctx.translate(p.x, p.y + Math.sin(ph) * 0.35);
+        ctx.rotate(Math.sin(ph - 0.8) * 0.025);
+        blit(ctx, s, 0, 0, p.flip);
+        ctx.restore();
+      } else blit(ctx, s, p.x, p.y, p.flip);
       ctx.globalAlpha = 1;
     },
 
     drawGroundOverlay(ctx, view, game) {
-      // landed ink drops, bleed rings, spawn stains, the pale disc under orbiting circles.
+      // landed ink drops, bleed rings, the pale disc under orbiting circles, rings opening on the water.
       // When another style owns the ground (mixes, element sheets) this runs on a silent context:
       // then the particle layer paints rings and landed drops itself.
       groundLive = typeof CanvasRenderingContext2D !== 'undefined' && ctx instanceof CanvasRenderingContext2D;
       groundFrame = view.rt;
+      if (groundLive) drawRipples(ctx, view);
       for (const pt of game.particles) {
-        if ((pt.kind === 'drop' && landed(pt)) || pt.kind === 'ring') groundFx(ctx, pt);
-      }
-      for (const e of game.enemies) {
-        if (e.spawnT >= 1 || e.dying) continue;
-        const k = U.ease.outQuad(Math.min(1, e.spawnT * 1.4)), R = e.r * (0.5 + 1.2 * k);
-        ctx.globalAlpha = (1 - e.spawnT) * 0.8;
-        ctx.drawImage(FX.stain.c, e.x - R, e.y - R * 0.6, R * 2, R * 1.2);
+        if ((pt.kind === 'drop' && landed(pt)) || pt.kind === 'ring' || pt.kind === 'stamp') groundFx(ctx, pt);
       }
       ctx.globalAlpha = 0.5;
       for (const o of game.orbitals) ctx.drawImage(FX.shadow, o.x - 9, o.y + 1, 18, 6);
       ctx.globalAlpha = 1;
     },
 
-    drawShadow(ctx, o) {
+    drawShadow(ctx, o, view) {
       let rx, ry, ox = 0.6;
       if (o.kind === 'player') { rx = 8; ry = 2.6; }
       else if (o.kind === 'enemy') {
         if (o.dying) return;
-        const sp = o.spawnT < 1 ? o.spawnT : 1;
-        if (o.type === 'ghost') { rx = 5 * sp; ry = 1.7 * sp; }
-        else { rx = (o.type === 'colossus' ? 19 : 9) * sp; ry = rx * 0.3; }
+        const sp = o.spawnT < 1 ? U.smoothstep(0.2, 0.8, o.spawnT) : 1;
+        if (o.type === 'ghost') { rx = 7 * sp; ry = 1.8 * sp; }
+        else if (o.type === 'colossus') { rx = 19 * sp; ry = 5.4 * sp; }
+        else if (o.seed < 0.5) {
+          // the crow's shadow shrinks while it is in the air
+          const fr = enemyFrame(o, view);
+          const k = fr && fr.lift ? 1 - fr.lift * 0.06 : 1;
+          rx = 6.5 * sp * k; ry = 2.1 * sp * k;
+        } else { rx = 9.5 * sp; ry = 2.6 * sp; }
         if (rx < 0.5) return;
       } else if (o.kind === 'prop') {
         if (!o.sh) return;
@@ -1991,73 +2499,121 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
       const sets = SPR[e.type];
       if (!sets) return;
       const vi = e.type === 'creeper' ? (e.seed < 0.5 ? 0 : 1) : 0;
-      const set = sets[vi];
-      const flip = e.facing < 0;
-      const sc = 0.93 + e.seed * 0.14;
+      const flip = e.facing < 0, sc = 0.93 + e.seed * 0.14, rt = view.rt;
       let y = e.y;
-      if (e.type === 'ghost') y += -2.5 + Math.sin(view.rt * 3 + e.seed * 9) * 1.4;
-      const alphaBase = e.type === 'ghost' ? 0.92 : 1;
+      // the carp drifts on two slow, unrelated swells (its tail beats add their own lift in the frames)
+      if (e.type === 'ghost') y += Math.sin(rt * 1.7 + e.seed * 9) * 0.9 + Math.sin(rt * 0.63 + e.seed * 4) * 0.6;
+      const alphaBase = e.type === 'ghost' ? 0.94 : 1;
       if (e.dying) {
-        const dfs = SPR.death[e.type][vi];
-        const i = Math.min(dfs.length - 1, Math.floor(e.deathT * dfs.length));
-        ctx.globalAlpha = alphaBase * (1 - e.deathT * 0.3);
-        blit(ctx, dfs[i], e.x, y, flip, sc * (1 + e.deathT * 0.12));
+        // death: the ink pools, then sinks into the paper and spreads (the carp rises and thins into mist)
+        const u = clamp01(e.deathT), dfs = SPR.death[e.type][vi];
+        const fr = dfs[Math.min(dfs.length - 1, Math.floor(u * dfs.length))];
+        let sx, sy, dy = 0;
+        if (e.type === 'ghost') { sx = 1 + 0.2 * u; sy = 1 + 0.06 * u; dy = -5 * U.ease.outQuad(u); }
+        else { const k = u * u; sx = 1 + 0.3 * k; sy = 1 - 0.5 * k; }
+        const kick = u < 0.15 ? 1 - u / 0.15 : 0;
+        sx *= 1 + 0.12 * kick; sy *= 1 - 0.1 * kick;
+        ctx.globalAlpha = alphaBase * (1 - 0.3 * u);
+        ctx.save();
+        ctx.translate(e.x, y + dy);
+        ctx.scale(sc * sx, sc * sy);
+        blit(ctx, fr, 0, 0, flip);
+        ctx.restore();
         ctx.globalAlpha = 1;
         return;
       }
-      const speedK = e.type === 'colossus' ? 0.45 : e.type === 'ghost' ? 0.35 : 0.7;
-      const fr = set[Math.floor(e.anim * speedK) & 3];
+      const fr = enemyFrame(e, view);
       if (e.spawnT < 1) {
-        // ink drops onto the paper and spreads: a soft blot first, then the strokes
+        // entrance: a drop of ink lands and spreads into a stain, the figure wicks up out of it as a soft
+        // blot, then its strokes are painted from the ground up
         const st = e.spawnT, soft = SPR.soft[e.type][vi];
-        const sy = 0.7 + 0.3 * U.ease.outQuad(st);
-        ctx.globalAlpha = alphaBase * Math.sin(Math.PI * Math.min(1, st * 1.1)) * 0.85;
-        const ax = flip ? soft.wu - soft.ax : soft.ax;
-        ctx.drawImage(flip ? soft.f : soft.c, e.x - ax * sc * 1.08, y - soft.ay * sc * sy, soft.wu * sc * 1.08, soft.hu * sc * sy);
-        const a2 = U.smoothstep(0.35, 1, st);
-        if (a2 > 0) {
-          ctx.globalAlpha = alphaBase * a2;
-          const fx = flip ? fr.wu - fr.ax : fr.ax;
-          ctx.drawImage(flip ? fr.f : fr.c, e.x - fx * sc, y - fr.ay * sc * sy, fr.wu * sc, fr.hu * sc * sy);
+        const k = U.ease.outQuad(Math.min(1, st * 2.2)), R = e.r * (0.35 + 1.15 * k);
+        ctx.globalAlpha = 0.8 * (1 - U.smoothstep(0.55, 1, st));
+        ctx.drawImage(FX.stain.c, e.x - R, e.y - R * 0.55, R * 2, R * 1.1);
+        if (st < 0.12) { const d = 1.6 * (1 - st / 0.12) + 0.6; ctx.globalAlpha = 1; dot(ctx, e.x, e.y - d * 4, d, TONE[0], 1, null, Math.PI / 2); }
+        const g = U.smoothstep(0.12, 0.62, st), sy = 0.3 + 0.7 * U.ease.outBack(g);
+        if (g > 0) {
+          ctx.globalAlpha = alphaBase * g * (1 - U.smoothstep(0.75, 1, st)) * 0.9;
+          ctx.save(); ctx.translate(e.x, y); ctx.scale(sc * (1.12 - 0.12 * g), sc * sy);
+          blit(ctx, soft, 0, 0, flip);
+          ctx.restore();
+        }
+        const rv = U.smoothstep(0.4, 0.95, st);
+        if (rv > 0) {
+          ctx.globalAlpha = alphaBase;
+          ctx.save();
+          ctx.beginPath();
+          if (e.type === 'ghost') {
+            // the carp is painted tail first
+            const x0 = e.x - (flip ? -1 : 1) * 24 * sc, w = 40 * sc * rv;
+            if (flip) ctx.rect(x0 - w, y - 30, w, 34); else ctx.rect(x0, y - 30, w, 34);
+          } else {
+            const H = fr.ay * sc * 1.05 + 2;
+            ctx.rect(e.x - 40, y + 2 - H * rv, 80, H * rv + 2);
+          }
+          ctx.clip();
+          ctx.translate(e.x, y); ctx.scale(sc, sc * sy);
+          blit(ctx, fr, 0, 0, flip);
+          ctx.restore();
         }
         ctx.globalAlpha = 1;
         return;
       }
       ctx.globalAlpha = alphaBase;
-      blit(ctx, fr, e.x, y, flip, sc);
-      if (e.flash > 0) {
-        ctx.globalAlpha = Math.min(0.85, e.flash * 1.4) * alphaBase;
-        blit(ctx, fr, e.x, y, flip, sc, flip ? fr.flf : fr.fl);
-      }
+      const f = e.flash > 0 ? Math.min(1, e.flash) : 0;
+      if (f > 0) {
+        // hit: knocked back along the blow, squashed, the ink lifted to bare paper for a moment
+        const kd = (e.kx || 0) >= 0 ? 1 : -1, ff = f * f;
+        ctx.save();
+        ctx.translate(e.x + kd * 1.4 * ff, y);
+        ctx.rotate(0.17 * ff * kd);
+        ctx.scale(sc * (1 + 0.16 * ff), sc * (1 - 0.14 * ff));
+        blit(ctx, fr, 0, 0, flip);
+        if (f > 0.35) {
+          ctx.globalAlpha = Math.min(0.9, (f - 0.35) * 2.2) * alphaBase;
+          blit(ctx, fr, 0, 0, flip, 1, flip ? fr.flf : fr.fl);
+        }
+        ctx.restore();
+      } else blit(ctx, fr, e.x, y, flip, sc);
       ctx.globalAlpha = 1;
     },
 
     drawPlayer(ctx, p, view) {
-      const rt = view.rt;
-      let fr, bob;
-      if (p.moving) {
-        const ph = p.anim * 0.8;
-        fr = SPR.sage.walk[Math.floor(ph) & 3];
-        bob = -0.9 * Math.abs(Math.cos(ph * Math.PI / 2));
+      const rt = view.rt, S = SPR.sage;
+      let fr, set = 'idle';
+      const dashing = p.dashT > 0;
+      if (dashing) {
+        // a crouched wind-up for the first 50 ms, then the lunge
+        fr = S.dash[p.dashT > 0.15 ? 0 : 1]; set = 'dash';
+      } else if (p.hurtT > 0.55) {
+        fr = S.hurt[0]; set = 'hurt';
+      } else if (p.moving) {
+        fr = S.walk[Math.floor(p.anim * 1.3) & 7]; set = 'walk';
       } else {
-        fr = SPR.sage.idle[Math.floor(rt * 1.4) & 1];
-        bob = 0;
+        // idle on twos: breathe in and hold, blink on two unrelated clocks, now and then look back
+        const tk = Math.floor(rt * 12);
+        let i = (tk % 30) < 15 ? 0 : 1;
+        if ((tk % 47) < 2 || (tk % 61) < 2) i = 2;
+        if ((tk % 151) >= 96 && (tk % 151) < 116) i = 3;
+        fr = S.idle[i];
       }
-      const flip = p.facing < 0;
-      if (p.dashT > 0) {
-        for (let i = 3; i >= 1; i--) {
+      const flip = p.facing < 0, fd = flip ? -1 : 1;
+      const sp = hyp(p.vx || 0, p.vy || 0);
+      if (dashing) {
+        // the figure dragged as pale ink behind the lunge
+        for (let i = 2; i >= 1; i--) {
           ctx.globalAlpha = 0.2 / i;
-          blit(ctx, fr, p.x - p.dashX * 6 * i, p.y - p.dashY * 6 * i + bob, flip);
+          blit(ctx, S.after, p.x - p.dashX * 7 * i, p.y - p.dashY * 7 * i, flip);
         }
-        ctx.globalAlpha = 1;
       }
       let a = 1;
-      if (p.iframes > 0 && p.hurtT < 0.7 && Math.floor(rt * 14) % 2 === 0) a = 0.45;
+      if (p.iframes > 0 && p.hurtT < 0.55 && Math.floor(rt * 12) % 2 === 0) a = 0.5;
       ctx.globalAlpha = a;
-      blit(ctx, fr, p.x, p.y + bob, flip);
-      if (p.hurtT > 0.4) {
-        ctx.globalAlpha = Math.min(1, (p.hurtT - 0.4) * 2.2);
-        blit(ctx, fr, p.x, p.y + bob, flip, 1, flip ? fr.flf : fr.fl);
+      drawSash(ctx, p.x + fr.knot[0] * fd, p.y + fr.knot[1], fd, rt, set === 'walk' ? Math.max(0.7, clamp01(sp / 90)) : set === 'dash' ? 1.4 : set === 'hurt' ? 0.8 : 0);
+      blit(ctx, fr, p.x, p.y, flip);
+      if (p.hurtT > 0.72) {
+        ctx.globalAlpha = Math.min(1, (p.hurtT - 0.72) * 3.6);
+        blit(ctx, fr, p.x, p.y, flip, 1, flip ? fr.flf : fr.fl);
       }
       ctx.globalAlpha = 1;
     },
@@ -2065,9 +2621,35 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
     drawOrbital(ctx, o, view) {
       const s = FX.ensoS[o.idx & 1];
       const bob = Math.sin(view.rt * 3 + o.idx * 1.7) * 1.1;
+      // a pale dry-brush wake that follows the real path of the circle: the last positions (sampled at
+      // ~30 Hz) become two thin tapering bristle ribbons in dan ink
+      const tr = o._tr || (o._tr = []), last = tr[tr.length - 1], cy = o.y - 4 + bob;
+      if (last && (view.rt < last[2] || (last[0] - o.x) ** 2 + (last[1] - cy) ** 2 > 400)) tr.length = 0;
+      if (!tr.length || view.rt - tr[tr.length - 1][2] > 0.033) { tr.push([o.x, cy, view.rt]); if (tr.length > 7) tr.shift(); }
+      if (tr.length > 2) {
+        ctx.fillStyle = T[3];
+        for (let b = 0; b < 2; b++) {
+          const off = b ? 0.55 : -0.45, w0 = b ? 0.5 : 0.75;
+          ctx.globalAlpha = b ? 0.22 : 0.3;
+          ctx.beginPath();
+          const n = tr.length, L = [], R = [];
+          for (let i = n - 1; i >= 0; i--) {
+            const p = i === n - 1 ? [o.x, cy] : tr[i], q = tr[Math.max(0, i - 1)], pp = tr[Math.min(n - 1, i + 1)];
+            let dx = pp[0] - q[0], dy = pp[1] - q[1];
+            const dl = hyp(dx, dy) || 1; dx /= dl; dy /= dl;
+            const u = (n - 1 - i) / (n - 1), w = w0 * (1 - u) * (1 - u * 0.3) + 0.04, c = off * (1 - u * 0.5);
+            L.push(p[0] - dy * (c + w), p[1] + dx * (c + w)); R.push(p[0] - dy * (c - w), p[1] + dx * (c - w));
+          }
+          ctx.moveTo(L[0], L[1]);
+          for (let i = 2; i < L.length; i += 2) ctx.lineTo(L[i], L[i + 1]);
+          for (let i = R.length - 2; i >= 0; i -= 2) ctx.lineTo(R[i], R[i + 1]);
+          ctx.closePath(); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
       ctx.save();
-      ctx.translate(o.x, o.y - 4 + bob);
-      ctx.rotate(view.rt * 2.2 + o.idx * 2);
+      ctx.translate(o.x, cy);
+      ctx.rotate(o.angle + 2.6 + Math.sin(view.rt * 3.1 + o.idx) * 0.12);
       ctx.drawImage(s.c, -s.ax, -s.ay, s.wu, s.hu);
       ctx.restore();
       ctx.fillStyle = VERM_CSS;
@@ -2107,7 +2689,30 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
           ctx.restore();
           break;
         }
-        case 'ring': if (!own) groundFx(ctx, pt); return;
+        case 'ring': case 'stamp': if (!own) groundFx(ctx, pt); return;
+        case 'splatD': {
+          // splatter thrown along the blow: snaps out fast, then dries and fades
+          const age = 1 - life, set = FX.splatD[(pt.v || 0) % 2], k = pt.size * (0.55 + 0.5 * U.ease.outQuad(Math.min(1, age * 4)));
+          ctx.globalAlpha = Math.min(1, life * 2.4) * 0.9;
+          ctx.save();
+          ctx.translate(pt.x, pt.y - pt.z);
+          ctx.rotate(pt.rot);
+          ctx.scale(k, k * 0.8);
+          ctx.drawImage(set.c, -set.ax, -set.ay, set.wu, set.hu);
+          ctx.restore();
+          break;
+        }
+        case 'feather': {
+          // rocks from side to side as it sinks, then lies on the paper and fades
+          const f = FX.feather[(pt.v || 0) % 2], sway = pt.z > 0.3 ? Math.sin(pt.seed * 20 + pt.life * 5.5) : 0;
+          ctx.globalAlpha = Math.min(1, life * 3) * 0.95;
+          ctx.save();
+          ctx.translate(pt.x + sway * 2.6, pt.y - pt.z);
+          ctx.rotate(pt.seed * 6 + sway * 0.7);
+          ctx.drawImage(f.c, -f.ax, -f.ay, f.wu, f.hu);
+          ctx.restore();
+          break;
+        }
         case 'enso': {
           // the circle is painted in one movement, then fades into the paper
           const age = 1 - life, sweep = Math.min(1, age * 2.6), s = FX.enso, sc = pt.size / 30;
@@ -2122,6 +2727,13 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
           ctx.globalAlpha = Math.min(1, life * 2.5);
           ctx.drawImage(s.c, -s.ax, -s.ay, s.wu, s.hu);
           ctx.restore();
+          if (sweep < 1) {
+            // the loaded brush head at the front of the stroke
+            const a = Math.PI * 0.6 + TAU * sweep * 0.92;
+            ctx.save(); ctx.translate(pt.x, pt.y - 12); ctx.scale(sc, sc * 0.82);
+            dot(ctx, Math.cos(a) * 14, Math.sin(a) * 14, 2.0 - sweep, TONE[0], 0.95, null, a + Math.PI / 2);
+            ctx.restore();
+          }
           break;
         }
         case 'petal': {
@@ -2225,21 +2837,39 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
 
     /* ---------- hooks ---------- */
     onHit(game, e, src) {
-      const h = (HEIGHT[e.type] || 16) * 0.5;
-      if (src === 'lantern' || e.type === 'ghost') game.addParticle({ x: e.x, y: e.y, z: h, kind: 'puff', life: 0.35, size: e.type === 'colossus' ? 20 : 13, drag: 0 });
-      game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splash', life: 0.24, size: e.type === 'colossus' ? 16 : 11, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: 0.75 });
+      const h = (HEIGHT[e.type] || 16) * 0.5, big = e.type === 'colossus';
+      const kl = hyp(e.kx || 0, e.ky || 0);
+      const dx = kl > 0.1 ? e.kx / kl : (Math.random() < 0.5 ? -1 : 1), dy = kl > 0.1 ? e.ky / kl : (Math.random() - 0.5) * 0.4;
+      // core: a short flick of ink at the point of contact
+      game.addParticle({ x: e.x - dx * 2, y: e.y, z: h, kind: 'splash', life: 0.12, size: big ? 12 : 8, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: 0.9 });
+      // main shape: splatter thrown along the blow
+      game.addParticle({ x: e.x + dx * 2, y: e.y + dy, z: h, kind: 'splatD', life: 0.32, size: big ? 1.35 : 0.95, drag: 0, rot: Math.atan2(dy * 0.6, dx), v: (Math.random() * 2) | 0 });
+      // debris: drops flung forward; they land and stay on the paper for a moment
       for (let i = 0; i < 3; i++) {
-        const a = Math.random() * TAU, s = 30 + Math.random() * 50;
-        game.addParticle({ x: e.x, y: e.y, z: h, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 40, grav: 240, kind: 'drop', life: 0.7 + Math.random() * 0.5, size: 1 + Math.random() * 1.2, drag: 1.5, v: (Math.random() * 3) | 0 });
+        const a = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.1, s = 40 + Math.random() * 50;
+        game.addParticle({ x: e.x, y: e.y, z: h, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 40, grav: 240, kind: 'drop', life: 0.8 + Math.random() * 0.5, size: 1 + Math.random() * 1.2, drag: 1.5, v: (Math.random() * 3) | 0 });
       }
+      if (src === 'lantern' || e.type === 'ghost') game.addParticle({ x: e.x, y: e.y, z: h, kind: 'puff', life: 0.35, size: big ? 20 : 12, drag: 0 });
     },
     onKill(game, e) {
-      const h = (HEIGHT[e.type] || 16) * 0.5, big = e.type === 'colossus';
+      const h = (HEIGHT[e.type] || 16) * 0.5, big = e.type === 'colossus', crow = e.type === 'creeper' && e.seed < 0.5;
+      // the last blow sets the direction of the splatter
+      const kl = hyp(e.kx || 0, e.ky || 0), dir = kl > 1 ? Math.atan2(e.ky, e.kx) : (e.facing || 1) < 0 ? 0 : Math.PI;
       if (e.type === 'ghost') {
-        for (let i = 0; i < 3; i++) game.addParticle({ x: e.x + (Math.random() - 0.5) * 8, y: e.y, z: h + Math.random() * 6, vx: (Math.random() - 0.5) * 20, vz: 14, kind: 'puff', life: 0.7 + Math.random() * 0.3, size: 14 + Math.random() * 6, drag: 1 });
-        inkBurst(game, e.x, e.y, h, 4, 50, 1.6);
-      } else inkBurst(game, e.x, e.y, h, big ? 22 : 10, big ? 110 : 75, big ? 3.4 : 2.4);
-      game.addParticle({ x: e.x, y: e.y, kind: 'ring', life: big ? 1.5 : 1.0, size: big ? 32 : 15, drag: 0 });
+        // the carp thins into mist that rises and drifts apart
+        for (let i = 0; i < 3; i++) game.addParticle({ x: e.x + (Math.random() - 0.5) * 10, y: e.y, z: h + Math.random() * 6, vx: (Math.random() - 0.5) * 20, vz: 14, kind: 'puff', life: 0.7 + Math.random() * 0.3, size: 14 + Math.random() * 6, drag: 1 });
+        inkBurst(game, e.x, e.y, h, 4, 50, 1.6, 0, dir);
+      } else inkBurst(game, e.x, e.y, h, big ? 18 : 9, big ? 110 : 80, big ? 3.4 : 2.4, 0, dir);
+      game.addParticle({ x: e.x + Math.cos(dir) * 3, y: e.y + Math.sin(dir) * 2, z: h, kind: 'splatD', life: big ? 0.45 : 0.36, size: big ? 1.6 : 1.1, drag: 0, rot: Math.atan2(Math.sin(dir) * 0.6, Math.cos(dir)), v: (Math.random() * 2) | 0 });
+      if (crow) {
+        // black feathers rock down onto the paper
+        for (let i = 0; i < 4; i++) game.addParticle({ x: e.x + (Math.random() - 0.5) * 6, y: e.y, z: 6 + Math.random() * 6, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 16, vz: 26 + Math.random() * 20, grav: 46, kind: 'feather', life: 1.3 + Math.random() * 0.5, drag: 3.2, v: i % 2 });
+      }
+      if (big) {
+        for (let i = 0; i < 2; i++) game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splatD', life: 0.45, size: 1.7, drag: 0, rot: Math.random() * TAU, v: i });
+      }
+      // the bloom: a bleed ring that spreads on the paper and stays a while (residue)
+      game.addParticle({ x: e.x, y: e.y, kind: 'ring', life: big ? 1.6 : 1.1, size: big ? 32 : 15, drag: 0 });
       game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splash', life: 0.3, size: big ? 32 : 17, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: e.type === 'ghost' ? 0.45 : 0.85 });
     },
     onHurt(game, p) {
@@ -2248,10 +2878,13 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
     },
     onPickup(game, g) {
       if (g.big) {
+        // the seal is pressed onto the paper, a few petals lift off
+        game.addParticle({ x: g.x, y: g.y, kind: 'stamp', life: 0.95, size: 12, drag: 0, rot: (Math.random() - 0.5) * 0.3 });
         for (let i = 0; i < 5; i++) game.addParticle({ x: g.x + (Math.random() - 0.5) * 8, y: g.y, z: 6 + Math.random() * 10, vx: (Math.random() - 0.5) * 30, vz: 18, grav: 20, kind: 'petal', life: 0.8 + Math.random() * 0.4, size: 3.4, drag: 2, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 6, v: i % 3 });
-        game.addParticle({ x: g.x, y: g.y, kind: 'ring', life: 0.7, size: 10, drag: 0 });
+        game.addParticle({ x: g.x, y: g.y, kind: 'ring', life: 0.7, size: 12, drag: 0 });
       } else {
         game.addParticle({ x: g.x, y: g.y, kind: 'ring', life: 0.45, size: 6, drag: 0 });
+        game.addParticle({ x: g.x, y: g.y, z: 3, kind: 'splash', life: 0.14, size: 5, drag: 0, rot: Math.random() * TAU, v: 0, a: 0.7 });
       }
     },
     onShoot(game, pr) {
@@ -2265,6 +2898,12 @@ ${S} #pausebox { font: 400 60px ${brushF}; color: ${T[0]}; text-shadow: 0 0 8px 
     },
     onLevelUp(game, p) {
       game.addParticle({ x: p.x, y: p.y, kind: 'enso', life: 1.4, size: 40, drag: 0 });
+      // the brush lands hard where the circle starts: a few drops jump from that point
+      const a0 = Math.PI * 0.6, sx = p.x + Math.cos(a0) * 18.7, sy = p.y - 12 + Math.sin(a0) * 15.3;
+      for (let i = 0; i < 5; i++) {
+        const a = a0 + Math.PI + (Math.random() - 0.5) * 1.4, s = 30 + Math.random() * 40;
+        game.addParticle({ x: sx, y: sy + 10, z: 10, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 30, grav: 220, kind: 'drop', life: 1.0 + Math.random() * 0.5, size: 1 + Math.random() * 1.1, drag: 1.6, v: i % 3 });
+      }
       for (let i = 0; i < 12; i++) {
         const a = (i / 12) * TAU;
         game.addParticle({ x: p.x, y: p.y, z: 14, vx: Math.cos(a) * 55, vy: Math.sin(a) * 36, vz: 30, grav: 30, kind: 'petal', life: 1.0 + Math.random() * 0.5, size: 3 + Math.random() * 1.5, drag: 2.2, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 7, v: i % 3 });

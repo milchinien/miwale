@@ -101,21 +101,22 @@
         p.set(x, y, c);
       }
     }
-    p.set(cx + 4, by + 21, PAL.glove[2]); p.set(cx + 5, by + 21, PAL.glove[1]); p.set(cx + 4, by + 22, PAL.glove[1]); p.set(cx + 5, by + 22, PAL.glove[0]);
+    const hb = f.hb || 0, gx = cx + 4 + (f.hand || 0);         // hb: the head lands one frame after the body; the hand swings against the near leg
+    p.set(gx, by + 21, PAL.glove[2]); p.set(gx + 1, by + 21, PAL.glove[1]); p.set(gx, by + 22, PAL.glove[1]); p.set(gx + 1, by + 22, PAL.glove[0]);
     for (let x = cx - 4; x <= cx + 5; x++) { p.set(x, sy, SC[3]); p.set(x, sy + 1, SC[2]); p.set(x, sy + 2, SC[1]); }
     p.set(cx + 4, sy + 3, SC[2]); p.set(cx + 5, sy + 3, SC[1]); p.set(cx + 4, sy + 4, SC[1]); p.set(cx + 3, sy + 3, SC[1]);
-    p.ell(10.5, by + 7.2, 7.6, 6.3, (x, y, nx, ny) => {     // pumpkin: lit sphere + rib grooves from asin(nx)
+    p.ell(10.5, by + hb + 7.2, 7.6, 6.3, (x, y, nx, ny) => {     // pumpkin: lit sphere + rib grooves from asin(nx)
       let v = 0.47 + shade(nx, ny) * 0.42;
       const sf = (Math.asin(clamp(nx, -1, 1)) / (Math.PI / 2)) * 2.6 + 0.5, fr = sf - Math.floor(sf);
       if (fr < 0.13 || fr > 0.94) v -= 0.17; else if (fr > 0.42 && fr < 0.58) v += 0.05;
       if (ny > 0.74) v -= 0.12;
       p.set(x, y, pick(PAL.pumpkin, v, x, y, 0.3));
     });
-    p.set(10, by, ST[3]); p.set(10, by + 1, ST[2]); p.set(11, by + 1, ST[1]); p.set(11, by - 1, ST[2]); p.set(12, by - 1, ST[1]);
+    const hy = by + hb; p.set(10, hy, ST[3]); p.set(10, hy + 1, ST[2]); p.set(11, hy + 1, ST[1]); p.set(11, hy - 1, ST[2]); p.set(12, hy - 1, ST[1]);
     const fs = new Set(FACE.map((q) => q[0] + ',' + q[1]));
-    for (const [dx, dy, lv] of FACE) { p.set(12 + dx, by + 4 + dy, PAL.face[lv + 1]); if (!fs.has(dx + ',' + (dy + 1))) p.set(12 + dx, by + 5 + dy, PAL.flesh); }
-    for (const [dx, dy, lv] of FACE) p.set(12 + dx, by + 4 + dy, PAL.face[lv + 1]);
-    const s = rec(p.outline(OUT), 11, JH + 1); s.bob = f.bob; return s;
+    for (const [dx, dy, lv] of FACE) { p.set(12 + dx, hy + 4 + dy, PAL.face[lv + 1]); if (!fs.has(dx + ',' + (dy + 1))) p.set(12 + dx, hy + 5 + dy, PAL.flesh); }
+    for (const [dx, dy, lv] of FACE) p.set(12 + dx, hy + 4 + dy, PAL.face[lv + 1]);
+    const s = rec(p.outline(OUT), 11, JH + 1); s.bob = f.bob + hb; return s;
   }
   /** Emissive face overlay (drawn after the light): level -1/0/+1 = flicker brightness. */
   function makeFace(level) { const p = new Pix(JW + 2, JH + 2); for (const [dx, dy, lv] of FACE) p.set(13 + dx, 7 + dy, PAL.face[clamp(lv + level, 0, 3)]); const r = p.canvas(); return { r, l: flipX(r) }; }
@@ -224,8 +225,12 @@
 
   let SPR = null;
   function init() {
-    const frames = [{ aDx: 2, aLift: 0, bDx: -2, bLift: 0, bob: 0, sway: -1, scarf: 0 }, { aDx: 0, aLift: 0, bDx: 0, bLift: 1, bob: -1, sway: 0, scarf: 1 }, { aDx: -2, aLift: 0, bDx: 2, bLift: 0, bob: 0, sway: 1, scarf: 2 },
-      { aDx: 0, aLift: 1, bDx: 0, bLift: 0, bob: -1, sway: 0, scarf: 3 }, { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 0, sway: 0, scarf: 3 }, { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 1, sway: 0, scarf: 2 }];
+    // 8 walk poses: contact, down, passing, up per leg [aDx, aLift, bDx, bLift, bob, sway, scarf, hand]; then 2 idle breath poses
+    const frames = [[2, 0, -2, 0, 0, -1, 0, -1], [2, 0, -2, 0, 1, -1, 0, -1], [0, 0, 0, 2, 0, 0, 1, 0], [-1, 0, 1, 1, -1, 1, 2, 1],
+      [-2, 0, 2, 0, 0, 1, 2, 1], [-2, 0, 2, 0, 1, 1, 3, 1], [0, 2, 0, 0, 0, 0, 3, 0], [1, 1, -1, 0, -1, -1, 0, -1]]
+      .map(([aDx, aLift, bDx, bLift, bob, sway, scarf, hand]) => ({ aDx, aLift, bDx, bLift, bob, sway, scarf, hand }));
+    frames.forEach((w, i) => { w.hb = frames[(i + 7) & 7].bob - w.bob; });
+    frames.push({ aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 0, sway: 0, scarf: 3 }, { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 1, sway: 0, scarf: 2 });
     SPR = { hero: frames.map(makeHero), face: [-1, 0, 1].map(makeFace), creeper: [0, 1].map((v) => [0, 1, 2, 3].map((f) => makeCreeper(f, v))), ghost: [0, 1, 2, 3].map(makeGhost),
       grave: [3, 17, 29].map(makeGrave), lantern: [0, 1, 2].map(makeLantern), gem: [0, 1, 2, 3].map(makeGem), sh: { s: shadowEll(6, 2, 120), m: shadowEll(8, 2.5, 120), g: shadowEll(4, 1.5, 70) } };
     SPR.L = { hero: makeLight(96, 78, [255, 214, 160], [255, 140, 60], 1, 7, 0.85), lantern: makeLight(42, 34, [255, 206, 140], [255, 120, 40], 0.85, 5, 0.9),
@@ -301,7 +306,7 @@
   /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Unlit body; the face is emissive (see draw()). */
   function drawHero(ctx, x, y, t, facing, moving) {
     if (!SPR) init();
-    const s = SPR.hero[moving === false ? 4 + (Math.floor(t * 1.6) & 1) : Math.floor(t * 8) & 3], flip = facing < 0;
+    const s = SPR.hero[moving === false ? 8 + (Math.floor(t / 1.1) & 1) : Math.floor(t * 12) & 7], flip = facing < 0;   // 8-pose walk ~12 fps
     const dx = Math.round(x) - (flip ? s.w - 1 - s.ax : s.ax), dy = Math.round(y) - s.ay;
     ctx.drawImage(flip ? s.l : s.r, dx, dy);
     return { dx, dy, s, flip };
@@ -310,7 +315,7 @@
   function drawEnemy(ctx, x, y, t, kind, facing, seed) {
     if (!SPR) init();
     const ghost = kind === 'ghost', s = ghost ? SPR.ghost[Math.floor(t * 7 + (seed || 0) * 4) & 3] : SPR.creeper[kind === 'creeper2' ? 1 : 0][Math.floor(t * 6 + (seed || 0) * 3) & 3];
-    const flip = facing < 0, yy = Math.round(y) - (ghost ? 4 + Math.round(Math.sin(t * 3 + (seed || 0) * 10) * 1.5) : 0);
+    const flip = facing < 0, yy = Math.round(y) - (ghost ? 3 + [0, 0, 1, 2, 3, 3, 2, 1][Math.floor(t * 5 + (seed || 0) * 8) & 7] : 0);
     const dx = Math.round(x) - (flip ? s.w - 1 - s.ax : s.ax), dy = yy - s.ay;
     ctx.globalAlpha = ghost ? 0.86 : 1; ctx.drawImage(flip ? s.l : s.r, dx, dy); ctx.globalAlpha = 1;
     return (flip ? s.eyesL : s.eyes).map((e) => [dx + e[0], dy + e[1], e[2]]);

@@ -152,34 +152,42 @@
       if (wid * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.15)), 0.7) > 0.8) { const px = -Math.sin(ang), py = Math.cos(ang); p.set(x + px, y + py, rmp[clamp(ci - 1, 0, rmp.length - 1)]); p.set(x - px, y - py, rmp[clamp(ci + 1, 0, rmp.length - 1)]); }
     }
   }
-  /** Main character, 26x32 px: pumpkin head with an emissive carved face, teal hooded cape, satchel. walk: 6 frames, idle: 4. */
-  function heroPix(walk, k) {
-    const W = 26, H = 32, p = new Pix(W, H), cx = 13, FY = 31; const bob = walk ? [1, 0, 0, 1, 0, 0][k] : [0, 0, 1, 1][k], hb = walk ? [1, 1, 0, 1, 1, 0][k] : [0, 0, 0, 1][k];
-    const ax = walk ? [2, 1, -1, -2, -1, 1][k] : 1, al = walk ? [0, 0, 0, 0, 1, 1][k] : 0, bl = walk ? [0, 1, 1, 0, 0, 0][k] : 0, arm = walk ? [-1, -1, 0, 1, 1, 0][k] : 0, hem = walk ? [0, -1, -1, 0, -1, -1][k] : [0, -1, -1, 0][k];
-    const leg = (lx, lift, dk) => {
-      const x0 = cx - 1 + lx; for (let y = 24 + bob; y <= FY - 2 - lift; y++) { p.set(x0, y, R.pants[3 - dk]); p.set(x0 + 1, y, R.pants[2 - dk]); }
-      const by = FY - lift; p.set(x0, by - 1, R.leather[3 - dk]); p.set(x0 + 1, by - 1, R.leather[2 - dk]); p.set(x0, by, R.leather[2 - dk]); p.set(x0 + 1, by, R.leather[2 - dk]); p.set(x0 + 2, by, R.leather[1 - dk]);
-    }; leg(-ax - 1, bl, 1); leg(ax, al, 0); const top = 14 + bob, hemY = 25 + bob;
+  /** Pose: bob (+ down), a/b near/far foot x, la/lb lift, arm near-arm swing (-2..2, 3 = throw; far arm counter-swings), hb head lag, flap cape trail, face. */
+  const HWALK = [[0, 3, -3, 0, 0, -2, 0], [1, 2, -2, 0, 1, -1, 1], [0, 0, 0, 0, 2, 0, 2], [-1, -2, 2, 0, 1, 1, 1],    // contact, down, passing, up
+    [0, -3, 3, 0, 0, 2, 0], [1, -2, 2, 1, 0, 1, 1], [0, 0, 0, 2, 0, 0, 2], [-1, 2, -2, 1, 0, -1, 1]]                   // … mirrored for the other foot
+    .map(([bob, a, b, la, lb, arm, flap], i, A) => ({ bob, a, b, la, lb, arm, flap, hb: A[(i + 7) & 7][0] - bob, face: 'n' }));
+  /** Main character, ~18x31 px on a 28x34 canvas: pumpkin head with an emissive carved face, teal hooded cape, satchel. */
+  function heroPix(s) {
+    const W = 28, H = 34, p = new Pix(W, H), cx = 13, FY = 33, top = 16 + s.bob, hemY = 27 + s.bob, hip = 26 + s.bob;
+    const leg = (h0, fx, lift, k) => {                                               // slanted 2-px trousers into a boot
+      const fy = FY - lift; for (let y = hip; y <= fy - 2; y++) { const x = Math.round(h0 + (fx - h0) * (y - hip) / Math.max(1, fy - 2 - hip)); p.set(x, y, R.pants[3 - k]); p.set(x + 1, y, R.pants[2 - k]); }
+      p.set(fx, fy - 1, R.leather[4 - 2 * k]); p.set(fx + 1, fy - 1, R.leather[3 - 2 * k]); p.set(fx, fy, R.leather[3 - k]); p.set(fx + 1, fy, R.leather[2 - k]); p.set(fx + 2, fy, R.leather[2 - 2 * k]);
+    }; leg(cx - 3, cx - 3 + s.b, s.lb, 1); leg(cx - 1, cx - 1 + s.a, s.la, 0);
+    const arm = (sx, sw, far) => {                                                   // sleeve + glove; the far arm swings wider behind the cape
+      const [dx, dy] = [[-2, 4], [-1, 5], [0, 5], [1, 5], [2, 4], [6, 0]][sw + 2], ex = Math.round(sx + dx * (far ? 1.5 : 1)), sy = top + 2, ey = sy + dy, n = Math.max(1, Math.abs(ex - sx), Math.abs(dy));
+      for (let i = 0; i < n; i++) { const x = Math.round(sx + (ex - sx) * i / n), y = Math.round(sy + dy * i / n); p.set(x, y, R.cape[far ? 3 : 5]); if (sw === 3) p.set(x, y + 1, R.cape[3]); else p.set(x + 1, y, R.cape[far ? 2 : 3]); }
+      p.set(ex, ey, R.leather[far ? 2 : 4]); p.set(ex + 1, ey, R.leather[far ? 1 : 3]); p.set(ex, ey + 1, R.leather[far ? 1 : 3]); p.set(ex + 1, ey + 1, R.leather[far ? 0 : 2]);
+    }; arm(cx - 4, s.arm === 3 ? 0 : -s.arm, true);
     p.blob(cx - 5, top + 1, 3.4, 3, R.cape, { bias: -0.08 });                     // hood bunched behind the head
-    for (let y = top; y <= hemY; y++) {                                              // cape: cylinder-shaded cone
-      const t = (y - top) / (hemY - top), hw = 3.8 + t * 3.4, ccx = cx - 0.5 - t * 0.9 + (y >= hemY - 2 ? hem : 0);
-      for (let x = Math.floor(ccx - hw - 1); x <= Math.ceil(ccx + hw); x++) {
-        const nx = (x + 0.5 - ccx) / hw; if (Math.abs(nx) > 1 || (y === hemY && (x + k) % 3 === 0)) continue;
-        let v = (nx * LDIR[0] - 0.15 * LDIR[1] + Math.sqrt(1 - nx * nx) * LDIR[2]) * 0.5 + 0.5 - t * 0.1;
+    for (let y = top; y <= hemY; y++) {                                              // cape: cylinder-shaded bell, the back edge trails by flap
+      const t = (y - top) / (hemY - top), hw = 3.8 + t * 3.4, ccx = cx - 0.5 - t * 0.9, xl = ccx - hw - s.flap * sstep(0.2, 1, t);
+      for (let x = Math.floor(xl) - 1; x <= Math.ceil(ccx + hw); x++) {
+        const nx = (x + 0.5 - ccx) / hw; if (x + 0.5 < xl || nx > 1 || (y === hemY && (x + s.flap + 40) % 3 === 0) || (s.flap >= 2 && y === hemY && nx < -0.25)) continue;
+        const nc = clamp(nx, -1, 1); let v = (nc * LDIR[0] - 0.15 * LDIR[1] + Math.sqrt(1 - nc * nc) * LDIR[2]) * 0.5 + 0.5 - t * 0.1 - (nx < -1 ? 0.14 : 0);
         if ((x - Math.round(ccx) + 40) % 4 === 1 && t > 0.3) v -= 0.08;             // fold lines
         p.set(x, y, nx > 0.7 && t > 0.35 ? mix(hx('#7a2f5a'), hx('#c45a7a'), 1 - t) : R.cape[clamp(Math.floor(v * 8), 0, 7)]);
       }
     }
-    for (let i = 0; i <= 6; i++) p.set(cx + 3 - i, top + i, R.leather[i < 2 ? 4 : 3]);   // strap + satchel
-    for (let y = top + 6; y <= top + 9; y++) for (let x = cx - 8; x <= cx - 4; x++) p.set(x, y, R.leather[y === top + 6 ? 4 : y === top + 9 ? 1 : x === cx - 8 ? 3 : 2]);
-    p.set(cx - 6, top + 7, R.gold[4]); p.set(cx + 1, top + 1, R.gold[4]); p.set(cx + 2, top + 1, R.gold[3]);
-    for (let y = top + 2; y <= top + 6; y++) { const o = y > top + 4 ? arm : 0; p.set(cx + 3 + o, y, R.cape[5]); p.set(cx + 4 + o, y, R.cape[3]); }
-    p.set(cx + 3 + arm, top + 7, R.leather[3]); p.set(cx + 4 + arm, top + 7, R.leather[2]); const hcx = cx + 0.5, hcy = 8.5 + hb, ry = 6.4, RIBS = [-0.62, -0.22, 0.2, 0.6];
+    for (let i = 0; i <= 6; i++) p.set(cx + 3 - i, top + i, R.leather[i < 2 ? 4 : 3]);   // strap + satchel (the bag lags like the head)
+    for (let y = top + 6 + s.hb; y <= top + 9 + s.hb; y++) for (let x = cx - 8; x <= cx - 4; x++) p.set(x, y, R.leather[y === top + 6 + s.hb ? 4 : y === top + 9 + s.hb ? 1 : x === cx - 8 ? 3 : 2]);
+    p.set(cx - 6, top + 7 + s.hb, R.gold[4]); p.set(cx + 1, top + 1, R.gold[4]); p.set(cx + 2, top + 1, R.gold[3]); arm(cx + 3, s.arm, false);
+    const hcx = cx + 0.5, hcy = 10.5 + s.bob + s.hb, ry = 6.4, RIBS = [-0.62, -0.22, 0.2, 0.6];
     p.blob(hcx, hcy, 7.6, ry, R.pumpkin, { tex: (x, y, nx, ny) => { const lon = nx / Math.sqrt(Math.max(0.08, 1 - ny * ny)); return (RIBS.some((r) => Math.abs(lon - r) < 0.085) ? -0.16 : 0) + (ny < -0.75 ? -0.06 : 0) - 0.03; } });
-    const ty = Math.round(hcy - ry); p.set(hcx - 1, ty, R.stem[2]); p.set(hcx - 1, ty - 1, R.stem[3]); p.set(hcx - 2, ty - 2, R.stem[3]); p.set(hcx - 1, ty - 2, R.stem[4]);
-    p.set(hcx, ty - 1, R.tops[5]); p.set(hcx + 1, ty - 1, R.tops[6]); p.set(hcx + 1, ty - 2, R.tops[4]); p.set(hcx + 2, ty - 2, R.tops[5]);
+    const ty = Math.round(hcy - ry), lf = s.hb > 0 ? -1 : 0; p.set(hcx - 1, ty, R.stem[2]); p.set(hcx - 1, ty - 1, R.stem[3]); p.set(hcx - 2, ty - 2, R.stem[3]); p.set(hcx - 1, ty - 2, R.stem[4]);
+    p.set(hcx, ty - 1, R.tops[5]); p.set(hcx + 1, ty - 1, R.tops[6]); p.set(hcx + 1, ty - 2 + lf, R.tops[4]); p.set(hcx + 2, ty - 2 + lf, R.tops[5]);   // stem leaf flicks up as the head drops
     const fx = Math.round(hcx + 1), fy = Math.round(hcy), G0 = hx('#fff6c4'), G1 = hx('#ffd05a'), G2 = hx('#ff9a2e'), G3 = hx('#d4581e'), em = (x, y, c) => p.set(x, y, c, 255, EMIT);
-    em(fx - 3, fy - 2, G1); em(fx - 4, fy - 1, G2); em(fx - 3, fy - 1, G0); em(fx - 2, fy - 1, G1); em(fx + 2, fy - 2, G1); em(fx + 1, fy - 1, G1); em(fx + 2, fy - 1, G0); em(fx + 3, fy - 1, G2);
+    if (s.face === 'blink') { for (const [dx, c] of [[-4, G3], [-3, G2], [-2, G3], [1, G3], [2, G2], [3, G3]]) em(fx + dx, fy - 1, c); }   // eyes dim to slits
+    else { em(fx - 3, fy - 2, G1); em(fx - 4, fy - 1, G2); em(fx - 3, fy - 1, G0); em(fx - 2, fy - 1, G1); em(fx + 2, fy - 2, G1); em(fx + 1, fy - 1, G1); em(fx + 2, fy - 1, G0); em(fx + 3, fy - 1, G2); }
     em(fx - 5, fy + 1, G2); em(fx + 4, fy + 1, G2); em(fx - 1, fy + 1, G1);
     for (let x = fx - 4; x <= fx + 3; x++) em(x, fy + 2, x === fx - 1 ? G2 : (x === fx - 2 || x === fx) ? G0 : G1);
     for (let x = fx - 3; x <= fx + 2; x++) if (x !== fx - 1 && x !== fx + 1) em(x, fy + 3, G3);
@@ -190,26 +198,30 @@
     }
     for (let i = 0; i < cut.length; i += 3) p.set(cut[i], cut[i + 1], R.pumpkin[cut[i + 2]]); return p;
   }
-  /** Small creature, 24x28: glossy violet root bulb, cream belly, leaf crown, root legs, glowing angry eyes. 6 frames. */
-  function creeperPix(k) {
-    const W = 24, H = 28, p = new Pix(W, H), cx = 12, bob = [0, 1, 0, 0, 1, 0][k], tilt = [0, 1, 1, 0, -1, -1][k], TR = R.turnip; const bcy = 15.5 + bob, rx = 7.6, ry = 7.1;
-    const leg = (x0, lift, dk) => { for (let y = Math.round(bcy + 4); y <= H - 2 - lift; y++) { p.set(x0, y, R.rbody[4 - dk]); p.set(x0 + 1, y, R.rbody[3 - dk]); } p.set(x0, H - 1 - lift, R.rbody[3 - dk]); p.set(x0 + 1, H - 1 - lift, R.rbody[3 - dk]); p.set(x0 + 2, H - 1 - lift, R.rbody[2 - dk]); };
-    leg(cx - 4, [0, 0, 0, 0, 1, 1][k], 1); leg(cx + 1, [0, 1, 1, 0, 0, 0][k], 0); for (let y = Math.floor(bcy - ry - 1); y <= Math.ceil(bcy + ry + 1); y++) {
-      const sh = tilt * clamp((bcy - y) / ry, 0, 1); for (let x = 0; x < W; x++) {
-        const ny = (y + 0.5 - bcy) / ry, nx = (x + 0.5 - cx - sh) / (rx * (1 - Math.pow(Math.max(0, ny), 2) * 0.38)), dd = nx * nx + ny * ny; if (dd > 1) continue;
-        const v = (nx * LDIR[0] + ny * LDIR[1] + Math.sqrt(1 - dd) * LDIR[2]) * 0.55 + 0.36, split = bcy + 1.5 + Math.sin(x * 1.3) * 0.8;
-        let topPart = y + 0.5 < split; if (Math.abs(y + 0.5 - split) < 0.9 && (x + y) % 2 === 0) topPart = !topPart;  // checker-dithered seam
-        const Rm = topPart ? TR : R.rbody; p.set(x, y, Rm[clamp(Math.floor(v * Rm.length), 0, Rm.length - 2)]);
-      }
+  /** Hop poses (by lift, sq squash/stretch, legs 0 stand 1 crouch 2 reach 3 tuck, lf crown lag): stand, crouch, launch, rise, apex, fall, land, recover. */
+  const CHOP = [[0, 0, 0, 0], [2, 1, 1, 1], [-2, -1, 2, -1], [-4, -0.4, 3, -1], [-5, 0, 3, 1], [-3, -0.5, 2, 1], [2, 1.3, 1, -1], [1, 0.4, 0, 0]]
+    .map(([by, sq, legs, lf]) => ({ by, sq, legs, lf })), CHOP_T = [0, 0, 1, 1, 2, 3, 4, 4, 5, 6, 6, 7];
+  /** Small creature, ~17x26 px on a 26x36 canvas: glossy violet root bulb, cream belly, leaf crown, root legs, glowing angry eyes. */
+  function creeperPix(s) {
+    const W = 26, H = 36, p = new Pix(W, H), cx = 12, FY = 35, TR = R.turnip, rx = 7.6 * (1 + 0.15 * s.sq), ry = 7.1 * (1 - 0.15 * s.sq), bcy = FY - 12.5 + (7.1 - ry) + s.by, lt = Math.round(bcy + 4);
+    const leg = (x0, dk) => {                                                        // root legs: stand / splayed crouch / reaching / tucked
+      const fx = s.legs === 1 ? x0 + (dk ? -1 : 1) : x0, fy = s.legs === 2 ? Math.min(FY, lt + 6) : s.legs === 3 ? Math.min(FY, lt + 3) : FY;
+      for (let y = lt; y < fy; y++) { const x = Math.round(x0 + (fx - x0) * (y - lt) / Math.max(1, fy - lt)); p.set(x, y, R.rbody[4 - dk]); p.set(x + 1, y, R.rbody[3 - dk]); }
+      p.set(fx, fy, R.rbody[3 - dk]); p.set(fx + 1, fy, R.rbody[2 - dk + (s.legs === 2 ? 0 : 1)]); if (s.legs !== 2) p.set(fx + 2, fy, R.rbody[2 - dk]);
+    }; leg(cx - 4, 1); leg(cx + 1, 0);
+    for (let y = Math.floor(bcy - ry - 1); y <= Math.ceil(bcy + ry + 1); y++) for (let x = 0; x < W; x++) {
+      const ny = (y + 0.5 - bcy) / ry, nx = (x + 0.5 - cx) / (rx * (1 - Math.pow(Math.max(0, ny), 2) * 0.38)), dd = nx * nx + ny * ny; if (dd > 1) continue;
+      const v = (nx * LDIR[0] + ny * LDIR[1] + Math.sqrt(1 - dd) * LDIR[2]) * 0.55 + 0.36, split = bcy + 1.5 + Math.sin((x - cx) * 1.3) * 0.8;
+      let topPart = y + 0.5 < split; if (Math.abs(y + 0.5 - split) < 0.9 && (x + y) % 2 === 0) topPart = !topPart;  // checker-dithered seam
+      const Rm = topPart ? TR : R.rbody; p.set(x, y, Rm[clamp(Math.floor(v * Rm.length), 0, Rm.length - 2)]);
     }
-    const gx = Math.round(cx - 4 + tilt), gy = Math.round(bcy - 4);
-    p.set(gx, gy, hx('#ffeefa'), 255, NORIM); p.set(gx + 1, gy, TR[8], 255, NORIM); p.set(gx, gy + 1, TR[7], 255, NORIM);  // gloss
-    const lx = cx + tilt + 0.5, ly = bcy - ry + 1, sw = [0, 1, 1, 0, -1, -1][k] * 0.15;
-    leafStroke(p, lx - 1, ly, -Math.PI * 0.72 + sw, 6, 1.2, R.tops, -0.3); leafStroke(p, lx + 1, ly, -Math.PI * 0.3 + sw, 6, 1.2, R.tops, -0.3); leafStroke(p, lx, ly, -Math.PI * 0.5 + sw, 8, 1.4, R.tops, -0.2);
-    const ex = Math.round(cx + 0.5 + tilt * 0.5), ey = Math.round(bcy - 1), E0 = hx('#ffe2ec'), E1 = hx('#ff4f7a'), BR = hx('#24082c'), em = (x, y, c) => p.set(x, y, c, 255, EMIT), br = (x, y) => p.set(x, y, BR, 255, NORIM);
+    const gx = cx - 4, gy = Math.round(bcy - 4); p.set(gx, gy, hx('#ffeefa'), 255, NORIM); p.set(gx + 1, gy, TR[8], 255, NORIM); p.set(gx, gy + 1, TR[7], 255, NORIM);  // gloss
+    const lx = cx + 0.5, ly = bcy - ry + 1, Q = Math.PI;                             // leaf crown lags the hop: lifted on the way down, flattened on the way up
+    leafStroke(p, lx - 1, ly, (-0.72 + s.lf * 0.07) * Q, 6 + s.lf, 1.2, R.tops, -0.3 - s.lf * 0.3); leafStroke(p, lx + 1, ly, (-0.3 - s.lf * 0.07) * Q, 6 + s.lf, 1.2, R.tops, -0.3 - s.lf * 0.3); leafStroke(p, lx, ly, -0.5 * Q, 8 + s.lf, 1.4, R.tops, -0.2 - s.lf * 0.3);
+    const ex = cx + 1, ey = Math.round(bcy - 1), E0 = hx('#ffe2ec'), E1 = hx('#ff4f7a'), BR = hx('#24082c'), em = (x, y, c) => p.set(x, y, c, 255, EMIT), br = (x, y) => p.set(x, y, BR, 255, NORIM);
     em(ex, ey, E1); em(ex, ey + 1, E1); em(ex + 1, ey + 1, E0); br(ex + 1, ey); br(ex, ey - 1);
     em(ex + 4, ey, E1); em(ex + 4, ey + 1, E1); em(ex + 3, ey + 1, E0); br(ex + 3, ey); br(ex + 4, ey - 1);
-    br(ex + 1, ey + 4); br(ex + 2, ey + 3); br(ex + 3, ey + 3); br(ex + 4, ey + 4); return p;
+    br(ex + 1, ey + 4); br(ex + 2, ey + 3); br(ex + 3, ey + 3); br(ex + 4, ey + 4); p.eye = [ex + 2, ey + 1]; return p;
   }
   /** Fast floating creature (ghost), 26x30: translucent icy wisp whose tail dithers out; hollow eyes, open mouth. 6 frames. */
   function ghostPix(k) {
@@ -228,8 +240,7 @@
     const reach = Math.round(Math.sin(ph)); for (let i = 0; i < 5; i++) p.set(cx + 6 + i, 13 + Math.round(i * 0.5) + (i > 2 ? reach : 0), R.ice[i < 2 ? 6 : 5], 170);
     p.set(cx + 11, 15 + reach, R.ice[7], 170); p.set(cx + 10, 17 + reach, R.ice[6], 170); const HO = hx('#120c2c'), IN = hx('#2c2a6a'), fx = cx + 1;
     for (const ex of [fx - 3, fx + 1]) { for (const [dx, dy] of [[0, 7], [1, 7], [0, 8], [1, 8], [1, 9]]) p.set(ex + dx, dy, HO, 240, NORIM); p.set(ex, 9, IN, 240, NORIM); p.set(ex, 8, hx('#bff4ff'), 255, EMIT); }
-    for (const [x, y] of [[-1, 11], [0, 11], [-2, 12], [-1, 12], [0, 12], [1, 12], [-2, 13], [-1, 13], [0, 13], [1, 13], [-1, 14], [0, 14]]) p.set(fx + x, y, y === 13 && (x === -1 || x === 0) ? IN : HO, 240, NORIM);
-    return p;
+    for (const [x, y] of [[-1, 11], [0, 11], [-2, 12], [-1, 12], [0, 12], [1, 12], [-2, 13], [-1, 13], [0, 13], [1, 13], [-1, 14], [0, 14]]) p.set(fx + x, y, y === 13 && (x === -1 || x === 0) ? IN : HO, 240, NORIM); return p;
   }
   /** Round tree: cylinder-shaded trunk + canopy of leaf clusters lit by the whole crown's normal, 3x2-ish leaf cells. */
   function treePix(seed) {
@@ -276,31 +287,23 @@
     }
     return { p, ax: Math.floor(W / 2), ay: H - 1 };
   }
-
   /* ---- ground: posterised painterly grass + meadow with blossom pixels, decals, warm/cool light pools */
   function grassTex(seed, rmp, lo, hi) {
     const out = new Uint8Array(65536), n = hi - lo + 1; for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
       const v = 0.5 + (fbm(x / 64, y / 64, 4, seed, 3) - 0.5) * 1.5 + (fbm(x / 16, y / 16, 16, seed + 1, 2) - 0.5) * 0.6 + (fbm(x / 4, y / 4, 64, seed + 2, 1) - 0.5) * 0.32;
       out[(y << 8) | x] = lo + clamp(Math.floor(v * n), 0, n - 1);
-    }
-    return out;
+    } return out;
   }
-  function decal(p) {                                                                // tiny 1px cast shadow to the right
-    for (let y = p.h - 3; y < p.h; y++) for (let x = p.w - 1; x >= 0; x--) if (p.a(x, y) && !p.a(x + 1, y) && !(p.f[y * p.w + x] & NOOUT)) p.set(x + 1, y, SHADOW, 90, NOOUT);
-    return p.canvas();
-  }
+  function decal(p) { for (let y = p.h - 3; y < p.h; y++) for (let x = p.w - 1; x >= 0; x--) if (p.a(x, y) && !p.a(x + 1, y) && !(p.f[y * p.w + x] & NOOUT)) p.set(x + 1, y, SHADOW, 90, NOOUT); return p.canvas(); }  // 1px shadow to the right
   function tuftPix(g, rmp) {
-    const p = new Pix(7, 6), n = g.int(3, 5);
-    for (let b = 0; b < n; b++) { const bx = Math.round(6 * (b + 0.5) / n + g.range(-0.6, 0.6)), hg = g.int(3, 5), lean = g.range(-1.2, 1.2); for (let k = 0; k < hg; k++) { const t = k / (hg - 1); p.set(Math.round(bx + lean * t * t), 5 - k, rmp[clamp(Math.round(3 + t * (rmp.length - 4)), 0, rmp.length - 1)]); } }
-    return p;
+    const p = new Pix(7, 6), n = g.int(3, 5); for (let b = 0; b < n; b++) { const bx = Math.round(6 * (b + 0.5) / n + g.range(-0.6, 0.6)), hg = g.int(3, 5), lean = g.range(-1.2, 1.2); for (let k = 0; k < hg; k++) { const t = k / (hg - 1); p.set(Math.round(bx + lean * t * t), 5 - k, rmp[clamp(Math.round(3 + t * (rmp.length - 4)), 0, rmp.length - 1)]); } } return p;
   }
   function flowerPix(g, n) {
     const p = new Pix(9, 7); for (let i = 0; i < n; i++) {
       const x = g.int(1, 7), top = g.int(1, 4), C = g.pick([FLOWERS.pink, FLOWERS.white, FLOWERS.lav, FLOWERS.peach]);
       for (let k = 1; k <= 6 - top; k++) p.set(x, top + k, R.tops[k === 6 - top ? 2 : 3]);
       p.set(x, top - 1, C[2]); p.set(x - 1, top, C[2]); p.set(x + 1, top, C[1]); p.set(x, top + 1, C[0]); p.set(x, top, CENTER);
-    }
-    return p;
+    } return p;
   }
   function bakeGround(W, H, ox, oy) {
     const gA = grassTex(101, R.grass, 3, 7), gM = grassTex(303, R.meadow, 4, 8), c = mkCanvas(W, H), x2 = c.getContext('2d'), img = x2.createImageData(W, H), d = img.data;
@@ -311,27 +314,31 @@
     }
     for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
       const X = px + ox, Y = py + oy, t = ((Y & 255) << 8) | (X & 255); let col = R.grass[gA[t]]; const wm = sstep(0.42, 0.53, fbm(X / 170 + 31.7, Y / 170 - 12.3, 0, 23, 3));
-      if (wm > 0) { col = mix(col, R.meadow[gM[t]], wm); if (bt[t] < wm * 255) col = bc[t]; }
-      const fL = fbm(X / 120, Y / 120, 0, 67, 2), warm = sstep(0.56, 0.75, fL), cool = sstep(0.46, 0.28, fL); const o = (py * W + px) * 4;
+      const fL = fbm(X / 120, Y / 120, 0, 67, 2);
+      // blossoms gather in the sunlit pools of the meadow (and hide the tile repeat); open grass stays calm
+      if (wm > 0) { col = mix(col, R.meadow[gM[t]], wm); if (bt[t] < wm * 255 * sstep(0.47, 0.6, fL)) col = bc[t]; }
+      const warm = sstep(0.56, 0.75, fL), cool = sstep(0.46, 0.28, fL); const o = (py * W + px) * 4;
       d[o] = col[0] * (1 + 0.17 * warm - 0.1 * cool); d[o + 1] = col[1] * (1 + 0.07 * warm - 0.07 * cool); d[o + 2] = col[2] * (1 - 0.05 * warm + 0.06 * cool); d[o + 3] = 255;
     }
     x2.putImageData(img, 0, 0);
     const dg = rng(9001), tufts = [0, 1, 2, 3].map(() => decal(tuftPix(dg, R.grass.slice(2)))), tuftM = [0, 1, 2].map(() => decal(tuftPix(dg, R.meadow.slice(3)))), fl = [0, 1, 2, 3, 4].map(() => decal(flowerPix(dg, dg.int(3, 5))));
     for (let cy = Math.floor(oy / 15); cy <= (oy + H) / 15; cy++) for (let cx = Math.floor(ox / 15); cx <= (ox + W) / 15; cx++) {
       const r = rng(hashInt(cx, cy, 1302)), x = (cx + r.next()) * 15 - ox, y = (cy + r.next()) * 15 - oy, v = r.next();
-      const meadow = fbm((x + ox) / 170 + 31.7, (y + oy) / 170 - 12.3, 0, 23, 3) > 0.47, im = meadow ? (v < 0.25 ? r.pick(fl) : v < 0.45 ? r.pick(tuftM) : null) : (v < 0.22 ? r.pick(tufts) : v < 0.3 ? r.pick(fl) : null);
+      const meadow = fbm((x + ox) / 170 + 31.7, (y + oy) / 170 - 12.3, 0, 23, 3) > 0.47, bed = fbm((x + ox) / 120, (y + oy) / 120, 0, 67, 2),   // flower beds and tuft clumps follow the sunlit pools
+        im = meadow ? (bed > 0.58 ? (v < 0.6 ? r.pick(fl) : null) : bed > 0.52 ? (v < 0.28 ? r.pick(tuftM) : null) : v < 0.06 ? r.pick(tuftM) : null)
+          : (bed > 0.56 ? (v < 0.36 ? r.pick(tufts) : v < 0.46 ? r.pick(fl) : null) : v < 0.05 ? r.pick(tufts) : null);
       if (im) x2.drawImage(im, Math.round(x - im.width / 2), Math.round(y - im.height + 1));
     }
     return c;
   }
 
-  /* ---- baked sprite sets */
+  /* ---- baked sprite sets (main-character poses bake lazily, once per pose) */
   let S = null;
+  const both = (pix, o) => [finish(pix, o), finish(pix.flip(), Object.assign({}, o, { ox: pix.w - o.ox }))];
+  const HC = new Map(), hero = (s) => { const k = JSON.stringify(s); let v = HC.get(k); if (!v) HC.set(k, (v = both(heroPix(s), { ox: 13, oy: 34 }))); return v; };
   function build() {
-    const both = (pix, o) => [finish(pix, o), finish(pix.flip(), Object.assign({}, o, { ox: pix.w - o.ox }))];
-    S = { hero: [[0, 1, 2, 3, 4, 5].map((k) => both(heroPix(1, k), { ox: 13, oy: 32 })), [0, 1, 2, 3].map((k) => both(heroPix(0, k), { ox: 13, oy: 32 }))],
-      heroSh: makeShadow(heroPix(0, 0), 13, 32, { contact: 6, alpha: 0.32 }), crSh: makeShadow(creeperPix(0), 12, 28, { contact: 6, alpha: 0.3 }),
-      cr: [0, 1, 2, 3, 4, 5].map((k) => both(creeperPix(k), { ox: 12, oy: 28 })),
+    S = { heroSh: makeShadow(heroPix(HWALK[2]), 13, 34, { contact: 6, alpha: 0.32 }), crSh: makeShadow(creeperPix(CHOP[0]), 12, 36, { contact: 6, alpha: 0.3 }),
+      cr: CHOP.map((c) => { const pix = creeperPix(c), v = both(pix, { ox: 12, oy: 36 }); v.ex = pix.eye[0] + 0.5 - 12; v.ey = pix.eye[1] + 0.5 - 36; return v; }),
       gh: [0, 1, 2, 3, 4, 5].map((k) => both(ghostPix(k), { ox: 12, oy: 30, rim: hx('#f4ffff'), rimA: 0.5, cool: hx('#7466e6'), coolA: 0.3, outA: 0.55, dark: hx('#141640'), lit: hx('#3a4a9a') })) };
     const prop = (r, fin) => { const s = finish(r.p, Object.assign({ ox: r.ax, oy: r.ay }, fin)); s.sh = makeShadow(r.p, r.ax, r.ay, { kx: 0.78, ky: 0.28, alpha: 0.3 }); return s; };
     S.tree = prop(treePix(11), { rim: hx(PALETTE.rimLeaf), rimA: 0.5, coolA: 0.26 }); S.shroom = prop(shroomPix(81), { rimA: 0.25 }); S.rock = prop(rockPix(41, 22, 14), {});
@@ -347,18 +354,22 @@
   }
   const spr = (ctx, s, x, y) => ctx.drawImage(s.c, Math.round(x) - s.ox, Math.round(y) - s.oy);
 
-  /** Draws the main character with feet at (x, y) in art pixels (1 px = 1 world unit). t = seconds, facing = 1 | -1. */
+  /** Main character, feet at (x, y) in art pixels; t = seconds, facing = 1 | -1. Walk: 8 poses at 12 fps; idle: breath (head 0.16 s late) + blink. */
   function drawHero(ctx, x, y, t, facing, moving = true) {
-    if (!S) build(); const fr = moving ? S.hero[0][Math.floor(t * 9) % 6] : S.hero[1][Math.floor(t * 3.2) % 4]; spr(ctx, fr[facing < 0 ? 1 : 0], x, y);
-    drawGlow(ctx, 'warm', 14, x + facing * 1.5, y - 21, 0.3 * (0.85 + 0.1 * Math.sin(t * 8.1) + 0.05 * Math.sin(t * 19.3)));  // face glow
+    if (!S) build(); let s;
+    if (moving) s = HWALK[Math.floor(t * 12) & 7];
+    else { const br = Math.floor(t / 0.65) & 1, hb = (Math.floor((t - 0.16) / 0.65) & 1) - br; s = { bob: br, a: 1, b: -2, la: 0, lb: 0, arm: 0, flap: 0, hb, face: (t % 3.4) < 0.12 ? 'blink' : 'n' }; }
+    spr(ctx, hero(s)[facing < 0 ? 1 : 0], x, y);
+    drawGlow(ctx, 'warm', 14, x + facing * 1.5, y - 22 + s.bob + s.hb, 0.3 * (0.85 + 0.1 * Math.sin(t * 8.1) + 0.05 * Math.sin(t * 19.3)));  // face glow
   }
-  /** Draws a typical creature with feet at (x, y). kind: 'creeper' (default) | 'ghost'. */
+  /** Draws a typical creature with feet at (x, y). kind: 'creeper' (default, hops) | 'ghost' (eased float). seed = per-actor phase. */
   function drawEnemy(ctx, x, y, t, kind = 'creeper', facing = -1, seed = 0) {
     if (!S) build(); const f = facing < 0 ? 1 : 0; if (kind === 'ghost') {
-      const fy = y - 4 - Math.round(Math.sin(t * 3 + seed * 9) * 1.5); ctx.globalAlpha = 0.92; spr(ctx, S.gh[Math.floor(t * 9 + seed * 6) % 6][f], x, fy); ctx.globalAlpha = 1;
-      drawGlow(ctx, 'ice', 9, x, fy - 14, 0.16);
+      const fy = y - 3 - [0, 0, 1, 2, 3, 3, 2, 1][Math.floor(t * 7 + seed * 8) & 7];   // eased float: holds at the top and bottom
+      ctx.globalAlpha = 0.92; spr(ctx, S.gh[Math.floor(t * 9 + seed * 6) % 6][f], x, fy); ctx.globalAlpha = 1;
+      drawGlow(ctx, 'ice', 9, x, fy - 22, 0.16);
     } else {
-      spr(ctx, S.cr[Math.floor(t * 5.5 + seed * 6) % 6][f], x, y); drawGlow(ctx, 'eye', 3, x + (facing < 0 ? -2 : 3), y - 14, 0.45);
+      const v = S.cr[CHOP_T[Math.floor(t * 11 + seed * 12) % 12]]; spr(ctx, v[f], x, y); drawGlow(ctx, 'eye', 3, x + (f ? -v.ex : v.ex), y + v.ey, 0.45);
     }
   }
 

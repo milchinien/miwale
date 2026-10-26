@@ -113,9 +113,14 @@
 
   // ---------- sprites: glyph rows + colour-key rows ('.' = no cell, 'K' = plate only) ----------
   const KEY = { H: P.a5, A: P.a3, a: P.a2, w: P.a1, Y: P.a4, W: P.g6, g: P.g4, d: P.g3, e: P.g2, C: P.c4, b: P.c2, R: P.r2, r: P.r1, S: P.r3 };
-  const HERO_ARMS = ['/█\\', '-█\\', '/█\\', '/█-'], HERO_LEGS = ['/ \\', ' |\\', '/ \\', '/| '];
-  const heroDef = (f) => ({ g: [' @ ', HERO_ARMS[f], HERO_LEGS[f]], k: ['.H.', 'AaA', [...HERO_LEGS[f]].map((c) => (c === ' ' ? 'K' : 'a')).join('')] });
-  const CRAWL = { g: [['(ö)', '/"\\'], ['(ö)', '\\"/']], k: ['gWg', 'dgd'] };
+  // main character: held glyph poses – 8 walk (legs and arms swap through distinct glyphs, the scarf cell lags one pose), 8 = blink
+  const HERO_POSE = [
+    ['~@ ', '/█\\', '/ \\'], ['~@ ', '-█\\', '/| '], ['-@ ', '|█|', ' | '], ['-@ ', '/█-', ' |\\'],
+    ['~@ ', '/█\\', '/ \\'], ['~@ ', '/█-', ' |\\'], ['-@ ', '|█|', ' | '], ['-@ ', '-█\\', '/| '], [',o ', '/█\\', '/ \\'],
+  ];
+  const heroDef = (f) => { const p = HERO_POSE[f]; return { g: p, k: ['aH.', [...p[1]].map((c, i) => (c === ' ' ? 'K' : i === 1 ? 'a' : 'A')).join(''), [...p[2]].map((c) => (c === ' ' ? 'K' : 'a')).join('')] }; };
+  // small creature: 4 scuttle poses + a blink pose on its own timer
+  const CRAWL = { g: [['(ö)', '/"\\'], ['(ö)', '|"|'], ['(ö)', '\\"/'], ['(ö)', '|"|'], ['(-)', '|"|']], k: ['gWg', 'dgd'] };
   const SPIRIT = ['(*)', '{+}', '(×)', '<*>', '{x}', '(+)'];
   const BRUTE = { g: [['▀▄   ▄▀', '▄█O█O█▄', '█▀vvv▀█', '▀ █ █ ▀'], ['▀▄   ▄▀', '▄█O█O█▄', '█▀vvv▀█', ' █ ▀ █ ']], k: [['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'rKrKrKr'], ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'KrKrKrK']] };
   const PINE = { g: ['  ^  ', ' ^^^ ', '^^^^^', ' ^^^ ', '^^^^^', '  |  '], k: ['..g..', '.ggg.', 'ddgdd', '.ddd.', 'eddde', '..w..'] };
@@ -155,7 +160,7 @@
 
   function drawHero(ctx, x, y, t, facing) {
     const A = getAtlas(CW * (ctx.__S || 1), CH * (ctx.__S || 1));
-    const f = Math.floor(t * 4.6) & 3, left = (facing || 1) < 0;
+    const f = t % 3.6 < 0.16 ? 8 : Math.floor(t * 9) % 8, left = (facing || 1) < 0; // held poses at ~9 fps, blink every 3.6 s
     const s = spr('hero' + f + left, left ? mirror(heroDef(f)) : heroDef(f), A);
     put(ctx, s, A, Math.floor(x / A.cw), Math.floor(y / A.ch), 0, 0);
     if (Math.floor(t / 0.53) & 1) cell(ctx, A, '▁', P.a3, true, Math.floor(x / A.cw), Math.floor(y / A.ch) + 1, 0, 0);   // the cursor it stands on
@@ -166,7 +171,7 @@
     let def, key;
     if (kind === 'spirit') { const f = Math.floor(t * 11 + i * 3) % SPIRIT.length; def = { g: [SPIRIT[f]], k: ['bCb'] }; key = 'sp' + f; }
     else if (kind === 'brute') { const f = Math.floor(t * 2.2) & 1; def = { g: BRUTE.g[f], k: BRUTE.k[f] }; key = 'br' + f; }
-    else { const f = Math.floor(t * 3 + i) & 1; def = { g: CRAWL.g[f], k: CRAWL.k }; key = 'cr' + f; }
+    else { const f = (t * 0.33 + i * 0.37) % 1 < 0.05 ? 4 : Math.floor(t * 6 + i) % 4; def = { g: CRAWL.g[f], k: CRAWL.k }; key = 'cr' + f; } // own phase per actor
     if (left && kind !== 'spirit') { def = mirror(def); key += 'l'; }
     put(ctx, spr(key, def, A), A, c, r, 0, 0);
   }
@@ -193,8 +198,8 @@
     const F = fbm(x * 1.3 - 5, y * 1.3 + 2, 31);
     if (F > 0.58) { const dn = Math.min(1, (F - 0.58) / 0.1); return r < 0.08 + dn * 0.4 ? [r2 < 0.45 ? '♣' : r2 < 0.8 ? '♠' : '^', r < 0.06 ? P.g3 : P.g2, dn > 0.35 ? P.fbg : null] : [r < 0.5 ? '.' : ' ', P.g1, dn > 0.35 ? P.fbg : null]; }
     const m = fbm(x * 3, y * 3, 13);
-    if (r < 0.006) return ['*', P.a2, null];
-    if (r2 > 0.08 + m * 0.36) return [' ', P.g1, null];
+    if (m > 0.5 && fbm(Math.floor(x * 2), Math.floor(y * 4), 77) > 0.62 && r < 0.3) return ['*', r2 < 0.5 ? P.a2 : P.a1, null]; // flower beds, not a sprinkle
+    if (r2 > 0.04 + m * 0.4) return [' ', P.g1, null];
     return m > 0.58 ? ['",;\''[(r * 997 | 0) % 4], r < 0.25 ? P.g3 : P.g2, null] : ['.,\'`'[(r * 997 | 0) % 4], r < 0.38 ? P.g2 : P.g1, null];
   }
   function bakeGround(w, h, A) {

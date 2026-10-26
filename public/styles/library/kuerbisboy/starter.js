@@ -77,23 +77,6 @@
   function dot(ctx, x, y, ci, w = 1, h = 1) { ctx.fillStyle = HEX[ci]; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
 
   /* ---------- sprites (grids verbatim from the module) ---------- */
-  const JACK_HEAD = ['....11....', '.22211222.', '2221221222', '2223222322', '2233323332',
-    '2222222221', '2322222231', '2333233332', '.22322322.', '..222222..'];
-  const JB0 = '...113311...';
-  const JACK_BODY = {
-    idle: [JB0, '..21111112..', '...111111...', '...11..11...'],
-    w0: [JB0, '.321111112..', '...111111...', '..11...11...'],
-    w1: [JB0, '.321111112..', '...111111...', '...11.11....'],
-    w2: [JB0, '.321111112..', '...111111...', '...11...11..'],
-    w3: [JB0, '.321111112..', '...111111...', '....11.11...'],
-  };
-  const CREEP = ['..2..2..2.', '..22.2.22.', '...21212..', '..111111..', '.11111111.',
-    '1113010311', '1113313311', '2121212121', '.33300332.', '..333322..'];
-  const CREEP_LEGS = [['..1.32.1..', '.1......1.'], ['..1.32.1..', '..1....1..'], ['..1.32.1..', '.1......1.'], ['..1.321...', '..1...1...']];
-  const GHOST_BODY = ['...33333...', '..3333333..', '.333333333.', '.333003003.', '3333003003.',
-    '33333333323', '3333330032.', '3333330032.', '.333333332.', '..3333332..'];
-  const GHOST_TAIL = [['..33332....', '..332......', '.33........', '.3.........'],
-    ['...33332...', '...3332....', '....33.....', '.....3.....'], ['..33332....', '.3332......', '.33........', '3..........']];
   const LANTERN = [['.1...1.', '..1.1..', '.11111.', '1131311', '2333332', '.23032.', '..222..', '...2...'],
     ['.1...1.', '..1.1..', '.11111.', '1121211', '2222222', '.22022.', '..222..', '...2...']];
   const PROPS = {
@@ -104,55 +87,100 @@
   const FONT = { 0: ['111', '101', '101', '101', '111'], 1: ['110', '010', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'],
     3: ['111', '001', '011', '001', '111'], 4: ['101', '101', '111', '001', '001'], '!': ['1', '1', '1', '0', '1'] };
 
-  /** Main character (pumpkin-headed figure): body rows + head rows composed into one 12x14 grid, then dark outline + light halo. */
-  function jackFrame(body, headDy = 0) {
-    const g = IG(12, 14).rows(JACK_BODY[body], 0, 10).rows(JACK_HEAD, 1, headDy);
-    return sset(outline(outline(g), 3));
+  /* ---------- figures: posed from parts on a char grid → palette-index grid (0 ink, 1 rust, 2 pumpkin, 3 cream) ---------- */
+  function charGrid(w, h) {
+    const a = []; for (let y = 0; y < h; y++) a.push(new Array(w).fill('.'));
+    a.set = (x, y, ch) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < w && y < h) a[y][x] = ch; };
+    a.toIG = (map) => { const g = IG(w, h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (map[a[y][x]] !== undefined) g.set(x, y, map[a[y][x]]); return g; };
+    return a;
   }
-  function creeperFrame(f) {
-    const g = IG(10, 12).rows(CREEP).rows(CREEP_LEGS[f], 0, 10);
-    if (f === 1) { g.set(2, 0, -1); g.set(1, 0, 2); }
-    if (f === 3) { g.set(8, 0, -1); g.set(9, 0, 2); }
-    return sset(outline(g));
+  // main character: legs table [x0, x1, row] (far leg rust, near leg ink), arm + hand tables, scarf shapes
+  const JLEGS = {
+    stand: [[[4, 4, 0], [4, 4, 1], [3, 4, 2]], [[6, 6, 0], [6, 6, 1], [6, 7, 2]]], cA: [[[4, 4, 0], [3, 3, 1], [2, 3, 2]], [[6, 6, 0], [7, 7, 1], [7, 8, 2]]],
+    pA: [[[4, 4, 0], [5, 6, 1]], [[5, 5, 0], [5, 5, 1], [5, 6, 2]]], uA: [[[5, 5, 0], [6, 7, 1]], [[5, 5, 0], [5, 5, 1], [4, 5, 2]]],
+    cB: [[[5, 5, 0], [6, 6, 1], [6, 7, 2]], [[4, 4, 0], [3, 3, 1], [2, 3, 2]]], pB: [[[5, 5, 0], [5, 5, 1], [4, 5, 2]], [[6, 6, 0], [7, 8, 1]]],
+    uB: [[[5, 5, 0], [5, 5, 1], [4, 5, 2]], [[6, 6, 0], [7, 9, 1]]],
+  };
+  const JARM = { n: [[[5, 1]], [5, 2]], f: [[[6, 1], [7, 1]], [8, 2]], b: [[[4, 1], [3, 1]], [2, 2]] }, JARMF = { f: [[[8, 1]], [9, 2]], b: [[[2, 1]], [1, 2]] };
+  const JSCARF = { hang: [[2, 0], [2, 1], [1, 2, 'S']], w0: [[2, 0], [1, 0], [0, 1, 'S']], w1: [[2, 0], [1, 1], [0, 1, 'S']] };
+  const JWALK = [['cA', 0, 'b', 'f'], ['cA', 1, 'b', 'f'], ['pA', 0, 'n', 'h'], ['uA', -1, 'n', 'h'], ['cB', 0, 'f', 'b'], ['cB', 1, 'f', 'b'], ['pB', 0, 'n', 'h'], ['uB', -1, 'n', 'h']]
+    .map(([legs, bob, na, fa]) => ({ legs, bob, na, fa }));
+  JWALK.forEach((w, i) => { w.hb = JWALK[(i + 7) & 7].bob - w.bob; w.sc = (((i + 1) >> 1) & 1) ? 'w1' : 'w0'; w.leaf = w.hb > 0 ? 1 : 0; }); // head lands a frame late
+  function jackGrid(o) {
+    const g = charGrid(12, 16), F = 13, T = F - 4 + o.bob;
+    if (JARMF[o.fa]) { for (const [x, y] of JARMF[o.fa][0]) g.set(x, T + y, 'k'); g.set(JARMF[o.fa][1][0], T + JARMF[o.fa][1][1], 'w'); }
+    JLEGS[o.legs].forEach((leg, near) => {
+      for (const s of leg) for (let x = s[0]; x <= s[1]; x++) g.set(x, F + s[2], near ? 'n' : 'k');
+      if (o.bob < 0) for (let x = leg[0][0]; x <= leg[0][1]; x++) g.set(x, F - 1, near ? 'n' : 'k');    // hip row on "up" frames
+    });
+    for (const q of JSCARF[o.sc]) g.set(q[0], T + q[1], q[2] || 's');
+    for (let y = 0; y < 4; y++) for (let x = 3; x <= 7; x++) if (!(y === 3 && (x === 3 || x === 7))) g.set(x, T + y, y === 0 ? 's' : y === 2 ? (x === 5 ? 's' : 'b') : y === 3 ? 'n' : 'c');
+    if (JARM[o.na]) { for (const [x, y] of JARM[o.na][0]) g.set(x, T + y, 'n'); g.set(JARM[o.na][1][0], T + JARM[o.na][1][1], 'w'); }
+    const H = T - 6 + o.hb;
+    for (let y = 0; y < 7; y++) for (let x = 0; x < 10; x++) {
+      const nx = (x + 0.5 - 5) / 5, ny = (y + 0.5 - 3.5) / 3.5;
+      if (nx * nx + ny * ny <= 1.08) g.set(x + 1, H + y, ny > 0.6 || ((x === 2 || x === 7) && (y === 0 || y === 6)) ? 'd' : 'o');
+    }
+    g.set(3, H + 1, 'h'); g.set(4, H + 1, 'h');
+    for (const cx of [5, 8]) if (o.blink) { g.set(cx - 1, H + 3, 'y'); g.set(cx, H + 3, 'y'); } else { g.set(cx - 1, H + 2, 'Y'); g.set(cx, H + 2, 'y'); g.set(cx - 1, H + 3, 'y'); g.set(cx, H + 3, 'y'); }
+    for (let x = 4; x <= 9; x++) g.set(x, H + 5, x === 6 ? 'Y' : 'y');
+    g.set(3, H + 4, 'y'); g.set(10, H + 4, 'y'); g.set(6, H - 1, 'g');
+    g.set(7, H - 1 - o.leaf, 'l'); g.set(8, H - 1 - o.leaf, 'l');
+    return g.toIG({ o: 2, d: 1, h: 3, y: 0, Y: 3, g: 0, l: 1, s: 3, S: 2, c: 1, b: 2, n: 0, k: 1, w: 3 });
   }
-  /** Fast creature (ghost): solid body, outlined, then the lower rows dissolve with Bayer dither (fake transparency). */
+  // small creature: bulb ellipse per hop frame (squash → push → stretch → fall), leaf crown lags the body
+  const CHOP = [{ w: 5.3, h: 6, b: 11, sp: 2 }, { w: 4.5, h: 7, b: 11, sp: 1 }, { w: 3.9, h: 8, b: 9, sp: 2 }, { w: 4.5, h: 7, b: 10, sp: 0 }];
+  const CCROWN = [[[0, -2], [0, -3], [-1, -1], [-2, -2], [1, -1], [2, -2]], [[0, -2], [1, -3], [-1, -1], [-2, -2], [-3, -2], [1, -1], [2, -1], [3, -2]], [[1, -2], [-1, -1], [-2, -1], [-3, -1], [1, -1], [2, -1], [3, -1]]];
+  const CLEGS = [[[3, 1], [2, 2], [9, 1], [10, 2]], [[4, 1], [4, 2], [8, 1], [8, 2]], [[5, 1], [7, 1], [6, 2]], [[4, 1], [3, 2], [8, 1], [9, 2]]];
+  function creeperGrid(f) {
+    const g = charGrid(12, 14), H = CHOP[f], top = H.b - H.h + 1, cy = top + H.h / 2;
+    for (let y = top; y <= H.b; y++) for (let x = 0; x < 12; x++) {
+      const nx = (x + 0.5 - 6) / H.w, ny = (y + 0.5 - cy) / (H.h / 2);
+      if (nx * nx + ny * ny <= 1.04) g.set(x, y, nx > -0.75 && nx < -0.2 && ny > -0.9 && ny < -0.45 ? 'p' : ny < -0.05 ? 'T' : ny < 0.2 && ((x + y) & 1) ? 'T' : 'B');
+    }
+    const ey = top + Math.max(1, Math.round(H.h * 0.3)), my = top + Math.round(H.h * 0.66);
+    for (const ex of [4, 7]) { g.set(ex, ey, 'e'); g.set(ex + 1, ey, 'k'); }
+    g.set(5, ey - 1, 'k'); g.set(7, ey - 1, 'k');
+    for (let x = 4; x <= 8; x++) g.set(x, my, x === 5 || x === 7 ? 'e' : 'k');
+    for (let x = 5; x <= 7; x++) g.set(x, my + 1, 'k');
+    g.set(6, top, 'G'); for (const [dx, dy] of CCROWN[H.sp]) g.set(6 + dx, top + dy + 1, 'L');
+    for (const [x, y] of CLEGS[f]) g.set(x, H.b + y, 'T');
+    return g.toIG({ T: 1, B: 2, p: 2, e: 3, k: 0, L: 2, G: 1 });
+  }
+  // fast creature: hooded ghost, row widths for hood, body and a waving tail; lower rows dissolve with Bayer dither
   function ghostFrame(f) {
-    const o = outline(IG(11, 14).rows(GHOST_BODY).rows(GHOST_TAIL[f], 0, 10)), g = IG(o.w, o.h);
+    const c = charGrid(13, 16);
+    for (let y = 0; y < 16; y++) {
+      const k = (y - 9) / 7, hw = y <= 4 ? 4.7 * Math.sqrt(Math.max(0, 1 - ((4.6 - y) / 4.9) ** 2)) : y < 9 ? 4.7 - (y - 5) * 0.12 : 4 * (1 - k) + 0.5;
+      const off = y < 9 ? 0 : Math.round(Math.sin(f * Math.PI / 2 + y * 0.85) * 1.2 - k * 2.6);
+      for (let x = 0; x < 13; x++) { const dx = x + 0.5 - 6.5 - off; if (Math.abs(dx) <= hw) c.set(x, y, y >= 9 ? (Math.abs(dx) > hw - 1.2 ? 'D' : 'S') : y >= 6 && dx < -hw + 1.8 ? 'S' : 'W'); }
+    }
+    for (const [x, y] of [[6, 2], [7, 2], [6, 3], [7, 3], [9, 2], [10, 2], [9, 3], [10, 3], [8, 7], [9, 7]]) c.set(x, y, 'k');
+    c.set(11, 5, 'W'); c.set(12, 6, 'W');
+    const o = outline(c.toIG({ W: 3, S: 2, D: 1, k: 0 })), g = IG(o.w, o.h);
     for (let y = 0; y < o.h; y++) {
-      const lv = y < 9 ? 1 : y < 11 ? 0.75 : y < 13 ? 0.5 : 0.3;
+      const lv = y < 10 ? 1 : y < 12 ? 0.75 : y < 14 ? 0.55 : 0.35;
       for (let x = 0; x < o.w; x++) { const v = o.a[y * o.w + x]; if (v >= 0 && bay(x + f, y + f * 2) < lv) g.a[y * o.w + x] = v; }
     }
     return sset(g);
   }
+
   /** Large creature (root colossus): procedural dithered ellipse body (4 stomp frames), cracks, angry eyes, pulsing core, leaf crown. */
   function colossusFrame(f) {
-    const W = 26, H = 27, g = IG(W, H);
-    const bob = (f === 1 || f === 3) ? -1 : 0, legL = f === 1 ? -2 : 0, legR = f === 3 ? -2 : 0;
-    for (let y = 20; y < 25; y++) {
-      for (let x = 8; x < 12; x++) g.set(x, y + legL, x === 8 ? 2 : 1);
-      for (let x = 14; x < 18; x++) g.set(x, y + legR, x === 14 ? 2 : 1);
-    }
-    const cx = 13, cy = 12.5 + bob, rx = 8.8, ry = 8.6;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
-      if (dx * dx + dy * dy > 1) continue;
-      const t = (y + 0.5 - (cy - ry)) / (2 * ry), ck = (x + y) & 1;
+    const W = 26, H = 27, g = IG(W, H); const bob = (f === 1 || f === 3) ? -1 : 0, legL = f === 1 ? -2 : 0, legR = f === 3 ? -2 : 0; for (let y = 20; y < 25; y++) {
+      for (let x = 8; x < 12; x++) g.set(x, y + legL, x === 8 ? 2 : 1); for (let x = 14; x < 18; x++) g.set(x, y + legR, x === 14 ? 2 : 1); }
+    const cx = 13, cy = 12.5 + bob, rx = 8.8, ry = 8.6; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry; if (dx * dx + dy * dy > 1) continue; const t = (y + 0.5 - (cy - ry)) / (2 * ry), ck = (x + y) & 1;
       let c = t < 0.4 ? 1 : t < 0.48 ? (ck ? 2 : 1) : t < 0.7 ? 2 : t < 0.78 ? (ck ? 3 : 2) : 3;
-      if (dx > 0.62) c = Math.max(c === 3 ? 2 : 1, c - 1); else if (dx > 0.45 && ck) c = Math.max(1, c - 1);
-      if (dx < -0.55 && t > 0.15 && t < 0.4 && ck) c = 2;
-      g.set(x, y, c);
-    }
-    const B = (pts, c) => { for (const [x, y] of pts) g.set(x, y + bob, c); };
-    B([[6, 7], [7, 8], [7, 9], [19, 6], [20, 7], [19, 8], [11, 4], [12, 5], [16, 4]], 0);
+      if (dx > 0.62) c = Math.max(c === 3 ? 2 : 1, c - 1); else if (dx > 0.45 && ck) c = Math.max(1, c - 1); if (dx < -0.55 && t > 0.15 && t < 0.4 && ck) c = 2;
+      g.set(x, y, c); }
+    const B = (pts, c) => { for (const [x, y] of pts) g.set(x, y + bob, c); }; B([[6, 7], [7, 8], [7, 9], [19, 6], [20, 7], [19, 8], [11, 4], [12, 5], [16, 4]], 0);
     B([[7, 8], [8, 9], [9, 9], [10, 10], [11, 10], [19, 8], [18, 9], [17, 9], [16, 10], [15, 10]], 0);
-    B([[8, 10], [9, 10], [9, 11], [10, 11], [18, 10], [17, 10], [17, 11], [16, 11]], 3);
-    B([[13, 13], [12, 14], [13, 14], [14, 14], [13, 15]], 3);
-    B([[13, 12], [12, 13], [14, 13], [11, 14], [15, 14], [12, 15], [14, 15], [13, 16]], f & 1 ? 0 : 1);
-    const sw = f === 1 ? 1 : f === 3 ? -1 : 0;
+    B([[8, 10], [9, 10], [9, 11], [10, 11], [18, 10], [17, 10], [17, 11], [16, 11]], 3); B([[13, 13], [12, 14], [13, 14], [14, 14], [13, 15]], 3);
+    B([[13, 12], [12, 13], [14, 13], [11, 14], [15, 14], [12, 15], [14, 15], [13, 16]], f & 1 ? 0 : 1); const sw = f === 1 ? 1 : f === 3 ? -1 : 0;
     for (let i = 0; i < 8; i++) {
       const yl = 10 + i + bob + (i > 3 ? sw : 0), yr = 10 + i + bob - (i > 3 ? sw : 0), xl = i < 3 ? 2 : 1, xr = i < 3 ? 23 : 24;
-      g.set(xl, yl, 1); g.set(xl + 1, yl, i < 6 ? 2 : 1); g.set(xr, yr, 1); g.set(xr - 1, yr, 1);
-    }
+      g.set(xl, yl, 1); g.set(xl + 1, yl, i < 6 ? 2 : 1); g.set(xr, yr, 1); g.set(xr - 1, yr, 1); }
     g.rows(['...2......2.....2...', '..212....212...212..', '..212....212...212..', '...212...212..212...', '....21...212..12....', '.....11.11111.1.....'], 3, bob);
     return sset(outline(g));
   }
@@ -217,8 +245,9 @@
   let SPR = null;
   function build() {
     SPR = {
-      jack: { idle: [jackFrame('idle', 0), jackFrame('idle', 1)], walk: ['w0', 'w1', 'w2', 'w3'].map((b) => jackFrame(b)) },
-      creeper: [0, 1, 2, 3].map(creeperFrame), ghost: [0, 1, 2].map(ghostFrame), colossus: [0, 1, 2, 3].map(colossusFrame),
+      walk: JWALK.map((w) => sset(outline(outline(jackGrid(w)), 3))),     // ink outline + cream halo
+      idle: [0, 1].map((bob) => [0, 1].map((blink) => sset(outline(outline(jackGrid({ legs: 'stand', bob, hb: 0, na: 'n', fa: 'h', sc: 'hang', leaf: bob, blink })), 3)))),
+      creeper: [0, 1, 2, 3].map((k) => sset(outline(creeperGrid(k)))), ghost: [0, 1, 2, 3].map(ghostFrame), colossus: [0, 1, 2, 3].map(colossusFrame),
       lantern: LANTERN.map((r) => toCanvas(outline(IG(7, 8).rows(r)))), haloS: haloSprite(3, 7, 0.45), haloP: haloSprite(5, 8.5, 0.5),
       seed: [['333', '322'], ['32', '33', '23'], ['33.', '.33'], ['.33', '33.']].map((s) => toCanvas(outline(IG(s[0].length, s.length).rows(s)))),
       gem: [['.2.', '233', '.3.'], ['.3.', '332', '.2.']].map((r) => toCanvas(outline(IG(3, 3).rows(r)))),
@@ -231,7 +260,7 @@
   /* ---------- ground: per-art-pixel patterns in the 3 light shades (ground never uses ink) ---------- */
   function grassPx(gx, gy, mac) { // sparse 'v' tufts on cream, staggered 6x5 cells
     const cy = Math.floor(gy / 5), sx = gx + ((cy & 1) ? 3 : 0), cx = Math.floor(sx / 6), h = hashInt(cx, cy, 77);
-    if ((h & 1023) / 1024 < 0.06 + 0.5 * mac) {
+    if ((h & 1023) / 1024 < mac) {          // density from the caller: high near edges, tiny on open meadow
       const lx = sx - cx * 6 - (h >>> 10) % 4, ly = gy - cy * 5 - (h >>> 13) % 3;
       if (((h >>> 16) & 3) < 3) { if ((ly === 0 && (lx === 0 || lx === 2)) || (ly === 1 && lx === 1)) return 2; }
       else if ((lx === 0 || lx === 2) && (ly === 0 || ly === 1) && !(lx === 2 && ly === 0)) return 2;
@@ -290,7 +319,7 @@
       if (s.rv < 0 || (s.rv < 1.2 && ((gx + gy) & 1) === 0)) { mat[k] = M_ROAD; col[k] = roadPx(gx, gy); }  // dithered road fringe
       else if (s.fv > 0) { mat[k] = M_FIELD; col[k] = fieldPx(gx, gy, s.fo); }
       else if (s.tv > 0) { mat[k] = M_TALL; col[k] = tallPx(gx, gy); }
-      else { mat[k] = M_GRASS; col[k] = grassPx(gx, gy, s.mac); }
+      else { const e = Math.max(0, 1 - Math.min(s.rv, -s.fv, -s.tv * 40) / 9); mat[k] = M_GRASS; col[k] = grassPx(gx, gy, 0.008 + 0.62 * e * e + 0.3 * Math.max(0, Math.min(1, (s.mac - 0.7) / 0.15))); }
     }
     for (let j = 1; j < H - 1; j++) for (let i = 1; i < W - 1; i++) { // edge pass: crisp outlined borders + dithered drop shadow
       const k = j * W + i, m = mat[k];
@@ -320,18 +349,18 @@
     ctx.putImageData(img, 0, 0); return c;
   }
 
-  /** Draws the main character with feet at art-pixel (x, y). t = seconds, facing = 1 | -1. */
+  /** Draws the main character with feet at art-pixel (x, y): 8-pose walk at ~12 fps, idle breath + blink. t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing = 1, moving = true) {
     if (!SPR) build();
-    const k = Math.floor(t * 7) & 3, fr = moving ? SPR.jack.walk[k] : SPR.jack.idle[Math.floor(t * 2.2) & 1];
-    blit(ctx, facing < 0 ? fr.l : fr.r, x, y + 2, 0.5, 1, moving && (k & 1) ? -1 : 0);
+    const fr = moving ? SPR.walk[Math.floor(t * 12) & 7] : SPR.idle[Math.floor(t / 1.1) & 1][(t % 3.4) < 0.13 ? 1 : 0];
+    blit(ctx, facing < 0 ? fr.l : fr.r, x, y + 2, 0.5, 1);
   }
-  /** Draws a typical creature with feet at (x, y). type: creeper (small root bulb) | ghost (fast floater) | colossus (large); flash = palette-inverted flash frame. */
+  /** Draws a typical creature with feet at (x, y). type: creeper (hopping root) | ghost (fast floater) | colossus (large); flash = inverted frame. */
   function drawEnemy(ctx, x, y, t, type = 'creeper', seed = 0, flash = false, facing = -1) {
     if (!SPR) build();
-    const set = SPR[type], ghost = type === 'ghost', big = type === 'colossus';
-    const f = Math.floor(t * (ghost ? 6 : big ? 4 : 7) + seed * 7) % set.length, fr = set[f];
-    const oy = ghost ? -3 - (Math.floor(t * 3 + seed * 6) & 1) : !big && (f & 1) ? -1 : 0;
+    const set = SPR[type], ghost = type === 'ghost', big = type === 'colossus', tt = t + seed * 10;
+    const fr = set[Math.floor(tt * (ghost ? 7 : big ? 4 : 6)) % set.length];
+    const oy = ghost ? -3 - [0, 0, 1, 2, 3, 3, 2, 1][Math.floor(tt * 5) & 7] : 0;      // eased float: holds at top and bottom
     blit(ctx, flash ? (facing < 0 ? fr.li : fr.ri) : (facing < 0 ? fr.l : fr.r), x, y + 2, 0.5, 1, oy);
   }
 

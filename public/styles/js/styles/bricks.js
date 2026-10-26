@@ -432,39 +432,55 @@
   }
 
   /* ================================ brick models ================================ */
-  // small creature: a red brick beetle with eye studs and side feet (4 x 3 x 6)
-  function beetleModel(f) {
-    const m = new Bk(4, 3, 6);
-    const st = [0, 1, 0, 1][f], bob = [0, 0, 0, 0][f];
-    // side feet scuttle front/back by one stud
+  // small creature, two designed variants (4 x 3 x 7): a red brick beetle with eye studs, or a yellow striped beetle with an antenna.
+  // f 0-5 scuttle poses (feet step one stud, the body hops one plate, the eyes lag the hop), 6 hit pose (jumps up, feet out, X eyes)
+  function beetleModel(f, v = 0) {
+    const m = new Bk(4, 3, 9);
+    const hit = f >= 6;
+    const st = hit ? 0 : [0, 0, 1, 1, 1, 0][f], bob = hit ? 1 : [0, 1, 0, 0, 1, 0][f], eyeBob = hit ? 1 : [0, 0, 1, 0, 0, 1][f];
     const fA = st ? 1 : 0, fB = st ? 0 : 1;
-    m.plate(0, fA, 0, 1, 1, P.black).plate(3, fB, 0, 1, 1, P.black);
-    m.plate(0, fA + 1, 0, 1, 1, P.black).plate(3, fB + 1, 0, 1, 1, P.black);
-    m.plate(1, 0, 0, 2, 3, P.dgrey);
-    m.brick(1, 0, 1 + bob, 2, 3, P.red, { print: pGrin });
-    m.plate(1, 0, 4 + bob, 2, 2, P.dred);
-    m.part(1, 2, 4 + bob, 1, 1, 2, P.white, { round: true, print: pEye });
-    m.part(2, 2, 4 + bob, 1, 1, 2, P.white, { round: true, print: pEye });
+    if (hit) { m.plate(0, 0, 0, 1, 1, P.black).plate(3, 0, 0, 1, 1, P.black).plate(0, 2, 0, 1, 1, P.black).plate(3, 2, 0, 1, 1, P.black); }
+    else {
+      m.plate(0, fA, 0, 1, 1, P.black).plate(3, fB, 0, 1, 1, P.black);
+      m.plate(0, fA + 1, 0, 1, 1, P.black).plate(3, fB + 1, 0, 1, 1, P.black);
+    }
+    m.plate(1, 0, bob, 2, 3, P.dgrey);
+    const body = v ? P.yellow : P.red, top = v ? P.black : P.dred;
+    m.brick(1, 0, 1 + bob, 2, 3, body, { print: v ? pStripe : pGrin });
+    m.plate(1, 0, 4 + bob, 2, 2, top);
+    const eyeZ = 4 + Math.max(bob, eyeBob);
+    const eyeOpt = { round: true, print: hit ? pCross : pEye };
+    if (v) {
+      m.part(1, 2, eyeZ, 1, 1, 2, P.white, eyeOpt);
+      m.part(2, 2, eyeZ, 1, 1, 1, P.white, { round: true, print: hit ? pCross : pEye });
+      m.part(1, 0, 5 + bob, 1, 1, 2, P.black, { round: true });
+      m.part(1, 0, 7 + bob, 1, 1, 1, P.red, { round: true, tile: true });
+    } else {
+      m.part(1, 2, eyeZ, 1, 1, 2, P.white, eyeOpt);
+      m.part(2, 2, eyeZ, 1, 1, 2, P.white, eyeOpt);
+    }
     return m;
   }
-  // large creature: a brick-built robot (7 x 3 x 18)
+  // large creature: a brick-built robot (7 x 3 x 22). f 0-5 stomp poses (feet lift, arms counter-swing, head and antenna lag), 6 hit pose (arms up)
   function robotModel(f) {
-    const m = new Bk(7, 3, 18);
-    const lL = [0, 1, 0, 0][f], lR = [0, 0, 0, 1][f], arm = [0, 1, 0, -1][f];
+    const m = new Bk(7, 3, 22);
+    const hit = f >= 6;
+    const lL = hit ? 0 : [0, 1, 1, 0, 0, 0][f], lR = hit ? 0 : [0, 0, 0, 0, 1, 1][f], arm = hit ? 0 : [1, 1, 0, -1, -1, 0][f];
+    const hd = hit ? 1 : [0, 0, 1, 0, 0, 1][f];
     m.plate(1, 0, lL, 2, 3, P.dgrey).part(1, 0, 1 + lL, 2, 2, 3 - lL, P.dgrey);
     m.plate(4, 0, lR, 2, 3, P.dgrey).part(4, 0, 1 + lR, 2, 2, 3 - lR, P.dgrey);
     m.plate(1, 0, 4, 5, 2, P.black);
     m.brick(1, 0, 5, 5, 3, P.blue, { print: pGrille });
     m.brick(1, 0, 8, 5, 3, P.blue, { print: pChest });
-    const aL = arm > 0 ? 1 : 0, aR = arm < 0 ? 1 : 0;
-    m.part(0, aL, 6, 1, 2, 5, P.lgrey).plate(0, aL, 5, 1, 2, P.red);
-    m.part(6, aR, 6, 1, 2, 5, P.lgrey).plate(6, aR, 5, 1, 2, P.red);
-    m.plate(0, aL, 11, 1, 2, P.yellow).plate(6, aR, 11, 1, 2, P.yellow);
-    m.part(3, 1, 11, 1, 1, 1, P.dgrey, { round: true });
-    m.brick(2, 1, 12, 3, 2, P.lgrey, { print: pRobotFace });
-    m.part(3, 1, 15, 1, 1, 2, P.black, { round: true });
-    m.part(3, 1, 17, 1, 1, 1, P.trRed, { round: true, tile: true });
-    m.glow(3.5, 1.5, 17.5, 7, 'red').glow(2.95, 3, 13.4, 6, 'red').glow(4.05, 3, 13.4, 6, 'red').glow(4.6, 3, 9.3, 7, 'red');
+    const aL = arm > 0 ? 1 : 0, aR = arm < 0 ? 1 : 0, up = hit ? 5 : 0;
+    m.part(0, aL, 6 + up, 1, 2, 5, P.lgrey).plate(0, aL, 5 + up, 1, 2, P.red);
+    m.part(6, aR, 6 + up, 1, 2, 5, P.lgrey).plate(6, aR, 5 + up, 1, 2, P.red);
+    m.plate(0, aL, 11 + up, 1, 2, P.yellow).plate(6, aR, 11 + up, 1, 2, P.yellow);
+    m.part(3, 1, 11, 1, 1, 1 + hd, P.dgrey, { round: true });
+    m.brick(2, 1, 12 + hd, 3, 2, P.lgrey, { print: pRobotFace });
+    m.part(3, 1, 15 + hd, 1, 1, 2, P.black, { round: true });
+    m.part(3, 1, 17 + hd + (hit ? 1 : 0), 1, 1, 1, P.trRed, { round: true, tile: true });
+    m.glow(3.5, 1.5, 17.5 + hd, hit ? 10 : 7, 'red').glow(2.95, 3, 13.4 + hd, 6, 'red').glow(4.05, 3, 13.4 + hd, 6, 'red').glow(4.6, 3, 9.3, 7, 'red');
     return m;
   }
   function beaconModel() {
@@ -635,28 +651,44 @@
     g.addColorStop(0, shx(h, 0.96)); g.addColorStop(0.2, shx(h, 1.2, 10)); g.addColorStop(0.45, shx(h, 1.02)); g.addColorStop(1, shx(h, 0.72));
     return g;
   }
-  /** The main character: a toy figure (explorer). fr 0 idle, 1-4 walk, 5 dash. Feet at (0, 0). */
-  function figPaint(ctx, fr, fx) {
-    const walking = fr >= 1 && fr <= 4, dash = fr === 5;
-    const ph = walking ? ((fr - 1) / 4) * TAU + 0.55 : 0;
-    const sw = walking ? Math.sin(ph) : 0;
-    const bob = walking ? -Math.abs(Math.cos(ph)) * 0.5 : 0;
+  /** Main character poses (a toy figure: rigid legs swing on the hip pin, arms on the shoulder pins, the head turns).
+      0-7 walk (stepped like a played-with toy, hop at passing), 8-11 idle fidgets, 12 blink, 13 dash crouch, 14 dash lunge, 15 hurt. */
+  const F_IDLE = 8, F_BLINK = 12, F_CROUCH = 13, F_LUNGE = 14, F_HURT = 15;
+  function figPose(f) {
+    if (f < 8) {
+      const L = [0.42, 0.28, 0, -0.28, -0.42, -0.28, 0, 0.28][f];
+      return { legs: [L, -L], arms: [-L * 1.25, L * 1.25], bob: f % 4 === 2 ? -1.2 : f % 4 === 3 ? -0.4 : 0, lean: 0.05, look: 0.85, hatLag: f % 4 === 3 ? -0.4 : 0 };
+    }
+    if (f < 12) {
+      const k = f - 8;
+      return { legs: [0, 0], arms: [[0, 0], [0.08, -0.1], [0, 0], [-0.1, 0.12]][k], bob: k === 3 ? -0.3 : 0, look: [0.85, 1.6, -0.3, 0.85][k], hand: k === 2 ? 1 : 0 };
+    }
+    if (f === F_BLINK) return { legs: [0, 0], arms: [0, 0], blink: true, look: 0.85 };
+    if (f === F_CROUCH) return { legs: [0.22, -0.18], arms: [-0.95, -0.85], bob: 1.4, lean: -0.08, look: 1.1, hatLag: 0.3 };
+    if (f === F_LUNGE) return { legs: [0.7, -0.7], arms: [-1.25, -1.1], bob: -1, lean: 0.22, look: 1.2, hatLag: -0.8 };
+    return { legs: [-0.25, 0.3], arms: [2.5, 2.3], bob: -0.5, lean: -0.16, look: 0.4, hurt: true, hatLag: -2.2 };
+  }
+  /** The main character: a toy figure (explorer) painted with glossy plastic paths. Feet at (0, 0). */
+  function figPaint(ctx, f, fx) {
+    const q = figPose(f), bob = q.bob || 0;
     ctx.save();
-    if (dash) ctx.rotate(fx * 0.17);
+    if (q.lean) ctx.rotate(fx * q.lean);
     ctx.lineJoin = 'round';
-    // legs (back leg first)
-    const legTop = -9.4 + bob;
-    const legs = [[-4.3, dash ? -0.6 : sw * 1.5], [0.15, dash ? -1.2 : -sw * 1.5]].sort((a, b) => a[1] - b[1]);
-    for (const [lx, ext] of legs) {
-      const bot = Math.min(0.9, ext), back = ext < -0.2;
-      const base = back ? shx(FIG.legs, 0.82) : FIG.legs;
-      ctx.fillStyle = glossV(ctx, legTop, bot, FIG.legs, back ? 0.95 : 1.12, back ? 0.62 : 0.74);
-      rrect(ctx, lx, legTop, 4.15, bot - legTop, 0.7); ctx.fill();
+    // legs: rigid pieces swinging on the hip pin (back leg first, darker)
+    const legTop = -9.4 + bob, len = 9.4 - Math.min(0, bob) + 0.9;
+    const legs = [[-2.22, q.legs[0]], [2.22, q.legs[1]]].sort((a, b) => a[1] - b[1]);
+    for (const [px, a] of legs) {
+      const back = a < -0.05;
+      ctx.save();
+      ctx.translate(px, legTop);
+      ctx.rotate(-a * fx);
+      ctx.fillStyle = glossV(ctx, 0, len, FIG.legs, back ? 0.95 : 1.12, back ? 0.62 : 0.74);
+      rrect(ctx, -2.07, 0, 4.15, len, 0.7); ctx.fill();
       ctx.fillStyle = shx(FIG.legs, back ? 0.55 : 0.68);
-      rrect(ctx, lx, bot - 1.6, 4.15, 1.6, 0.6); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(lx + 0.6, legTop + 1, 0.55, bot - legTop - 3);
-      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(lx + 0.3, bot - 1.6, 3.5, 0.3);
-      void base;
+      rrect(ctx, -2.07, len - 1.6, 4.15, 1.6, 0.6); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(-1.47, 1, 0.55, len - 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-1.77, len - 1.6, 3.5, 0.3);
+      ctx.restore();
     }
     // hips
     ctx.fillStyle = glossV(ctx, legTop - 2, legTop + 0.5, FIG.legs, 1.0, 0.7);
@@ -672,7 +704,6 @@
     ctx.fillStyle = glossH(ctx, -4.85, 4.85, FIG.shirt); ctx.fill();
     ctx.save(); ctx.clip();
     ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(-5, tB - 2.4, 10, 2.4);
-    // printed details: strap, belt, bandana, pocket
     ctx.strokeStyle = FIG.strap; ctx.lineWidth = 1.15; ctx.lineCap = 'butt';
     ctx.beginPath(); ctx.moveTo(-fx * 3.2, tT - 0.3); ctx.lineTo(fx * 4.4, tB - 1.4); ctx.stroke();
     ctx.fillStyle = FIG.strap; ctx.fillRect(-5, tB - 1.7, 10, 1.05);
@@ -684,38 +715,49 @@
     ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(-2.2, tT, 2.4, 0.35);
     ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 0.55; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(-3.3, tT + 0.8); ctx.lineTo(-4.2, tB - 3); ctx.stroke();
-    // arms + claw hands
-    for (const s of [-1, 1]) {
-      const swing = dash ? -1.6 : s * sw * 1.6;
-      const shX = s * 3.75, shY = tT + 1.1;
-      const hX = s * (dash ? 6.6 : 6.2) + (dash ? -fx * 1.4 : 0), hY = tB - 1.6 + swing * (dash ? 1 : 0.9) - (dash ? 2.4 : 0);
+    // arms on the shoulder pins + claw hands (the hand turns on its wrist pin in one idle fidget)
+    [-1, 1].forEach((s, k) => {
+      const a = q.arms[k] || 0, th = -a * fx;
+      const shX = s * 3.75, shY = tT + 1.1, vx = s * 2.45, vy = 6.0;
+      const hX = shX + vx * Math.cos(th) - vy * Math.sin(th), hY = shY + vx * Math.sin(th) + vy * Math.cos(th);
+      const mx = shX + (hX - shX) * 0.5 + s * 1.0, my = shY + (hY - shY) * 0.5 + 0.4;
       ctx.lineCap = 'round';
       ctx.strokeStyle = shx(FIG.shirt, 0.86); ctx.lineWidth = 3.0;
-      ctx.beginPath(); ctx.moveTo(shX, shY); ctx.quadraticCurveTo(s * 5.6, shY + 1.2, hX, hY - 1.1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(shX, shY); ctx.quadraticCurveTo(mx, my, hX, hY - 1.1); ctx.stroke();
       ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 0.7;
-      ctx.beginPath(); ctx.moveTo(shX - 0.5 * s + (s < 0 ? -0.3 : 0), shY - 0.6); ctx.quadraticCurveTo(s * 5.2, shY + 0.4, hX - s * 0.9, hY - 1.8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(shX - 0.5 * s, shY - 0.6); ctx.quadraticCurveTo(mx - s * 0.4, my - 0.8, hX - s * 0.9, hY - 1.8); ctx.stroke();
       ctx.fillStyle = glossH(ctx, hX - 1.4, hX + 1.4, FIG.skin);
       ctx.beginPath(); ctx.arc(hX, hY, 1.4, 0, TAU); ctx.fill();
+      const ha = (q.hand && s > 0 ? 1.4 : 0) + th;
       ctx.fillStyle = shx(FIG.skin, 0.55);
-      ctx.beginPath(); ctx.arc(hX + s * 0.25, hY + 0.55, 0.62, 0, TAU); ctx.fill();
-    }
-    // neck + head (yellow cylinder with printed face)
-    const hT = -27.1 + bob, hB = -20.2 + bob;
+      ctx.beginPath(); ctx.arc(hX + Math.sin(ha) * 0.55 + s * 0.25 * Math.cos(ha), hY + Math.cos(ha) * 0.55, 0.62, 0, TAU); ctx.fill();
+    });
+    // neck + head (yellow cylinder with a printed face that looks around)
+    const hb = bob + (q.hatLag ? 0 : 0);
+    const hT = -27.1 + hb, hB = -20.2 + hb;
     ctx.fillStyle = shx(FIG.skin, 0.78); ctx.fillRect(-1.6, hB - 0.2, 3.2, 1.2);
     ctx.fillStyle = glossH(ctx, -3.6, 3.6, FIG.skin);
     ctx.beginPath(); ctx.moveTo(-3.6, hT); ctx.lineTo(-3.6, hB - 0.9); ctx.ellipse(0, hB - 0.9, 3.6, 0.95, 0, Math.PI, 0, true); ctx.lineTo(3.6, hT); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.55)'; rrect(ctx, -2.65, hT + 1.6, 0.6, 3.6, 0.3); ctx.fill();
-    const fo = fx * 0.85, ey = -23.9 + bob;
-    ctx.fillStyle = DARK;
-    for (const ex of [-1.35, 1.35]) { ctx.beginPath(); ctx.ellipse(fo + ex, ey, 0.5, 0.76, 0, 0, TAU); ctx.fill(); }
-    ctx.fillStyle = '#fff';
-    for (const ex of [-1.35, 1.35]) { ctx.beginPath(); ctx.arc(fo + ex - 0.16, ey - 0.3, 0.18, 0, TAU); ctx.fill(); }
-    ctx.strokeStyle = DARK; ctx.lineWidth = 0.42; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(fo - 2.0, ey - 1.35); ctx.lineTo(fo - 0.8, ey - 1.6); ctx.moveTo(fo + 0.8, ey - 1.6); ctx.lineTo(fo + 2.0, ey - 1.35); ctx.stroke();
-    ctx.lineWidth = 0.48;
-    ctx.beginPath(); ctx.arc(fo, ey + 0.7, 1.5, 0.22 * Math.PI, 0.78 * Math.PI); ctx.stroke();
-    // pith helmet
-    const bY = hT + 0.5;
+    const fo = fx * (q.look !== undefined ? q.look : 0.85), ey = -23.9 + hb;
+    ctx.fillStyle = DARK; ctx.strokeStyle = DARK; ctx.lineCap = 'round';
+    if (q.blink) {
+      ctx.lineWidth = 0.45;
+      ctx.beginPath(); for (const ex of [-1.35, 1.35]) { ctx.moveTo(fo + ex - 0.55, ey + 0.1); ctx.quadraticCurveTo(fo + ex, ey + 0.45, fo + ex + 0.55, ey + 0.1); } ctx.stroke();
+    } else if (q.hurt) {
+      for (const ex of [-1.4, 1.4]) { ctx.beginPath(); ctx.arc(fo + ex, ey, 0.78, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = '#fff'; for (const ex of [-1.4, 1.4]) { ctx.beginPath(); ctx.arc(fo + ex, ey, 0.38, 0, TAU); ctx.fill(); }
+    } else {
+      for (const ex of [-1.35, 1.35]) { ctx.beginPath(); ctx.ellipse(fo + ex, ey, 0.5, 0.76, 0, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = '#fff';
+      for (const ex of [-1.35, 1.35]) { ctx.beginPath(); ctx.arc(fo + ex - 0.16, ey - 0.3, 0.18, 0, TAU); ctx.fill(); }
+    }
+    ctx.lineWidth = 0.42;
+    ctx.beginPath(); ctx.moveTo(fo - 2.0, ey - 1.35 - (q.hurt ? 0.4 : 0)); ctx.lineTo(fo - 0.8, ey - 1.6 - (q.hurt ? 0.5 : 0)); ctx.moveTo(fo + 0.8, ey - 1.6 - (q.hurt ? 0.5 : 0)); ctx.lineTo(fo + 2.0, ey - 1.35 - (q.hurt ? 0.4 : 0)); ctx.stroke();
+    if (q.hurt) { ctx.fillStyle = DARK; ctx.beginPath(); ctx.ellipse(fo, ey + 1.6, 0.8, 0.95, 0, 0, TAU); ctx.fill(); }
+    else { ctx.lineWidth = 0.48; ctx.beginPath(); ctx.arc(fo, ey + 0.7, 1.5, 0.22 * Math.PI, 0.78 * Math.PI); ctx.stroke(); }
+    // pith helmet: a separate piece that lags the hop and pops up on a hit
+    const bY = hT + 0.5 + (q.hatLag || 0);
     ctx.fillStyle = shx(FIG.hat, 0.66);
     ctx.beginPath(); ctx.ellipse(0, bY + 0.45, 5.8, 1.95, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = glossH(ctx, -5.8, 5.8, FIG.hat);
@@ -733,24 +775,25 @@
     ctx.beginPath(); ctx.ellipse(0, bY - 4.95, 0.9, 0.42, 0, 0, TAU); ctx.fill();
     ctx.restore();
   }
-  /** Fast creature: a translucent ghost piece (sheet with raised arms), frames 0-3. Bottom at (0, 0). */
+  /** Fast creature: a translucent ghost piece (sheet with raised arms). f 0-5 drift poses, 6 hit (flared, arms high). Bottom at (0, 0). */
   function ghostPaint(ctx, f) {
-    const ph = (f / 4) * TAU;
+    const hit = f >= 6, ph = hit ? 0 : (f / 6) * TAU;
+    const aL = hit ? -3.2 : Math.sin(ph) * 1.2, aR = hit ? -3.2 : -Math.sin(ph) * 1.2, fl = hit ? 1.4 : 1;
     const path = () => {
       ctx.beginPath();
       ctx.moveTo(-6.2, -14.5);
       ctx.arc(0, -14.5, 6.2, Math.PI, TAU);
       ctx.lineTo(6.6, -8.5);
-      ctx.quadraticCurveTo(9.6, -11.4 + Math.sin(ph) * 0.8, 9.9, -13.6 + Math.sin(ph) * 0.8);
-      ctx.quadraticCurveTo(10.6, -9.5, 7.2, -5.6);
-      ctx.lineTo(7.4, -1.2);
+      ctx.quadraticCurveTo(9.6, -11.4 + aR, 9.9, -13.6 + aR);
+      ctx.quadraticCurveTo(10.6, -9.5, 7.2 * fl, -5.6);
+      ctx.lineTo(7.4 * fl, -1.2);
       for (let i = 0; i < 4; i++) {
-        const x1 = 7.4 - ((i + 1) * 14.8) / 4, xm = 7.4 - ((i + 0.5) * 14.8) / 4;
-        ctx.quadraticCurveTo(xm, 1.4 + Math.sin(ph + i * 1.7) * 0.9, x1, -1.2 + Math.sin(ph * 2 + i) * 0.3);
+        const x1 = 7.4 * fl - ((i + 1) * 14.8 * fl) / 4, xm = 7.4 * fl - ((i + 0.5) * 14.8 * fl) / 4;
+        ctx.quadraticCurveTo(xm, 1.4 + Math.sin(ph + i * 1.7) * 1.2, x1, -1.2 + Math.sin(ph * 2 + i) * 0.4);
       }
-      ctx.lineTo(-7.2, -5.6);
-      ctx.quadraticCurveTo(-10.6, -9.5, -9.9, -13.6 - Math.sin(ph) * 0.8);
-      ctx.quadraticCurveTo(-9.6, -11.4 - Math.sin(ph) * 0.8, -6.6, -8.5);
+      ctx.lineTo(-7.2 * fl, -5.6);
+      ctx.quadraticCurveTo(-10.6, -9.5, -9.9, -13.6 + aL);
+      ctx.quadraticCurveTo(-9.6, -11.4 + aL, -6.6, -8.5);
       ctx.closePath();
     };
     path();
@@ -765,8 +808,9 @@
     ctx.beginPath(); ctx.arc(0, -14.5, 4.7, 1.12 * Math.PI, 1.42 * Math.PI); ctx.stroke();
     ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-5.4, -10.5); ctx.lineTo(-5.6, -5.5); ctx.stroke();
     ctx.fillStyle = DARK;
-    ctx.beginPath(); ctx.ellipse(-2.1, -14.4, 1.05, 1.5, 0, 0, TAU); ctx.ellipse(2.1, -14.4, 1.05, 1.5, 0, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(0, -10.2, 0.95, 1.25 + Math.sin(ph) * 0.15, 0, 0, TAU); ctx.fill();
+    const er = hit ? 1.35 : 1;
+    ctx.beginPath(); ctx.ellipse(-2.1, -14.4, 1.05 * er, 1.5 * er, 0, 0, TAU); ctx.ellipse(2.1, -14.4, 1.05 * er, 1.5 * er, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, -10.2, 0.95 * er, (1.25 + Math.sin(ph) * 0.25) * er, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.beginPath(); ctx.arc(-2.4, -15, 0.32, 0, TAU); ctx.arc(1.8, -15, 0.32, 0, TAU); ctx.fill();
   }
@@ -851,19 +895,20 @@
 
   function buildAll() {
     STUDS.clear();
-    // main character: 0 idle, 1-4 walk, 5 dash, for both facings
+    // main character: 16 poses (0-7 walk, 8-11 idle, 12 blink, 13 crouch, 14 lunge, 15 hurt), for both facings
     SET.fig = { frames: [[], []], tint: new Map() };
-    for (let side = 0; side < 2; side++) for (let f = 0; f < 6; f++) {
-      SET.fig.frames[side].push(bakeVec(26, 36, 13, 33.5, K, (ctx) => figPaint(ctx, f, side ? -1 : 1)));
+    for (let side = 0; side < 2; side++) for (let f = 0; f < 16; f++) {
+      SET.fig.frames[side].push(bakeVec(28, 40, 14, 37.5, K, (ctx) => figPaint(ctx, f, side ? -1 : 1)));
     }
     SET.ghost = { frames: [[], []], tint: new Map() };
-    for (let f = 0; f < 4; f++) {
-      const s = bakeVec(23, 20, 11.5, 18.5, K, (ctx) => ghostPaint(ctx, f));
+    for (let f = 0; f < 7; f++) {
+      const s = bakeVec(23, 22, 11.5, 20.5, K, (ctx) => ghostPaint(ctx, f));
       SET.ghost.frames[0].push(s);
       SET.ghost.frames[1].push({ c: U.flipX(s.c), ax: s.c.width - s.ax, ay: s.ay, glow: [] });
     }
-    SET.creeper = charSet(beetleModel, 4, K);
-    SET.colossus = charSet(robotModel, 4, K);
+    SET.creeper = charSet((f) => beetleModel(f, 0), 7, K);
+    SET.creeper2 = charSet((f) => beetleModel(f, 1), 7, K);
+    SET.colossus = charSet(robotModel, 7, K);
     SET.beacon = renderBk(beaconModel(), K);
     SET.bolt = renderBk(boltModel(), K);
     SET.coin = [], SET.coinBig = [];
@@ -901,7 +946,7 @@
     ];
     const debCols = new Set();
     Object.assign(DEB, {
-      creeper: [P.red, P.red, P.black, P.white, P.dred], ghost: [P.trClear, P.trClear, P.trBlue],
+      creeper: [P.red, P.red, P.black, P.white, P.dred], creeper2: [P.yellow, P.yellow, P.black, P.white, P.red], ghost: [P.trClear, P.trClear, P.trBlue],
       colossus: [P.blue, P.lgrey, P.dgrey, P.yellow, P.red, P.black], fig: [P.orange, P.blue, P.yellow, P.tan],
       toy: [P.red, P.yellow, P.blue, P.lime, P.white, P.orange, P.azure], gold: [P.yellow, P.trYellow, P.orange],
       dust: [P.white, P.lgrey], blue: [P.azure, P.trBlue, P.white],
@@ -1122,9 +1167,12 @@
         const h = U.hash2(i, j, 777);
         let decal = null;
         if (mi === GR || mi === FOR) {
-          if (h < 0.016) decal = decalSprite('flower', Math.floor(U.hash2(i, j, 5) * 60), res);
-          else if (h < 0.04) decal = decalSprite('plant', Math.floor(U.hash2(i, j, 6) * 4), res);
-          else if (h < 0.043) decal = decalSprite('round', Math.floor(U.hash2(i, j, 7) * 60), res);
+          // flower beds: one colour per bed (noise patches); plants cluster in clumps; loose round studs are rare
+          const wx = (i + 0.5) * SX, wy = (j + 0.5) * SY;
+          const bed = U.noise(wx / 70, wy / 70, 1301), clump = U.noise(wx / 48, wy / 48, 1302);
+          if (bed > 0.68 && h < 0.3) decal = decalSprite('flower', ((Math.floor(U.noise(wx / 160, wy / 160, 1303) * 9) + (h < 0.03 ? 2 : 0)) % 6) + 6 * Math.floor(h * 9), res);
+          else if (clump > 0.64 ? h < 0.14 : h < 0.004) decal = decalSprite('plant', Math.floor(U.hash2(i, j, 6) * 4), res);
+          else if (h > 0.9992) decal = decalSprite('round', Math.floor(U.hash2(i, j, 7) * 60), res);
         } else if (mi === HILL) {
           if (h < 0.02) decal = decalSprite('flower', Math.floor(U.hash2(i, j, 5) * 60), res);
           else if (h < 0.03) decal = decalSprite('plant', 1, res);
@@ -1211,6 +1259,83 @@
   }
   function ring(game, x, y, r0, r1, life = 0.6, color = '#ffffff', studs = 12) {
     game.addParticle({ x, y, z: 0, life, r0, r1, color, studs, kind: 'ring', drag: 0 });
+  }
+  /** Core flash: a white plastic pop (star + quick ring) that snaps open. */
+  function pop(game, x, y, z, size, life, blue) {
+    const p = game.addParticle({ x, y, z, life, size, kind: 'pop', drag: 0 });
+    if (p) p.blue = !!blue;
+  }
+  const FR = { breaks: 0 };
+  const setOf = (e) => (e.type === 'creeper' && e.seed > 0.5 ? SET.creeper2 : SET[e.type]);
+  const setKey = (e) => (e.type === 'creeper' && e.seed > 0.5 ? 'creeper2' : e.type);
+  /** Vanish: the hit pose pops apart into brick-sized blocks (source rectangles of the sprite) that jump out, tumble in
+      stepped turns (stop-motion on twos), land on the baseplate and fade; the ghost piece floats apart instead. */
+  function popApart(ctx, set, side, x, y, u, type, seed) {
+    const s = set.frames[side][6], fl = u < 0.35 ? tintOf(set, side, 6, '#ffffff') : null;
+    const W = s.c.width, H = s.c.height, big = type === 'colossus', ghost = type === 'ghost';
+    const cols = big ? 3 : 2, rows = big ? 5 : 3, pw = W / cols, ph = H / rows;
+    const us = Math.floor(u * 12) / 12; // positions advance on twos
+    const ease = 1 - (1 - us) * (1 - us), fade = 1 - U.smoothstep(0.55, 1, u);
+    const cy0 = -(s.ay / K) * 0.5;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const h = U.hashInt(c, r, (seed * 1e5) | 0);
+      const hx = (h & 255) / 255, hy = ((h >>> 8) & 255) / 255, hs = ((h >>> 16) & 255) / 255;
+      const gx = (c * pw + pw / 2 - s.ax) / K, gy = (r * ph + ph / 2 - s.ay) / K;
+      let dx = gx + (hx - 0.5) * 2, dy = gy - cy0;
+      const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      const sp = (big ? 9 : 14) * (0.7 + hx * 0.6);
+      const ox = dx * sp * ease, oy = dy * sp * 0.45 * ease;
+      const oz = ghost ? (6 + hy * 10) * ease : Math.max(gy + 1.5, (big ? 8 : 16) * (0.6 + hy * 0.7) * us - (big ? 34 : 44) * us * us);
+      const rot = Math.round((hs - 0.5) * 8 * ease) * (Math.PI / 6);
+      ctx.save();
+      ctx.globalAlpha = fade * (ghost ? 0.85 : 1);
+      ctx.translate(x + gx + ox, y + gy + oy - oz);
+      if (rot) ctx.rotate(rot);
+      if (ghost) { const sc = 1 - 0.55 * u; ctx.scale(sc, sc); }
+      ctx.drawImage(s.c, c * pw, r * ph, pw, ph, -pw / 2 / K, -ph / 2 / K, pw / K, ph / K);
+      if (fl) { ctx.globalAlpha = fade * (1 - u / 0.35); ctx.drawImage(fl.c, c * pw, r * ph, pw, ph, -pw / 2 / K, -ph / 2 / K, pw / K, ph / K); }
+      ctx.restore();
+    }
+  }
+  /** Appear: built up plate by plate from the baseplate while two bricks drop in; then it clicks into place
+      (a small press-down bounce and a white pop on top). The ghost piece fades in and drops onto its peg instead. */
+  function clickTogether(ctx, e, set, s, y) {
+    const t = e.spawnT;
+    if (e.type === 'ghost') {
+      const u = U.smoothstep(0, 1, t);
+      ctx.globalAlpha = u;
+      blitScaled(ctx, s, e.x, y - (1 - u) * 10, 0.75 + u * 0.25, 0.75 + u * 0.25 + (1 - u) * 0.3);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const u = Math.min(1, t / 0.75);
+    if (u < 1) {
+      const layer = PH * K, total = s.c.height;
+      const vis = Math.min(total, Math.ceil((U.ease.outQuad(u) * total) / layer) * layer);
+      if (vis > 0) {
+        const sy = total - vis;
+        const x0 = Math.round(e.x * VSC - (s.ax * VSC) / K) / VSC, y0 = Math.round(y * VSC - (s.ay * VSC) / K) / VSC;
+        ctx.drawImage(s.c, 0, sy, s.c.width, vis, x0, y0 + sy / K, s.c.width / K, vis / K);
+      }
+      const pal = DEB[setKey(e)] || DEB.toy;
+      for (let i = 0; i < 2; i++) {
+        const fr = DEBRIS[pal[(i + Math.floor(e.seed * 7)) % pal.length]][i];
+        const z = (1 - ((u * 2 + i * 0.5) % 1)) * 26;
+        ctx.globalAlpha = Math.min(1, (1 - u) * 3);
+        blitScaled(ctx, fr, e.x + (i ? 5 : -5), e.y - 8 - z, 0.8, 0.8);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const b = (t - 0.75) / 0.25;
+    const sq = b < 0.35 ? 1 - 0.08 * Math.sin((b / 0.35) * Math.PI) : 1 + 0.04 * Math.sin(((b - 0.35) / 0.65) * Math.PI);
+    blitScaled(ctx, s, e.x, y, 1 / Math.sqrt(sq), sq);
+    if (b < 0.45) {
+      const k = 1 - b / 0.45, ss = 6 + (1 - k) * 6;
+      ctx.globalAlpha = k;
+      ctx.drawImage(FX.star, e.x - ss / 2, y - s.ay / K - ss / 2 + 2, ss, ss);
+      ctx.globalAlpha = 1;
+    }
   }
 
   /* ================================ screen fx ================================ */
@@ -1333,6 +1458,7 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
     drawGroundOverlay(ctx, view) {
       VSC = view.S;
       RT = view.rt;
+      FR.breaks = 0;
       fxS = view.S; fxOx = view.W / 2 - view.x * view.S; fxOy = view.H / 2 - view.y * view.S;
       // glints on the transparent water plates
       const s = 256;
@@ -1383,7 +1509,7 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
         if (o.spawnT < 1) a *= o.spawnT;
         if (a <= 0.01) return;
         if (o.type !== 'ghost') {
-          const set = SET[o.type];
+          const set = setOf(o);
           if (!set) return;
           ctx.globalAlpha = a;
           blit(ctx, set.shadow, o.x, o.y);
@@ -1426,67 +1552,44 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
     },
 
     drawEnemy(ctx, e) {
-      const set = SET[e.type];
+      const set = setOf(e);
       if (!set) return;
-      const side = sideOf(e.facing);
+      const side = sideOf(e.facing), NW = 6;
       let fi, lift = 0;
       if (e.type === 'ghost') {
-        fi = Math.floor(RT * 5 + e.seed * 4) & 3;
-        lift = 4 + Math.sin(RT * 2.6 + e.seed * 20) * 1.6;
-      } else if (e.type === 'creeper') fi = Math.floor(e.anim * 1.8) & 3;
-      else fi = Math.floor(e.anim * 1.2) & 3;
-      const s = set.frames[side][fi];
+        fi = Math.floor(RT * 7 + e.seed * 6) % NW;
+        // eased hover: holds at the top and bottom, own phase per actor
+        const w = U.fract(RT * 0.42 + e.seed * 3.7), tri = w < 0.5 ? w * 2 : 2 - w * 2;
+        lift = 2.6 + U.smoothstep(0, 1, tri) * 3.2;
+      } else fi = Math.floor(e.anim * (e.type === 'creeper' ? 2.7 : 1.8)) % NW;
+      if (fi < 0) fi += NW;
       const y = e.y - lift;
       if (e.dying) {
-        const t = e.deathT;
-        if (t >= 1) return;
-        // the figure comes apart in three horizontal sections
-        const H = s.c.height, Wc = s.c.width, cuts = [0, H * 0.36, H * 0.68, H];
-        const x0 = e.x - s.ax / K, y0 = y - s.ay / K;
-        for (let i = 0; i < 3; i++) {
-          const sy = cuts[i], sh2 = cuts[i + 1] - sy;
-          const dir = i === 1 ? 1 : -1;
-          const dx = dir * t * (8 + i * 3), dy = -Math.sin(t * Math.PI) * (10 - i * 3) + t * t * 14 * (i === 0 ? 0.6 : 1);
-          ctx.globalAlpha = Math.max(0, 1 - t * 1.15);
-          ctx.drawImage(s.c, 0, sy, Wc, sh2, x0 + dx, y0 + sy / K + dy, Wc / K, sh2 / K);
-        }
-        ctx.globalAlpha = 0.7 * Math.max(0, 1 - t * 3);
-        blit(ctx, tintOf(set, side, fi, '#ffffff'), e.x, y);
-        ctx.globalAlpha = 1;
-        return;
-      }
-      if (e.spawnT < 1) {
-        const t = e.spawnT;
-        if (e.type === 'ghost') {
-          ctx.globalAlpha = t;
-          blitScaled(ctx, s, e.x, y + (1 - t) * 6, 0.6 + t * 0.4, 0.6 + t * 0.4);
+        const t = e.deathT, s = set.frames[side][NW];
+        if (t < 0.14) {
+          const u = t / 0.14;
+          blitScaled(ctx, s, e.x, y, 1.08, 1.05);
+          ctx.globalAlpha = u * 0.85;
+          blitScaled(ctx, tintOf(set, side, NW, '#ffffff'), e.x, y, 1.08, 1.05);
           ctx.globalAlpha = 1;
-          return;
-        }
-        // built up plate by plate from the bottom, with a brick dropping into place
-        const layer = PH * K, total = s.c.height;
-        const vis = Math.min(total, Math.ceil((U.ease.outQuad(t) * total) / layer) * layer);
-        if (vis > 0) {
-          const sy = total - vis;
-          const x0 = Math.round(e.x * VSC - (s.ax * VSC) / K) / VSC, y0 = Math.round(y * VSC - (s.ay * VSC) / K) / VSC;
-          ctx.drawImage(s.c, 0, sy, s.c.width, vis, x0, y0 + sy / K, s.c.width / K, vis / K);
-        }
-        const pal = DEB[e.type] || DEB.toy;
-        for (let i = 0; i < 2; i++) {
-          const fr = DEBRIS[pal[(i + Math.floor(e.seed * 7)) % pal.length]][i];
-          const z = (1 - ((t * 2 + i * 0.5) % 1)) * 26;
-          ctx.globalAlpha = Math.min(1, (1 - t) * 3);
-          blitScaled(ctx, fr, e.x + (i ? 5 : -5), e.y - 8 - z, 0.8, 0.8);
-        }
-        ctx.globalAlpha = 1;
+        } else if (FR.breaks++ < 8) popApart(ctx, set, side, e.x, y, (t - 0.14) / 0.86, e.type, e.seed);
+        else { const u = (t - 0.14) / 0.86; ctx.globalAlpha = 1 - u; blitScaled(ctx, s, e.x, y + u * 4, 1, 1 - 0.6 * u); ctx.globalAlpha = 1; }
         return;
       }
-      blit(ctx, s, e.x, y);
-      if (e.flash > 0.04) {
-        ctx.globalAlpha = Math.min(0.65, e.flash * 0.85);
-        blit(ctx, tintOf(set, side, fi, '#ffffff'), e.x, y);
+      const s0 = set.frames[side][fi];
+      if (e.spawnT < 1) { clickTogether(ctx, e, set, s0, y); return; }
+      const hk = e.flash;
+      if (hk > 0.25) fi = NW;
+      const s = set.frames[side][fi];
+      if (hk > 0.25) {
+        // hit: hit pose, knocked one stud-step in the push direction, white plastic flash
+        const dir = Math.abs(e.kx) > 2 ? Math.sign(e.kx) : -e.facing;
+        const kx = hk > 0.55 ? dir * 2 : 0;
+        blitScaled(ctx, s, e.x + kx, y, 1.06, 0.95);
+        ctx.globalAlpha = Math.min(0.75, hk * 0.9);
+        blitScaled(ctx, tintOf(set, side, fi, '#ffffff'), e.x + kx, y, 1.06, 0.95);
         ctx.globalAlpha = 1;
-      }
+      } else blit(ctx, s, e.x, y);
       if (e.type === 'colossus') drawGlows(ctx, s, e.x, y, 0.4 + 0.12 * Math.sin(RT * 5 + e.seed * 9));
       if (e.type === 'ghost') {
         ctx.globalCompositeOperation = 'lighter';
@@ -1499,10 +1602,14 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
 
     drawPlayer(ctx, p, view) {
       const set = SET.fig;
-      const side = sideOf(p.facing);
-      const fi = p.dashT > 0 ? 5 : p.moving ? 1 + (Math.floor(p.anim * 1.4) & 3) : 0;
+      const side = sideOf(p.dashT > 0 ? (p.dashX < 0 ? -1 : 1) : p.facing);
+      let fi;
+      if (p.hurtT > 0.62) fi = F_HURT;
+      else if (p.dashT > 0) fi = 0.2 - p.dashT < 0.05 ? F_CROUCH : F_LUNGE;
+      // walk on twos: 8 poses stepped at ~12 fps (toy / stop-motion feel)
+      else if (p.moving) fi = Math.floor(p.anim * 1.3) % 8;
+      else fi = (view.rt + 1.3) % 3.8 < 0.16 ? F_BLINK : F_IDLE + (Math.floor(view.rt / 0.75) % 4);
       const s = set.frames[side][fi];
-      const lift = p.moving || p.dashT > 0 ? 0 : Math.max(0, Math.sin(view.rt * 2.4)) * 0.5;
       if (p.levelT > 0) {
         const t = 1 - p.levelT, r = 10 + t * 34;
         ctx.globalAlpha = p.levelT * 0.85;
@@ -1510,7 +1617,7 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
         ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.8, 0, 0, TAU); ctx.stroke();
         const st = studSprite(P.yellow, K);
         for (let i = 0; i < 10; i++) {
-          const a = (i / 10) * TAU + t * 2;
+          const a = (i / 10) * TAU + Math.round(t * 8) / 4;
           blitScaled(ctx, st, p.x + Math.cos(a) * r, p.y + Math.sin(a) * r * 0.8, 0.9, 0.9);
         }
         ctx.globalCompositeOperation = 'lighter';
@@ -1518,21 +1625,21 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
         ctx.drawImage(FX.warm, p.x - 26, p.y - 42, 52, 52);
         ctx.globalCompositeOperation = 'source-over';
       }
-      if (p.dashT > 0) {
+      if (p.dashT > 0 && fi === F_LUNGE) {
         const tt = tintOf(set, side, fi, '#ffffff');
-        for (let i = 3; i >= 1; i--) {
-          ctx.globalAlpha = 0.16 * (4 - i) * Math.min(1, p.dashT * 6);
-          blit(ctx, tt, p.x - p.dashX * i * 6, p.y - p.dashY * i * 6);
+        for (let i = 2; i >= 1; i--) {
+          ctx.globalAlpha = 0.2 * (3 - i) * Math.min(1, p.dashT * 6);
+          blit(ctx, tt, p.x - Math.round(p.dashX * i * 3.5) * 2, p.y - Math.round(p.dashY * i * 3.5) * 2);
         }
       }
       let a = 1;
       if (p.iframes > 0 && p.hurtT <= 0 && p.dashT <= 0) a = Math.floor(view.rt * 18) % 2 ? 0.5 : 1;
       ctx.globalAlpha = a;
-      blit(ctx, s, p.x, p.y - lift);
-      LASTP = { s, x: p.x, y: p.y - lift, rt: view.rt };
-      if (p.hurtT > 0) {
+      blit(ctx, s, p.x, p.y);
+      LASTP = { s, x: p.x, y: p.y, rt: view.rt };
+      if (p.hurtT > 0 && fi === F_HURT) {
         ctx.globalAlpha = Math.min(0.6, p.hurtT * 0.8);
-        blit(ctx, tintOf(set, side, fi, '#ff3b2b'), p.x, p.y - lift);
+        blit(ctx, tintOf(set, side, fi, '#ff3b2b'), p.x, p.y);
       }
       ctx.globalAlpha = 1;
     },
@@ -1583,6 +1690,16 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
           ctx.setTransform(cs, sn, -sn, cs, fxOx + x * fxS, fxOy + y * fxS);
           ctx.drawImage(s.c, -w / 2, -h / 2, w, h);
           ctx.setTransform(fxS, 0, 0, fxS, fxOx, fxOy);
+          break;
+        }
+        case 'pop': {
+          // white plastic pop: a star that snaps open + a thin ring, gone in ~0.15 s
+          const t = 1 - k, sz = pt.size * (0.45 + 0.55 * (1 - (1 - t) * (1 - t)));
+          ctx.globalAlpha = Math.min(1, k * 1.8);
+          ctx.drawImage(pt.blue ? FX.starB : FX.star, x - sz / 2, y - sz / 2, sz, sz);
+          ctx.globalAlpha = k * 0.8;
+          ctx.strokeStyle = pt.blue ? '#d8f1ff' : '#ffffff'; ctx.lineWidth = 0.9 * k + 0.3;
+          ctx.beginPath(); ctx.ellipse(x, y, sz * 0.42, sz * 0.36, 0, 0, TAU); ctx.stroke();
           break;
         }
         case 'star': {
@@ -1670,31 +1787,40 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
 
     /* ---------------- hooks ---------------- */
     onHit(game, e, src) {
-      const pal = DEB[e.type] || DEB.toy;
+      const pal = DEB[setKey(e)] || DEB.toy;
       const z = e.type === 'colossus' ? 24 : e.type === 'ghost' ? 14 : 10;
+      pop(game, e.x, e.y, z, 9, 0.12, e.type === 'ghost');
       bricks(game, e.x, e.y, z, pal, e.type === 'colossus' ? 3 : 2, { speed: 55, life: 0.55, size: 1.9, vz: 70, shape: Math.random() < 0.5 ? 3 : 4 });
       sparks(game, e.x, e.y, z, 2, { speed: 60, life: 0.3, size: 4.5, blue: src === 'lantern' ? false : e.type === 'ghost' });
     },
     onKill(game, e) {
-      const pal = DEB[e.type] || DEB.toy;
+      const pal = DEB[setKey(e)] || DEB.toy;
       if (e.type === 'colossus') {
-        bricks(game, e.x, e.y, 10, pal, 30, { speed: 100, life: 1.5, size: 3.4, vz: 150, zr: 36, spread: 26 });
+        pop(game, e.x, e.y, 26, 30, 0.2, false);
+        bricks(game, e.x, e.y, 10, pal, 24, { speed: 100, life: 1.5, size: 3.4, vz: 150, zr: 36, spread: 26 });
         ring(game, e.x, e.y, 10, 52, 0.6, '#ffffff', 14);
         sparks(game, e.x, e.y, 26, 8, { speed: 110, life: 0.6, size: 6 });
+        bricks(game, e.x, e.y, 2, pal, 5, { speed: 40, life: 2.2, size: 1.8, vz: 30, shape: 3 }); // loose studs left on the baseplate
         game.shake = Math.max(game.shake || 0, 4);
       } else if (e.type === 'ghost') {
+        pop(game, e.x, e.y, 12, 16, 0.16, true);
         bricks(game, e.x, e.y, 10, pal, 9, { speed: 45, life: 0.9, size: 2.2, vz: 50, grav: -40, drag: 2.4 });
         sparks(game, e.x, e.y, 12, 4, { speed: 50, life: 0.5, size: 4.5, blue: true });
       } else {
-        bricks(game, e.x, e.y, 6, pal, 12, { speed: 75, life: 1.15, size: 2.4, vz: 115, zr: 12 });
+        pop(game, e.x, e.y, 10, 16, 0.16, false);
+        bricks(game, e.x, e.y, 6, pal, 10, { speed: 75, life: 1.15, size: 2.4, vz: 115, zr: 12 });
+        ring(game, e.x, e.y, 5, 22, 0.35, '#ffffff', 6);
+        bricks(game, e.x, e.y, 2, pal, 3, { speed: 30, life: 1.8, size: 1.6, vz: 25, shape: 3 }); // loose studs left behind
         sparks(game, e.x, e.y, 10, 2, { speed: 60, life: 0.35, size: 4.5 });
       }
     },
     onHurt(game, p) {
+      pop(game, p.x, p.y, 16, 12, 0.14, false);
       bricks(game, p.x, p.y, 14, DEB.fig, 5, { speed: 70, life: 0.75, size: 2, vz: 85, shape: 3 });
       sparks(game, p.x, p.y, 16, 3, { speed: 80, life: 0.35, size: 5 });
     },
     onPickup(game, g) {
+      pop(game, g.x, g.y, 6, g.big ? 10 : 7, 0.12, !g.big);
       sparks(game, g.x, g.y, 6, g.big ? 5 : 2, { speed: 40, vz: 30, life: 0.4, size: g.big ? 5.5 : 4, blue: !g.big });
       if (g.big) bricks(game, g.x, g.y, 6, DEB.gold, 3, { speed: 35, life: 0.6, size: 1.6, vz: 70, shape: 3 });
     },
@@ -1702,14 +1828,17 @@ ${B} #pausebox { font: 400 54px ${FH}; color: #f7c81e; -webkit-text-stroke: 3px 
       if (Math.random() < 0.25) sparks(game, pr.x, pr.y + 3, 3, 1, { speed: 20, life: 0.25, size: 3 });
     },
     onDash(game, p) {
-      bricks(game, p.x, p.y, 1, DEB.dust, 6, { speed: 36, life: 0.5, size: 1.6, vz: 40, shape: 3 });
+      bricks(game, p.x - p.dashX * 4, p.y, 1, DEB.dust, 6, { speed: 36, life: 0.5, size: 1.6, vz: 40, shape: 3 });
+      ring(game, p.x, p.y, 3, 14, 0.28, '#ffffff', 4);
     },
     onLevelUp(game, p) {
+      pop(game, p.x, p.y, 18, 26, 0.22, false);
       ring(game, p.x, p.y, 8, 56, 0.75, '#ffffff', 16);
       bricks(game, p.x, p.y, 6, DEB.toy, 16, { speed: 42, life: 1.25, size: 2.3, vz: 120, grav: 200 });
       sparks(game, p.x, p.y, 18, 6, { speed: 60, life: 0.6, size: 5.5 });
     },
     onDeath(game, p) {
+      pop(game, p.x, p.y, 16, 26, 0.22, false);
       bricks(game, p.x, p.y, 12, DEB.fig, 28, { speed: 90, life: 1.6, size: 2.8, vz: 125, zr: 20 });
     },
   });

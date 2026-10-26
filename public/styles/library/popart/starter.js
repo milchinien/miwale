@@ -116,11 +116,12 @@
 
   /* ---------- sprite baking: K px per world unit, misregistered plate behind ---------- */
   let K = 4;
-  function build(box, fn, mode, plate) {
+  function build(box, fn, mode, plate, post) {
     const m = 1.4 + MR, l = box[0] - m, t = box[1] - m, r = box[2] + m, b = box[3] + m;
     const cv = canvas(Math.ceil((r - l) * K), Math.ceil((b - t) * K)), ctx = cv.getContext('2d');
     ctx.scale(K, K); ctx.translate(-l, -t); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     fn(new Painter(ctx, mode || 'n', K));
+    if (post) post(cv);
     if (plate) { const tn = tint(cv, plate); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-over'; ctx.globalAlpha = 0.65; ctx.drawImage(tn, -MR * K, MR * K * 0.75); }
     return { c: cv, ox: -l * K, oy: -t * K };
   }
@@ -129,33 +130,52 @@
     ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
   }
 
-  /* ---------- main character: round pumpkin head with cape + scarf. Frames: idle, step A, pass, step B ---------- */
-  const JACK_FR = [[-2.2, 0, 2.3, 0, 0.2, -0.2, 0], [-3.4, -0.3, 3.7, -0.9, 0.85, -0.75, 1], [-0.5, -1.9, 1.1, 0, 0.12, 0.05, 0.45], [3.3, -0.6, -2.9, -0.2, -0.75, 0.85, 1]];
-  function heroParts(P, f) {
-    const F = JACK_FR[f], fl = F[6];
-    const leg = (hx, fx, fy, back) => { P.part(CAP(hx, -8.6, fx, fy - 1.5, 1.35), back ? C.pantsSh : C.pants, { ol: 0.85 }); P.part(E(fx + 0.9, fy - 1.05, 2.25, 1.35), INK, { ol: 0.6, hi: [[fx + 0.4, fy - 1.65, 0.75, 0.32, -0.15]] }); };
+  /* ---------- main character: round pumpkin head with cape + scarf, driven by a pose table ----------
+     bf/ff = back/front foot [x, y<0 lifted], ba/fa = arm angles (+ forward), fl = cape flare, b = body bob (+ down),
+     hd = head lag, sw = scarf wave, lean = forward lean. 8 walk poses are COMPUTED from one phase: contact, down,
+     passing, up for each leg; arms counter-swing; head, cape and scarf follow through with growing phase delays. */
+  const jp = (o) => Object.assign({ bf: [-2.2, 0], ff: [2.3, 0], ba: 0.2, fa: -0.2, fl: 0, b: 0, hd: 0, sw: 0, lean: 0 }, o);
+  const WALK = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = (i / 8) * TAU, foot = (p) => [0.3 + 3.7 * Math.cos(p), Math.sin(p) < 0 ? Math.sin(p) * 2.3 : 0];
+    WALK.push(jp({ ff: foot(ph), bf: foot(ph + PI), fa: -0.9 * Math.cos(ph), ba: 0.9 * Math.cos(ph), b: 0.95 * Math.sin(2 * ph), hd: 0.5 * Math.sin(2 * ph - 0.9), fl: 0.55 + 0.45 * Math.sin(2 * ph - 1.3), sw: Math.sin(2 * ph - 1.9), lean: 0.07 }));
+  }
+  function heroParts(P, F) {
+    const fl = F.fl, c0 = P.c, HIP = -8.6 + F.b;
+    const upper = (fn) => { c0.save(); c0.translate(0, HIP); c0.rotate(F.lean); c0.translate(0, 8.6); fn(); c0.restore(); }; // bob + lean around the hips
+    const leg = (hx, fx, fy, back) => { P.part(CAP(hx, HIP, fx, fy - 1.5, 1.35), back ? C.pantsSh : C.pants, { ol: 0.85 }); P.part(E(fx + 0.9, fy - 1.05, 2.25, 1.35), INK, { ol: 0.6, hi: [[fx + 0.4, fy - 1.65, 0.75, 0.32, -0.15]] }); };
     const arm = (sx, sy, a, back) => { const ex = sx + Math.sin(a) * 5, ey = sy + Math.cos(a) * 5; P.part(CAP(sx, sy, ex, ey, 1.25), back ? C.capeDot : C.cape, { ol: 0.85, dots: back ? null : [C.capeDot, 0.35] }); P.part(E(ex, ey + 0.2, 1.55, 1.5), C.glove, { ol: 0.8, sh: [-0.6, -0.6], shade: [C.cyanDot, 0.5] }); };
-    const wv = Math.sin(f * 1.7) * 0.9;
-    P.part(POLY([[-1.2, -17.2], [-6.2 - fl * 1.6, -17.6 + wv], [-8.4 - fl * 2.2, -15.6 + wv * 1.4], [-6.6 - fl * 1.2, -14.9 + wv], [-1.6, -15.2]]), C.scarf, { ol: 0.8, sh: [0, -0.8], shade: [C.scarfDot, 0.5] });
-    leg(-1.4, F[0], F[1], true); arm(-2.0, -14.0, F[4], true);
+    const wv = F.sw * 0.9;
+    upper(() => P.part(POLY([[-1.2, -17.2], [-6.2 - fl * 1.6, -17.6 + wv], [-8.4 - fl * 2.2, -15.6 + wv * 1.4], [-6.6 - fl * 1.2, -14.9 + wv], [-1.6, -15.2]]), C.scarf, { ol: 0.8, sh: [0, -0.8], shade: [C.scarfDot, 0.5] }));
+    leg(-1.4, F.bf[0], F.bf[1], true); upper(() => arm(-2.0, -14.0, F.ba, true));
     const cape = (c) => { c.moveTo(-2.7, -16.6); c.lineTo(2.9, -16.6); c.quadraticCurveTo(4.8, -12.2, 5.2, -6.9); c.quadraticCurveTo(2.2, -5.5, -0.8, -6.3); c.quadraticCurveTo(-3.6, -5.1 + fl * 0.5, -6.6 - fl * 1.6, -6.7 - fl * 0.9); c.quadraticCurveTo(-5.0, -12.2, -2.7, -16.6); c.closePath(); };
-    leg(1.4, F[2], F[3], false);
-    P.part(cape, C.cape, { sh: [1.7, -1.3], shade: [C.capeDot, 0.55], spot: [0.75, -0.55], ink(c) { c.lineWidth = 0.5; c.beginPath(); c.moveTo(-0.4, -14.2); c.quadraticCurveTo(-1.6, -10.5, -2.4, -7.2); c.moveTo(2.0, -13.6); c.quadraticCurveTo(2.6, -10.2, 2.4, -7.0); c.stroke(); } });
-    arm(2.5, -13.8, F[5], false);
-    P.part(E(0.4, -16.4, 3.9, 1.55), C.scarf, { ol: 0.85, sh: [0, -0.7], shade: [C.scarfDot, 0.5] });
-    const hx = 0.4, hy = -22.6, rx = 8.4, ry = 6.9;
-    P.part(CAP(0.4, -28.6, 1.5, -31.6, 1.05), C.stem, { ol: 0.8, spot: [-0.6, 0] });
-    P.part(PUMPKIN(hx, hy, rx, ry), C.orange, {
-      sh: [-2.3, -1.9], shade: [C.orangeDot, 0.55], spot: [-0.85, -0.75], ol: 1.15,
-      detail(c) { c.strokeStyle = C.rib; c.lineWidth = 0.55; for (const k of [-0.62, -0.25, 0.25, 0.62]) { c.beginPath(); c.moveTo(hx + k * rx * 0.25, hy - ry * 0.92); c.quadraticCurveTo(hx + k * rx * 1.25, hy, hx + k * rx * 0.25, hy + ry * 0.95); c.stroke(); } },
-      hi: [[hx - 4.4, hy - 3.6, 2.1, 0.85, -0.6], [hx - 6.3, hy - 1.4, 0.5, 0.5, 0]],
+    leg(1.4, F.ff[0], F.ff[1], false);
+    upper(() => {
+      P.part(cape, C.cape, { sh: [1.7, -1.3], shade: [C.capeDot, 0.55], spot: [0.75, -0.55], ink(c) { c.lineWidth = 0.5; c.beginPath(); c.moveTo(-0.4, -14.2); c.quadraticCurveTo(-1.6, -10.5, -2.4, -7.2); c.moveTo(2.0, -13.6); c.quadraticCurveTo(2.6, -10.2, 2.4, -7.0); c.stroke(); } });
+      arm(2.5, -13.8, F.fa, false);
+      P.part(E(0.4, -16.4, 3.9, 1.55), C.scarf, { ol: 0.85, sh: [0, -0.7], shade: [C.scarfDot, 0.5] });
+      c0.translate(0, F.hd); // the head arrives later than the body
+      const hx = 0.4, hy = -22.6, rx = 8.4, ry = 6.9;
+      P.part(CAP(0.4, -28.6, 1.5 - F.hd * 0.8, -31.6, 1.05), C.stem, { ol: 0.8, spot: [-0.6, 0] });
+      P.part(PUMPKIN(hx, hy, rx, ry), C.orange, {
+        sh: [-2.3, -1.9], shade: [C.orangeDot, 0.55], spot: [-0.85, -0.75], ol: 1.15,
+        detail(c) { c.strokeStyle = C.rib; c.lineWidth = 0.55; for (const k of [-0.62, -0.25, 0.25, 0.62]) { c.beginPath(); c.moveTo(hx + k * rx * 0.25, hy - ry * 0.92); c.quadraticCurveTo(hx + k * rx * 1.25, hy, hx + k * rx * 0.25, hy + ry * 0.95); c.stroke(); } },
+        hi: [[hx - 4.4, hy - 3.6, 2.1, 0.85, -0.6], [hx - 6.3, hy - 1.4, 0.5, 0.5, 0]],
+      });
+      P.detail((c, flash) => {
+        const fx = hx + 1.4, y = hy;
+        carve(c, flash, POLY([[fx - 4.5, y - 0.4], [fx - 1.1, y - 0.6], [fx - 2.9, y - 3.9]]), 0.3, 0.55);
+        carve(c, flash, POLY([[fx + 1.0, y - 0.6], [fx + 4.4, y - 0.3], [fx + 2.5, y - 3.9]]), 0.3, 0.55);
+        carve(c, flash, POLY([[fx - 5.4, y + 1.6], [fx - 3.4, y + 2.5], [fx - 2.6, y + 1.5], [fx - 1.4, y + 2.8], [fx + 0.6, y + 2.8], [fx + 1.6, y + 1.5], [fx + 2.5, y + 2.5], [fx + 4.9, y + 1.4], [fx + 3.6, y + 4.3], [fx + 1.2, y + 5.2], [fx + 0.5, y + 4.2], [fx - 0.6, y + 5.3], [fx - 3.4, y + 4.6]]), 0.25, 0.6);
+      });
     });
-    P.detail((c, flash) => {
-      const fx = hx + 1.4, y = hy;
-      carve(c, flash, POLY([[fx - 4.5, y - 0.4], [fx - 1.1, y - 0.6], [fx - 2.9, y - 3.9]]), 0.3, 0.55);
-      carve(c, flash, POLY([[fx + 1.0, y - 0.6], [fx + 4.4, y - 0.3], [fx + 2.5, y - 3.9]]), 0.3, 0.55);
-      carve(c, flash, POLY([[fx - 5.4, y + 1.6], [fx - 3.4, y + 2.5], [fx - 2.6, y + 1.5], [fx - 1.4, y + 2.8], [fx + 0.6, y + 2.8], [fx + 1.6, y + 1.5], [fx + 2.5, y + 2.5], [fx + 4.9, y + 1.4], [fx + 3.6, y + 4.3], [fx + 1.2, y + 5.2], [fx + 0.5, y + 4.2], [fx - 0.6, y + 5.3], [fx - 3.4, y + 4.6]]), 0.25, 0.6);
-    });
+  }
+  /** Paper keyline: 8 white silhouettes 1.1 units around the main character, drawn behind it – it pops off any ground. */
+  function keyline(cv) {
+    const ctx = cv.getContext('2d'), w = Math.max(1, Math.round(1.1 * K)), tn = tint(cv, '#fffdf2');
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'destination-over';
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; ctx.drawImage(tn, Math.round(Math.cos(a) * w), Math.round(Math.sin(a) * w)); }
+    ctx.restore();
   }
 
   /* ---------- small creature: two-tone root body with leaf crown, angry face ---------- */
@@ -180,10 +200,8 @@
   function bake(s) {
     K = Math.max(3, Math.min(5, Math.round(s * 1.4)));
     SPR = { K, hero: [], heroF: [], enemy: [[], []] };
-    for (let f = 0; f < 4; f++) {
-      SPR.hero.push(build([-11, -33, 10, 1.5], (P) => heroParts(P, f), 'n', C.cyan));
-      for (let v = 0; v < 2; v++) SPR.enemy[v].push(build([-10, -29, 10, 1.5], (P) => enemyParts(P, f, v), 'n', C.cyan));
-    }
+    for (const F of WALK) SPR.hero.push(build([-13, -35, 15, 1.5], (P) => heroParts(P, F), 'n', C.cyan, keyline));
+    for (let f = 0; f < 4; f++) for (let v = 0; v < 2; v++) SPR.enemy[v].push(build([-10, -29, 10, 1.5], (P) => enemyParts(P, f, v), 'n', C.cyan));
     SPR.flash = build([-10, -29, 10, 1.5], (P) => enemyParts(P, 0, 0), 'flash', C.cyan); // yellow "impact" frame
     // contact shadow: two concentric rings of ink dots (outer rf .5, inner rf .95), never a blurred blob
     SPR.shadow = build([-10, -4, 10, 4], (P) => { const c = P.c; c.save(); c.beginPath(); c.ellipse(0, 0, 9.6, 3.5, 0, 0, TAU); c.clip(); P.dots(INK, 0.5, 1.15); c.restore(); c.save(); c.beginPath(); c.ellipse(0, 0, 6.4, 2.3, 0, 0, TAU); c.clip(); P.dots(INK, 0.95, 1.15); c.restore(); });
@@ -312,9 +330,8 @@
   /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) bake(4);
-    const ph = t * 1.6, step = Math.floor(ph * 4), frame = [1, 2, 3, 2][step & 3], f = ph * 2 - Math.floor(ph * 2);
-    const lift = Math.sin(f * PI) * 1.8 * 1.12;
-    blit(ctx, SPR.hero[frame], x, y - lift, 1.12 * facing, 1.12, 0.05 * facing * Math.sin(f * PI));
+    // 8 baked walk poses at ~13 fps; bob, lean and follow-through are inside the poses, so no runtime wobble
+    blit(ctx, SPR.hero[Math.floor(t * 13) & 7], x, y, 1.12 * facing, 1.12, 0);
   }
   /** Draws a typical creature with feet at (x, y). variant 0|1, flash 0..1 = impact flash strength. */
   function drawEnemy(ctx, x, y, t, variant, facing, flash) {
