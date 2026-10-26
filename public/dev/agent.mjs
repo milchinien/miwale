@@ -25,7 +25,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const VERSION = 2;
+export const VERSION = 3;
 export const PORT = 5300;
 const DATEN = path.join(process.env.LOCALAPPDATA || os.homedir(), 'miwale-dev');
 const EINSTELLUNGEN = path.join(DATEN, 'einstellungen.json');
@@ -114,6 +114,21 @@ export function portBelegt(text) {
   return m ? Number(m[1] || m[2]) : 0;
 }
 
+// Der feste Port, den ein Projekt selbst vorgibt: --port im dev-Skript oder
+// vite.config. 0, wenn es keinen vorgibt.
+export function portAusProjekt(paket, konfigText = '') {
+  const skript = paket?.scripts?.dev || paket?.scripts?.start || '';
+  const m = /(?:--port|-p)[= ](\d{2,5})\b/.exec(skript) || /\bport\s*:\s*(\d{2,5})\b/.exec(konfigText);
+  return m ? Number(m[1]) : 0;
+}
+
+function leseKonfig(ordner) {
+  for (const n of ['vite.config.ts', 'vite.config.js', 'vite.config.mjs', 'vite.config.mts']) {
+    try { return fs.readFileSync(path.join(ordner, n), 'utf8').slice(0, 20000); } catch { /* naechste */ }
+  }
+  return '';
+}
+
 export function projektId(ordner) {
   return crypto.createHash('sha1').update(ordner.toLowerCase()).digest('hex').slice(0, 10);
 }
@@ -171,7 +186,8 @@ export function fehlerAusLog(text) {
 const LAUFZEITEN = new Set(['node.exe', 'bun.exe', 'deno.exe', 'python.exe', 'pythonw.exe', 'php.exe', 'ruby.exe', 'java.exe', 'dotnet.exe', 'hugo.exe', 'caddy.exe']);
 
 function befehlEnthaeltOrdner(befehl, ordner) {
-  const b = befehl.toLowerCase().replace(/\//g, '\\').replace(/\\\\+/g, '\\');
+  // Git Bash schreibt Laufwerke als /d/Projekte/...: erst zu d:/Projekte/... machen.
+  const b = befehl.toLowerCase().replace(/(^|[\s"'=(])\/([a-z])\//g, '$1$2:/').replace(/\//g, '\\').replace(/\\\\+/g, '\\');
   const o = ordner.toLowerCase().replace(/\//g, '\\').replace(/\\+$/, '');
   return b.includes(o + '\\') || b.endsWith(o) || b.includes(o + '"');
 }
@@ -238,7 +254,14 @@ export function baueServer(hoeren, prozesse, projekte, gestartet, eigenePid) {
     // Andere Programme (ein Browser mit dem Projektpfad in der Befehlszeile)
     // nur, wenn der Agent sie selbst gestartet hat.
     if (!LAUFZEITEN.has((p.name || '').toLowerCase()) && !vomAgent(h.pid, prozesse, gestartet)) continue;
-    const projekt = zuordnen(h.pid, prozesse, projekte, gestartet);
+    let projekt = zuordnen(h.pid, prozesse, projekte, gestartet);
+    // Steht der Ordner nirgends in der Befehlskette (Vite per relativem Pfad
+    // gestartet), gilt der Port aus der Projektkonfiguration: Gehoert er genau
+    // einem Projekt, laeuft dort dessen Server.
+    if (!projekt) {
+      const eigene = projekte.filter((x) => x.port === h.port);
+      if (eigene.length === 1) projekt = eigene[0].id;
+    }
     let s = jePid.get(h.pid);
     if (!s) {
       s = { pid: h.pid, name: p.name, projekt, seit: p.seit, befehl: (p.befehl || '').slice(0, 240), ports: [], adressen: [] };
@@ -305,7 +328,7 @@ async function sucheIn(ordner, tiefe, funde, zaehler) {
     const info = paket && projektAusPaket(paket, namen);
     if (info) {
       if (info.installiert) info.installiert = fehlendePakete(ordner, paket).length === 0;
-      funde.push({ id: projektId(ordner), ordner, ...info, aktiv: await letzteAenderung(ordner) });
+      funde.push({ id: projektId(ordner), ordner, ...info, port: portAusProjekt(paket, leseKonfig(ordner)), aktiv: await letzteAenderung(ordner) });
       return;
     }
   }
@@ -552,7 +575,7 @@ class Zentrale {
     // Bei jedem Start frisch: Skript, Paketmanager, und ob wirklich alle Pakete da sind.
     let namen = new Set();
     try { namen = new Set(fs.readdirSync(projekt.ordner)); } catch { /* gleich unten egal */ }
-    Object.assign(projekt, projektAusPaket(paket, namen) || {});
+    Object.assign(projekt, projektAusPaket(paket, namen) || {}, { port: portAusProjekt(paket, leseKonfig(projekt.ordner)) });
     const fehlend = fehlendePakete(projekt.ordner, paket);
     projekt.installiert = fehlend.length === 0;
     const { install, lauf } = befehle(projekt, await this.pmVorhanden(projekt.pm), true);

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   erlaubterUrsprung, erlaubterHost, projektAusPaket, startBefehl, leseNetstat,
-  zuordnen, stoppWurzel, baueServer, vergibNamen, fehlerAusLog, fehlendePakete, befehle, portBelegt,
+  zuordnen, stoppWurzel, baueServer, vergibNamen, fehlerAusLog, fehlendePakete, befehle, portBelegt, portAusProjekt,
 } from '../public/dev/agent.mjs';
 
 test('nur miwale.com und localhost duerfen den Agenten ansprechen', () => {
@@ -133,4 +133,31 @@ test('Fehler aus dem Log: Ursache statt Stacktrace', () => {
 test('gleichnamige Ordner bekommen den Elternordner dazu', () => {
   const p = vergibNamen([{ ordner: 'D:\\A\\tools' }, { ordner: 'D:\\B\\tools' }, { ordner: 'D:\\B\\miwale' }, { ordner: 'D:\\tmp\\mathequiz\\src' }]);
   assert.deepEqual(p.map((x) => x.name), ['tools (A)', 'tools (B)', 'miwale', 'mathequiz/src']);
+});
+
+// Fall aus der Praxis: ein Agent startet Vite per "cd /d/Projects/.../lighthouse &&
+// node node_modules/vite/bin/vite.js". Der Ordner steht nur in der Git-Bash-Schreibweise
+// im Vorfahren, der Server selbst hat einen relativen Pfad.
+test('Server aus Git Bash und mit relativem Pfad gehoert trotzdem zu seinem Projekt', () => {
+  const kette = new Map([
+    [1, { pid: 1, eltern: 0, name: 'claude.exe', befehl: 'claude.exe' }],
+    [2, { pid: 2, eltern: 1, name: 'bash.exe', befehl: 'bash.exe -c "eval \'cd \\"/d/Projects/JAM Games/AI BJM5/lighthouse\\" && node node_modules/vite/bin/vite.js\'"' }],
+    [3, { pid: 3, eltern: 2, name: 'node.exe', befehl: '"C:\\Program Files\\nodejs\\node.exe" node_modules/vite/bin/vite.js' }],
+    [4, { pid: 4, eltern: 1, name: 'node.exe', befehl: 'node server.js' }],
+  ]);
+  const liste = [
+    { id: 'l', ordner: 'D:\\Projects\\JAM Games\\AI BJM5\\lighthouse', port: 5276 },
+    { id: 'j', ordner: 'D:\\Projects\\JAM Games\\AI BJM5', port: 0 },
+  ];
+  assert.equal(zuordnen(3, kette, liste), 'l', 'laengster Ordner, MSYS-Pfad erkannt');
+  // Nur ueber den Port: kein Ordner in der Kette, genau ein Projekt mit diesem Port.
+  assert.equal(baueServer([{ adresse: '::1', port: 5276, pid: 4 }], kette, liste, new Map(), 99)[0].projekt, 'l');
+  const doppelt = [...liste, { id: 'x', ordner: 'D:\\x', port: 5276 }];
+  assert.equal(baueServer([{ adresse: '::1', port: 5276, pid: 4 }], kette, doppelt, new Map(), 99)[0].projekt, null, 'zwei Projekte mit dem Port: nicht raten');
+});
+
+test('fester Port aus dev-Skript oder vite.config', () => {
+  assert.equal(portAusProjekt({ scripts: { dev: 'vite --port 5276' } }), 5276);
+  assert.equal(portAusProjekt({ scripts: { dev: 'vite' } }, 'export default { server: { port: 5276, strictPort: true } }'), 5276);
+  assert.equal(portAusProjekt({ scripts: { dev: 'vite' } }, 'export default {}'), 0);
 });
