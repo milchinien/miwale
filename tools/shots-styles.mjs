@@ -10,6 +10,7 @@ import { writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { serve } from './check-styles.mjs';
 import { stylesDir, styleIds } from './styles-lib.mjs';
+import { fehlende, verkleinern } from './shots-klein.mjs';
 
 const args = process.argv.slice(2);
 const ids = args.includes('--all') ? styleIds() : args;
@@ -66,4 +67,6 @@ for (const id of ids) {
 }
 await browser.close();
 server.close();
+// Kleine Fassungen fuer Galerie und Mixer (shots/klein/), nur fuer die neuen Bilder.
+await verkleinern(fehlende());
 if (failed) process.exit(1);

@@ -52,10 +52,10 @@
         fact('Fonts', main.spec.typography.map((f) => f.family).join(', ')) +
         '<div class="d-fact"><span>Complexity</span><b>' + L.meter(main.spec.difficulty.stars) + ' ' + main.spec.difficulty.stars + '/10</b></div>' +
         '</div><p class="d-desc">' + esc(main.spec.description) + '</p>'
-      : '<div class="d-recipe">' + L.ELEMENTS.map((e) => '<a href="' + d.picks[e.key] + '/#el-' + e.key + '" class="d-pick"><i style="background-image:url(shots/' + d.picks[e.key] + '_zoom.webp)"></i><span>' + e.name + '</span><b>' + esc(src(e.key).spec.name) + '</b></a>').join('') + '</div>';
+      : '<div class="d-recipe">' + L.ELEMENTS.map((e) => '<a href="' + d.picks[e.key] + '/#el-' + e.key + '" class="d-pick"><i style="background-image:url(shots/klein/' + d.picks[e.key] + '_zoom.webp)"></i><span>' + e.name + '</span><b>' + esc(src(e.key).spec.name) + '</b></a>').join('') + '</div>';
 
     const stills = single
-      ? '<div class="d-stills">' + VIEWS.map(([suf, label]) => '<button type="button" data-still="shots/' + main.id + suf + '.webp"><img loading="lazy" src="shots/' + main.id + suf + '.webp" alt="' + esc(main.spec.name) + ' – ' + label + '"><span>' + label + '</span></button>').join('') + '</div>'
+      ? '<div class="d-stills">' + VIEWS.map(([suf, label]) => '<button type="button" data-still="shots/' + main.id + suf + '.webp"><img loading="lazy" src="shots/klein/' + main.id + suf + '.webp" alt="' + esc(main.spec.name) + ' – ' + label + '"><span>' + label + '</span></button>').join('') + '</div>'
       : '';
 
     const secNav = [['palette', 'Palette']].concat(L.ELEMENTS.map((e) => ['el-' + e.key, e.name]), [['technique', 'Technique'], ['prompt', 'Prompt']]);

@@ -22,8 +22,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gesperrteWoerter } from "./bewertungen.mjs";
 import {
-  GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen, sperrlisteLesen,
-  besucherAdresse, adressKennung, tempoGrenze, handlerAus
+  GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen, sperrlisteLesen, besucherAdresse, adressKennung, tempoGrenze, handlerAus, adminSchutz, adminAbweisung
 } from "./gemeinsam.mjs";
 
 // Welche Styles es gibt, steht im Katalog der Seite (tools/build-styles.mjs).
@@ -76,6 +75,7 @@ export function stimmenBauen(optionen) {
   const salz = optionen.salz || "miwale";
   const jetzt = optionen.jetzt || (() => Date.now());
   const begrenzt = tempoGrenze(jetzt);
+  const admin = optionen.adminSchutz || adminSchutz(jetzt);
 
   function zielOk(ziel) {
     const t = String(ziel).split(":");
@@ -95,19 +95,17 @@ export function stimmenBauen(optionen) {
 
   async function verarbeiten(req) {
     const url = new URL(req.url, "http://lokal");
-    const teile = url.pathname.replace(/^\/api\/stimmen\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+    let teile;
+    try { teile = url.pathname.replace(/^\/api\/stimmen\/?/, "").split("/").filter(Boolean).map(decodeURIComponent); }
+    catch { return [400, { fehler: "adresse" }]; }
     const ip = besucherAdresse(req);
 
     if (teile[0] === "healthz") return [200, { ok: true }];
 
     // ---- Verwaltung: veroeffentlichte Designs ansehen und loeschen ----
     if (teile[0] === "admin") {
-      if (!passwort) return [503, { fehler: "verwaltung-aus" }];
-      const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-      if (!gleich(auth, passwort)) {
-        if (begrenzt("login|" + ip, GRENZEN.loginVersuche)) return [429, { fehler: "zu-viele-versuche" }];
-        return [401, { fehler: "passwort" }];
-      }
+      const nein = adminAbweisung(admin(req, passwort));
+      if (nein) return nein;
       if (teile[1] === "mixe" && !teile[2] && req.method === "GET") {
         return [200, { mixe: daten.mixe.map((m) => ({ ...mixSicht(m), adresse: m.adresse })) }];
       }

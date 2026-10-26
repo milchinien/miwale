@@ -350,6 +350,13 @@ for (const f of readdirSync(AUTO_BILDER)) {
   const id = f.replace(/-\d+\.jpg$/, '');
   if (!auto.has(id) || !manifest[id]) rmSync(join(AUTO_BILDER, f));
 }
+// Teilen-Karten (assets/og/<id>.jpg) fuer neu aufgenommene Spiele. Misslingt das,
+// zeigt die Seite die allgemeine Karte: kein Grund, die Aktualisierung zu stoppen.
+try {
+  const { erzeugen, fehlend } = await import('./og-bilder.mjs');
+  const ohneKarte = fehlend();
+  if (ohneKarte.length) { await erzeugen(ohneKarte); console.log(`Teilen-Karten erzeugt: ${ohneKarte.join(', ')}`); }
+} catch (e) { console.warn('Teilen-Karten nicht erzeugt: ' + String(e.message || e).slice(0, 200)); }
 rmSync(BAU, { recursive: true, force: true });
 
 const zeilen = ['| Repository | id | Ergebnis | Details |', '| --- | --- | --- | --- |',

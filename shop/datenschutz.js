@@ -6,7 +6,7 @@
   const TEXTE = {
     en: {
       titel: "Privacy policy",
-      stand: "Last updated: September 2026",
+      stand: "Last updated: October 2026",
       abschnitte: [
         ["Who is responsible", [
           "Michel Waggoner, contact: michi.waggoner@gmail.com. Write to this address for any question about your data or to use your rights."
@@ -30,6 +30,12 @@
           "To keep you signed in, we set one cookie (sign-in session, 30 days after your last visit) and during sign-in two short-lived ones. They are strictly necessary, so no consent banner is needed. There are no tracking or advertising cookies.",
           "Legal basis: Art. 6(1)(b) GDPR. You need to be at least 13 years old to create an account."
         ]],
+        ["Profile, playtime and pearls", [
+          "With an account you also get a profile. It stores: how long you played each game (counted only while the game window is open and the tab is visible), the achievements you unlocked, your level, your pearl balance and its history, the items you bought or picked (avatar, frame, banner, name style, title, accent colour), the achievements you show on your profile, your visit streak, and your privacy settings. We also keep which game page you reviewed and how many game requests you sent, only to pay out pearls once.",
+          "Your public profile (/u/your-name) shows your name, avatar and other looks, level, achievements and the showcase. Your playtime is private unless you switch on \"Show my playtime\"; your pearl balance and history are never shown to others. You can hide your profile completely in the profile settings. Search engines are asked not to list profiles.",
+          "Playtime is reported by your browser about every 30 seconds while a game window is open. It is only used for your profile, your pearls and achievements — not for advertising and not passed on. Pearls cannot be bought with money.",
+          "Legal basis: providing the feature you use (Art. 6(1)(b) GDPR). Your profile is part of your account: downloading your data includes it, deleting your account deletes it."
+        ]],
         ["Blocking", [
           "Accounts that break the rules can be blocked. If a blocked account is deleted, we keep only its scrambled ID, so it can't simply sign up again (Art. 6(1)(f) GDPR)."
         ]],
@@ -44,7 +50,7 @@
     },
     de: {
       titel: "Datenschutzerklärung",
-      stand: "Stand: September 2026",
+      stand: "Stand: Oktober 2026",
       abschnitte: [
         ["Verantwortlich", [
           "Michel Waggoner, Kontakt: michi.waggoner@gmail.com. An diese Adresse kannst du dich mit allen Fragen zu deinen Daten wenden und deine Rechte geltend machen."
@@ -67,6 +73,12 @@
           "Wir speichern: den Namen, den du wählst, wann du dich angemeldet hast und zuletzt da warst, dass du bestätigt hast, mindestens 13 zu sein, und eine verschlüsselte Form der Kennung (Hash mit geheimem Schlüssel), damit wir dich wiedererkennen. Daraus lässt sich dein Discord- oder Google-Konto nicht zurückrechnen.",
           "Damit du angemeldet bleibst, setzen wir ein Cookie (Sitzung, 30 Tage nach deinem letzten Besuch) und während der Anmeldung zwei kurzlebige. Sie sind technisch notwendig, darum braucht es keinen Cookie-Banner. Tracking- oder Werbe-Cookies gibt es nicht.",
           "Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO. Ein Konto kannst du ab 13 Jahren anlegen."
+        ]],
+        ["Profil, Spielzeit und Perlen", [
+          "Mit einem Konto bekommst du auch ein Profil. Darin stehen: wie lange du jedes Spiel gespielt hast (gezählt nur, solange das Spielfenster offen und der Tab sichtbar ist), deine freigeschalteten Erfolge, dein Level, dein Perlenstand samt Verlauf, die Gegenstände, die du gekauft oder gewählt hast (Avatar, Rahmen, Banner, Namensstil, Titel, Akzentfarbe), die Erfolge in deiner Vitrine, deine Besuchsserie und deine Datenschutz-Einstellungen. Außerdem merken wir uns, für welches Spiel du eine Bewertung geschrieben und wie viele Game Requests du gesendet hast – nur, damit Perlen dafür einmal ausgezahlt werden.",
+          "Dein öffentliches Profil (/u/dein-name) zeigt Namen, Avatar und weitere Optik, Level, Erfolge und die Vitrine. Deine Spielzeit ist privat, solange du „Meine Spielzeit zeigen“ nicht einschaltest; Perlenstand und Verlauf sehen andere nie. In den Profil-Einstellungen kannst du dein Profil ganz verstecken. Suchmaschinen werden gebeten, Profile nicht aufzulisten.",
+          "Die Spielzeit meldet dein Browser etwa alle 30 Sekunden, solange ein Spielfenster offen ist. Sie dient nur deinem Profil, deinen Perlen und Erfolgen – nicht für Werbung und nicht zur Weitergabe. Perlen lassen sich nicht mit Geld kaufen.",
+          "Rechtsgrundlage: Bereitstellung der Funktion, die du nutzt (Art. 6 Abs. 1 lit. b DSGVO). Dein Profil gehört zu deinem Konto: Der Datenabruf enthält es, beim Löschen des Kontos wird es gelöscht."
         ]],
         ["Sperren", [
           "Konten, die gegen die Regeln verstoßen, können gesperrt werden. Wird ein gesperrtes Konto gelöscht, behalten wir nur dessen verschlüsselte Kennung, damit es sich nicht einfach neu anmelden kann (Art. 6 Abs. 1 lit. f DSGVO)."

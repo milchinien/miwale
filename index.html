@@ -9,14 +9,28 @@
 <!-- Dieselbe Datei laeuft auch unter /games/chromatic. Ohne Basis suchte sie
      shop/ und assets/ dann unter /games/. -->
 <base href="/">
+<!-- Zwischen den Markern steht, was tools/seiten-lib.mjs je Seite ersetzt: Titel, Beschreibung,
+     Vorschau (og:/twitter:), canonical und JSON-LD. Hier die allgemeine Fassung fuer
+     alle Adressen, die nicht eigens erzeugt werden (/requests, /account, ...). -->
+<!-- seo:start -->
 <title>miwale games — play free in your browser</title>
 <meta name="description" content="Idle games, card games and roguelites by miwale. Play them right in your browser — no download, no sign-up.">
-<meta property="og:title" content="miwale games">
-<meta property="og:description" content="Play free in your browser — no download, no sign-up.">
-<meta property="og:image" content="https://miwale.com/assets/games/previews/dropfall-v1.jpg">
+<meta property="og:site_name" content="miwale games">
+<meta property="og:type" content="website">
+<meta property="og:title" content="miwale games — play free in your browser">
+<meta property="og:description" content="Idle games, card games and roguelites by miwale. Play them right in your browser — no download, no sign-up.">
+<meta property="og:image" content="https://miwale.com/assets/og/miwale.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://miwale.com/assets/og/miwale.jpg">
+<link rel="alternate" type="application/atom+xml" title="miwale games" href="/feed.xml">
+<!-- seo:end -->
 <meta name="theme-color" content="#071A29">
 <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale.png" media="(prefers-color-scheme: light)">
 <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale-light.png" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="/assets/fonts/manrope-v20-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/quicksand-v37-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
 <link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
 <link rel="stylesheet" href="_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
@@ -25,11 +39,17 @@
 <link rel="stylesheet" href="shop/ideen.css">
 <link rel="stylesheet" href="shop/konto.css">
 <link rel="stylesheet" href="shop/hintergrund.css">
+<link rel="stylesheet" href="shop/profil.css">
 <script src="shop/spiele.js" defer></script>
 <script src="shop/spiele-auto.js" defer></script>
+<script src="shop/profil-katalog.js" defer></script>
 <script src="shop/umgebung.js" defer></script>
 <script src="shop/identitaet.js" defer></script>
 <script src="shop/konto.js" defer></script>
+<script src="shop/profil.js" defer></script>
+<script src="shop/profil-seite.js" defer></script>
+<script src="shop/bibliothek.js" defer></script>
+<script src="shop/perlenshop.js" defer></script>
 <script src="shop/datenschutz.js" defer></script>
 <script src="shop/bewertungen.js" defer></script>
 <script src="shop/ideen.js" defer></script>

@@ -173,7 +173,7 @@
   const meter = (n) => '<span class="meter" style="--n:' + n + '" aria-label="' + n + ' of 10"><i></i></span>';
   /** Collage thumbnail of a design: one tile per element, cut from the source style's screenshot. */
   function collage(d) {
-    return '<div class="collage">' + ELEMENTS.map((e) => '<i title="' + esc(e.name) + '" style="background-image:url(shots/' + d.picks[e.key] + '_zoom.webp)"><b>' + e.short + '</b></i>').join('') + '</div>';
+    return '<div class="collage">' + ELEMENTS.map((e) => '<i title="' + esc(e.name) + '" style="background-image:url(shots/klein/' + d.picks[e.key] + '_zoom.webp)"><b>' + e.short + '</b></i>').join('') + '</div>';
   }
   function download(name, content, type) {
     const a = document.createElement('a');

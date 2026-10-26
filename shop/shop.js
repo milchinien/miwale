@@ -9,6 +9,9 @@
   const SPRACH_SCHLUESSEL = "miwale-sprache"; // derselbe wie im Portfolio
   const WENIG_BEWEGUNG = matchMedia("(prefers-reduced-motion: reduce)");
   const SEITENWEISE = matchMedia("(min-width: 901px)");
+  // Datensparmodus des Browsers (Android, Chrome "Lite"): Trailer nicht von
+  // selbst laden, das Vorschaubild bleibt stehen wie bei wenig Bewegung.
+  const DATEN_SPAREN = Boolean(navigator.connection && navigator.connection.saveData);
 
   const TEXTE = {
     en: {
@@ -16,12 +19,16 @@
       spiele: "Games",
       portfolio: "Portfolio",
       home: "Home",
+      bibliothek: "Library",
+      perlen: "Pearl Shop",
+      profil: "Profile",
       ideen: "Game Requests",
       ideenTitel: "Game Requests — miwale games",
       ideenNeuTitel: "Submit your idea — miwale games",
       ideenBeschreibung: "Vote for game ideas or pitch your own — I build one in a single day and put it on miwale.com.",
       kontoTitel: "Your account — miwale games",
       kontoBeschreibung: "Sign in with Discord or Google to write reviews and send game requests. Playing never needs an account.",
+      profilBeschreibung: "Your miwale profile: playtime, achievements, pearls and a look that is yours. Everything free, nothing needed to play.",
       datenschutz: "Privacy",
       zurueckSeite: "Back",
       vorSeite: "Forward",
@@ -35,6 +42,8 @@
       name: "A–Z",
       spielen: "Play",
       jetztSpielen: "Play now",
+      favoritAn: "Add to favorites",
+      inBibliothek: "View in library",
       spieleName: (n) => "Play " + n,
       imBrowser: "Runs right in your browser — no download, no sign-up.",
       neuerTab: "Opens in a new tab.",
@@ -72,12 +81,16 @@
       spiele: "Spiele",
       portfolio: "Portfolio",
       home: "Home",
+      bibliothek: "Bibliothek",
+      perlen: "Perlen-Shop",
+      profil: "Profil",
       ideen: "Game Requests",
       ideenTitel: "Game Requests — miwale games",
       ideenNeuTitel: "Eigene Idee einreichen — miwale games",
       ideenBeschreibung: "Stimm für Spielideen ab oder reich deine eigene ein – ich baue eine an einem Tag und stelle sie auf miwale.com.",
       kontoTitel: "Dein Konto — miwale games",
       kontoBeschreibung: "Mit Discord oder Google anmelden, um Bewertungen zu schreiben und Game Requests zu schicken. Spielen geht immer ohne Konto.",
+      profilBeschreibung: "Dein miwale-Profil: Spielzeit, Erfolge, Perlen und ein Look, der zu dir passt. Alles kostenlos, zum Spielen brauchst du nichts davon.",
       datenschutz: "Datenschutz",
       zurueckSeite: "Zurück",
       vorSeite: "Vor",
@@ -91,6 +104,8 @@
       name: "A–Z",
       spielen: "Spielen",
       jetztSpielen: "Jetzt spielen",
+      favoritAn: "Zu Favoriten",
+      inBibliothek: "In der Bibliothek",
       spieleName: (n) => n + " spielen",
       imBrowser: "Läuft direkt im Browser — ohne Download, ohne Anmeldung.",
       neuerTab: "Öffnet sich in einem neuen Tab.",
@@ -239,7 +254,7 @@
 
   function mediumHtml(m, klasse, autoplay) {
     if (m.typ === "video") {
-      const spielt = autoplay && !WENIG_BEWEGUNG.matches;
+      const spielt = autoplay && !WENIG_BEWEGUNG.matches && !DATEN_SPAREN;
       return '<video class="' + klasse + '" src="' + esc(m.src) + '" poster="' + esc(m.poster) + '" muted loop playsinline preload="' + (spielt ? "auto" : "none") + '"' + (spielt ? " autoplay" : "") + ' aria-label="' + esc(t.trailer) + '"></video>';
     }
     return '<img class="' + klasse + '" src="' + esc(m.src) + '" alt="" loading="lazy" decoding="async">';
@@ -274,6 +289,11 @@
       return { seite: "ideen", neu: teile[1] === "new" };
     }
     if (String(teile[0]).toLowerCase() === "account" && teile.length === 1) return { seite: "konto" };
+    // Profil: /profile ist das eigene, /u/<name> das eines anderen; dazu Bibliothek und Perlen-Shop.
+    if (String(teile[0]).toLowerCase() === "library" && (teile.length === 1 || (teile.length === 2 && PER_ID.has(teile[1])))) return { seite: "bibliothek", id: teile[1] || null };
+    if (String(teile[0]).toLowerCase() === "pearls" && teile.length === 1) return { seite: "perlen" };
+    if (String(teile[0]).toLowerCase() === "profile" && teile.length === 1) return { seite: "profil" };
+    if (teile[0] === "u" && teile.length === 2 && /^[A-Za-z0-9_-]{3,20}$/.test(teile[1])) return { seite: "nutzer", name: teile[1] };
     if (/^(privacy|datenschutz)$/i.test(String(teile[0])) && teile.length === 1) return { seite: "datenschutz" };
     // Aeltere Links der Spieleseite: /games#chromatic oder /#chromatic/spielen
     const h = (location.hash || "").replace(/^#/, "").split("/").filter(Boolean);
@@ -285,6 +305,10 @@
   function pfad(ziel) {
     if (ziel.seite === "ideen") return "/requests" + (ziel.neu ? "/new" : "");
     if (ziel.seite === "konto") return "/account";
+    if (ziel.seite === "bibliothek") return "/library" + (ziel.id ? "/" + ziel.id : "");
+    if (ziel.seite === "perlen") return "/pearls";
+    if (ziel.seite === "profil") return "/profile";
+    if (ziel.seite === "nutzer") return "/u/" + ziel.name;
     if (ziel.seite === "datenschutz") return "/privacy";
     if (ziel.seite !== "spiel") return "/";
     return "/games/" + ziel.id + (ziel.spielt ? "/spielen" : "");
@@ -304,9 +328,24 @@
   // Kopfzeile wie im Steam-Client, in drei Spalten: Die Mitte ist genau so
   // breit wie der Inhalt darunter (Reiter links, Suche rechts buendig). Verlauf
   // und Logo stehen links davor, Benachrichtigungen und Portfolio rechts daneben.
+  // Symbole der Reiter: am Handy stehen sie unten in einer Leiste, am Desktop bleiben sie unsichtbar.
+  function symbolReiter(name) {
+    const pfade = {
+      home: "M4 11 12 4l8 7v9h-5v-6H9v6H4z",
+      bibliothek: "M5 4h4v16H5zM11 4h4v16h-4zM17 6l3.5-1 2 15-3.5 1z",
+      ideen: "M12 3a6 6 0 0 0-3.5 10.9V17h7v-3.1A6 6 0 0 0 12 3zM9.5 20h5",
+      perlen: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM9 9.500a3 3 0 0 1 3-2",
+      profil: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.500 7.500 0 0 1 15 0"
+    };
+    return '<svg class="sp-home__symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="' + pfade[name] + '"/></svg>';
+  }
+
   function kopf() {
     const seite = adresse().seite;
-    const reiter = (href, name, aktiv, extra) => '<a class="sp-home' + (extra || "") + '" href="' + href + '" data-link' + (aktiv ? ' aria-current="page"' : "") + ">" + name + "</a>";
+    // Perlen-Shop und Profil brauchen ein Konto. Solange Anmelden nicht eingerichtet
+    // ist (Uebergang), bleiben ihre Reiter verborgen; siehe kontoReiter() unten.
+    const kontoAus = !(window.MIWALE_IDENTITAET && window.MIWALE_IDENTITAET.kontenAktiv());
+    const reiter = (href, name, aktiv, extra, nurKonto) => '<a class="sp-home' + (extra || "") + '" href="' + href + '" data-link' + (nurKonto ? " data-nur-konten" + (kontoAus ? " hidden" : "") : "") + (aktiv ? ' aria-current="page"' : "") + ">" + name + "</a>";
     return '<header class="sp-kopf"><div class="sp-kopf__innen">' +
       '<div class="sp-kopf__aussen sp-kopf__aussen--links">' +
         '<nav class="sp-verlauf" aria-label="' + esc(t.zurueckSeite) + " / " + esc(t.vorSeite) + '">' +
@@ -318,9 +357,13 @@
       "</div>" +
       '<div class="sp-kopf__mitte">' +
         '<nav class="sp-reiterkopf" aria-label="miwale games">' +
-          reiter("/", esc(t.home), seite === "start", " sp-home--start") +
+          reiter("/", symbolReiter("home") + '<span class="sp-home__text">' + esc(t.home) + "</span>", seite === "start", " sp-home--start") +
+          reiter("/library", symbolReiter("bibliothek") + '<span class="sp-home__text">' + esc(t.bibliothek) + "</span>", seite === "bibliothek") +
           // Schmal steht nur "Requests"; das "Game" davor faellt weg.
-          reiter("/requests", esc(t.ideen).replace(/^(Game )/, '<span class="sp-home__vorsilbe">$1</span>'), seite === "ideen") +
+          reiter("/requests", symbolReiter("ideen") + '<span class="sp-home__text">' + esc(t.ideen).replace(/^(Game )/, '<span class="sp-home__vorsilbe">$1</span>') + "</span>", seite === "ideen") +
+          reiter("/pearls", symbolReiter("perlen") + '<span class="sp-home__text">' + esc(t.perlen) + "</span>", seite === "perlen", "", true) +
+          // Nur schmal sichtbar: die Reiter stehen dann unten wie in einer App, das Profil gehoert dazu.
+          reiter("/profile", symbolReiter("profil") + '<span class="sp-home__text">' + esc(t.profil) + "</span>", seite === "profil" || seite === "nutzer", " sp-home--profil", true) +
         "</nav>" +
         '<div class="sp-kopf__werkzeuge">' +
         '<div class="sp-sprache" role="group" aria-label="' + esc(t.sprachgruppe) + '">' +
@@ -522,6 +565,9 @@
               ((sp.geraete || []).indexOf("handy") < 0 ? " " + esc(t.nurPc) : "") + (extern ? " " + esc(t.neuerTab) : "") + "</p></div>" +
             '<button type="button" class="sp-knopf sp-knopf--play sp-knopf--gross" data-spielen="' + sp.id + '">' + ICONS.play + esc(t.jetztSpielen) + "</button>" +
           "</div>" +
+          // Favorit und Bibliothek (shop/profil.js setzt den Zustand des Sterns).
+          '<div class="pf-spielextra"><button type="button" class="pf-favknopf" data-fav-knopf="' + esc(sp.id) + '" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/></svg><span>' + esc(t.favoritAn) + "</span></button>" +
+            '<a class="pf-favknopf" href="/library/' + esc(sp.id) + '" data-link><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17 6l3.5-1 2 15-3.5 1z"/></svg><span>' + esc(t.inBibliothek) + "</span></a></div>" +
           '<section class="sp-text"><h2>' + esc(t.ueber) + "</h2>" + (tx.ueber || []).map((p) => "<p>" + esc(p) + "</p>").join("") + "</section>" +
           ((tx.features || []).length ? '<section class="sp-text"><h2>' + esc(t.features) + '</h2><ul class="sp-features">' + tx.features.map((f) => "<li>" + esc(f) + "</li>").join("") + "</ul></section>" : "") +
           (tx.steuerung ? '<section class="sp-text"><h2>' + esc(t.steuerung) + "</h2><p>" + esc(tx.steuerung) + "</p></section>" : "") +
@@ -543,6 +589,8 @@
   function spielFenster(sp) {
     return '<div class="sp-spiel" role="dialog" aria-modal="true" aria-label="' + esc(t.spieleName(sp.name)) + '" data-spielfenster>' +
       '<div class="sp-spiel__kopf"><strong>' + esc(sp.name) + "</strong>" +
+        // Gefuellt von shop/profil.js: "Spielzeit wird gezaehlt" bzw. der Hinweis zum Anmelden.
+        '<span class="pf-spielstatus" data-pf-spiel></span>' +
         '<button type="button" class="sp-knopf sp-knopf--glas" data-vollbild>' + ICONS.voll + '<span data-vollbild-text>' + esc(t.vollbild) + "</span></button>" +
         '<button type="button" class="sp-knopf sp-knopf--glas" data-schliessen>' + ICONS.zu + esc(t.schliessen) + "</button></div>" +
       '<iframe src="' + esc(spielAdresse(sp)) + '" title="' + esc(sp.name) + '" allow="autoplay; fullscreen; gamepad"></iframe>' +
@@ -559,7 +607,8 @@
     const ideen = ort.seite === "ideen";
     const konto = ort.seite === "konto";
     const datenschutz = ort.seite === "datenschutz";
-    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : ort.seite;
+    const profilSeite = ort.seite === "bibliothek" || ort.seite === "perlen" || ort.seite === "profil" || ort.seite === "nutzer";
+    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : ort.seite === "nutzer" ? "nutzer:" + String(ort.name).toLowerCase() : ort.seite === "bibliothek" ? "bibliothek:" + (ort.id || "") : ort.seite;
 
     // Die Seite nur neu bauen, wenn sich Seite oder Sprache geaendert haben —
     // sonst liefe beim Oeffnen des Spielfensters jeder Trailer von vorn.
@@ -572,6 +621,7 @@
         : ideen ? '<main class="sp-ideen sp-breite" data-ideen></main>'
         : konto ? '<main class="sp-ideen sp-konto sp-breite" data-konto></main>'
         : datenschutz ? '<main class="sp-ideen sp-breite" data-datenschutz></main>'
+        : profilSeite ? '<main class="sp-ideen sp-breite pf-seite" data-profilseite></main>'
         : startSeite();
       app.innerHTML = kopf() + inhalt + fuss() + '<div data-fenster></div>';
       app.dataset.seite = seitenSchluessel;
@@ -584,12 +634,21 @@
         // Beschreibung pro Spiel, damit geteilte Links eine Vorschau bekommen.
         setzeMeta("description", text(sp).kurz);
         if (window.MIWALE_BEWERTUNGEN) window.MIWALE_BEWERTUNGEN.einbauen(app.querySelector("[data-bewertungen]"), sp, zustand.sprache);
+        if (window.MIWALE_PROFIL_UI) window.MIWALE_PROFIL_UI.favKnoepfe();
       } else if (ideen) {
         setzeMeta("description", t.ideenBeschreibung);
         if (window.MIWALE_IDEEN) window.MIWALE_IDEEN.einbauen(app.querySelector("[data-ideen]"), zustand.sprache, { ansicht: ort.neu ? "neu" : "liste", zurueck: ideenZurueck });
       } else if (konto) {
         setzeMeta("description", t.kontoBeschreibung);
         if (window.MIWALE_KONTO) window.MIWALE_KONTO.einbauen(app.querySelector("[data-konto]"), zustand.sprache);
+      } else if (profilSeite) {
+        // Profil, Bibliothek und Perlen-Shop fuellen shop/profil-seite.js, bibliothek.js und perlenshop.js.
+        setzeMeta("description", t.profilBeschreibung);
+        const S = window.MIWALE_PROFIL_SEITEN || {};
+        const platz = app.querySelector("[data-profilseite]");
+        if (ort.seite === "bibliothek" && S.bibliothek) S.bibliothek(platz, zustand.sprache, ort.id);
+        else if (ort.seite === "perlen" && S.perlen) S.perlen(platz, zustand.sprache);
+        else if (S.profil) S.profil(platz, zustand.sprache, ort.seite === "nutzer" ? ort.name : null);
       } else if (datenschutz) {
         setzeMeta("description", t.datenschutz);
         if (window.MIWALE_DATENSCHUTZ) window.MIWALE_DATENSCHUTZ.einbauen(app.querySelector("[data-datenschutz]"), zustand.sprache);
@@ -605,10 +664,15 @@
 
     const fenster = app.querySelector("[data-fenster]");
     const offen = fenster.querySelector("[data-spielfenster]");
+    // Auch wenn die Seite beim Wechsel neu gebaut wurde (Zurueck aus dem Spielfenster
+    // auf die Startseite): ohne offenes Spielfenster zaehlt keine Spielzeit.
+    if (!(sp && ort.spielt) && window.MIWALE_PROFIL_UI) window.MIWALE_PROFIL_UI.spielEnde();
     if (sp && ort.spielt) {
       if (!offen) {
         fenster.innerHTML = spielFenster(sp);
         document.documentElement.classList.add("sp-gesperrt");
+        // Spielzeit und Erfolge: solange das Fenster offen ist, zaehlt shop/profil.js mit.
+        if (window.MIWALE_PROFIL_UI) window.MIWALE_PROFIL_UI.spielStart(sp.id);
         pausiereVideos(true);
         const zu = fenster.querySelector("[data-schliessen]");
         if (zu) zu.focus();
@@ -617,6 +681,7 @@
       if (document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) { /* egal */ } }
       fenster.innerHTML = "";
       document.documentElement.classList.remove("sp-gesperrt");
+      if (window.MIWALE_PROFIL_UI) window.MIWALE_PROFIL_UI.spielEnde();
       pausiereVideos(false);
     }
     const vollbild = fenster.querySelector("[data-vollbild]");
@@ -885,7 +950,20 @@
     if (e.target.matches("[data-suche-feld]")) sucheZeigen(e.target);
   });
 
-  window.addEventListener("resize", () => { if (SEITENWEISE.matches) zeigeReiheSeite(zustand.reiheSeite, true); });
+  // Hoechstens einmal je Bild: zeigeReiheSeite misst das Layout, und resize
+  // feuert beim Ziehen am Fenster viele Male pro Bild.
+  let reiheMessen = 0;
+  window.addEventListener("resize", () => {
+    if (!SEITENWEISE.matches || reiheMessen) return;
+    reiheMessen = requestAnimationFrame(() => { reiheMessen = 0; zeigeReiheSeite(zustand.reiheSeite, true); });
+  });
+  // Sobald feststeht, ob Anmelden eingerichtet ist, die Konto-Reiter zeigen oder verbergen.
+  function kontoReiter() {
+    const an = !!(window.MIWALE_IDENTITAET && window.MIWALE_IDENTITAET.kontenAktiv());
+    app.querySelectorAll("[data-nur-konten]").forEach((a) => { a.hidden = !an; });
+  }
+  window.addEventListener("miwale-konto", kontoReiter);
+
   window.addEventListener("popstate", () => {
     zustand.eigeneEintraege = Math.max(0, zustand.eigeneEintraege - 1);
     zeichne();

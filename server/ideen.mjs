@@ -43,8 +43,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { gesperrteWoerter } from "./bewertungen.mjs";
 import {
-  textPruefen, gleich, sicherSchreiben, lesen, lesenRoh, sperrlisteLesen,
-  besucherAdresse, adressKennung, tempoGrenze, besitzerVon, geraetVon, kontenPflicht, handlerAus
+  textPruefen, gleich, sicherSchreiben, lesen, lesenRoh, sperrlisteLesen, besucherAdresse, adressKennung, tempoGrenze, besitzerVon, geraetVon, kontenPflicht, handlerAus, adminSchutz, adminAbweisung
 } from "./gemeinsam.mjs";
 
 export const GRENZEN = {
@@ -148,6 +147,7 @@ export function ideenBauen(optionen) {
   const salz = optionen.salz || "miwale";
   const jetzt = optionen.jetzt || (() => Date.now());
   const begrenzt = tempoGrenze(jetzt);
+  const admin = optionen.adminSchutz || adminSchutz(jetzt);
   const wer = (req) => (optionen.konten ? optionen.konten.wer(req) : null);
   const nameVon = (id) => (optionen.konten ? optionen.konten.nameVon(id) : null);
 
@@ -232,15 +232,13 @@ export function ideenBauen(optionen) {
     const besitzer = besitzerVon(konto) || (kontenPflicht(optionen.konten) ? null : geraet);
     const waehler = besitzer || geraet;
     if (konto && geraet) uebernehmen(geraet, besitzer);
-    const adminOk = () => !!passwort && gleich(String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""), passwort);
+    // Auch hier ueber den gemeinsamen Schutz: sonst liesse sich ueber den Bildabruf ungebremst raten.
+    const adminOk = () => admin(req, passwort) === "ok";
 
     // ---- Verwaltung ----
     if (teile[0] === "admin") {
-      if (!passwort) return [503, { fehler: "verwaltung-aus" }];
-      if (!adminOk()) {
-        if (begrenzt("login|" + ip, GRENZEN.loginVersuche)) return [429, { fehler: "zu-viele-versuche" }];
-        return [401, { fehler: "passwort" }];
-      }
+      const nein = adminAbweisung(admin(req, passwort));
+      if (nein) return nein;
       if (teile[1] === "alle" && req.method === "GET") {
         const ideen = speicher.alle
           .slice()
@@ -371,6 +369,8 @@ export function ideenBauen(optionen) {
       for (const b of bilder) speicher.lose.splice(speicher.lose.indexOf(b), 1);
       speicher.alle.push(idee);
       speicher.speichern();
+      // Das Profil (Perlen, Erfolge) erfaehrt, dass das Konto eine Idee eingereicht hat.
+      if (konto && optionen.beiIdee) optionen.beiIdee(konto.id, idee.id);
       return [201, { idee: sicht(idee, besitzer, waehler), ...uebersicht(besitzer, waehler) }];
     }
 
@@ -451,7 +451,7 @@ export function ideenBauen(optionen) {
     return {
       ideen: speicher.alle
         .filter((i) => i.besitzer === besitzer)
-        .map((i) => ({ ...sicht(i, besitzer), rechte: i.rechte, adresse: i.adresse })),
+        .map((i) => ({ ...sicht(i, besitzer), rechte: i.rechte })),
       stimmen: speicher.alle
         .filter((i) => besitzer in i.stimmen)
         .map((i) => ({ idee: i.nummer, titel: i.titel, wert: i.stimmen[besitzer] }))

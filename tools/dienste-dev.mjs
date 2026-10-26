@@ -4,6 +4,7 @@ import { anwendungBauen } from '../server/bewertungen.mjs';
 import { ideenBauen } from '../server/ideen.mjs';
 import { stimmenBauen } from '../server/stimmen.mjs';
 import { kontenBauen } from '../server/konten.mjs';
+import { profilBauen } from '../server/profil.mjs';
 
 // Lokal laufen die Dienste (Bewertungen, Game Requests, Konten) direkt in Vite,
 // ohne Container. Die Daten landen in .bewertungen-dev/ (von Git ignoriert).
@@ -77,11 +78,13 @@ export function diensteDev() {
           discord: { id: process.env.DISCORD_CLIENT_ID, secret: process.env.DISCORD_CLIENT_SECRET },
           google: { id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET },
         },
-        beimLoeschen: (id) => { bewertungen.kontoLoeschen(id); ideen.kontoLoeschen(id); },
-        datenVon: (id) => ({ bewertungen: bewertungen.kontoDaten(id), ...ideen.kontoDaten(id) }),
+        beimLoeschen: (id) => { bewertungen.kontoLoeschen(id); ideen.kontoLoeschen(id); profil.kontoLoeschen(id); },
+        datenVon: (id) => ({ bewertungen: bewertungen.kontoDaten(id), ...ideen.kontoDaten(id), profil: profil.kontoDaten(id) }),
       });
-      const bewertungen = anwendungBauen({ ...optionen, konten });
-      const ideen = ideenBauen({ ...optionen, konten });
+      const bewertungen = anwendungBauen({ ...optionen, konten, beiBewertung: (id, spiel) => profil.ereignis(id, 'bewertung', spiel) });
+      const ideen = ideenBauen({ ...optionen, konten, beiIdee: (id, idee) => profil.ereignis(id, 'idee', idee) });
+      // Lokal sofort schreiben, damit man Aenderungen in der Datei sieht und ein Neustart nichts verliert.
+      const profil = profilBauen({ ...optionen, konten, verzoegerungMs: 200 });
       const stimmen = stimmenBauen(optionen);
       server.middlewares.use((req, res, next) => {
         const pfad = req.url.split('?')[0];
@@ -96,6 +99,7 @@ export function diensteDev() {
         if (pfad.startsWith('/api/bewertungen/')) return bewertungen(req, res);
         if (pfad === '/api/ideen' || pfad.startsWith('/api/ideen/')) return ideen(req, res);
         if (pfad === '/api/stimmen' || pfad.startsWith('/api/stimmen/')) return stimmen(req, res);
+        if (pfad === '/api/profil' || pfad.startsWith('/api/profil/')) return profil(req, res);
         // Wie nginx: /styles und /Styles... fuehren auf /styles/, das die Galerie liefert.
         if (pfad === '/styles' || pfad.startsWith('/Styles')) {
           res.statusCode = 301;

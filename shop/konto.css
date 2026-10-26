@@ -69,3 +69,57 @@
   .sp-konto__haupt { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .sp-konto__mit { transition: none; } }
+
+/* ---- Anmelden: Fenster in der Mitte und /account (shop/konto.js) ----
+   Bewusst schlicht wie auf den meisten grossen Seiten: eine Karte, ein Titel,
+   gleich aussehende Knoepfe mit dem Logo des Anbieters. */
+html.an-offen { overflow: hidden; }
+.an-fenster {
+  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px;
+  background: rgba(0, 0, 0, .62); opacity: 0; transition: opacity .16s ease;
+}
+.an-fenster--da { opacity: 1; }
+.an-karte {
+  position: relative; width: min(440px, 100%); padding: 36px 32px 26px; border-radius: 18px;
+  background: #1b2129; border: 1px solid rgba(255, 255, 255, .1); box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+  text-align: center; color: #ECEFF3;
+}
+.an-fenster .an-karte { transform: translateY(8px) scale(.985); transition: transform .18s ease; }
+.an-fenster--da .an-karte { transform: none; }
+.an-karte__wal { display: block; width: 64px; height: auto; margin: 0 auto 10px; }
+.an-karte__titel { margin: 0 0 8px; font: 700 24px/1.25 var(--font-ui, "Manrope", sans-serif); letter-spacing: -.01em; color: #fff; }
+.an-karte__text { margin: 0 auto 22px; max-width: 34ch; font-size: 15px; line-height: 1.5; color: #AEB6C0; }
+.an-karte__fuss { margin: 18px 0 0; font-size: 12.5px; line-height: 1.5; color: #8A939E; }
+.an-karte__fuss a { color: #C9D1DA; text-decoration: underline; text-underline-offset: 2px; }
+.an-karte__zu {
+  position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px;
+  border: 0; border-radius: 50%; background: transparent; color: #AEB6C0; cursor: pointer;
+}
+.an-karte__zu:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.an-karte__zu svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.an-anbieter { display: flex; flex-direction: column; gap: 10px; }
+.an-anbieter__knopf {
+  display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 0 20px;
+  border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16); background: #242b34; color: #fff;
+  font: 600 15.5px/1 var(--font-ui, "Manrope", sans-serif); transition: background .15s ease, border-color .15s ease;
+}
+.an-anbieter__knopf:hover { background: #2d3540; border-color: rgba(255, 255, 255, .26); color: #fff; }
+.an-anbieter__knopf svg { width: 20px; height: 20px; flex: none; }
+.an-anbieter__knopf--test { border-style: dashed; color: #C9D1DA; }
+.an-karte .sp-konto__meldung { margin: 0 0 16px; text-align: left; }
+
+/* /account ohne Konto oder beim Namen-Waehlen: dieselbe Karte, in der Seite zentriert. */
+.an-seite { display: grid; place-items: center; min-height: calc(100dvh - var(--sp-kopfhoehe) - 220px); padding: 30px 0; }
+.an-karte--neu { text-align: left; }
+.an-karte--neu .an-karte__wal { margin-left: 0; }
+.an-karte--neu .sp-ueberschrift { font: 700 22px/1.25 var(--font-ui, sans-serif); }
+.an-karte--neu .sp-konto__form { margin-top: 16px; }
+.an-karte--neu .sp-knopf--play { min-height: 46px; }
+/* Im Kasten "zum Schreiben anmelden" stehen dieselben Knoepfe, nur schmaler. */
+.sp-konto__kasten .an-anbieter { max-width: 360px; }
+
+@media (max-width: 480px) {
+  .an-fenster { align-items: end; padding: 0; }
+  .an-fenster .an-karte { width: 100%; border-radius: 18px 18px 0 0; padding: 30px 22px calc(22px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { .an-fenster, .an-fenster .an-karte { transition: none; } }

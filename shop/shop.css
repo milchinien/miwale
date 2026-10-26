@@ -480,3 +480,16 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Vorab gezeichneter Inhalt (tools/seiten-lib.mjs): steht schon im HTML, fuer
+   Crawler, KI-Werkzeuge und die Zeit bis shop.js geladen hat. Danach ersetzt
+   shop.js ihn komplett. */
+.sp-vorab { padding: 32px 0 64px; }
+.sp-vorab h1 { margin: 10px 0 6px; font: 700 clamp(32px, 5vw, 48px)/1.1 var(--font-brand, "Quicksand", system-ui, sans-serif); color: #fff; }
+.sp-vorab h2 { margin: 36px 0 12px; font: 700 13px/1 var(--font-ui, "Manrope", sans-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--sp-akzent); }
+.sp-vorab p, .sp-vorab li { max-width: 72ch; color: var(--sp-text-leise); }
+.sp-vorab__kurz { font-size: 19px; color: var(--sp-text) !important; }
+.sp-vorab__status, .sp-vorab__tags { font-size: 14px; }
+.sp-vorab__spielen { display: inline-flex; align-items: center; min-height: 52px; padding: 0 28px; border-radius: var(--sp-radius); background: var(--sp-play); color: #062A33; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.sp-vorab__spielen:hover { color: #062A33; background: var(--sp-play-hover); }
+.sp-vorab__liste { padding-left: 20px; }
