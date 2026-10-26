@@ -403,6 +403,13 @@ Anmelden aus, auch wenn die Zugänge gesetzt sind.
    ```
    Dann `docker compose -f docker-compose.prod.yml up -d`. Das Log darf keine
    Zeile „Anmelden ist aus“ mehr zeigen (`docker logs miwale | head`).
+   Kürzer: `deploy/anmelden-einschalten.sh` erledigt Schritt 4 und 5 in einem
+   Lauf (fragt die Secrets verdeckt ab, prüft vorher `play.miwale.com`):
+   ```
+   cd /home/tobias/projects/miwale
+   curl -fsSLO https://raw.githubusercontent.com/milchinien/miwale/main/deploy/anmelden-einschalten.sh
+   bash anmelden-einschalten.sh
+   ```
 5. **Prüfen.** `curl -s https://miwale.com/api/konto/ich` zeigt
    `"anbieter":["discord","google"]`. Auf der Seite erscheinen „Sign in“, die Reiter
    „Pearl Shop“ und „Profile“; einmal mit jedem Anbieter anmelden, Namen wählen,
