@@ -1,6 +1,6 @@
 # Projektvorschauen
 
-Erstellt mit dem eingebauten Bildgenerator am 14. September 2026. Konzeptillustrationen für die Projektkacheln; Original-Screenshots bleiben in den Detailansichten. Originale: `<projekt-id>-v1.png`. Webdateien: `<projekt-id>-v1.jpg` (JPEG-Qualit?t 85, gleiche Abmessungen).
+Erstellt mit dem eingebauten Bildgenerator am 14. September 2026. Konzeptillustrationen für die Projektkacheln; Original-Screenshots bleiben in den Detailansichten. Originale: `<projekt-id>-v1.png`. Webdateien: `<projekt-id>-v1.webp` (WebP-Qualität 85, gleiche Abmessungen).
 
 ## Gemeinsame Stilvorgabe
 

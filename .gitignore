@@ -12,3 +12,11 @@ dist/
 
 # Klone und Baustelle von tools/sync-games.mjs
 .spiele-cache/
+
+# Entsteht beim Bauen aus dem Katalog (tools/seiten.mjs): Spielseiten fuer
+# Vorschauen und Suchmaschinen, Presse-Seite samt ZIP, robots.txt, sitemap, feed
+public/seiten/
+public/press/
+public/robots.txt
+public/sitemap.xml
+public/feed.xml

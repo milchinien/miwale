@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           node tools/check-games.mjs
-          git add -A public/games shop/spiele-auto.js assets/games/auto
+          git add -A public/games shop/spiele-auto.js assets/games/auto assets/og
           if git diff --cached --quiet; then
             echo "Nichts Neues."
             echo "geaendert=false" >> "$GITHUB_OUTPUT"
