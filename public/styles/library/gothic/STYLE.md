@@ -138,13 +138,13 @@ All characters are painted **per pixel** from shaded shapes: ellipse or polygon 
 
 **Main character (22 × 34 px, 24 × 36 with outline, feet anchor at column 11).** A pumpkin-headed figure in a violet cloak and wine scarf, built per pixel in `makeHero(frame)`:
 
-- **Legs:** 2 px wide, dark trousers `pants[0..2]` (`#110e17 #1d1927 #2b2537`), 4-px boots (`#0d0a0b #211719 #352729`). The back leg uses darker tones. Each frame offsets a leg by ±2 px and lifts one by 1 px.
+- **Legs:** 2 px wide, dark trousers `pants[0..2]` (`#110e17 #1d1927 #2b2537`), 4-px boots (`#0d0a0b #211719 #352729`). The back leg uses darker tones. Each pose offsets the legs by ±2 px and lifts the passing foot 1–2 px.
 - **Scarf:** a 10 × 3 band in wine ramp `[3, 2, 1]` under the head, plus a tail line flying back to one of 4 offsets `[-8, 3] [-9, 2] [-8, 4] [-7, 5]`.
 - **Cloak:** rows from `top = by + 14` to `bot = by + 26`, half-width `4.3 + t * 3.2` (trapezoid). The left edge is lit `CL[4]/CL[3]`, the left 22 % is `CL[3]` and the right 20 % is `CL[1]`. Two fold columns are `CL[1]` and one deep crease `CL[0]`. The hem is ragged (`(x * 7 + 3) % 5`), and the lower cloak sways with the frame. A 2 × 2 glove (`#2a1e1c #463430 #64504a`) peeks out at the right.
 - **Head:** an ellipse 7.6 × 6.3 at (10.5, by + 7.2), about 40 % of the height, carrying the colour identity. Tone is `0.47 + shade(n) * 0.42`. Ribs come from `asin(nx)`: grooves −0.17 and ridge centres +0.05. The bottom rim is −0.12. Ramp pick uses dither 0.3. A 5-pixel olive stem (`#1c190f…#6a6832`) sits on top.
 - **Carved face:** 28 offsets `[dx, dy, level]` around (12, by + 4), using face ramp `level + 1`. Each pixel gets a `#eeb060` "flesh" pixel below it when the next row is empty, giving a carved depth edge. It is redrawn **after the light** as an emissive overlay with 3 flicker levels.
 - **Light:** the largest warm light in the scene, 96 × 78 (see Atmosphere), plus a shadow ellipse 8 × 2.5.
-- **Frames:** walk = 4 frames `{legs ±2/lift, bob 0/−1, sway −1/0/1/0, scarf 0–3}`, idle = 2 frames (bob 0/+1) at 1.6 Hz. A dash leaves 3 afterimages (violet `#3a1c5a` silhouettes and one orange `#ff7a1a`) at alpha 0.18–0.54. A struck pose is a white silhouette, followed by blinking at 0.45 alpha.
+- **Frames:** walk = 8 poses (contact, down, passing, up per leg) `{legs ±2, passing lift 2, bob 0/+1/0/−1, cloak sway, scarf 0–3, hand −1/0/+1}`; the glove swings against the near leg and the head (with stem and carved face) uses the previous pose's body offset, so it lands one frame late. Idle = 4 breath poses on a 1.1 s beat: the body sinks 1 px and the head follows 0.14 s later (and rises later). A dash leaves 3 afterimages (violet `#3a1c5a` silhouettes and one orange `#ff7a1a`) at alpha 0.18–0.54. A struck pose is a white silhouette, followed by blinking at 0.45 alpha.
 
 Carved face offsets, verbatim from the module:
 
@@ -170,7 +170,7 @@ const FACE = [ // [dx, dy, level] -> colour = face ramp[level + 1]
 - **Face:** square black eye sockets `#070a14` with **cyan emissive eyes**, and a gaping 2 × 4 mouth.
 - **Arms:** one arm reaches forward with a 3-finger hand (`reach` 0/1/2/1).
 - **Tail:** a wavy tail (`sin(3.4t + phase)`) that **dissolves via Bayer dither** below row 21 (`dith < (y − 21) / 8`, pixels deleted).
-- **Drawing:** drawn at 0.86 alpha, hovering 4 ± 1.5 px, with a pale 16 × 13 light, a 3-pixel icy trail and a faint 4 × 1.5 shadow at alpha 70.
+- **Drawing:** drawn at 0.86 alpha, floating on an eased lift `3 + [0,0,1,2,3,3,2,1]` px at 5 fps (holds at the top and bottom), with a pale 16 × 13 light, a 3-pixel icy trail and a faint 4 × 1.5 shadow at alpha 70.
 
 **Large creature (cracked root giant, 46 × 54 + outline):**
 
@@ -205,7 +205,8 @@ Effects are mostly **emissive**: drawn after the light pass with warm fire, teal
 - **Vanish:** the sprite is white for 0.18 s, then at half alpha until 0.4 s, under a white flash light (15 × 13, large creatures 28 × 24). Then come chunks (2–3-px squares with a dark underside), a mist puff for ghosts, and a **wisp**: a 7 × 12 teal soul shape with a dithered tail and its own 14 × 14 light, rising.
 - **Collectibles (gems):** small gems are 6 × 8 (large: 8 × 11) diamonds in the teal gem ramp with a `#061c24` outline. A glint travels down the left facet over 4 frames. Each has its own 10 × 8 (22 × 18) cyan light, and large gems add cyan bloom. Collecting one shows a cross-shaped glint in `#e8fffa` with 4 outer dots.
 - **Orbiting objects (lanterns):** 13 × 15 purple/cream root lanterns on an iron handle, with fire-ramp eyes and mouth (3 frames), a 42 × 34 light and bloom. They are drawn emissive.
-- **Ring burst:** expanding pixel ellipse rings (r = 4…40 in steps of 3, y squashed 1.25, colour `rgb(255,230,170)`) over 0.6 s, with 18 embers and 4 wisps.
+- **Ring burst:** an expanding **broken ember circle** (r = 4…40 in steps of 3, y squashed 1.25): dashes of `rgb(255,244,206)` / `rgb(255,168,78)` with gaps, carrying six small ember crosses (`#fff0c4` centre, `#ff963c` arms, a dark-red foot) over 0.6 s, with 18 embers and 4 wisps — never a plain circle.
+- **Disappear:** a pale flash (16 % of the sequence); then ground creatures are **dragged back into the grave soil** — their visible height shrinks (`inQuad`) behind the dirt heap — while chunks, juice and a soul wisp fly; ghosts rise 13 px and thin out.
 - **Emerge:** ground creatures are revealed bottom-up (outQuad) from an outlined dirt heap. Ghosts fade in from mist while dropping 8 px.
 - **Red flash:** a red 60 × 50 light on the main character, orange/yellow sparks, and a screen tint (see Atmosphere).
 
@@ -275,9 +276,9 @@ Icons are 16 × 16 painted pixel sprites in the same ramps (heart, skull, seeds,
 
 ## Motion and animation
 
-- **Main character:** 4 walk frames at the walk animation rate, 2 idle frames at 1.6 Hz (bob +1). The scarf tail cycles 4 positions and the cloak sways ±1 at the hem.
+- **Main character:** 8 walk poses at `floor(anim · 1.3) & 7` (~12 fps), the head one frame behind the body, the glove counter-swinging; 4 idle breath poses (1.1 s beat, head 0.14 s behind) with a per-figure phase. The scarf tail cycles 4 positions and the cloak sways ±1 at the hem.
 - **Small creature:** 4 frames at anim × 1.6 (bob 0/−1/0/−1, tilt 0/+1/0/−1, leaf sway 0/+7°/0/−7°, alternating leg lifts). **Large creature:** 4 frames at anim × 2 (body bob, arm swing ±2, leg lift 2 px).
-- **Ghost:** 4 frames at 7 fps (tail phase steps of π/2, arm reach 0/1/2/1). Hover is `4 + sin(3t) * 1.5` px. A 3-pixel trail shows when speed > 10.
+- **Ghost:** 4 frames at 7 fps (tail phase steps of π/2, arm reach 0/1/2/1). Float is the eased lift `3 + [0,0,1,2,3,3,2,1]` px at 5 fps (per-creature phase). A 3-pixel trail shows when speed > 10.
 - **Light:** continuous flicker (see above). Lantern eyes cycle 3 frames at 10 fps with a ±1 px sway at 5 rad/s. Candle flames have 3 frames at 9 fps.
 - **Gems:** 8-step cycle at 5 fps (glint frames 0–3, then frame 3 held), bob ±1 px at 3 rad/s, a pop arc of up to 6 px.
 - **Floating numbers:** pop up 2 px for the first 0.1 s, then fade in 3 alpha steps (1, 0.66, 0.33).

@@ -192,22 +192,24 @@
     "layers": [
       "Base fill #1e4a44 (ground colour while chunks build)",
       "Material map per pixel from fbm fields (forest warped /760, meadow /520, ruins /600, water /420) with fine noise jitter and 1-px island despeckle; heights grass 3, stone 2, forest 1, water 0",
-      "Material textures: posterised grass (two variants), meadow grass with blossom-pixel map, forest earth with fallen leaves/petals/twigs and moss, brick-course cobbles (rows 12–20 px, stones 14–40 px) with cracks and moss joints, water ramp by depth with sky-reflection bands and ripple dashes",
+      "Material textures: posterised grass (two variants), meadow grass with blossom-pixel map, forest earth with fallen leaves/petals/twigs and moss, brick-course cobbles (rows 12–20 px, stones 14–40 px) with cracks and moss joints, water ramp by depth with sky-reflection bands and ripple dashes Blossoms only show where the light-pool field is high, so they gather in drifts inside the sunlit pools instead of covering the meadow.",
       "Edge pass: grass tips spilling over lower materials, cast shadow (factor 0.62, bluish) under higher neighbours above/left, dark lip on the lower edge, light sunlit lip on the upper edge, pale foam line at water edges",
       "Macro light: dappled warm pools (r*1.17, g*1.07, b*0.95) and cool shade (r*0.9, g*0.93, b*1.06) from a /230 fbm field",
       "Baked decals per 15-unit jittered cell: grass tufts, mixed flowers, lavender spikes, daisies, clover, pebbles, ferns, moss, lily pads, tiny glowing mushrooms; forest roots as pixel strokes; each decal has a 1-px shadow to the right",
-      "Per-frame ground overlay: additive flat light pools (main character 50 px warm + 16 px amber, lanterns, mushrooms, orbiting objects, projectiles) and 5-frame swaying grass/flower/fern sprites near the camera that lean away from the main character"
+      "Per-frame ground overlay: additive flat light pools (main character 50 px warm + 16 px amber, lanterns, mushrooms, orbiting objects, projectiles) and 5-frame swaying grass/flower/fern sprites near the camera that lean away from the main character",
+      "Decals follow the light-pool field: flower beds and lavender stands in the sunlit pools, a tuft rim around them, only 5–6 % tufts on the open grass."
     ]
   },
   "characters": {
-    "summary": "Characters are 24–60 px tall pixel sprites built in code from shaded primitives (ellipsoid blobs, cylinder-shaded cones and legs, 2-px leaf strokes) on a 1-px grid, then finished with the rim/outline pass and mirrored for left-facing. The main character is 26x32 px: a ribbed pumpkin head (rx 7.6, ry 6.4) with an emissive carved face, a teal hooded cape with a magenta lining, satchel, dark pants and leather boots; walk = 6 frames, idle = 4 frames, each also as a white flash copy. Creatures: a small violet root creature with a leafy crown and cream belly (24x28), a fast translucent icy ghost with a dithered tail (26x30), and a large mossy old-violet colossus with root arms, glowing cyan eyes and a belly rune (60x58).",
+    "summary": "Characters are pixel sprites built in code from shaded primitives (ellipsoid blobs, cylinder-shaded capes, slanted 2-px legs, 2-px leaf strokes) on a 1-px grid, finished with the rim/outline pass and mirrored for left-facing. Every pose is its own drawn sprite: the main character (~18x31 px on a 28x34 canvas: ribbed pumpkin head rx 7.6 / ry 6.4 with an emissive carved face, teal hooded cape with a magenta lining, satchel, leather boots) is assembled from a pose record and cached per pose – an 8-pose walk, a breathing idle with blinks and glances, dash wind-up / stretch / skid, a hurt recoil, a throw and a cheer. The small violet root creature (26x36 canvas, two crown designs) hops, the translucent icy ghost (32x34) floats with a streaming tattered tail and peeling wisps, the large mossy colossus (64x62) stomps. Hits are drawn reaction poses with a short white flash, spawns rise from glowing spores, deaths dissolve into light.",
     "rules": [
-      "Head-heavy chibi proportions: head ~40% of total height, body a short cone, 2-px wide legs.",
-      "Faces are emissive pixel patterns (eyes as 3–4 px triangles, jagged grin) with a darker carved rim around them, plus an additive glow sprite at the face (warm r14, alpha 0.3, flickering).",
-      "Every creature type owns one ramp family: violet root creature, icy ghost blue, old-violet + ochre colossus with moss; small creatures glow pink-red eyes (#ff4f7a, core #ffe2ec), the large creature glows cyan (#6ff5e0).",
-      "Light always comes from the upper left: lit side via ramp + warm rim, right side via cool bounce; shadows fall to the upper right with a contact ellipse (radius 6, large creature 14) at alpha 0.5.",
-      "Silhouettes must read at 1x: big round heads/bulbs, leaf crowns, clear legs; never more than ~4 colour steps visible in a 3x3 area.",
-      "Translucent figures (ghosts) use alpha 225–230 at the head fading to ~75 at the tail, with the tail dissolving through a Bayer 8x8 dither, a white-cyan rim #f4ffff and outline alpha 0.55.",
+      "Head-heavy chibi proportions: head ~40% of the height, a short bell-shaped body, 2-px legs that slant from the hip to the foot so strides read.",
+      "Faces are emissive pixel patterns with a carved darker rim and a small additive glow; expressions are face variants, not effects: blink = dim 1-px slits, focus = slanted slits, hurt = squeezed '> <' eyes and an 'O' gasp, joy = '^ ^'.",
+      "Every creature type owns one ramp family and one glow colour: violet or magenta root creatures with pink-red eyes (#ff4f7a, core #ffe2ec), icy ghosts (#1a2252 … #f0fcff) with #bff4ff pupils, old-violet/ochre colossus with cyan eyes and rune (#6ff5e0).",
+      "Squash, stretch, lean and recoil are drawn into the pose (body radii, bob, shear, limb positions) – sprites are never scaled at runtime, so the art-pixel grid always holds.",
+      "Secondary motion lags one pose: the head lands a pose after the body, the satchel bounces with it, the stem leaf and leaf crowns flick against the movement, the cape hem trails (0–3 px) and the ghost's tail and arms trail its float.",
+      "Light always comes from the upper left: lit side via ramp + warm rim, right side via cool bounce; long shadows fall to the upper right with a contact ellipse (radius 6, large creature 14). A hopping creature's shadow loses its contact blob and slides along the light direction (h*0.8, -h*0.3).",
+      "Translucent figures (ghosts) use alpha ~230 at the head fading to ~90 in three tattered tail strands, a white-cyan rim #f4ffff and outline alpha 0.55 in blue (#141640 / #3a4a9a).",
       "Mirror the unfinished pixels for the left-facing version and finish that again, so the warm rim always stays on the left."
     ]
   },
@@ -232,16 +234,16 @@
       "how": "9x9 seed sprite in 16 rotations x 3 spin widths, amber glow r5 at 0.45, a 5-pixel trail behind it (#ffe9a0, #ffc35a, #ff9a4a, #f06a6a, #c04a8a, alpha 0.8-i*0.14) and a 2x1 ground shadow 7 px below."
     },
     {
-      "name": "Impact and dissolve petals",
-      "how": "3x3-pixel petal sprites (4 shapes) in flower/leaf/ice/moss/ember sets thrown upward with gravity 160–220 and drag ~2; an impact adds a short pink/ice bloom glow and a 7x7 four-point star; a dissolve burst adds 8–26 petals, rising light motes and a gold ring for large creatures."
+      "name": "Impact",
+      "how": "Layered at the height of the struck body: a pink/ice/cyan bloom (0.16 s) as the core flash, a 7x7 four-point star (0.22 s), 3 3x3-pixel chips of the creature's own material (leaf/violet, ice, moss/ochre) thrown up with gravity 220, and 2 light motes that peel off sideways and rise for 0.4–0.6 s."
     },
     {
-      "name": "Dissolve flash",
-      "how": "White flash sprite scaled sx 1+0.3t, sy squashes to 0.1 after t 0.3, alpha 1-0.8t, plus a fading glow (pink, ice or cyan) — creatures dissolve into light, no gore."
+      "name": "Dissolve into light",
+      "how": "Drawn by the creature itself in 0.35 s: 14% white (#fff8f0) flash of its hit pose, then 6 baked dissolve frames – a noise front of 2-px clusters (top first; ghosts tail first) eats the body, a 1-px emissive seam runs ahead (pink #ffb4d0, ice, cyan #6ff5e0), the pixels behind it are tinted, and the freed pixels drift up 10–14 px as motes. The burst adds 8–26 petals from body height, rising motes, a bloom and a gold ring for the large creature. No gore."
     },
     {
-      "name": "Emerge sprout",
-      "how": "Ground creatures rise out of the soil (only the top k of the sprite drawn) above a 2-row soil mound (#2a1d2e / #4a3540) while pink/white petals swirl outward; ghosts stretch in (sx 0.6 -> 1, sy 1.6 -> 1)."
+      "name": "Spore emergence",
+      "how": "In 0.45 s: 6 glowing spores (10 cyan ones and 6 radiating ground seams for the large creature) spiral in from r 13–26 and lift, a soil mound (5 baked sizes, earth ramp with moss tips) swells, leaf tips poke out, then the creature bursts up in its stretch pose (clipped at the ground line), floats and lands in its squash pose. Ghosts gather from a rising column of ice motes and form head first (dissolve frames reversed), overshooting their float by 2 px."
     },
     {
       "name": "Collectibles",
@@ -252,8 +254,8 @@
       "how": "14x17 mini violet bulbs with a carved emissive face (#ffc040, #ff8a2a, #fff2b0) and a leaf on top, circling the main character with a warm glow r13 and a hot frame switching on sin(11t) > 0.2."
     },
     {
-      "name": "Dash afterimages",
-      "how": "3 violet-tinted (#c88cf0) silhouette copies of the main character at 7-unit steps, alpha 0.16/0.32/0.48, plus lavender dust puffs (ramp #6a5a8a … #efe2e6) and petals."
+      "name": "Dash smear",
+      "how": "Two silhouettes of the stretch pose behind the main character – rose #ff86cc at alpha 0.42 (9 units back) and violet #9466f0 at 0.2 (18 units) – plus 5 dust puffs (three-lobed lilac clouds, ramp #5a4a7a … #e8dce6) and petals; the skid that follows kicks 3 more puffs off the planted heel."
     },
     {
       "name": "Gold ring burst",
@@ -282,12 +284,15 @@
     "css": ".hud { font-family: 'Pixelify Sans', system-ui, sans-serif; color: #f4e6ff; }\n.panel { background: linear-gradient(90deg, rgba(22,12,42,.72), rgba(22,12,42,.25)); border-left: 2px solid #e8b85a; border-radius: 2px 18px 18px 2px; padding: 6px 14px 6px 8px; }\n.bar { position: relative; height: 12px; border-radius: 2px; background: rgba(18,8,30,.85); border: 1px solid rgba(232,184,90,.7); box-shadow: 0 0 0 1px rgba(10,5,20,.8); }\n.bar::before, .bar::after { content: ''; position: absolute; top: 50%; width: 9px; height: 9px; background: #e8b85a; transform: translateY(-50%) rotate(45deg); box-shadow: 0 0 8px rgba(255,200,120,.7); }\n.bar::before { left: -6px; } .bar::after { right: -6px; }\n.bar.warm > i { display: block; height: 100%; background: linear-gradient(#ffb36a 0%, #f07a3a 40%, #c2402c 100%); box-shadow: 0 0 10px rgba(255,120,60,.6), inset 0 1px 0 rgba(255,236,190,.6); }\n.bar.teal > i { display: block; height: 100%; background: linear-gradient(90deg, #3fb0ae 0%, #7ee0cc 45%, #ffd08a 85%, #fff2c4 100%); box-shadow: 0 0 12px rgba(126,224,204,.55), inset 0 -3px 0 rgba(20,60,80,.35), inset 0 1px 0 rgba(255,255,255,.45); }\n.title { font-family: 'Cinzel', serif; font-weight: 900; color: #fff2c4; letter-spacing: 6px; text-shadow: 0 0 22px rgba(255,170,90,.75), 0 3px 0 #2a1238; }\n.label { font-family: 'Cinzel', serif; font-weight: 700; font-size: 10px; color: #e8b85a; letter-spacing: 4px; border-top: 1px solid rgba(232,184,90,.55); padding-top: 3px; }\n.card { background: linear-gradient(180deg, rgba(48,28,82,.94) 0%, rgba(26,16,50,.96) 60%, rgba(18,30,46,.96) 100%); border: 1px solid #e8b85a; border-radius: 4px; box-shadow: 0 0 0 4px rgba(20,10,34,.85), 0 0 0 5px rgba(232,184,90,.35), 0 14px 30px rgba(0,0,0,.5), inset 0 0 30px rgba(126,224,204,.08); }"
   },
   "motion": [
-    "Main character walk: 6 frames at anim*1.5 (≈ 9 fps at normal speed) with body bob [1,0,0,1,0,0], head bob, leg lift and a 3-px cape hem flutter; idle: 4 frames at 3.2 fps with a 1-px breathing bob.",
-    "Small creature waddle: 6 frames (anim*2.2), the bulb shears left/right (tilt [0,1,1,0,-1,-1]) and the leaf crown sways ±0.15 rad.",
-    "Ghost: 6 frames at 9 fps, tail S-curve phase per frame, floats 4 ±1.5 px above its shadow on sin(t*3); large creature: 6 frames (anim*2.4) with a 2-px stomp bob.",
-    "Squash and stretch: throw pose sx 1+0.07, sy 1-0.06; hit squash sx +0.1, sy -0.08 with a white flash above 0.55; celebration stretch sy +0.12; creature hit reaction sx 1+0.14*flash.",
-    "Light flicker: lanterns 0.82 + 0.12 sin(9t) + 0.06 sin(23t); main-character light pool 0.9 + 0.06 sin(7.3t) + 0.04 sin(17.1t); mushrooms pulse 0.75 + 0.25 sin(1.6t).",
-    "All positions are rounded to whole art pixels before drawing; no sub-pixel motion is ever visible."
+    "Pixel timing: poses are held and switched at 7–12 fps (on twos); only positions move every frame, always rounded to whole art pixels.",
+    "Main character walk: 8 poses at anim*1.3 (≈ 12 fps at walking speed) – contact, down, passing, up, mirrored. Body bob [0,1,0,-1,0,1,0,-1], near/far foot x ±3 with the lifted foot 1–2 px up on passing, the near arm counter-swings [-2,-1,0,1,2,1,0,-1] and the far arm swings opposite and 1.5x wider; the head and satchel use the previous pose's bob, the cape hem trails [0,1,2,1] px.",
+    "Idle: breathing bob 0/1 on a 1.3 s beat with the head 0.16 s behind, a blink every 3.1–4.4 s (0.12 s, some characters blink twice), the cape stirs for 0.5 s every 4.7 s, a glance back over the shoulder every 7.9 s; every actor gets a random phase offset.",
+    "Dash: 0.05 s wind-up crouch (bob 2, lean back, arms back, focused eyes) → stretch (stride ±4, lean +2, cape streaming 3 px, two afterimages) → skid for 0.14 s (heels dug in, lean -2, arms forward, cape swinging forward, dust) → settle.",
+    "Hurt: white flash for 67 ms, then the recoil pose (leaning back, head thrown back, arm flung up, squeezed eyes) with 1–3 px knock-back until ~170 ms; then an alpha 0.5 shimmer at 9 Hz while invulnerable. Throw: the near arm shoots straight forward for ~90 ms. Celebrate: both arms up, joyful eyes.",
+    "Small creature hop: 8 poses on 12 ticks [stand, stand, crouch, crouch, launch, rise, apex, apex, fall, land, land, recover] at anim*3.2 + seed*12 (≈ 1 hop per second): crouch squash 1 with the crown lifting, stretch -1 on launch, apex 5 px up, squash 1.3 on landing with the crown flopping. Hit: squashed recoil pose leaning 2 px back with the eyes squeezed, white for the first ~57 ms, 2 → 0 px knock-back over 130 ms.",
+    "Ghost: 8 float poses at 7 fps, lift 3 + [0,0,1,2,3,3,2,1] px (eased, holds at top and bottom); the tail stretches while rising and bunches while sinking, the arms trail by a pose, the mouth chews on poses 2–5, two wisps peel off the tail every 0.87 s. Hit: head thrown back, mouth wide, arms flung up, tail whipped forward, 3 px knock-back.",
+    "Large creature stomp: 8 poses on 12 ticks at anim*3.4 (holds on the weight and the lifted foot): the foot lifts 5 px, slams down, the body keeps sinking one pose later (by 3, squash rx +1.2 / ry -1.2), heaves up; arms swing against the legs, the crown lags, two dust puffs kick out at every contact. Hit: flinch pose (lean back, arms thrown up in front, eyes squeezed to a seam, maw open) with a 1-px recoil.",
+    "Light flicker: lanterns 0.82 + 0.12 sin(9t) + 0.06 sin(23t); main-character light pool 0.9 + 0.06 sin(7.3t) + 0.04 sin(17.1t); mushrooms pulse 0.75 + 0.25 sin(1.6t)."
   ],
   "do": [
     "Render at 360 art pixels of height and upscale with an integer factor and smoothing off.",
@@ -296,17 +301,18 @@
     "Give every emissive pixel an additive banded glow and keep glows pixel-banded, not smooth.",
     "Cast long sheared shadows to the upper right in #1a1034 with banded alpha.",
     "Apply the grade (multiply tint, bloom, sun glow, vignette) on the low-res buffer, before upscaling.",
-    "Sprinkle tiny 3–5 px flowers, petals and fireflies everywhere for life.",
+    "Animate on twos with held, drawn poses: 8-pose walks with counter-swinging arms, hops with a crouch before and a squash after, one-pose lag on heads, leaves and capes, per-actor phase offsets.",
     "Bake all sprites, shadows and ground chunks once; per frame only blit."
   ],
   "dont": [
     "Don't use pure black outlines or uniform outline colours.",
-    "Don't use smooth canvas gradients or anti-aliased shapes inside sprites.",
+    "Don't use smooth gradients, anti-aliased shapes or runtime sprite scaling – squash, stretch and recoil are drawn poses.",
     "Don't light from the right or put shadows below/left — the sun is fixed at the upper left.",
     "Don't draw at sub-pixel positions or rotate sprites freely (pre-bake rotations instead).",
     "Don't use bright, saturated daylight greens or a flat unlit ground.",
     "Don't let the UI become flat modern material design — keep gold trim, indigo glass and Cinzel.",
-    "Don't add glow to everything: emissives are rare focal accents (faces, eyes, mushrooms, lanterns, collectibles)."
+    "Don't add glow to everything: emissives are rare focal accents (faces, eyes, mushrooms, lanterns, collectibles).",
+    "Don’t sprinkle flowers or tufts evenly over the whole meadow."
   ],
-  "performance": "All characters (2 facings x all frames + flash copies), props, shadows, glows (cached by colour/radius), petals and digits are baked once at init (~100–300 ms). Ground chunks (256x256 px) are built incrementally via generators with a ~5 ms per-frame budget. Per frame: chunk blits, y-sorted sprite blits, additive glows, ~50 sway sprites, and the screen grade on the low-res buffer (one multiply, a 1/5-size bloom, two screen layers, vignette, tilt-shift strips) — cheap because the buffer is only ~640x360. Hot spots: many simultaneous glows and the full-buffer composites; keep glow radii small and counts bounded."
+  "performance": "Creatures (2 facings x 8 poses + hit pose + 6 dissolve frames, white flash copies made lazily), props, shadows, glows (cached by colour/radius), petals and digits are baked once at init (~150–350 ms). Main-character poses are assembled from a small pose record and cached per pose key the first time they appear (walk, throw, dash, hurt and the common idle poses are warmed at init; a pose's shadow is cached per leg/bob key). Ground chunks (256x256 px) are built incrementally via generators with a ~5 ms per-frame budget. Per frame: chunk blits, one sprite blit per actor (plus 2 tiny additive wisps per ghost, spores only while spawning), additive glows, ~50 sway sprites and the screen grade on the low-res buffer (one multiply, a 1/5-size bloom, two screen layers, vignette, tilt-shift strips) – cheap because the buffer is only ~640x360. Hot spots: many simultaneous glows and the full-buffer composites; keep glow radii small and counts bounded."
 }

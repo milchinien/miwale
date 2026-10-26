@@ -1,7 +1,8 @@
 /* 8-Bit Arcade — starter kit from the miwale Game Style Library (https://miwale.com/styles/).
    Dependency-free Canvas 2D. Free to copy and adapt. Full spec: STYLE.md
-   NES rules: only 2C02 palette colours, max 3 colours + black outline per sprite, flat fills,
-   no anti-aliasing, no gradients, no alpha in the world (checker = transparency, flicker = blink). */
+   NES rules: only 2C02 palette colours, max 3 colours + black outline per sprite part, flat fills,
+   no anti-aliasing, no gradients, no alpha in the world (checker = transparency, flicker = blink).
+   Figures are posed from parts and animate in held frames: 8-frame walk, 4-frame squash & stretch hop. */
 (function (root) {
   'use strict';
   const PALETTE = {
@@ -61,20 +62,106 @@
     return c;
   }
 
-  // ---------- sprite grids (verbatim from the reference module) ----------
-  const HERO_HEAD = ['......gg.....', '.....gg......', '..ooooooooo..', '.ooooooooooo.', 'oooooyoooyooo', 'ooooyyyoyyyoo', 'ooooooooooooo', 'ooooyoyoyoyoo', '.oooyyyyyyyo.', '..ooooooooo..'];
-  const HERO_BODY = ['...ggggggg...', '..ggbbbbbbb..', '.gg.bbbbbbbb.', '...bbbbbbbbbg', '..gbbbbbbbbb.', '..bbbbbbbbbb.', '..bbbbbbbbb..'];
-  const HERO_LEGS = [['....bb.bb....', '...kkk.kkk...'], ['...bb...bb...', '..kkk....kk..']];
-  const CREEPER = ['...gg.g.gg....', '....ggggg.....', '......g.......', '....PPPPPP....', '..PPPPPPPPPP..', '.PPPkPPPPPPkP.', '.PPPPkkPPkkPP.', '.PPPPckPPckPP.', '.PPPPccPPccPP.', '.cPcPcPcPcPcP.', '.cccccccccccc.', '..cckckckckcc.', '...cckkkkkkc..', '....cccccc....'];
-  const CREEPER_LEGS = ['...c..cc..c...', '....c.cc.c....'];
-  const GHOST_HEAD = ['...WWWWW.....', '..WWWWWWW....', '.WWWWWWWWW...', '.WWWkkWWkkW..', '.WWWkkWWkkW..', '.BWWWWWWWWWW.', '.BWWWWkkWWWWW', '.BBWWkkkkWWW.', '..BWWWkkWWW..', '..BBWWWWWWB..'];
-  const GHOST_TAIL = [['..BBBWWWWBB..', '...BBWWWBB...', '...BBBWBB....', '....BBBB.....', '....BBB......', '.....B.......'],
-    ['..BBBWWWWBB..', '...BBWWWBB...', '....BBWBBB...', '.....BBBB....', '......BBB....', '.......B.....']];
-  const BRUTE_TOP = ['.......g..gg..g.......', '......gg.gggg.gg......', '.......gggggggg.......', '.........gggg.........', '......PPPPPPPPPP......', '....PPPPPPPPPPPPPP....',
-    '...PPPPPPPPPPPPPPPP...', '..PPPPPPPPPPPPPPPPPP..', '..PPPPPPPPPPPPPPPPPP..', '..PPPPPPkPPPPPPPkPPP..', '..PPPPPPPkkPPPkkPPPP..', '..PPPPPPPyyPPPyyPPPP..', '..PPPPPPPyyPPPyyPPPP..',
-    '..aPaPaPaPaPaPaPaPaP..', '.aaaaaaaaaaaaaaaaaaaa.', 'aa.aaaaakkkkkkkkaaa.aa', 'aa.aadaakakakakaaaa.aa', 'aa.aaadakkkkkkkkaad.aa', 'aa.aaaaaaadaaaaaaaa.aa', 'aa.aaaadaaaaaaadaaa.aa',
-    'aa.adaaaaaddaaaaada.aa', '.a..aaaaaadaaaaaaa..a.', '.a...aaaaaaaaaaaa...a.', 'aa....aaaaaaaaaa....aa'];
-  const BRUTE_LEGS = [['......aaa....aaa......', '.....aaa......aaa.....', '....dddd.....dddd.....'], ['......aaa....aaa......', '......aaa...aaa.......', '.....dddd..dddd.......']];
+  // ---------- figures are posed from parts on a char grid, baked once per pose ----------
+  function grid(w, h) {
+    const a = []; for (let y = 0; y < h; y++) a.push(new Array(w).fill('.'));
+    a.set = (x, y, ch) => { x |= 0; y |= 0; if (x >= 0 && y >= 0 && x < w && y < h) a[y][x] = ch; };
+    a.rows = () => a.map((r) => r.join(''));
+    return a;
+  }
+  // main character: legs table [x0, x1, row] (far leg black, near leg navy + brown boot), arm/hand tables, scarf shapes
+  const LEGS = {
+    stand: { far: [[5, 6, 0], [5, 6, 1], [5, 7, 2]], near: [[8, 9, 0], [8, 9, 1], [8, 10, 2, 'r']] }, cA: { far: [[5, 6, 0], [4, 5, 1], [3, 4, 2]], near: [[8, 9, 0], [9, 10, 1], [10, 12, 2, 'r']] },
+    pA: { far: [[5, 6, 0], [6, 8, 1]], near: [[7, 8, 0], [7, 8, 1], [7, 9, 2, 'r']] }, uA: { far: [[6, 7, 0], [8, 10, 1]], near: [[7, 8, 0], [7, 8, 1], [6, 8, 2, 'r']] },
+    cB: { far: [[7, 8, 0], [8, 9, 1], [9, 11, 2]], near: [[6, 7, 0], [5, 6, 1], [4, 5, 2, 'r']] }, pB: { far: [[6, 7, 0], [6, 7, 1], [6, 8, 2]], near: [[8, 9, 0], [9, 11, 1, 'r']] },
+    uB: { far: [[6, 7, 0], [6, 7, 1], [5, 7, 2]], near: [[8, 9, 0], [10, 12, 1, 'r']] },
+  };
+  const ARM_N = { n: [[7, 1], [7, 2]], f: [[8, 1], [9, 2]], b: [[6, 1], [5, 2], [4, 2]] }, HAND_N = { n: [7, 3], f: [10, 3], b: [3, 3] };
+  const ARM_F = { f: [[10, 1]], b: [[3, 1], [3, 2]] }, HAND_F = { f: [11, 2], b: [2, 3] };
+  const SCARF = { hang: [[3, 0], [3, 1], [2, 2], [2, 3, 'G']], w0: [[3, 0], [2, 0], [1, 1], [0, 1, 'G']], w1: [[3, 0], [2, 1], [1, 1], [0, 2, 'G']] };
+  const WALK = [['cA', 0, 'b', 'f'], ['cA', 1, 'b', 'f'], ['pA', 0, 'n', 'h'], ['uA', -1, 'n', 'h'], ['cB', 0, 'f', 'b'], ['cB', 1, 'f', 'b'], ['pB', 0, 'n', 'h'], ['uB', -1, 'n', 'h']]
+    .map(([legs, bob, na, fa]) => ({ legs, bob, na, fa }));
+  WALK.forEach((w, i) => { w.hb = WALK[(i + 7) & 7].bob - w.bob; w.sc = (((i + 1) >> 1) & 1) ? 'w1' : 'w0'; w.leaf = w.hb > 0 ? 1 : 0; w.face = 'n'; });
+  const HERO_PAL = { o: P.orange, h: P.lorange, d: P.red0, y: P.yellow, g: P.gr1, G: P.gr0, l: P.gr2, b: P.blue2, n: P.navy, c: P.cream, r: P.br0, k: P.k };
+  function heroRows(o) {
+    const HF = 17, T = HF - 5 + o.bob, g = grid(16, 20);
+    if (ARM_F[o.fa]) { for (const [x, y] of ARM_F[o.fa]) g.set(x, T + y, 'k'); g.set(HAND_F[o.fa][0], T + HAND_F[o.fa][1], 'c'); }
+    const L = LEGS[o.legs];
+    for (const [leg, ch] of [[L.far, 'k'], [L.near, 'n']]) {
+      for (const s of leg) for (let x = s[0]; x <= s[1]; x++) g.set(x, HF + s[2], s[3] || ch);
+      if (o.bob < 0) for (let x = leg[0][0]; x <= leg[0][1]; x++) g.set(x, HF - 1, ch);      // hip row on "up" frames
+    }
+    for (const q of SCARF[o.sc]) g.set(q[0], T + q[1], q[2] || 'g');
+    for (let y = 0; y < 5; y++) for (let x = 4; x <= 9; x++) {
+      if (y === 4 && (x === 4 || x === 9)) continue;
+      g.set(x, T + y, y === 0 ? (x === 9 ? 'G' : 'g') : y === 3 ? (x === 7 ? 'c' : 'r') : y === 4 ? 'n' : 'b');
+    }
+    if (ARM_N[o.na]) { for (const [x, y] of ARM_N[o.na]) g.set(x, T + y, 'n'); g.set(HAND_N[o.na][0], T + HAND_N[o.na][1], 'c'); }
+    const Ht = T - 8 + o.hb, X = 2;                                                             // head lands one frame late
+    for (let y = 0; y < 9; y++) for (let x = 0; x < 12; x++) {
+      const nx = (x + 0.5 - 6) / 6, ny = (y + 0.5 - 4.5) / 4.5;
+      if (nx * nx + ny * ny <= 1.06) g.set(x + X, Ht + y, ny > 0.62 || ((x === 3 || x === 8) && (y <= 1 || y >= 6)) ? 'd' : 'o');
+    }
+    g.set(X + 3, Ht + 1, 'h'); g.set(X + 4, Ht + 1, 'h'); g.set(X + 2, Ht + 2, 'h');
+    for (const cx of [5, 9]) {
+      if (o.face === 'blink') { for (let k = -1; k <= 1; k++) g.set(X + cx + k, Ht + 4, 'd'); continue; }
+      g.set(X + cx, Ht + 3, 'y'); for (let k = -1; k <= 1; k++) g.set(X + cx + k, Ht + 4, 'y');
+    }
+    for (let x = 4; x <= 10; x++) if (x !== 7) g.set(X + x, Ht + 6, 'y');
+    for (let x = 6; x <= 8; x++) g.set(X + x, Ht + 7, 'y');
+    g.set(X + 6, Ht - 1, 'G'); g.set(X + 5, Ht - 2, 'g');
+    const ly = o.leaf ? Ht - 2 : Ht - 1; g.set(X + 7, ly, 'l'); g.set(X + 8, ly, 'l');
+    return g.rows();
+  }
+  // small creature: a bulb ellipse per hop frame (squash → push → stretch → fall) with a lagging leaf crown
+  const HOP = [{ w: 6.3, h: 8, b: 15, legs: 0, sp: 2 }, { w: 5.3, h: 9, b: 15, legs: 1, sp: 1 }, { w: 4.7, h: 10, b: 13, legs: 2, sp: 2 }, { w: 5.3, h: 9, b: 14, legs: 3, sp: 0 }];
+  const CROWN = [
+    [[[0, -1, 'G'], [0, -2], [0, -3], [0, -4], [-1, -1], [-1, -2], [-2, -3], [1, -1], [1, -2], [2, -3]],
+      [[0, -1, 'G'], [0, -2], [0, -3], [1, -4], [-1, -1], [-2, -2], [-3, -3], [1, -1], [2, -2], [3, -2]],
+      [[0, -1, 'G'], [0, -2], [1, -3], [-1, -1], [-2, -1], [-3, -2], [-4, -2], [1, -1], [2, -1], [3, -1], [4, -2]]],
+    [[[0, -1, 'G'], [-1, -2], [-1, -3], [-2, -4], [1, -2], [1, -3], [2, -4], [2, -3, 'G']],
+      [[0, -1, 'G'], [-1, -2], [-2, -3], [-3, -3], [1, -2], [2, -3], [3, -4], [3, -3, 'G']],
+      [[0, -1, 'G'], [-1, -1], [-2, -2], [-3, -2], [-4, -1], [1, -1], [2, -2], [3, -2], [4, -1, 'G']]],
+  ];
+  const CREEP_LEGS = [[[4, 1], [3, 2], [11, 1], [12, 2]], [[5, 1], [5, 2], [10, 1], [10, 2]], [[6, 1], [9, 1], [7, 2]], [[5, 1], [4, 2], [10, 1], [11, 2]]];
+  function creeperRows(f, kind) {
+    const g = grid(15, 18), H = HOP[f], w = H.w - kind * 0.6, h = H.h + kind, top = H.b - h + 1, cy = top + h / 2;
+    for (let y = top; y <= H.b; y++) for (let x = 0; x < 15; x++) {
+      const nx = (x + 0.5 - 7.5) / w, ny = (y + 0.5 - cy) / (h / 2);
+      if (nx * nx + ny * ny > 1.02) continue;
+      let ch = ny < -0.04 ? 'P' : ny < 0.14 ? (((x + y) & 1) ? 'P' : 'c') : 'c';           // one checker row between the bands
+      if (nx > -0.7 && nx < -0.15 && ny > -0.85 && ny < -0.45) ch = 'p';
+      g.set(x, y, ch);
+    }
+    const ey = top + Math.round(h * 0.36), my = top + Math.round(h * 0.68);
+    for (const ex of [5, 9]) { g.set(ex, ey, 'k'); g.set(ex + 1, ey, 'w'); g.set(ex, ey + 1, 'k'); g.set(ex + 1, ey + 1, 'k'); }
+    for (const [x, y] of [[4, -1], [5, -1], [10, -1], [11, -1]]) g.set(x, ey + y, 'k');
+    for (let x = 5; x <= 10; x++) g.set(x, my, x === 6 || x === 9 ? 'w' : 'k');
+    for (let x = 6; x <= 9; x++) g.set(x, my + 1, 'k');
+    for (const q of CROWN[kind][H.sp]) g.set(7 + q[0], top + q[1] + 1, q[2] || 'g');
+    for (const [x, y] of CREEP_LEGS[H.legs]) g.set(x, H.b + y, 'c');
+    return g.rows();
+  }
+  const CREEP_PAL = [{ P: P.purple, p: P.pink, c: P.cream, w: P.w, g: P.gr1, G: P.gr0, k: P.k }, { P: P.crim, p: P.red, c: P.cream, w: P.w, g: P.gr1, G: P.gr0, k: P.k }];
+  // ghost: row widths for a hood, a body and a waving tail (checker from row 11, no outline there)
+  function ghostRows(f) {
+    const g = grid(16, 19);
+    for (let y = 0; y < 19; y++) {
+      let hw, off = 0;
+      if (y <= 5) { const ny = (5.5 - y) / 5.8; hw = 5.6 * Math.sqrt(Math.max(0, 1 - ny * ny)); }
+      else if (y < 11) hw = 5.6 - (y - 6) * 0.15;
+      else { const k = (y - 11) / 8; hw = 4.8 * (1 - k) + 0.6; off = Math.round(Math.sin(f * Math.PI / 2 + y * 0.8) * 1.3 - k * 3); }
+      for (let x = 0; x < 16; x++) {
+        const dx = x + 0.5 - 7.5 - off;
+        if (Math.abs(dx) > hw) continue;
+        g.set(x, y, y >= 8 && y < 11 ? (dx < -hw + 1.6 || y === 10 ? 'B' : 'W') : y >= 11 && Math.abs(dx) > hw - 1.4 ? 'B' : 'W');
+      }
+    }
+    for (let y = 3; y <= 5; y++) for (const x of [8, 9, 11, 12]) g.set(x, y, 'k');
+    g.set(9, 3, 'B'); g.set(12, 3, 'B'); g.set(10, 8, 'k'); g.set(11, 8, 'k');
+    g.set(13, 7, 'W'); g.set(14, 8, 'W'); g.set(14, 9, 'B');
+    return g.rows();
+  }
   const LANTERN = ['....g....', '...ggg...', '..PPPPP..', '.PPPPPPP.', '.cPcPcPc.', '.cyycyyc.', '.ccccccc.', '.cyyyyyc.', '..ccccc..', '...ccc...'];
   const TOMBS = [['...LLLL...', '..LLLLLG..', '.LLLLLLLG.', '.LLLkLLLG.', '.LLkkkLLG.', '.LLLkLLLG.', '.LLLkLLLG.', '.LLLLLLLG.', '.LLLLLLLG.', 'GGGGGGGGGG'],
     ['..LLLL..', '.LLLLLG.', '.LLkLLG.', '.LkkkLG.', '.LLkLLG.', '.LLLLLG.', '.LLLLLG.', 'GGGGGGGG']];
@@ -170,12 +257,11 @@
 
   let SPR = null;
   function init() {
-    SPR = { hero: [], creeper: [], ghost: [], brute: [] };
-    for (let f = 0; f < 2; f++) SPR.hero.push(pair(mk(HERO_HEAD.concat(HERO_BODY, HERO_LEGS[f]), { o: P.orange, y: P.yellow, g: P.gr1, b: P.blue2, k: P.k })));
-    const cPal = [{ P: P.purple, c: P.cream, k: P.k, g: P.gr1 }, { P: P.magenta, c: P.cream, k: P.k, g: P.gr1 }];
-    SPR.creeper = cPal.map((pal) => [0, 1].map((f) => pair(mk(CREEPER.concat([CREEPER_LEGS[f]]), pal))));
-    SPR.ghost = [0, 1].map((f) => [0, 1].map((p) => pair(mk(GHOST_HEAD.concat(GHOST_TAIL[f]), { W: P.w, B: P.cyan, k: P.k }, { tailFrom: 10, parity: p }))));
-    SPR.brute = [0, 1].map((f) => pair(mk(BRUTE_TOP.concat(BRUTE_LEGS[f]), { P: P.purple, y: P.gold, a: P.ochre, d: P.br0, g: P.gr1, k: P.k })));
+    SPR = {};
+    SPR.walk = WALK.map((w) => pair(mk(heroRows(w), HERO_PAL)));
+    SPR.idle = [0, 1].map((br) => [0, 1].map((bl) => pair(mk(heroRows({ legs: 'stand', bob: br, hb: 0, na: 'n', fa: 'h', sc: 'hang', face: bl ? 'blink' : 'n', leaf: br }), HERO_PAL))));
+    SPR.creeper = [0, 1].map((k) => HOP.map((_, f) => pair(mk(creeperRows(f, k), CREEP_PAL[k]))));
+    SPR.ghost = [0, 1, 2, 3].map((f) => [0, 1].map((p) => pair(mk(ghostRows(f), { W: P.w, B: P.cyan, k: P.k }, { tailFrom: 11, parity: p }))));
     SPR.lantern = [P.gold, P.w].map((y) => mk(LANTERN, { P: P.purple, c: P.cream, y, g: P.gr1 }));
     SPR.tree = [makeTree(false, 900), makeTree(false, 901), makeTree(true, 950)];
     SPR.tomb = TOMBS.map((r) => mk(r, { L: P.w, G: P.g1, k: P.k }));
@@ -228,10 +314,11 @@
     }
     // decal glyphs: [dx, dy, colour] triplets, stamped one per hashed grid cell, never on edge pixels
     const G = (rows, map) => { const o = []; rows.forEach((r, y) => [...r].forEach((ch, x) => { if (map[ch]) o.push(x, y, map[ch]); })); return o; };
-    const a = { a: C.gr1 }, f = { w: C.w, y: C.gold }, l = { r: C.red0, o: C.ochre, k: C.k }, pb = { d: C.br0, l: C.sand };
+    const a = { a: C.gr1 }, l = { r: C.red0, o: C.ochre, k: C.k }, pb = { d: C.br0, l: C.sand };
     const tuft = [G(['a.a', '.a.'], a), G(['a.a.a', '.a.a.'], a), G(['a...a', '.a.a.'], a), G(['.a.', 'a.a'], a)];
     const tall = [G(['a.a.a', 'a.a.a', '.a.a.'], a), G(['..a..', 'a.a.a', '.a.a.'], a)];
-    const flower = [G(['.w.', 'w.w', '.w.'], f), G(['.y.', 'y.y', '.y.'], f), G(['w.w'], f)];
+    const fb = { w: C.w, y: C.gold, r: rgbOf(P.red), s: C.gr1 };
+    const bed = [G(['.w...', 'wyw.w', '.w.wyw', '.s..w.', '..s.s.'], fb), G(['..y..y.', '.yry.yry', '..y..y.', 'w..s..s.'], fb), G(['w.w..', '.y...', 'w.w.y', '..s.yry', '....y..'], fb)];
     const leaf = [G(['r'], l), G(['o'], l), G(['ro'], l), G(['.o', 'r.'], l), G(['rr', '.r'], l), G(['o.', '.o'], l), G(['r.r'], l)];
     const twig = [G(['k..', '.kk'], l), G(['..k', 'kk.'], l)];
     const pebble = [G(['d'], pb), G(['dd'], pb), G(['l', 'd'], pb), G(['d.d'], pb), G(['.l', 'dd'], pb)];
@@ -247,11 +334,17 @@
         }
       }
     }
-    stamps(8, 5101, GR, (x, y, r, h) => { const dn = fbm(x / 170, y / 170, 515); return dn > 0.6 ? (r < 0.85 ? tall[(h >>> 4) & 1] : null) : r < 0.3 + dn * 0.5 ? tuft[(h >>> 4) & 3] : null; });
-    stamps(19, 5203, GR, (x, y, r, h) => (r < 0.22 ? flower[(h >>> 4) % 3] : null));
-    stamps(5, 5301, FO, (x, y, r, h) => (r < 0.42 ? leaf[(h >>> 4) % leaf.length] : null));
+    const near = (x, y, dd, own) => [[dd, 0], [-dd, 0], [0, dd], [0, -dd]].some(([dx, dy]) => { const X = x + dx, Y = y + dy; return X >= 0 && Y >= 0 && X < W && Y < H && mat[(Y + M) * EW + X + M] !== own; });
+    // tufts gather along every edge and in a few tall-grass patches; the open meadow stays calm
+    stamps(6, 5101, GR, (x, y, r, h) => {
+      if (near(x, y, 5, GR)) return r < 0.7 ? (r < 0.3 ? tall[(h >>> 4) & 1] : tuft[(h >>> 4) & 3]) : null;
+      const cl = fbm(x / 100, y / 100, 515);
+      return cl > 0.66 ? (r < 0.8 ? tall[(h >>> 4) & 1] : null) : cl > 0.58 ? (r < 0.45 ? tuft[(h >>> 4) & 3] : null) : r < 0.018 ? tuft[(h >>> 4) & 3] : null;
+    });
+    stamps(23, 5203, GR, (x, y, r, h) => (!near(x, y, 7, GR) && fbm(x / 130 + 9, y / 130, 616) > 0.55 && r < 0.6 ? bed[(h >>> 4) % 3] : null));
+    stamps(5, 5301, FO, (x, y, r, h) => (r < (fbm(x / 70 - 3, y / 70, 717) > 0.56 ? 0.6 : 0.05) ? leaf[(h >>> 4) % leaf.length] : null));
     stamps(17, 5303, FO, (x, y, r, h) => (r < 0.3 ? twig[(h >>> 4) & 1] : null));
-    stamps(7, 5401, RD, (x, y, r, h) => (r < 0.32 ? pebble[(h >>> 4) % pebble.length] : null));
+    stamps(6, 5401, RD, (x, y, r, h) => (near(x, y, 3, RD) && r < 0.55 ? pebble[(h >>> 4) % pebble.length] : null));
     ctx.putImageData(img, 0, 0);
     const waves = [];                                          // anchors for the 2-frame water animation
     for (let cy = 0; cy * 7 < H; cy++) for (let cx = 0; cx * 11 < W; cx++) {
@@ -268,21 +361,22 @@
   const mid = (ctx, img, x, y) => blit(ctx, img, x, y, img.width >> 1, img.height >> 1);
   const shadowAt = (ctx, w, x, y) => { const s = SPR.shadow[w][(Math.round(x) + Math.round(y)) & 1]; ctx.drawImage(s, Math.round(x) - (s.width >> 1), Math.round(y) - (s.height >> 1)); };
 
-  /** Draws the main character (pumpkin head, blue overalls) with feet at (x, y) in art pixels. t = seconds, facing = 1 | -1. 2-frame walk, 1-px idle bob. */
+  /** Draws the main character (pumpkin head, green scarf, blue tunic) with feet at (x, y) in art pixels. 8-frame walk at ~12 fps,
+      idle breathing with a blink every 3.4 s. t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing, moving) {
     if (!SPR) init();
-    const frame = moving === false ? 0 : Math.floor(t * 8) & 1, bob = moving === false && (Math.floor(t * 1.8) & 1) ? 1 : 0;
-    feet(ctx, SPR.hero[frame][facing < 0 ? 'l' : 'r'], x, y, bob);
+    const fl = facing < 0 ? 'l' : 'r';
+    if (moving === false) { feet(ctx, SPR.idle[Math.floor(t / 1.1) & 1][(t % 3.4) < 0.13 ? 1 : 0][fl], x, y); return; }
+    feet(ctx, SPR.walk[Math.floor(t * 12) & 7][fl], x, y);
   }
-  /** Draws a typical creature with feet at (x, y) (root creature, ghost or root giant). kind: 'creeper' | 'creeper2' | 'ghost' | 'brute'. */
+  /** Draws a typical creature with feet at (x, y): kind 'creeper' (purple beet), 'creeper2' (crimson radish) or 'ghost'. id = phase offset. */
   function drawEnemy(ctx, x, y, t, kind, facing, id) {
     if (!SPR) init();
-    const fl = (facing || 1) < 0 ? 'l' : 'r';
+    const fl = (facing || 1) < 0 ? 'l' : 'r', ph = (id || 0) * 0.37;
     if (kind === 'ghost') {
-      const f = Math.floor(t * 3 + (id || 0)) & 1, par = (Math.floor(t * 30) + (id || 0)) & 1;   // tail checker swaps parity → shimmer
-      feet(ctx, SPR.ghost[f][par][fl], x, y, 3 + (Math.floor(t * 2 + (id || 0)) & 1));
-    } else if (kind === 'brute') feet(ctx, SPR.brute[Math.floor(t * 3) & 1][fl], x, y);
-    else { const f = Math.floor(t * 5 + (id || 0)) & 1; feet(ctx, SPR.creeper[kind === 'creeper2' ? 1 : 0][f][fl], x, y, f); }
+      const lift = 3 + [0, 0, 1, 2, 3, 3, 2, 1][Math.floor((t + ph) * 5) & 7];               // eased float, holds top and bottom
+      feet(ctx, SPR.ghost[Math.floor((t + ph) * 7) & 3][(Math.floor(t * 30) + (id || 0)) & 1][fl], x, y, lift);
+    } else feet(ctx, SPR.creeper[kind === 'creeper2' ? 1 : 0][Math.floor((t + ph) * 8) & 3][fl], x, y);
   }
 
   /** Paints a complete preview scene into a w×h canvas at time t (seconds). */
@@ -307,10 +401,10 @@
     const P2 = ground.plaza;
     for (let k = 0; k < 6; k++) { const tx = P2.x0 + 12 + (k % 3) * 28, ty = P2.y0 + 22 + Math.floor(k / 3) * 26; if (k !== 1) list.push({ y: ty, f: () => feet(b, SPR.tomb[k & 1], tx, ty) }); }
     for (const [tx, ty, i] of [[W * 0.12, H * 0.42, 0], [W * 0.24, H * 0.78, 1], [W * 0.66, H * 0.93, 2], [W * 0.34, H * 0.3, 0], [W * 0.06, H * 0.96, 2]]) list.push({ x: tx, y: ty, sh: 20, f: () => feet(b, SPR.tree[i][tx > cx ? 'l' : 'r'], tx, ty) });
-    const foes = [['creeper', -70, 20], ['creeper2', 64, -40], ['creeper', 92, 44], ['ghost', -40, -46], ['ghost', 30, 58], ['creeper2', -120, 70], ['ghost', -150, -20], ['brute', 140, 6]];
+    const foes = [['creeper', -70, 20], ['creeper2', 64, -40], ['creeper', 92, 44], ['ghost', -40, -46], ['ghost', 30, 58], ['creeper2', -120, 70], ['ghost', -150, -20], ['creeper', 140, 6]];
     foes.forEach(([kind, dx, dy], i) => {
       const ex = cx + dx + Math.sin(t * 0.9 + i) * 3, ey = cy + dy + Math.cos(t * 0.7 + i) * 2;
-      list.push({ x: ex, y: ey, sh: kind === 'brute' ? 24 : kind === 'ghost' ? 8 : 12, f: () => drawEnemy(b, ex, ey, t, kind, dx < 0 ? 1 : -1, i) });
+      list.push({ x: ex, y: ey, sh: kind === 'ghost' ? 8 : 12, f: () => drawEnemy(b, ex, ey, t, kind, dx < 0 ? 1 : -1, i) });
     });
     for (const o of list) if (o.sh) shadowAt(b, o.sh, o.x, o.y);   // all shadows first, then y-sorted sprites
     list.sort((p, q) => p.y - q.y);
@@ -342,7 +436,7 @@
     b.font = '16px ' + FONT; const clock = '22:09'; b.fillText(clock, Math.round(W / 2 - 40), 2);
     b.font = '8px ' + FONT; b.fillStyle = P.red; b.fillText('TITLE TEXT', Math.round(W / 2 - 44), 17);
     b.fillStyle = P.w; b.fillText('x 106', W - 50, 8); b.fillText('NO 4', W - 40, 31);
-    b.drawImage(SPR.creeper[0][0].r, W - 70, 1);
+    b.drawImage(SPR.creeper[0][1].r, W - 70, -2);
     const bx0 = 28, bx1 = W - 52; b.fillStyle = P.w; b.fillRect(bx0 - 1, 30, bx1 - bx0 + 2, 10); b.fillStyle = P.k; b.fillRect(bx0, 31, bx1 - bx0, 8);
     for (let x = bx0 + 1; x < bx0 + (bx1 - bx0) * 0.72; x += 4) { b.fillStyle = P.cyan; b.fillRect(x, 32, 2, 6); b.fillStyle = P.blue; b.fillRect(x + 2, 32, 1, 6); }
     // upscale with nearest neighbour

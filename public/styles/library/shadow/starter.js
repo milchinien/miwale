@@ -85,21 +85,26 @@
   /* ---------- characters (all facing +x, feet at 0,0, y up = negative) ---------- */
   function drawJack(c, ph, moving) { // main character: slim puppet with a pumpkin head, jagged cloak and streaming scarf
     const s = Math.sin(ph * TAU), co = Math.cos(ph * TAU), bob = moving ? -Math.abs(co) * 0.9 : s * 0.35, hipY = -8.6 + bob, sh = -16.2 + bob;
+    const PIV = []; // puppet pivots (knees, elbow, shoulder) – punched as rivet holes at the end
     const leg = (side) => { const sw = moving ? s * side : 0, thA = Math.PI / 2 - sw * 0.6, hx = side * 1.2 + 0.3, kx = hx + Math.cos(thA) * 4.2, ky = hipY + Math.sin(thA) * 4.2;
       const shA = thA + (moving ? 0.12 + 0.55 * Math.max(0, Math.sin(ph * TAU + side * 1.4)) : 0.04), fx = kx + Math.cos(shA) * 4.4, fy = Math.min(0, ky + Math.sin(shA) * 4.4);
-      limb(c, [[hx, hipY], [kx, ky], [fx, fy]], 1.15, 0.9); limb(c, [[fx - 0.7, fy - 0.6], [fx + 1.0, fy - 0.1], [fx + 2.3, fy - 0.5]], 1.4, 0.7); curl(c, fx + 2.2, fy - 0.5, -0.5, 2.2, -5.5, 0.55, 0.12); };
-    const arm = (sx, sy, ua, bend, w) => { const ex = sx + Math.cos(ua) * 3.4, ey = sy + Math.sin(ua) * 3.4, hx = ex + Math.cos(ua - bend) * 3.2, hy = ey + Math.sin(ua - bend) * 3.2; limb(c, [[sx, sy], [ex, ey], [hx, hy]], w, w * 0.75); circ(c, hx, hy, w * 0.82); };
+      limb(c, [[hx, hipY], [kx, ky], [fx, fy]], 1.15, 0.9); limb(c, [[fx - 0.7, fy - 0.6], [fx + 1.0, fy - 0.1], [fx + 2.3, fy - 0.5]], 1.4, 0.7); curl(c, fx + 2.2, fy - 0.5, -0.5, 2.2, -5.5, 0.55, 0.12); PIV.push([kx, ky]); };
+    const arm = (sx, sy, ua, bend, w) => { const ex = sx + Math.cos(ua) * 3.4, ey = sy + Math.sin(ua) * 3.4, hx = ex + Math.cos(ua - bend) * 3.2, hy = ey + Math.sin(ua - bend) * 3.2; limb(c, [[sx, sy], [ex, ey], [hx, hy]], w, w * 0.75); circ(c, hx, hy, w * 0.82); return [ex, ey]; };
     const swA = moving ? -s * 0.7 : 0.1;
     leg(-1); arm(-1.6, sh + 0.8, Math.PI / 2 + swA * 0.8 + 0.15, 0.5, 1.0); leg(1);
     const hemY = -7.4 + bob, trail = moving ? -2.2 + s * 0.4 : -0.5 + s * 0.3, backX = -6.4 + trail; // cloak with jagged hem
     c.beginPath(); c.moveTo(-3.2, sh); c.lineTo(3.4, sh); c.quadraticCurveTo(5.0, sh + 4.5, 5.6, hemY - 0.4);
     for (let k = 1; k <= 7; k++) c.lineTo(5.6 + (backX - 5.6) * (k / 7), hemY + (k & 1 ? 1.3 : -0.7) + (moving ? Math.sin(ph * TAU * 2 + k) * 0.3 - k / 7 * 1.4 : 0));
     c.quadraticCurveTo(-5.4 + trail * 0.5, sh + 3.4, -3.2, sh); c.closePath(); c.fill();
+    cut(c, () => { // pierced lace in the cloak: diamonds along the hem + a crescent moon, the light shines through
+      for (let k = 0; k < 4; k++) { const x = 3.6 + (backX + 1.6 - 3.6) * (k / 3), y = hemY - 2.0; poly(c, [[x, y - 0.75], [x + 0.45, y], [x, y + 0.75], [x - 0.45, y]]); }
+      c.beginPath(); c.arc(0.6, sh + 4.6, 1.25, 0, TAU); c.arc(1.15, sh + 4.3, 1.05, 0, TAU, true); c.fill('evenodd');
+    });
     curl(c, backX + 0.4, hemY - 1.2, Math.PI + 0.3, 1.8, 5.5, 0.5, 0.1);
     ell(c, 0.4, sh - 0.9, 3.5, 1.3); const w1 = Math.sin(ph * TAU * 2) * 0.9, w2 = Math.cos(ph * TAU * 2 + 0.6) * 0.9; // scarf
     if (moving) { limb(c, [[-2.4, sh - 0.9], [-5.6, sh - 0.4 + w1], [-8.8, sh - 1.2 + w2], [-11.6, sh + 0.2 + w1]], 1.6, 0.5); limb(c, [[-2.2, sh - 0.4], [-4.8, sh + 1.0 + w2], [-7.4, sh + 0.8 - w1]], 1.1, 0.4); }
     else { limb(c, [[-2.4, sh - 0.8], [-3.6 + w1 * 0.3, sh + 2.0], [-4.0 + w2 * 0.4, sh + 4.6]], 1.6, 0.8); }
-    arm(2.6, sh + 0.6, Math.PI / 2 - swA * 0.9 - 0.25, 0.6, 1.1);
+    PIV.push(arm(2.6, sh + 0.6, Math.PI / 2 - swA * 0.9 - 0.25, 0.6, 1.1), [2.6, sh + 0.8]);
     const cx = 0.8, cy = -22.4 + (moving ? -Math.abs(Math.cos(ph * TAU - 0.4)) * 0.9 : Math.sin(ph * TAU - 0.4) * 0.4); // pumpkin head
     pumpkinShape(c, cx, cy, 6.8, 5.4); limb(c, [[cx - 0.1, cy - 4.6], [cx - 0.6, cy - 6.8], [cx - 1.9, cy - 8.0]], 1.5, 0.9);
     leaf(c, cx + 0.1, cy - 5.6, -0.45, 4.2, 1.0, 0.4); curl(c, cx - 1.6, cy - 7.4, Math.PI + 0.4, 4.6, 6.0, 0.45, 0.1);
@@ -108,6 +113,7 @@
       const ya = cy + 1.7; p.moveTo(cx - 2.9, ya - 0.3); p.lineTo(cx - 1.5, ya + 0.3); p.lineTo(cx - 0.9, ya + 1.3); p.lineTo(cx - 0.2, ya + 0.4); p.lineTo(cx + 1.9, ya + 0.5); p.lineTo(cx + 2.6, ya + 1.5); p.lineTo(cx + 3.3, ya + 0.4); p.lineTo(cx + 5.7, ya - 0.4);
       p.quadraticCurveTo(cx + 4.6, ya + 3.6, cx + 1.4, ya + 3.8); p.lineTo(cx + 1.0, ya + 2.6); p.lineTo(cx + 0.4, ya + 3.7); p.quadraticCurveTo(cx - 2.0, ya + 3.2, cx - 2.9, ya - 0.3); p.closePath();
     }, cx + 1.4, cy + 0.6, 6, FACE, 1.6, 'rgba(255,150,40,0.95)');
+    cut(c, () => { for (const j of PIV) circ(c, j[0], j[1], 0.36); }); // rivet holes at every pivot
   }
   function drawCreeper(c, ph, v) { // small creature: waddling purple root bulb with a filigree leaf crown
     const s = Math.sin(ph * TAU), by = -12.2 - Math.abs(Math.cos(ph * TAU)), rx = v ? 7.0 : 7.8, ry = v ? 7.6 : 7.0;
@@ -250,11 +256,11 @@
       else if (r1 < 0.8) { const a = Math.atan2(oy, ox); leaf(lc, bx, by, a - 0.5, 2.3, 0.45); leaf(lc, bx, by, a + 0.5, 2.3, 0.45); }
       else { circ(lc, bx + ox * 1.1, by + oy * 1.1, 0.42); circ(lc, bx + ox * 2.3, by + oy * 2.3, 0.3); }
     });
-    scatter(15, 6201, (x, y, r) => { const b = bandOf(fval(x, y)), r1 = r.next(); if (Math.abs(look(x, y, 5)) < 4) return;
+    scatter(15, 6201, (x, y, r) => { const b = bandOf(fval(x, y)), kq = fbm(x / 150, y / 150, 6390, 2), keep = kq < 0.45 ? 0 : kq > 0.66 ? 1 : (kq - 0.45) / 0.21, r1 = r.next() / (0.06 + 1.1 * keep); // lace motifs gather in clumps if (Math.abs(look(x, y, 5)) < 4) return;
       if (b === 3 && r1 < 0.5 || b === 2 && r1 < 0.16) { for (let i = 0, n = 5 + (r.next() * 5 | 0); i < n; i++) { const bx = x + R(-3, 3, r), a = -Math.PI / 2 + R(-0.75, 0.75, r), L = R(3.5, 8, r); limb(lc, [[bx, y], [bx + Math.cos(a) * L * 0.5 + R(-1, 1, r), y + Math.sin(a) * L * 0.5], [bx + Math.cos(a) * L, y + Math.sin(a) * L]], 0.84, 0.05); } } // grass tufts
       else if (b === 1 && r1 < 0.4) { const a = r.next() * TAU; for (let k = -2; k <= 2; k++) leaf(lc, x, y, a + k * 0.62, 3.4 - Math.abs(k) * 0.6, 0.75); } // fallen leaves
     });
-    scatter(30, 6202, (x, y, r) => { const b = bandOf(fval(x, y)), r1 = r.next(); if (Math.abs(look(x, y, 5)) < 6) return;
+    scatter(30, 6202, (x, y, r) => { const b = bandOf(fval(x, y)), kq = fbm(x / 150, y / 150, 6390, 2), keep = kq < 0.45 ? 0 : kq > 0.66 ? 1 : (kq - 0.45) / 0.21, r1 = r.next() / (0.06 + 1.1 * keep); // lace motifs gather in clumps if (Math.abs(look(x, y, 5)) < 6) return;
       if (b === 2 && r1 < 0.62) { const a = R(0, TAU, r), L = R(9, 15, r), t = R(4, 6.5, r) * (r.next() < 0.5 ? -1 : 1), p1 = curlPts(x, y, a, L, t, 12); limb(lc, p1, 0.85, 0.12, 2); limb(lc, curlPts(x, y, a + Math.PI, L * 0.8, t, 12), 0.85, 0.12, 2);
         for (let k = 2; k < 8; k += 2) leaf(lc, p1[k][0], p1[k][1], Math.atan2(p1[k + 1][1] - p1[k][1], p1[k + 1][0] - p1[k][0]) + (k & 2 ? 1.1 : -1.1), R(1.6, 2.6, r), 0.45); circ(lc, x, y, 0.75); } // filigree scroll
       else if (b === 3 && r1 < 0.35) { const hx = x + R(-2, 2, r), hy = y - R(6, 9, r); limb(lc, [[x, y], [hx, hy]], 0.5, 0.3); lc.lineWidth = 0.25; // dandelion clock

@@ -326,6 +326,22 @@
       const mid = (A.a + b) / 2;
       out.push({ c, ax: cx, ay: cy, dx: Math.cos(mid), dy: Math.sin(mid) });
     }
+    // the block just before it splits: the same cut lines, carved into the print as paper cracks
+    const { c: cc, ctx: cx2 } = U.canvas(w, h);
+    cx2.drawImage(spr.c, 0, 0);
+    cx2.globalCompositeOperation = 'source-atop';
+    cx2.strokeStyle = cP;
+    cx2.lineCap = 'round'; cx2.lineJoin = 'round';
+    for (const A of cuts) {
+      cx2.lineWidth = K * 0.75;
+      cx2.beginPath();
+      cx2.moveTo(A.pts[0][0], A.pts[0][1]);
+      for (let k = 1; k < A.pts.length - 1; k++) cx2.lineTo(A.pts[k][0], A.pts[k][1]);
+      cx2.stroke();
+    }
+    cx2.fillStyle = cP;
+    cx2.beginPath(); cx2.arc(cx, cy, K * 1.3, 0, TAU); cx2.fill();
+    out.cracked = { c: cc, ax: spr.ax, ay: spr.ay };
     return out;
   }
 
@@ -360,82 +376,215 @@
     }
   }
 
-  /* ---------- Jack ---------- */
-  function drawJack(ctx, f, fr, rng) {
+  /* ---------- main character: pumpkin-head wanderer, short ragged poncho, long striped scarf ----------
+     Light always comes from the SCREEN's upper left. Every drawer works in a mirrored local space (scale(f,1)),
+     so the lit side is local x-sign LS = -f: carved highlights sit on the lit side, heavy contours on the other. */
+  /** Two-bone leg: knee point between hip and ankle, bent towards +x (the facing direction). */
+  function kneeAt(hx, hy, ax, ay, L) {
+    const dx = ax - hx, dy = ay - hy, d = Math.hypot(dx, dy) || 1e-6;
+    const h = L / 2, k = d < L ? Math.sqrt(h * h - (d / 2) * (d / 2)) : 0;
+    let nx = -dy / d, ny = dx / d;
+    if (nx < 0) { nx = -nx; ny = -ny; }
+    return [(hx + ax) / 2 + nx * k, (hy + ay) / 2 + ny * k];
+  }
+  /** Outline of a tapered ribbon along a smooth path (adds the subpath, does not fill). */
+  function ribbonPath(ctx, pts, w0, w1) {
+    const P = spline(pts, 5);
+    const n = P.length, Lf = [], Rt = [];
+    for (let i = 0; i < n; i++) {
+      const a = P[Math.max(0, i - 1)], b = P[Math.min(n - 1, i + 1)];
+      let tx = b[0] - a[0], ty = b[1] - a[1];
+      const l = Math.hypot(tx, ty) || 1e-6;
+      tx /= l; ty /= l;
+      const w = w0 + (w1 - w0) * (i / (n - 1));
+      Lf.push([P[i][0] - ty * w, P[i][1] + tx * w]);
+      Rt.push([P[i][0] + ty * w, P[i][1] - tx * w]);
+    }
+    ctx.moveTo(Lf[0][0], Lf[0][1]);
+    for (let i = 1; i < n; i++) ctx.lineTo(Lf[i][0], Lf[i][1]);
+    for (let i = n - 1; i >= 0; i--) ctx.lineTo(Rt[i][0], Rt[i][1]);
+    ctx.closePath();
+    return { P, Lf, Rt };
+  }
+
+  function jackPose(o) {
+    return Object.assign({
+      bob: 0, lean: 0, legs: [[-1.7, 0, 0], [2.0, 0, 0]], hand: [3.6, -9.0], farHand: [-2.6, -9.6],
+      hem: 0, hemBack: 0, scarf: 0, scarfLift: 0, headDy: 0, tilt: 0, leaf: 0, eyes: 0, mouth: 0,
+    }, o);
+  }
+  /* walk: 8 computed poses – contact, down, passing, up for each leg; arms counter-swing; head, hem, scarf and
+     stem leaf follow through with growing delays (overlapping action) */
+  const JACK_WALK = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = (i / 8) * TAU;
+    const leg = (p) => {
+      const x = 0.2 + 3.4 * Math.cos(p);
+      const swing = Math.sin(p) < -0.01;
+      const lift = swing ? -Math.sin(p) * 2.1 : 0;
+      const heel = !swing && x < -1.4 ? Math.min(0.55, (-x - 1.4) * 0.32) : swing && x < -1 ? 0.35 : 0;
+      return [x, lift, heel];
+    };
+    const bob = 0.85 * Math.sin(2 * ph);
+    JACK_WALK.push(jackPose({
+      bob, lean: 0.07, legs: [leg(ph + Math.PI), leg(ph)],
+      hand: [3.0 - 2.9 * Math.cos(ph), -8.7 - 0.9 * Math.cos(ph) * Math.cos(ph)],
+      farHand: [-1.8 + 2.4 * Math.cos(ph), -9.4 - 0.6 * Math.cos(ph) * Math.cos(ph)],
+      hem: 0.75 * Math.sin(2 * ph - 1.1), hemBack: 1.1 + 0.7 * Math.sin(2 * ph - 1.6),
+      scarf: Math.sin(2 * ph - 1.8), scarfLift: 0.9 + 0.25 * Math.sin(2 * ph - 2.2),
+      headDy: 0.4 * Math.sin(2 * ph - 1.0), tilt: 0.035 * Math.sin(ph), leaf: 1.1 * Math.sin(2 * ph - 1.6),
+    }));
+  }
+  /* idle: 4 held breathing poses (rise, hold, sink, settle) – the head and the leaf lag the chest */
+  const JACK_IDLE = [0, 1, 2, 3].map((i) => {
+    const br = [0, 0.3, 0.5, 0.22][i];
+    return jackPose({
+      bob: br, headDy: [0, 0.08, 0.22, 0.18][i], scarf: [0, 0.25, 0.5, 0.3][i] - 0.2, scarfLift: 0,
+      hand: [3.5 + [0, 0.1, 0.2, 0.1][i], -8.8], farHand: [-2.6, -9.4],
+      leaf: [0, 0.35, 0.65, 0.4][i], hemBack: [0, 0.1, 0.2, 0.1][i], tilt: [0, 0.01, 0.025, 0.015][i],
+    });
+  });
+  const JACK_BLINK = jackPose(Object.assign({}, JACK_IDLE[0], { eyes: 1 }));
+  /* dash: a crouch for the wind-up frames, then a long forward lean with everything streaming back */
+  const JACK_CROUCH = jackPose({
+    bob: 1.7, lean: 0.12, legs: [[-3.0, 0, 0.3], [2.8, 0, 0]], hand: [-0.6, -8.2], farHand: [-3.8, -8.6],
+    hemBack: 0.6, hem: 0.5, scarf: 0.6, scarfLift: 0.2, headDy: 0.4, leaf: 1.4,
+  });
+  const JACK_DASH = jackPose({
+    bob: 0.7, lean: 0.34, legs: [[-5.2, 1.8, 0.4], [4.6, 0.3, 0]], hand: [-2.0, -10.6], farHand: [-4.6, -11.0],
+    hem: -0.7, hemBack: 3.2, scarf: 0.2, scarfLift: 2.2, headDy: 0.2, tilt: 0.05, leaf: -1.6,
+  });
+  /* recoil (hurt): thrown back, arm flung up, one foot off the ground, eyes wide, mouth open */
+  const JACK_RECOIL = jackPose({
+    bob: 0.2, lean: -0.24, legs: [[-3.4, 0, 0], [2.8, 1.8, 0]], hand: [6.0, -14.6], farHand: [-5.2, -13.6],
+    hem: 1.4, hemBack: -0.4, scarf: -1.0, scarfLift: -0.3, headDy: -0.5, tilt: -0.2, leaf: 1.8, eyes: 2, mouth: 1,
+  });
+
+  function drawJack(ctx, f, P, rng) {
     const J = (s) => (rng.next() - 0.5) * s;
-    const b = fr.bob;
+    const LS = -f;
+    const b = P.bob, hipY = -8.4 + b;
+    const lean = P.lean || 0, cl = Math.cos(lean), sl = Math.sin(lean);
+    const up = (x, y) => [x * cl - (y - hipY) * sl, hipY + x * sl + (y - hipY) * cl];
     ctx.save();
     ctx.scale(f, 1);
     const ox = MX * f, oy = MY;
-    ctx.fillStyle = cI;
-    // legs + boots
-    const leg = (hx, hy, fx, fy) => {
+
+    /* legs + boots (the near leg gets a paper gutter so it separates from the far one) */
+    const leg = (k) => {
+      const [fx, lift, heel] = P.legs[k];
+      const hp = up(k ? 1.5 : -1.3, hipY);
+      const ay = -1.3 - lift;
+      const kn = kneeAt(hp[0], hp[1], fx, ay, 8.1);
+      if (k) { ctx.fillStyle = cP; limb(ctx, [hp, kn, [fx, ay]], 1.8, 1.5); }
       ctx.fillStyle = cI;
-      limb(ctx, [[hx, hy], [(hx + fx) / 2 + 0.2, (hy + fy) / 2], [fx, fy - 0.9]], 1.15, 0.9);
-      ctx.beginPath(); ctx.ellipse(fx + 0.55, fy - 0.85, 1.8, 1.05, 0, 0, TAU); ctx.fill();
+      limb(ctx, [hp, kn, [fx, ay]], 1.22, 0.95);
+      ctx.save();
+      ctx.translate(fx + 1.2, ay + 1.3);
+      ctx.rotate(-heel);
+      if (k) { ctx.fillStyle = cP; ctx.beginPath(); ctx.ellipse(-0.6, -1.0, 2.6, 1.7, 0, 0, TAU); ctx.fill(); }
+      ctx.fillStyle = cI;
+      ctx.beginPath(); ctx.ellipse(-0.6, -1.05, 2.15, 1.2, 0, 0, TAU); ctx.fill();
+      ctx.fillRect(-2.6, -1.0, 4.1, 1.0);
       ctx.fillStyle = cP;
-      lens(ctx, fx - 0.4, fy - 1.45, fx + 1.2, fy - 1.5, 0.18, -0.1);
+      lens(ctx, -2.1, -1.75, 0.4, -1.95, 0.2, -0.12);
+      ctx.restore();
     };
-    leg(-1.6, -6.0 + b, fr.fb[0], fr.fb[1]);
-    leg(1.8, -6.0 + b, fr.fa[0], fr.fa[1]);
-    // scarf tail (behind)
-    const st = fr.scarf;
-    const scarf = (c) => {
-      c.moveTo(-2.0, -16.2 + b);
-      c.quadraticCurveTo(-5.6, -16.4 + b + st * 0.4, -9.4, -14.6 + b + st);
-      c.lineTo(-9.0, -12.9 + b + st);
-      c.quadraticCurveTo(-5.4, -14.4 + b + st * 0.3, -2.4, -14.4 + b);
-      c.closePath();
-    };
-    fillPath(ctx, scarf, cP);
-    strokePath(ctx, scarf, cI, 0.5);
+    leg(0);
+
+    ctx.save();
+    ctx.translate(0, hipY); ctx.rotate(lean); ctx.translate(0, -hipY);
+    /* far arm, mostly hidden behind the poncho */
     ctx.fillStyle = cI;
-    lens(ctx, -5.2, -16.0 + b + st * 0.25, -5.0, -14.0 + b + st * 0.2, 0.42);
-    lens(ctx, -7.4, -15.6 + b + st * 0.6, -7.2, -13.6 + b + st * 0.55, 0.38);
-    for (let i = 0; i < 3; i++) taper(ctx, -9.1, -14.2 + b + st + i * 0.5, -10.6 + J(0.3), -14.2 + b + st + i * 0.7 + 0.3, 0.22);
-    // cloak
-    const hem = fr.hem;
-    const cl = [
-      [-3.5, -15.8 + b], [3.8, -15.8 + b], [5.9, -11.2 + b], [7.3, -5.4 + b],
-      [5.5, -4.8 + b], [4.4, -3.6 + b], [2.8, -4.6 + b], [1.1, -3.4 + b], [-0.9, -4.4 + b],
-      [-2.9, -3.3 + b + hem * 0.3], [-4.9, -4.2 + b + hem * 0.5], [-7.0 + hem, -3.2 + b + hem * 0.5],
-      [-6.4 + hem * 0.6, -8.8 + b], [-4.9, -13.4 + b],
-    ].map((p) => [p[0] + J(0.25), p[1] + J(0.25)]);
-    const cloak = (c) => polyPath(c, cl);
-    fillPath(ctx, cloak, cI);
-    strokePath(ctx, cloak, cI, 0.35);
-    // carved folds on the lit side
+    limb(ctx, [[-2.4, -14.4 + b], [-3.2, -11.8 + b], [P.farHand[0], P.farHand[1] + b]], 0.95, 0.8);
+    ctx.beginPath(); ctx.arc(P.farHand[0], P.farHand[1] + b, 1.05, 0, TAU); ctx.fill();
+    /* scarf tail: hangs at rest, streams back when moving, waves with a lag */
+    const sLift = clamp01(0.1 + P.scarfLift * 0.33);
+    const ta = 1.25 + (0.12 - 1.25) * sLift, tl = 7.4 + sLift * 1.6;
+    const n0 = [-2.0, -16.2 + b];
+    const tip = [n0[0] - Math.cos(ta) * tl, n0[1] + Math.sin(ta) * tl + P.scarf * 0.7];
+    const mid = [(n0[0] + tip[0]) / 2 + Math.sin(ta) * P.scarf * 0.6, (n0[1] + tip[1]) / 2 - Math.cos(ta) * P.scarf * 0.9 - 0.4];
+    ctx.beginPath();
+    const rb = ribbonPath(ctx, [n0, mid, tip], 1.2, 1.55);
+    ctx.fillStyle = cP; ctx.fill();
+    ctx.strokeStyle = cI; ctx.lineWidth = 0.48; ctx.stroke();
+    ctx.fillStyle = cI;
+    for (const tt of [0.34, 0.6, 0.84]) {
+      const k = Math.round(tt * (rb.P.length - 1));
+      lens(ctx, rb.Lf[k][0], rb.Lf[k][1], rb.Rt[k][0], rb.Rt[k][1], 0.42, J(0.2));
+    }
+    const ex = rb.P[rb.P.length - 1], ep = rb.P[rb.P.length - 3];
+    const edx = ex[0] - ep[0], edy = ex[1] - ep[1], el = Math.hypot(edx, edy) || 1;
+    for (let k = -1; k <= 1; k++) {
+      const bx = ex[0] - (edy / el) * k * 0.7, by = ex[1] + (edx / el) * k * 0.7;
+      taper(ctx, bx, by, bx + (edx / el) * (1.6 + J(0.5)), by + (edy / el) * (1.6 + J(0.5)) + 0.2 * k, 0.24);
+    }
+    leg(1);
+    /* poncho with a ragged V-cut hem (front hem flutters, back hem trails) */
+    const hm = P.hem, hb = P.hemBack;
+    const tips = [[6.5 + hm * 0.5, -6.8 + b - hm * 0.55], [3.0 + hm * 0.2, -6.3 + b - hm * 0.2], [-0.7, -6.4 + b + hb * 0.1], [-4.6 - hb * 0.65, -6.9 + b - hb * 0.5]];
+    const pon = [
+      [-3.3, -16.5 + b], [3.6, -16.5 + b], [5.3, -13.0 + b], [6.0 + hm * 0.3, -9.4 + b], tips[0],
+      [4.5, -8.0 + b], tips[1], [1.2, -7.8 + b], tips[2], [-2.7, -7.9 + b], tips[3],
+      [-5.5 - hb * 0.45, -10.2 + b - hb * 0.15], [-4.6, -14.0 + b],
+    ].map((p) => [p[0] + J(0.22), p[1] + J(0.22)]);
+    const poncho = (c) => polyPath(c, pon);
+    fillPath(ctx, poncho, cI);
+    strokePath(ctx, poncho, cI, 0.35);
+    // carved folds fan from the neck to the hem points on the lit side, a lighter one in the middle
     ctx.fillStyle = cP;
-    lens(ctx, -4.6 + J(0.3), -4.6 + b, -3.0, -12.4 + b, 0.44, -0.35);
-    lens(ctx, -2.2 + J(0.3), -4.2 + b, -1.4, -10.6 + b, 0.34, -0.2);
-    lens(ctx, 0.6 + J(0.3), -4.0 + b, 0.8, -8.4 + b, 0.26, -0.1);
-    lens(ctx, -2.8, -14.8 + b, 0.4, -15.2 + b, 0.22, -0.1);
-    // arm separation + hand
-    lens(ctx, 2.9, -13.4 + b, 4.4, -9.6 + b, 0.2, 0.2);
-    const hx = 5.6 + fr.arm, hy = -8.8 + b;
-    fillPath(ctx, (c) => c.arc(hx, hy, 1.25, 0, TAU), cP);
-    strokePath(ctx, (c) => c.arc(hx, hy, 1.25, 0, TAU), cI, 0.45);
+    for (const tp of tips) {
+      const lit = Math.sign(tp[0] - 0.9) === LS;
+      if (!lit && Math.abs(tp[0] - 0.9) > 1.5) continue;
+      const w = lit ? 0.42 : 0.2;
+      lens(ctx, 0.6 + LS * 0.6 + (tp[0] - 0.6) * 0.18, -14.8 + b, tp[0] - Math.sign(tp[0] - 0.9) * 0.4, tp[1] - 0.9, w, -LS * 0.25);
+    }
+    lens(ctx, -2.8, -15.4 + b, 2.6, -15.7 + b, 0.2, -0.1);
+    // carved folk band: a paper zigzag with a dot in every tooth
+    clipDo(ctx, poncho, () => {
+      ctx.strokeStyle = cP; ctx.lineWidth = 0.5; ctx.lineJoin = 'miter';
+      ctx.beginPath();
+      for (let k = 0; k <= 9; k++) { const x = -6.6 + k * 1.5, y = -11.6 + b + (k & 1 ? -0.8 : 0.5); if (k) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+      ctx.stroke();
+      ctx.fillStyle = cP;
+      for (let k = 0; k < 9; k++) { ctx.beginPath(); ctx.arc(-5.85 + k * 1.5, -11.55 + b + (k & 1 ? 1.15 : -1.3), 0.28, 0, TAU); ctx.fill(); }
+      ctx.lineJoin = 'round';
+    });
+    // stitched hem band
+    for (let k = 0; k < 5; k++) {
+      const x = -3.6 + k * 2.1;
+      lens(ctx, x, -8.9 + b + J(0.2), x + 0.9, -9.0 + b + J(0.2), 0.16);
+    }
+    crescent(ctx, poncho, 0.6, -11.5 + b, LS * 0.8, -0.5, 0.95, cI);
+    /* near arm: paper gutter + ink sleeve, paper mitten */
+    const sh = [2.5, -14.6 + b], hd = [P.hand[0], P.hand[1] + b];
+    const el2 = [(sh[0] + hd[0]) / 2 + 0.5, (sh[1] + hd[1]) / 2 + 0.3];
+    ctx.fillStyle = cP; limb(ctx, [sh, el2, hd], 1.55, 1.3);
+    ctx.fillStyle = cI; limb(ctx, [sh, el2, hd], 1.05, 0.85);
+    ctx.fillStyle = cP;
+    lens(ctx, sh[0] + LS * 0.4, sh[1] + 0.6, el2[0] + LS * 0.35, el2[1], 0.18);
+    fillPath(ctx, (c) => c.arc(hd[0], hd[1], 1.3, 0, TAU), cP);
+    strokePath(ctx, (c) => c.arc(hd[0], hd[1], 1.3, 0, TAU), cI, 0.45);
     ctx.fillStyle = cI;
-    lens(ctx, hx - 0.2, hy + 0.2, hx + 1.0, hy + 0.9, 0.3);
-    // scarf wrap at the neck
+    lens(ctx, hd[0] - 0.2, hd[1] + 0.2, hd[0] + 1.0, hd[1] + 0.9, 0.3);
+    /* scarf wrap at the neck */
     const wrap = (c) => {
-      c.moveTo(-4.6, -16.6 + b);
-      c.quadraticCurveTo(0.4, -15.2 + b, 4.9, -16.6 + b);
-      c.lineTo(4.6, -14.6 + b);
-      c.quadraticCurveTo(0.4, -13.0 + b, -4.3, -14.6 + b);
-      c.closePath();
+      c.moveTo(-4.6, -17.0 + b); c.quadraticCurveTo(0.4, -15.6 + b, 4.9, -17.0 + b);
+      c.lineTo(4.6, -14.8 + b); c.quadraticCurveTo(0.4, -13.3 + b, -4.3, -14.8 + b); c.closePath();
     };
     fillPath(ctx, wrap, cP);
     strokePath(ctx, wrap, cI, 0.45);
     ctx.fillStyle = cI;
-    for (const x of [-2.6, 0.2, 3.0]) lens(ctx, x - 0.2, -16.2 + b, x + 0.3, -14.0 + b, 0.38);
+    for (const x of [-2.6, 0.2, 3.0]) lens(ctx, x - 0.2, -16.6 + b, x + 0.3, -14.3 + b, 0.4);
 
-    // pumpkin head
-    const hx0 = 0.7 + J(0.15), hy0 = -21.6 + b + fr.head, rx = 7.3, ry = 6.2;
+    /* pumpkin head (orange spot plate, misregistered) */
+    const hx0 = 0.8, hy0 = -22.6 + b + P.headDy, rx = 7.2, ry = 6.1;
+    ctx.save();
+    ctx.translate(hx0, hy0 + ry); ctx.rotate(P.tilt); ctx.translate(-hx0, -(hy0 + ry));
     const pts = [];
     for (let i = 0; i < 22; i++) {
       const a = (i / 22) * TAU;
-      const lobe = 1 - 0.05 * Math.abs(Math.sin(a * 2.5 + 0.4)) + J(0.035);
+      const lobe = 1 - 0.05 * Math.abs(Math.sin(a * 2.5 + 0.4)) + J(0.03);
       const x = Math.cos(a) * rx * lobe;
       let y = Math.sin(a) * ry * lobe;
       if (y < 0) y *= 1 - 0.13 * Math.exp(-(x * x) / 5);
@@ -444,279 +593,287 @@
     const head = (c) => smoothPath(c, pts);
     fillPath(ctx, head, cP);
     ctx.save(); ctx.translate(ox, oy); fillPath(ctx, head, cO); ctx.restore();
-    // ribs + shading hatch (clipped)
     clipDo(ctx, head, () => {
       ctx.fillStyle = cI;
       for (const xr of [-0.62, -0.24, 0.24, 0.62]) {
-        lens(ctx, hx0 + xr * rx * 0.8, hy0 - ry * 0.98, hx0 + xr * rx * 0.86 + J(0.2), hy0 + ry * 0.98, xr > 0 ? 0.34 : 0.26, -xr * rx * 0.3 * (xr > 0 ? -1 : 1) * 0.0 + xr * 1.6);
+        lens(ctx, hx0 + xr * rx * 0.8, hy0 - ry * 0.98, hx0 + xr * rx * 0.86 + J(0.2), hy0 + ry * 0.98, Math.sign(xr) === -LS ? 0.36 : 0.24, xr * 1.6);
       }
+      // engraved shading: denser, wider cuts towards the shadow side and the underside
       for (let i = 0; i < 6; i++) {
-        const x = hx0 + rx * (0.36 + i * 0.105);
-        lens(ctx, x - 0.5, hy0 - ry * 0.75 + i * 0.35, x + 0.1, hy0 + ry * 1.05, 0.16 + i * 0.055, 0.45);
+        const x = hx0 - LS * rx * (0.36 + i * 0.105);
+        lens(ctx, x + LS * 0.5, hy0 - ry * 0.75 + i * 0.35, x - LS * 0.1, hy0 + ry * 1.05, 0.16 + i * 0.055, -LS * 0.45);
       }
       for (let i = 0; i < 4; i++) {
         const y = hy0 + ry * (0.55 + i * 0.13);
-        lens(ctx, hx0 - rx * 0.55 + i * 0.4, y, hx0 + rx * 0.75, y + 0.2, 0.12 + i * 0.05, 0.5);
+        lens(ctx, hx0 + LS * rx * 0.55 - LS * i * 0.4, y, hx0 - LS * rx * 0.75, y + 0.2, 0.12 + i * 0.05, 0.5);
       }
     });
-    crescent(ctx, head, hx0, hy0, -1.0, -0.85, 0.93, cI);
+    crescent(ctx, head, hx0, hy0, LS * 1.0, -0.85, 0.93, cI);
     strokePath(ctx, head, cI, 0.75);
     // carved face
     const fx = hx0 + 0.95;
     ctx.fillStyle = cI;
-    fillPath(ctx, (c) => polyPath(c, [[fx - 4.0, hy0 - 0.2], [fx - 0.9, hy0 - 0.45], [fx - 2.6 + J(0.2), hy0 - 3.4]]), cI);
-    fillPath(ctx, (c) => polyPath(c, [[fx + 0.8, hy0 - 0.45], [fx + 3.9, hy0 - 0.2], [fx + 2.2 + J(0.2), hy0 - 3.4]]), cI);
+    if (P.eyes === 1) {
+      lens(ctx, fx - 4.0, hy0 - 1.0, fx - 0.9, hy0 - 1.2, 0.42, 0.25);
+      lens(ctx, fx + 0.8, hy0 - 1.2, fx + 3.9, hy0 - 1.0, 0.42, 0.25);
+    } else if (P.eyes === 2) {
+      ctx.beginPath(); ctx.ellipse(fx - 2.4, hy0 - 1.5, 1.35, 1.65, 0, 0, TAU); ctx.ellipse(fx + 2.3, hy0 - 1.5, 1.35, 1.65, 0, 0, TAU); ctx.fill();
+    } else {
+      fillPath(ctx, (c) => polyPath(c, [[fx - 4.0, hy0 - 0.2], [fx - 0.9, hy0 - 0.45], [fx - 2.6 + J(0.2), hy0 - 3.4]]), cI);
+      fillPath(ctx, (c) => polyPath(c, [[fx + 0.8, hy0 - 0.45], [fx + 3.9, hy0 - 0.2], [fx + 2.2 + J(0.2), hy0 - 3.4]]), cI);
+    }
     fillPath(ctx, (c) => polyPath(c, [[fx - 0.65, hy0 + 1.0], [fx + 0.65, hy0 + 1.0], [fx, hy0 - 0.1]]), cI);
-    const mouth = (c) => {
-      c.moveTo(fx - 4.7, hy0 + 1.5);
-      c.lineTo(fx - 3.6, hy0 + 2.3);
-      c.lineTo(fx - 2.6, hy0 + 2.0);
-      c.lineTo(fx - 2.4, hy0 + 2.9);
-      c.lineTo(fx - 1.0, hy0 + 3.1);
-      c.lineTo(fx - 0.8, hy0 + 2.4);
-      c.lineTo(fx + 0.9, hy0 + 2.5);
-      c.lineTo(fx + 1.1, hy0 + 3.2);
-      c.lineTo(fx + 2.5, hy0 + 2.8);
-      c.lineTo(fx + 2.7, hy0 + 2.0);
-      c.lineTo(fx + 3.7, hy0 + 2.2);
-      c.lineTo(fx + 4.7, hy0 + 1.4);
-      c.quadraticCurveTo(fx + 3.4, hy0 + 5.6, fx + 0.1, hy0 + 5.2);
-      c.lineTo(fx + 0.2, hy0 + 4.5);
-      c.lineTo(fx - 0.9, hy0 + 4.5);
-      c.lineTo(fx - 0.9, hy0 + 5.2);
-      c.quadraticCurveTo(fx - 3.6, hy0 + 5.0, fx - 4.7, hy0 + 1.5);
-      c.closePath();
-    };
-    fillPath(ctx, mouth, cI);
-    // gouge highlights (light from upper left)
+    if (P.mouth === 1) {
+      ctx.beginPath(); ctx.ellipse(fx, hy0 + 3.3, 1.7, 1.6, 0, 0, TAU); ctx.fill();
+    } else {
+      const mouth = (c) => {
+        c.moveTo(fx - 4.7, hy0 + 1.5); c.lineTo(fx - 3.6, hy0 + 2.3); c.lineTo(fx - 2.6, hy0 + 2.0); c.lineTo(fx - 2.4, hy0 + 2.9);
+        c.lineTo(fx - 1.0, hy0 + 3.1); c.lineTo(fx - 0.8, hy0 + 2.4); c.lineTo(fx + 0.9, hy0 + 2.5); c.lineTo(fx + 1.1, hy0 + 3.2);
+        c.lineTo(fx + 2.5, hy0 + 2.8); c.lineTo(fx + 2.7, hy0 + 2.0); c.lineTo(fx + 3.7, hy0 + 2.2); c.lineTo(fx + 4.7, hy0 + 1.4);
+        c.quadraticCurveTo(fx + 3.4, hy0 + 5.6, fx + 0.1, hy0 + 5.2); c.lineTo(fx + 0.2, hy0 + 4.5); c.lineTo(fx - 0.9, hy0 + 4.5);
+        c.lineTo(fx - 0.9, hy0 + 5.2); c.quadraticCurveTo(fx - 3.6, hy0 + 5.0, fx - 4.7, hy0 + 1.5); c.closePath();
+      };
+      fillPath(ctx, mouth, cI);
+    }
+    // gouge highlights on the lit side of the head
     ctx.fillStyle = cP;
-    lens(ctx, hx0 - 6.0, hy0 - 0.4, hx0 - 4.5 + J(0.2), hy0 - 4.3, 0.42, -0.4);
-    lens(ctx, hx0 - 3.7, hy0 - 4.5, hx0 - 1.5, hy0 - 5.5 + J(0.2), 0.3, -0.25);
-    lens(ctx, hx0 - 6.2, hy0 + 1.4, hx0 - 5.9, hy0 + 2.8, 0.2, -0.1);
-    // stem + leaf
+    lens(ctx, hx0 + LS * 6.0, hy0 - 0.4, hx0 + LS * 4.5 + J(0.2), hy0 - 4.3, 0.42, LS * 0.4);
+    lens(ctx, hx0 + LS * 3.7, hy0 - 4.5, hx0 + LS * 1.5, hy0 - 5.5 + J(0.2), 0.3, LS * 0.25);
+    lens(ctx, hx0 + LS * 6.2, hy0 + 1.4, hx0 + LS * 5.9, hy0 + 2.8, 0.2, LS * 0.1);
+    // stem + curly leaf (the leaf lags behind every move)
     ctx.fillStyle = cI;
     taper(ctx, hx0 + 0.2, hy0 - ry + 1.0, hx0 + 1.9 + J(0.3), hy0 - ry - 2.9, 1.1, -0.5);
     ctx.fillStyle = cP;
     lens(ctx, hx0 - 0.1, hy0 - ry + 0.2, hx0 + 0.8, hy0 - ry - 1.8, 0.16, -0.2);
-    leaf(ctx, hx0 + 0.6, hy0 - ry - 0.3, hx0 - 3.6 + J(0.3), hy0 - ry - 1.6 + fr.leaf, 0.85, -0.5);
+    leaf(ctx, hx0 + 0.6, hy0 - ry - 0.3, hx0 - 3.8 + J(0.3), hy0 - ry - 1.6 + P.leaf, 0.9, -0.5);
+    ctx.fillStyle = cI;
+    limb(ctx, [[hx0 + 1.4, hy0 - ry - 1.8], [hx0 + 3.2, hy0 - ry - 3.0 - P.leaf * 0.3], [hx0 + 3.6, hy0 - ry - 1.6 - P.leaf * 0.4]], 0.22, 0.08);
+    ctx.restore();
+    ctx.restore();
     ctx.restore();
   }
-  const JACK_WALK = [
-    { fa: [3.3, 0], fb: [-3.0, 0], bob: 0, hem: 0.8, scarf: 0.5, arm: 0.4, head: 0, leaf: 0 },
-    { fa: [1.0, 0], fb: [-0.4, -1.5], bob: -0.8, hem: 0.2, scarf: -0.6, arm: 0, head: 0.2, leaf: -0.4 },
-    { fa: [-2.7, 0], fb: [3.0, 0], bob: 0, hem: 0.9, scarf: 0.6, arm: -0.4, head: 0, leaf: 0.2 },
-    { fa: [0.6, -1.5], fb: [-0.2, 0], bob: -0.8, hem: 0.1, scarf: -0.5, arm: 0, head: 0.2, leaf: -0.3 },
-  ];
-  const JACK_IDLE = [
-    { fa: [2.0, 0], fb: [-1.6, 0], bob: 0, hem: 0, scarf: 0, arm: 0, head: 0, leaf: 0 },
-    { fa: [2.0, 0], fb: [-1.6, 0], bob: 0.35, hem: 0.2, scarf: 0.4, arm: 0, head: 0.25, leaf: 0.3 },
-  ];
 
-  /* ---------- Rüben-Schleicher ---------- */
+  /* ---------- small creature: turnip with root legs, root arms and a curling tap root ----------
+     6-pose waddle: squash on contact, stretch mid-step, sway; leaves and tap root follow through. */
+  const CREEPER_N = 6;
   function drawCreeper(ctx, f, i, rng) {
     const J = (s) => (rng.next() - 0.5) * s;
-    const ph = (i / 4) * TAU;
-    const bob = -0.75 * Math.abs(Math.sin(ph));
-    const tilt = 0.075 * Math.cos(ph);
+    const LS = -f;
+    const ph = (i / CREEPER_N) * TAU;
+    const step = Math.abs(Math.sin(ph));
+    const bob = -1.05 * step;
+    const sq = 0.075 * (1 - step) - 0.045 * step;
+    const tilt = 0.1 * Math.cos(ph);
+    const lag = Math.sin(ph - 1.2), lag2 = Math.sin(ph - 2.0);
     ctx.save();
     ctx.scale(f, 1);
     // root legs
-    const fa = [2.7 + 1.5 * Math.cos(ph), -Math.max(0, Math.sin(ph)) * 1.4];
-    const fb = [-2.2 + 1.5 * Math.cos(ph + Math.PI), -Math.max(0, Math.sin(ph + Math.PI)) * 1.4];
+    const fa = [2.6 + 1.6 * Math.cos(ph), -Math.max(0, Math.sin(ph)) * 1.6];
+    const fb = [-2.1 + 1.6 * Math.cos(ph + Math.PI), -Math.max(0, Math.sin(ph + Math.PI)) * 1.6];
     ctx.fillStyle = cI;
     for (const [hx, ft] of [[-2.0, fb], [2.2, fa]]) {
-      limb(ctx, [[hx, -5.4 + bob], [(hx + ft[0]) / 2, -2.8 + bob * 0.5 + ft[1] * 0.5], [ft[0], ft[1] - 0.4]], 0.85, 0.55);
-      taper(ctx, ft[0], ft[1] - 0.4, ft[0] + 1.9, ft[1] + 0.1, 0.42, 0.1);
-      taper(ctx, ft[0], ft[1] - 0.4, ft[0] - 1.1, ft[1] + 0.2, 0.36, -0.1);
+      limb(ctx, [[hx, -5.4 + bob], [(hx + ft[0]) / 2 + 0.3, -2.8 + bob * 0.5 + ft[1] * 0.5], [ft[0], ft[1] - 0.4]], 0.9, 0.55);
+      taper(ctx, ft[0], ft[1] - 0.4, ft[0] + 2.0, ft[1] + 0.1, 0.44, 0.1);
+      taper(ctx, ft[0], ft[1] - 0.4, ft[0] - 1.2, ft[1] + 0.2, 0.36, -0.1);
     }
     ctx.save();
-    ctx.translate(0, -4.5 + bob);
+    ctx.translate(0, -3.6 + bob);
     ctx.rotate(tilt);
-    ctx.translate(0, 4.5);
-    // leaves (behind the bulb)
-    const sw = Math.sin(ph) * 0.7;
-    leaf(ctx, -0.4, -18.2, -6.0 + sw + J(0.4), -24.6, 1.45, -0.7);
-    leaf(ctx, 0.6, -18.6, 1.6 + sw * 0.6 + J(0.4), -26.4, 1.5, 0.5);
-    leaf(ctx, 1.2, -18.2, 6.8 + sw * 0.4 + J(0.4), -23.4, 1.35, 0.8);
+    ctx.scale(1 + sq, 1 - sq);
+    ctx.translate(0, 3.6);
+    // curling tap root behind (lags the most)
+    ctx.fillStyle = cI;
+    limb(ctx, [[-1.0, -4.2], [-3.6, -3.0 + lag2 * 0.4], [-5.6, -4.4 + lag2 * 1.0], [-5.0, -6.0 + lag2 * 1.2]], 0.5, 0.1);
+    // leaves (behind the bulb) swing after the body
+    const sw = lag * 1.3;
+    leaf(ctx, -0.4, -18.2, -6.2 + sw + J(0.4), -24.4 + Math.abs(sw) * 0.3, 1.5, -0.7);
+    leaf(ctx, 0.6, -18.6, 1.4 + sw * 0.7 + J(0.4), -26.6, 1.55, 0.5);
+    leaf(ctx, 1.2, -18.2, 6.9 + sw * 0.5 + J(0.4), -23.2 - sw * 0.2, 1.4, 0.8);
     ctx.fillStyle = cI;
     lens(ctx, -3.6 + sw * 0.5, -22.0, -5.6 + sw, -21.4, 0.55, 0.3);
     lens(ctx, 4.0 + sw * 0.3, -21.0, 6.2 + sw * 0.4, -21.6, 0.5, -0.3);
+    // root arms, swinging against the legs
+    const arm = Math.cos(ph) * 1.4;
+    limb(ctx, [[6.4, -10.0], [8.4, -9.0 - arm * 0.3], [9.4 + arm * 0.4, -7.2]], 0.42, 0.12);
+    limb(ctx, [[-6.6, -10.4], [-8.4, -9.6 + arm * 0.3], [-9.0 - arm * 0.4, -7.8]], 0.4, 0.12);
     // bulb
     const pts = [[0, -19.6], [3.7, -19.0], [6.5, -16.6], [7.7, -12.8], [7.2, -9.0], [5.2, -6.1], [2.4, -4.6], [0.5, -3.3],
       [-1.9, -4.6], [-4.9, -6.3], [-7.1, -9.2], [-7.6, -13.0], [-6.3, -16.7], [-3.5, -19.0]].map((p) => [p[0] + J(0.3), p[1] + J(0.3)]);
     const body = (c) => smoothPath(c, pts);
     fillPath(ctx, body, cP);
-    const ex = 1.0; // face shift towards facing
+    const ex = 1.0;
     clipDo(ctx, body, () => {
-      // dark (purple) crown of the turnip – solid ink above a wavy line
-      const wy = (x) => -12.4 + 0.45 * Math.sin(x * 0.95 + 0.6);
+      // dark crown above a wavy line, engraved comb into the light underside
+      const wy = (x) => -12.2 + 0.45 * Math.sin(x * 0.95 + 0.6);
       ctx.beginPath();
-      ctx.moveTo(-9, -25);
-      ctx.lineTo(9, -25);
+      ctx.moveTo(-9, -25); ctx.lineTo(9, -25);
       for (let x = 9; x >= -9; x -= 0.5) ctx.lineTo(x, wy(x));
       ctx.closePath();
-      ctx.fillStyle = cI;
-      ctx.fill();
-      // engraved comb transition into the light underside
+      ctx.fillStyle = cI; ctx.fill();
       for (let x = -6.8; x <= 6.9; x += 1.1) {
-        const len = 1.0 + 2.6 * ((x + 7) / 14) + J(0.8);
+        const len = 1.0 + 2.6 * ((-LS * x + 7) / 14) + J(0.8);
         taper(ctx, x, wy(x) - 0.2, x + 0.25, wy(x) + len, 0.4);
       }
-      // carved light on the crown
       ctx.fillStyle = cP;
-      lens(ctx, -6.6, -13.6, -3.6 + J(0.3), -18.0, 0.34, -0.6);
-      lens(ctx, -4.6, -16.8, -0.6 + J(0.3), -19.1, 0.26, -0.45);
-      lens(ctx, 3.0, -18.5, 5.4, -16.6, 0.17, -0.3);
-      // underside contours (shadow side)
+      lens(ctx, LS * 6.6, -13.6, LS * 3.6 + J(0.3), -18.0, 0.36, LS * 0.6);
+      lens(ctx, LS * 4.6, -16.8, LS * 0.6 + J(0.3), -19.1, 0.28, LS * 0.45);
       ctx.fillStyle = cI;
-      lens(ctx, 3.4, -6.6, 6.7, -10.2, 0.24, 0.45);
-      lens(ctx, 1.4, -5.0, 5.0, -7.2, 0.2, 0.3);
-      lens(ctx, -5.9, -7.6, -6.9, -10.0, 0.12, -0.2);
+      lens(ctx, -LS * 3.4, -6.6, -LS * 6.7, -10.2, 0.26, -LS * 0.45);
+      lens(ctx, -LS * 1.4, -5.0, -LS * 5.0, -7.2, 0.2, -LS * 0.3);
     });
-    // angry carved eyes in the dark crown
-    const e1x = -1.5 + ex, e2x = 2.6 + ex, ey = -14.3;
+    // carved paper rim on the lit edge keeps the dark crowns apart in a crowd
+    crescent(ctx, body, 0, -12, -LS * 0.75, 0.35, 0.95, cP);
+    // angry carved eyes + brow
+    const e1x = -1.5 + ex, e2x = 2.6 + ex, ey = -14.4;
     ctx.fillStyle = cP;
-    lens(ctx, e1x - 1.45, ey - 0.75, e1x + 1.25, ey + 0.45, 0.78, 0.18);
-    lens(ctx, e2x - 1.25, ey + 0.45, e2x + 1.45, ey - 0.75, 0.78, 0.18);
+    lens(ctx, e1x - 1.55, ey - 0.8, e1x + 1.3, ey + 0.5, 0.85, 0.18);
+    lens(ctx, e2x - 1.3, ey + 0.5, e2x + 1.55, ey - 0.8, 0.85, 0.18);
     ctx.fillStyle = cI;
-    ctx.beginPath(); ctx.arc(e1x + 0.35, ey + 0.05, 0.5, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(e2x + 0.35, ey + 0.05, 0.5, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(e1x + 0.45, ey + 0.05, 0.52, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(e2x + 0.45, ey + 0.05, 0.52, 0, TAU); ctx.fill();
     // grimace with teeth
     const my = -9.2;
-    lens(ctx, -2.0 + ex, my, 3.4 + ex, my - 0.25, 0.85, -0.35);
+    lens(ctx, -2.0 + ex, my, 3.4 + ex, my - 0.25, 0.9, -0.35);
     ctx.fillStyle = cP;
     for (const tx of [-0.5, 1.6]) {
-      ctx.beginPath();
-      ctx.moveTo(tx + ex - 0.42, my - 0.95);
-      ctx.lineTo(tx + ex + 0.42, my - 0.95);
-      ctx.lineTo(tx + ex, my - 0.1);
-      ctx.closePath();
-      ctx.fill();
+      ctx.beginPath(); ctx.moveTo(tx + ex - 0.42, my - 1.0); ctx.lineTo(tx + ex + 0.42, my - 1.0); ctx.lineTo(tx + ex, my - 0.1); ctx.closePath(); ctx.fill();
     }
     ctx.fillStyle = cI;
-    // outline + shadow weight
-    crescent(ctx, body, 0, -12, -0.9, -0.8, 0.94, cI);
-    strokePath(ctx, body, cI, 0.7);
-    // root hairs + tap root
-    taper(ctx, -6.9, -8.6, -8.6, -8.0, 0.24);
-    taper(ctx, 6.9, -8.0, 8.6, -7.2, 0.24);
-    limb(ctx, [[0.5, -3.6], [-0.5, -2.2], [0.6, -1.2]], 0.36, 0.06);
+    crescent(ctx, body, 0, -12, LS * 0.9, -0.8, 0.94, cI);
+    strokePath(ctx, body, cI, 0.72);
     ctx.restore();
     ctx.restore();
   }
 
-  /* ---------- Hungergeist ---------- */
+  /* ---------- fast creature: a hungry sheet-spirit with a whipping tail and reaching claws ---------- */
+  const GHOST_N = 6;
   function drawGhost(ctx, f, i, rng) {
     const J = (s) => (rng.next() - 0.5) * s;
-    const ph = (i / 4) * TAU;
-    const tipX = -9.2 + Math.cos(ph) * 0.8, tipY = -8.4 + Math.sin(ph) * 1.4;
+    const LS = -f;
+    const ph = (i / GHOST_N) * TAU;
+    const w1 = Math.sin(ph), w2 = Math.sin(ph - 1.3), w3 = Math.sin(ph - 2.4);
+    const tipX = -10.0 + Math.cos(ph) * 0.8, tipY = -8.2 + w3 * 2.0;
     ctx.save();
     ctx.scale(f, 1);
-    const reach = Math.sin(ph) * 0.6;
+    const ra = w1 * 0.9, rb = -w1 * 0.9;
     // back arm
     ctx.fillStyle = cI;
-    limb(ctx, [[3.6, -11.6], [6.5, -10.8 + reach * 0.3], [8.8 + reach, -10.0]], 0.42, 0.28);
-    for (let k = 0; k < 3; k++) taper(ctx, 8.8 + reach, -10.0, 10.2 + reach, -10.6 + k * 0.7, 0.2);
+    limb(ctx, [[3.6, -12.0], [6.6, -11.2 + rb * 0.3], [9.0 + rb, -10.6]], 0.42, 0.28);
+    for (let k = 0; k < 3; k++) taper(ctx, 9.0 + rb, -10.6, 10.5 + rb, -11.3 + k * 0.75, 0.2);
     const body = (c) => {
-      c.moveTo(0.4, -24.0);
-      c.quadraticCurveTo(6.6, -23.6, 6.3, -16.6);
-      c.quadraticCurveTo(6.0, -10.6, 2.6, -7.6);
-      c.quadraticCurveTo(-1.6, -5.0, tipX, tipY);
-      c.quadraticCurveTo(-4.4, -8.4 + Math.sin(ph) * 0.4, -5.2, -12.0);
-      c.quadraticCurveTo(-6.2, -15.6, -5.6, -18.6);
-      c.quadraticCurveTo(-4.4, -24.2, 0.4, -24.0);
+      c.moveTo(0.6, -24.4 + w1 * 0.2);
+      c.quadraticCurveTo(6.8, -24.0, 6.4, -16.8);
+      c.quadraticCurveTo(6.0, -10.6 + w1 * 0.3, 2.6, -7.8);
+      c.quadraticCurveTo(-1.8 + w2 * 0.6, -4.6 + w2 * 1.2, tipX, tipY);
+      c.quadraticCurveTo(-4.6, -8.6 + w2 * 0.8, -5.4, -12.2);
+      c.quadraticCurveTo(-6.4, -15.8, -5.8, -18.8);
+      c.quadraticCurveTo(-4.6, -24.6, 0.6, -24.4 + w1 * 0.2);
       c.closePath();
     };
     fillPath(ctx, body, cP);
     clipDo(ctx, body, () => {
-      // frost: teal stipple on the shadow side (offset plate)
+      // frost: teal stipple on the shadow side (offset second plate), densest along the tail
       ctx.save();
       ctx.translate(TX * f, TY);
       ctx.fillStyle = cT;
       const r2 = U.rng(9001 + i);
-      for (let k = 0; k < 230; k++) {
-        const x = R(-7, 7, r2), y = R(-24, -5, r2);
-        const shade = clamp01((x + 0.5) / 6.5) * 0.85 + clamp01((y + 11) / 6) * 0.5;
+      for (let k = 0; k < 240; k++) {
+        const x = R(-9, 7, r2), y = R(-24, -5, r2);
+        const shade = clamp01((-LS * x + 0.5) / 6.5) * 0.85 + clamp01((y + 11) / 6) * 0.55;
         if (r2.next() < shade * 0.75) { ctx.beginPath(); ctx.arc(x, y, R(0.26, 0.42, r2), 0, TAU); ctx.fill(); }
       }
       ctx.restore();
       ctx.fillStyle = cI;
-      for (let k = 0; k < 4; k++) lens(ctx, 4.4 + k * 0.5, -20.5 + k * 0.6, 3.6 + k * 0.6, -9.0 + k * 0.3, 0.14 + k * 0.03, 1.1);
+      for (let k = 0; k < 4; k++) lens(ctx, -LS * (4.4 + k * 0.5), -20.5 + k * 0.6, -LS * (3.6 + k * 0.6), -9.0 + k * 0.3, 0.14 + k * 0.03, -LS * 1.1);
+      // flowing gouges along the tail
+      for (let k = 0; k < 3; k++) lens(ctx, -1.0 - k * 1.2, -9.8 + k * 0.9 + w2 * 0.4, tipX + 2.4 - k * 0.4, tipY - 0.5 + k * 0.5, 0.14, 0.5);
     });
-    crescent(ctx, body, 0.5, -15, -0.7, -0.6, 0.95, cI);
-    strokePath(ctx, body, cI, 0.62);
-    // hollow eyes, gaping mouth
+    crescent(ctx, body, 0.5, -15, LS * 0.7, -0.6, 0.95, cI);
+    strokePath(ctx, body, cI, 0.64);
+    ctx.fillStyle = cP;
+    lens(ctx, LS * 4.6 + 0.4, -21.0, LS * 2.0 + 0.4, -23.2, 0.22, LS * 0.3);
+    // hollow eyes, wailing mouth (opens and closes)
     const fx = 1.3;
     ctx.fillStyle = cI;
-    ctx.beginPath(); ctx.ellipse(-1.0 + fx, -17.6, 1.25, 1.95, 0.22, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(2.75 + fx, -17.5, 1.15, 1.8, -0.18, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(1.0 + fx, -12.6, 1.05 + J(0.15), 1.9, 0.05, 0, TAU); ctx.fill();
-    lens(ctx, -2.6 + fx, -20.0, -0.3 + fx, -21.0, 0.2, -0.1);
-    lens(ctx, 1.9 + fx, -21.0, 4.0 + fx, -20.1, 0.2, -0.1);
+    ctx.beginPath(); ctx.ellipse(-1.0 + fx, -17.8, 1.3, 2.0, 0.22, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(2.8 + fx, -17.7, 1.2, 1.85, -0.18, 0, TAU); ctx.fill();
+    const mo = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(ph * 2));
+    ctx.beginPath(); ctx.ellipse(1.0 + fx, -12.8, 0.95 + J(0.12), 1.0 + 1.1 * mo, 0.05, 0, TAU); ctx.fill();
+    lens(ctx, -2.6 + fx, -20.2, -0.3 + fx, -21.2, 0.2, -0.1);
+    lens(ctx, 1.9 + fx, -21.2, 4.0 + fx, -20.3, 0.2, -0.1);
     ctx.fillStyle = cP;
-    ctx.beginPath(); ctx.arc(-1.3 + fx, -18.3, 0.3, 0, TAU); ctx.fill();
-    // front arm reaching
+    ctx.beginPath(); ctx.arc(-1.3 + fx, -18.5, 0.32, 0, TAU); ctx.arc(2.5 + fx, -18.4, 0.28, 0, TAU); ctx.fill();
+    // front arm reaching (alternates with the back arm)
     ctx.fillStyle = cI;
-    limb(ctx, [[5.2, -13.6], [8.0, -13.6 - reach * 0.3], [10.4 + reach, -13.0]], 0.46, 0.3);
-    for (let k = 0; k < 3; k++) taper(ctx, 10.4 + reach, -13.0, 12.0 + reach, -13.8 + k * 0.75, 0.21);
-    // tail dissolving into halftone
+    limb(ctx, [[5.2, -13.8], [8.0, -13.8 - ra * 0.3], [10.6 + ra, -13.2]], 0.46, 0.3);
+    for (let k = 0; k < 3; k++) taper(ctx, 10.6 + ra, -13.2, 12.3 + ra, -14.0 + k * 0.8, 0.21);
+    // tail breaking up into halftone dots
     for (let k = 1; k <= 3; k++) {
       ctx.beginPath();
-      ctx.arc(tipX - k * 1.25, tipY + k * 0.4 * Math.sin(ph + k), 0.5 - k * 0.11, 0, TAU);
+      ctx.arc(tipX - k * 1.3, tipY + k * 0.5 * Math.sin(ph - k * 0.8), 0.52 - k * 0.11, 0, TAU);
       ctx.fill();
     }
     ctx.restore();
   }
 
-  /* ---------- Steckrüben-Koloss ---------- */
+  /* ---------- large creature: turnip giant with a glowing core ----------
+     6-pose stomp: lift (anticipation, body rises) – plant (squash, body drops) per leg; arms counter-swing late,
+     crown leaves follow through. */
+  const COLOSSUS_N = 6;
   function drawColossus(ctx, f, i, rng) {
     const J = (s) => (rng.next() - 0.5) * s;
-    const ph = (i / 4) * TAU;
-    const liftA = Math.max(0, Math.sin(ph)) * 3.0, liftB = Math.max(0, -Math.sin(ph)) * 3.0;
-    const bob = -Math.abs(Math.sin(ph)) * 1.2;
-    const sw = Math.cos(ph) * 1.6;
+    const LS = -f;
+    const ph = (i / COLOSSUS_N) * TAU;
+    const s1 = Math.sin(ph);
+    const liftA = Math.max(0, s1) * 3.6, liftB = Math.max(0, -s1) * 3.6;
+    const bob = -Math.abs(s1) * 1.7 + (1 - Math.abs(s1)) * 0.6;
+    const sq = 0.045 * (1 - Math.abs(s1));
+    const sw = Math.cos(ph - 0.6) * 1.9;
+    const lagL = Math.sin(ph - 1.1) * 1.2;
     ctx.save();
     ctx.scale(f, 1);
     ctx.fillStyle = cI;
-    // legs with root toes
     const legC = (hx, fx, lift) => {
       ctx.fillStyle = cI;
-      limb(ctx, [[hx, -12 + bob], [(hx + fx) / 2 + 0.6, -6.5 - lift * 0.5], [fx, -1.2 - lift]], 3.1, 2.3);
+      limb(ctx, [[hx, -12 + bob], [(hx + fx) / 2 + 0.8, -6.5 - lift * 0.5], [fx, -1.2 - lift]], 3.1, 2.3);
       for (const [tx, ty] of [[3.6, 0.6], [0.6, 1.0], [-2.6, 0.6]]) taper(ctx, fx + tx * 0.2, -1.0 - lift, fx + tx, -0.2 - lift + ty * 0.3, 1.05);
       ctx.fillStyle = cP;
-      lens(ctx, hx - 2.0, -11 + bob, fx - 1.6, -3.0 - lift, 0.3, -0.3);
+      lens(ctx, hx + LS * 2.0, -11 + bob, fx + LS * 1.6, -3.0 - lift, 0.3, LS * 0.3);
     };
-    // back arm
     const arm = (sx, swing, back) => {
+      const hx = sx * 18.6 + swing, hy = -15.2 + Math.abs(swing) * 0.3;
+      const path = [[sx * 13.6, -32 + bob], [sx * 17.8, -25.5 + bob], [hx, hy + bob]];
+      // the front arm is cut free from the black body by a paper gutter
+      if (!back) { ctx.fillStyle = cP; limb(ctx, path, 3.9, 2.5); }
       ctx.fillStyle = cI;
-      const hx = sx * 18.6 + swing, hy = -15.2;
-      limb(ctx, [[sx * 13.6, -32 + bob], [sx * 17.8, -25.5 + bob], [hx, hy + bob]], 3.1, 1.8);
-      for (const d of [-1.2, 0, 1.2]) taper(ctx, hx, hy + bob, hx + d * 1.3 + sx * 0.4, hy + 4.2 + bob - Math.abs(d) * 0.5, 0.9);
+      limb(ctx, path, 3.1, 1.8);
+      for (const d of [-1.2, 0, 1.2]) taper(ctx, hx, hy + bob, hx + d * 1.3 + sx * 0.4, hy + 4.4 + bob - Math.abs(d) * 0.5, 0.9);
       if (!back) {
         ctx.fillStyle = cP;
-        lens(ctx, sx * 13.0 - 0.6, -30 + bob, sx * 16.2 - 1.2, -22 + bob, 0.32, -0.6 * sx);
+        lens(ctx, sx * 13.6 + LS * 1.3, -30 + bob, sx * 17.4 + LS * 1.2, -22 + bob, 0.32, LS * 0.4);
+        lens(ctx, sx * 17.6 + LS * 0.9, -21 + bob, hx + LS * 0.8, hy + bob - 1.6, 0.22, LS * 0.2);
       }
     };
     arm(-1, -sw, true);
     legC(-6.8, -8.6, liftB);
     legC(6.8, 8.6, liftA);
-    // crown leaves (behind body top)
+    ctx.save();
+    ctx.translate(0, -12 + bob); ctx.scale(1 + sq, 1 - sq); ctx.translate(0, 12 - bob);
     const lv = [[-10.0, -49.0], [-4.8, -53.6], [1.4, -55.2], [6.6, -52.6], [10.6, -47.6]];
-    for (let k = 0; k < lv.length; k++) leaf(ctx, 0 + (k - 2) * 0.8, -40.5, lv[k][0] + J(0.6) + sw * 0.15, lv[k][1] + J(0.6), 2.1, (k - 2) * 0.35);
-    // body
+    for (let k = 0; k < lv.length; k++) leaf(ctx, (k - 2) * 0.8, -40.5 + bob, lv[k][0] + J(0.6) + lagL * (0.6 + k * 0.15), lv[k][1] + bob * 0.6 + J(0.6) - Math.abs(lagL) * 0.4, 2.1, (k - 2) * 0.35);
     const pts = blobPts(0, -27 + bob, 15.6, 16.4, 18, rng, 0.07).map((p) => {
-      // narrow top (turnip crown)
-      const t = clamp01((-p[1] - 36) / 8);
+      const t = clamp01((-p[1] + bob - 36) / 8);
       return [p[0] * (1 - t * 0.38), p[1]];
     });
     const body = (c) => smoothPath(c, pts);
     fillPath(ctx, body, cI);
     clipDo(ctx, body, () => {
       ctx.fillStyle = cP;
-      // carved light contours on the upper-left
-      for (let k = 0; k < 6; k++) arcLens(ctx, 1.0, -26 + bob, 14.4 - k * 2.3, Math.PI * (1.08 + k * 0.02), Math.PI * (1.42 - k * 0.025), 0.55 - k * 0.06);
-      for (let k = 0; k < 3; k++) arcLens(ctx, 1.0, -26 + bob, 14.6 - k * 2.0, Math.PI * 0.62, Math.PI * (0.86 - k * 0.04), 0.3 - k * 0.06);
-      // cracks from the core
+      // carved light contours on the lit shoulder, thin returns on the shadow side
+      const a0 = LS < 0 ? Math.PI * 1.08 : -Math.PI * 0.42, a1 = LS < 0 ? Math.PI * 1.42 : -Math.PI * 0.08;
+      for (let k = 0; k < 6; k++) arcLens(ctx, 1.0, -26 + bob, 14.4 - k * 2.3, a0 + k * 0.06, a1 - k * 0.08, 0.55 - k * 0.06);
+      const b0 = LS < 0 ? Math.PI * 0.62 : Math.PI * 0.14, b1 = LS < 0 ? Math.PI * 0.86 : Math.PI * 0.38;
+      for (let k = 0; k < 3; k++) arcLens(ctx, 1.0, -26 + bob, 14.6 - k * 2.0, b0, b1 - k * 0.12, 0.3 - k * 0.06);
       const cr = U.rng(77 + i);
       for (let k = 0; k < 5; k++) {
         let a = (k / 5) * TAU + R(-0.3, 0.3, cr), x = 3.2 + Math.cos(a) * 6.8, y = -25 + bob + Math.sin(a) * 6.8;
@@ -725,29 +882,28 @@
         limb(ctx, p, 0.42, 0.06);
       }
     });
-    crescent(ctx, body, 0, -27 + bob, 0.9, 0.5, 0.96, cP); // thin carved rim on the lit edge
+    crescent(ctx, body, 0, -27 + bob, -LS * 0.9, 0.5, 0.96, cP);
     ctx.fillStyle = cI;
-    // glowing core: orange plate in a hole, teal ring, carved rays
-    const cx = 3.2, cy = -25 + bob;
-    holeSpot(ctx, (c) => { c.arc(cx, cy, 6.0, 0, TAU); c.arc(cx, cy, 4.9, 0, TAU, true); }, cT, TX, TY);
-    holeSpot(ctx, (c) => c.arc(cx, cy, 3.7, 0, TAU), cO, MX * f, MY);
+    // glowing core: orange plate in a hole, teal ring, carved rays – the core flickers between poses
+    const cx = 3.2, cy = -25 + bob, cr0 = 3.7 + (i & 1) * 0.45;
+    holeSpot(ctx, (c) => { c.arc(cx, cy, 6.0, 0, TAU); c.arc(cx, cy, 4.9, 0, TAU, true); }, cT, TX * f, TY);
+    holeSpot(ctx, (c) => c.arc(cx, cy, cr0, 0, TAU), cO, MX * f, MY);
     ctx.fillStyle = cP;
-    star(ctx, cx, cy, 4, 2.0, 0.55, 0.2);
+    star(ctx, cx, cy, 4, 2.0 + (i & 1) * 0.3, 0.55, 0.2 + i * 0.12);
     ctx.fill();
     for (let k = 0; k < 10; k++) {
       const a = (k / 10) * TAU + 0.15;
-      const r0 = 6.9, r1 = k & 1 ? 8.6 : 9.6;
+      const r0 = 6.9, r1 = (k + i) & 1 ? 8.6 : 9.8;
       lens(ctx, cx + Math.cos(a) * r0, cy + Math.sin(a) * r0, cx + Math.cos(a) * r1, cy + Math.sin(a) * r1, 0.32);
     }
-    // eyes + crack mouth
     const ex = 2.0;
-    lens(ctx, -4.4 + ex, -37.0 + bob, -0.6 + ex, -35.8 + bob, 0.85, 0.15);
-    lens(ctx, 2.0 + ex, -35.8 + bob, 5.8 + ex, -37.2 + bob, 0.85, 0.15);
+    lens(ctx, -4.4 + ex, -37.0 + bob, -0.6 + ex, -35.8 + bob, 0.9, 0.15);
+    lens(ctx, 2.0 + ex, -35.8 + bob, 5.8 + ex, -37.2 + bob, 0.9, 0.15);
     limb(ctx, [[-3.6 + ex, -31.4 + bob], [-1.6 + ex, -30.4 + bob], [0.4 + ex, -31.4 + bob], [2.4 + ex, -30.4 + bob], [4.6 + ex, -31.6 + bob]], 0.5, 0.3);
     ctx.fillStyle = cI;
-    ctx.beginPath(); ctx.arc(-2.2 + ex, -36.3 + bob, 0.42, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.arc(4.2 + ex, -36.4 + bob, 0.42, 0, TAU); ctx.fill();
-    // front arm
+    ctx.beginPath(); ctx.arc(-2.0 + ex, -36.3 + bob, 0.44, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(4.4 + ex, -36.4 + bob, 0.44, 0, TAU); ctx.fill();
+    ctx.restore();
     arm(1, sw, false);
     ctx.restore();
   }
@@ -942,39 +1098,138 @@
     ctx.fillStyle = cI;
     ctx.beginPath(); ctx.ellipse(1.15, ky + 0.15, 0.7, 1.2, 0, 0, TAU); ctx.fill();
   }
-  function artCrown(ctx, rng) {
-    roots(ctx, rng, 9, 1.3);
+  function artCrown(ctx, rng, v) {
+    // canopy tree in the classic relief-print manner: ONE black canopy mass whose leaves are carved as rows of
+    // fish-scale U-cuts following the outline – dense on the lit upper left, sparse on the shadow side –
+    // over a forked trunk that shows through a gap under the canopy
+    const sx = v ? 0.84 : 1.08, sy = v ? 1.16 : 0.95;
+    roots(ctx, rng, 11, 1.5);
+    const lean = R(-1.4, 1.4, rng);
+    const cx = lean, cy = -39 * (0.6 + 0.4 * sy), R0 = 20.5;
     ctx.fillStyle = cI;
-    limb(ctx, [[0, 0.5], [R(-1, 1, rng), -12], [R(-1, 1, rng), -26]], 3.5, 2.4);
+    limb(ctx, [[0, 0.5], [lean * 0.4, -10], [lean, -21]], 4.2, 2.6);
     const gouges = [];
-    branch(ctx, 0, -24, -Math.PI / 2 - 0.6, 10, 1.6, 1, rng, gouges);
-    branch(ctx, 0, -24, -Math.PI / 2 + 0.6, 10, 1.6, 1, rng, gouges);
-    const lobes = [];
-    const n = 7;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * TAU + R(-0.2, 0.2, rng);
-      lobes.push([Math.cos(a) * R(11, 14, rng), -47 + Math.sin(a) * R(9, 12, rng), R(9, 11.5, rng)]);
-    }
-    lobes.push([0, -47, 13]);
-    ctx.fillStyle = cI;
-    ctx.beginPath();
-    for (const [x, y, r] of lobes) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, TAU); }
-    ctx.fill();
-    // carved leaf clusters: scalloped crescents on the lit side of every lobe
+    for (const [a, L] of [[-0.85, 12], [0.2, 11], [0.9, 12]]) branch(ctx, lean, -21, -Math.PI / 2 + a, L * sy, 2.0, 1, rng, gouges);
+    gougeLimbs(ctx, gouges);
     ctx.fillStyle = cP;
-    const order = lobes.slice().sort((a, b) => a[1] - b[1]);
-    for (const [x, y, r] of order) {
-      for (let k = 0; k < 3; k++) {
-        const rr = r * (0.82 - k * 0.2);
-        arcLens(ctx, x + r * 0.08, y + r * 0.1, rr, Math.PI * (1.05 + k * 0.05), Math.PI * (1.5 - k * 0.04), 0.42 - k * 0.08);
+    for (let k = 0; k < 5; k++) {
+      const y0 = R(-22, -3, rng), x0 = lean * (-y0 / 26) - 1.9 + R(-0.4, 0.4, rng);
+      lens(ctx, x0, y0, x0 + R(-0.3, 0.3, rng), y0 - R(3.5, 7, rng), R(0.22, 0.38, rng), R(-0.25, 0.25, rng));
+    }
+    const p1 = R(0, TAU, rng), p2 = R(0, TAU, rng);
+    const rad = (a) => {
+      let r = 1 + 0.11 * Math.sin(5 * a + p1) + 0.05 * Math.sin(9 * a + p2) + 0.045 * Math.abs(Math.sin(13 * a));
+      if (Math.sin(a) > 0.55) r -= 0.2 * (Math.sin(a) - 0.55); // flatter, lifted underside
+      return r;
+    };
+    const ptAt = (a, k) => [cx + Math.cos(a) * R0 * sx * rad(a) * k, cy + Math.sin(a) * R0 * 0.82 * sy * rad(a) * k];
+    const N = 72, outline = [];
+    for (let i = 0; i < N; i++) outline.push(ptAt((i / N) * TAU, 1));
+    const canopy = (c) => polyPath(c, outline);
+    fillPath(ctx, canopy, cI);
+    // gap under the canopy where the forks show
+    const gap = (c) => smoothPath(c, blobPts(lean + 0.6, cy + R0 * 0.6 * sy, 6.4 * sx, 3.0, 8, rng, 0.25));
+    fillPath(ctx, gap, cP);
+    clipDo(ctx, gap, () => {
+      ctx.fillStyle = cI;
+      limb(ctx, [[lean - 0.4, cy + R0 * 0.9 * sy], [lean - 1.6, cy + R0 * 0.4 * sy]], 1.3, 1.0);
+      limb(ctx, [[lean + 0.6, cy + R0 * 0.9 * sy], [lean + 2.8, cy + R0 * 0.38 * sy]], 1.2, 0.9);
+    });
+    // fish-scale leaf cuts, row by row towards the centre
+    ctx.fillStyle = cP;
+    const rows = 6;
+    for (let k = 0; k < rows; k++) {
+      const inset = 0.9 - k * 0.135;
+      const n = Math.round(22 * inset);
+      for (let j = 0; j < n; j++) {
+        const a = (j + (k & 1) * 0.5) / n * TAU;
+        // light from the upper left: lit = 1 there, 0 on the lower right
+        const lit = 0.5 + 0.5 * (-Math.cos(a) * 0.7 - Math.sin(a) * 0.7);
+        if (lit < 0.22 + k * 0.1) { if (k === 1 && (j & 1)) { const [qx, qy] = ptAt(a, inset); arcLens(ctx, qx - Math.cos(a) * 2, qy - Math.sin(a) * 2, 2.1, a - 0.5, a + 0.5, 0.12); } continue; }
+        if (Math.sin(a) > 0.75 && k > 0) continue;
+        const [px, py] = ptAt(a, inset);
+        const w = (0.22 + 0.36 * lit) * (1 - k * 0.11);
+        // a scale: a short arc whose belly points outwards
+        arcLens(ctx, px - Math.cos(a) * 2.0, py - Math.sin(a) * 2.0, 2.2, a - 0.72, a + 0.72, w);
       }
     }
-    for (let k = 0; k < 26; k++) {
-      const a = R(Math.PI * 0.9, Math.PI * 1.6, rng), d = R(4, 20, rng);
-      const x = Math.cos(a) * d * 1.1, y = -47 + Math.sin(a) * d * 0.9;
-      lens(ctx, x - 0.7, y + 0.2, x + 0.7, y - 0.3, 0.2, 0.3);
+    // a few leaf points hang from the shadowed underside
+    ctx.fillStyle = cI;
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI * (0.18 + k * 0.13);
+      const [px, py] = ptAt(a, 0.98);
+      taper(ctx, px - 0.8, py - 0.6, px + R(-0.6, 0.6, rng), py + R(1.6, 2.8, rng), 0.7);
     }
-    gougeLimbs(ctx, [[[[0, -2], [0, -24]], 3]]);
+    crescent(ctx, canopy, cx, cy, 1.0, 0.7, 0.97, cP);
+  }
+  function artStump(ctx, rng, v) {
+    const w = v ? 5.6 : 4.4, h = v ? 5.2 : 7.4;
+    roots(ctx, rng, w + 5, 1.2);
+    const body = (c) => {
+      c.moveTo(-w - 0.8, 0.4); c.quadraticCurveTo(-w, -h * 0.4, -w * 0.94, -h);
+      c.lineTo(w * 0.94, -h); c.quadraticCurveTo(w, -h * 0.4, w + 0.9, 0.4); c.closePath();
+    };
+    fillPath(ctx, body, cI);
+    ctx.fillStyle = cP;
+    for (let k = 0; k < 4; k++) { const x = -w * 0.75 + k * 0.9; lens(ctx, x, -0.6, x + R(-0.2, 0.2, rng), -h + 1.2, 0.24 - k * 0.04, R(-0.15, 0.15, rng)); }
+    // the cut face: paper with carved growth rings and a check crack
+    const top = (c) => c.ellipse(0, -h, w * 0.98, w * 0.42, 0, 0, TAU);
+    fillPath(ctx, top, cP);
+    strokePath(ctx, top, cI, 0.6);
+    ctx.strokeStyle = cI;
+    for (let k = 1; k <= 3; k++) {
+      ctx.lineWidth = 0.32;
+      ctx.beginPath(); ctx.ellipse(R(-0.2, 0.2, rng), -h + R(-0.05, 0.05, rng), w * 0.98 * (1 - k * 0.23), w * 0.42 * (1 - k * 0.23), 0, 0, TAU); ctx.stroke();
+    }
+    ctx.fillStyle = cI;
+    lens(ctx, 0.2, -h, w * 0.8, -h + w * 0.18, 0.28, 0.1);
+    if (v) {
+      // a sprout from the old wood
+      ctx.fillStyle = cI;
+      limb(ctx, [[-w * 0.6, -h + 0.2], [-w * 0.75, -h - 2.2], [-w * 0.5, -h - 4.0]], 0.3, 0.2);
+      leaf(ctx, -w * 0.5, -h - 3.8, -w * 0.5 - 3.0, -h - 5.6, 1.0, -0.4);
+      leaf(ctx, -w * 0.5, -h - 3.8, -w * 0.5 + 2.4, -h - 6.6, 0.9, 0.4);
+    } else {
+      // an axe left in the block
+      ctx.fillStyle = cI;
+      limb(ctx, [[1.4, -h - 0.4], [3.6, -h - 4.0], [5.6, -h - 7.2]], 0.42, 0.36);
+      fillPath(ctx, (c) => polyPath(c, [[-0.6, -h + 0.4], [2.6, -h - 1.6], [2.0, -h - 3.0], [-1.6, -h - 1.8]]), cI);
+      ctx.fillStyle = cP;
+      lens(ctx, -0.9, -h - 0.9, 1.6, -h - 2.4, 0.16);
+    }
+    ctx.fillStyle = cI;
+    for (let k = 0; k < 6; k++) { const x = R(-w - 3, w + 3, rng); taper(ctx, x, 0.4, x + R(-0.6, 0.8, rng), R(-2.6, -1.3, rng), 0.3); }
+  }
+  function artRocks(ctx, rng, v) {
+    // planar-carved boulders: ink mass, a cleared top facet hatched with parallel cuts, paper gutters between stones
+    const stones = v ? [[-4.6, 0, 6.2, 5.4], [4.8, 0.8, 4.2, 3.6], [0.4, 1.6, 2.4, 1.8]] : [[0, 0, 8.0, 7.0], [7.4, 1.0, 3.2, 2.6]];
+    stones.sort((p, q) => p[1] - q[1]);
+    for (const [x, y, rw, rh] of stones) {
+      const pts = [];
+      const nv = 7;
+      for (let k = 0; k < nv; k++) {
+        const a = Math.PI + (k / (nv - 1)) * Math.PI;
+        const r = R(0.82, 1.06, rng);
+        pts.push([x + Math.cos(a) * rw * r, y - rh * 0.15 + Math.sin(a) * rh * r]);
+      }
+      pts.push([x + rw * 0.95, y + 0.3], [x - rw * 0.95, y + 0.3]);
+      const shp = (c) => polyPath(c, pts);
+      ctx.save(); ctx.fillStyle = cP; ctx.strokeStyle = cP; ctx.lineWidth = 1.6; ctx.beginPath(); shp(ctx); ctx.fill(); ctx.stroke(); ctx.restore();
+      fillPath(ctx, shp, cI);
+      // top-left facet, cleared to paper and hatched
+      const fa = [[x - rw * 0.8, y - rh * 0.45], [x - rw * 0.3, y - rh * 0.98], [x + rw * 0.35, y - rh * 0.92], [x - rw * 0.05, y - rh * 0.45]];
+      const facet = (c) => polyPath(c, fa);
+      fillPath(ctx, facet, cP);
+      clipDo(ctx, facet, () => {
+        ctx.fillStyle = cI;
+        for (let k = 0; k < 5; k++) { const yy = y - rh * 0.95 + k * rh * 0.13; lens(ctx, x - rw, yy + rh * 0.3, x + rw * 0.5, yy, 0.09 + k * 0.035, 0); }
+      });
+      ctx.fillStyle = cP;
+      lens(ctx, x - rw * 0.92, y - rh * 0.1, x - rw * 0.8, y - rh * 0.42, 0.2);
+      lens(ctx, x + rw * 0.4, y - rh * 0.85, x + rw * 0.85, y - rh * 0.35, 0.14);
+    }
+    ctx.fillStyle = cI;
+    for (let k = 0; k < 7; k++) { const x = R(-11, 11, rng); taper(ctx, x, 0.8, x + R(-0.6, 0.8, rng), R(-2.4, -1.2, rng), 0.3); }
   }
   function artSpruce(ctx, rng) {
     ctx.fillStyle = cI;
@@ -1209,44 +1464,43 @@
   /* ===================================================================================== sprite sets */
   const SPR = {};
   function buildSprites() {
-    // Jack
-    const J = { walk: [[], []], idle: [[], []], walkI: [[], []], idleI: [[], []], ghost: [] };
+    // main character: 8 walk poses, 4 idle + blink, crouch, dash, recoil – each pulled twice (line boil)
+    const JB = [-14, -33.5, 15.5, 1.8];
+    const jk = (P, seed) => mk(JB[0], JB[1], JB[2], JB[3], (c) => drawJack(c, P.f, P.p, U.rng(seed)), { halo: 1.0, seed: seed & 255 });
+    const J = { walk: [[], []], idle: [[], []], walkI: [[], []], idleI: [[], []], blink: [], crouch: [], dash: [], recoil: [], recoilI: [], ghost: [] };
     [1, -1].forEach((f, fi) => {
-      for (let i = 0; i < 4; i++) {
-        J.walk[fi][i] = []; J.walkI[fi][i] = [];
-        for (let v = 0; v < 2; v++) {
-          const s = mk(-11.5, -32, 11.5, 1.5, (c) => drawJack(c, f, JACK_WALK[i], U.rng(100 + v * 7 + i)), { halo: 0.9, seed: 3 + v * 5 + i });
-          J.walk[fi][i][v] = s; J.walkI[fi][i][v] = invert(s);
-        }
+      for (let i = 0; i < JACK_WALK.length; i++) {
+        J.walk[fi][i] = [0, 1].map((v) => jk({ f, p: JACK_WALK[i] }, 100 + v * 17 + i));
+        J.walkI[fi][i] = invert(J.walk[fi][i][0]);
       }
-      for (let i = 0; i < 2; i++) {
-        J.idle[fi][i] = []; J.idleI[fi][i] = [];
-        for (let v = 0; v < 2; v++) {
-          const s = mk(-11.5, -32, 11.5, 1.5, (c) => drawJack(c, f, JACK_IDLE[i], U.rng(200 + v * 7 + i)), { halo: 0.9, seed: 13 + v * 5 + i });
-          J.idle[fi][i][v] = s; J.idleI[fi][i][v] = invert(s);
-        }
+      for (let i = 0; i < JACK_IDLE.length; i++) {
+        J.idle[fi][i] = [0, 1].map((v) => jk({ f, p: JACK_IDLE[i] }, 200 + v * 17 + i));
+        J.idleI[fi][i] = invert(J.idle[fi][i][0]);
       }
-      J.ghost[fi] = tintSpr(J.walk[fi][0][0], cO);
+      J.blink[fi] = [0, 1].map((v) => jk({ f, p: JACK_BLINK }, 240 + v * 17));
+      J.crouch[fi] = [0, 1].map((v) => jk({ f, p: JACK_CROUCH }, 250 + v * 17));
+      J.dash[fi] = [0, 1].map((v) => jk({ f, p: JACK_DASH }, 260 + v * 17));
+      J.recoil[fi] = [0, 1].map((v) => jk({ f, p: JACK_RECOIL }, 270 + v * 17));
+      J.recoilI[fi] = invert(J.recoil[fi][0]);
+      J.ghost[fi] = tintSpr(J.dash[fi][0], cO);
     });
     SPR.jack = J;
-    // enemies
+    // creatures: 6 poses, two pulls each, a negative print per pose (hit), shards + cracked block (death)
     const defs = {
-      creeper: { box: [-10, -28.5, 10, 1.5], fn: drawCreeper, cy: 0.42 },
-      ghost: { box: [-11, -26, 13.5, 1], fn: drawGhost, cy: 0.5 },
-      colossus: { box: [-23.5, -57, 23.5, 1.5], fn: drawColossus, cy: 0.5 },
+      creeper: { box: [-11.5, -30, 11.5, 1.5], fn: drawCreeper, n: CREEPER_N, cy: 0.42 },
+      ghost: { box: [-15.5, -26.5, 14.5, 1], fn: drawGhost, n: GHOST_N, cy: 0.5 },
+      colossus: { box: [-25, -58.5, 25, 1.5], fn: drawColossus, n: COLOSSUS_N, cy: 0.5 },
     };
     for (const type in defs) {
       const d = defs[type];
-      const set = { n: [[], []], i: [[], []], sh: [] };
+      const set = { nf: d.n, n: [[], []], i: [[], []], sh: [], cr: [] };
       [1, -1].forEach((f, fi) => {
-        for (let i = 0; i < 4; i++) {
-          set.n[fi][i] = []; set.i[fi][i] = [];
-          for (let v = 0; v < 2; v++) {
-            const s = mk(d.box[0], d.box[1], d.box[2], d.box[3], (c) => d.fn(c, f, i, U.rng(300 + v * 11 + i * 3)), { halo: 0.9, seed: 21 + v * 9 + i });
-            set.n[fi][i][v] = s; set.i[fi][i][v] = invert(s);
-          }
+        for (let i = 0; i < d.n; i++) {
+          set.n[fi][i] = [0, 1].map((v) => mk(d.box[0], d.box[1], d.box[2], d.box[3], (c) => d.fn(c, f, i, U.rng(300 + v * 11 + i * 3)), { halo: 1.15, seed: 21 + v * 9 + i }));
+          set.i[fi][i] = invert(set.n[fi][i][0]);
         }
-        set.sh[fi] = shards(set.n[fi][0][0], type === 'colossus' ? 5 : 4, 55 + fi, d.cy);
+        set.sh[fi] = shards(set.n[fi][0][0], type === 'colossus' ? 6 : 4, 55 + fi, d.cy);
+        set.cr[fi] = set.sh[fi].cracked;
       });
       SPR[type] = set;
     }
@@ -1271,6 +1525,7 @@
     SPR.shJack = sh(6.4, 2.0); SPR.shCreeper = sh(7.4, 2.2); SPR.shGhost = sh(4.6, 1.4); SPR.shColossus = sh(16, 4.0);
     SPR.shGem = sh(2.4, 0.6); SPR.shTree = sh(19, 4.6); SPR.shSpruce = sh(13, 3.6); SPR.shGrave = sh(8, 2.4);
     SPR.shFence = sh(19, 2.4); SPR.shScare = sh(9, 2.4); SPR.shPole = sh(6, 1.8); SPR.shHay = sh(14, 3.2);
+    SPR.shStump = sh(8.5, 2.4); SPR.shRocks = sh(11, 2.6);
     // particles
     SPR.drop = [];
     for (let k = 0; k < 4; k++) {
@@ -1331,14 +1586,65 @@
       c.save(); c.translate(MX * 0.5, MY * 0.5); star(c, 0, 0, 4, 2.6, 0.8, 0); c.fillStyle = cO; c.fill(); c.restore();
       star(c, 0, 0, 4, 2.6, 0.8, 0); c.strokeStyle = cI; c.lineWidth = 0.35; c.stroke();
     }, { pad: 0.4, ink: false });
-    SPR.ring = mk(-12, -12, 12, 12, (c) => {
+    SPR.ring = mk(-14, -14, 14, 14, (c) => {
+      // a carved ripple: outer ring of ink gouges with teeth, inner ring on the (misregistered) orange plate
+      c.fillStyle = cI;
+      for (let k = 0; k < 18; k++) {
+        const a = (k / 18) * TAU;
+        arcLens(c, 0, 0, 11.6, a, a + (TAU / 18) * 0.62, 0.5);
+        const m = a + (TAU / 18) * 0.31;
+        lens(c, Math.cos(m) * 12.3, Math.sin(m) * 12.3, Math.cos(m) * 13.6, Math.sin(m) * 13.6, 0.32);
+      }
+      c.save(); c.translate(MX, MY);
       c.fillStyle = cO;
-      for (let k = 0; k < 16; k++) { const a = (k / 16) * TAU; arcLens(c, 0, 0, 10.5, a, a + TAU / 16 * 0.7, 0.55); }
+      for (let k = 0; k < 12; k++) { const a = (k / 12) * TAU + 0.13; arcLens(c, 0, 0, 8.4, a, a + (TAU / 12) * 0.7, 0.75); }
+      c.restore();
     }, { pad: 0.4, ink: false });
+    // core flash: a paper-white knock-out star with an ink rim
+    SPR.flash = mk(-9, -9, 9, 9, (c) => {
+      star(c, 0, 0, 8, 8.2, 2.9, 0.2);
+      c.fillStyle = cP; c.fill();
+      c.strokeStyle = cI; c.lineWidth = 0.7; c.stroke();
+      c.fillStyle = cI;
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU + 0.2 + TAU / 16; lens(c, Math.cos(a) * 2.2, Math.sin(a) * 2.2, Math.cos(a) * 3.6, Math.sin(a) * 3.6, 0.22); }
+    }, { pad: 0.4, ink: false });
+    // brayer (ink roller) that prints arriving creatures from the ground up
+    SPR.brayer = mk(-9, -7.5, 9, 2.4, (c) => {
+      c.fillStyle = cI;
+      limb(c, [[0.6, -0.6], [2.2, -3.6], [4.6, -6.2]], 0.55, 0.45);
+      limb(c, [[4.4, -6.0], [6.6, -6.8]], 0.95, 0.95);
+      c.fillStyle = cP;
+      lens(c, 4.6, -6.7, 6.3, -7.2, 0.18);
+      c.fillStyle = cI;
+      c.beginPath(); c.moveTo(-8.2, -1.4); c.lineTo(8.2, -1.4); c.arc(8.2, 0, 1.4, -Math.PI / 2, Math.PI / 2); c.lineTo(-8.2, 1.4); c.arc(-8.2, 0, 1.4, Math.PI / 2, Math.PI * 1.5); c.fill();
+      c.fillStyle = cP;
+      lens(c, -7.4, -0.55, 6.8, -0.65, 0.26);
+      for (let k = 0; k < 6; k++) lens(c, -6 + k * 2.4, 0.5, -5.2 + k * 2.4, 0.6, 0.12);
+    }, { pad: 0.4 });
+    // registration mark set where a block will land: ink cross + misregistered orange copy
+    SPR.reg = mk(-5, -5, 5, 5, (c) => {
+      const mark = (col) => {
+        c.strokeStyle = col; c.lineWidth = 0.42;
+        c.beginPath(); c.arc(0, 0, 2.6, 0, TAU); c.moveTo(-4.4, 0); c.lineTo(4.4, 0); c.moveTo(0, -4.4); c.lineTo(0, 4.4); c.stroke();
+      };
+      c.save(); c.translate(MX, MY); mark(cO); c.restore();
+      mark(cI);
+    }, { pad: 0.4, ink: false });
+    // drifting carved leaves (ambient), 4 tumble poses
+    SPR.drift = [0, 1, 2, 3].map((k) => mk(-3.2, -3.2, 3.2, 3.2, (c) => {
+      const sx = [1, 0.55, -0.2, -0.75][k];
+      c.save(); c.scale(sx, 1); c.rotate(-0.5);
+      c.fillStyle = cI; lens(c, -2.8, 0, 2.8, 0, 1.05, 0.25);
+      c.fillStyle = cP; lens(c, -2.2, 0.05, 2.0, 0.1, 0.14, 0.15);
+      c.fillStyle = cI; taper(c, -2.8, 0, -3.6, 0.5, 0.18);
+      c.restore();
+    }, { pad: 0.3, ink: false }));
     // props
     const P = {};
     P.oak = [0, 1, 2].map((v) => mk(-44, -86, 44, 4, (c) => artOak(c, U.rng(800 + v * 13)), { halo: 0.8, seed: 80 + v }));
-    P.crown = [0, 1].map((v) => mk(-30, -72, 30, 4, (c) => artCrown(c, U.rng(830 + v * 13)), { halo: 0.8, seed: 83 + v }));
+    P.crown = [0, 1, 2].map((v) => mk(-30, -66, 30, 4, (c) => artCrown(c, U.rng(830 + v * 13), v === 1), { halo: 0.8, seed: 83 + v }));
+    P.stump = [0, 1].map((v) => mk(-11, -16, 11, 2, (c) => artStump(c, U.rng(980 + v * 7), v), { halo: 0.7, seed: 98 + v }));
+    P.rocks = [0, 1].map((v) => mk(-13, -10, 13, 2.5, (c) => artRocks(c, U.rng(990 + v * 7), v), { halo: 0.7, seed: 99 + v }));
     P.spruce = [0, 1].map((v) => mk(-18, -78, 18, 3, (c) => artSpruce(c, U.rng(850 + v * 13)), { halo: 0.8, seed: 85 + v }));
     P.grave = [0, 1, 2].map((v) => mk(-9, -19, 10, 2, (c) => artGrave(c, U.rng(870 + v * 5), v), { halo: 0.7, seed: 87 + v }));
     P.fence = [0, 1].map((v) => mk(-19, -18, 22, 2, (c) => artFence(c, U.rng(890 + v * 5)), { halo: 0.7, seed: 89 + v }));
@@ -1456,7 +1762,7 @@
     }
     return a;
   }
-  function fleck(X, Y, ux, uy, res) {
+  function fleck(X, Y, ux, uy, res, dens) {
     const CS = 4.3;
     const fx = X / CS, fy = Y / CS;
     const ix = Math.floor(fx), iy = Math.floor(fy);
@@ -1466,7 +1772,7 @@
       for (let i = 0; i < 2; i++) {
         const cx = sx + i, cy = sy + j;
         const h = U.hashInt(cx, cy, 6161);
-        if ((h & 1023) > 640) continue;
+        if ((h & 1023) > dens * 1024) continue;
         const px = (cx + 0.15 + (((h >>> 10) & 255) / 255) * 0.7) * CS;
         const py = (cy + 0.15 + (((h >>> 18) & 255) / 255) * 0.7) * CS;
         const dx = X - px, dy = Y - py;
@@ -1584,7 +1890,7 @@
             if (dS > 4.3) {
               const ux = g[q00 + 6] * w00 + g[q10 + 6] * w10 + g[q01 + 6] * w01 + g[q11 + 6] * w11;
               const uy = g[q00 + 7] * w00 + g[q10 + 7] * w10 + g[q01 + 7] * w01 + g[q11 + 7] * w11;
-              const fl = fleck(X, Y, ux, uy, res) * clamp01((dS - 4.3) * res);
+              const fl = fleck(X, Y, ux, uy, res, 0.62) * clamp01((dS - 4.3) * res);
               if (fl > k) k = fl;
             }
             a *= 1 - k;
@@ -1606,6 +1912,7 @@
               if (lh < 0.34) hw *= 0.6;
               let v = (hw - dist) * res + 0.5;
               v = v < 0 ? 0 : v > 1 ? 1 : v;
+              if (res < 1.25) v += (Math.min(1, 2 * hw * gF) - v) * clamp01((1.25 - res) * 2.5); // no moire when zoomed out
               // field edge: a carved ditch line
               const ev = (0.44 - Math.abs(dB1 + 0.5)) * res + 0.5;
               if (ev > v) v = ev > 1 ? 1 : ev;
@@ -1613,26 +1920,34 @@
             } else if (dB1 > GUT) {
               const dB2 = g[q00 + 3] * w00 + g[q10 + 3] * w10 + g[q01 + 3] * w01 + g[q11 + 3] * w11;
               if (dB2 > 0) {
-                // ---- forest floor: stipple, edge line
-                const ix = Math.floor(X / 2.5), iy = Math.floor(Y / 2.5);
-                const h = U.hashInt(ix, iy, 919);
-                const dens = 0.14 + 0.52 * smooth(0.3, 0.72, T);
-                if ((h & 1023) < dens * 1024) {
-                  const r = 0.3 + (((h >>> 10) & 63) / 63) * 0.24;
-                  const cx = (ix + 0.22 + (((h >>> 16) & 255) / 255) * 0.56) * 2.5, cy = (iy + 0.22 + (((h >>> 24) & 255) / 255) * 0.56) * 2.5;
-                  const ddx = X - cx, ddy = Y - cy;
-                  const v = (r - Math.sqrt(ddx * ddx + ddy * ddy)) * res + 0.5;
-                  a = v < 0 ? 0 : v > 1 ? 1 : v;
+                // ---- forest floor: edge cut with two echo cuts, a clean band, then carved litter that follows the
+                //      flow of the land, thin in the open and dense in clusters
+                const inner = smooth(7, 17, dB2);
+                if (inner > 0) {
+                  const dens = inner * (0.015 + 0.72 * smooth(0.5, 0.7, T)); // litter drifts in clumps, bare floor between
+                  if (dens > 0.03) {
+                    const ux = g[q00 + 6] * w00 + g[q10 + 6] * w10 + g[q01 + 6] * w01 + g[q11 + 6] * w11;
+                    const uy = g[q00 + 7] * w00 + g[q10 + 7] * w10 + g[q01 + 7] * w01 + g[q11 + 7] * w11;
+                    a = fleck(X, Y, ux, uy, res, dens);
+                  }
                 }
-                const ev = (0.42 - Math.abs(dB2 - 0.5)) * res + 0.5;
+                let ev = (0.42 - Math.abs(dB2 - 0.5)) * res + 0.5;
+                const e2 = (0.3 - Math.abs(dB2 - 2.5)) * res + 0.5, e3 = (0.2 - Math.abs(dB2 - 4.3)) * res + 0.5;
+                if (e2 > ev) ev = e2;
+                if (e3 > ev) ev = e3;
                 if (ev > a) a = ev > 1 ? 1 : ev;
-                const fd = (dB2 - 1.0) * res + 0.5; // gap behind the edge line
-                if (dB2 > 0.92 && fd < 1 && a < 1) a *= fd < 0 ? 0 : fd;
               } else if (dB2 < -GUT) {
                 // ---- meadow: grass ticks + gouge chatter on mostly clean paper
-                const dens = 0.1 + 0.5 * smooth(0.32, 0.72, T);
-                let v = grass(X, Y, dens, res);
-                if (v < 1) { const c2 = chatter(X, Y, res); if (c2 > v) v = c2; }
+                // grass grows in clumps and in drifts along every region edge; chatter only in the cleared paper
+                const M = g[q00 + 8] * w00 + g[q10 + 8] * w10 + g[q01 + 8] * w01 + g[q11 + 8] * w11;
+                const em = Math.min(dB1, -dB2, -dS, dR) - GUT;
+                const edge = em < 8 ? 1 - smooth(0, 8, em) : 0;
+                const dens = Math.max(0.8 * smooth(0.57, 0.72, T) * smooth(0.4, 0.62, M), 0.55 * edge * edge);
+                let v = dens > 0.02 ? grass(X, Y, dens, res) : 0;
+                if (v < 1 && dens < 0.25) {
+                  const V = g[q00 + 10] * w00 + g[q10 + 10] * w10 + g[q01 + 10] * w01 + g[q11 + 10] * w11;
+                  if (V > 0.56) { const c2 = chatter(X, Y, res); if (c2 > v) v = c2; }
+                }
                 let f3 = (dB1 - GUT) * res + 0.5;
                 if (f3 < fade) fade = f3;
                 f3 = (-dB2 - GUT) * res + 0.5;
@@ -1824,8 +2139,8 @@
     if (m.dR < 14) p = 0;
     if (r0 >= p) return null;
     let type;
-    if (m.mat === 'forest') type = r1 < 0.42 ? 'spruce' : r1 < 0.75 ? 'oak' : 'crown';
-    else type = r1 < 0.7 ? 'oak' : 'crown';
+    if (m.mat === 'forest') type = r1 < 0.4 ? 'spruce' : r1 < 0.72 ? 'crown' : 'oak';
+    else type = r1 < 0.55 ? 'crown' : 'oak';
     return { type, v: r2 };
   }
 
@@ -1857,18 +2172,21 @@
         continue;
       }
       if (kind === 2 && r3 > 0.62) continue; // cheap early-out for most field candidates
+      // clump field (same noise as the grass clumps): flowers, mushrooms and leaf litter gather, never sprinkle
+      const T = kind <= 1 ? U.fbm(x / 140, y / 140, 606, 2) : 0;
       const m = matAt(x, y);
       if (kind === 0) {
         if (m.mat === 'meadow' && m.margin > 4) {
-          if (r1 < 0.16) dFlower(ctx, x, y, R(0.8, 1.15, rng), rng);
-          else if (r1 < 0.24) dStar(ctx, x, y, R(0.7, 1.0, rng), rng);
-          else if (r1 < 0.36) dPebble(ctx, x, y, 1, rng, false);
+          const cl = U.smoothstep(0.53, 0.66, T);
+          if (r1 < 0.5 * cl) dFlower(ctx, x, y, R(0.8, 1.15, rng), rng);
+          else if (m.margin < 9 && r1 > 0.72) dPebble(ctx, x, y, R(0.8, 1.1, rng), rng, false);
+          else if (r1 > 0.985) dStar(ctx, x, y, R(0.7, 1.0, rng), rng);
         } else if (m.mat === 'forest' && m.margin > 4) {
-          if (r1 < 0.12) dMushroom(ctx, x, y, R(0.8, 1.1, rng), rng);
-          else if (r1 < 0.32) dTwig(ctx, x, y, 1, rng);
+          if (r1 < 0.42 * U.smoothstep(0.5, 0.64, T)) dMushroom(ctx, x, y, R(0.8, 1.1, rng), rng);
+          else if (r1 > 0.86) dTwig(ctx, x, y, 1, rng);
         }
       } else if (kind === 1) {
-        if (m.mat === 'forest' && m.margin > 3 && r1 < 0.45) dLeaf(ctx, x, y, R(0.9, 1.3, rng), rng);
+        if (m.mat === 'forest' && m.margin > 3 && r1 < 0.75 * U.smoothstep(0.48, 0.66, T)) dLeaf(ctx, x, y, R(0.9, 1.3, rng), rng);
       } else if (kind === 2) {
         if (m.mat === 'field' && m.margin > 3) {
           const turnipField = U.noise(x / 260, y / 260, 818) > 0.5;
@@ -1939,6 +2257,17 @@
       const m = matAt(x, y);
       if ((m.mat !== 'meadow' && m.mat !== 'field') || m.margin < 12) return;
       out.push({ x, y, t: 'hay', spr: SPR.props.hay[0], sh: SPR.shHay, pad: 40 });
+    });
+    // stumps and boulders gather at forest edges and beside roads
+    G.scatterOwned(info, 46, 7018, (x, y, rng) => {
+      const r0 = rng.next(), r1 = rng.next(), r2 = rng.next();
+      if (r0 > 0.55 || G.nearSpawn(x, y, 90)) return;
+      const m = matAt(x, y);
+      const forestEdge = (m.mat === 'meadow' && m.dB2 > -16) || (m.mat === 'forest' && m.margin < 7);
+      const roadSide = m.mat !== 'road' && m.dR > 4 && m.dR < 14;
+      if (m.mat === 'soil' || (!forestEdge && !roadSide)) return;
+      if (forestEdge && !roadSide && r1 < 0.55) out.push({ x, y, t: 'stump', spr: SPR.props.stump[r2 < 0.5 ? 0 : 1], sh: SPR.shStump, pad: 30 });
+      else out.push({ x, y, t: 'rocks', spr: SPR.props.rocks[r2 < 0.5 ? 0 : 1], sh: SPR.shRocks, pad: 30 });
     });
     // turnip lanterns along the roads
     G.scatterOwned(info, 64, 7017, (x, y, rng) => {
@@ -2223,6 +2552,70 @@
     FRAME = { W, H, t, top: mkStrip(W, true), bot: mkStrip(W, true), left: mkStrip(H, false), right: mkStrip(H, false) };
   }
 
+  /* ===================================================================================== motion helpers */
+  /** Eased float in [0,1]: lingers at the top and the bottom (never a plain sine), held on twos (12 fps). */
+  function floatCurve(t) {
+    const u = U.fract(Math.floor(t * 14) / 14);
+    const tri = u < 0.5 ? u * 2 : 2 - u * 2;
+    return tri * tri * (3 - 2 * tri);
+  }
+  function ghostBob(rt, seed) { return 1.6 + floatCurve(rt * 0.55 + seed * 3.7) * 2.6; }
+
+  /** Entrance: registration marks are set, a brayer prints the figure from the feet up, the block settles. */
+  function spawnSeq(ctx, e, spr, x, y, view) {
+    const t = e.spawnT;
+    const big = e.type === 'colossus' ? 1.9 : e.type === 'ghost' ? 0.85 : 1;
+    if (t < 0.5) {
+      const k = t < 0.06 ? 0.6 : 1;
+      blitS(ctx, SPR.reg, e.x, y - 7 * big, k * big, k * big);
+    }
+    if (t >= 0.78) {
+      if (!e._lcStamp) {
+        e._lcStamp = 1;
+        addSplat(e.x, e.y + 0.5, big * 0.75, 0.9, view.game.time);
+      }
+      const k = (t - 0.78) / 0.22;
+      const sq = Math.sin(k * Math.PI) * 0.13 * (1 - k * 0.4);
+      blitS(ctx, spr, x, y, 1 + sq, 1 - sq);
+      return;
+    }
+    const r = U.smoothstep(0.16, 0.78, t);
+    if (r <= 0) return;
+    const k = 1 / K;
+    const top = y - spr.ay * k, bot = y + (spr.c.height - spr.ay) * k;
+    const lineY = bot - (bot - top) * r;
+    const hw = spr.c.width * k;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x - hw, lineY, hw * 2, bot - lineY + 0.5); ctx.clip();
+    blit(ctx, spr, x, y);
+    ctx.restore();
+    const bw = Math.max(0.55, (hw * 0.62) / 18);
+    blitS(ctx, SPR.brayer, x + Math.sin(t * 40) * 0.4, lineY + 1.2, bw, bw);
+  }
+
+  /** Death: negative print swells (impact) – carved cracks open – the block splits into shards that fly,
+   *  tumble in held steps and drop; the ink splat left on the ground carries the residue. */
+  function deathSeq(ctx, e, set, fi, lift) {
+    const t = e.deathT;
+    const big = e.type === 'colossus' ? 1.8 : e.type === 'ghost' ? 0.85 : 1;
+    const y = e.y - lift;
+    if (t < 0.12) { const s = 1 + t * 0.9; blitS(ctx, set.i[fi][0], e.x, y, s, s); return; }
+    if (t < 0.27) { const s = 1.1 - (t - 0.12) * 0.5; blitS(ctx, set.cr[fi], e.x, y, s, s); return; }
+    const u = Math.floor(((t - 0.27) / 0.73) * 10) / 10;
+    const sh = set.sh[fi];
+    const ay0 = set.n[fi][0][0].ay;
+    const sc = u < 0.5 ? 1 : 1 - ((u - 0.5) / 0.5) * 0.65;
+    if (u > 0.75) ctx.globalAlpha = Math.max(0, (1 - u) / 0.25);
+    for (let i = 0; i < sh.length; i++) {
+      const p = sh[i];
+      const d = (2 + 13 * U.ease.outQuad(u)) * big;
+      const x = e.x + p.dx * d, yy = y + p.dy * d * 0.7 - 7 * big * u + 30 * u * u;
+      const pivotY = (p.ay - ay0) / K;
+      blitRot(ctx, p, x, yy + pivotY, (i & 1 ? 1 : -1) * u * (1.4 + (i % 3) * 0.4), sc);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /* ===================================================================================== effects state */
   const SPL = []; // ground splats {x,y,spr,born,life,s}
   let lastGameTime = 0;
@@ -2263,12 +2656,14 @@ body.style-linocut #levelup { background-color: rgba(27,23,21,.80); background-i
 body.style-linocut #levelup .lu-title { font-family: 'Rye', Georgia, serif; font-weight: 400; font-size: 72px; letter-spacing: 3px; color: var(--paper); text-shadow: 5px 4px 0 var(--org); }
 body.style-linocut #levelup .lu-cards { gap: 26px; }
 body.style-linocut #levelup .card { width: 224px; min-height: 304px; padding: 26px 18px 20px; gap: 8px; color: var(--ink); background: var(--paper) ${NOISE_SVG};
-  border: 3px solid var(--ink); border-radius: 9px; box-shadow: inset 0 0 0 6px var(--paper), inset 0 0 0 8px var(--ink), 8px 8px 0 #0d0b0a; transition: transform .1s steps(2), box-shadow .1s steps(2); }
+  border: 3px solid var(--ink); border-radius: 9px; box-shadow: inset 0 0 0 6px var(--paper), inset 0 0 0 8px var(--ink), 8px 8px 0 #0d0b0a; transition: transform .1s steps(2), box-shadow .1s steps(2);
+  background-image: repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 9px), ${NOISE_SVG}; background-size: calc(100% - 44px) 7px, auto; background-position: center bottom 20px, 0 0; background-repeat: no-repeat, repeat; }
 body.style-linocut #levelup .card:hover { transform: translateY(-8px) rotate(-1.5deg); box-shadow: inset 0 0 0 6px var(--paper), inset 0 0 0 8px var(--ink), 10px 12px 0 var(--org); }
 body.style-linocut #levelup .card-icon { width: 120px; height: 120px; }
-body.style-linocut #levelup .card-name { font-family: 'Alfa Slab One', Georgia, serif; font-weight: 400; font-size: 20px; line-height: 1.15; border-bottom: 2px solid var(--ink); padding: 0 4px 6px; }
-body.style-linocut #levelup .card-desc { font-family: 'Special Elite', monospace; font-size: 15px; opacity: 1; line-height: 1.3; }
-body.style-linocut #levelup .card-key { font-family: 'Rye', Georgia, serif; font-weight: 400; font-size: 24px; top: 12px; left: 16px; opacity: 1; color: var(--org); text-shadow: 1px 1px 0 var(--ink); }
+body.style-linocut #levelup .card-name { font-family: 'Alfa Slab One', Georgia, serif; font-weight: 400; font-size: 20px; line-height: 1.15; border-bottom: 2px solid var(--ink); padding: 0 4px 6px; text-align: center; }
+body.style-linocut #levelup .card-desc { font-family: 'Special Elite', monospace; font-size: 15px; opacity: 1; line-height: 1.3; text-align: center; padding: 0 6px 34px; }
+body.style-linocut #levelup .card-key { font-family: 'Rye', Georgia, serif; font-weight: 400; font-size: 19px; top: 14px; left: 14px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  opacity: 1; color: var(--paper); background: var(--ink); border-radius: 50%; box-shadow: 2px 2px 0 var(--org); text-shadow: none; }
 body.style-linocut #levelup .lu-hint { font-family: 'Special Elite', monospace; font-size: 15px; letter-spacing: 2px; color: var(--paper); opacity: .9; }
 body.style-linocut #gameover { background-color: rgba(27,23,21,.86); background-image: radial-gradient(circle, rgba(240,231,210,.14) 0 1.3px, transparent 1.7px); background-size: 8px 8px; }
 body.style-linocut #gameover .go-title { font-family: 'Rye', Georgia, serif; font-weight: 400; font-size: 66px; color: var(--paper); text-shadow: 5px 4px 0 var(--org); }
@@ -2282,7 +2677,7 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
     id: 'linocut',
     name: 'Holzschnitt',
     family: 'Druckgrafik',
-    description: 'Ein bewegter Linolschnitt: Papier, Ruß-Schwarz und ein versetzter Kürbis-Orange-Druck – Volkssagen-Flugblatt trifft Siebdruckplakat.',
+    description: 'A moving linocut print: cream paper, carbon-black key plate, one misregistered pumpkin-orange spot plate and a sparing teal.',
     groundColor: '#f0e7d2',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -2314,8 +2709,11 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
       if (o.kind === 'enemy') {
         if (o.dying) return;
         const sh = o.type === 'ghost' ? SPR.shGhost : o.type === 'colossus' ? SPR.shColossus : SPR.shCreeper;
-        if (o.spawnT < 1) { const s = 0.3 + 0.7 * o.spawnT; blitS(ctx, sh, o.x, o.y, s, s); return; }
-        blit(ctx, sh, o.x, o.y + 0.5);
+        let s = 1;
+        if (o.type === 'ghost') s = 1.12 - (ghostBob(view.rt, o.seed) - 1.6) * 0.1;
+        if (o.spawnT < 1) s *= U.smoothstep(0, 0.35, o.spawnT) * 0.8 + 0.2;
+        if (s !== 1) blitS(ctx, sh, o.x, o.y + 0.5, s, s);
+        else blit(ctx, sh, o.x, o.y + 0.5);
         return;
       }
       blit(ctx, SPR.shJack, o.x, o.y + 0.5);
@@ -2330,10 +2728,11 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
         const s = SPL[i];
         const age = t - s.born;
         if (age > s.life || age < 0) { SPL.splice(i, 1); continue; }
-        const k = age < 0.08 ? 0.6 + (age / 0.08) * 0.4 : 1;
-        const fade = s.life - age < 0.5 ? (s.life - age) / 0.5 : 1;
+        // stamped in two held steps, then the ink sinks into the paper
+        const k = age < 0.05 ? 0.7 : age < 0.1 ? 1.12 : 1;
+        const fade = s.life - age < 0.6 ? Math.ceil(((s.life - age) / 0.6) * 4) / 4 : 1;
         ctx.globalAlpha = fade;
-        blitS(ctx, s.spr, s.x, s.y, s.s * k, s.s * k);
+        blitS(ctx, s.spr, s.x, s.y, s.s * k * (s.flip ? -1 : 1), s.s * k);
       }
       ctx.globalAlpha = 1;
     },
@@ -2341,11 +2740,11 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
     drawGem(ctx, g, view) {
       base(view);
       const fr = (Math.floor(view.rt * 4 + g.seed * 8) & 1);
-      const bob = Math.sin(view.rt * 3 + g.seed * 20) * 0.7;
+      const bob = floatCurve(view.rt * 0.7 + g.seed * 3) * 1.6;
       blit(ctx, SPR.shGem, g.x, g.y + 0.6);
       const spr = g.big ? SPR.gemBig[fr] : SPR.gem[fr];
       if (g.pop > 0) { const s = 1 + g.pop * 0.7; blitS(ctx, spr, g.x, g.y - g.pop * 4, s, s); }
-      else blit(ctx, spr, g.x, g.y - 1 + bob);
+      else blit(ctx, spr, g.x, g.y - 0.4 - bob);
     },
 
     drawEnemy(ctx, e, view) {
@@ -2353,57 +2752,30 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
       const set = SPR[e.type];
       if (!set) return;
       const fi = e.facing < 0 ? 1 : 0;
-      if (e.dying) {
-        const t = e.deathT;
-        if (t < 0.16) {
-          const s = 1 + t * 0.6;
-          blitS(ctx, set.i[fi][0][0], e.x, e.y, s, s);
-          return;
-        }
-        const u = (t - 0.16) / 0.84;
-        const sh = set.sh[fi];
-        const big = e.type === 'colossus' ? 1.8 : 1;
-        ctx.globalAlpha = Math.max(0, 1 - u * u);
-        for (let i = 0; i < sh.length; i++) {
-          const p = sh[i];
-          const d = (2 + 12 * U.ease.outQuad(u)) * big;
-          const x = e.x + p.dx * d, y = e.y + p.dy * d * 0.7 - 6 * big * u + 26 * u * u;
-          const pivotY = (p.ay - (set.n[fi][0][0].ay)) / K;
-          blitRot(ctx, p, x, y + pivotY, (i & 1 ? 1 : -1) * u * 1.6, 1);
-        }
-        ctx.globalAlpha = 1;
-        return;
-      }
+      const lift = e.type === 'ghost' ? ghostBob(view.rt, e.seed) : 0;
+      if (e.dying) { deathSeq(ctx, e, set, fi, lift); return; }
+      const NF = set.nf;
       let fr;
-      if (e.type === 'ghost') fr = Math.floor(view.rt * 5 + e.seed * 9) & 3;
-      else if (e.type === 'colossus') fr = Math.floor(e.anim * 2.4) & 3;
-      else fr = Math.floor(e.anim * 3.2) & 3;
+      if (e.type === 'ghost') fr = Math.floor(view.rt * 9 + e.seed * 13);
+      else if (e.type === 'colossus') fr = Math.floor(e.anim * 2.8);
+      else fr = Math.floor(e.anim * 3.2);
+      fr = ((fr % NF) + NF) % NF;
       const v = Math.floor(view.rt * 6 + e.seed * 10) & 1;
-      const spr = (e.flash > 0.45 ? set.i : set.n)[fi][fr][v];
-      let y = e.y;
-      if (e.type === 'ghost') y -= 2.2 + Math.round(Math.sin(view.rt * 3.1 + e.seed * 20) * 2.5) * 0.4;
-      if (e.spawnT < 1) {
-        const t = e.spawnT;
-        if (t < 0.5) {
-          // the block is being lowered onto the paper
-          const k = t / 0.5;
-          const s = 1 + (1 - k) * (1 - k) * 0.9;
-          ctx.globalAlpha = 0.25 + 0.75 * k;
-          blitS(ctx, spr, e.x, y - (1 - k) * 10, s, s);
-          ctx.globalAlpha = 1;
-          return;
-        }
-        if (!e._lcStamp) {
-          e._lcStamp = 1;
-          addSplat(e.x, e.y + 0.5, e.type === 'colossus' ? 1.5 : e.type === 'ghost' ? 0.55 : 0.8, 0.9, view.game.time);
-        }
-        const k = (t - 0.5) / 0.5;
-        const sq = Math.sin(k * Math.PI) * 0.14 * (1 - k);
-        blitS(ctx, spr, e.x, y, 1 + sq, 1 - sq);
+      const spr = e.flash > 0.45 ? set.i[fi][fr] : set.n[fi][fr][v];
+      const x = e.x, y = e.y - lift;
+      if (e.spawnT < 1) { spawnSeq(ctx, e, spr, x, y, view); return; }
+      if (e._lcStamp) e._lcStamp = 0;
+      if (e.flash > 0 && e.hitT < 0.16) {
+        // knock-back pose: squashed and shoved away from the blow, then one overshoot back
+        const k = e.hitT / 0.16;
+        const kl = Math.hypot(e.kx, e.ky);
+        const dx = kl > 1 ? e.kx / kl : -e.facing, dy = kl > 1 ? e.ky / kl : 0;
+        const off = 2.4 * (1 - k) * (1 - k) * (e.type === 'colossus' ? 0.6 : 1);
+        const sq = 0.17 * Math.cos(k * Math.PI * 1.5) * (1 - k);
+        blitS(ctx, spr, x + dx * off, y + dy * off * 0.6, 1 + sq, 1 - sq);
         return;
       }
-      if (e._lcStamp) e._lcStamp = 0;
-      blit(ctx, spr, e.x, y);
+      blit(ctx, spr, x, y);
     },
 
     drawPlayer(ctx, p, view) {
@@ -2411,26 +2783,39 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
       const rt = view.rt;
       const fi = p.facing < 0 ? 1 : 0;
       const v = Math.floor(rt * 6) & 1;
+      const J = SPR.jack;
       const since = (performance.now() - hurtAt) / 1000;
-      const inv = p.hurtT > 0.6 || (since < 0.75 && p.iframes > 0 && (Math.floor(since * 14) & 1) === 1);
+      const flick = since < 0.75 && p.iframes > 0 && (Math.floor(since * 12) & 1) === 1;
       let spr;
-      if (p.moving) spr = (inv ? SPR.jack.walkI : SPR.jack.walk)[fi][Math.floor(p.anim * 1.25) & 3][v];
-      else spr = (inv ? SPR.jack.idleI : SPR.jack.idle)[fi][Math.floor(rt * 2.2) & 1][v];
+      if (p.hurtT > 0.55) spr = p.hurtT > 0.8 ? J.recoilI[fi] : J.recoil[fi][v];
+      else if (p.dashT > 0) spr = p.dashT > 0.165 ? J.crouch[fi][v] : J.dash[fi][v];
+      else if (p.moving) {
+        const i = Math.floor(p.anim * 1.3) & 7;
+        spr = flick ? J.walkI[fi][i] : J.walk[fi][i][v];
+      } else {
+        // held breathing poses (~0.38 s each), a blink every 3.4 s
+        const i = Math.floor(rt * 2.6) & 3;
+        spr = flick ? J.idleI[fi][i] : (rt % 3.4) < 0.13 ? J.blink[fi][v] : J.idle[fi][i][v];
+      }
       if (p.levelT > 0) {
-        const s = 0.6 + 0.6 * (1 - p.levelT * 0.5);
-        ctx.globalAlpha = Math.min(1, p.levelT * 2);
-        blitRot(ctx, SPR.raysBig, p.x + MX, p.y - 18 + MY, rt * 0.8, s);
+        const lt = Math.ceil(p.levelT * 12) / 12;
+        const s = 0.6 + 0.6 * (1 - lt * 0.5);
+        ctx.globalAlpha = Math.min(1, lt * 2);
+        blitRot(ctx, SPR.raysBig, p.x + MX, p.y - 18 + MY, Math.floor(rt * 8) * 0.1, s);
         ctx.globalAlpha = 1;
       }
-      if (p.dashT > 0) {
-        const k = p.dashT / 0.2;
-        for (let i = 2; i >= 1; i--) {
-          ctx.globalAlpha = 0.55 * k / i;
-          blit(ctx, SPR.jack.ghost[fi], p.x - p.dashX * i * 7, p.y - p.dashY * i * 7);
-        }
+      if (p.dashT > 0 && p.dashT < 0.18) {
+        // the spot plate printed twice behind the figure, out of register (multiply = overprinting ink)
+        const k = p.dashT / 0.18;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.55;
+        blit(ctx, J.ghost[fi], p.x - p.dashX * 12 * k, p.y - p.dashY * 12 * k);
         ctx.globalAlpha = 1;
+        blit(ctx, J.ghost[fi], p.x - p.dashX * 6 * k, p.y - p.dashY * 6 * k);
+        ctx.globalCompositeOperation = 'source-over';
         const a = Math.atan2(p.dashY, p.dashX);
-        blitRot(ctx, SPR.trail, p.x - p.dashX * 3, p.y - 10 - p.dashY * 3, a, 1.3);
+        blitRot(ctx, SPR.trail, p.x - p.dashX * 4, p.y - 9 - p.dashY * 4, a, 1.4);
+        blitRot(ctx, SPR.trail, p.x - p.dashX * 6, p.y - 19 - p.dashY * 6, a, 1.0);
       }
       blit(ctx, spr, p.x, p.y);
     },
@@ -2469,9 +2854,15 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
           blitRot(ctx, pt.orange ? SPR.chipO : SPR.chip[(pt.seed * 4) | 0], pt.x, pt.y - pt.z, pt.rot, pt.size);
           break;
         }
+        case 'flash': {
+          const s = pt.size * (age < 0.4 ? 0.7 + age : 1.1 - (age - 0.4) * 0.6);
+          blitRot(ctx, SPR.flash, pt.x, pt.y - pt.z, pt.rot, s);
+          break;
+        }
         case 'burst': {
-          const s = pt.size * (0.55 + 0.7 * U.ease.outQuad(Math.min(1, age * 1.6)));
-          if (age > 0.75) break;
+          const st = Math.floor(age * 6) / 6;
+          const s = pt.size * (0.55 + 0.75 * U.ease.outQuad(Math.min(1, st * 1.6)));
+          if (age > 0.8) break;
           blitRot(ctx, pt.orange ? SPR.burstO : SPR.burst, pt.x, pt.y - pt.z, pt.rot, s);
           break;
         }
@@ -2487,9 +2878,10 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
           break;
         }
         case 'ring': {
-          const s = pt.size * (0.4 + U.ease.outQuad(age) * 1.2);
-          ctx.globalAlpha = life < 0.4 ? life / 0.4 : 1;
-          blitRot(ctx, SPR.ring, pt.x, pt.y - pt.z, pt.rot, s);
+          const st = Math.floor(age * 9) / 9;
+          const s = pt.size * (0.35 + U.ease.outQuad(st) * 1.15);
+          ctx.globalAlpha = life < 0.3 ? Math.ceil((life / 0.3) * 3) / 3 : 1;
+          blitRot(ctx, SPR.ring, pt.x, pt.y - pt.z, pt.rot + st * 0.6, s);
           break;
         }
         default: {
@@ -2514,8 +2906,34 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
       ctx.globalAlpha = 1;
     },
 
+    drawWorldOverlay(ctx, view) {
+      // a few carved leaves drift on the wind (world-anchored, wrapped around the view), tumbling on twos
+      base(view);
+      const rt = view.rt;
+      const W = view.x1 - view.x0 + 80, H = view.y1 - view.y0 + 80;
+      const md = (a, b) => ((a % b) + b) % b;
+      for (let i = 0; i < 8; i++) {
+        const h1 = U.hash2(i, 3, 77), h2 = U.hash2(i, 5, 78);
+        const sp = 9 + h1 * 9;
+        const x = view.x0 - 40 + md(h1 * 4000 + rt * sp - view.x0, W);
+        const sway = floatCurve(rt * 0.35 + h2) * 9;
+        const y = view.y0 - 40 + md(h2 * 4000 + rt * sp * 0.3 - view.y0, H) + sway;
+        blit(ctx, SPR.drift[Math.floor(rt * 8 + h2 * 7) & 3], x, y);
+      }
+    },
+
     drawScreenOverlay(ctx, view) {
       if (!FRAME || FRAME.W !== view.W || FRAME.H !== view.H) buildFrame(view.W, view.H);
+      // registration marks in the margin, the orange plate visibly out of register
+      const r = Math.max(4, view.H * 0.0085), m = FRAME.t * 1.9 + r;
+      const mark = (x, y, col, dx, dy) => {
+        ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, r * 0.16);
+        ctx.beginPath(); ctx.arc(x + dx, y + dy, r * 0.6, 0, TAU);
+        ctx.moveTo(x + dx - r, y + dy); ctx.lineTo(x + dx + r, y + dy); ctx.moveTo(x + dx, y + dy - r); ctx.lineTo(x + dx, y + dy + r);
+        ctx.stroke();
+      };
+      const mo = r * 0.22;
+      for (const [x, y] of [[m, view.H / 2], [view.W - m, view.H / 2], [view.W / 2, view.H - m]]) { mark(x, y, cO, mo, mo * 0.7); mark(x, y, cI, 0, 0); }
       const t = FRAME.t;
       ctx.drawImage(FRAME.top, 0, 0);
       ctx.save();
@@ -2545,40 +2963,52 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
       ctx.restore();
     },
 
-    /* ---------- hooks ---------- */
+    /* ---------- hooks: every effect is layered – core flash, main shape, debris, residue ---------- */
     onHit(game, e, src) {
-      const y = e.y - e.r * (e.type === 'colossus' ? 1.6 : 1.2);
-      game.addParticle({ x: e.x, y, z: 0, kind: 'burst', life: 0.18, size: e.type === 'colossus' ? 1.1 : 0.7, rot: Math.random() * TAU, drag: 0, orange: src === 'lantern' });
+      const big = e.type === 'colossus';
+      const y = e.y - e.r * (big ? 1.6 : 1.2) - (e.type === 'ghost' ? 3 : 0);
+      game.addParticle({ x: e.x, y, z: 0, kind: 'burst', life: 0.2, size: big ? 1.15 : 0.75, rot: Math.random() * TAU, drag: 0, orange: src === 'lantern' });
+      game.addParticle({ x: e.x, y, z: 0, kind: 'flash', life: 0.08, size: big ? 1.0 : 0.62, rot: Math.random() * TAU, drag: 0 });
       for (let i = 0; i < 2; i++) {
         const a = Math.random() * TAU, s = 30 + Math.random() * 40;
         game.addParticle({ x: e.x, y: e.y, z: e.r * 1.2, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 30, grav: 160, kind: 'drop', life: 0.5, size: 0.45 + Math.random() * 0.3, drag: 1.5 });
       }
+      const a = Math.random() * TAU;
+      game.addParticle({ x: e.x, y: e.y, z: e.r, vx: Math.cos(a) * 45, vy: Math.sin(a) * 26, vz: 50, grav: 240, kind: 'chip', life: 0.45, size: 0.6, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 20, drag: 1.2 });
     },
     onKill(game, e) {
       const big = e.type === 'colossus';
       const n = big ? 16 : e.type === 'ghost' ? 6 : 9;
       for (let i = 0; i < n; i++) {
         const a = Math.random() * TAU, s = (big ? 60 : 40) + Math.random() * 60;
-        game.addParticle({ x: e.x, y: e.y, z: e.r * (0.6 + Math.random()), vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 40 + Math.random() * 60, grav: 220, kind: 'chip', life: 0.6 + Math.random() * 0.4, size: (big ? 1.2 : 0.8) + Math.random() * 0.4, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 18, drag: 1.2 });
+        game.addParticle({ x: e.x, y: e.y, z: e.r * (0.6 + Math.random()), vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 40 + Math.random() * 60, grav: 220, kind: 'chip', orange: big && i % 4 === 0, life: 0.6 + Math.random() * 0.4, size: (big ? 1.2 : 0.8) + Math.random() * 0.4, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 18, drag: 1.2 });
       }
       for (let i = 0; i < (big ? 8 : 4); i++) {
         const a = Math.random() * TAU, s = 30 + Math.random() * 50;
         game.addParticle({ x: e.x, y: e.y, z: e.r, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 30 + Math.random() * 40, grav: 200, kind: 'drop', life: 0.8, size: 0.6 + Math.random() * 0.5, drag: 1.2 });
       }
-      game.addParticle({ x: e.x, y: e.y - e.r, z: 0, kind: 'burst', life: 0.24, size: big ? 2.2 : 1.1, rot: Math.random() * TAU, drag: 0 });
+      const cy = e.y - e.r * (big ? 1.4 : 1.1);
+      game.addParticle({ x: e.x, y: cy, z: 0, kind: 'burst', life: 0.26, size: big ? 2.2 : 1.15, rot: Math.random() * TAU, drag: 0 });
+      game.addParticle({ x: e.x, y: cy, z: 0, kind: 'flash', life: 0.1, size: big ? 1.6 : 0.9, rot: Math.random() * TAU, drag: 0 });
+      for (let i = 0; i < 2; i++) game.addParticle({ x: e.x + (i ? 4 : -4), y: e.y, z: 0, vx: (i ? 14 : -14), vy: 2, kind: 'puff', life: 0.4, size: big ? 1.0 : 0.6, drag: 3 });
       addSplat(e.x, e.y, big ? 1.6 : e.type === 'ghost' ? 0.6 : 0.9, big ? 3.2 : 2.2, game.time);
     },
     onHurt(game, p) {
       hurtAt = performance.now();
       game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'burst', life: 0.25, size: 1.6, rot: Math.random() * TAU, drag: 0 });
+      game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'flash', life: 0.09, size: 1.1, rot: Math.random() * TAU, drag: 0 });
       for (let i = 0; i < 6; i++) {
         const a = Math.random() * TAU, s = 40 + Math.random() * 50;
         game.addParticle({ x: p.x, y: p.y, z: 14, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 30 + Math.random() * 40, grav: 200, kind: i < 3 ? 'drop' : 'chip', orange: i >= 3, life: 0.6, size: 0.7 + Math.random() * 0.4, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 14, drag: 1.2 });
       }
     },
     onPickup(game, g) {
-      const p = game.player;
-      game.addParticle({ x: p.x + (Math.random() - 0.5) * 8, y: p.y - 12 - Math.random() * 8, z: 0, vy: -20, kind: 'star', life: 0.35, size: g.big ? 1.6 : 0.9, rot: Math.random(), drag: 3 });
+      const x = g.x, y = g.y;
+      game.addParticle({ x: x + (Math.random() - 0.5) * 6, y: y - 10 - Math.random() * 6, z: 0, vy: -24, kind: 'star', life: 0.35, size: g.big ? 1.6 : 0.95, rot: Math.random(), drag: 3 });
+      for (let i = 0; i < (g.big ? 3 : 2); i++) {
+        const a = -Math.PI / 2 + (i - 0.5) * 1.1;
+        game.addParticle({ x, y, z: 8, vx: Math.cos(a) * 34, vy: Math.sin(a) * 14, vz: 46, grav: 260, kind: 'chip', orange: true, life: 0.4, size: 0.5, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 22, drag: 1.5 });
+      }
     },
     onShoot(game, pr) {
       if (Math.random() < 0.5) game.addParticle({ x: pr.x, y: pr.y + 3, z: 0, vx: pr.vx * 0.06, vy: pr.vy * 0.06, kind: 'puff', life: 0.25, size: 0.45, drag: 4 });
@@ -2589,6 +3019,11 @@ body.style-linocut #pausebox { font-family: 'Rye', Georgia, serif; font-weight: 
     onLevelUp(game, p) {
       game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'ring', life: 0.7, size: 1.6, rot: 0, drag: 0 });
       game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'burst', life: 0.4, size: 2.4, rot: Math.random(), drag: 0, orange: true });
+      game.addParticle({ x: p.x, y: p.y - 14, z: 0, kind: 'flash', life: 0.12, size: 1.5, rot: Math.random(), drag: 0 });
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU + 0.3;
+        game.addParticle({ x: p.x + Math.cos(a) * 10, y: p.y - 14 + Math.sin(a) * 7, z: 0, vx: Math.cos(a) * 40, vy: Math.sin(a) * 26, kind: 'star', life: 0.5, size: 0.9, rot: a, drag: 2.5 });
+      }
     },
     onDeath(game, p) {
       addSplat(p.x, p.y, 2.0, 4, game.time);

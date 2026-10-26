@@ -137,7 +137,8 @@ All characters are heat signatures, painted facing right and mirrored for the le
 - Parka: tapered torso from y −22 to −8, radial 0.8 at the chest → 0.58 at the hem; a cooler strap (0.42) and hem line (0.47).
 - Arms 2.7 u strokes (near 0.64, far 0.52) with mitts (0.76 / 0.62); legs 3.1 u strokes (near 0.6, far 0.5); boots 0.32 / 0.28.
 - **Backpack**: 5.6 × 11.8 u, 0.31 → 0.23, with a bedroll on top (0.2) – the darkest shape, it shows the facing at a glance.
-- Walk: 8 frames; idle; dash leans 0.24 rad.
+- Walk: 8 poses (body lowest just after each contact, hood landing late); idle: 8 poses over 3.4 s – breathing, forearms hugged in front against the cold, small shivers, a foot stamp at 56 %; dash: launch crouch → streak → brake; a recoil pose with a gasping mouth.
+- **Heat ranking**: the main character is baked at gain 1.0 with halo 0.72 – its face is the only white-hot point on screen; creatures are baked through a gain (critter ×0.92, hulk ×0.9, wisp ×0.86) so they sit in lower, distinct bands.
 
 **Small creature – quilled critter** (~27 × 17 u): horizontal body ellipse 8.2 × 5.3, radial 0.82 at the chest → 0.57; a ridge of 8 quills along the back at 0.46 (cooler keratin = dark spikes on top); head r 3.9 (0.84 → 0.66), snout 0.72, cold nose 0.55, ears 0.7 / 0.8, **eye 1.0**; four 1.7 u legs (near 0.55, far 0.46); tail 0.56 → 0.3.
 
@@ -221,12 +222,16 @@ The HUD is the camera's own interface – a measuring instrument, not a game men
 ## Motion and animation
 
 - **Temperature is the animation channel**: things appear by warming up, vanish by cooling down, impacts flash white-hot for ~0.15 s, every particle cools while it ages.
-- Main character: 8 walk frames (legs ±3.8 u, foot lift 1.9 u, bob 1.1 u, arms 0.8 rad against the legs); idle bob `sin(t·2.6)·0.35`; dash: lean 0.24 rad, 4 cooled afterimages 6.5 u apart at 45/35/25/15 %; hurt: blink at 18 Hz plus white-hot flash.
+- Main character: 8 walk poses (legs ±3.8 u, foot lift 1.9 u, body `0.9·sin(2a − 2.33)` so it is lowest just after each contact, hood `+0.35·sin(2a − 3.4)` landing late, arms 0.8 rad against the legs); idle: 8 poses over 3.4 s (breathing, hugged forearms with shivers, a foot stamp at 56 %); dash: launch crouch (0.3 rad, anticipation) → streak (stretch 15 %) → brake (landing squash), 4 cooled afterimages whose spacing grows from 0.4× to 1.4× of 6.5 u; hurt: recoil pose, 12 % squash.
 - Critter: 8 frames, legs alternate ±1.9 u, body bob 0.8 u, tail sways.
 - Wisp: 8 flicker frames at 10 fps (flame tongues run up the edges), hover 3 ± 1.5 u, alpha flicker 80–100 % at 24 Hz, two cooled afterimages at −0.06 s and −0.12 s of velocity.
 - Hulk: 8 frames, bob 1.3 u, knuckle walk (fists lift 2.8 u alternately), a cooling ring 14 → 30 u on each footfall.
 - Props: ember pits cross-fade between 3 frames at 2.4 Hz with rising sparks; vent plumes rise 30 u in 2.4 s growing to 10 u; the faulty connector flickers.
 - Camera: REC blinks at 0.8 Hz, the spot meter jitters ±0.2 °C twice a second, grain changes 30x per second, the tracking box snaps in within 0.25 s.
+- **Appear** (450 ms): the cold silhouette rises from a crouch (scale 1.12 × 0.7 → 1 with a 7 % overshoot) and warms through a mid-warm stage (`0.1 + t·0.62`) to full heat.
+- **Hit**: white-hot flash plus a damped squash `0.15·e^(−13t)·cos 26t` (~250 ms) and a 1.6 u knock-back push.
+- **Death** (350 ms): a white-hot flare and recoil in the first 18 %, then the heat drains hot → warm → cold while the body slumps into a puddle (46 % lower, 22 % wider); the heat imprint particle stays on the ground and cools for seconds.
+- **Per-actor timing**: wisp flicker 8–13 fps per actor, eased hover (quick rise, slow sink), blink and step phases from the actor seed – a crowd never moves in lock-step.
 
 ## Do and don't
 
@@ -357,7 +362,7 @@ function drawEmber(ctx, p) { // p: {x, y, z, vx, vy, vz, life, max, t0, size}
 
 ## Performance notes
 
-- Bake once in init (~0.4 s): the main character (8 walk + idle + dash), small critter 8, wisp 8, hulk 8 frames – each with 4 box blurs on the CPU – plus normal / flash / cooled / afterimage variants and mirrored copies, collectibles 2 × 6 frames, projectile head and trail, orb, 9 prop sprites, 16 puff sprites, 4 grain tiles.
+- Bake once in init (~0.4 s): the main character (8 walk + 8 idle + 3 dash + recoil), small critter 8, wisp 8, hulk 8 frames – each with 4 box blurs on the CPU – plus normal / flash / cooled / afterimage variants and mirrored copies, collectibles 2 × 6 frames, projectile head and trail, orb, 9 prop sprites, 16 puff sprites, 4 grain tiles.
 - Ground chunks (256 u at up to 2.5 px/unit): ~25–40 ms each, spread over ~80 generator steps of ~1 ms. Keep the per-pixel loop in a plain function (not inside the generator body) so the engine can optimise it; precompute the periodic fine noise as pixel tables per resolution; flag grid cells that can contain hedges, roads or water so open-field pixels skip that math.
 - Per frame: 1 `drawImage` per sprite (2–3 with afterimages), particles as single strokes or puff blits, one grain pattern fill (plain source-over – blend modes like `overlay` are far slower on a full screen), up to 10 small strip copies for heat shimmer, one cached overlay image, cached text bitmaps instead of `strokeText` every frame.
 - Hot spot: the full-screen passes (grain, overlay) on software-rendered canvases; drop the grain first if you need headroom.

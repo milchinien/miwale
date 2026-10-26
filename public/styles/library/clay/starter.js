@@ -5,13 +5,12 @@
   'use strict';
   const TAU = Math.PI * 2, PI = Math.PI;
   const PALETTE = {
-    meadow: '#76a454', meadowLight: '#8cac5a', soil: '#986c4a', purpleClay: '#66507e', pond: '#7ebad2', ochrePath: '#d6a262',
+    meadow: '#76a454', meadowLight: '#8cac5a', soil: '#986c4a', purpleClay: '#806c96', pond: '#7ebad2', ochrePath: '#d6a262',
     pumpkin: '#ee7a22', overalls: '#3c62a6', pants: '#344c80', scarf: '#68ae48', skin: '#f8e0ba', shoe: '#6c422a',
     turnipTop: '#8650ac', turnipCream: '#f4e8cc', leaf: '#60a246', brow: '#4a2852', ghost: '#eaf0fc', ghostShade: '#96a4ce',
     glowCore: '#fff7c4', glowMid: '#ffd458', glowEdge: '#ff8f22', cavity: '#4e1606', gem: '#ffca40', gemBig: '#ff7c34',
     trunk: '#865e40', hudOrange: '#f07a24', panel: '#f5ddb8', cream: '#fff6e6',
   };
-
   /* ---------- tiny helpers (colour mixing, seeded RNG, hashing, noise) ---------- */
   const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -29,7 +28,6 @@
   }
   function fbm(x, y, seed, oct, p) { let s = 0, amp = 0.5, n = 0; for (let i = 0; i < oct; i++) { s += vnoise(x, y, seed + i * 17, p) * amp; n += amp; x *= 2; y *= 2; if (p) p *= 2; amp *= 0.5; } return s / n; }
   const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
-
   /* ---------- shapes ---------- */
   const E = (x, y, rx, ry) => (c) => { c.moveTo(x + rx, y); c.ellipse(x, y, rx, ry, 0, 0, TAU); };
   const CAP = (x1, y1, x2, y2, r) => (c) => { const a = Math.atan2(y2 - y1, x2 - x1); c.moveTo(x1 + Math.cos(a + PI / 2) * r, y1 + Math.sin(a + PI / 2) * r); c.arc(x1, y1, r, a + PI / 2, a + PI * 1.5); c.arc(x2, y2, r, a - PI / 2, a + PI / 2); c.closePath(); };
@@ -141,10 +139,14 @@
 
   const JC = { pump: [238, 122, 34], body: [60, 98, 166], pants: [52, 76, 128], scarf: [104, 174, 72], shoe: [108, 66, 42], hand: [248, 224, 186], stem: [120, 116, 52], leaf: [104, 166, 70] };
   // back foot x,y | front foot x,y | back arm, front arm (rad) | body lift ; frame 0 = idle, 1-4 = walk
-  const JACK_FR = [[-2.1, 0, 2.3, 0, 0.18, -0.18, 0], [-3.5, 0, 3.7, -0.2, 0.8, -0.75, 0], [-0.8, -1.7, 1.0, 0, 0.25, -0.2, 0.9], [3.5, -0.2, -3.3, 0, -0.7, 0.8, 0], [1.0, 0, -0.8, -1.7, -0.2, 0.25, 0.9]];
+  // stand + 8 walk poses (contact, down, passing, up x2) from a pose table: near-foot x / lift, the far foot half a
+  // cycle behind, body lift per quarter, arms taking the leg phase ONE DRAWING LATE (overlapping action)
+  const WALK_X = [3.8, 2.2, 0.0, -2.2, -3.6, -1.6, 1.0, 2.8], WALK_L = [0, 0, 0, 0, 0.2, 1.6, 2.1, 1.0], WALK_B = [0, -0.85, 0.45, 1.05];
+  const JACK_FR = [[-2.1, 0, 2.3, 0, 0.18, -0.18, 0]];
+  for (let w = 0; w < 8; w++) { const g = (w + 4) & 7, a = -0.78 * WALK_X[(w + 7) & 7] / 3.8; JACK_FR.push([WALK_X[g] - 0.4, -WALK_L[g], WALK_X[w], -WALK_L[w], -a, a, WALK_B[w & 3]]); }
   function heroArt(c, fr) {
     const F = JACK_FR[fr], by = -F[6], hx0 = 0.4, hy0 = -19.6 + by, hrx = 10.2, hry = 8.4;
-    const fl = [0.22, 0.42, 0.55, 0.38, 0.58][fr], ax = -2.6, ay = -11.6 + by;
+    const fl = fr === 0 ? 0.22 : 0.44 + 0.16 * Math.sin(((fr - 1) / 8) * TAU * 2 - 0.9), ax = -2.6, ay = -11.6 + by;
     const tx1 = ax - Math.sin(fl) * 3.8, ty1 = ay + Math.cos(fl) * 3.8;
     cCap(c, ax, ay, tx1, ty1, 1.5, JC.scarf, { cast: 0, spec: 0.2 });
     cCap(c, tx1, ty1, tx1 - Math.sin(fl + 0.3) * 3.4, ty1 + Math.cos(fl + 0.3) * 3.4, 1.45, JC.scarf, { spec: 0.2 });
@@ -226,7 +228,7 @@
     K = Math.max(3, Math.min(5, Math.round((h / 360) * 1.2)));
     FPC = makeFingerprint();
     SPR = { K, hero: [], enemy: [], ghost: [] };
-    for (let f = 0; f < 5; f++) SPR.hero.push(build([-15, -34, 15, 2.5], (c) => heroArt(c, f), 100 + f));
+    for (let f = 0; f < JACK_FR.length; f++) SPR.hero.push(build([-15, -34, 15, 2.5], (c) => heroArt(c, f), 100 + f));
     for (let v = 0; v < 3; v++) SPR.enemy.push([0, 1, 2, 3].map((f) => build([-14, -32, 14, 2.5], (c) => enemyArt(c, f, v), 200 + v * 10 + f)));
     SPR.ghost = [0, 1, 2, 3].map((f) => build([-15, -28, 14, 2.5], (c) => ghostArt(c, f), 300 + f));
     SPR.tree = build([-24, -64, 24, 3], treeArt, 900); SPR.mush = build([-10, -16, 10, 2], mushArt, 901);
@@ -237,7 +239,7 @@
   }
 
   /* ---------- ground: raised clay sheets with SDF bevel + cast shadow, lumpy height texture, imprinted decals ---------- */
-  const LAY = [{ c: [152, 108, 74], m: 1.1 }, { c: [102, 80, 126], m: 1 }, { c: [126, 186, 210], m: 0.35, sunk: true }, { c: [214, 162, 98], m: 0.9 }];
+  const LAY = [{ c: [152, 108, 74], m: 1.1 }, { c: [128, 108, 150], m: 1 }, { c: [126, 186, 210], m: 0.35, sunk: true }, { c: [214, 162, 98], m: 0.9 }];
   const MEAD_A = [118, 164, 84], MEAD_B = [140, 172, 90], BW = 3.0, SW = 3.4, LX = -0.42, LY = -0.907;
   function fields(x, y, out) { // signed "distance-like" fields in world units, >0 = inside the sheet
     const n = (fbm(x / 140, y / 140, 11, 2) - 0.5);
@@ -354,12 +356,14 @@
   }
 
   /* ---------- public drawers ---------- */
+  const HOP_AIR = [0, 0.5, 0.92, 1, 0.7, 0.25, 0, 0], HOP_SQ = [0.8, -0.6, -0.25, 0.05, -0.15, -0.45, 1.0, 0.35], HOP_ROT = [0, 0.05, 0.08, 0.04, 0, -0.05, -0.08, -0.04];
   const soft = (ctx, s, x, y, rx, ry) => ctx.drawImage(s, x - rx, y - ry, rx * 2, ry * 2);
-  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Steps at 12 fps with per-step "boil" jitter. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. 8 drawn walk poses at 12 fps (on twos),
+      down poses squashed, up poses stretched, plus per-step "boil" jitter. */
   function drawHero(ctx, x, y, t, facing, moving) {
     if (!SPR) bake(360);
-    const stp = Math.floor(t * 12), f = Math.floor(t * 8) & 3, fr = moving === false ? 0 : 1 + f;
-    let sx = f === 0 || f === 2 ? 1.04 : 0.98, sy = f === 0 || f === 2 ? 0.96 : 1.03;
+    const stp = Math.floor(t * 12), f = stp & 7, fr = moving === false ? 0 : 1 + f, k = f & 3;
+    let sx = k === 1 ? 1.045 : k === 3 ? 0.975 : 1, sy = k === 1 ? 0.955 : k === 3 ? 1.03 : 1;
     sx *= (1 + (hash2(stp, 77, 3) - 0.5) * 0.02) * 1.06; sy *= (1 - (hash2(stp, 77, 3) - 0.5) * 0.018) * 1.06;
     soft(ctx, SPR.shadow, x + 0.8, y + 0.4, 10.2, 3.6);
     blit(ctx, SPR.hero[fr], x, y, sx, sy, 0.035 * facing + (hash2(stp, 78, 3) - 0.5) * 0.025, facing < 0);
@@ -375,9 +379,11 @@
       ctx.globalAlpha = 0.84; blit(ctx, SPR.ghost[Math.floor((t * 1.8 + seed * 4) * 4) & 3], x, y - 5 - Math.sin(stp / 12 * 2.4 + seed * 12) * 1.6, scl, scl, bj2 * 0.04, seed > 0.5); ctx.globalAlpha = 1;
       return;
     }
-    const f = Math.floor(t * 3.2 + seed * 16) & 3, s = scl * 0.92;
-    soft(ctx, SPR.shadow, x + 0.7, y + 0.4, 8.8, 3);
-    blit(ctx, SPR.enemy[Math.floor(seed * 3) % 3][f], x, y - (f & 1 ? 1.1 : 0), s * (f & 1 ? 1 : 1.05) * (1 + bj * 0.035), s * (f & 1 ? 1.03 : 0.95) * (1 - bj * 0.03), [0, 0.07, 0, -0.07][f] + bj2 * 0.04, seed > 0.5);
+    // a hop in 8 steps at 12 fps (crouch, take-off stretch, rise, apex, fall, fall stretch, landing squash, settle);
+    // the 4 boiled drawings are held on twos, every creature on its own phase (seed)
+    const f8 = (stp + Math.floor(seed * 16)) & 7, f = f8 >> 1, s = scl * 0.92, sq = HOP_SQ[f8];
+    soft(ctx, SPR.shadow, x + 0.7, y + 0.4, 8.8 * (1 - HOP_AIR[f8] * 0.2), 3);
+    blit(ctx, SPR.enemy[Math.floor(seed * 3) % 3][f], x, y - HOP_AIR[f8] * 2.8, s * (1 + 0.085 * sq) * (1 + bj * 0.035), s * (1 - 0.095 * sq) * (1 - bj * 0.03), HOP_ROT[f8] + bj2 * 0.04, seed > 0.5);
   }
 
   let GROUND = null, GKEY = '';

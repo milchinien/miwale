@@ -35,17 +35,17 @@
   ],
   "difficulty": {
     "stars": 3,
-    "why": "New assets are quick to make: every character, prop or icon is a short list of ellipses, capsules, blobs and rounded polygons run through the same two-pass painter, so the outline, cel crescent and gloss come for free. The only care needed is a distinctive fat silhouette, a fill/shade colour pair and four slightly varied animation frames."
+    "why": "New assets are quick to make: every character, prop or icon is a short list of ellipses, capsules, blobs and rounded polygons run through the same two-pass painter, so the outline, cel crescent and gloss come for free. The work is in the animation: 8-frame gaits from a foot cycle and step-bob curve, leaves and arms lagging the gait, designed hit, removal and spawn poses, and one live main-character rig with spring follow-through."
   },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": false,
-    "resolution": "Native display resolution. Sprites are baked once at K = clamp(round(screenPx/360 * 1.25), 3, 6) canvas px per world unit (4 frames, normal + white-flash copy, both facings); ground chunks are rasterised at up to 3 px per world unit (groundResMax 3, chunkSize 256).",
+    "resolution": "Native display resolution. Sprites are baked once at K = clamp(round(screenPx/360 * 1.25), 3, 6) canvas px per world unit (creatures: 8 walk + 8 blink frames + hurt + removal pose, each with a white-flash copy, mirrored at draw time; main character: baked head with 5 expressions, stem and leaf, body drawn live); ground chunks are rasterised at up to 3 px per world unit (groundResMax 3, chunkSize 256).",
     "summary": "Each sprite is a list of parts painted twice into an offscreen canvas: an outline pass strokes+fills every part in plum (#3a2240) at 2x the outline weight, producing one merged silhouette outline, then a fill pass paints each part with base colour, a cel crescent (the shape clipped against itself shifted up-left) and a white gloss ellipse.",
     "linework": "One outline colour only: deep plum #3a2240. Outer silhouette 1.15 world units (stroke width 2.3, half hidden under the fill), inner separation lines 0.55 units (stroke 1.1 inside the clip), small items 0.6–0.9 units. Round caps and joins everywhere; no black, no coloured outlines.",
     "shading": "Flat fill plus exactly ONE cel step: the whole part is filled with its shade colour, then the lit colour is clipped to the same shape shifted by (-1..-2.8, -0.9..-2.6) units, leaving a crisp dark crescent on the lower-right. No gradients on bodies.",
     "lighting": "Implied light from the top-left. One white gloss ellipse (alpha 0.92) near the top-left of each big shape plus a tiny white dot next to it. Warm additive glow (lighter blend) only for lanterns/candle light; carved faces glow #ffd43f with a #fff3b0 hot core.",
-    "texture": "None on characters, props or effects. The ground has sparse vector decals (3-blade tufts, 5-petal flowers, pebbles, fallen leaves) and a ±3.5% low-frequency brightness tint."
+    "texture": "None on characters, props or effects. The ground has composed vector decals - furrow rows in autumn fields, tuft clumps in noise-ramped drifts, flower posies, lily-pad rafts, edge fringes along region rims - and a ±3.5% low-frequency brightness tint."
   },
   "palette": [
     {
@@ -77,6 +77,16 @@
       "name": "Clay Field",
       "hex": "#daa070",
       "role": "Autumn/rust ground regions, rim #c78a60"
+    },
+    {
+      "name": "Pond Water",
+      "hex": "#80cde2",
+      "role": "Ponds, with a white foam rim #e2f7f5 and damp shore sand #e0cb96"
+    },
+    {
+      "name": "Deep Water",
+      "hex": "#60b2d7",
+      "role": "Pond centres; lily pads #86c95a float on top"
     },
     {
       "name": "Pumpkin",
@@ -183,32 +193,34 @@
     }
   ],
   "world": {
-    "summary": "A flat-colour, outline-free play-mat: large calm regions (dark grass, lilac meadow, clay field, sand clearings and even-width winding sand paths) generated from low-frequency noise, rasterised with an analytic signed distance (value / gradient) so every region has a crisp anti-aliased edge and a slightly darker 1.7–2.5 unit inner rim band; tiny flat vector decals sit on top.",
+    "summary": "A flat-colour play-mat with no outlines, composed like a level map: calm open meadow, groves with a darker forest floor and bushy rims, winding sand paths of even width, round ponds with a damp shore, foam line and deep centre, lilac flower meadows and furrowed autumn clay fields. Noise fields are sampled on a 4-unit grid and turned into crisp anti-aliased regions with a darker inner rim via a per-pixel signed distance; decals cluster where features meet and leave calm space between.",
     "layers": [
-      "Base fill #9ec671 (meadow)",
-      "Noise regions in order: dark grass #79ae5a (rim #6a9e50, 1.7u), lilac #c8b6da (rim #b4a0cc, 2.0u), clay #daa070 (rim #c78a60, 2.3u), sand clearings + paths #ebd3a0 (rim #d8ba85, 2.5u); regions 100–400 units across",
-      "Even-width sand paths from the zero contour of a noise field: (0.0175 - |perlin(x/1700)|) * 3, so they wind and branch",
-      "±3.5% brightness tint from very low-frequency noise (period ~1500 units)",
-      "Decals on a 12-unit jittered grid (only where the material is the same within 4.5 u): 3-blade grass tufts (0.8 u strokes), 5-petal flowers (white/yellow/pink, orange centre), dot clusters, pebbles on sand, fallen leaves with a 0.35 u vein on clay",
-      "Dirt holes: a #b07a4c dirt ellipse with a 0.8 u plum rim and a dark centre #43283f that grows with outBack, crumbs r 1.3 #9c6a42 flying out",
-      "Baked in 256-unit chunks at up to 3 px per world unit"
+      "Base meadow #9ec671 with a ±3.5% brightness tint (noise at 1/1500)",
+      "Dark grass / forest floor #79ae5a (rim #6a9e50, 1.7 u), lilac meadows #c8b6da (rim #b4a0cc, 2.0 u), autumn clay fields #daa070 (rim #c78a60, 2.3 u)",
+      "Sand clearings and winding paths of even width #ebd3a0 (rim #d8ba85, 2.5 u): the zero contour of a warped 1/1700 noise",
+      "Ponds: damp shore #e0cb96 (rim #cdb37a), water #80cde2 with a white foam line #e2f7f5 just inside the edge, deep centre #60b2d7; kept away from the start point",
+      "Furrow rows across the autumn fields: world-aligned rows 8.5 u apart, dark stroke + light lip, continuing across chunks",
+      "Ground around props: tuft clumps at trunks, stumps, fences and signs; fallen leaves under autumn trees; pebbles by rocks and reeds",
+      "Drifts: tuft clumps on a 23-u grid whose density ramps with a noise field (smoothstep 0.55-0.76), flower posies in the low-noise areas, lily-pad rafts and resting highlight arcs on water; edge fringes of single tufts, flowers and pebbles along region rims"
     ]
   },
   "characters": {
-    "summary": "Chunky, big-headed toy figures built from ellipses, capsules (limbs), Catmull-Rom blobs and rounded polygons. The main character (~25 u wide, ~37 u tall incl. stem at 1.1 scale) is a giant pumpkin head (rx 11.2, ry 9.1) on a tiny teal body with stubby capsule limbs, a waving green scarf and a carved, glowing lantern-style face offset toward the facing side. Creatures: a small grumpy purple-and-cream root bulb with three leaves, a fast floating white ghost with a wavy hem and a tongue-out grin, and a large purple/ochre root giant (2.5x size) with bandages, glowing eyes and teeth. 4 baked frames each; squash & stretch, tilt and lift are applied at draw time.",
+    "summary": "Chunky, big-headed toy figures built from ellipses, capsules (limbs), Catmull-Rom blobs and rounded polygons, each with its own phase, scale (0.94-1.06) and blink timing. The main character (~25 u wide, ~37 u tall incl. stem at 1.1 scale) is a pumpkin-head kid with a carved glowing face (5 expressions), a teal coat, a spring-driven green knitted scarf and a spring leaf on the stem - a live rig drawn every frame in the same outline language. Small creatures are root vegetables in three designed variants (round bulb grump, radish sneak with a whipping rat-tail root, squat beet brute with floppy ear-leaves), fast creatures are floating ghosts in two body shapes, the large creature is a bandaged root giant with glowing eyes.",
     "rules": [
-      "Head is ~60% of the height; bodies and limbs are tiny and stubby (limb radius 1.15–1.45 u, large creature 3.1–3.5 u).",
+      "Head is ~60% of the height; bodies and limbs are tiny and stubby (limb radius 1.15-1.45 u, large creature 3.1-3.5 u).",
       "All parts of a figure merge into ONE plum silhouette outline (outline pass first), inner overlaps get 0.55 u separation lines only where needed.",
       "Every big shape gets its cel crescent toward the lower-right and its gloss ellipse at the upper-left.",
-      "Faces are drawn into the fill pass: googly white eyes (0.7 u plum rim) with plum pupils and a white catchlight, thick angry brows (1.35 u), simple arc mouths; or carved shapes with a dark #8a3214 rim and the #ffd43f glow shifted inside.",
-      "Faces sit off-centre toward the facing direction; sprites are mirrored with scale(-1,1) for the other facing.",
-      "Each creature type has a unique silhouette: round two-tone root bulb (cream bottom, purple top split by a sine wave), tall ghost dome with a 3-scallop hem and a tail whose bottom 9 u fade to 42% alpha, 39 x 41 u root giant with five leaves.",
-      "Warm main character (orange + teal) against cool creatures (purple, white) so it never gets lost in a crowd.",
-      "Pre-bake a white flash copy of every frame (fill = #ffffff, shade = #efe6f6) for a white flash overlay."
+      "Faces are drawn into the fill pass: googly white eyes (plum rim) with plum pupils glancing in the walking direction and a white catchlight, thick brows, simple mouths; or carved shapes with a dark #8a3214 rim and the #ffd43f glow shifted inside. Each creature has walk, blink, hurt (squint + O mouth) and removal (X eyes) faces.",
+      "Creatures are baked as 8 walk frames from a foot cycle (lift on an arc, toe tilt) and a step-bob curve (contact, down, passing, up); leaves, ears and arms lag the gait (overlapping action).",
+      "The main character is a live rig: trot with contact-down-passing-up body height, counter-swinging arms, the head lagging 0.14 of a step, a two-segment spring scarf and a spring leaf; idle breathing with a glance over the shoulder every ~6.5 s; throw, dash (anticipation, stretch, leg wheel, landing), turn squash, hurt and celebrate poses.",
+      "Hit: hurt pose + white flash copy (~140 ms), 22% squash, 0.26 rad tilt away from the blow, then a 0.5 s elastic wobble.",
+      "Removal: white squash, spring up with X eyes and a twist (outBack), inflate, then pop into an outlined cel cloud; ghosts stretch up, twist and thin into a rising soul curl.",
+      "Spawn: root creatures peek out of a dirt hole (clipped, leaves shivering), pop out stretched, hop, land squashed and settle; ghosts swirl up, untwisting.",
+      "Warm main character (orange + teal) against cool creatures (purple, pink, white) so it never gets lost in a crowd."
     ]
   },
   "props": {
-    "summary": "Scenery uses the same two-pass painter as the characters: fat rounded shapes, one plum outline, one cel crescent, one white gloss. Round trees and tiered pines, bushes, rocks, pumpkins, mushrooms, fences, signposts and hay stacks, each baked once in 1–5 colour variants (plus mirrored copies) and placed per ground region.",
+    "summary": "Scenery uses the same two-pass painter as the characters: fat rounded shapes, one plum outline, one cel crescent, one white gloss. Round trees and tiered pines, bushes, rocks, pumpkins, mushrooms, fences, signposts and hay stacks, each baked once in 1–5 colour variants (plus mirrored copies) and placed per ground region; placed in groups that belong to a feature (groves, path edges, pond shores, autumn fields).",
     "rules": [
       "Round tree (box 40 x 66 u): tapered bark trunk #a56f48 / shade #7c4e33 with a knot circle, canopy = 6 overlapping circles (radius 7–11.5 u) as ONE part, crescent [-2.8,-2.6], six small shade arcs, gloss at the top-left; canopy pairs green #7fca5c/#57a243, orange #f2a64c/#d57c36, lime #a9d65a/#7fb343, gold #efc54e/#d09d36; the green one carries three red apples r 1.4 with a plum rim and white catchlight.",
       "Tiered pine: three rounded triangles (corner radius 2.6 u, half-widths 14 / 11.5 / 9) in #4fa564 / shade #36804b over a short bark trunk.",
@@ -217,8 +229,9 @@
       "Pumpkin: squircle pumpkin #f59a3a / shade #d96f26 with rib lines, stem, a leaf with midrib and a curly tendril; single or a pair (rx 8.8 + 6.0).",
       "Mushroom pair: cream stalks #f6ead2 / #d9c6a4, caps red #ec5b52 / #c03f45 or brown #c98a52 / #a4683a with cream dots #fff6e6.",
       "Fence (two rails, three pointed posts), signpost (arrow board #e4b77b / #c38f56 with a painted pumpkin and arrow) in wood #d4a066 / shade #a9743f; hay stack #f3cf62 / #d6a33c with straw strokes #c99434 and #fbe9a4.",
-      "Placement by region: meadow = trees, bushes, rocks, mushrooms, fences, signs; dark grass = pines, berry bushes, mushrooms, mossy rocks; lilac = flower bushes, lime trees, small rocks; clay = pumpkins, orange/gold trees, hay, fences; sand = rocks, hay, signs.",
-      "Trees and bushes sway by skewing around their base (trees 0.025, bushes 0.035 at t*1.3); everything else is static."
+      "Tree stump (bark with two root capsules and a ringed cut top) and cattails (3-4 green blades with midribs and brown heads) complete the set.",
+      "Placement is composed: a woodland noise field makes groves (trees, stumps and mushrooms inside, bushes on a soft rim), open meadow stays nearly empty, rocks, signs and bushes line the sand paths, reed beds ring the ponds, pumpkin patches, hay, autumn trees and edge fences fill the clay fields.",
+      "Breeze: trees, bushes and reeds skew around their base with two slow sways per prop plus a gust band that rolls across the world (trees 0.025, bushes 0.035, reeds 0.075); everything else is static."
     ]
   },
   "effects": [
@@ -227,16 +240,16 @@
       "how": "A cream seed (#fff1c8, shade #e6c68a, outline 0.85 u) spinning by squashing its height 0.55–1.0, trailed by a white speed streak: three round-cap lines (1.0 u and 0.75 u) with a linear gradient from 0.95 alpha to 0 over 14 units."
     },
     {
-      "name": "Impact star",
-      "how": "An 8-point white star (outer 5.6, inner 2.6, rounded corners 0.4, shade #fff3b5) popping 0.5→1.2→0.3 scale over 0.14 s, plus a 4-point yellow-white spark flying off with gravity."
+      "name": "Impact (layered)",
+      "how": "A white 8-point core star (r 5.6 / 2.6, 0.16 s, pop 0.5 -> 1.2 -> 0.3), four comic action lines bursting out (0.15 s), a 4-point spark flying off with gravity 220 and a small dust scuff behind the creature, opposite the blow."
     },
     {
       "name": "White flash",
-      "how": "Blit the baked white-flash copy over the normal sprite at alpha min(0.85, flash*1.3) and squash the sprite (x*1+0.22f, y*1-0.18f)."
+      "how": "The baked hurt pose with its white flash copy on top at min(1, flash*1.7), squashed (sx +22%, sy -18%) and tilted 0.26 rad away from the blow, followed by a 0.5 s elastic wobble."
     },
     {
-      "name": "Pop-out burst",
-      "how": "The figure inflates in white to 1.28x over 0.22 s, wobbles and shrinks to nothing by 0.5 s; 6–9 outlined cloud puffs burst radially (outBack grow, quadratic shrink, rising 7 u), 2–6 yellow 5-point stars arc out with gravity and 4–10 outlined colour chunks in the figure's colours bounce away."
+      "name": "Removal burst",
+      "how": "Core star and 7 action lines at once; the creature squashes, springs up with X eyes and inflates, then pops into an outlined cel cloud (7 discs, plum rim, lilac-grey under white, three sparkles). 0.12 s later a ring of 6-9 tinted cloud puffs opens, stars and colour chunks in the creature's own colours bounce away, a dust ring and slow puffs linger; ghosts leave a rising soul curl."
     },
     {
       "name": "Shockwave ring",
@@ -272,24 +285,24 @@
     "css": ".hud-panel { background: #fff4de; border: 4px solid #3a2240; border-radius: 20px; box-shadow: 0 5px 0 #3a2240; padding: 2px 24px 7px; color: #3a2240; font-family: 'Fredoka', 'Baloo 2', system-ui, sans-serif; }\n.hud-number { font-family: 'Lilita One', 'Fredoka', sans-serif; font-size: 36px; letter-spacing: 1.5px; color: #ff8a2a; text-shadow: 2.5px 0 0 #3a2240, -2.5px 0 0 #3a2240, 0 2.5px 0 #3a2240, 0 -2.5px 0 #3a2240, 1.8px 1.8px 0 #3a2240, -1.8px 1.8px 0 #3a2240, 1.8px -1.8px 0 #3a2240, -1.8px -1.8px 0 #3a2240, 0 5px 0 #3a2240; }\n.hud-label { font: 600 12px 'Fredoka', sans-serif; letter-spacing: 1.6px; color: #8a6280; }\n.bar { position: relative; height: 32px; background: #563a5e; border: 4px solid #3a2240; border-radius: 17px; box-shadow: 0 4px 0 #3a2240, inset 0 4px 0 rgba(0,0,0,.25); overflow: hidden; }\n.bar-fill { position: relative; height: 100%; background: linear-gradient(180deg, #ff9a9a 0%, #ff5466 48%, #df3550 100%); border-radius: 0 13px 13px 0; box-shadow: inset 0 -3px 0 rgba(0,0,0,.12); }\n.bar-fill::after { content: ''; position: absolute; left: 9px; right: 12px; top: 4px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.55); }\n.bar.alt .bar-fill { background: linear-gradient(180deg, #9af7d8 0%, #45d6ad 50%, #2cb892 100%); }\n.card { background: linear-gradient(180deg, #ffd27f 0, #ffb24c 92px, #fff6e4 92px); border: 5px solid #3a2240; border-radius: 28px; box-shadow: 0 9px 0 #3a2240, 0 18px 30px rgba(20,8,30,.35); transition: transform .14s cubic-bezier(.3,1.6,.5,1); }\n.card:hover { transform: translateY(-10px) rotate(-1.5deg) scale(1.03); }"
   },
   "motion": [
-    "Main character hops instead of walking: hop phase = anim*0.42, lift = sin(f*PI)*3.4 u; contact squash sx 1.12 / sy 0.87, airborne stretch sy 1.07; tilt 0.07 rad toward movement; frame 2 in the air, frames 1/3 alternate on contact; a dust puff on every landing.",
-    "Idle breathing: sy = 1 + 0.03*sin(t*3.2), sx = 1 - 0.022*sin(t*3.2).",
-    "Small creatures waddle: 4 frames at anim*0.85, rock ±0.1 rad, bob 1.3 u, squash 5–6% at contact, per-instance random scale 0.94–1.06.",
-    "Ghosts float 4.5 u up with a ±1.6 u bob (t*2.6), cycle 4 hem frames at 7 fps, wobble 4%, lean into velocity up to 0.16 rad.",
-    "Large creatures stomp: anim*0.32, lift 2 u, contact squash 8% with a cubic contact curve, rock 0.035 rad.",
-    "Appearing: ground creatures pop out of a dirt hole with outElastic vertical stretch; ghosts fade in with outBack scale.",
-    "Collectibles bob 1.1 u at t*5 with 4–5% squash; props sway by skewing around their base (trees 0.025, bushes 0.035 at t*1.3).",
-    "Every pop uses overshoot easing (outBack / outElastic / cubic-bezier(.3,1.7,.5,1))."
+    "Smooth vector motion: poses are interpolated every frame, baked creatures step through 8 frames; every pop uses overshoot easing (outBack / outElastic / cubic-bezier(.3,1.7,.5,1)), nothing moves linearly.",
+    "Per-actor variation: phase from the seed, scale 0.94-1.06, blink 110 ms every 2.7-5 s (some double-blink).",
+    "Main character trot: phase = anim*0.21, two steps per cycle; stepBob contact 0 -> down +1 -> up -1.6 -> contact; squash on the way down (sx +7.5%, sy -8.5%); arms counter-swing ±0.9 rad; head lags 0.14 of a step; a dust puff on every step.",
+    "Springs per frame: scarf tail = two chained springs (stiffness 75 / 55, damping 10 / 8) driven by the body's vertical speed, stem leaf = spring (110 / 8) driven by the head's vertical speed.",
+    "Idle: breathing at 2.6 s (sy +3%), delayed head bob, a glance over the shoulder every ~6.5 s. Dash: anticipation squash, stretch + lean + leg wheel, landing squash, three white after-images. Turn: 0.14 s width squash.",
+    "Small creatures waddle through 8 frames at anim*0.85 + seed (squash 8-9% on contact, rock ±0.08 rad); ghosts hover on two summed sines and lean up to 0.18 rad; the large creature stomps at anim*0.32 with 9% contact squash.",
+    "Hit flash ~140 ms + elastic wobble 0.5 s; removal squash -> spring -> inflate -> cloud pop over deathT 0..1; spawn peek -> pop -> hop -> squash -> settle over spawnT 0..1.",
+    "Ambient: prop breeze with a rolling gust band, pond rings every 3.2 s, butterflies on two-partial paths - all slower than the actors."
   ],
   "do": [
     "Use ONE outline colour (#3a2240) and draw the outline as a separate pass so all parts merge into one silhouette.",
     "Give every shape exactly one cel crescent (shape clipped against itself, offset up-left) and one white gloss ellipse at the top-left.",
     "Keep shapes fat and rounded: ellipses, capsules, blobs, rounded polygons with corner radius ≥ 0.4 u.",
-    "Bake sprites once at K px per unit and only transform them at draw time (squash, stretch, tilt, flip).",
+    "Bake creature frames once at K px per unit (walk, blink, hurt, removal + flash copies) and only transform them at draw time; give every actor its own phase, scale and blink.",
     "Animate everything with squash & stretch and overshoot easing – nothing should move rigidly.",
     "Keep the ground flat and pastel with crisp region edges, so outlined characters pop.",
     "Batch all ground shadows into one path and one translucent plum fill so overlapping shadows do not darken.",
-    "Pre-bake white flash copies for flash feedback."
+    "Compose the ground: groves with bushy rims, decals in drifts and along edges, calm open meadow between."
   ],
   "dont": [
     "Don't use black or per-object outline colours, and don't vary outline thickness randomly.",
@@ -297,8 +310,9 @@
     "Don't draw thin, spiky or realistic anatomy; no hard 90° corners.",
     "Don't outline the ground regions or decals – the ground is outline-free so it stays behind the characters.",
     "Don't use blurred drop shadows or grey shadows; use flat plum ellipses at 20% alpha and solid offset lips in the UI.",
-    "Don't re-path every part every frame for hundreds of figures – that ruins performance; blit baked sprites.",
-    "Don't let the ground become as saturated as the characters (no pure greens or bright purples underfoot)."
+    "Don't re-path hundreds of figures every frame - only the one main character is a live rig; creatures blit baked frames.",
+    "Don't let the ground become as saturated as the characters (no pure greens or bright purples underfoot).",
+    "Don't scatter tufts and flowers evenly or remove creatures with a plain fade - cluster decals, pop creatures into a cloud."
   ],
-  "performance": "All characters, props, collectibles and particles are baked once in init() (4 frames x normal + flash + mirrored copies; ~60 canvases total) – per frame it is only drawImage with transforms, so 300+ figures run well. Ground chunks (256 u) are computed as generators: noise fields on a coarse 4-unit grid, per-pixel signed-distance work only in cells that touch a region edge (others are flat-filled); decals are baked into the chunk. Floating-number sprites are cached per value (cleared at 500). Shadows are one batched path per frame. Main cost: chunk generation when moving fast; cap groundResMax at 3."
+  "performance": "Creatures, props, collectibles and particles are baked once in init() (creatures: 20 canvases per variant - 8 walk, 8 blink, hurt, removal, with flash copies - mirrored at draw time); per frame they cost one or two drawImage calls each. The main character is the one live rig (~45 path operations, ~0.25 ms in software rendering). Props carry a tight cull pad (half-width + 8 u) so off-screen ones are neither drawn nor shadowed; shadows are one path + one fill; pond rings cache their visible water cells per 40-unit camera cell and stroke in 4 fade buckets. Ground chunks (256 u) are generators: noise fields on a coarse 4-unit grid, per-pixel signed-distance work only in cells near a region edge, composed decals baked in."
 }

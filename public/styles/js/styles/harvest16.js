@@ -514,7 +514,7 @@
         if (lx < -5 || ly < -4 || lx >= NB || ly >= NB) continue;
         const sx = U.clamp(ax, wx - 8, wx + CS + 8), sy = U.clamp(ay, wy - 8, wy + CS + 8);
         const clump = samp(gO, sx, sy);
-        const p = 0.05 + 0.42 * U.smoothstep(0.42, 0.72, clump);
+        const p = 0.012 + 0.45 * U.smoothstep(0.45, 0.72, clump);   // tufts gather in clumps; open grass stays calm
         if (((h >>> 4) & 1023) / 1024 > p) continue;
         const am = mat[U.clamp(ly + 2, 0, NB - 1) * NB + U.clamp(lx + 1, 0, NB - 1)];
         const sh = am === GOLD ? TUFTS[3 + ((h >>> 14) & 1)] : TUFTS[(h >>> 14) % 3];
@@ -555,7 +555,9 @@
           const ld = samp(gL, sx, sy);
           if (ld < 0.03) continue;
           const rank = ((h >>> 4) & 1023) / 1024;
-          if (rank > ld * 1.05 - 0.12) continue;
+          // single leaves scatter along the carpet rim; inside, only drifts of leaves sit on the calm litter
+          const inner = U.smoothstep(0.55, 0.9, ld);
+          if (rank > (ld * 1.05 - 0.12) * (1 - inner) + inner * (0.08 + 0.55 * U.smoothstep(0.45, 0.7, samp(gO, sx, sy)))) continue;
           const sh = LEAFSH[(h >>> 14) % LEAFSH.length];
           const set = LEAFZ[zoneAt(sx, sy)][(h >>> 18) & 7];
           const lx = ax - X0, ly = ay - Y0;
@@ -588,7 +590,7 @@
           if (dn > CLOVER) col = gp.lip;
           else if (up > CLOVER) col = gp.rim;
           else if (leafB[i]) col = LEAFC[leafB[i]];
-          else if (ldB[i] + JA[ti] * 0.12 > 0.62) { const z = zoneAt(X, Y); col = (hh >>> 15) % 5 ? LITTER[z] : LITTER2[z]; }
+          else if (ldB[i] + JA[ti] * 0.12 > 0.62) { const z = zoneAt(X, Y); col = mot[i] ? LITTER2[z] : LITTER[z]; }   // darker drifts in clusters, not per-pixel noise
           else if (lf > CLOVER) col = gp.rim2;
           else if (rt > CLOVER) col = gp.dk;
           else col = gp.t[toneB[i] || (mot[i] ? 6 : 0)];
@@ -787,21 +789,34 @@
     return idx;
   }
 
-  function makeJack(mode, f, glow) {
+  // main character pose table: bob (+ = down), a/b near/far leg x offset, la/lb lifts, hand = near arm swing,
+  // flap = scarf + cape lag, hb = head offset relative to the body (the head arrives one frame late), hx = head lean
+  const JWALK8 = [
+    { bob: 0, a: 2, b: -2, la: 0, lb: 0, hand: -1, flap: 0 },   // contact (near foot forward, near arm back)
+    { bob: 1, a: 2, b: -2, la: 0, lb: 0, hand: -1, flap: 0 },   // down: weight lands
+    { bob: 0, a: 0, b: 0, la: 0, lb: -2, hand: 0, flap: 1 },    // passing: far foot lifts through
+    { bob: -1, a: -1, b: 1, la: 0, lb: -1, hand: 1, flap: 2 },  // up
+    { bob: 0, a: -2, b: 2, la: 0, lb: 0, hand: 1, flap: 1 },    // contact (far foot forward, near arm forward)
+    { bob: 1, a: -2, b: 2, la: 0, lb: 0, hand: 1, flap: 0 },
+    { bob: 0, a: 0, b: 0, la: -2, lb: 0, hand: 0, flap: 1 },
+    { bob: -1, a: 1, b: -1, la: -1, lb: 0, hand: -1, flap: 2 },
+  ];
+  JWALK8.forEach((s, i) => { s.hb = JWALK8[(i + 7) & 7].bob - s.bob; s.face = 'n'; });
+  const JPOSE = {
+    wind: { bob: 2, a: 2, b: -3, la: 0, lb: 0, hand: -2, flap: 0, hb: 0, face: 'n' },              // dash anticipation: crouch
+    go: { bob: 0, a: 3, b: -3, la: 0, lb: -1, hand: -2, flap: 2, hb: 1, hx: 1, face: 'n' },          // dash stretch
+    skid: { bob: 1, a: 3, b: -1, la: 0, lb: 0, hand: 1, flap: 1, hb: 0, hx: -1, face: 'n' },         // dash recovery
+    hurt: { bob: 0, a: 1, b: -2, la: -1, lb: 0, hand: -2, flap: 2, hb: -1, hx: -1, face: 'hurt' },   // knock-back recoil
+    throw: { bob: 0, a: 1, b: -1, la: 0, lb: 0, hand: 2, flap: 0, hb: 0, face: 'n' },
+  };
+  function makeJack(s, glow) {
     const p = new Pix(22, 30);
-    const WALK = [
-      { bob: 0, a: 2, b: -2, la: 0, lb: 0, hand: 1, flap: 0 },
-      { bob: -1, a: 0, b: 0, la: 0, lb: -1, hand: 0, flap: 1 },
-      { bob: 0, a: -2, b: 2, la: 0, lb: 0, hand: -1, flap: 0 },
-      { bob: -1, a: 0, b: 0, la: -1, lb: 0, hand: 0, flap: 1 },
-    ];
-    const s = mode === 'walk' ? WALK[f] : { bob: 0, a: 0, b: 0, la: 0, lb: 0, hand: 0, flap: f, hb: f };
     const GL = glow ? R.glowB : R.glow;
-    const by = s.bob;
+    const by = s.bob, X = s.hx || 0;
     // legs (far leg first): dark trousers + chunky brown boots with a lit cuff
     const leg = (x, lift, far) => {
       const fb = 29 + lift;
-      for (let y = 22; y <= fb - 3; y++) p.rect(x, y, 2, 1, far ? R.pants[0] : R.pants[1]);
+      for (let y = 22 - (by < 0 ? 1 : 0); y <= fb - 3; y++) p.rect(x, y, 2, 1, far ? R.pants[0] : R.pants[1]);
       p.rect(x, fb - 2, 2, 1, R.boot[far ? 2 : 3]);
       p.rect(x, fb - 1, 3, 1, R.boot[far ? 1 : 2]);
       p.rect(x, fb, 3, 1, R.boot[far ? 0 : 1]);
@@ -809,11 +824,11 @@
     };
     leg(8 + s.b, s.lb, true);
     leg(11 + s.a, s.la, false);
-    // short cape: straight front edge, back edge flares out behind (left)
+    // short cape: straight front edge, back edge flares out behind (left) and lags by `flap`
     const top = 17 + by;
     for (let r = 0; r < 7; r++) {
       const y = top + r;
-      const xl = Math.round(11 - 3.6 - r * 0.6) - (r >= 4 ? s.flap : 0);
+      const xl = Math.round(11 - 3.6 - r * 0.6) - (r >= 3 ? s.flap : 0);
       const xr = Math.round(11 + 3.4 + r * 0.2);
       for (let x = xl; x < xr; x++) {
         if (r === 6 && (x === xl || x === xr - 1)) continue;
@@ -825,42 +840,58 @@
         p.set(x, y, R.cloak[k]);
       }
     }
-    // front arm: sleeve + glove, swinging
-    const ax = 13 + s.hand;
-    for (let y = top + 1; y <= top + 3; y++) { p.set(ax, y, R.cloak[3]); p.set(ax + 1, y, R.cloak[2]); }
-    p.set(ax, top + 4, R.boot[3]); p.set(ax + 1, top + 4, R.boot[2]);
-    p.set(ax, top + 5, R.boot[2]); p.set(ax + 1, top + 5, R.boot[1]);
-    // mustard scarf with a fluttering tail
+    // front arm: sleeve + glove, swinging against the near leg (raised forward when throwing)
+    const ax = 13 + s.hand, ay = top + (s.hand >= 2 ? -1 : 0);
+    for (let y = ay + 1; y <= ay + 3; y++) { p.set(ax, y, R.cloak[3]); p.set(ax + 1, y, R.cloak[2]); }
+    p.set(ax, ay + 4, R.boot[3]); p.set(ax + 1, ay + 4, R.boot[2]);
+    p.set(ax, ay + 5, R.boot[2]); p.set(ax + 1, ay + 5, R.boot[1]);
+    // mustard scarf with a fluttering tail (trails further the faster the pose)
     for (let x = 6; x <= 15; x++) {
       p.set(x, top - 1, R.scarf[x < 11 ? 2 : 1]);
       p.set(x, top, R.scarf[x < 9 ? 1 : 0]);
     }
+    const fl = s.flap;
     p.set(6, top + 1, R.scarf[2]); p.set(5, top + 1, R.scarf[1]);
-    p.set(5 - s.flap, top + 2, R.scarf[2]); p.set(4 - s.flap, top + 2, R.scarf[1]);
-    p.set(4 - s.flap, top + 3, R.scarf[0]);
-    // head
+    p.set(5 - fl, top + 2 - (fl > 1 ? 1 : 0), R.scarf[2]); p.set(4 - fl, top + 2 - (fl > 1 ? 1 : 0), R.scarf[1]);
+    p.set(4 - fl, top + 3 - (fl > 1 ? 1 : 0), R.scarf[0]);
+    if (fl > 1) p.set(3 - fl, top + 1, R.scarf[0]);
+    // head (lands one frame after the body; leans with hx)
     const hy = 9.2 + by + (s.hb || 0);
-    pumpkinBody(p, 11, hy, 8.6, 6.7, R.pk, [-0.5, 0.05, 0.58]);
+    pumpkinBody(p, 11 + X, hy, 8.6, 6.7, R.pk, [-0.5, 0.05, 0.58]);
     const ht = Math.floor(hy - 6.7);
-    p.set(10, ht, R.pk[1]); p.set(11, ht, R.pk[1]); p.set(12, ht, R.pk[2]);
-    p.set(10, ht - 1, R.stem[2]); p.set(11, ht - 1, R.stem[1]);
-    p.set(10, ht - 2, R.stem[2]); p.set(11, ht - 2, R.stem[1]);
-    p.set(11, ht - 3, R.stem[2]); p.set(12, ht - 3, R.stem[1]);
-    p.set(13, ht - 1, R.stem[2]); p.set(14, ht - 2, R.stem[2]); p.set(14, ht - 1, R.stem[1]);
-    // carved face (facing right): triangle eyes + jagged grin
+    p.set(10 + X, ht, R.pk[1]); p.set(11 + X, ht, R.pk[1]); p.set(12 + X, ht, R.pk[2]);
+    p.set(10 + X, ht - 1, R.stem[2]); p.set(11 + X, ht - 1, R.stem[1]);
+    p.set(10 + X, ht - 2, R.stem[2]); p.set(11 + X, ht - 2, R.stem[1]);
+    p.set(11 + X, ht - 3, R.stem[2]); p.set(12 + X, ht - 3, R.stem[1]);
+    // stem leaf: lifts when the head drops (follow-through)
+    const lu = (s.hb || 0) > 0 ? -1 : 0;
+    p.set(13 + X, ht - 1 + lu, R.stem[2]); p.set(14 + X, ht - 2 + lu, R.stem[2]); p.set(14 + X, ht - 1 + lu, R.stem[1]);
+    // carved face (facing right): triangle eyes + jagged grin; blink = dim slits, hurt = squeezed eyes + open mouth
     const ey = Math.round(hy) - 3;
-    carve(p, pts([
-      '.1....1..',
-      '121..121.',
-    ], 9, ey).concat(pts([
-      '0.......0',
-      '1121.1211',
-      '.0122210.',
-    ], 8, ey + 4)), GL, R.pk[0]);
+    let face;
+    if (s.face === 'blink') face = pts(['.........', '000..000.'], 9 + X, ey).concat(pts(['0.......0', '1121.1211', '.0122210.'], 8 + X, ey + 4));
+    else if (s.face === 'hurt') face = pts(['1.1..1.1.', '.1....1..'], 9 + X, ey).concat(pts(['..121..', '.12221.', '..121..'], 9 + X, ey + 3));
+    else face = pts(['.1....1..', '121..121.'], 9 + X, ey).concat(pts(['0.......0', '1121.1211', '.0122210.'], 8 + X, ey + 4));
+    carve(p, face, GL, R.pk[0]);
     return p.canvas();
   }
+  const JCACHE = new Map();
+  function jackPose(s, glow) {
+    const key = glow + '|' + s.bob + s.a + s.b + s.la + s.lb + s.hand + s.flap + (s.hb || 0) + (s.hx || 0) + s.face;
+    let v = JCACHE.get(key);
+    if (!v) { v = pair(makeJack(s, glow)); JCACHE.set(key, v); }
+    return v;
+  }
+  const JTINT = new Map();
+  function jackTint(s, col) {
+    const key = col + jackPoseKey(s);
+    let v = JTINT.get(key);
+    if (!v) { const b = jackPose(s, 0); v = { r: U.tint(b.r, col, 1), l: U.tint(b.l, col, 1) }; JTINT.set(key, v); }
+    return v;
+  }
+  const jackPoseKey = (s) => s.bob + '' + s.a + s.b + s.la + s.lb + s.hand + s.flap + (s.hb || 0) + (s.hx || 0) + s.face;
 
-  function makeCreeper(f, v) {
+  function makeCreeper(f, v, sq) {
     const TOP = v ? R.tmag : R.tpur;
     const p = new Pix(20, 26);
     const st = [
@@ -879,7 +910,7 @@
     leg(6, st.lb, true);
     leg(11, st.la, false);
     // bulb (turnip: wide shoulders, tapering to a root tip)
-    const cx = 10 + st.sx * 0.5, cy = 15 + st.by, rx = 7.6, ry = 7.4;
+    const cx = 10 + st.sx * 0.5, cy = 15 + st.by + (sq ? 1.4 : 0), rx = sq ? 8.8 : 7.6, ry = sq ? 6 : 7.4;   // sq = squash pose
     for (let y = Math.floor(cy - ry) - 1; y <= Math.ceil(cy + ry) + 1; y++) {
       for (let x = Math.floor(cx - rx) - 1; x <= Math.ceil(cx + rx) + 1; x++) {
         const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry;
@@ -909,8 +940,11 @@
     p.set(ex - 1, ey - 2, B); p.set(ex, ey - 1, B); p.set(ex + 1, ey - 1, B);
     p.set(ex + 5, ey - 2, B); p.set(ex + 4, ey - 1, B); p.set(ex + 3, ey - 1, B);
     const E = R.glow;
-    p.set(ex, ey, E[2]); p.set(ex + 1, ey, E[1]); p.set(ex, ey + 1, E[1]); p.set(ex + 1, ey + 1, E[0]);
-    p.set(ex + 3, ey, E[2]); p.set(ex + 4, ey, E[1]); p.set(ex + 3, ey + 1, E[0]); p.set(ex + 4, ey + 1, E[0]);
+    if (sq) { for (const dx of [0, 1, 3, 4]) p.set(ex + dx, ey + 1, B); }   // eyes squeezed shut
+    else {
+      p.set(ex, ey, E[2]); p.set(ex + 1, ey, E[1]); p.set(ex, ey + 1, E[1]); p.set(ex + 1, ey + 1, E[0]);
+      p.set(ex + 3, ey, E[2]); p.set(ex + 4, ey, E[1]); p.set(ex + 3, ey + 1, E[0]); p.set(ex + 4, ey + 1, E[0]);
+    }
     const my = ey + 4;
     p.set(ex, my + 1, B); p.set(ex + 1, my, B); p.set(ex + 2, my, B); p.set(ex + 3, my, B); p.set(ex + 4, my + 1, B);
     p.set(ex + 1, my + 1, R.cream[4]);
@@ -1815,7 +1849,7 @@ ${B} #pausebox { font: 700 48px 'Pixelify Sans', monospace; color: #ffd36a; ${OU
     id: 'harvest16',
     name: 'Herbsternte 16-Bit',
     family: 'Pixel Art',
-    description: 'Gemütlicher Herbstnachmittag auf dem Acker – SNES-Pixelkunst mit warmen Farben, Laubteppichen und Furchenfeldern.',
+    description: 'Cozy SNES-era autumn farmland: warm hue-shifted pixel sprites, leaf-litter carpets, furrowed fields and wooden HUD panels.',
     pixelArt: { scale: 1 },
     groundColor: '#77963b',
     chunkSize: 256,
@@ -1826,16 +1860,17 @@ ${B} #pausebox { font: 700 48px 'Pixelify Sans', monospace; color: #ffd36a; ${OU
       buildJitter();
       buildDecals();
       buildSmall();
-      // Jack: [glow][mode][frame] → {r,l}
-      SPR.jack = [0, 1].map((g) => ({
-        walk: [0, 1, 2, 3].map((f) => pair(makeJack('walk', f, g))),
-        idle: [0, 1].map((f) => pair(makeJack('idle', f, g))),
-      }));
+      // main character poses bake lazily (pose key → {r,l}); warm the walk + idle set for both glow states
+      JCACHE.clear(); JTINT.clear();
+      for (const g of [0, 1]) for (const w of JWALK8) { jackPose(w, g); jackPose(Object.assign({}, w, { hand: 2 }), g); }
+      for (const g of [0, 1]) for (const k in JPOSE) jackPose(JPOSE[k], g);
+      for (const g of [0, 1]) for (const [bob, hb] of [[0, 0], [0, 1], [1, 0], [1, -1]]) for (const flap of [0, 1]) for (const face of ['n', 'blink']) for (const hand of [0, 2]) jackPose({ bob, a: 0, b: 0, la: 0, lb: 0, hand, flap, hb, face }, g);
+      jackTint(JPOSE.go, '#ffc36a'); jackTint(JPOSE.hurt, '#ffffff');
       const tintPair = (pr, col, a) => ({ r: U.tint(pr.r, col, a), l: U.tint(pr.l, col, a) });
-      SPR.jackFlash = { walk: SPR.jack[0].walk.map((p) => tintPair(p, '#ffffff', 1)), idle: SPR.jack[0].idle.map((p) => tintPair(p, '#ffffff', 1)) };
-      SPR.jackDash = { walk: SPR.jack[0].walk.map((p) => tintPair(p, '#ffc36a', 1)), idle: SPR.jack[0].idle.map((p) => tintPair(p, '#ffc36a', 1)) };
       SPR.creeper = [0, 1].map((v) => [0, 1, 2, 3].map((f) => pair(makeCreeper(f, v))));
       SPR.creeperF = SPR.creeper.map((fr) => fr.map((p) => tintPair(p, '#ffffff', 1)));
+      SPR.creeperSq = [0, 1].map((v) => pair(makeCreeper(0, v, true)));
+      SPR.creeperSqF = SPR.creeperSq.map((p) => tintPair(p, '#ffffff', 1));
       SPR.ghost = [0, 1, 2, 3].map((f) => pair(makeGhost(f)));
       SPR.ghostF = SPR.ghost.map((p) => tintPair(p, '#ffffff', 1));
       SPR.colossus = [0, 1, 2, 3].map((f) => pair(makeColossus(f)));
@@ -1855,7 +1890,7 @@ ${B} #pausebox { font: 700 48px 'Pixelify Sans', monospace; color: #ffd36a; ${OU
       this._ov = null;
       // debug sheet for tools/scratch
       this._sheet = [
-        ...SPR.jack[0].walk.map((p) => p.r), ...SPR.jack[0].idle.map((p) => p.r), SPR.jackFlash.walk[0].r,
+        ...JWALK8.map((w) => jackPose(w, 0).r),
         ...SPR.creeper[0].map((p) => p.r), ...SPR.creeper[1].map((p) => p.r),
         ...SPR.ghost.map((p) => p.r), ...SPR.colossus.map((p) => p.r),
         ...SPR.trees.map((t) => t[1].r), ...SPR.trees.map((t) => t[0].r),
@@ -2002,43 +2037,54 @@ ${B} #pausebox { font: 700 48px 'Pixelify Sans', monospace; color: #ffd36a; ${OU
     },
 
     drawPlayer(ctx, p, view) {
-      const mode = p.moving ? 'walk' : 'idle';
-      const frame = p.moving ? Math.floor(p.anim) & 3 : Math.floor(view.rt * 2.2) & 1;
+      if (p.__ph === undefined) p.__ph = Math.random() * 10;
+      const t = view.rt + p.__ph, since = 1.4 - p.dashCd;
+      let s, wf = -1;
+      if (p.dashT > 0) s = 0.2 - p.dashT < 0.05 ? JPOSE.wind : JPOSE.go;
+      else if (p.hurtT > 0.55) s = JPOSE.hurt;
+      else if (p.dashCd > 0 && since < 0.32) s = JPOSE.skid;
+      else if (p.moving) { wf = Math.floor(p.anim * 1.3) & 7; s = JWALK8[wf]; }
+      else {
+        // idle: breath on a 1.15 s beat with the head 0.14 s behind, blink every 3.6 s, cape/scarf stir every 4.6 s
+        const br = Math.floor(t / 1.15) & 1, hb = (Math.floor((t - 0.14) / 1.15) & 1) - br;
+        s = { bob: br, a: 0, b: 0, la: 0, lb: 0, hand: 0, flap: (t % 4.6) < 0.45 ? 1 : 0, hb, face: (t % 3.6) < 0.13 ? 'blink' : 'n' };
+      }
+      if (p.shootT > 0.6 && s !== JPOSE.go && s !== JPOSE.wind && s !== JPOSE.hurt) s = Object.assign({}, s, { hand: 2 });
       const fl = p.facing < 0 ? 'l' : 'r';
       const flick = U.noise(view.rt * 9, 0.5, 3) > 0.62 ? 1 : 0;
-      const base = SPR.jack[flick][mode][frame][fl];
+      const base = jackPose(s, flick)[fl];
       const ax = base.width / 2, ay = base.height - 1;
-      // dash smear: tinted afterimages
+      // dash smear: tinted afterimages of the stretch pose
       if (p.dashT > 0) {
-        const di = SPR.jackDash[mode][frame][fl];
+        const di = jackTint(JPOSE.go, '#ffc36a')[fl];
         for (let k = 3; k >= 1; k--) {
           ctx.globalAlpha = 0.16 * (4 - k);
           blit(ctx, di, p.x - p.dashX * k * 7, p.y - p.dashY * k * 7, ax, ay);
         }
         ctx.globalAlpha = 1;
       }
-      // footstep dust
-      if (p.moving && (frame === 0 || frame === 2) && this._lastStep !== frame) {
-        this._lastStep = frame;
+      // footstep dust when the weight lands (the "down" frames)
+      if ((wf === 1 || wf === 5) && this._lastStep !== wf) {
+        this._lastStep = wf;
         view.game.addParticle({ x: p.x - p.facing * 4, y: p.y, z: 1, vx: -p.facing * 8, vy: -2, vz: 4, kind: 'dust', life: 0.35, size: 1.4, drag: 4 });
       }
       if (!p.moving) this._lastStep = -1;
       // invulnerability blink
-      if (p.iframes > 0 && p.hurtT < 0.5 && Math.floor(view.rt * 18) % 2 === 0) ctx.globalAlpha = 0.35;
-      const img = p.hurtT > 0.55 ? SPR.jackFlash[mode][frame][fl] : base;
+      if (p.iframes > 0 && p.hurtT <= 0.55 && Math.floor(view.rt * 18) % 2 === 0) ctx.globalAlpha = 0.35;
+      const img = p.hurtT > 0.55 && (Math.floor(view.rt * 16) & 1) === 0 ? jackTint(s, '#ffffff')[fl] : base;
       blit(ctx, img, p.x, p.y, ax, ay);
       ctx.globalAlpha = 1;
     },
 
     drawEnemy(ctx, e, view) {
-      const fl = e.facing < 0 ? 'l' : 'r';
+      const fl = e.facing < 0 ? 'l' : 'r', v = e.seed < 0.5 ? 0 : 1;
       let set, flash, frame, lift = 0;
       if (e.type === 'ghost') {
         frame = Math.floor(view.rt * 6 + e.seed * 4) & 3;
         set = SPR.ghost; flash = SPR.ghostF;
-        lift = 3 + Math.round(Math.sin(view.rt * 3 + e.seed * 6) * 1.5);
+        lift = 2 + [0, 0, 1, 2, 3, 3, 2, 1][Math.floor(view.rt * 5 + e.seed * 8) & 7];   // eased float: holds at top and bottom
       } else if (e.type === 'colossus') {
-        frame = Math.floor(e.anim * 1.2) & 3;
+        frame = Math.floor(e.anim * 1.2 + e.seed * 4) & 3;
         set = SPR.colossus; flash = SPR.colossusF;
         if ((frame === 1 || frame === 3) && e._lf !== frame && e.spawnT >= 1 && !e.dying) {
           view.game.addParticle({ x: e.x - 8, y: e.y, z: 1, vx: -10, vz: 6, kind: 'dust', life: 0.45, size: 2.2, drag: 3 });
@@ -2046,14 +2092,27 @@ ${B} #pausebox { font: 700 48px 'Pixelify Sans', monospace; color: #ffd36a; ${OU
         }
         e._lf = frame;
       } else {
-        frame = Math.floor(e.anim * 1.6) & 3;
-        const v = e.seed < 0.5 ? 0 : 1;
+        frame = Math.floor(e.anim * 1.6 + e.seed * 4) & 3;
         set = SPR.creeper[v]; flash = SPR.creeperF[v];
       }
       const img = set[frame][fl];
       const ax = img.width / 2, ay = img.height - 1;
       if (e.dying) {
-        if (e.deathT < 0.2) blit(ctx, flash[frame][fl], e.x, e.y - lift - 1, ax, ay);
+        const k = e.deathT;
+        if (e.type === 'ghost') {
+          // a white flash, then the sheet rises and thins away
+          if (k < 0.15) { blit(ctx, flash[frame][fl], e.x, e.y - lift - 1, ax, ay); return; }
+          ctx.globalAlpha = 0.86 * (1 - (k - 0.15) / 0.85);
+          blit(ctx, img, e.x, e.y - lift - Math.round((k - 0.15) * 18), ax, ay);
+          ctx.globalAlpha = 1;
+          return;
+        }
+        // white pop in the squash pose, then the crumpled body holds a beat before the burst takes over
+        if (k < 0.3) {
+          const sq = e.type === 'colossus' ? (k < 0.12 ? flash[0] : set[0]) : (k < 0.12 ? SPR.creeperSqF[v] : SPR.creeperSq[v]);
+          const im = sq[fl];
+          blit(ctx, im, e.x, e.y + (e.type === 'colossus' && k >= 0.12 ? 2 : 0), im.width / 2, im.height - 1);
+        }
         return;
       }
       const useFlash = e.flash > 0.45;
@@ -2090,8 +2149,13 @@ ${B} #pausebox { font: 700 48px 'Pixelify Sans', monospace; color: #ffd36a; ${OU
         return;
       }
       e._sp = false;
+      // hit: flash + squash pose (small creature) + 2-px recoil for ~120 ms
+      const hit = e.hitT < 0.12 && e.flash > 0.05;
+      const rec = hit ? Math.round((1 - e.hitT / 0.12) * 2) * (e.facing < 0 ? 1 : -1) : 0;
+      let im = useFlash ? flash[frame][fl] : img;
+      if (hit && e.type === 'creeper') im = (useFlash ? SPR.creeperSqF[v] : SPR.creeperSq[v])[fl];
       if (e.type === 'ghost') ctx.globalAlpha = 0.86;
-      blit(ctx, useFlash ? flash[frame][fl] : img, e.x, e.y - lift, ax, ay);
+      blit(ctx, im, e.x + rec, e.y - lift, im.width / 2, im.height - 1);
       ctx.globalAlpha = 1;
     },
 

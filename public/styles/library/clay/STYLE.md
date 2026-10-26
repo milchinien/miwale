@@ -15,7 +15,7 @@ Everything looks hand-rolled from modelling clay and filmed on a tabletop miniat
 | Pixel art | No — native resolution, sprites baked at 3–5 px per world unit |
 | Complexity | 5/10 — soft shapes are forgiving, but each new figure needs a few passes to read as plasticine |
 | Fonts | Chewy (titles, numbers), Baloo 2 500–800 (body) |
-| Key colours | meadow `#76a454`, purple clay `#66507e`, ochre path `#d6a262`, pond `#7ebad2`, pumpkin `#ee7a22`, candle `#ffd458`, plum shadow `#401a34`, panel cream `#f5ddb8` |
+| Key colours | meadow `#76a454`, purple clay `#806c96`, ochre path `#d6a262`, pond `#7ebad2`, pumpkin `#ee7a22`, candle `#ffd458`, plum shadow `#401a34`, panel cream `#f5ddb8` |
 
 ## When to use it
 
@@ -31,7 +31,7 @@ Everything looks hand-rolled from modelling clay and filmed on a tabletop miniat
 | --- | --- | --- |
 | Meadow clay | `#76a454` | Default ground (~40% of screen); canvas clear colour `#78a854` |
 | Meadow light | `#8cac5a` | Second meadow tone blended in large noise patches |
-| Purple clay | `#66507e` | Raised dark sheets, graveyard zones |
+| Purple clay | `#806c96` | Dusty-purple heath patches with little groups of gravestones |
 | Soil | `#986c4a` | Raised brown fields |
 | Ochre path | `#d6a262` | Raised winding paths and clearings |
 | Pond | `#7ebad2` | Sunken glossy water sheets |
@@ -85,7 +85,7 @@ Text effects:
 1. **Init:** choose sprite resolution `K = clamp(round(screenPxPerUnit * 1.2), 3, 5)` px per world unit (360 world units are visible vertically).
 2. **Build the fingerprint tile** (192×192 px, tileable via 9 offset draws): 7 thumbprints of 5–8 concentric partial ellipses (radius 9–18 px, aspect 1.25, sweep π–1.9π) plus 12 curved tool smears. Every stroke is drawn twice: dark `rgba(70,28,20,0.1)` (0.9 px), then light `rgba(255,246,232,0.09)` 0.9 px lower.
 3. **Build the ground height texture** (256×256, 2 texels per unit, tileable fBm) and convert it to a lighting modulator `MOD = (h[x-1,y-1] - h[x+1,y+1]) * 2.4 + (h - 0.5) * 0.08 + hashNoise * 0.008` — a diagonal derivative = light from the top-left.
-4. **Bake every sprite** into its own canvas at K px/unit: the main character (1 idle + 4 walk frames, normal + squeezed face), each creature type × 4 frames (× 3 colour variants), props (2–4 variants each), collectibles, projectile, 14 crumb balls, 14 splats, the rising mound. Each frame gets its own RNG seed (`100 + frame`, `200 + variant*10 + frame`, ...) so lumps and fingerprint offsets differ — this is the boil. A cream-tinted copy (`#fff8ec`, source-atop) and mirrored copies are stored next to each frame.
+4. **Bake every sprite** into its own canvas at K px/unit: the main character (1 stand + 8 walk poses, plus one squeezed-face hurt drawing), each creature type × 4 frames (× 3 colour variants), props (2–4 variants each), collectibles, projectile, 14 crumb balls, 14 splats, the rising mound. Each frame gets its own RNG seed (`100 + frame`, `200 + variant*10 + frame`, ...) so lumps and fingerprint offsets differ — this is the boil. A cream-tinted copy (`#fff8ec`, source-atop) and mirrored copies are stored next to each frame.
 5. **Ground chunks** (256 units, ≤ 2.5 px/unit) are rendered lazily by a generator that yields every few rows: sample material fields on a 4-unit grid, per pixel compute signed distance + lit bevel/shadow, multiply by `MOD`, `putImageData`, then stamp decals with canvas paths.
 6. **Per frame draw order:** ground chunks → ground overlay (additive light pool under the main character, collectible glows, splats, rising mounds) → collectibles → soft shadows of all figures/props → y-sorted props, creatures, main character (blits) → orbiting objects → projectiles → particles → floating numbers → screen overlay (vignette + top light).
 7. Sprites are drawn with `drawImage` at `1/K` scale, optionally under a rotation transform. Smoothing stays ON (this is not pixel art).
@@ -94,17 +94,21 @@ Text effects:
 
 The floor is a **tabletop of flat clay sheets** laid on top of each other, all lit by the same top-left key light `L = (-0.42, -0.907)`.
 
-- **Fields:** 4 domain-warped fBm fields (warp ±110 units at 1/900 frequency) decide soil (scale 760), purple (600), pond (420) and ochre (clearings at 650 + thin winding paths from `|perlin| < 0.019` at 1/1500). A field > 0 means "inside the sheet". Later layers sit on top: meadow < soil < purple < pond < path.
+The set is **composed like a model railway table**: a calm green meadow sheet, one winding ochre path rolled to a constant width, small furrowed garden beds, dusty-purple heath patches and sunken ponds, with props grouped around these features.
+
+- **Fields:** domain-warped fBm fields (warp ±110 units at 1/900 frequency) decide the garden beds (soil, scale 460, threshold 0.64), heath patches (purple, 420 / 0.675) and ponds (420 / 0.675). The **path** is `13 + 1.8·perlin(x/210) − |n| / |∇n|` in world units, where n is a warped 1/1500 perlin. That is half-width minus the distance to the noise's zero line, so it keeps a constant ~26-unit width and only wavers gently. A field > 0 means "inside the sheet". Later layers sit on top: meadow < soil < heath < pond < path.
 - **Signed distance:** fields are sampled on a 4-unit grid and bilinearly interpolated; `dist = value / |gradient|` gives a pixel distance to the sheet edge, `ld = -(grad · L) / |grad|` with `L = (-0.42, -0.907)` gives how much the edge faces the light.
 - **Raised sheet (soil, purple, path):** outside within `SW = 3.4` units → cast shadow `k = 0.4 * sh² * (0.35 + 0.65 * max(0, -ld))`; inside within `BW = 3.0` units → bevel `f = 1 + ld * 0.42 * p² + 0.09 * exp(-((p - 0.55)/0.22)²) - 0.03 * p³` (p = 1 at the edge → 0 inside). The Gaussian term is a thin bright crest just inside the edge — the "rolled lip" of a clay sheet. 1-pixel anti-aliased coverage `cov = clamp(dist + 0.5)`.
 - **Sunken sheet (pond):** a darker wet bank outside (`1 - 0.1q²` over 0.7·BW), an inverted bevel inside (`1 - max(ld,0)*0.34p² + max(-ld,0)*0.16p² - 0.05p²` over 1.3·BW), and a much smoother surface (`m = 0.35`).
 - **Surface lumps:** `colour * (1 + MOD * m) * tint` with m = 1 (meadow), 1.1 (soil), 1 (purple), 0.35 (pond), 0.9 (path); `tint = 1 ± 4.5%` from very low-frequency noise. Meadow blends `#76a454` ↔ `#8cac5a` by smoothstep(0.3, 0.7, noise/420).
-- **Decals** (jittered 10-unit grid, ~30% of points used, never within 6 units of a material border):
-  - Meadow: "modelling-tool" grass imprints (fans of 3–5 curved strokes, 0.65 units, alpha 0.16), rolled green grass sprouts (sausage strokes 1.0 wide), 5-petal flowers (`#faf6ec`, `#f6a0b6`, `#fcd65a`, `#b096e2`, petals 0.82 units with darker under-copy 0.2 lower, yellow bump centre), grey pebbles.
-  - Soil: pebbles (`#b28460`, `#7e583e`, `#a0968c`, `#c4a078`), pink worms (`#e28c96`, wavy sausage 1.5 wide), twigs.
-  - Purple: spiral imprints, purple pebbles, tiny lilac mushrooms.
-  - Pond: lily pads (`#58964a` / `#70ae56`, 4 × 2.6 units, notch line in pond colour), ripple rings, and **studio-light reflections**: a radial white blob squashed to 0.32 height, rotated -0.18, 9–16 units wide, plus a 0.55-alpha core ellipse.
-  - Path: thumbprints (5 concentric partial ellipses, 0.85 units apart) and footprints.
+- **Decals are composed, not sprinkled** (jittered 10-unit grid):
+  - *Drifts:* the meadow's grass imprints (fans of 3–5 curved strokes, 0.65 units, alpha 0.16) and rolled green sprouts (sausage strokes 1.0 wide) only appear where a drift field `smoothstep(0.56, 0.78, noise(x/170))` is high. Large stretches of meadow stay plain modelled clay.
+  - *Fringes:* sprouts line the meadow wherever it meets another sheet. Ochre pebbles line the path edges and brown pebbles the bed edges.
+  - *Posies:* flowers come in posies of 4–7 (`#faf6ec`, `#f6a0b6`, `#fcd65a`, `#b096e2`, petals 0.82 units with a darker under-copy 0.2 lower, yellow bump centre), only where a sparse patch field `noise(x/110) > 0.7` peaks.
+  - *Furrows:* world-aligned rows 7 units apart, gently waving, pressed into the garden beds with the modelling tool (imprint 1.0 wide, alpha 0.2). Rows continue across chunks. A few pebbles (`#b28460`, `#7e583e`, `#a0968c`, `#c4a078`), pink worms (`#e28c96`) and twigs.
+  - *Heath:* rare spiral imprints; purple pebbles and tiny lilac mushrooms in drift clusters.
+  - Pond: lily pads in rafts where the drift field is high (`#58964a` / `#70ae56`, 4 × 2.6 units, notch line in pond colour), ripple rings, and **studio-light reflections**: a radial white blob squashed to 0.32 height, rotated -0.18, 9–16 units wide, plus a 0.55-alpha core ellipse.
+  - Path: the odd thumbprint (5 concentric partial ellipses, 0.85 units apart) and pairs of footprints.
 - An **imprint** is a dark stroke `rgba(52,26,12,a)` plus a lighter stroke `rgba(255,246,222,0.95a)` at 0.6 width shifted 0.6w down; a **bump** (pebble) is a shadow ellipse offset (+0.22rx, +0.5ry), a radial gradient body and a small highlight ellipse at the upper left.
 - **Ground overlays** drawn per frame: an additive warm light pool under the main character (34 × 18 units, alpha 0.16), collectible glows, temporary clay splats, clay mounds where figures rise.
 
@@ -124,9 +128,14 @@ All figures are chunky toy assemblies of clay primitives painted back to front w
 
 Proportions: head ≈ 55–60% of height, body tiny, limbs stubby (r 1.25–1.4). Feet at y = 0, origin bottom-centre.
 
-**Animation frames** (back foot x/y, front foot x/y, back arm, front arm, body lift):
-`idle [-2.1,0, 2.3,0, 0.18,-0.18, 0]`, walk `[-3.5,0, 3.7,-0.2, 0.8,-0.75, 0]`, `[-0.8,-1.7, 1.0,0, 0.25,-0.2, 0.9]`, `[3.5,-0.2, -3.3,0, -0.7,0.8, 0]`, `[1.0,0, -0.8,-1.7, -0.2,0.25, 0.9]`.
-An alternative face swaps the carved face for squeezed slits and an "O" mouth. Facing = mirrored sprite.
+**Animation frames:** 1 stand + **8 walk poses** (contact, down, passing, up, then the same with the legs swapped), each baked with its own lump seed. Every frame is `[back foot x, y, front foot x, y, back arm, front arm, body lift, head lift]`, computed from a pose table:
+- near-foot x `[3.8, 2.2, 0, −2.2, −3.6, −1.6, 1.0, 2.8]`, lift `[0, 0, 0, 0, 0.2, 1.6, 2.1, 1.0]`; the far foot runs half a cycle behind;
+- body lift `[0, −0.85, 0.45, 1.05]` twice (down is lower, up is higher);
+- arms swing at `−0.78 · x / 3.8` of the **previous** frame (overlapping action);
+- the heavy head takes the previous frame's lift, so it lags the body by one drawing;
+- the scarf tail flutters twice per cycle (`0.44 + 0.16·sin`).
+
+The stand frame is `[-2.1,0, 2.3,0, 0.18,-0.18, 0, 0]`. A separate hurt drawing swaps the carved face for squeezed slits and an "O" mouth. Facing = mirrored sprite.
 
 **Small creature** (a two-tone root bulb, ~21 × 22 units, scale 0.92): three leaf blades (leafPath, length 8–10, width 2.5–2.9, centre groove), two root legs (capsules r 1.5, `#e4caa0`), a bulb body (cream base, `spec 0.35`, `lit 0.12`) with a **second clay layer smeared on top** — a wavy-bottomed purple shape painted inside the body's clip with its own AO and contact shadow. Two googly eyes (white clay balls 2.5 × 2.8 with black pupils `#1e1420` and a white catch-light), angry brow capsules (`#4a2852`, r 0.75, `cast 0.5`), a pressed frown groove (width 0.7, alpha 0.55). Three colour variants: `#8650ac`, `#b24c8e`, `#685cbe` tops. Per-instance size `0.94 + seed * 0.12`.
 
@@ -154,16 +163,25 @@ Parameters per part: `lit` (key light strength), `dark` (override shadow colour)
 
 ## Props
 
-Props use the same clay() painter and back-to-front assembly as the characters (contact shadows between parts, pressed grooves for detail, broad soft spec, glossy dots only on berries). Each prop has a fixed soft plum-brown shadow ellipse and 2–4 baked variants.
+Props use the same clay() painter and back-to-front assembly as the characters (contact shadows between parts, pressed grooves for detail, broad soft spec, glossy dots only on berries). Each prop has a fixed soft plum-brown shadow ellipse and 1–4 baked variants.
 
-- **Trees**: capsule trunk r 3.4 `#865e40` with 3 grooves, 5 lumpy foliage balls r 8–11 alternating ±5% lightness, red berries or white blossoms; shadow 17 × 5.5.
-- **Bushes**: 4 lumps + berries; shadow 14 × 4.5.
-- **Mushrooms**: dome + cream spots.
-- **Fences**: capsule posts and rails with pressed grooves.
-- **Gourds** with pressed ribs.
-- **Gravestones**: grey slab `#9a96a4` with a pressed cross and a chipped-corner groove.
-- **Hay domes**: 90 straw strokes.
-- **Rocks**: 1–2 grey lumps.
+- **Trees** (4): capsule trunk r 3.4 `#865e40` with 3 grooves, 5 lumpy foliage balls r 8–11 alternating ±5 % lightness. Variants: green with red berries, lime, autumn orange, blue-green with white blossoms. Shadow 17 × 5.5.
+- **Bushes** (2): 4 lumps + red or yellow berries; shadow 14 × 4.5.
+- **Cattails** (2): 3–4 rolled green blades (capsules r 0.85 in `#5c9646` / `#7cac52`) and brown cattail heads `#805232` on thin stems.
+- **Mushrooms** (2): dome + cream spots. **Fences** (2): capsule posts and rails with pressed grooves. **Gourds** (2) with pressed ribs. **Gravestones** (2): grey slab `#9a96a4` with a pressed cross and a chipped corner. **Hay dome** with 90 straw strokes. **Rocks** (2): 1–2 grey lumps.
+
+**Placement is composed** (32-unit jittered grid):
+- **Groves:** a woodland field `fbm(x/380)` makes groves on the meadow.
+  - Inside (> 0.62): trees (40 %), mushrooms underneath (10 %) and a few bushes.
+  - On the rim (0.575–0.62): bushes (30 %), the odd tree and rock.
+- **Open meadow:** nearly empty (1 % trees, 1 % rocks, 0.6 % bushes).
+- **Pond shores:** cattails, 55 % of the meadow cells next to water.
+- **Path edges:** fences (10 %) and rocks (6 %).
+- **Garden beds:** pumpkin patches where a patch field is high, a hay dome, an autumn tree at the edge.
+- **Heath:** gravestones in little groups (only where a group field peaks), purple mushrooms, a blossom tree, rocks.
+- A clear area of 95 units stays around the start point.
+
+**Breeze, on twos:** trees (0.018), bushes (0.012) and cattails (0.06) skew around their base. The sway is sampled at 12 fps (`floor(t·12)/12`), so the set looks nudged by an animator between exposures. Each prop has its own phase.
 
 ## Effects and particles
 
@@ -223,14 +241,27 @@ The HUD is made of the same clay: **slabs with thickness**. Panels use a cream r
 
 ## Motion and animation
 
-- **12 fps everything:** `step = Math.floor(t * 12)`; positions of bobs/pulses use `Math.floor(t * 12) / 12`.
+- **12 fps everything (on twos):** `step = Math.floor(t * 12)`; positions of bobs/pulses use `Math.floor(t * 12) / 12`. Removal sequences step at 40 steps per sequence.
 - **Boil:** per step, `bj = hash(step, seed) - 0.5` → `sx *= 1 + bj*0.02`, `sy *= 1 - bj*0.018`, `rot += bj2*0.025` (main character) / `0.035`, `0.03`, `0.04` (creatures). Combined with per-frame seeded bakes this makes the clay "breathe" like re-sculpted stop-motion.
-- **Main character:** walk frame `1 + (floor(anim * 0.34 * 4) & 3)`; contact frames squash `1.04 × 0.96`, passing frames `0.98 × 1.03`; lean `0.035 × facing`. Idle breathes `sy = 1 + 0.025·sin(floor(t*6)/6 * 2.8)`. Action squash up to 5%, celebration wobble ±16% for a moment, impact squash 15% wide.
-- **Small creature:** 4-frame waddle, rock `[0, 0.07, 0, -0.07]` rad, odd frames hop 1.1 units and stretch 1.03, even frames squash 1.05 × 0.95.
-- **Large creature:** 4-frame stomp, odd frames lift 1.2 units, even frames squash 1.06 × 0.94, rock ±0.03.
-- **Floating creature:** frame rate 1.8 cycles/s, hover `5 + sin(q*2.4 + seed*12) * 1.6` units, tilt `clamp(vx/60) * 0.12`.
+- **Main character walk:** 8 drawn poses at `frame = 1 + (floor(anim · 1.3) & 7)` (12 fps at walking speed). The down poses squash `1.045 × 0.955` at draw time, the up poses stretch `0.975 × 1.03`; lean `0.035 × facing`. Arms one drawing behind the legs, the head one drawing behind the body. Idle breathes `sy = 1 + 0.025·sin(floor(t*6)/6 * 2.8)`. Action squash up to 5 %, celebration wobble ±16 %, impact squash 15 % wide.
+- **Small creature hop (8 steps at 12 fps, 4 boiled drawings held on twos, own phase per creature):**
+  - steps: crouch, take-off stretch, rise, apex, fall, fall stretch, landing squash, settle;
+  - air `[0, 0.5, 0.92, 1, 0.7, 0.25, 0, 0] × 2.8` units;
+  - squash `[0.8, −0.6, −0.25, 0.05, −0.15, −0.45, 1.0, 0.35]` (width × (1 + 0.085·s), height × (1 − 0.095·s));
+  - tilt up to ±0.08 rad.
+- **Large creature:** 4-frame stomp; odd frames lift 1.4 units and stretch 2 %, even frames squash 1.08 × 0.92 (heavy contact); rock ±0.035.
+- **Floating creature:** hover `5 + sin(th)·1.6 + sin(2th + 0.7)·0.45` units on twos, stretching 4.5 % while it rises and squashing while it sinks; tilt `clamp(vx/60) * 0.14`.
+- **Hit (~0.5 s):** a thumb-press dent that springs back, stepped at 24 fps.
+  - Spring: `w = e^(−9t)·cos(26t)`, width × (1 + 0.24w), height × (1 − 0.22w).
+  - The body tilts 0.28 rad away from the blow, decaying `e^(−8t)`.
+  - The pale clay flash copy is laid on top at `min(0.85, flash·1.3)`.
+- **Removal (deathT 0 → 1, 0.35 s in motion):**
+  - *Squish:* the creature stretches up in anticipation (height +16 %, 0–0.12), then is pressed flat by an invisible thumb with a little twist (width 1.9, height 0.2, 0.12–0.3). The clay disc then shivers and sinks into the set (0.3–1).
+  - *Ghosts:* puff up in the pale flash, then slump, spread and melt into a puddle that fades.
+  - Clay crumbs (0.8 s) and a splat decal (1.7–2.2 s) carry the residue.
+- **Spawn:** a clay mound swells (outBack), the creature rises out of the ground row by row (8 visible steps) with a wobble, and the mound shrinks away; ghosts fade up out of it.
 - **Collectibles:** bob `3 + sin(q*4 + seed*20)` units; when collected they hop `sin(πt)·9` and pop with outBack.
-- **Floating numbers:** pop 0.4 → 1.25 → 1 with an extra horizontal squash in the first 22% of life, shrink to 40% and fade at the end, rotated ±0.125 rad.
+- **Floating numbers:** pop 0.4 → 1.25 → 1 with an extra horizontal squash in the first 22 % of life, shrink to 40 % and fade at the end, rotated ±0.125 rad.
 - **Camera:** impacts squash sprites, never shake them; only big bursts shake the camera (3 units).
 - UI animations use `steps()` timing; never ease smoothly.
 
@@ -385,7 +416,7 @@ function sheetPixel(under, layer, dist, ld, bwPx, swPx) {
 
 ## Performance notes
 
-- Never call the clay() painter per frame — it uses several `shadowBlur` fills per part. Bake everything (main character 5 frames × 2 faces, creatures 4 frames × variants, props, particles, icons) at init; the module bakes ~80 sprites in well under a second.
+- Never call the clay() painter per frame — it uses several `shadowBlur` fills per part. Bake everything (main character 9 poses + 1 hurt drawing, creatures 4 frames × variants, props, particles, icons) at init; the module bakes ~80 sprites in well under a second.
 - Per frame cost is just `drawImage` blits + a handful of additive glow sprites + one full-screen overlay sprite (< 2 ms for hundreds of figures).
 - Ground is the hot spot: per-pixel SDF + texture lookup. Render 256-unit chunks lazily with a generator (yield every 4 rows / per 128-pixel band), cap ground resolution at 2.5 px/unit, and skip per-pixel SDF work in grid cells that are fully inside or outside every sheet (classify each 4-unit cell first — the module does this and only runs the full maths near edges).
 - Cache floating-number sprites per value (clear above 400 entries); wait for the Chewy font before caching.
@@ -403,7 +434,7 @@ Use the Clay World art style for my project (stop-motion plasticine miniature se
 - Characters are chunky toy assemblies of lumpy balls, capsules and blobs painted back to front; each part casts a
   soft contact shadow onto parts behind it. Big glossy heads, googly white-clay eyes or carved glowing faces.
 - Details are pressed grooves (dark furrow + light lip below), never drawn lines. Props (trees, fences, rocks) the same way.
-- Ground: flat clay sheets (meadow #76a454, purple #66507e, soil #986c4a, ochre path #d6a262, sunken pond #7ebad2)
+- Ground: flat clay sheets (meadow #76a454, purple #806c96, soil #986c4a, ochre path #d6a262, sunken pond #7ebad2)
   with raised bevelled edges (3 units), soft cast shadows (3.4 units), light from (-0.42,-0.907), a lumpy hand-pressed
   height texture, and imprinted decals (grass tool marks, flowers, pebbles, thumbprints, lily pads, glossy reflections).
 - Warm studio lighting: soft plum-brown ellipse shadows under figures, additive candle glow (#fff7c4 -> #ffd458 -> #ff8f22),

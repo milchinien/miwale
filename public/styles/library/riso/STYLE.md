@@ -85,12 +85,12 @@ Drawing rules:
 A risograph print of a park seen from above, bottom to top:
 
 1. **Paper** `#f3ede0` with 2 % random grain and rare darker fibre flecks.
-2. **Grain clouds** on bare paper: pink FM stipple up to 24 % density and yellow up to 20 %, each following its own slow noise (scale ~400 units) – the soft riso gradient where the two overlap orange.
-3. **Meadow fields** – hand-cut blobs (fbm at 1/560, threshold 0.6, domain-warped by 90 units): yellow halftone 0.27 at 45° plus blue halftone 0.11 at 75°, which rosette into green, plus a sparse blue stipple gradient (up to 10 %).
-4. **Blossom fields** (fbm 1/520, threshold 0.63): pink halftone 0.25 with yellow stipple (up to 36 %).
-5. **Paths** – a ridge of low-frequency noise, ~40 units wide: yellow halftone 0.46 with a 5 % pink speckle. Paths knock out the fields below them.
+2. **Tint clouds** on bare paper: AM halftone fades on the pink screen (15°, up to tone 0.30) and the yellow screen (45°, up to 0.26), each following its own slow noise (scale ~400 units). The dots grow toward the cloud core – `tone = ((cloud − 0.3) × 1.43)² × max` – so every cloud has a printed gradient edge, and where pink and yellow overlap the rosette prints orange. No FM speckle on open paper: the calm paper is part of the composition.
+3. **Meadow fields** – hand-cut blobs (fbm at 1/560, threshold 0.6, domain-warped by 90 units): yellow halftone 0.27 at 45° plus blue halftone 0.11 at 75°, which rosette into green, plus a faint blue stipple (up to 3.5 %).
+4. **Blossom fields** (fbm 1/520, threshold 0.63): pink halftone 0.25 with a light yellow stipple (up to 12 %).
+5. **Paths** – a ridge of low-frequency noise, ~40 units wide: yellow halftone 0.46 with a 2 % pink speckle. Paths knock out the fields below them.
 6. **Ponds** (fbm 1/430, threshold 0.66): solid blue with dashed wavy paper lines (rows 7.5 units apart, dashes 55 % of 23 units, warped ±13), and a blue halftone shore fading from tone 0.5 to 0 over 9 units outside the water.
-7. **Decals** printed as extra ink on the plates every ~13 units: blue grass ticks and tufts, five-dot flowers (pink or yellow petals with an overprinted centre), tiny confetti triangles, pink pebbles on paths, yellow lily pads on ponds (they print green) with the odd pink flower.
+7. **Decals** printed as extra ink on the plates on a ~13-unit grid, but **only in clumps** (`keep = smoothstep(0.48, 0.7, noise(x/120))`, probability ÷ `0.08 + 1.2·keep`) and as a drift of blue grass ticks along every region edge: blue grass ticks and tufts, five-dot flowers (pink or yellow petals with an overprinted centre), tiny confetti triangles, pink pebbles on paths, yellow lily pads on ponds (they print green) with the odd pink flower.
 
 Every region edge is three edges: each plate samples the region fields shifted by its misregistration (`field − gradient · offset`), so a pond has a blue outline offset from the shore halftone and a path's yellow edge does not quite meet the meadow's blue dots. Drum grain (per-ink offsets into a 256 × 256 tile), density mottling (±12 % over ~120 units) and horizontal banding (±5 %) run over everything.
 
@@ -105,15 +105,16 @@ All characters are a few bold shapes, no outline, a dark overprint somewhere for
 - Blue hoodie body with a hood bump behind the head, shaded with a pink halftone gradient (violet dots, tone 0.62 → 0 towards the front), a pink halftone pocket and a yellow star badge.
 - Arms are blue capsules (r 1.4); the back arm is blue + pink (violet). Hands: yellow with pink halftone.
 - Legs: violet capsules; the back leg adds yellow (three-ink, darkest). Shoes: red-orange ellipses 5 × 2.7.
-- Poses: idle + 4-frame walk (feet up to ±4.3 units, arms swing ±0.9 rad). Dash: crouched on a red-orange skateboard (20 units long, blue wheels with paper hubs), torso leaning 0.24 rad forward.
+- **Pose table** `kp({ bf, ff, ba, fa, b, hd, pom, lean })`: back / front foot (y < 0 = lifted), arm angles, body bob, head lag, pompom lag, lean. The upper body is printed through `Press.at(0, −8.2, lean, 0, bob)` – bobbing and leaning around the hip point – and the head adds its lag. Knees are solved like a two-bone limb: when hip and ankle come closer than the leg length 7.9, the knee moves forward by `√((L/2)² − (d/2)²)` and the leg prints as two capsules.
+- **Poses**: 8 computed walk poses (`ph = i/8·2π`, foot x = `0.3 + 4.1·cos p`, lifted `2.4·sin p` on the swing, arms `±0.95·cos ph`, bob `0.9·sin 2ph`, head `0.45·sin(2ph − 0.9)`, pompom `sin(2ph − 1.8)`, lean 0.06), 3 breathing poses, a crouch (bob 2.1, arms back – the anticipation before the dash), a recoil (lean −0.22, arms flung up) and the skateboard pose: crouched on a red-orange deck (20 units long, blue wheels with paper hubs), torso leaning 0.24 rad forward.
 
-**Small creature (18 × 18)** – a gumdrop blob on two violet feet. Variant A: solid pink with a blue halftone gradient towards the lower front (violet dots) and a yellow bobble on a pink stalk. Variant B: solid blue with a yellow halftone lit side (green dots) and two pink horn triangles. Paper eyes (4.4 × 5.2) with violet pupils, a paper grin.
+**Small creature (~26 × 18 with arms)** – a gumdrop blob on two violet feet with two stubby arms in the body ink that swing against the steps; 6 waddle poses with the squash baked in (squash 0.6 at contact, stretched on the passing pose) and the bobble antenna / horns lagging 1.5 rad behind. Variant A: solid pink with a blue halftone gradient towards the lower front (violet dots) and a yellow bobble on a pink stalk. Variant B: solid blue with a yellow halftone lit side (green dots) and two pink horn triangles. Paper eyes (4.4 × 5.2) with violet pupils, a paper grin.
 
-**Fast creature (~20 × 20, floating 4 units up)** – a scribbled ghost: a dome head with a wavy tail streaming back. The silhouette is a pale pink halftone (0.2) and blue halftone gradient, filled with hand scribbles: blue back-and-forth strokes (0.75 wide, 1.2 apart, 0.55 rad) and sparser pink strokes at −0.95 rad, each turning inside the silhouette. Paper eyes with violet pupils, a pink "O" mouth, three blue and pink speed squiggles trailing behind. Four frames with different scribble seeds boil the fill.
+**Fast creature (~20 × 20, floating 4 units up)** – a scribbled ghost: a dome head with a wavy tail streaming back. The silhouette is a pale pink halftone (0.2) and blue halftone gradient, filled with hand scribbles: blue back-and-forth strokes (0.75 wide, 1.2 apart, 0.55 rad) and sparser pink strokes at −0.95 rad, each turning inside the silhouette. Paper eyes with violet pupils, a pink "O" mouth, three blue and pink speed squiggles trailing behind. Six frames with different scribble seeds boil the fill.
 
 **Large creature (~54 × 60)** – a geometric monster: a blue rounded triangle body (42 wide, 47 tall) with a yellow halftone lit side, an overprinted pink disc belly (r 12.6) that prints violet inside the triangle and pink outside it, one big yellow eye (r 7) with a vertical violet slit pupil and a paper glint, a three-ink mouth band with paper teeth, a pink horn, a yellow back arm and a pink front arm (overprinting), violet block legs.
 
-Frames: 4 walk frames per creature, baked once with three single-ink plates and a yellow pop copy for the motion effects below.
+Frames: main character 14 poses, small and fast creature 6, large creature 4 – each baked once with three single-ink plates and a yellow pop copy for the motion effects below.
 
 ## Props
 
@@ -171,12 +172,14 @@ The UI is a zine layout in the same three inks.
 
 ## Motion and animation
 
-- Main character: 4-frame walk (1-2-3-2) at anim × 0.4, step bob up to 1.6 units, lean 0.04 rad; idle breathing ±2.2 %; shooting squash 4.5 %.
-- Dash: skateboard pose, two fading single-plate copies (blue, pink) 7 and 14 units behind, four pink speed streaks 12–21 units long.
-- Small creature: waddle at anim × 0.85 with a 1.4-unit hop and ±0.07 rad rock; large creature: stomp at anim × 0.32 with 6 % contact squash and a 2.2-unit lift.
-- Fast creature: floats 4 units up, bobbing ±1.6; scribble fill re-drawn from four seeds at 8 fps so it boils.
-- Appearing: plates slide into register yellow → pink → blue over 0.45 s; vanishing: plates drift apart within 0.35 s.
-- Hit: 0.15 s yellow pop with pink and blue plates kicked ~3 units out of register, settling back.
+- **Main character walk**: 8 computed poses per stride at `floor(anim × 0.4 × 8) & 7` – contact, down, passing, up for each leg, the swing knee bending, the arms counter-swinging, head (0.9 rad delay) and pompom (1.8 rad) following through. An ink fleck kicks up on every contact pose.
+- **Idle**: 3 held breathing poses on an eased 2.6 s clock (`0.5 − 0.5·cos`, thresholds 0.3 / 0.75) – it lingers at both ends; shooting squash 4.5 %.
+- **Dash**: the crouch pose while `dashT > 0.165` (anticipation), then the skateboard pose with two fading single-plate copies (blue, pink) 7 and 14 units behind and four pink speed streaks 12–21 units long.
+- **Struck**: the recoil pose while `hurtT > 0.45`, the yellow pop and the plates kicked out of register; while invulnerable the pink and blue plates slip 2.4 units out of register every other 1/12 s (never transparency).
+- **Small creature**: 6 waddle poses at `anim × 0.85 + seed` with a 1.4-unit |sin| hop and ±0.07 rad rock; **large creature**: stomp at `anim × 0.32` with 6 % contact squash and a 2.2-unit lift.
+- **Fast creature**: 6 frames at 8 fps (offset by seed); it hovers `2.6 + 3.4·smoothstep(tri)` on a triangle wave with a 2.4 s period per ghost, so it lingers at the top and bottom; the scribble fill boils.
+- **Hit reaction** (~0.15 s): yellow pop, a 2.6-unit knock-back shove and a 0.22 rad tilt away from the blow easing out with `flash²`, pink and blue plates kicked ~3 units out of register, settling back.
+- **Appearing**: plates slide into register yellow → pink → blue over 0.45 s; **vanishing**: a yellow pop, then the plates drift apart within 0.35 s.
 - Collectibles bob at 5 rad/s; sun rays spin 1.6 rad/s; trees sway with a slow 1.3 rad/s shear.
 - UI: titles pull in over 0.5 s with an overshoot; cards slide in staggered by 70 ms.
 

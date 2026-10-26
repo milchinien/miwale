@@ -1,16 +1,17 @@
 /* Sumi-e Ink — starter kit from the miwale Game Style Library (https://miwale.com/styles/).
    Dependency-free Canvas 2D. Free to copy and adapt. Full spec: STYLE.md
    Black ink in five tones on warm xuan paper. Everything is built from one-stroke brush ribbons
-   (pressed start, tapering end, optional dry-brush "flying white" bristles) and soft ink washes,
-   baked once into sprites. One accent only: vermilion for seals, blossoms and the sash. */
+   (pressed start, tapering end, optional dry-brush "flying white" bristles) and soft ink washes.
+   Every animation pose is painted as its own drawing from a pose record and baked once; only the
+   vermilion sash tails are painted live, so they can lag behind the body. */
 (function (root) {
   'use strict';
   const PALETTE = {
     paper: '#f3ecdd', paperHi: '#f9f4e8', jiao: '#161412', nong: '#2c2926', zhong: '#56524c', dan: '#8a857c', qing: '#beb8aa',
-    groundInk: '#322f2c', shadow: '#3a3630', vermilion: '#ce3c26', vermilionDeep: '#a0261a', vermilionLight: '#e47052', silk: '#4e4b46',
+    groundInk: '#322f2c', shadow: '#3a3630', vermilion: '#ce3c26', vermilionDeep: '#a8281a', vermilionLight: '#e47052', silk: '#4e4b46',
   };
   const TONE = [[22, 20, 18], [44, 41, 38], [86, 82, 76], [138, 133, 124], [190, 184, 170]];
-  const VERM = [206, 60, 38], VERM_D = [160, 38, 24], PAPER = [243, 236, 221];
+  const VERM = [206, 60, 38], VERM_D = [160, 38, 24];
   const TAU = Math.PI * 2;
   const rgb = (c) => 'rgb(' + (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0) + ')';
   function rng(seed) {
@@ -36,6 +37,7 @@
     out.push(pts[n - 1].slice());
     return out;
   }
+  const closed = (pts) => pts.concat([pts[0]]);
 
   /* ---------------- the brush: one stroke = a ribbon with a pressed start and a tapering end ---------------- */
   // o: w width, c / c2 ink tones (rgb arrays), a alpha, ta / tb taper fractions, press, dry (0..1), bleed (halo), gs (streak scale)
@@ -84,25 +86,31 @@
     }
     ctx.restore();
   }
-  /** ink wash inside a closed shape: base tone, darker blot, optional mist fade at the bottom (bake on its own canvas) */
+  /** ink wash inside a closed shape: base tone, blurred wet blots, a dried rim, optional bleed halo and mist fade */
   function wash(ctx, P, o) {
+    const path = () => { ctx.beginPath(); P.forEach((p) => ctx.lineTo(p[0], p[1])); ctx.closePath(); };
     ctx.save();
-    ctx.beginPath(); P.forEach((p) => ctx.lineTo(p[0], p[1])); ctx.closePath();
+    path();
     if (o.bleed) { ctx.filter = 'blur(' + (o.bleed * scaleOf(ctx)).toFixed(1) + 'px)'; ctx.globalAlpha = 0.35; ctx.fillStyle = o.c; ctx.fill(); ctx.filter = 'none'; }
     ctx.globalAlpha = o.a === undefined ? 1 : o.a; ctx.fillStyle = o.c; ctx.fill();
     ctx.clip();
-    if (o.dark) { const g = ctx.createRadialGradient(o.dark[0], o.dark[1], 0, o.dark[0], o.dark[1], o.dark[2]); g.addColorStop(0, o.dk); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(-500, -500, 1000, 1000); }
-    if (o.fade) { ctx.globalCompositeOperation = 'destination-out'; const g = ctx.createLinearGradient(0, o.fade[0], 0, o.fade[1]); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); ctx.fillStyle = g; ctx.fillRect(-500, o.fade[0], 1000, 1000); }
+    for (const b of o.blobs || []) {   // wet-in-wet: darker (or paper-light) blots bleed inside the shape
+      ctx.filter = 'blur(' + ((b.blur === undefined ? 1.5 : b.blur) * scaleOf(ctx)).toFixed(1) + 'px)';
+      ctx.globalAlpha = b.a === undefined ? 0.7 : b.a; ctx.fillStyle = b.c;
+      ctx.beginPath(); ctx.ellipse(b.x, b.y, b.rx, b.ry === undefined ? b.rx : b.ry, 0, 0, TAU); ctx.fill();
+    }
+    ctx.filter = 'none';
+    if (o.dark) { const g = ctx.createRadialGradient(o.dark[0], o.dark[1], 0, o.dark[0], o.dark[1], o.dark[2]); g.addColorStop(0, o.dk); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.globalAlpha = 1; ctx.fillStyle = g; ctx.fillRect(-500, -500, 1000, 1000); }
+    if (o.rim) { ctx.globalAlpha = o.rimA || 0.5; ctx.strokeStyle = o.edge || o.c; ctx.lineWidth = o.rim; path(); ctx.stroke(); }   // the dried edge
+    if (o.fade) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'destination-out'; const g = ctx.createLinearGradient(0, o.fade[0], 0, o.fade[1]); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); ctx.fillStyle = g; ctx.fillRect(-500, o.fade[0], 1000, 1000); }
     ctx.restore();
   }
-  const blob = (cx, cy, rx, ry, r, n) => Array.from({ length: n || 12 }, (_, i) => { const a = (i / (n || 12)) * TAU, k = 1 + (r.next() - 0.5) * 0.2; return [cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]; });
   function dot(ctx, x, y, s, c, a) { ctx.globalAlpha = a; ctx.fillStyle = rgb(c); ctx.beginPath(); ctx.ellipse(x, y, s * 1.4, s * 0.6, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
-  function eye(ctx, x, y, r) { ctx.fillStyle = PALETTE.paperHi; ctx.beginPath(); ctx.ellipse(x, y, r, r * 1.1, 0, 0, TAU); ctx.fill(); ctx.fillStyle = PALETTE.jiao; ctx.beginPath(); ctx.arc(x + r * 0.35, y, r * 0.52, 0, TAU); ctx.fill(); }
 
   /* ---------------- baked sprites (K px per world unit, anchor at the feet) ---------------- */
   function bake(wu, hu, ax, ay, K, fn, seed) {
     const c = canvas(wu * K, hu * K), ctx = c.getContext('2d');
-    ctx.setTransform(K, 0, 0, K, ax * K, ay * K); ctx.lineCap = 'round';
+    ctx.setTransform(K, 0, 0, K, ax * K, ay * K); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     fn(ctx, rng(seed));
     return { c, ax, ay, wu, hu };
   }
@@ -110,35 +118,107 @@
     ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
     ctx.drawImage(s.c, -s.ax, -s.ay, s.wu, s.hu); ctx.restore();
   }
-  function paintHero(ctx, r, ph) {
-    const s = Math.sin(ph), wv = Math.cos(ph);
-    brush(ctx, [[-7.6, -2.4], [-0.8, -18], [5.9, -33.2]], { w: 1.25, c: TONE[2], ta: 0, tb: 0 }, r);                  // giant brush on the back
-    brush(ctx, [[6.3, -34.2], [7.4, -37], [8.6, -40.2]], { w: 2.9, c: TONE[0], ta: 0, tb: 0.8, press: 0.35, dry: 0.35, bleed: 0.35 }, r);
-    brush(ctx, [[-2, -12.9], [-5.8, -12.3 + wv * 0.6], [-9.4, -11.4 - wv * 0.9], [-13.2, -10.2 + wv * 1.2]], { w: 1.8, c: VERM, c2: VERM_D, ta: 0, tb: 0.6 }, r);
-    for (const [hx, dx] of [[-1.7, -2.5 * s], [1.7, 2.5 * s]]) { brush(ctx, [[hx * 0.7, -7.6], [hx + dx * 0.55, -4.1], [hx + dx, -1.3]], { w: 2.4, c: TONE[1], ta: 0, tb: 0.1, dry: 0.3 }, r); dot(ctx, hx + dx + 0.9, -0.7, 0.95, TONE[0], 1); }
-    wash(ctx, spline([[-3.4, -21.2], [0.2, -21.8], [3.4, -21], [4.8, -17], [5.4, -11.6], [6.6, -5.6], [2.2, -4.6], [-2.2, -4.9], [-6.9, -5.4], [-5.9, -11.4], [-5.1, -17.2], [-3.4, -21.2]], 4),
-      { c: PALETTE.qing, dark: [3.6, -9.5, 5], dk: 'rgba(138,133,124,0.8)', bleed: 0.7 });
-    brush(ctx, [[-3.2, -21.4], [-5.3, -16.4], [-6.1, -10.4], [-7.4, -5]], { w: 3, c: TONE[0], c2: TONE[3], ta: 0.05, tb: 0.25, press: 0.6, dry: 0.6 }, r);   // one bold back stroke
-    brush(ctx, [[3.6, -20.8], [5, -16], [5.6, -10.8], [7, -5.5]], { w: 1.4, c: TONE[1], c2: TONE[3], tb: 0.4, dry: 0.55 }, r);
-    brush(ctx, [[-7, -5.2], [-2.2, -4.3], [2.4, -4.6], [7, -5.5]], { w: 1.1, c: TONE[1], c2: TONE[3], dry: 0.65 }, r);
-    brush(ctx, [[-5.8, -13.3], [0, -12.4], [5.7, -13.1]], { w: 2.1, c: VERM, c2: VERM_D, ta: 0, tb: 0.04, press: 0.3 }, r);   // vermilion sash
-    brush(ctx, [[2.8, -20.6], [5.8, -19], [7.6 + s, -14.4], [8.1 + s, -11.9]], { w: 2.2, c: TONE[0], c2: TONE[3], tb: 0.35, press: 0.5, dry: 0.55 }, r);
-    const hx = 1.1, hy = -25, R = 3.3;
-    ctx.fillStyle = PALETTE.paperHi; ctx.beginPath(); ctx.ellipse(hx, hy, R, R * 1.08, 0, 0, TAU); ctx.fill();   // bare-paper face
-    ctx.strokeStyle = PALETTE.nong; ctx.lineWidth = 0.55; ctx.beginPath(); ctx.ellipse(hx, hy, R, R * 1.08, 0, -0.6, 2.2); ctx.stroke();
-    wash(ctx, [[hx - 0.6, hy - 3.6], [hx + 2, hy - 3.2], [hx + 3.1, hy - 1.9], [hx + 1, hy - 2.3], [hx - 0.9, hy - 0.9], [hx - 1.4, hy + 1.6], [hx - 1.1, hy + 3], [hx - 3.1, hy + 2.1], [hx - 3.7, hy - 0.9], [hx - 2.8, hy - 3]], { c: PALETTE.jiao, bleed: 0.45 });
-    ctx.fillStyle = PALETTE.jiao; ctx.beginPath(); ctx.arc(hx - 0.6, hy - R - 1.5, 1.45, 0, TAU); ctx.fill();   // topknot
-    brush(ctx, [[hx - 1.9, hy - R - 0.4], [hx + 0.7, hy - R - 0.6]], { w: 0.75, c: VERM, ta: 0, tb: 0.1 }, r);
-    brush(ctx, [[hx + 1.4, hy - 0.1], [hx + 2.4, hy - 0.3]], { w: 0.6, c: TONE[0], ta: 0.1, tb: 0.4, press: 0.5 }, r);
+
+  /* ---------------- main character: a wandering calligrapher, painted per pose ---------------- */
+  // pose record: by body drop, lean, arm swing, hem trail, brush / tilt lag (follow-through), legs (near a, far b: x and lift)
+  function paintHero(ctx, r, P) {
+    const by = P.by, h = P.hem, a = P.arm, L = P.legs;
+    const upper = (fn) => { ctx.save(); ctx.translate(0, -5 + by); ctx.rotate(P.lean); ctx.translate(0, 5); fn(); ctx.restore(); };
+    upper(() => {   // giant brush strapped across the back, bristles up; it lags behind the body
+      ctx.save(); ctx.translate(0.5, -15); ctx.rotate(P.brush); ctx.translate(-0.5, 15);
+      brush(ctx, [[5, -7.5], [0.2, -18.5], [-4.4, -30.4]], { w: 1.2, c: TONE[2], c2: TONE[3], ta: 0, tb: 0 }, r);
+      brush(ctx, [[-4.9, -31.6], [-5.9, -34.6], [-7.3, -38]], { w: 2.8, c: TONE[0], c2: TONE[2], ta: 0, tb: 0.8, press: 0.35, dry: 0.35, bleed: 0.35 }, r);
+      ctx.restore();
+    });
+    for (const [hx, fx, lift, near] of [[-1.3, L.bx, L.bl, false], [1.3, L.ax, L.al, true]]) {   // far leg one tone paler
+      const fy = -0.5 - lift;
+      brush(ctx, [[hx, -7 + by], [(hx + fx) / 2 + (near ? 0.3 : -0.3), -3.4 - lift * 0.6 + by * 0.5], [fx, fy - 0.4]], { w: near ? 2.3 : 2.0, c: near ? TONE[1] : TONE[2], ta: 0, tb: 0.1, dry: 0.25, steps: 4 }, r);
+      dot(ctx, fx + 0.9, fy + 0.1, 0.95, near ? TONE[0] : TONE[1], 0.95);   // straw sandal
+    }
+    upper(() => {
+      const robe = [[-3.6, -20.6], [0.2, -21.3], [3.4, -20.4], [4.8, -16.5], [5.3, -11.4], [6.5 + h * 0.7, -4.6], [2.3 + h * 0.4, -3.9], [-2.2 + h * 0.5, -4.2], [-6.9 + h, -4.9], [-5.9 + h * 0.3, -11.2], [-5, -16.8]];
+      wash(ctx, spline(closed(robe), 4), { c: PALETTE.qing, blobs: [{ x: 3.8, y: -9.5, rx: 3, ry: 5, c: PALETTE.dan, a: 0.85, blur: 1.6 }, { x: -1.2, y: -17, rx: 2.6, ry: 2.4, c: PALETTE.paperHi, a: 0.5 }], rim: 0.7, edge: PALETTE.dan, bleed: 0.7 });
+      brush(ctx, [[-3.4, -21], [-5.4, -16.4], [-6.1 + h * 0.3, -10.4], [-7.4 + h, -4.8]], { w: 3, c: TONE[0], c2: TONE[3], ta: 0.05, tb: 0.25, press: 0.6, dry: 0.6 }, r);   // one bold back stroke
+      brush(ctx, [[3.6, -20.6], [5, -16], [5.6, -10.8], [7 + h * 0.7, -5]], { w: 1.4, c: TONE[1], c2: TONE[3], tb: 0.4, dry: 0.55 }, r);
+      brush(ctx, [[-7 + h, -5], [-2.2 + h * 0.5, -4.1], [2.4 + h * 0.4, -4.3], [7 + h * 0.7, -5.2]], { w: 1.05, c: TONE[1], c2: TONE[3], tb: 0.3, dry: 0.65 }, r);
+      brush(ctx, [[-2.2, -21], [0.8, -16.8]], { w: 1, c: TONE[0], tb: 0.35, press: 0.4 }, r);   // collar
+      brush(ctx, [[-5.6, -13.2], [0, -12.3], [5.5, -13]], { w: 2.1, c: VERM, c2: VERM_D, ta: 0, tb: 0.04, press: 0.3 }, r);   // vermilion sash
+      wash(ctx, spline(closed([[2.4, -20.2], [5.2, -19.2], [7.2 + a, -14.6], [7.7 + a, -12], [4.9 + a * 0.6, -12.4], [3.5, -16.2]]), 4), { c: PALETTE.qing, blobs: [{ x: 6 + a * 0.6, y: -14, rx: 2, ry: 2.5, c: PALETTE.dan, a: 0.8, blur: 1 }] });
+      brush(ctx, [[2.8, -20.4], [5.8, -18.8], [7.5 + a, -14.4], [8 + a, -11.8]], { w: 2.2, c: TONE[0], c2: TONE[3], tb: 0.35, press: 0.5, dry: 0.55 }, r);   // sleeve
+      ctx.fillStyle = PALETTE.paperHi; ctx.beginPath(); ctx.ellipse(7.1 + a, -11, 1, 0.9, 0, 0, TAU); ctx.fill();
+      ctx.save(); ctx.translate(1, -24.5); ctx.rotate(P.tilt); ctx.translate(-1, 24.5);   // head and hat tilt a beat late
+      wash(ctx, spline(closed([[-2.4, -24.3], [-0.2, -24.4], [0.2, -22.6], [-0.6, -21.4], [-2, -21.6], [-2.8, -22.8]]), 3), { c: PALETTE.jiao, bleed: 0.3 });   // hair knot
+      ctx.fillStyle = PALETTE.paperHi; ctx.beginPath();
+      [[-0.4, -24.3], [3.7, -24.3], [4.1, -23.2], [3.7, -22.6], [3.1, -21.4], [1, -20.9], [-0.1, -22.2]].forEach((p) => ctx.lineTo(p[0], p[1])); ctx.fill();   // bare-paper face
+      brush(ctx, [[3.6, -24.1], [4.1, -23.2], [3.6, -22.6], [3.2, -21.6], [2.4, -21]], { w: 0.48, c: TONE[1], ta: 0.15, tb: 0.45, steps: 3 }, r);   // brow-nose-chin
+      if (P.blink) brush(ctx, [[2.1, -23.3], [2.65, -23.05], [3.2, -23.3]], { w: 0.4, c: TONE[0], ta: 0.2, tb: 0.4 }, r);
+      else brush(ctx, [[2.4, -23.45], [3.2, -23.35]], { w: 0.66, c: TONE[0], ta: 0.1, tb: 0.4, press: 0.5 }, r);
+      wash(ctx, spline(closed([[-8.8, -25.4], [-4.2, -27.9], [0.1, -30.3], [1.3, -30.4], [5.4, -28], [9.6, -24.9], [4.4, -24.2], [-2.8, -24.5]]), 4),
+        { c: PALETTE.dan, blobs: [{ x: 4.5, y: -25.8, rx: 4.2, ry: 1.6, c: PALETTE.zhong, a: 0.8, blur: 1.2 }, { x: -2.8, y: -27.6, rx: 2.8, ry: 1.2, c: PALETTE.paperHi, a: 0.55, blur: 1 }], rim: 0.6, edge: PALETTE.zhong });
+      brush(ctx, [[-8.6, -25.5], [-4.4, -28], [0.4, -30.4]], { w: 1.1, c: TONE[1], tb: 0.3, press: 0.4, dry: 0.3 }, r);
+      brush(ctx, [[-9.2, -25.2], [-3, -24.4], [3.6, -24.2], [9.9, -24.9]], { w: 1.5, c: TONE[0], c2: TONE[2], ta: 0.02, tb: 0.3, press: 0.7, dry: 0.45, steps: 5 }, r);   // the brim: pressed, then dry
+      dot(ctx, 0.75, -30.7, 0.55, TONE[0], 1);
+      ctx.restore();
+    });
   }
-  function paintBlot(ctx, r, ph) {
-    const s = Math.sin(ph), by = -7.2 - Math.abs(s) * 0.7;
-    for (let i = 0; i < 4; i++) { const lx = -4.2 + i * 2.8, q = i % 2 ? s : -s; brush(ctx, [[lx * 0.8, by + 4], [lx + q * 1.3, -0.4]], { w: 1.1, c: TONE[0], ta: 0, tb: 0.45 }, r); }
-    const bp = blob(0, by, 7.6, 6.3, r, 12);
-    wash(ctx, spline(bp.concat([bp[0]]), 3), { c: PALETTE.jiao, dark: [2.5, by + 2.4, 4], dk: 'rgba(86,82,76,0.5)', bleed: 1.1 });
-    for (let i = 0; i < 7; i++) { const a = -Math.PI * (0.16 + (i / 6) * 0.68), x0 = Math.cos(a) * 6.4, y0 = by + Math.sin(a) * 5.2; brush(ctx, [[x0, y0], [x0 + Math.cos(a) * 3, y0 + Math.sin(a) * 3]], { w: 1.05, c: TONE[0], ta: 0, tb: 0.8, dry: 0.35 }, r); }
-    eye(ctx, 3.5, by - 1.3, 1.8); eye(ctx, -0.1, by - 1.6, 1.5);
+  function heroPoses() {
+    const base = { by: 0, lean: 0, arm: 0, hem: 0, brush: 0, tilt: 0, blink: false, legs: { ax: 1.6, al: 0, bx: -1.5, bl: 0 } };
+    const P = (o) => Object.assign({}, base, o);
+    const BY = [0, 0.75, 0.25, -0.55, 0, 0.75, 0.25, -0.55];   // contact, down, passing, up – once per foot
+    const walk = BY.map((by, i) => {
+      const p = i / 8, c = Math.cos(p * TAU), s = Math.sin(p * TAU);
+      return P({ by, lean: 0.06, arm: -1.5 * c, hem: -0.7 + 0.35 * c, brush: 0.05 * Math.sin(p * 2 * TAU - 1), tilt: 0.035 * Math.sin(p * 2 * TAU - 0.6),
+        legs: { ax: 3 * c + 0.3, al: Math.max(0, -s) * 1.7, bx: -3 * c - 0.2, bl: Math.max(0, s) * 1.7 } });
+    });
+    return { walk, idle: [P({}), P({ by: -0.4, arm: 0.15, brush: -0.02 }), P({ blink: true })] };
   }
+  /** the two sash tails, painted live from the knot: they hang at rest and stream back when walking */
+  function drawSash(ctx, kx, ky, fd, t, mv) {
+    const m = Math.min(1, mv);
+    for (let k = 1; k >= 0; k--) {
+      const len = (k ? 5.8 : 7.4) * (1 + 0.22 * m), w0 = k ? 1.2 : 1.55, ang = 1.05 + (0.3 - 1.05) * m + k * 0.3;
+      const dx = -fd * Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx, ph = t * (1.8 + 6 * m) + k * 1.9, amp = 0.22 + 0.85 * m;
+      const Lp = [], Rp = [];
+      for (let i = 0; i < 7; i++) {
+        const u = i / 6, wv = amp * u * Math.sin(ph - u * 3.4), x = kx + dx * len * u + nx * wv, y = ky + dy * len * u + ny * wv + u * u * 0.8 * (1 - m), w = w0 * (1 - 0.78 * u) * 0.5;
+        Lp.push([x + nx * w, y + ny * w]); Rp.unshift([x - nx * w, y - ny * w]);
+      }
+      ctx.fillStyle = k ? PALETTE.vermilionDeep : PALETTE.vermilion;
+      ctx.beginPath(); Lp.concat(Rp).forEach((p) => ctx.lineTo(p[0], p[1])); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  /* ---------------- small creature: a crow that hops (crouch – push-off – rise – downstroke – land – settle) ---------------- */
+  function paintCrow(ctx, r, P) {
+    const tp = (x, y) => [x * P.sx, (y + 6.5) * P.sy - 6.5 - P.lift];
+    for (let i = 0; i < 2; i++) {
+      const hp = tp(0.4 + i * 1.6, -4.6), f = P.feet[i];
+      brush(ctx, [hp, [(hp[0] + f[0]) / 2 + 0.9, (hp[1] + f[1]) / 2 - 0.2], f], { w: 0.6, c: TONE[0], ta: 0, tb: 0.1, steps: 3 }, r);
+      brush(ctx, [f, [f[0] + 1.6, f[1] + 0.1]], { w: 0.42, c: TONE[0], ta: 0, tb: 0.6 }, r);
+    }
+    ctx.save(); ctx.translate(0, -P.lift - 6.5); ctx.scale(P.sx, P.sy); ctx.translate(0, 6.5);
+    const fold = [[2.6, -10.6], [-1.6, -10], [-6.6, -7.6]], up = [[2, -10.9], [-1.4, -15.4], [-4, -19.6]], dn = [[2, -10.4], [-1.6, -6.4], [-4.6, -2.6]];
+    const k = Math.abs(P.wing), W = fold.map((p, i) => { const q = P.wing >= 0 ? up[i] : dn[i]; return [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k]; });
+    for (const [ex, ey, w] of [[-11.2, -9.6, 1.5], [-11.9, -7.9, 1.35], [-10.9, -6.1, 1.2]]) brush(ctx, [[-5.6, -7.4], [(ex - 5.6) / 2 - 0.4, (ey - 7.4) / 2 + P.tail * 0.5], [ex, ey + P.tail]], { w, c: TONE[0], c2: TONE[2], ta: 0.05, tb: 0.75, dry: 0.3, steps: 4 }, r);
+    const body = [[6.4, -12.2], [4.8, -13.5], [2.6, -13.1], [0.8, -11.5], [-2.8, -10.7], [-5.6, -9.1], [-6.9, -7.4], [-5.4, -5.2], [-2.4, -3.8], [1.2, -3.6], [3.6, -5], [5.4, -7.6], [6.6, -10.2]];
+    wash(ctx, spline(closed(body), 4), { c: PALETTE.nong, blobs: [{ x: 4.2, y: -10.8, rx: 2.8, ry: 2.4, c: PALETTE.jiao, a: 0.95, blur: 0.8 }, { x: 2.8, y: -6.4, rx: 2.6, ry: 2.2, c: PALETTE.jiao, a: 0.7, blur: 1.2 }, { x: -1.8, y: -9, rx: 3, ry: 1.3, c: PALETTE.zhong, a: 0.55, blur: 1.2 }], rim: 0.8, edge: PALETTE.jiao, bleed: 0.9 });
+    brush(ctx, W, { w: 3.3, c: TONE[0], c2: TONE[2], ta: 0.08, tb: 0.35, press: 0.4, dry: 0.5, steps: 5, nb: 9 }, r);   // the wing: one dry stroke
+    brush(ctx, [[5.9, -12.1], [8.9, -11.3], [10.7, -10.6]], { w: 1.55, c: TONE[0], ta: 0, tb: 0.8, press: 0.4, steps: 4 }, r);   // split beak
+    brush(ctx, [[6.2, -10.4], [8.4, -10.3], [9.6, -10.5]], { w: 0.9, c: TONE[0], ta: 0, tb: 0.7, steps: 3 }, r);
+    ctx.fillStyle = PALETTE.paperHi; ctx.beginPath(); ctx.arc(5.3, -11.7, 0.72, 0, TAU); ctx.fill();
+    ctx.fillStyle = PALETTE.jiao; ctx.beginPath(); ctx.arc(5.55, -11.65, 0.4, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  const CROW_POSES = [
+    { lift: 0, sx: 1.08, sy: 0.86, wing: 0, tail: -1.4, feet: [[0.8, 0], [3, 0]] },          // crouch: anticipation
+    { lift: 2.2, sx: 0.94, sy: 1.1, wing: 0.45, tail: -0.4, feet: [[-1.2, -0.2], [0.2, -0.1]] }, // push off, stretched
+    { lift: 5, sx: 1, sy: 1, wing: 1, tail: 0.3, feet: [[-0.6, -5.4], [0.8, -5.2]] },          // rise, wings up
+    { lift: 4.4, sx: 1, sy: 1, wing: -1, tail: 0.5, feet: [[1.6, -3.8], [3, -3.6]] },          // downstroke
+    { lift: 0.8, sx: 1.02, sy: 0.97, wing: 0.35, tail: -1.3, feet: [[2.8, 0], [4.2, 0]] },     // land, tail up for balance
+    { lift: 0, sx: 1.04, sy: 0.94, wing: 0.05, tail: -0.5, feet: [[0.6, 0], [2.8, 0]] },       // settle
+  ];
+
+  /* ---------------- props ---------------- */
   function paintBamboo(ctx, r) {
     for (let k = 0; k < 3; k++) {
       const x0 = (k - 1) * 5.2, back = k === 1, tone = back ? TONE[3] : TONE[1], h = 56 + k * 9;
@@ -178,29 +258,33 @@
     peak(16, 34, 38, TONE[2], TONE[0]);
   }
 
-  /* ---------------- the paper: warm xuan sheet with fibres, pale washes, a lake left as bare paper ---------------- */
+  /* ---------------- the paper: warm sheet with fibres, a pale hill wash, a lake left as bare paper ---------------- */
   function paintGround(ctx, vw, s, w, h) {
     ctx.fillStyle = PALETTE.paper; ctx.fillRect(0, 0, w, h);
     ctx.save(); ctx.scale(s, s);
-    const r = rng(7);
+    const r = rng(7), lx = vw * 0.24, ly = 280;
     ctx.filter = 'blur(' + (14 * s).toFixed(0) + 'px)';
-    for (const [x, y, rx, ry] of [[vw * 0.18, 70, 90, 40], [vw * 0.78, 300, 120, 36], [vw * 0.6, 60, 70, 24]]) { ctx.globalAlpha = 0.09; ctx.fillStyle = PALETTE.groundInk; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill(); }
-    // banks: a wash around the lake, the water itself stays bare paper
-    ctx.globalAlpha = 0.13; ctx.beginPath(); ctx.ellipse(vw * 0.24, 280, 96, 44, -0.1, 0, TAU); ctx.fill();
-    ctx.globalAlpha = 1; ctx.fillStyle = PALETTE.paperHi; ctx.filter = 'blur(' + (3 * s).toFixed(0) + 'px)'; ctx.beginPath(); ctx.ellipse(vw * 0.24, 280, 78, 30, -0.1, 0, TAU); ctx.fill();
+    ctx.globalAlpha = 0.09; ctx.fillStyle = PALETTE.groundInk;
+    for (const [x, y, rx, ry] of [[vw * 0.78, 300, 120, 36], [vw * 0.6, 60, 70, 24]]) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill(); }
+    ctx.globalAlpha = 0.13; ctx.beginPath(); ctx.ellipse(lx, ly, 96, 44, -0.1, 0, TAU); ctx.fill();   // bank wash around the lake
+    ctx.globalAlpha = 1; ctx.fillStyle = PALETTE.paperHi; ctx.filter = 'blur(' + (3 * s).toFixed(0) + 'px)'; ctx.beginPath(); ctx.ellipse(lx, ly, 78, 30, -0.1, 0, TAU); ctx.fill();   // the water: bare paper
     ctx.filter = 'none';
+    // hill wash: one hard dried upper edge, fading softly downwards
+    const ridge = Array.from({ length: 17 }, (_, i) => { const u = i / 16; return [vw * (0.01 + u * 0.44), 122 - 78 * Math.pow(Math.sin(Math.PI * u), 0.8) * (1 - 0.25 * Math.sin(u * 9)) + (r.next() - 0.5) * 2]; });
+    const g = ctx.createLinearGradient(0, 48, 0, 124); g.addColorStop(0, 'rgba(50,47,44,0.12)'); g.addColorStop(1, 'rgba(50,47,44,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ridge.forEach((p) => ctx.lineTo(p[0], p[1])); ctx.lineTo(vw * 0.45, 126); ctx.lineTo(vw * 0.01, 126); ctx.fill();
+    brush(ctx, ridge.slice(3, 13).filter((_, i) => i % 2 === 0).map((p) => [p[0], p[1] + 0.8]), { w: 1.6, c: TONE[2], c2: TONE[3], a: 0.7, tb: 0.5, press: 0.5, dry: 0.6, steps: 5 }, r);   // the dried crest
     for (let i = 0; i < 600; i++) {   // fibres
       const x = r.next() * vw, y = r.next() * 360, a = r.next() * TAU, L = 2 + r.next() * 12, light = r.next() < 0.6;
       ctx.strokeStyle = light ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.08)'; ctx.lineWidth = 0.25;
       ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.cos(a + 0.4) * L * 0.5, y + Math.sin(a + 0.4) * L * 0.5, x + Math.cos(a) * L, y + Math.sin(a) * L); ctx.stroke();
     }
-    for (let i = 0; i < 6; i++) { const x = vw * 0.24 + (r.next() - 0.5) * 110, y = 268 + i * 5; brush(ctx, [[x - 14, y], [x, y - 0.8], [x + 14, y + 0.3]], { w: 0.6, c: TONE[2 + (i % 2)], a: 0.7, ta: 0.3, tb: 0.45 }, r); }   // ripples
-    for (let i = 0; i < 9; i++) { const a = -0.3 + i * 0.75, x = vw * 0.24 + Math.cos(a) * 80, y = 280 + Math.sin(a) * 32; brush(ctx, [[x - Math.sin(a) * 6, y + Math.cos(a) * 3], [x + Math.sin(a) * 6, y - Math.cos(a) * 3]], { w: 1.4, c: TONE[1], c2: TONE[3], a: 0.8, press: 0.5, dry: 0.5 }, r); }   // broken shore
-    for (let i = 0; i < 40; i++) {   // sparse grass and moss dots: most of the sheet stays empty (ma)
-      const x = r.next() * vw, y = r.next() * 360;
-      if (Math.hypot((x - vw * 0.24) / 90, (y - 280) / 40) < 1) continue;
-      if (i % 3) for (let k = 0; k < 3; k++) brush(ctx, [[x + k * 0.6, y], [x + k * 0.6 + (k - 1) * 1.8, y - 4.5]], { w: 0.65, c: TONE[1], a: 0.8, ta: 0.08, tb: 0.8, press: 0.35 }, r);
-      else for (let k = 0; k < 4; k++) dot(ctx, x + (r.next() - 0.5) * 6, y + (r.next() - 0.5) * 3, 0.5, TONE[0], 0.85);
+    for (let i = 0; i < 5; i++) { const x = lx + (r.next() - 0.5) * 100, y = 268 + i * 5; brush(ctx, [[x - 14, y], [x, y - 0.8], [x + 14, y + 0.3]], { w: 0.6, c: TONE[2 + (i % 2)], a: 0.7, ta: 0.3, tb: 0.45 }, r); }   // ripples
+    for (let i = 0; i < 9; i++) { const a = -0.3 + i * 0.75, x = lx + Math.cos(a) * 80, y = ly + Math.sin(a) * 32; brush(ctx, [[x - Math.sin(a) * 6, y + Math.cos(a) * 3], [x + Math.sin(a) * 6, y - Math.cos(a) * 3]], { w: 1.4, c: TONE[1], c2: TONE[3], a: 0.8, press: 0.5, dry: 0.5 }, r); }   // broken shore
+    // reeds gathered on the bank – detail only where the eye should go, the rest stays empty paper
+    for (const [bx, by] of [[lx + 70, ly - 22], [lx + 82, ly - 10], [lx - 76, ly + 14]]) for (let k = 0; k < 6; k++) {
+      const x = bx + (k - 3) * 1.1, hh = 8 + r.next() * 8, ln = (r.next() - 0.5) * 0.5;
+      brush(ctx, [[x, by], [x + ln * hh * 0.5, by - hh * 0.5], [x + ln * hh, by - hh]], { w: 0.55, c: k % 3 ? TONE[1] : TONE[2], a: 0.85, ta: 0, tb: 0.7, steps: 3 }, r);
     }
     ctx.restore();
   }
@@ -216,16 +300,31 @@
   const C = {};
   function sprites() {
     if (C.hero) return;
-    C.hero = [0, 1, 2, 3].map((p) => bake(28, 44, 14, 41.5, 4, (c, r) => paintHero(c, r, (p / 4) * TAU), 5000));
-    C.blot = [0, 1, 2, 3].map((p) => bake(26, 23, 13, 20, 4, (c, r) => paintBlot(c, r, (p / 4) * TAU), 6000));
+    const HP = heroPoses();
+    const knot = (P) => [-5.2 * Math.cos(P.lean) + 7.9 * Math.sin(P.lean), -5.2 * Math.sin(P.lean) - 7.9 * Math.cos(P.lean) - 5 + P.by];
+    const mk = (P) => Object.assign(bake(40, 46, 20, 42.5, 5, (c, r) => paintHero(c, r, P), 5000), { knot: knot(P) });   // same seed per pose: strokes do not boil
+    C.hero = { walk: HP.walk.map(mk), idle: HP.idle.map(mk) };
+    C.crow = CROW_POSES.map((P) => bake(30, 32, 14, 30, 5, (c, r) => paintCrow(c, r, P), 6000));
     C.bamboo = bake(50, 80, 25, 76, 3, paintBamboo, 1100);
     C.plum = bake(64, 56, 32, 52, 3, paintPlum, 1200);
     C.mountain = bake(96, 124, 48, 120, 3, paintMountain, 1500);
     C.enso = bake(16, 16, 8, 8, 8, (c, r) => { const pts = []; for (let i = 0; i <= 16; i++) { const a = Math.PI * 0.62 + (i / 16) * TAU * 0.9; pts.push([Math.cos(a) * 5.6, Math.sin(a) * 5.6]); } brush(c, pts, { w: 1.7, c: TONE[0], c2: TONE[3], ta: 0, tb: 0.4, press: 0.55, dry: 0.7, steps: 4, gs: 1 }, r); }, 2410);
   }
 
-  function drawHero(ctx, x, y, t, facing) { sprites(); blit(ctx, C.hero[Math.floor(t * 6) & 3], x, y - Math.abs(Math.sin(t * 9.4)) * 0.9, facing < 0); }
-  function drawEnemy(ctx, x, y, t) { sprites(); blit(ctx, C.blot[Math.floor(t * 5) & 3], x, y, Math.sin(t * 0.3) < 0); }
+  /** walks in place on twos (12 fps, 8 poses); moving=false shows the idle: breathe, hold, blink */
+  function drawHero(ctx, x, y, t, facing, moving) {
+    sprites();
+    const walking = moving !== false, tk = Math.floor(t * 12);
+    const fr = walking ? C.hero.walk[tk & 7] : C.hero.idle[(tk % 47) < 2 ? 2 : (tk % 30) < 15 ? 0 : 1];
+    const fd = facing < 0 ? -1 : 1;
+    drawSash(ctx, x + fr.knot[0] * fd, y + fr.knot[1], fd, t, walking ? 0.8 : 0);
+    blit(ctx, fr, x, y, fd < 0);
+  }
+  /** a crow hopping on its own tempo; phase offsets keep a flock from moving in lock-step */
+  function drawEnemy(ctx, x, y, t, phase) {
+    sprites();
+    blit(ctx, C.crow[Math.floor(t * 9 + (phase || 0) * 6) % 6], x, y, Math.sin(t * 0.3 + (phase || 0)) < 0);
+  }
 
   function draw(ctx, w, h, t) {
     sprites();
@@ -235,12 +334,14 @@
     ctx.setTransform(s, 0, 0, s, 0, 0);
     const shadow = (x, y, rx) => { ctx.globalAlpha = 0.16; ctx.fillStyle = PALETTE.shadow; ctx.beginPath(); ctx.ellipse(x, y, rx, rx * 0.3, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; };
     const hx = vw * 0.5, hy = 210, list = [];
+    // wind: tall plants shear at the top in a slow swell, the base stays
+    const sway = (img, x, y, k, flip) => { ctx.save(); ctx.transform(1, 0, k, 1, -k * y, 0); blit(ctx, img, x, y, flip); ctx.restore(); };
     list.push({ y: 150, f: () => blit(ctx, C.mountain, vw * 0.8, 150) });
-    list.push({ y: 120, f: () => { shadow(vw * 0.14, 120, 12); blit(ctx, C.bamboo, vw * 0.14, 120); } });
-    list.push({ y: 330, f: () => { shadow(vw * 0.66, 330, 12); blit(ctx, C.bamboo, vw * 0.66, 330, true); } });
-    list.push({ y: 250, f: () => { shadow(vw * 0.36, 250, 11); blit(ctx, C.plum, vw * 0.36, 250); } });
-    list.push({ y: hy, f: () => { shadow(hx, hy, 8); drawHero(ctx, hx, hy, t, Math.sin(t * 0.4) >= 0 ? 1 : -1); } });
-    [[hx + 90, 180], [hx - 110, 230], [hx + 130, 270], [hx - 60, 300]].forEach(([x, y], i) => list.push({ y, f: () => { const ex = x + Math.sin(t * 0.8 + i) * 8; shadow(ex, y, 9); drawEnemy(ctx, ex, y, t + i * 0.37); } }));
+    list.push({ y: 120, f: () => { shadow(vw * 0.14, 120, 12); sway(C.bamboo, vw * 0.14, 120, 0.03 * Math.sin(t * 0.7) + 0.015 * Math.sin(t * 1.9)); } });
+    list.push({ y: 330, f: () => { shadow(vw * 0.66, 330, 12); sway(C.bamboo, vw * 0.66, 330, 0.03 * Math.sin(t * 0.7 - 1.2) + 0.015 * Math.sin(t * 1.9 - 2), true); } });
+    list.push({ y: 250, f: () => { shadow(vw * 0.36, 250, 11); sway(C.plum, vw * 0.36, 250, 0.008 * Math.sin(t * 0.7 - 0.6)); } });
+    list.push({ y: hy, f: () => { shadow(hx, hy, 8); drawHero(ctx, hx, hy, t, Math.sin(t * 0.4) >= 0 ? 1 : -1, Math.sin(t * 0.25) > -0.6); } });
+    [[hx + 90, 180], [hx - 110, 230], [hx + 130, 270], [hx - 60, 300]].forEach(([x, y], i) => list.push({ y, f: () => { const ex = x + Math.sin(t * 0.8 + i) * 8; shadow(ex, y, 6); drawEnemy(ctx, ex, y, t * (0.9 + i * 0.07), i * 0.37); } }));
     list.sort((a, b) => a.y - b.y);
     for (const o of list) o.f();
     // two ensō circles orbit the main character, each with a vermilion dot
@@ -249,13 +350,7 @@
       ctx.save(); ctx.translate(x, y); ctx.rotate(t * 2.2 + i * 2); ctx.drawImage(C.enso.c, -8, -8, 16, 16); ctx.restore();
       ctx.fillStyle = PALETTE.vermilion; ctx.beginPath(); ctx.arc(x, y, 1.1, 0, TAU); ctx.fill();
     }
-    // a flung drop of ink with a dry-brush tail
-    const px = hx + 20 + ((t * 120) % 70), py = hy - 14 - ((t * 120) % 70) * 0.3;
-    ctx.save(); ctx.translate(px, py); ctx.rotate(-0.29); ctx.globalAlpha = 0.85;
-    const g = ctx.createLinearGradient(-20, 0, 0, 0); g.addColorStop(0, 'rgba(44,41,38,0)'); g.addColorStop(1, 'rgba(44,41,38,0.9)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-20, 0.3); ctx.lineTo(0, -1.6); ctx.lineTo(0, 1.6); ctx.closePath(); ctx.fill();
-    ctx.globalAlpha = 1; ctx.fillStyle = PALETTE.jiao; ctx.beginPath(); ctx.arc(0, 0, 1.9, 0, TAU); ctx.fill(); ctx.restore();
-    // drifting mist band, then the unpainted misty margin, inscription and seals
+    // drifting mist band, then the unpainted misty margin, inscription and seal
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const mx = ((t * 8 * s) % (w * 1.4)) - w * 0.2;
     const mg = ctx.createRadialGradient(mx, h * 0.42, 0, mx, h * 0.42, h * 0.5); mg.addColorStop(0, 'rgba(249,244,232,0.35)'); mg.addColorStop(1, 'rgba(249,244,232,0)');
@@ -266,8 +361,7 @@
       ctx.fillStyle = lg; ctx.fillRect(0, 0, w, h);
     }
     seal(ctx, h * 0.04, h * 0.9, h * 0.034, 4343);
-    // a column of abstract calligraphy (bars, a spine, falling strokes) – never real text
-    const gr = rng(4242), gz = h * 0.034;
+    const gr = rng(4242), gz = h * 0.034;   // a column of abstract calligraphy – never real text
     for (let i = 0; i < 4; i++) {
       const gx = h * 0.057, gy = h * 0.68 + i * gz * 1.1, o = { c: TONE[1], a: 0.72, ta: 0, tb: 0.3, press: 0.45 };
       brush(ctx, [[gx - gz * 0.3, gy - gz * 0.2], [gx + gz * 0.3, gy - gz * 0.22]], Object.assign({ w: gz * 0.1 }, o), gr);
@@ -278,7 +372,7 @@
   }
 
   const Starter = { id: 'sumie', name: 'Sumi-e Ink', palette: PALETTE, tones: TONE, fonts: ['Ma Shan Zheng', 'Zhi Mang Xing', 'Yuji Mai', 'Cormorant Garamond:ital,wght@0,500;0,600;1,500;1,600'],
-    drawHero, drawEnemy, draw, brush, wash, bake, seal };
+    drawHero, drawEnemy, draw, brush, wash, bake, seal, heroPoses, drawSash };
   root.StyleStarters = root.StyleStarters || {};
   root.StyleStarters['sumie'] = Starter;
   if (typeof module !== 'undefined' && module.exports) module.exports = Starter;

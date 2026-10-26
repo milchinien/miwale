@@ -200,6 +200,11 @@
     // a canal band with hachures
     c.beginPath(); c.moveTo(-10, 300); c.bezierCurveTo(vw * 0.2, 250, vw * 0.3, 380, vw * 0.5, 372); c.lineWidth = 30; c.strokeStyle = 'rgba(4,40,76,0.5)'; c.stroke();
     for (const [o, a] of [[-15, 0.55], [15, 0.55]]) { c.beginPath(); c.moveTo(-10, 300 + o); c.bezierCurveTo(vw * 0.2, 250 + o, vw * 0.3, 380 + o, vw * 0.5, 372 + o); c.lineWidth = 0.7; c.strokeStyle = W(a); c.stroke(); }
+    // site plan: a dash-dot property line fences an equipment yard, a dotted tree line edges a grove
+    const blob = (cx0, cy0, rx, ry, ph) => { c.beginPath(); for (let i = 0; i <= 48; i++) { const a = i / 48 * TAU, r = 1 + 0.12 * Math.sin(a * 3 + ph) + 0.06 * Math.sin(a * 5 + ph * 2); c.lineTo(cx0 + Math.cos(a) * rx * r, cy0 + Math.sin(a) * ry * r); } };
+    blob(vw * 0.2, 250, 70, 46, 1.3); c.setLineDash([9, 1.6, 1.4, 1.6]); c.lineCap = 'butt'; c.lineWidth = 0.75; c.strokeStyle = W(0.36); c.stroke();
+    blob(vw * 0.5 + 80, 185, 58, 44, 4.1); c.setLineDash([0.1, 2.6]); c.lineCap = 'round'; c.lineWidth = 1.25; c.strokeStyle = W(0.34); c.stroke(); c.setLineDash([]);
+    text(c, 'YARD C', vw * 0.2, 214, 4.4, W(0.42), 0.45, 'center', true); text(c, 'GROVE', vw * 0.5 + 80, 150, 4.2, W(0.38), 0.45, 'center', true);
     // notes, red-pencil cloud, coffee ring
     text(c, 'VERIFY ON SITE', vw * 0.12, 70, 4.2, W(0.42), 0.42, 'left', true);
     text(c, '+12.40', vw * 0.3, 210, 2.8, W(0.38), 0.3, 'left');
@@ -251,11 +256,23 @@
     const nx = hx - 40, ny = hy + 20 - 2 - Math.sin(t * 4) * 1.2;
     shadow(ctx, nx, hy + 22, 3); ctx.beginPath(); for (let i = 0; i < 6; i++) ctx.lineTo(nx + Math.cos(i * PI / 3 + PI / 6) * 2.9, ny + Math.sin(i * PI / 3 + PI / 6) * 2.9); ctx.closePath();
     ctx.lineWidth = 2.4; ctx.strokeStyle = P.navy; ctx.stroke(); ctx.fillStyle = P.amber; ctx.fill(); ctx.lineWidth = 0.6; ctx.strokeStyle = P.ink; ctx.stroke();
-    // erase burst on one creature: red-pencil X + eraser crumbs + dashed ring
-    const q = (t * 0.8) % 1, ex = foes[2][0] + 46, ey = foes[2][1] - 2;
-    ctx.globalAlpha = 1 - q; ctx.setLineDash([2.2, 1.5]); ctx.beginPath(); ctx.ellipse(ex, ey, 8 + q * 18, (8 + q * 18) * 0.42, 0, 0, TAU); ctx.lineWidth = 0.55; ctx.strokeStyle = W(0.8); ctx.stroke(); ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(ex - 8, ey - 19); ctx.lineTo(ex + 8, ey - 3); ctx.moveTo(ex + 8, ey - 19); ctx.lineTo(ex - 8, ey - 3); ctx.lineWidth = 2.6; ctx.strokeStyle = 'rgba(6,42,74,0.7)'; ctx.stroke(); ctx.lineWidth = 1.2; ctx.strokeStyle = P.red; ctx.stroke();
-    for (let i = 0; i < 6; i++) { const a2 = hash(i, 9, 2) * TAU, d = 4 + q * 22, cx = ex + Math.cos(a2) * d, cy = ey - 10 + Math.sin(a2) * d * 0.6 + q * q * 12; ctx.beginPath(); ctx.moveTo(cx - 1, cy); ctx.lineTo(cx + 1, cy + 0.6); ctx.lineWidth = 2; ctx.strokeStyle = P.navy; ctx.stroke(); ctx.lineWidth = 1.3; ctx.strokeStyle = P.eraser; ctx.stroke(); }
+    // exploded view on one creature: the parts separate on a chain centre line, a red-pencil X strikes them out,
+    // the eraser wipes them, eraser crumbs + a dashed ring are the residue (loops every 1.4 s)
+    const q = (t / 1.4) % 1, ex = foes[2][0] + 46, ey = foes[2][1] - 2;
+    const xe = 1 - (1 - Math.min(1, q / 0.42)) ** 2, wipe = Math.min(1, Math.max(0, (q - 0.5) / 0.45)), fa = q > 0.8 ? 1 - (q - 0.8) / 0.2 : 1;
+    ctx.globalAlpha = 0.6 * fa; ctx.setLineDash(CHAIN); ctx.beginPath(); ctx.moveTo(ex, ey + 2); ctx.lineTo(ex, ey - 26 - 9 * xe); ctx.lineWidth = 0.4; ctx.strokeStyle = W(0.9); ctx.stroke(); ctx.setLineDash([]);
+    [[-24, -12.8, -9], [-12.8, -6.2, -4], [-6.2, 2, 0]].forEach(([y0, y1, lift]) => {
+      ctx.save(); ctx.beginPath(); ctx.rect(ex - 14 + wipe * 28, ey + y0 + lift * xe, 28, y1 - y0); ctx.clip();
+      ctx.globalAlpha = (1 - wipe * 0.45) * fa; drawEnemy(ctx, ex, ey + lift * xe, 0.3); ctx.restore();
+    });
+    const k1 = Math.min(1, Math.max(0, (q - 0.22) / 0.3)), k2 = Math.min(1, Math.max(0, (q - 0.38) / 0.3)), xc = ey - 11 - 3 * xe;
+    ctx.globalAlpha = fa; ctx.beginPath(); ctx.moveTo(ex - 8, xc - 8); ctx.lineTo(ex - 8 + 16 * k1, xc - 8 + 16 * k1); if (k2 > 0) { ctx.moveTo(ex + 8, xc - 7); ctx.lineTo(ex + 8 - 15 * k2, xc - 7 + 15 * k2); }
+    ctx.lineWidth = 2.6; ctx.strokeStyle = 'rgba(6,42,74,0.7)'; ctx.stroke(); ctx.lineWidth = 1.2; ctx.strokeStyle = P.red; ctx.stroke();
+    if (q > 0.5) {
+      const r = (q - 0.5) / 0.5;
+      ctx.globalAlpha = 1 - r; ctx.setLineDash([2.2, 1.5]); ctx.beginPath(); ctx.ellipse(ex, ey, 8 + r * 18, (8 + r * 18) * 0.42, 0, 0, TAU); ctx.lineWidth = 0.55; ctx.strokeStyle = W(0.8); ctx.stroke(); ctx.setLineDash([]);
+      for (let i = 0; i < 6; i++) { const a2 = hash(i, 9, 2) * TAU, d = 4 + r * 22, cx = ex + Math.cos(a2) * d, cy = ey - 10 + Math.sin(a2) * d * 0.6 + r * r * 12; ctx.beginPath(); ctx.moveTo(cx - 1, cy); ctx.lineTo(cx + 1, cy + 0.6); ctx.lineWidth = 2; ctx.strokeStyle = P.navy; ctx.stroke(); ctx.lineWidth = 1.3; ctx.strokeStyle = P.eraser; ctx.stroke(); }
+    }
     ctx.globalAlpha = 1;
     // measurement callout above the hit creature
     const nyy = foes[1][1] - 30 - k * 8;

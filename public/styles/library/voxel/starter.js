@@ -18,10 +18,7 @@
   const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return { c, ctx: c.getContext('2d') }; };
   // integer hash -> deterministic randomness (never Math.random per frame)
-  function hashInt(x, y, seed) {
-    let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 1442695041)) | 0;
-    h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return h >>> 0;
-  }
+  function hashInt(x, y, seed) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return h >>> 0; }
   const hash2 = (x, y, s) => hashInt(x, y, s) / 4294967296;
   const rnd3 = (x, y, z, s) => hashInt(x * 73 + z * 9301, y * 19 + z * 7, s) / 4294967296;
   // gradient noise in [0,1] + fbm (only used to lay out the ground)
@@ -36,12 +33,8 @@
   const fbm = (x, y, s) => (perlin(x, y, s) + perlin(x * 2, y * 2, s + 101) * 0.5 + perlin(x * 4, y * 4, s + 202) * 0.25) / 1.75;
   /* ---------------- voxel colours: id -> { c: rgb, em: emissive (no shading), jit: brightness jitter } ---------------- */
   const COLS = [null], colIds = new Map();
-  function C(h, o) {
-    const key = h + (o ? (o.em ? 'e' : '') + (o.jit !== undefined ? 'j' + o.jit : '') : '');
-    if (colIds.has(key)) return colIds.get(key);
-    COLS.push({ c: hex(h), em: !!(o && o.em), jit: o && o.jit !== undefined ? o.jit : 0.045 });
-    colIds.set(key, COLS.length - 1); return COLS.length - 1;
-  }
+  function C(h, o) { const key = h + (o ? (o.em ? 'e' : '') + (o.jit !== undefined ? 'j' + o.jit : '') : ''); if (colIds.has(key)) return colIds.get(key);
+    COLS.push({ c: hex(h), em: !!(o && o.em), jit: o && o.jit !== undefined ? o.jit : 0.045 }); colIds.set(key, COLS.length - 1); return COLS.length - 1; }
   /* ---------------- voxel grid: x = right, y = towards the viewer, z = up ---------------- */
   class Vox {
     constructor(w, d, h, seed) { this.w = w; this.d = d; this.h = h; this.seed = seed || 1; this.a = new Uint16Array(w * d * h); }
@@ -164,35 +157,39 @@
       gem: C('#5df0b6', { jit: 0.04 }), gemLt: C('#b6ffe0', { jit: 0.03 }), gemDk: C('#2fc596', { jit: 0.04 }),
     }; }
   const ribCol = (cx, cy, zTop, base, dk, lt) => (x, y, z) => (z >= zTop ? lt : Math.cos(Math.atan2(y + 0.5 - cy, x + 0.5 - cx) * 5) > 0.55 ? dk : base);
-  function jackModel(f) { // main character (pumpkin-headed figure), 10 x 9 x 18 voxels; f 0 = idle, 1..4 = walk
-    const m = new Vox(10, 9, 18, 11), legY = [0, 1, 0, -1, 0][f], lift = [0, 0, 1, 0, 1][f], armY = -legY;
-    const raiseL = f === 4 ? 1 : 0, raiseR = f === 2 ? 1 : 0, b = 3 + lift;
-    m.box(3, 4 + legY, raiseL, 4, 5 + legY, 2 + lift, (x, y, z) => (z === raiseL ? P.boot : P.pants));
-    m.box(5, 4 - legY, raiseR, 6, 5 - legY, 2 + lift, (x, y, z) => (z === raiseR ? P.boot : P.pants));
-    m.box(1, 2, b, 8, 7, b, (x, y) => (x === 1 || x === 8 || y === 2 || y === 7 ? P.cloakDk : P.cloak));
-    m.box(2, 2, b + 1, 7, 6, b + 3, P.cloak); m.box(4, 6, b + 1, 5, 6, b + 3, (x, y, z) => (z === b + 3 ? P.shirt : P.cloakLt));
-    m.box(1, 3 + armY, b + 1, 1, 4 + armY, b + 3, P.cloak); m.box(8, 3 - armY, b + 1, 8, 4 - armY, b + 3, P.cloak);
-    m.box(1, 3 + armY, b, 1, 4 + armY, b, P.glove); m.box(8, 3 - armY, b, 8, 4 - armY, b, P.glove);
-    m.box(2, 2, b + 4, 7, 6, b + 4, (x, y) => ((x + y) % 3 === 0 ? P.scarfDk : P.scarf)); m.box(6, 1, b + 2, 7, 1, b + 4, P.scarf);
-    const hz = b + 8.6, top = Math.floor(hz + 3.6), ez = Math.round(hz) + 1;
-    m.blob(5, 4.5, hz, 5.05, 4.4, 3.75, ribCol(5, 4.5, hz + 3.0, P.pk, P.pkDk, P.pkLt), 2.6);
-    m.box(4, 4, top, 5, 4, top + 1, P.stem); m.set(4, 4, top + 2, P.stem); m.set(6, 4, top, P.leafG); m.set(7, 4, top, P.leafG); m.set(7, 3, top + 1, P.leafG);
-    const face = [[2, ez + 1], [7, ez + 1], [1, ez], [2, ez], [3, ez], [6, ez], [7, ez], [8, ez], [2, ez - 2], [3, ez - 2], [5, ez - 2], [6, ez - 2], [7, ez - 2], [3, ez - 3], [4, ez - 3], [5, ez - 3], [6, ez - 3]];
-    const fs = new Set(face.map(([x, z]) => x + ',' + z));
+  /** Main character rig (12x12x22): each pose re-assembles parts on whole-voxel offsets; hem, scarf, head lag a frame. f 0-7 walk, 8 idle, 9 blink. */
+  function jackPose(f) {
+    if (f >= 8) return { hem: 1, blink: f === 9 };
+    const L = [2, 1, 0, -1, -2, -1, 0, 1][f], A = Math.abs(L) > 1 ? Math.sign(L) : 0;
+    return { lf: L, rf: -L, ll: [0, 0, 0, 0, 0, 1, 1, 0][f], rl: [0, 1, 1, 0, 0, 0, 0, 0][f], bob: f % 4 === 2 ? 1 : 0, al: -A, ar: A, hz: (f + 3) % 4 === 0 ? 1 : 0, hem: 1 + ((f + 1) % 4 === 0 ? 1 : 0), scarf: f % 4 < 2 ? 1 : 2 };
+  }
+  function jackModel(f) {
+    const q = jackPose(f), m = new Vox(12, 12, 22, 11), b = 3 + (q.bob || 0);
+    const leg = (x0, fwd, lift) => { const y0 = 5 + fwd; m.box(x0, y0, lift, x0 + 1, y0 + 1, Math.max(lift, b - 1), (x, y, z) => (z === lift ? P.boot : P.pants)); m.box(x0, y0 + 2, lift, x0 + 1, y0 + 2, lift, P.boot); };
+    leg(4, q.lf || 0, q.ll || 0); leg(6, q.rf || 0, q.rl || 0);
+    m.box(2, 3, b, 9, 8, b, (x, y) => (x === 2 || x === 9 || y === 3 || y === 8 ? P.cloakDk : P.cloak)); // hem slab
+    for (let k = 1; k <= q.hem; k++) m.box(3, 3 - k, b + (k > 1 ? 1 : 0), 8, 3 - k, b + 1, P.cloakDk); // hem flutters back (follow-through)
+    m.box(3, 4, b + 1, 8, 7, b + 4, P.cloak); m.box(5, 7, b + 1, 6, 7, b + 4, (x, y, z) => (z === b + 4 ? P.shirt : P.cloakLt));
+    for (const [x, fwd] of [[2, q.al || 0], [9, q.ar || 0]]) { m.box(x, 5 + fwd, b + 1, x, 6 + fwd, b + 4, P.cloak); m.box(x, 5 + fwd, b, x, 6 + fwd, b, P.glove); } // counter-swinging sleeves
+    m.box(3, 4, b + 5, 8, 7, b + 5, (x, y) => ((x + y) % 3 === 0 ? P.scarfDk : P.scarf));
+    for (const [y, dz] of [[[3, 3], [3, 2], [3, 1]], [[3, 3], [2, 3], [2, 2]], [[3, 4], [2, 4], [1, 3]]][q.scarf || 0]) m.box(6, y, b + dz + 1, 7, y, b + dz + 1, P.scarf); // scarf tail
+    const hz = b + 9.6 + (q.hz || 0), top = Math.floor(hz + 3.6), ez = Math.round(hz) + 1;
+    m.blob(6, 6, hz, 5.05, 4.4, 3.75, ribCol(6, 6, hz + 3.0, P.pk, P.pkDk, P.pkLt), 2.6);
+    m.box(5, 5, top, 6, 5, top + 1, P.stem); m.set(5, 5, top + 2, P.stem); m.set(7, 5, top, P.leafG); m.set(8, 5, top, P.leafG); m.set(8, 4, top + 1, P.leafG);
+    const eyes = q.blink ? [[2, ez], [3, ez], [4, ez], [7, ez], [8, ez], [9, ez]] : [[3, ez + 1], [8, ez + 1], [2, ez], [3, ez], [4, ez], [7, ez], [8, ez], [9, ez]];
+    const face = eyes.concat([[3, ez - 2], [4, ez - 2], [6, ez - 2], [7, ez - 2], [8, ez - 2], [4, ez - 3], [5, ez - 3], [6, ez - 3], [7, ez - 3]]), fs = new Set(face.map(([x, z]) => x + ',' + z));
     for (const [x, z] of face) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!fs.has(x + dx + ',' + (z + dz))) m.paintFront(x + dx, z + dz, P.carve); // dark carved rim
-    for (const [x, z] of face) m.paintFront(x, z, z >= ez ? P.face : P.mouth);
-    m.paintFront(2, ez, P.faceHot); m.paintFront(7, ez, P.faceHot);
-    return m; }
-  function creeperModel(f) { // small creature (purple-and-cream root creature with a leafy top), 10 x 10 x 15
-    const m = new Vox(10, 10, 15, 23), legY = [1, 0, -1, 0][f], lift = [0, 1, 0, 1][f], sw = [0, 1, 0, -1][f], cz = 6.3 + lift;
-    m.box(3, 5 + legY, 0, 3, 5 + legY, 1 + lift, P.tRoot); m.box(6, 5 - legY, 0, 6, 5 - legY, 1 + lift, P.tRoot);
-    m.blob(5, 5, cz, 4.7, 4.5, 4.4, (x, y, z) => { const t = z + 0.5 - cz + (rnd3(x, y, z, 5) - 0.5) * 1.6; if (t > 1.6) return z + 0.5 > cz + 3.4 ? P.tPurDk : rnd3(x, y, z, 9) < 0.18 ? P.tPurLt : P.tPur; if (t > 0.4) return rnd3(x, y, z, 3) < 0.5 ? P.tPur : P.tCream; return z + 0.5 < cz - 2.8 ? P.tCreamDk : P.tCream; });
-    const tz = Math.floor(cz + 4.3);
-    m.box(4, 5, tz, 5, 5, tz + 1, P.tLeafDk); m.box(2 + sw, 4, tz + 2, 3 + sw, 5, tz + 3, P.tLeaf); m.set(1 + sw, 4, tz + 4, P.tLeaf);
-    m.box(6 + sw, 5, tz + 2, 7 + sw, 6, tz + 3, P.tLeaf); m.set(8 + sw, 6, tz + 4, P.tLeaf); m.box(4 + sw, 3, tz + 3, 5 + sw, 3, tz + 5, P.tLeafDk);
+    for (const [x, z] of face) m.paintFront(x, z, z >= ez - 1 ? P.face : P.mouth);
+    if (!q.blink) { m.paintFront(3, ez, P.faceHot); m.paintFront(8, ez, P.faceHot); } return m; }
+  function creeperModel(i) { // small creature: 6 waddle poses – body sways over the stance foot, hops at passing, squashes at contact, leaves lag
+    const m = new Vox(12, 12, 18, 23), sway = [0, 1, 1, 0, -1, -1][i], hop = [0, 0, 1, 0, 0, 1][i], sq = [1, 0, 0, 1, 0, 0][i], lag = [-1, 0, 1, 1, 0, -1][i], lf = [1, 1, 0, -1, -1, 0][i];
+    m.box(4, 6 + lf, [0, 0, 0, 0, 0, 1][i], 4, 6 + lf, 1 + hop, P.tRoot); m.box(7, 6 - lf, [0, 0, 1, 0, 0, 0][i], 7, 6 - lf, 1 + hop, P.tRoot);
+    const cx = 6 + sway, rz = 4.4 - sq * 0.35, cz = 6.3 + hop - sq * 0.3;
+    m.blob(cx, 6, cz, 4.7 + sq * 0.25, 4.5 + sq * 0.2, rz, (x, y, z) => { const t = z + 0.5 - cz + (rnd3(x, y, z, 5) - 0.5) * 1.2; if (t > 1.6) return z + 0.5 > cz + rz - 1 ? P.tPurDk : rnd3(x, y, z, 9) < 0.14 ? P.tPurLt : P.tPur; if (t > 0.4) return (x + z) & 1 ? P.tPur : P.tCream; return z + 0.5 < cz - rz + 1.6 ? P.tCreamDk : P.tCream; });
+    const tz = Math.floor(cz + rz - 0.1); m.box(cx - 1, 6, tz, cx, 6, tz + 1, P.tLeafDk); m.box(cx - 3 + lag, 5, tz + 2, cx - 2 + lag, 6, tz + 3, P.tLeaf); m.set(cx - 4 + lag, 5, tz + 4, P.tLeaf);
+    m.box(cx + 1 + lag, 6, tz + 2, cx + 2 + lag, 7, tz + 3, P.tLeaf); m.set(cx + 3 + lag, 7, tz + 4, P.tLeaf); m.box(cx - 1 + lag, 4, tz + 3, cx + lag, 4, tz + 5, P.tLeafDk);
     const ez = Math.round(cz) + 1;
-    m.paintFront(3, ez, P.tEye); m.paintFront(6, ez, P.tEye); for (const x of [3, 4, 5, 6]) m.paintFront(x, ez + 1, P.tBrow); m.paintFront(4, ez - 2, P.tBrow); m.paintFront(5, ez - 2, P.tBrow);
-    return m; }
+    m.paintFront(cx - 2, ez, P.tEye); m.paintFront(cx + 1, ez, P.tEye); for (let x = cx - 2; x <= cx + 1; x++) m.paintFront(x, ez + 1, P.tBrow); m.paintFront(cx - 1, ez - 2, P.tBrow); m.paintFront(cx, ez - 2, P.tBrow); return m; }
   function ghostModel(f) { // fast creature (white floating ghost), 11 x 9 x 15
     const m = new Vox(11, 9, 15, 37), sw = [0, 0.8, 0, -0.8][f], arm = [0, 1, 0, -1][f], hz = 10.2, ez = Math.round(hz) + 1;
     m.blob(5.5, 4.5, hz, 4.4, 3.7, 3.9, P.gW);
@@ -255,7 +252,7 @@
     const spin = (m, n, ppv) => Array.from({ length: n }, (_, i) => renderVox(m, (i / n) * (Math.PI / 2) + 0.2, ppv));
     const prop = (m, yaw) => Object.assign(renderVox(m, yaw, PPV), { sh: renderShadow(m, yaw, PPV) });
     const cube = (h) => { const m = new Vox(1, 1, 1, 400).set(0, 0, 0, C(h, { jit: 0 })); return Array.from({ length: 6 }, (_, k) => renderVox(m, (k / 6) * (Math.PI / 2), K * 2, { ao: 0, noGround: true })); };
-    B = { K, PPV, VW: PPV / K, jack: chars(jackModel, 5), creeper: chars(creeperModel, 4), ghost: chars(ghostModel, 4, 2), colossus: chars(colossusModel, 4),
+    B = { K, PPV, VW: PPV / K, jack: chars(jackModel, 10), creeper: chars(creeperModel, 6), ghost: chars(ghostModel, 4, 2), colossus: chars(colossusModel, 4),
       lantern: spin(lanternModel(), 8, PPV * 0.85), gem: spin(gemModel(), 8, PPV * 0.6), seed: spin(seedModel(), 6, PPV * 0.75),
       props: { tree0: prop(treeModel(0), 0.55), tree1: prop(treeModel(1), 0.55), tree2: prop(treeModel(2), 0.55), pine: prop(pineModel(), 0.5), pump: prop(pumpkinModel(), 0.45), hay: prop(hayModel(), 0.5), grave: prop(graveModel(), 0.3) },
       cubes: ['#9b54d2', '#7a3db2', '#f4e9cc', '#5fbe3b', '#b672e2'].map(cube), warm: glowSprite(255, 190, 80), mint: glowSprite(120, 255, 200), hot: glowSprite(255, 150, 50) };
@@ -272,18 +269,18 @@
   /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing, moving = true) {
     bake(B ? B.K : 2);
-    const side = facing < 0 ? 1 : 0, fi = moving ? 1 + (Math.floor(t * 8) & 3) : 0, lift = moving ? 0 : Math.max(0, Math.sin(t * 2.6)) * 0.6;
+    const side = facing < 0 ? 1 : 0, fi = moving ? Math.floor(t * 10) % 8 : t % 3.4 < 0.14 ? 9 : 8, lift = 0; // stepped poses, bob baked in
     glow(ctx, B.warm, x, y, 60, 30, 0.14 + 0.02 * Math.sin(t * 7)); // warm light pool on the ground
     ctx.globalAlpha = 0.42; blit(ctx, B.jack.sh[side], x, y); ctx.globalAlpha = 1;
     blit(ctx, B.jack.fr[side][fi], x, y - lift);
-    const gz = (fi === 2 || fi === 4 ? 13 : 12) * CP * B.VW + lift; // bloom over the carved face
+    const q = jackPose(fi), gz = (13 + (q.bob || 0) + (q.hz || 0)) * CP * B.VW; // bloom over the carved face
     glow(ctx, B.warm, x + (side ? -2.5 : 2.5), y - gz, 22, 18, 0.34 + 0.06 * Math.sin(t * 9));
   }
   /** Draws a creature with feet at (x, y). type: 'creeper' (small) | 'ghost' (fast) | 'colossus' (large). */
   function drawEnemy(ctx, x, y, t, type = 'creeper', facing = 1, seed = 0, flash = 0) {
     bake(B ? B.K : 2);
     const set = B[type], side = facing < 0 ? 1 : 0, ghost = type === 'ghost';
-    const fi = Math.floor(t * (ghost ? 6 : type === 'creeper' ? 7 : 4) + seed * 4) & 3, lift = ghost ? 2.5 + Math.sin(t * 2.8 + seed * 20) * 1.5 : 0;
+    const fi = Math.floor(t * (ghost ? 6 : type === 'creeper' ? 9 : 4) + seed * 4) % set.fr[0].length, lift = ghost ? 2.5 + Math.sin(t * 2.8 + seed * 20) * 1.5 : 0;
     ctx.globalAlpha = ghost ? 0.22 : 0.42; blit(ctx, set.sh[side], x, y);
     ctx.globalAlpha = ghost ? 0.84 : 1; blit(ctx, set.fr[side][fi], x, y - lift);
     if (flash > 0) { ctx.globalAlpha = Math.min(0.58, flash * 0.8); blit(ctx, B.flash, x, y - lift); }
@@ -308,10 +305,10 @@
     return { mat: leaf > 0 ? LEAF : GRASS, h: fbm(x / 60, y / 60, 77) + jit * 0.3 > 0.6 ? 2 : 1 };
   }
   function cellColor(i, j, cm) {
-    const x = (i + 0.5) * CELL, y = (j + 0.5) * CELL, hv = hash2(i, j, 77), pn = perlin(x / 44, y / 44, 13), v = clamp(pn * 0.85 + hv * 0.3 - 0.1, 0, 0.999);
+    const x = (i + 0.5) * CELL, y = (j + 0.5) * CELL, hv = hash2(i, j, 77), pn = perlin(x / 64, y / 64, 13) * 0.75 + perlin(x / 22, y / 22, 14) * 0.25, v = clamp(pn * 1.05 + hv * 0.1 - 0.1, 0, 0.999); // calm patches, little salt
     let c, p;
     if (cm.mat === GRASS) { p = GP.grass; c = p[Math.floor(v * p.length)]; }
-    else if (cm.mat === LEAF) { p = GP.leaf; c = p[Math.floor(clamp(hv * 0.35 + perlin(x / 26, y / 26, 17) * 0.8 - 0.12, 0, 0.999) * p.length)]; }
+    else if (cm.mat === LEAF) { p = GP.leaf; c = p[Math.floor(clamp(hv * 0.12 + perlin(x / 34, y / 34, 17) * 0.95 - 0.08, 0, 0.999) * p.length)]; }
     else if (cm.mat === FIELD) c = (j & 1 ? GP.fieldB : GP.fieldA).map((k) => k * (0.95 + hv * 0.09)); // furrow rows
     else if (cm.mat === STONE) { p = GP.stone; c = perlin(x / 70, y / 70, 5) > 0.63 && hv < 0.4 ? GP.moss : p[Math.floor(clamp(pn * 0.7 + hv * 0.45 - 0.08, 0, 0.999) * p.length)]; }
     else if (cm.mat === PATH) { p = GP.path; c = p[Math.floor(v * p.length)]; if (cm.aux) c = c.map((k, n) => GP.shore[n] + (k - GP.shore[n]) * hv * 0.4); }

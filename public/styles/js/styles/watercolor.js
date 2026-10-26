@@ -445,18 +445,25 @@
       drip[x] = 0.1 + v * 0.9 * (rnd() < 0.12 ? 1.7 : 1);
     }
     const out = [];
+    const cx = s.ax * s.k, base = s.ay * s.k;
     for (let f = 0; f < n; f++) {
       const t = (f + 1) / (n + 1);
       const { c, ctx } = U.canvas(w, h);
       const img = ctx.createImageData(w, h), d = img.data;
       for (let y = 0; y < h; y++) {
+        // the wash slumps: pigment runs down in drips and the lower part spreads sideways into a puddle
+        const lowK = clamp01(1 - (base - y) / (h * 0.55));
+        const spread = 1 + t * 0.32 * lowK;
+        const topBias = (1 - clamp01(y / base)) * 0.34 * t;
         for (let x = 0; x < w; x++) {
-          const sy = Math.round(y - drip[x] * t * h * 0.2);
+          const sx = Math.round(cx + (x - cx) / spread);
+          if (sx < 0 || sx >= w) continue;
+          const sy = Math.round(y - drip[sx] * t * h * 0.2);
           if (sy < 0) continue;
-          const si = (sy * w + x) * 4, a = sd[si + 3];
+          const si = (sy * w + sx) * 4, a = sd[si + 3];
           if (!a) continue;
           const nv = WA[(((y * 3) & 1023) << 10) | ((x * 2) & 1023)] * 0.75 + PAP[((y & 255) << 8) | (x & 255)] * 0.25;
-          const keep = (nv + 0.12 - t * 1.05) * 7;
+          const keep = (nv + 0.16 - t * 1.08 - topBias) * 7;
           if (keep <= 0) continue;
           const kk = Math.min(1, keep), L = t * 0.4, o = (y * w + x) * 4;
           d[o] = sd[si] + (245 - sd[si]) * L;
@@ -475,13 +482,24 @@
     const ax = flip ? s.wu - s.ax : s.ax;
     ctx.drawImage(img || (flip ? s.f : s.c), x - ax * sc, y - s.ay * sc, s.wu * sc, s.hu * sc);
   }
+  /** squash & stretch around the feet: sx/sy scale the sprite about its anchor */
+  function blitXY(ctx, s, x, y, flip, sx, sy, img) {
+    const ax = flip ? s.wu - s.ax : s.ax;
+    ctx.drawImage(img || (flip ? s.f : s.c), x - ax * sx, y - s.ay * sy, s.wu * sx, s.hu * sy);
+  }
+  const easeOut3 = (t) => 1 - (1 - t) * (1 - t) * (1 - t);
+  const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t));
+  /** a hover that eases and holds at both ends (no plain sine) */
+  const hover = (t) => { const s = Math.sin(t); return Math.sign(s) * Math.pow(Math.abs(s), 0.6); };
 
   /* ======================================================================
      3. World fields (biomes)
      ====================================================================== */
-  const T_F = 0.575, T_G = 0.57;
+  const T_F = 0.575, T_G = 0.57, T_W = 0.68;
   const fieldF = (x, y) => U.warped(x / 820, y / 820, 11, 1.15, 3);
   const fieldG = (x, y) => U.warped(x / 640 + 40.3, y / 640 - 25.7, 23, 1.0, 3);
+  // ponds: sparse, rounded, never right at the start point
+  const fieldW = (x, y) => U.warped(x / 300 - 17.1, y / 300 + 8.9, 29, 0.35, 2) - (x * x + y * y < 90 * 90 ? 0.15 * (1 - Math.sqrt(x * x + y * y) / 90) : 0);
   function fieldP(x, y) {
     const qx = x + 80 * U.perlin(x / 300, y / 300, 5), qy = y + 80 * U.perlin(x / 300 + 9.1, y / 300 - 3.3, 6);
     return U.perlin(qx / 560, qy / 560, 7);
@@ -500,19 +518,35 @@
     const pd = pathDist(x, y);
     const f = fieldF(x, y) - T_F;
     const g = fieldG(x, y) - T_G;
-    const kind = pd < 0 ? 'P' : f > 0 ? 'F' : g > 0 ? 'G' : 'M';
-    return { kind, pd, f, g };
+    const w = fieldW(x, y) - T_W;
+    const kind = w > 0 ? 'W' : pd < 0 ? 'P' : f > 0 ? 'F' : g > 0 ? 'G' : 'M';
+    return { kind, pd, f, g, w };
   }
+  /** where props may stand: clear of the start point, paths and water */
+  const okProp = (x, y, clear) => !G.nearSpawn(x, y, 95) && pathDist(x, y) > clear && fieldW(x, y) < T_W - 0.008;
+  /** tree placement shared by the props and the ground litter under each tree */
+  function treeAt(x, y, r, deep) {
+    const f = fieldF(x, y) - T_F;
+    const pr = deep ? (f > 0.03 ? 0.5 : f > 0.018 ? 0.22 : 0) : f > 0.012 ? 0.5 : f > -0.008 ? 0.16 : 0.03;
+    if (!r.chance(pr) || !okProp(x, y, 12)) return null;
+    const fir = deep ? r.chance(0.6) : f > 0.02 && r.chance(0.4);
+    return { x, y, t: fir ? 'fir' : 'tree', v: fir ? r.int(0, 1) : r.int(0, 3), flip: r.chance(0.5), sh: fir ? [13, 4.5, 4] : [21, 6.5, 5], pad: 110, fade: fir ? [14, 82] : [26, 90] };
+  }
+  // low-frequency clump field: decals gather in drifts instead of being sprinkled evenly
+  const clumpAt = (x, y) => U.noise(x / 58, y / 58, 31) * 0.65 + U.noise(x / 23, y / 23, 32) * 0.35;
 
   /* ======================================================================
      4. Ground chunk shader
      ====================================================================== */
   const ab = (rgb) => rgb.map((v, i) => -Math.log(Math.max(4, v) / PAPER[i]));
+  // meadow #b2c6a2 #c2cc96 #dace98 · forest #8e9c92 #828aa2, canopy light #acb880 · field #e9ce88 #e4ba7a
+  // path #d8b894 #c6a280 · pond shallows #b0cccc, deep #6a84aa, muddy bank #cebe96
   const PG = {
     mCool: ab([178, 198, 162]), mSap: ab([194, 204, 150]), mOch: ab([218, 206, 152]),
-    fPay: ab([142, 156, 146]), fInd: ab([130, 138, 162]),
+    fPay: ab([142, 156, 146]), fInd: ab([130, 138, 162]), fSun: ab([172, 184, 128]),
     gOch: ab([233, 206, 136]), gSie: ab([228, 186, 122]),
     pEar: ab([216, 184, 148]), pDk: ab([198, 162, 128]),
+    wSh: ab([176, 204, 204]), wDp: ab([106, 132, 170]), bank: ab([206, 190, 150]),
   };
   function sst(t) {
     if (t <= -1) return 0;
@@ -534,20 +568,21 @@
   function* groundGen(ctx, info) {
     const res = info.res, W = info.px, wx = info.wx, wy = info.wy;
     const gr = Math.floor((W - 1) / ST) + 6, N = gr * gr;
-    const fF = new Float32Array(N), fG = new Float32Array(N), fP = new Float32Array(N);
-    const cH = new Float32Array(N), cU = new Float32Array(N), cD = new Float32Array(N), cB = new Float32Array(N);
+    const fF = new Float32Array(N), fG = new Float32Array(N), fP = new Float32Array(N), fW = new Float32Array(N);
+    const cH = new Float32Array(N), cU = new Float32Array(N), cD = new Float32Array(N), cB = new Float32Array(N), cL = new Float32Array(N);
     const sp = ST / res;
     for (let j = 0; j < gr; j++) {
       if ((j & 1) === 1) yield;
       const y = wy + (j - 2) * sp;
       for (let i = 0; i < gr; i++) {
         const x = wx + (i - 2) * sp, o = j * gr + i;
-        fF[o] = fieldF(x, y); fG[o] = fieldG(x, y); fP[o] = fieldP(x, y);
+        fF[o] = fieldF(x, y); fG[o] = fieldG(x, y); fP[o] = fieldP(x, y); fW[o] = fieldW(x, y);
         cH[o] = pathHW(x, y); cU[o] = fieldHue(x, y); cD[o] = fieldDen(x, y); cB[o] = fieldBleed(x, y);
+        cL[o] = U.noise(x / 96, y / 96, 13) * 0.72 + U.noise(x / 37, y / 37, 14) * 0.28;
       }
     }
     yield;
-    const dF = new Float32Array(N), dG = new Float32Array(N), dS = new Float32Array(N);
+    const dF = new Float32Array(N), dG = new Float32Array(N), dS = new Float32Array(N), dW = new Float32Array(N);
     const inv = 1 / (2 * sp);
     const sd = (f, o, T) => {
       const gx = (f[o + 1] - f[o - 1]) * inv, gy = (f[o + gr] - f[o - gr]) * inv;
@@ -558,18 +593,19 @@
       if ((j & 7) === 7) yield;
       for (let i = 1; i < gr - 1; i++) {
         const o = j * gr + i;
-        dF[o] = sd(fF, o, T_F); dG[o] = sd(fG, o, T_G); dS[o] = sd(fP, o, 0);
+        dF[o] = sd(fF, o, T_F); dG[o] = sd(fG, o, T_G); dS[o] = sd(fP, o, 0); dW[o] = sd(fW, o, T_W);
       }
     }
     const rF = new Float32Array(gr), rG = new Float32Array(gr), rS = new Float32Array(gr), rH = new Float32Array(gr);
-    const rU = new Float32Array(gr), rD = new Float32Array(gr), rB = new Float32Array(gr);
+    const rU = new Float32Array(gr), rD = new Float32Array(gr), rB = new Float32Array(gr), rW = new Float32Array(gr), rL = new Float32Array(gr);
     // one reusable pixel buffer (chunk jobs run one at a time) – avoids 1.6 MB garbage per chunk
     if (!IMG || IMG.width !== W) IMG = ctx.createImageData(W, W);
     const img = IMG, d = img.data;
     const [mc0, mc1, mc2] = PG.mCool, [ms0, ms1, ms2] = PG.mSap, [mo0, mo1, mo2] = PG.mOch;
-    const [fp0, fp1, fp2] = PG.fPay, [fi0, fi1, fi2] = PG.fInd;
+    const [fp0, fp1, fp2] = PG.fPay, [fi0, fi1, fi2] = PG.fInd, [fs0, fs1, fs2] = PG.fSun;
     const [go0, go1, go2] = PG.gOch, [gs0, gs1, gs2] = PG.gSie;
     const [pe0, pe1, pe2] = PG.pEar, [pd0, pd1, pd2] = PG.pDk;
+    const [ws0, ws1, ws2] = PG.wSh, [wd0, wd1, wd2] = PG.wDp, [bk0, bk1, bk2] = PG.bank;
     const PR = PAPER[0], PGc = PAPER[1], PB = PAPER[2];
     const gx0 = info.cx * W, gy0 = info.cy * W;
     for (let py = 0; py < W; py++) {
@@ -581,7 +617,8 @@
         rF[c] = dF[a] + (dF[b] - dF[a]) * fy; rG[c] = dG[a] + (dG[b] - dG[a]) * fy;
         rS[c] = dS[a] + (dS[b] - dS[a]) * fy; rH[c] = cH[a] + (cH[b] - cH[a]) * fy;
         rU[c] = cU[a] + (cU[b] - cU[a]) * fy; rD[c] = cD[a] + (cD[b] - cD[a]) * fy;
-        rB[c] = cB[a] + (cB[b] - cB[a]) * fy;
+        rB[c] = cB[a] + (cB[b] - cB[a]) * fy; rW[c] = dW[a] + (dW[b] - dW[a]) * fy;
+        rL[c] = cL[a] + (cL[b] - cL[a]) * fy;
       }
       const gy = gy0 + py;
       const rowP = (gy & 255) << 8, rowA = (gy & 1023) << 10, rowB = ((gy + 389) & 1023) << 10;
@@ -596,6 +633,8 @@
         const vU = rU[c0] + (rU[c1] - rU[c0]) * fx;
         const vD = rD[c0] + (rD[c1] - rD[c0]) * fx;
         const vB = rB[c0] + (rB[c1] - rB[c0]) * fx;
+        const vW = rW[c0] + (rW[c1] - rW[c0]) * fx;
+        const vL = rL[c0] + (rL[c1] - rL[c0]) * fx;
         const gx = gx0 + px;
         const P = PAP[rowP | (gx & 255)];
         const Gr = GRA[rowP | ((gx + 91) & 255)];
@@ -606,28 +645,43 @@
         const soft = 0.45 + 5 * vB;
         const eF = vF + (wa - 0.5) * 9 + (P - 0.5) * 0.9;
         const eG = vG + (wb - 0.5) * 9 + (P - 0.5) * 0.9;
+        // water terms only near ponds (most pixels skip them)
+        const eW = vW > -8 ? vW + (wa - 0.5) * 5 + (P - 0.5) * 0.7 : -99;
         const pc = Math.abs(vS + (wb - 0.5) * 3.5);
         const eP = vH - pc + (P - 0.5) * 0.7;
-        const mF = sst(eF / soft), mG = sst(eG / soft), mP = sst(eP / (0.5 + 2 * vB));
-        const wP = mP, wF = mF * (1 - wP), wG = mG * (1 - mF) * (1 - wP), wM = 1 - wP - wF - wG;
-        // pigment pooling along the wash edges
-        const kM = 1 + hs * (0.85 * pool(-eF) + 0.85 * pool(-eG) * (1 - mF) + 0.5 * pool(-eP));
-        const kF = 1 + hs * (1.0 * pool(eF) + 0.5 * pool(-eP)) + 0.32 * sst((eF - 20) / 18);
-        const kG = 1 + hs * (1.0 * pool(eG) + 0.8 * pool(-eF) + 0.5 * pool(-eP));
         const rut = Math.max(0, 1 - Math.abs(pc - vH * 0.5) * 1.1);
-        const kP = 1 + hs * 0.9 * pool(eP) + 0.5 * rut;
-        // thin paper gaps between neighbouring washes (in places)
-        const gapOn = hs * clamp01((wa - 0.55) * 7);
-        const gap = gapOn * (gapf(eF) + gapf(eG) * (1 - mF) + 0.6 * gapf(eP));
-        // densities
-        let dM = vD * (0.6 + 0.6 * wb);
-        dM *= 1 - 0.55 * clamp01((0.32 - wb) * 9);
-        const dap = clamp01((wa - 0.64) * 28), ring = Math.max(0, 1 - Math.abs(wa - 0.64) * 70);
-        const dFo = vD * (0.82 + 0.35 * wb) * (1 - 0.42 * dap) * (1 + 0.5 * ring * hs);
-        const dGo = vD * (0.7 + 0.55 * st);
+        const dPth = vH - Math.abs(vS);
+        let mF, mG, mP, kM, kF, kG, kP, gap, mW = 0, pw = 0;
+        if (eW === -99 && (vF > 10.5 || vF < -10.5) && (vG > 10.5 || vG < -10.5) && (dPth > 5 || dPth < -5)) {
+          // far from every wash edge: masks are exactly 0/1, no pooling, no paper gaps (same result, much cheaper)
+          mF = vF > 0 ? 1 : 0; mG = vG > 0 ? 1 : 0; mP = dPth > 0 ? 1 : 0;
+          kM = 1; kG = 1; kF = mF ? 1 + 0.34 * sst((eF - 20) / 18) : 1; kP = 1 + 0.5 * rut; gap = 0;
+        } else {
+          mF = sst(eF / soft); mG = sst(eG / soft); mP = sst(eP / (0.5 + 2 * vB));
+          mW = eW <= -1.4 ? 0 : sst(eW / (0.7 + 1.5 * vB));
+          // pigment pooling along the wash edges (each wash darkens where it dried against a neighbour)
+          pw = eW < 0 && eW > -2.6 ? pool(-eW) : 0;
+          const pFm = pool(-eF), pGm = pool(-eG), pPm = pool(-eP);
+          kM = 1 + hs * (0.85 * pFm + 0.85 * pGm * (1 - mF) + 0.5 * pPm) + 0.9 * pw;
+          kF = 1 + hs * (pool(eF) + 0.5 * pPm) + 0.34 * sst((eF - 20) / 18) + 0.7 * pw;
+          kG = 1 + hs * (pool(eG) + 0.8 * pFm + 0.5 * pPm) + 0.8 * pw;
+          kP = 1 + hs * 0.9 * pool(eP) + 0.5 * rut + 0.6 * pw;
+          // thin paper gaps between neighbouring washes (in places) – the reserved white line around ponds
+          const gapOn = hs * clamp01((wa - 0.55) * 7);
+          gap = gapOn * (gapf(eF) + gapf(eG) * (1 - mF) + 0.6 * gapf(eP)) + (eW > -1.2 ? clamp01((wb - 0.42) * 5) * gapf(eW - 0.3) : 0);
+        }
+        const nW = 1 - mW;
+        const wW = mW, wP = mP * nW, wF = mF * (1 - mP) * nW, wG = mG * (1 - mF) * (1 - mP) * nW;
+        const wM = 1 - wW - wP - wF - wG;
+        // densities: calm, large-scale variation; lifted (wiped) areas come from the low-frequency field
+        const lift = clamp01((vL + (wa - 0.5) * 0.22 - 0.64) * 14);
+        let dM = vD * (0.8 + 0.3 * wb) * (1 - 0.34 * lift);
+        const ring = Math.max(0, 1 - Math.abs(vL + (wa - 0.5) * 0.22 - 0.665) * 60);
+        const dFo = vD * (0.86 + 0.22 * wb) * (1 - 0.38 * lift) * (1 + 0.55 * ring * hs);
+        const dGo = vD * (0.72 + 0.5 * st);
         const dPo = 0.82 + 0.35 * wb;
         // pigment mixtures (absorbance space)
-        const h = clamp01(vU + (wb - 0.5) * 0.5);
+        const h = clamp01(vU + (wb - 0.5) * 0.35);
         let aM0, aM1, aM2;
         if (h < 0.5) {
           const t = h * 2;
@@ -636,13 +690,26 @@
           const t = h * 2 - 1;
           aM0 = ms0 + (mo0 - ms0) * t; aM1 = ms1 + (mo1 - ms1) * t; aM2 = ms2 + (mo2 - ms2) * t;
         }
-        const tf = clamp01(wa * 1.6 - 0.35), tg = clamp01(wb * 1.6 - 0.3);
-        const gran = (1 + (Gr - 0.5) * (0.6 * wM + 1.05 * wF + 0.6 * wG + 1.2 * wP)) * (1 + (0.5 - P) * 0.45);
+        const tf = clamp01(vL * 1.5 - 0.3 + (wa - 0.5) * 0.4), tg = clamp01(wb * 1.6 - 0.3);
+        // forest floor: payne grey to indigo, warmed to sap green where light falls through the canopy (lifted areas)
+        const sun = lift * 0.75;
+        const f0 = fp0 + (fi0 - fp0) * tf, f1 = fp1 + (fi1 - fp1) * tf, f2 = fp2 + (fi2 - fp2) * tf;
+        const gran = (1 + (Gr - 0.5) * (0.55 * wM + 0.8 * wF + 0.6 * wG + 1.2 * wP + 0.35 * wW)) * (1 + (0.5 - P) * 0.45);
         const mul = (1 - 0.88 * Math.min(1, gap)) * gran;
         const sM = wM * kM * dM * mul, sF = wF * kF * dFo * mul, sG = wG * kG * dGo * mul, sP = wP * kP * dPo * mul;
-        const a0 = sM * aM0 + sF * (fp0 + (fi0 - fp0) * tf) + sG * (go0 + (gs0 - go0) * tg) + sP * (pe0 + (pd0 - pe0) * wa);
-        const a1 = sM * aM1 + sF * (fp1 + (fi1 - fp1) * tf) + sG * (go1 + (gs1 - go1) * tg) + sP * (pe1 + (pd1 - pe1) * wa);
-        const a2 = sM * aM2 + sF * (fp2 + (fi2 - fp2) * tf) + sG * (go2 + (gs2 - go2) * tg) + sP * (pe2 + (pd2 - pe2) * wa);
+        // muddy bank band just outside the water
+        const sB = eW < 0 && eW > -5 ? (1 + eW / 5) * (1 + eW / 5) * 0.55 * nW * mul : 0;
+        let a0 = sM * aM0 + sF * (f0 + (fs0 - f0) * sun) + sG * (go0 + (gs0 - go0) * tg) + sP * (pe0 + (pd0 - pe0) * wa);
+        let a1 = sM * aM1 + sF * (f1 + (fs1 - f1) * sun) + sG * (go1 + (gs1 - go1) * tg) + sP * (pe1 + (pd1 - pe1) * wa);
+        let a2 = sM * aM2 + sF * (f2 + (fs2 - f2) * sun) + sG * (go2 + (gs2 - go2) * tg) + sP * (pe2 + (pd2 - pe2) * wa);
+        if (wW > 0) {
+          const kW = 1 + 1.25 * (eW > 0 ? pool(eW) : 0);
+          const dep = clamp01(eW / 26);
+          const glint = clamp01((st - 0.64) * 8) * clamp01((wb - 0.47) * 4) * clamp01(eW / 6);
+          const sW = wW * kW * (0.5 + 0.55 * dep + 0.3 * (wa - 0.5)) * (1 - 0.85 * glint) * mul;
+          a0 += sW * (ws0 + (wd0 - ws0) * dep); a1 += sW * (ws1 + (wd1 - ws1) * dep); a2 += sW * (ws2 + (wd2 - ws2) * dep);
+        }
+        if (sB > 0) { a0 += sB * bk0; a1 += sB * bk1; a2 += sB * bk2; }
         const sh = 0.95 + 0.075 * P;
         let i0 = (a0 * 512) | 0, i1 = (a1 * 512) | 0, i2 = (a2 * 512) | 0;
         if (i0 > 4096) i0 = 4096; else if (i0 < 0) i0 = 0;
@@ -674,8 +741,8 @@
         { w: (0.36 + r.next() * 0.14) * s, ta: 0.04, tb: 0.75, wv: 0.1, color: col, alpha: a });
     }
   }
-  function flower(ctx, x, y, r) {
-    const t = r.next();
+  function flower(ctx, x, y, r, sp) {
+    const t = sp === undefined ? r.next() : [0.2, 0.5, 0.7, 0.9][sp];
     // tiny stem
     inkLine(ctx, spline([[x, y + 2.6], [x + (r.next() - 0.5) * 0.8, y + 1.2], [x, y]], false, 3), { w: 0.28, ta: 0, tb: 0.5, wv: 0, color: '#4a5a2a', alpha: 0.6 });
     if (t < 0.38) { // daisy / chamomile
@@ -707,8 +774,8 @@
       }
     }
   }
-  function leafDecal(ctx, x, y, r, s) {
-    const col = LEAF_COLS[(r.next() * LEAF_COLS.length) | 0];
+  function leafDecal(ctx, x, y, r, s, c) {
+    const col = c || LEAF_COLS[(r.next() * LEAF_COLS.length) | 0];
     const ang = r.next() * TAU, L = (1.8 + r.next() * 1.9) * s, Wd = L * (0.36 + r.next() * 0.2);
     ctx.save();
     ctx.translate(x, y);
@@ -822,27 +889,102 @@
       }
     }
   }
+  function lilyPads(ctx, x, y, r) {
+    const n = 2 + r.int(0, 3);
+    for (let i = 0; i < n; i++) {
+      const px = x + (i ? (r.next() - 0.5) * 11 : 0), py = y + (i ? (r.next() - 0.5) * 5 : 0);
+      if (fieldW(px, py) < T_W + 0.004) continue;
+      const rx = 1.8 + r.next() * 1.7, ry = rx * 0.62, a0 = r.next() * TAU;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.ellipse(px, py, rx, ry, 0, a0 + 0.32, a0 - 0.32 + TAU);
+      ctx.closePath();
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = ['#7d9a4a', '#8aa456', '#6f8c44'][i % 3];
+      ctx.fill();
+      // shadow half (lower right) + broken ink edge on the shadow side
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#3e5a3a';
+      ctx.beginPath(); ctx.ellipse(px + rx * 0.25, py + ry * 0.28, rx * 0.7, ry * 0.6, 0, -0.3, Math.PI + 0.3); ctx.fill();
+      ctx.globalAlpha = 0.6;
+      ctx.lineWidth = 0.2; ctx.strokeStyle = INK_BLUE;
+      ctx.beginPath(); ctx.ellipse(px, py, rx, ry, 0, -0.2, Math.PI * 0.9); ctx.stroke();
+      // a thin paper ripple around the pad
+      ctx.globalAlpha = 0.5; ctx.lineWidth = 0.28; ctx.strokeStyle = 'rgb(250,248,240)';
+      ctx.beginPath(); ctx.ellipse(px + 0.3, py + 0.4, rx * 1.55, ry * 1.5, 0, Math.PI * 0.05, Math.PI * 0.75); ctx.stroke();
+    }
+    if (r.chance(0.35)) {
+      // a water-lily blossom: paper-white petals with a rose blush
+      const fx = x + 0.6, fy = y - 0.4;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU + 0.3;
+        ctx.globalAlpha = 0.95; ctx.fillStyle = i % 2 ? '#f6ece6' : '#efd6d6';
+        ctx.beginPath(); ctx.ellipse(fx + Math.cos(a) * 0.8, fy + Math.sin(a) * 0.5, 0.75, 0.42, a, 0, TAU); ctx.fill();
+      }
+      ctx.fillStyle = '#e0b24a'; ctx.beginPath(); ctx.arc(fx, fy, 0.38, 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.6; ctx.lineWidth = 0.14; ctx.strokeStyle = '#9a4a5a';
+      ctx.beginPath(); ctx.arc(fx, fy, 1.2, 0.2, 2.4); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  /** fallen leaves gathered under a deciduous tree, in the colours of that tree, biased to the shadow side */
+  function treeLitter(ctx, tr, r) {
+    const pal = TREE_PALS[tr.v] || TREE_PALS[0];
+    const n = 16 + r.int(0, 10);
+    for (let i = 0; i < n; i++) {
+      const a = r.next() * TAU, d = Math.pow(r.next(), 0.75);
+      const lx = tr.x + 3 + Math.cos(a) * d * 25 + 3 * d, ly = tr.y + 2.5 + Math.sin(a) * d * 10.5;
+      if (pathDist(lx, ly) < -1) continue;
+      leafDecal(ctx, lx, ly, r, 0.85 + r.next() * 0.45, i % 5 === 4 ? LEAF_COLS[r.int(0, LEAF_COLS.length - 1)] : pal[i % 3]);
+    }
+    // roots
+    for (const s of [-1, 1]) {
+      stroke(ctx, [[tr.x + s * 2.2, tr.y - 0.2], [tr.x + s * 4.4, tr.y + 0.5], [tr.x + s * (6.4 + r.next() * 2), tr.y + 0.4 + r.next()]], { w: 0.55, jit: 0.2, ta: 0.05, tb: 0.7, wv: 0.3, color: '#3a2618', alpha: 0.7 }, r);
+    }
+    grassTuft(ctx, tr.x - 5, tr.y + 1, r, INK, 0.5, 0.8);
+    if (r.chance(0.5)) grassTuft(ctx, tr.x + 6.5, tr.y + 1.5, r, INK, 0.5, 0.9);
+    if (r.chance(0.3)) mushroom(ctx, tr.x + 4.5, tr.y + 2.2, r);
+  }
+  function firLitter(ctx, tr, r) {
+    const n = 12 + r.int(0, 8);
+    for (let i = 0; i < n; i++) {
+      const a = r.next() * TAU, d = Math.sqrt(r.next());
+      const lx = tr.x + 2 + Math.cos(a) * d * 14, ly = tr.y + 1.5 + Math.sin(a) * d * 6;
+      const ang = r.next() * TAU, L = 1 + r.next() * 1.2;
+      inkLine(ctx, [[lx, ly], [lx + Math.cos(ang) * L, ly + Math.sin(ang) * L * 0.7]], { w: 0.22, ta: 0, tb: 0.5, wv: 0, color: '#4a3a24', alpha: 0.55 });
+    }
+    for (let i = 0; i < 1 + r.int(0, 2); i++) {
+      const cx = tr.x - 4 + r.next() * 10, cy = tr.y + 1 + r.next() * 3;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = '#7a5434';
+      ctx.beginPath(); ctx.ellipse(cx, cy, 1.1, 0.6, r.next(), 0, TAU); ctx.fill();
+      ctx.globalAlpha = 0.6; ctx.lineWidth = 0.16; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if (r.chance(0.35)) mushroom(ctx, tr.x - 3.5, tr.y + 2, r);
+  }
   function* decals(ctx, info) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    // wash blooms / backruns
-    yield* scat(info, 95, 811, 22, (x, y, r) => {
-      if (!r.chance(0.55)) return;
-      const m = matAt(x, y);
-      bloomDecal(ctx, x, y, r, MAT_DK[m.kind]);
-    });
-    // pigment splatter
-    yield* scat(info, 64, 822, 12, (x, y, r) => {
+    // wash blooms / backruns: few and large, accidents of the medium
+    yield* scat(info, 150, 811, 30, (x, y, r) => {
       if (!r.chance(0.5)) return;
       const m = matAt(x, y);
-      splatter(ctx, x, y, r, MAT_DK[m.kind], m.kind === 'F' ? 0.4 : 0.32);
-      if (r.chance(0.35)) splatter(ctx, x + 4, y + 2, r, 'rgba(42,27,20,1)', 0.3);
+      if (m.kind === 'W' || m.w > -0.01) return;
+      bloomDecal(ctx, x, y, r, MAT_DK[m.kind]);
     });
-    // stones (paths + some elsewhere) and pebbles
+    // pigment splatter: rare flicks of the region colour
+    yield* scat(info, 130, 822, 12, (x, y, r) => {
+      if (!r.chance(0.32)) return;
+      const m = matAt(x, y);
+      if (m.kind === 'W') return;
+      splatter(ctx, x, y, r, MAT_DK[m.kind], m.kind === 'F' ? 0.36 : 0.28);
+    });
+    // stones (paths + a few elsewhere) and pebbles
     yield* scat(info, 30, 833, 6, (x, y, r) => {
       const pd = pathDist(x, y);
-      const ch = pd < -1 ? 0.6 : 0.08;
+      const ch = pd < -1 ? 0.6 : pd < 6 ? 0.12 : 0.03;
       if (!r.chance(ch)) return;
+      if (fieldW(x, y) > T_W - 0.004) return;
       stoneDecal(ctx, x, y, r, 0.7 + r.next() * 1.4, pd < 0 ? 0.85 : 0.7);
     });
     yield* scat(info, 11, 834, 3, (x, y, r) => {
@@ -853,14 +995,33 @@
       ctx.beginPath(); ctx.ellipse(x, y, 0.45 + r.next() * 0.4, 0.3 + r.next() * 0.25, r.next(), 0, TAU); ctx.fill();
       ctx.globalAlpha = 1;
     });
-    // leaf litter
+    // water: lily pads near the banks
+    yield* scat(info, 26, 951, 12, (x, y, r) => {
+      const w = fieldW(x, y) - T_W;
+      if (w < 0.006 || w > 0.05 || !r.chance(0.42)) return;
+      lilyPads(ctx, x, y, r);
+    }, 20);
+    // leaf litter: gathered along forest edges, sparse inside
     yield* scat(info, 8, 845, 4, (x, y, r) => {
       const f = fieldF(x, y) - T_F;
-      const ch = f > 0.004 ? 0.5 : f > -0.012 ? 0.2 : 0.012;
+      const ch = f > -0.01 && f < 0.006 ? 0.26 : f >= 0.006 ? 0.03 : 0;
       if (!r.chance(ch)) return;
-      if (f > -0.012 && pathDist(x, y) < 0) { if (!r.chance(0.3)) return; }
+      if (pathDist(x, y) < 0 || fieldW(x, y) > T_W) return;
       leafDecal(ctx, x, y, r, 0.9 + r.next() * 0.4);
     });
+    // litter, roots and mushrooms under every tree (same placement as the tree props)
+    yield* scat(info, 76, 7001, 40, (x, y, r) => {
+      const tr = treeAt(x, y, r);
+      if (!tr) return;
+      const q = U.rng(hsh(x * 13, y * 7, 7071));
+      if (tr.t === 'tree') treeLitter(ctx, tr, q); else firLitter(ctx, tr, q);
+    }, 4);
+    yield* scat(info, 64, 7011, 40, (x, y, r) => {
+      const tr = treeAt(x, y, r, true);
+      if (!tr) return;
+      const q = U.rng(hsh(x * 13, y * 7, 7072));
+      if (tr.t === 'tree') treeLitter(ctx, tr, q); else firLitter(ctx, tr, q);
+    }, 4);
     // stubble rows in golden fields
     yield* scat(info, 14, 856, 18, (x, y, r) => {
       if (!r.chance(0.5)) return;
@@ -868,35 +1029,43 @@
       if (m.kind !== 'G') return;
       stubble(ctx, x, y, r);
     });
-    // grass tufts (denser along path borders)
-    yield* scat(info, 12, 867, 8, (x, y, r) => {
+    // grass tufts: in clumps, along path borders, forest edges and pond banks, never evenly everywhere
+    yield* scat(info, 11, 867, 8, (x, y, r) => {
       const m = matAt(x, y);
-      if (m.kind === 'P') return;
-      const edge = m.pd < 5;
-      const ch = edge ? 0.85 : m.kind === 'M' ? 0.42 : m.kind === 'G' ? 0.1 : 0.16;
+      if (m.kind === 'P' || m.kind === 'W') return;
+      const cl = clumpAt(x, y);
+      const bank = m.w > -0.016;
+      let ch;
+      if (bank) ch = 0.92;
+      else if (m.pd < 4.5) ch = 0.78;
+      else if (m.kind === 'M') ch = cl > 0.62 ? 0.72 : cl > 0.57 ? 0.18 : 0.004;
+      else if (m.kind === 'F') ch = (m.f < 0.007 ? 0.45 : 0) + (cl > 0.66 ? 0.26 : 0.004);
+      else ch = cl > 0.66 ? 0.22 : 0.004;
       if (!r.chance(ch)) return;
-      const col = m.kind === 'F' ? INK_BLUE : INK;
-      grassTuft(ctx, x, y, r, col, m.kind === 'F' ? 0.38 : 0.45, 0.8 + r.next() * 0.45);
-      if (m.kind === 'M' && r.chance(0.3)) {
-        ctx.globalAlpha = 0.18;
-        ctx.fillStyle = '#6e8a3a';
-        ctx.beginPath(); ctx.ellipse(x + 0.6, y - 1.2, 2.2, 1.4, 0, 0, TAU); ctx.fill();
+      const col = bank ? '#24301e' : m.kind === 'F' ? INK_BLUE : INK;
+      grassTuft(ctx, x, y, r, col, bank ? 0.6 : m.kind === 'F' ? 0.38 : 0.45, (bank ? 1.05 : 0.8) + r.next() * 0.45);
+      if ((m.kind === 'M' || bank) && r.chance(0.35)) {
+        ctx.globalAlpha = bank ? 0.26 : 0.18;
+        ctx.fillStyle = bank ? '#5c7a3a' : '#6e8a3a';
+        ctx.beginPath(); ctx.ellipse(x + 0.6, y - 1.2, 2.4, 1.4, 0, 0, TAU); ctx.fill();
         ctx.globalAlpha = 1;
       }
     });
-    // flowers
-    yield* scat(info, 24, 878, 4, (x, y, r) => {
-      if (!r.chance(0.32)) return;
+    // flowers in drifts: one species per patch (plus a few strays), no even sprinkle
+    yield* scat(info, 9, 878, 4, (x, y, r) => {
+      const dr = U.noise(x / 105, y / 105, 41);
+      if (dr < 0.66 || !r.chance((dr - 0.66) * 3.4)) return;
       const m = matAt(x, y);
-      if (m.kind !== 'M') return;
-      const n = r.chance(0.4) ? 2 + r.int(0, 2) : 1;
-      for (let i = 0; i < n; i++) flower(ctx, x + (r.next() - 0.5) * 6, y + (r.next() - 0.5) * 4, r);
+      if (m.kind !== 'M' || m.w > -0.01) return;
+      let sp = hsh(Math.floor(x / 210), Math.floor(y / 210), 43) & 3;
+      if (r.chance(0.18)) sp = (sp + 1) & 3;
+      flower(ctx, x + (r.next() - 0.5) * 4, y + (r.next() - 0.5) * 3, r, sp);
     });
-    // forest twigs + mushrooms
+    // forest twigs
     yield* scat(info, 26, 889, 8, (x, y, r) => {
-      if (!r.chance(0.32)) return;
-      if (fieldF(x, y) < T_F + 0.006) return;
-      if (r.chance(0.22)) mushroom(ctx, x, y, r); else twig(ctx, x, y, r);
+      if (!r.chance(0.14)) return;
+      if (fieldF(x, y) < T_F + 0.006 || fieldW(x, y) > T_W) return;
+      twig(ctx, x, y, r);
     });
   }
 
@@ -911,32 +1080,93 @@
     if (io !== false) outline(ctx, P, Object.assign({ w: 0.7, light: 0.45, pieces: 2, wv: 0.3 }, io || {}), r);
   }
 
-  /* ---------- Jack ---------- */
+  /* ---------- main character: pumpkin-headed wanderer ----------
+     A tiny rig (body bob, lean, head lag, feet, hands, scarf tail) drives every baked frame:
+     walk = 8 poses (contact - down - passing - up, twice), idle = 6 breathing poses + blink + glance,
+     dash = crouch (anticipation) + stretch, hurt = flinch. */
+  function jackRig(pose) {
+    const R = { bodyDy: 0, lean: 0, headDy: 0, headTilt: 0, breath: 0, feet: [[-1.6, 0], [1.6, 0]], hands: [[-5.1, -7.2], [5.9, -7.4]], tail: [0, 0, 1], eyes: pose.eyes || 'open', look: !!pose.look, mouth: 'grin' };
+    const k = pose.kind;
+    if (k === 'walk') {
+      const ph = pose.ph, s = Math.sin(ph), c = Math.cos(ph);
+      R.bodyDy = 0.75 * Math.cos(2 * (ph - 0.35));           // lowest just after contact, highest after passing
+      R.lean = 0.07;
+      R.headDy = 0.5 * Math.cos(2 * (ph - 0.95));            // head settles a beat later (overlap)
+      R.headTilt = 0.04 * Math.sin(2 * ph - 0.7);
+      R.feet = [[-1.4 + 2.5 * c, Math.max(0, -s) * 2.0], [1.6 - 2.5 * c, Math.max(0, s) * 2.0]];
+      R.hands = [[-5.0 - 2.7 * c, -7.3 - 0.7 * c * c], [5.7 + 2.7 * c, -7.5 - 0.7 * c * c]];
+      R.tail = [0.24 + 0.07 * Math.cos(2 * ph), Math.sin(2 * ph - 1.5), 1.08];
+    } else if (k === 'idle') {
+      const b = Math.sin(pose.br * TAU);
+      R.breath = b;
+      R.bodyDy = -0.22 * b;
+      R.headDy = -0.28 * Math.sin(pose.br * TAU - 0.7);
+      R.headTilt = R.look ? 0.05 : 0.015 * Math.sin(pose.br * TAU + 1.2);
+      R.hands = [[-5.1 - 0.15 * b, -7.2 - 0.25 * b], [5.9 + 0.15 * b, -7.4 - 0.25 * b]];
+      R.tail = [0.5 + 0.04 * b, 0.45 * Math.sin(pose.br * TAU + 1.3), 0.95];
+    } else if (k === 'dash') {
+      R.bodyDy = -0.5; R.lean = 0.3; R.headDy = 0.35; R.headTilt = 0.12;
+      R.feet = [[-4.4, 1.5], [3.6, 0.5]];
+      R.hands = [[-8.4, -9.8], [-2.0, -8.8]];
+      R.tail = [0.0, 0.35, 1.4];
+    } else if (k === 'crouch') {
+      R.bodyDy = 1.9; R.lean = 0.17; R.headDy = 0.7; R.headTilt = 0.06;
+      R.feet = [[-2.9, 0], [2.7, 0]];
+      R.hands = [[-3.6, -5.6], [6.6, -6.0]];
+      R.tail = [0.8, -0.3, 0.9];
+    } else if (k === 'hurt') {
+      R.bodyDy = 0.4; R.lean = -0.2; R.headDy = -0.5; R.headTilt = -0.26;
+      R.feet = [[-3.0, 0], [2.2, 0.9]];
+      R.hands = [[-6.6, -14.4], [7.6, -14.8]];
+      R.tail = [-0.5, 0.9, 1.1];
+      R.eyes = 'squeeze'; R.mouth = 'o';
+    }
+    return R;
+  }
   function drawJack(ctx, pose, r) {
-    const walking = pose.ph !== null;
-    const sw = walking ? Math.sin(pose.ph) : 0, cw = walking ? Math.cos(pose.ph) : 0;
-    const lift = (v) => (walking ? Math.max(0, v) * 1.5 : 0);
+    const R = jackRig(pose);
     const J = 0.2;
-    // back arm
-    const ba = [[-3.4, -11.6], [-4.8, -9.6], [-5.0 - sw * 1.5, -7.6]];
-    part(ctx, ribbon(jit(ba, J, r), taperW(2.5, 2.0)), { c: '#34406c', blobs: [{ x: -4.6, y: -10, rx: 1.4, ry: 2, c: '#4b5a8e', a: 0.6, blur: 0.8 }], hi: 0.15, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: 0.55 });
-    wash(ctx, spline(blobPts(-5.1 - sw * 1.5, -7.2, 1.2, 1.1, 0.12, r, 7), true, 4), { c: '#e6d6b8', hi: 0.2, rim: 0.6, edge: '#a08060', gran: 0.3 }, r);
-    // legs + boots
-    const legs = [[-1.6, -2.4 * sw, lift(-cw)], [1.6, 2.4 * sw, lift(cw)]];
-    for (const [hx, dx, li] of legs) {
-      const fx = hx + dx, fy = -0.9 - li;
-      const LP = ribbon(jit([[hx, -6], [hx + dx * 0.5, -3.4 - li * 0.5], [fx, fy - 0.4]], 0.12, r), taperW(2.3, 1.9));
-      part(ctx, LP, { c: '#4a3a34', hi: 0.12, rim: 0.6, edge: '#2a1e1a', gran: 0.35 }, r, { w: 0.5 });
+    const hip = -5 + R.bodyDy;
+    const bodyT = () => { ctx.translate(0, hip); ctx.rotate(R.lean); ctx.translate(0, 5); };
+    const arm = (sx, sy, hand, w0, w1, col, lt, back) => {
+      const ex = (sx + hand[0]) / 2 + (back ? -0.6 : 0.6), ey = (sy + hand[1]) / 2 + 0.5;
+      part(ctx, ribbon(jit([[sx, sy], [ex, ey], hand], J, r), taperW(w0, w1)), { c: col, blobs: [{ x: sx, y: sy + 1.4, rx: 1.3, ry: 1.8, c: lt, a: 0.6, blur: 0.8 }], hi: back ? 0.15 : 0.25, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: back ? 0.55 : 0.6 });
+      const MP = spline(blobPts(hand[0] + (back ? -0.1 : 0.2), hand[1] + 0.3, 1.25, 1.12, 0.12, r, 7), true, 4);
+      part(ctx, MP, { c: back ? '#e6d6b8' : '#ecdfc2', blobs: [{ x: hand[0] + 0.5, y: hand[1] + 0.6, rx: 0.8, ry: 0.7, c: '#c9a77e', a: 0.5, blur: 0.4 }], hi: 0.2, rim: 0.5, edge: '#a08060', gran: 0.25 }, r, back ? false : { w: 0.45 });
+    };
+    // back arm (behind the coat)
+    ctx.save(); bodyT();
+    arm(-3.4, -11.6, R.hands[0], 2.5, 2.0, '#34406c', '#4b5a8e', true);
+    ctx.restore();
+    // legs + boots (hips ride with the body, feet stay on the ground line)
+    R.feet.forEach(([fx, li], i) => {
+      const hx = i ? 1.6 : -1.6;
+      const hy = hip - 1 + Math.sin(R.lean) * 0.5;
+      const fy = -0.9 - li;
+      const kx = (hx + fx) / 2 + 0.5 + Math.max(0, R.bodyDy) * 0.45, ky = (hy + fy) / 2 - li * 0.3;
+      const LP = ribbon(jit([[hx, hy], [kx, ky], [fx, fy - 0.4]], 0.12, r), taperW(2.3, 1.9));
+      part(ctx, LP, { c: i ? '#4a3a34' : '#3e302b', hi: 0.12, rim: 0.6, edge: '#2a1e1a', gran: 0.35 }, r, { w: 0.5 });
+      const toe = li > 0.4 ? -0.25 : 0;
+      ctx.save(); ctx.translate(fx + 0.7, fy + 0.1); ctx.rotate(toe); ctx.translate(-fx - 0.7, -fy - 0.1);
       const BP = spline(blobPts(fx + 0.7, fy + 0.1, 1.9, 1.15, 0.1, r, 8), true, 4);
       part(ctx, BP, { c: '#3b2a24', blobs: [{ x: fx, y: fy - 0.4, rx: 1, ry: 0.5, c: '#6b5040', a: 0.7, blur: 0.5 }], hi: 0.1, rim: 0.5, gran: 0.3 }, r, { w: 0.5 });
+      ctx.restore();
+    });
+    ctx.save(); bodyT();
+    // breathing: the coat swells a little from the hem
+    if (R.breath) { ctx.translate(0, -4); ctx.scale(1 + 0.012 * R.breath, 1 + 0.028 * R.breath); ctx.translate(0, 4); }
+    // scarf tail (behind): angle + travelling wave = follow-through
+    const [ta, wv, tl] = R.tail;
+    {
+      const ca = Math.cos(ta), sa = Math.sin(ta);
+      const pt = (d, off) => [-2.0 - d * ca * tl, -13.2 + d * sa * tl + d * d * 0.028 * ca + off];
+      const tail = [pt(0, 0), pt(3.0, wv * 0.7), pt(6.0, -wv * 1.0), pt(8.8, wv * 1.25)];
+      const TP = ribbon(jit(tail, J, r), (u) => 2.3 - u * 0.9 + Math.sin(u * 9) * 0.15);
+      part(ctx, TP, { c: '#b4432f', blobs: [{ x: tail[1][0], y: tail[1][1], rx: 2.5, ry: 1, c: '#d66a48', a: 0.6, blur: 0.7 }, { x: tail[3][0], y: tail[3][1], rx: 1.6, ry: 1.2, c: '#862a1e', a: 0.6, blur: 0.8 }], hi: 0.15, rim: 0.7, edge: '#6e1f15', gran: 0.4 }, r, { w: 0.55 });
+      const e = tail[3];
+      inkLine(ctx, [[e[0] + 0.2, e[1] + 0.4], [e[0] - 0.9, e[1] + 0.9 + wv * 0.3]], { w: 0.3, ta: 0, tb: 0.6, wv: 0 });
+      inkLine(ctx, [[e[0], e[1] - 0.4], [e[0] - 1.1, e[1] - 0.5 + wv * 0.3]], { w: 0.3, ta: 0, tb: 0.6, wv: 0 });
     }
-    // scarf tail (behind)
-    const wv = pose.wave;
-    const tail = [[-2.0, -13.2], [-5.0, -12.6 + wv * 0.5], [-8.0, -12.0 - wv * 0.7], [-10.4, -10.8 + wv * 0.9]];
-    const TP = ribbon(jit(tail, J, r), (u) => 2.3 - u * 0.9 + Math.sin(u * 9) * 0.15);
-    part(ctx, TP, { c: '#b4432f', blobs: [{ x: -6, y: -12.8, rx: 2.5, ry: 1, c: '#d66a48', a: 0.6, blur: 0.7 }, { x: -9.5, y: -11, rx: 1.6, ry: 1.2, c: '#862a1e', a: 0.6, blur: 0.8 }], hi: 0.15, rim: 0.7, edge: '#6e1f15', gran: 0.4 }, r, { w: 0.55 });
-    inkLine(ctx, [[-10.2, -10.4], [-11.2, -10.0 + wv * 0.3]], { w: 0.3, ta: 0, tb: 0.6, wv: 0 });
-    inkLine(ctx, [[-10.4, -11.2], [-11.5, -11.3 + wv * 0.3]], { w: 0.3, ta: 0, tb: 0.6, wv: 0 });
     // coat
     const coat = [[-3.4, -13.6], [-0.2, -14.0], [3.2, -13.6], [4.9, -11.8], [5.8, -8.2], [6.5, -4.6], [3.4, -4.0], [0.3, -4.5], [-3.0, -3.9], [-6.1, -4.7], [-5.6, -8.4], [-4.9, -12.0]];
     const CP = spline(jit(coat, J, r), true, 6);
@@ -952,20 +1182,20 @@
       ctx.fillStyle = '#d4a03c'; ctx.fill();
       ctx.lineWidth = 0.18; ctx.strokeStyle = INK; ctx.stroke();
     }
-    // pocket hint
     stroke(ctx, [[-4.2, -7.6], [-2.6, -7.4], [-1.6, -7.7]], { w: 0.28, jit: 0.1, ta: 0.2, tb: 0.3, alpha: 0.6 }, r);
     // scarf wrap
     const SW = spline(jit([[-4.6, -13.9], [-1.2, -14.9], [2.8, -14.6], [4.8, -13.4], [3.6, -12.2], [0.2, -12.4], [-3.4, -12.3], [-5.0, -12.9]], 0.15, r), true, 5);
     part(ctx, SW, { c: '#b4432f', blobs: [{ x: -1, y: -14.2, rx: 3, ry: 0.8, c: '#dc7650', a: 0.7, blur: 0.6 }, { x: 3, y: -12.8, rx: 2, ry: 0.9, c: '#7c2318', a: 0.6, blur: 0.6 }], hi: 0.2, rim: 0.7, edge: '#6e1f15', gran: 0.4 }, r, { w: 0.6 });
     stroke(ctx, [[-1.6, -14.3], [-0.6, -13.2], [-0.9, -12.5]], { w: 0.25, jit: 0.08, alpha: 0.6 }, r);
-    // head: pumpkin
+    // head: pumpkin, hinged at the neck (tilt + lag)
+    ctx.save();
+    ctx.translate(0.4, -14); ctx.rotate(R.headTilt); ctx.translate(-0.4, 14 + R.headDy);
     const hx = 0.4, hy = -19.6, rx = 8.5, ry = 6.9;
     const hp = [];
     for (let i = 0; i < 14; i++) {
       const a = (i / 14) * TAU - Math.PI / 2;
       let x = Math.cos(a) * rx, y = Math.sin(a) * ry;
-      const top = Math.exp(-Math.pow((a + Math.PI / 2) / 0.32, 2)); // dent at top
-      y += top * 1.0;
+      y += Math.exp(-Math.pow((a + Math.PI / 2) / 0.32, 2)) * 1.0;
       const lobe = 1 + 0.035 * Math.cos(a * 5 + 0.3);
       hp.push([hx + x * lobe, hy + y * lobe]);
     }
@@ -979,55 +1209,78 @@
       ],
       hi: 0.35, rim: 1.25, edge: '#93380f', rimA: 0.6, gran: 0.45,
     }, r);
-    // ribs (softer sienna ink)
+    const fo = R.look ? -1.3 : 0;   // a glance: the face turns toward the viewer
     for (const dx of [-5.6, -2.2, 3.4, 6.4]) {
-      const k = dx / rx;
-      const pts = [[hx + dx * 0.55, hy - ry * 0.82], [hx + dx * (1 + Math.abs(k) * 0.05), hy], [hx + dx * 0.6, hy + ry * 0.86]];
-      stroke(ctx, pts, { w: 0.42, jit: 0.15, ta: 0.25, tb: 0.35, wv: 0.3, color: '#7e2f0e', alpha: 0.7 }, r);
+      const kk = dx / rx, d2 = dx + fo * 0.35;
+      stroke(ctx, [[hx + d2 * 0.55, hy - ry * 0.82], [hx + d2 * (1 + Math.abs(kk) * 0.05), hy], [hx + d2 * 0.6, hy + ry * 0.86]], { w: 0.42, jit: 0.15, ta: 0.25, tb: 0.35, wv: 0.3, color: '#7e2f0e', alpha: 0.7 }, r);
     }
     outline(ctx, HP, { w: 0.95, light: 0.55, cx: hx, cy: hy, pieces: 3 }, r);
     // stem + tendril + leaf
-    const ST_ = ribbon(jit([[hx + 0.2, -25.6], [hx - 0.4, -27.6], [hx + 0.7, -29.6]], 0.12, r), taperW(2.2, 1.4));
+    const ST_ = ribbon(jit([[hx + 0.2, -25.6], [hx - 0.4, -27.6], [hx + 0.7 - R.headTilt * 4, -29.6]], 0.12, r), taperW(2.2, 1.4));
     part(ctx, ST_, { c: '#7a6a30', blobs: [{ x: hx, y: -28, rx: 0.8, ry: 1.5, c: '#a39246', a: 0.7, blur: 0.5 }], hi: 0.1, rim: 0.5, gran: 0.4 }, r, { w: 0.55 });
     stroke(ctx, [[hx + 1.2, -26.2], [hx + 2.8, -27.6], [hx + 4.2, -27.0], [hx + 4.1, -25.9], [hx + 3.3, -25.8], [hx + 3.3, -26.6]], { w: 0.34, jit: 0.1, ta: 0.05, tb: 0.5, color: '#3c4a1c' }, r);
-    const LF = ribbon(jit([[hx - 0.6, -26.2], [hx - 2.6, -27.6], [hx - 4.6, -27.9]], 0.12, r), leafW(2.2));
+    const lw = R.tail[1] * 0.6;   // the leaf flutters with the scarf
+    const LF = ribbon(jit([[hx - 0.6, -26.2], [hx - 2.6, -27.6 + lw * 0.3], [hx - 4.6, -27.9 + lw]], 0.12, r), leafW(2.2));
     part(ctx, LF, { c: '#6e8b3a', blobs: [{ x: hx - 2, y: -27, rx: 1.2, ry: 0.7, c: '#a3b86a', a: 0.7, blur: 0.5 }], hi: 0.1, rim: 0.5, edge: '#3e5220', gran: 0.4 }, r, { w: 0.45 });
-    // carved face (facing right)
-    const fx = hx + 1.7;
-    glowShape(ctx, jit([[fx - 4.1, -19.5], [fx - 1.3, -19.8], [fx - 2.5, -22.6]], 0.1, r), r);
-    glowShape(ctx, jit([[fx + 0.9, -19.8], [fx + 3.3, -19.5], [fx + 2.4, -22.3]], 0.1, r), r);
+    // carved face
+    const fx = hx + 1.7 + fo;
+    if (R.eyes === 'open') {
+      glowShape(ctx, jit([[fx - 4.1, -19.5], [fx - 1.3, -19.8], [fx - 2.5, -22.6]], 0.1, r), r);
+      glowShape(ctx, jit([[fx + 0.9, -19.8], [fx + 3.3, -19.5], [fx + 2.4, -22.3]], 0.1, r), r);
+    } else if (R.eyes === 'blink') {
+      // the inner light dims to two thin slits
+      glowShape(ctx, jit([[fx - 4.0, -20.0], [fx - 1.4, -20.2], [fx - 2.6, -20.9]], 0.05, r), r, { w: 0.34, c: '#e9a640', core: '#ffe4a0' });
+      glowShape(ctx, jit([[fx + 1.0, -20.2], [fx + 3.2, -20.0], [fx + 2.3, -20.8]], 0.05, r), r, { w: 0.32, c: '#e9a640', core: '#ffe4a0' });
+    } else {
+      // squeezed shut: slanted slits
+      glowShape(ctx, jit([[fx - 4.2, -21.6], [fx - 1.2, -20.4], [fx - 4.0, -20.6]], 0.05, r), r, { w: 0.34 });
+      glowShape(ctx, jit([[fx + 3.4, -21.4], [fx + 0.8, -20.4], [fx + 3.2, -20.4]], 0.05, r), r, { w: 0.32 });
+    }
     glowShape(ctx, jit([[fx - 0.9, -18.1], [fx + 0.4, -18.1], [fx - 0.2, -19.2]], 0.06, r), r, { w: 0.32 });
-    const mouth = [[-4.9, -17.0], [-3.6, -16.25], [-2.7, -16.75], [-1.7, -16.05], [0.3, -16.05], [1.3, -16.7], [2.3, -16.15], [3.7, -16.55], [4.4, -17.3], [3.4, -15.15], [1.2, -14.2], [-1.4, -14.1], [-3.6, -14.9]].map((p) => [fx + p[0], p[1]]);
-    glowShape(ctx, jit(mouth, 0.08, r), r, { w: 0.45 });
+    if (R.mouth === 'o') {
+      glowShape(ctx, jit(blobPts(fx - 0.3, -15.4, 1.6, 1.4, 0.12, r, 8), 0.05, r), r, { smooth: true, w: 0.42 });
+    } else {
+      const mouth = [[-4.9, -17.0], [-3.6, -16.25], [-2.7, -16.75], [-1.7, -16.05], [0.3, -16.05], [1.3, -16.7], [2.3, -16.15], [3.7, -16.55], [4.4, -17.3], [3.4, -15.15], [1.2, -14.2], [-1.4, -14.1], [-3.6, -14.9]].map((p) => [fx + p[0], p[1]]);
+      glowShape(ctx, jit(mouth, 0.08, r), r, { w: 0.45 });
+    }
+    const M = ctx.getTransform(), k = hyp(M.a, M.b);
+    const face = [(M.a * (fx - 0.2) + M.c * -18.4 + M.e) / k, (M.b * (fx - 0.2) + M.d * -18.4 + M.f) / k];
+    ctx.restore();
     // front arm
-    const fa = [[3.0, -11.8], [4.6, -9.8], [5.6 + sw * 1.5, -7.9]];
-    part(ctx, ribbon(jit(fa, J, r), taperW(2.6, 2.1)), { c: '#46578f', blobs: [{ x: 3.6, y: -11, rx: 1.2, ry: 1.6, c: '#7182b5', a: 0.6, blur: 0.7 }], hi: 0.25, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: 0.6 });
-    const MP = spline(blobPts(5.9 + sw * 1.5, -7.4, 1.3, 1.15, 0.12, r, 7), true, 4);
-    part(ctx, MP, { c: '#ecdfc2', blobs: [{ x: 6.4 + sw * 1.5, y: -7, rx: 0.8, ry: 0.7, c: '#c9a77e', a: 0.5, blur: 0.4 }], hi: 0.2, rim: 0.5, edge: '#a08060', gran: 0.25 }, r, { w: 0.45 });
+    arm(3.0, -11.8, R.hands[1], 2.6, 2.1, '#46578f', '#7182b5', false);
+    ctx.restore();
+    return { face };
   }
 
-  /* ---------- Rüben-Schleicher ---------- */
+  /* ---------- small creature: root creature ---------- */
   const CREEP_PAL = [
     { top: '#7a4a8c', lt: '#a77ab5', dk: '#4e2a5c' },
     { top: '#8b3d6d', lt: '#b4729a', dk: '#5a2244' },
   ];
   function drawCreeper(ctx, pose, r, pal) {
-    const sw = Math.sin(pose.ph), cw = Math.cos(pose.ph);
-    const lift = (v) => Math.max(0, v) * 1.4;
+    const hit = !!pose.hit;
+    const ph = pose.ph || 0, sw = Math.sin(ph), cw = Math.cos(ph);
+    const lift = (v) => Math.max(0, v) * 1.6;
+    // waddle: squash at each contact, stretch while passing, rock from foot to foot
+    const q = hit ? 0.1 : 0.05 * Math.cos(2 * ph);
+    const bodyDy = hit ? 0.6 : 0.65 * Math.cos(2 * ph) - 0.15;
+    const tilt = hit ? -0.24 : 0.085 * sw + 0.04;
     // root legs
-    for (const [hx, dir, li] of [[-2.4, -1, lift(cw)], [2.6, 1, lift(-cw)]]) {
-      const fx = hx + dir * (2.0 * sw + 0.4);
+    const legs = hit ? [[-2.4, -1, 0, -1.6], [2.6, 1, 0.8, 1.4]] : [[-2.4, -1, lift(cw), 2.1 * sw + 0.4], [2.6, 1, lift(-cw), -(2.1 * sw) + 0.4]];
+    for (const [hx, dir, li, dx] of legs) {
+      const fx = hx + dir * dx;
       const fy = -0.4 - li;
-      stroke(ctx, [[hx, -5.6], [hx + (fx - hx) * 0.4 - 0.3, -3.2 - li * 0.4], [fx, fy]], { w: 1.25, jit: 0.12, ta: 0.05, tb: 0.35, wv: 0.2, color: '#4a3020' }, r);
+      stroke(ctx, [[hx, -5.6 + bodyDy], [hx + (fx - hx) * 0.4 - 0.3, -3.2 - li * 0.4 + bodyDy * 0.5], [fx, fy]], { w: 1.25, jit: 0.12, ta: 0.05, tb: 0.35, wv: 0.2, color: '#4a3020' }, r);
       stroke(ctx, [[fx, fy], [fx + 1.3, fy + 0.25]], { w: 0.45, jit: 0.05, ta: 0, tb: 0.6, wv: 0, color: '#4a3020' }, r);
       stroke(ctx, [[fx, fy], [fx - 1.0, fy + 0.35]], { w: 0.4, jit: 0.05, ta: 0, tb: 0.6, wv: 0, color: '#4a3020' }, r);
     }
-    // tail root
-    stroke(ctx, [[0.4, -4.4], [-0.9, -2.6], [-3.2, -2.2], [-4.4, -2.9]], { w: 0.65, jit: 0.15, ta: 0.05, tb: 0.6, color: '#4a3020' }, r);
+    // tail root trails behind and flicks with the step
+    const tf = hit ? 1.2 : Math.sin(ph - 1.1) * 0.8;
+    stroke(ctx, [[0.4, -4.4 + bodyDy], [-0.9, -2.6 + bodyDy * 0.5], [-3.2, -2.2 + tf * 0.3], [-4.4, -2.9 - tf * 0.6]], { w: 0.65, jit: 0.15, ta: 0.05, tb: 0.6, color: '#4a3020' }, r);
     ctx.save();
-    ctx.translate(0, -4.5);
-    ctx.rotate(sw * 0.075);
-    ctx.scale(1, 1 - Math.max(0, -cw) * 0.035);
+    ctx.translate(0, -4.5 + bodyDy);
+    ctx.rotate(tilt);
+    ctx.scale(1 + q * 0.8, 1 - q);
     ctx.translate(0, 4.5);
     const body = [[0, -22.6], [5.6, -21.4], [8.8, -15.6], [7.7, -9.4], [4.2, -5.6], [0.6, -3.9], [-3.4, -5.6], [-7.5, -9.2], [-8.7, -15.4], [-5.5, -21.4]];
     const BP = spline(jit(body, 0.28, r), true, 6);
@@ -1042,18 +1295,17 @@
       ],
       hi: 0.32, rim: 1.2, edge: '#5a3a52', rimA: 0.5, gran: 0.5,
     }, r);
-    // skin rings + root hairs
     stroke(ctx, [[-5.8, -9.8], [-3.0, -8.7], [-0.4, -8.9]], { w: 0.34, jit: 0.12, ta: 0.25, tb: 0.4, alpha: 0.55, color: '#6a4a3a' }, r);
     stroke(ctx, [[2.4, -6.8], [4.4, -7.5], [6.0, -9.0]], { w: 0.34, jit: 0.12, ta: 0.25, tb: 0.4, alpha: 0.55, color: '#6a4a3a' }, r);
     stroke(ctx, [[-4.6, -6.6], [-6.0, -5.4]], { w: 0.25, jit: 0.1, ta: 0, tb: 0.6, wv: 0, alpha: 0.7 }, r);
     stroke(ctx, [[4.8, -6.8], [6.4, -6.0]], { w: 0.25, jit: 0.1, ta: 0, tb: 0.6, wv: 0, alpha: 0.7 }, r);
     outline(ctx, BP, { w: 0.95, light: 0.55, cx: 0, cy: -13.5, pieces: 3 }, r);
-    // leaves
-    const sway = pose.sway;
+    // leaves: drag behind the waddle (follow-through), flung forward on a hit
+    const sway = hit ? 2.8 : 1.7 * Math.sin(ph - 1.25) - 0.5;
     const leaves = [
-      [[-0.6, -22.0], [-3.8, -26.4], [-6.6 + sway * 0.6, -30.2]], 3.0,
-      [[0.3, -22.4], [0.2, -27.4], [1.6 + sway, -31.6]], 3.2,
-      [[1.0, -22.0], [4.2, -25.8], [6.8 + sway * 0.8, -28.4]], 2.8,
+      [[-0.6, -22.0], [-3.8 + sway * 0.25, -26.4], [-6.6 + sway * 0.7, -30.2 + Math.abs(sway) * 0.2]], 3.0,
+      [[0.3, -22.4], [0.2 + sway * 0.35, -27.4], [1.6 + sway, -31.6 + Math.abs(sway) * 0.25]], 3.2,
+      [[1.0, -22.0], [4.2 + sway * 0.3, -25.8], [6.8 + sway * 0.85, -28.4 + Math.abs(sway) * 0.15]], 2.8,
     ];
     for (let i = 0; i < leaves.length; i += 2) {
       const pts = jit(leaves[i], 0.18, r);
@@ -1067,31 +1319,46 @@
       outline(ctx, LP, { w: 0.5, light: 0.4, cx: lb.cx, cy: lb.cy, pieces: 2 }, r);
       stroke(ctx, pts, { w: 0.32, jit: 0.05, ta: 0.05, tb: 0.5, wv: 0.1, alpha: 0.8 }, r);
     }
-    // angry glowing eyes
-    const eye = (cx, cy, s) => [[cx - 1.25 * s, cy + 0.25], [cx - 0.1, cy - 0.85 * s], [cx + 1.25 * s, cy - 0.15], [cx + 0.1, cy + 0.75 * s]];
-    glowShape(ctx, jit(eye(2.4, -16.4, 1), 0.06, r), r, { smooth: true, w: 0.4 });
-    glowShape(ctx, jit(eye(6.0, -16.2, 0.82), 0.06, r), r, { smooth: true, w: 0.36 });
-    ctx.fillStyle = INK;
-    ctx.beginPath(); ctx.arc(2.7, -16.4, 0.42, 0, TAU); ctx.arc(6.15, -16.25, 0.36, 0, TAU); ctx.fill();
-    stroke(ctx, [[0.3, -18.6], [1.9, -18.2], [3.5, -17.3]], { w: 0.95, jit: 0.08, ta: 0.15, tb: 0.35, wv: 0.1 }, r);
-    stroke(ctx, [[7.6, -18.4], [6.4, -18.0], [5.0, -17.2]], { w: 0.85, jit: 0.08, ta: 0.15, tb: 0.35, wv: 0.1 }, r);
-    // jagged frown
-    inkLine(ctx, jit([[2.2, -12.3], [3.3, -13.1], [4.3, -12.5], [5.3, -13.2], [6.5, -12.3]], 0.08, r), { w: 0.55, ta: 0.15, tb: 0.2, wv: 0.1 });
+    if (!hit) {
+      // angry glowing eyes
+      const eye = (cx, cy, s) => [[cx - 1.25 * s, cy + 0.25], [cx - 0.1, cy - 0.85 * s], [cx + 1.25 * s, cy - 0.15], [cx + 0.1, cy + 0.75 * s]];
+      glowShape(ctx, jit(eye(2.4, -16.4, 1), 0.06, r), r, { smooth: true, w: 0.4 });
+      glowShape(ctx, jit(eye(6.0, -16.2, 0.82), 0.06, r), r, { smooth: true, w: 0.36 });
+      ctx.fillStyle = INK;
+      ctx.beginPath(); ctx.arc(2.7, -16.4, 0.42, 0, TAU); ctx.arc(6.15, -16.25, 0.36, 0, TAU); ctx.fill();
+      stroke(ctx, [[0.3, -18.6], [1.9, -18.2], [3.5, -17.3]], { w: 0.95, jit: 0.08, ta: 0.15, tb: 0.35, wv: 0.1 }, r);
+      stroke(ctx, [[7.6, -18.4], [6.4, -18.0], [5.0, -17.2]], { w: 0.85, jit: 0.08, ta: 0.15, tb: 0.35, wv: 0.1 }, r);
+      inkLine(ctx, jit([[2.2, -12.3], [3.3, -13.1], [4.3, -12.5], [5.3, -13.2], [6.5, -12.3]], 0.08, r), { w: 0.55, ta: 0.15, tb: 0.2, wv: 0.1 });
+    } else {
+      // knocked: eyes squeezed into ink chevrons, mouth wide open
+      stroke(ctx, [[1.2, -17.6], [2.8, -16.6], [1.4, -15.6]], { w: 0.6, ta: 0.1, tb: 0.2, wv: 0.1 }, r);
+      stroke(ctx, [[7.0, -17.4], [5.4, -16.5], [6.8, -15.6]], { w: 0.55, ta: 0.1, tb: 0.2, wv: 0.1 }, r);
+      glowShape(ctx, jit(blobPts(4.2, -12.4, 1.7, 1.35, 0.15, r, 8), 0.05, r), r, { smooth: true, w: 0.45, c: '#d8503a', core: '#f2a070', edge: '#7a1e14' });
+    }
     ctx.restore();
   }
 
-  /* ---------- Hungergeist ---------- */
+  /* ---------- fast creature: hollow wisp ---------- */
   function drawGhost(ctx, pose, r) {
-    const p = pose.ph;
-    const w1 = Math.sin(p), w2 = Math.sin(p + 1.9), w3 = Math.sin(p + 3.6), arm = Math.sin(p + 0.8);
+    const hit = !!pose.hit;
+    const p = pose.ph || 0;
+    // a wave travels down the tail, the arms trail the body by a beat
+    const w1 = hit ? 1.2 : Math.sin(p), w2 = hit ? -0.8 : Math.sin(p - 1.3), w3 = hit ? 1.4 : Math.sin(p - 2.6);
+    const arm = hit ? -2.2 : Math.sin(p - 0.9);
+    ctx.save();
+    ctx.translate(0, -12);
+    ctx.rotate(hit ? -0.2 : 0.06 + 0.035 * Math.sin(p + 0.6));
+    if (hit) ctx.scale(1.1, 0.88);
+    else ctx.scale(1 - 0.025 * Math.sin(2 * p), 1 + 0.03 * Math.sin(2 * p));
+    ctx.translate(0, 12);
     // back arm (behind body)
-    const BA = ribbon(jit([[3.0, -10.8], [6.6, -10.4 + arm * 0.4], [9.8, -8.9 + arm * 0.7]], 0.15, r), taperW(1.7, 0.6));
+    const BA = ribbon(jit([[3.0, -10.8], [6.6, -10.4 + arm * 0.5], [9.6, -8.9 + arm * 0.9]], 0.15, r), taperW(1.7, 0.6));
     wash(ctx, BA, { c: '#a9b6c8', blobs: [{ x: 8, y: -9.5, rx: 2, ry: 1, c: '#7f8fab', a: 0.6, blur: 0.8 }], hi: 0, rim: 0.6, edge: '#6c7c9c', gran: 0.4, feather: 0.3 }, r);
     for (let i = 0; i < 3; i++) {
-      const bx = 9.6, by = -8.9 + arm * 0.7, a = -0.5 + i * 0.45;
+      const bx = 9.4, by = -8.9 + arm * 0.9, a = -0.5 + i * 0.45;
       stroke(ctx, [[bx, by], [bx + Math.cos(a) * 1.4, by + Math.sin(a) * 1.4]], { w: 0.26, ta: 0, tb: 0.6, wv: 0, color: INK_BLUE, alpha: 0.75 }, r);
     }
-    const body = [[-5.6, -19.2], [-1.6, -23.4], [4.2, -22.6], [7.2, -18.2], [7.0, -13.0], [5.2, -8.6], [2.6, -5.8 + w1 * 0.8], [0.0, -6.9], [-2.4, -3.7 + w2], [-4.1, -7.2], [-7.0, -4.8 + w3], [-7.1, -9.6], [-6.9, -14.6]];
+    const body = [[-5.6, -19.2], [-1.6, -23.4], [4.2, -22.6], [7.2, -18.2], [7.0, -13.0], [5.2, -8.6], [2.6 - w1 * 0.4, -5.8 + w1 * 0.9], [0.0, -6.9], [-2.4 - w2 * 0.5, -3.7 + w2 * 1.1], [-4.1, -7.2], [-7.0 - w3 * 0.6, -4.8 + w3 * 1.1], [-7.1, -9.6], [-6.9, -14.6]];
     const BP = spline(jit(body, 0.25, r), true, 6);
     wash(ctx, BP, {
       c: '#d3dbe3',
@@ -1114,44 +1381,62 @@
     ctx.filter = 'blur(' + (0.3 * k).toFixed(1) + 'px)';
     ctx.fillStyle = '#20263e';
     ctx.globalAlpha = 0.92;
-    ctx.beginPath(); ctx.ellipse(1.3, -17.8, 1.35, 1.95, 0.12, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(4.85, -17.6, 1.05, 1.7, 0.08, 0, TAU); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(3.3, -12.7, 1.35, 2.35 + w2 * 0.15, 0.1, 0, TAU); ctx.fill();
+    const es = hit ? 0.55 : 1;
+    ctx.beginPath(); ctx.ellipse(1.3, -17.8, 1.35 * es, 1.95 * es, 0.12, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(4.85, -17.6, 1.05 * es, 1.7 * es, 0.08, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(3.3, -12.7 + (hit ? 0.6 : 0), hit ? 1.9 : 1.35, hit ? 3.1 : 2.35 + w2 * 0.15, 0.1, 0, TAU); ctx.fill();
     ctx.filter = 'none';
     ctx.globalAlpha = 0.7;
     ctx.fillStyle = '#b9d0f2';
-    ctx.beginPath(); ctx.ellipse(1.45, -16.8, 0.45, 0.35, 0, 0, TAU); ctx.ellipse(4.95, -16.7, 0.35, 0.3, 0, 0, TAU); ctx.fill();
+    if (!hit) { ctx.beginPath(); ctx.ellipse(1.45, -16.8, 0.45, 0.35, 0, 0, TAU); ctx.ellipse(4.95, -16.7, 0.35, 0.3, 0, 0, TAU); ctx.fill(); }
     ctx.globalAlpha = 1;
-    // drooping brows
-    stroke(ctx, [[-0.4, -20.2], [1.2, -20.5], [2.6, -19.9]], { w: 0.4, jit: 0.06, ta: 0.2, tb: 0.4, color: INK_BLUE, alpha: 0.75 }, r);
-    stroke(ctx, [[3.9, -19.9], [5.0, -20.3], [6.1, -19.8]], { w: 0.36, jit: 0.06, ta: 0.2, tb: 0.4, color: INK_BLUE, alpha: 0.7 }, r);
+    // drooping brows (raised in alarm on a hit)
+    const bl = hit ? -1.2 : 0;
+    stroke(ctx, [[-0.4, -20.2 + bl], [1.2, -20.5 + bl * 1.4], [2.6, -19.9 + bl]], { w: 0.4, jit: 0.06, ta: 0.2, tb: 0.4, color: INK_BLUE, alpha: 0.75 }, r);
+    stroke(ctx, [[3.9, -19.9 + bl], [5.0, -20.3 + bl * 1.4], [6.1, -19.8 + bl]], { w: 0.36, jit: 0.06, ta: 0.2, tb: 0.4, color: INK_BLUE, alpha: 0.7 }, r);
     // front reaching arm
-    const FA = ribbon(jit([[4.4, -13.4], [7.8, -13.8 + arm * 0.5], [11.0, -12.6 + arm]], 0.15, r), taperW(1.8, 0.6));
+    const FA = ribbon(jit([[4.4, -13.4], [7.8, -13.8 + arm * 0.6], [10.8, -12.6 + arm * 1.1]], 0.15, r), taperW(1.8, 0.6));
     wash(ctx, FA, { c: '#c9d2dd', blobs: [{ x: 9.5, y: -13, rx: 2.5, ry: 1, c: '#91a2bd', a: 0.6, blur: 0.8 }], hi: 0.1, rim: 0.6, edge: '#6c7c9c', gran: 0.4, feather: 0.25 }, r);
-    stroke(ctx, [[5.2, -14.3], [8.0, -14.5 + arm * 0.5], [10.8, -13.2 + arm]], { w: 0.34, jit: 0.1, ta: 0.2, tb: 0.3, color: INK_BLUE, alpha: 0.7 }, r);
+    stroke(ctx, [[5.2, -14.3], [8.0, -14.5 + arm * 0.6], [10.6, -13.2 + arm * 1.1]], { w: 0.34, jit: 0.1, ta: 0.2, tb: 0.3, color: INK_BLUE, alpha: 0.7 }, r);
     for (let i = 0; i < 3; i++) {
-      const bx = 10.9, by = -12.6 + arm, a = -0.55 + i * 0.5;
+      const bx = 10.7, by = -12.6 + arm * 1.1, a = -0.55 + i * 0.5;
       stroke(ctx, [[bx, by], [bx + Math.cos(a) * 1.6, by + Math.sin(a) * 1.6]], { w: 0.28, ta: 0, tb: 0.6, wv: 0, color: INK_BLUE, alpha: 0.85 }, r);
     }
+    ctx.restore();
   }
 
-  /* ---------- Steckrüben-Koloss ---------- */
+  /* ---------- large creature: root giant ---------- */
   function drawColossus(ctx, pose, r) {
-    const sw = Math.sin(pose.ph), cw = Math.cos(pose.ph);
-    const by = 1.4 * Math.abs(sw);
-    const lift = (v) => Math.max(0, v) * 2.2;
+    const hit = !!pose.hit;
+    const ph = pose.ph || 0, sw = Math.sin(ph), cw = Math.cos(ph);
+    // heavy stomp: the mass drops on every contact and the arms swing a beat late
+    const by = hit ? 1.0 : 2.1 * cw * cw - 0.6;
+    const asw = hit ? 0 : Math.sin(ph - 0.55) * 2.2;
+    const lift = (v) => Math.max(0, v) * 2.4;
     const umber = { c: '#7a4e34', blobs: [], hi: 0.15, rim: 1.0, edge: '#3a2216', gran: 0.6 };
+    ctx.save();
+    ctx.translate(0, -10);
+    ctx.rotate(hit ? -0.15 : 0.035 * sw);
+    ctx.translate(0, 10);
     // back arm
-    const BA = ribbon(jit([[-13, -33 + by], [-17.2, -25 + by], [-17.4 - sw * 1.2, -15.5 + by]], 0.3, r), taperW(5.2, 2.6));
+    const bah = hit ? [-19.6, -25 + by] : [-17.4 - asw, -15.5 + by];
+    const BA = ribbon(jit([[-13, -33 + by], [-17.2, -25 + by], bah], 0.3, r), taperW(5.2, 2.6));
     part(ctx, BA, Object.assign({}, umber, { c: '#5f3b2a', blobs: [{ x: -16, y: -26 + by, rx: 2, ry: 5, c: '#7e5640', a: 0.6, blur: 1.2 }] }), r, { w: 0.85 });
-    for (let i = 0; i < 3; i++) stroke(ctx, [[-17.4 - sw * 1.2, -15.8 + by], [-18.6 + i * 1.3 - sw * 1.2, -12.6 + by + (i === 1 ? 0.6 : 0)]], { w: 0.75, jit: 0.15, ta: 0, tb: 0.6, wv: 0.1 }, r);
+    for (let i = 0; i < 3; i++) stroke(ctx, [[bah[0], bah[1] - 0.3], [bah[0] - 1.2 + i * 1.3, bah[1] + 3.2 + (i === 1 ? 0.6 : 0)]], { w: 0.75, jit: 0.15, ta: 0, tb: 0.6, wv: 0.1 }, r);
+    ctx.restore();
     // legs
-    for (const [hx, dir, li] of [[-7, -1, lift(cw)], [6.6, 1, lift(-cw)]]) {
-      const fx = hx + (dir > 0 ? 3.2 * sw : -3.2 * sw), fy = -0.6 - li;
-      const LP = ribbon(jit([[hx, -10 + by], [hx + (fx - hx) * 0.5, -5 - li * 0.5], [fx, fy]], 0.25, r), taperW(5.6, 4.4));
+    const lg = hit ? [[-7, -1, 0, -1.4], [6.6, 1, 1.2, 2.2]] : [[-7, -1, lift(cw), -3.2 * sw], [6.6, 1, lift(-cw), 3.2 * sw]];
+    for (const [hx, , li, dx] of lg) {
+      const fx = hx + dx, fy = -0.6 - li;
+      const LP = ribbon(jit([[hx, -10 + by], [hx + (fx - hx) * 0.5, -5 - li * 0.5 + by * 0.3], [fx, fy]], 0.25, r), taperW(5.6, 4.4));
       part(ctx, LP, Object.assign({}, umber, { blobs: [{ x: fx - 1, y: fy - 4, rx: 1.4, ry: 3, c: '#a5764e', a: 0.6, blur: 1 }] }), r, { w: 0.9 });
       for (let i = 0; i < 3; i++) stroke(ctx, [[fx - 1.6 + i * 1.6, fy], [fx - 2.6 + i * 2.6, fy + 0.8]], { w: 0.7, jit: 0.1, ta: 0, tb: 0.6, wv: 0.1 }, r);
     }
+    ctx.save();
+    ctx.translate(0, -10 + by);
+    ctx.rotate(hit ? -0.15 : 0.035 * sw);
+    if (hit) ctx.scale(1.06, 0.93);
+    ctx.translate(0, 10 - by);
     // body
     const cy = -27 + by, n = 18, bp = [];
     const ph1 = r.next() * 6, ph2 = r.next() * 6;
@@ -1174,12 +1459,9 @@
       ],
       hi: 0.28, rim: 1.8, edge: '#3d2230', rimA: 0.65, gran: 0.7,
     }, r);
-    // moss
     wash(ctx, spline(blobPts(-8.5, cy - 13.5, 3.4, 1.6, 0.25, r, 8), true, 4), { c: '#7d8f45', blobs: [{ x: -9, y: cy - 14, rx: 1.4, ry: 0.8, c: '#a9b86a', a: 0.6, blur: 0.6 }], hi: 0, rim: 0.6, edge: '#4a5a24', gran: 0.6, alpha: 0.85 }, r);
-    // hatching on the shadow side
     hatch(ctx, BP, { ang: -1.0, sp: 1.15, w: 0.4, alpha: 0.62, region: (x, y) => (x * 0.55 + (y - cy) * 0.83) - 4.5 }, r);
     hatch(ctx, BP, { ang: 0.55, sp: 1.4, w: 0.36, alpha: 0.55, region: (x, y) => (x * 0.55 + (y - cy) * 0.83) - 11 }, r);
-    // gnarl marks on the lit side
     for (let i = 0; i < 7; i++) {
       const x = -12 + r.next() * 14, y = cy - 6 + r.next() * 16;
       stroke(ctx, [[x, y], [x + 1.2 + r.next(), y - 0.6 + r.next() * 1.2], [x + 2.4, y + (r.next() - 0.5)]], { w: 0.36, jit: 0.15, ta: 0.2, tb: 0.4, alpha: 0.5 }, r);
@@ -1196,9 +1478,9 @@
     for (const c of cracks) {
       const pts = jit(c, 0.35, r);
       ctx.filter = 'blur(' + (0.9 * k).toFixed(1) + 'px)';
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = hit ? 1 : 0.85;
       ctx.strokeStyle = '#ffc548';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = hit ? 2.1 : 1.5;
       trace(ctx, pts, false);
       ctx.stroke();
       ctx.filter = 'none';
@@ -1209,7 +1491,6 @@
       ctx.stroke();
       inkLine(ctx, pts.map((p) => [p[0] + 0.35, p[1] + 0.3]), { w: 0.55, ta: 0.05, tb: 0.5, wv: 0.4 });
     }
-    // glowing core
     const CP = jit(blobPts(core[0], core[1], 3.6, 4.2, 0.22, r, 9), 0.1, r);
     ctx.filter = 'blur(' + (1.6 * k).toFixed(1) + 'px)';
     ctx.fillStyle = 'rgba(255,196,80,0.75)';
@@ -1218,30 +1499,34 @@
     wash(ctx, CP, { c: '#ffb43c', blobs: [{ x: core[0] - 0.4, y: core[1] - 0.6, rx: 2.4, ry: 2.8, c: '#fff6c8', a: 1, blur: 1 }], hi: 0, rim: 1.2, edge: '#d2561f', rimA: 0.9, rimBlur: 0.4, gran: 0, dx: 0, dy: 0 }, r);
     outline(ctx, CP, { w: 0.85, light: 0.4, pieces: 2 }, r);
     // brow, eye sockets, glowing eyes, cracked mouth
+    const eg = hit ? 1.3 : 1;
     for (const [ex, ey, rx, ry] of [[2.2, cy - 9.6, 2.4, 1.6], [9.8, cy - 9.1, 2.0, 1.4]]) {
       ctx.fillStyle = '#2b1a1c';
-      ctx.beginPath(); ctx.ellipse(ex, ey, rx, ry, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex, ey, rx, ry * (hit ? 1.25 : 1), 0, 0, TAU); ctx.fill();
       ctx.filter = 'blur(' + (0.7 * k).toFixed(1) + 'px)';
       ctx.fillStyle = 'rgba(255,200,80,0.9)';
-      ctx.beginPath(); ctx.ellipse(ex + 0.3, ey + 0.1, rx * 0.65, ry * 0.6, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex + 0.3, ey + 0.1, rx * 0.65 * eg, ry * 0.6 * eg, 0, 0, TAU); ctx.fill();
       ctx.filter = 'none';
       ctx.fillStyle = '#fff4c2';
-      ctx.beginPath(); ctx.ellipse(ex + 0.3, ey + 0.1, rx * 0.32, ry * 0.36, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(ex + 0.3, ey + 0.1, rx * 0.32 * eg, ry * 0.36 * eg, 0, 0, TAU); ctx.fill();
     }
-    stroke(ctx, [[-1.6, cy - 12.0], [2.4, cy - 11.4], [6.0, cy - 10.2], [9.6, cy - 11.3], [13.0, cy - 12.0]], { w: 1.55, jit: 0.15, ta: 0.15, tb: 0.25, wv: 0.3 }, r);
-    const mouth = jit([[2.4, cy - 4.6], [4.2, cy - 3.6], [6.0, cy - 4.5], [7.8, cy - 3.4], [9.6, cy - 4.3], [11.2, cy - 3.7]], 0.12, r);
+    const bw = hit ? -1.4 : 0;
+    stroke(ctx, [[-1.6, cy - 12.0 + bw], [2.4, cy - 11.4 + bw * 1.3], [6.0, cy - 10.2 + bw * 0.6], [9.6, cy - 11.3 + bw * 1.3], [13.0, cy - 12.0 + bw]], { w: 1.55, jit: 0.15, ta: 0.15, tb: 0.25, wv: 0.3 }, r);
+    const mo = hit ? 1.6 : 0;
+    const mouth = jit([[2.4, cy - 4.6 + mo * 0.4], [4.2, cy - 3.6 + mo], [6.0, cy - 4.5 + mo * 1.3], [7.8, cy - 3.4 + mo], [9.6, cy - 4.3 + mo * 0.6], [11.2, cy - 3.7]], 0.12, r);
     ctx.filter = 'blur(' + (0.7 * k).toFixed(1) + 'px)';
-    ctx.strokeStyle = 'rgba(255,190,70,0.8)'; ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(255,190,70,0.8)'; ctx.lineWidth = hit ? 2.2 : 1.2;
     trace(ctx, mouth, false); ctx.stroke();
     ctx.filter = 'none';
     inkLine(ctx, mouth, { w: 0.75, ta: 0.1, tb: 0.15, wv: 0.3 });
     outline(ctx, BP, { w: 1.5, light: 0.6, cx: 0, cy, pieces: 3 }, r);
-    // withered leaf crown
+    // withered leaf crown: bounces a beat after each stomp
+    const cb = hit ? -2.2 : -Math.sin(ph * 2 - 1.0) * 1.1;
     const crown = [
-      [[-2.2, cy - 17.4], [-6.4, cy - 22.4], [-11.4, cy - 21.6]], '#7e7a3c',
-      [[0.6, cy - 18.0], [-0.2, cy - 24.0], [2.6, cy - 26.6]], '#9a5a2a',
-      [[3.0, cy - 17.6], [8.0, cy - 22.0], [12.2, cy - 20.4]], '#6d7f3a',
-      [[-4.4, cy - 16.8], [-10.0, cy - 18.8], [-13.4, cy - 15.6]], '#8a6a30',
+      [[-2.2, cy - 17.4], [-6.4, cy - 22.4 + cb * 0.4], [-11.4, cy - 21.6 + cb]], '#7e7a3c',
+      [[0.6, cy - 18.0], [-0.2, cy - 24.0 + cb * 0.4], [2.6, cy - 26.6 + cb]], '#9a5a2a',
+      [[3.0, cy - 17.6], [8.0, cy - 22.0 + cb * 0.4], [12.2, cy - 20.4 + cb]], '#6d7f3a',
+      [[-4.4, cy - 16.8], [-10.0, cy - 18.8 + cb * 0.3], [-13.4, cy - 15.6 + cb * 0.8]], '#8a6a30',
     ];
     for (let i = 0; i < crown.length; i += 2) {
       const pts = jit(crown[i], 0.3, r);
@@ -1251,9 +1536,11 @@
       stroke(ctx, pts, { w: 0.4, jit: 0.05, ta: 0.05, tb: 0.5, wv: 0.1, alpha: 0.75 }, r);
     }
     // front arm
-    const FA = ribbon(jit([[12.6, -33.6 + by], [18.4, -25 + by], [19.6 + sw * 1.2, -15 + by]], 0.3, r), taperW(5.6, 2.8));
+    const fah = hit ? [21.4, -26 + by] : [19.6 + asw, -15 + by];
+    const FA = ribbon(jit([[12.6, -33.6 + by], [18.4, -25 + by], fah], 0.3, r), taperW(5.6, 2.8));
     part(ctx, FA, Object.assign({}, umber, { c: '#8a5a3a', blobs: [{ x: 15, y: -31 + by, rx: 2, ry: 2.5, c: '#b78058', a: 0.6, blur: 1 }, { x: 19, y: -20 + by, rx: 2, ry: 4, c: '#5a3826', a: 0.6, blur: 1.2 }] }), r, { w: 0.95, light: 0.5 });
-    for (let i = 0; i < 3; i++) stroke(ctx, [[19.6 + sw * 1.2, -15.4 + by], [18.6 + i * 1.5 + sw * 1.2, -12.0 + by + (i === 1 ? 0.7 : 0)]], { w: 0.8, jit: 0.15, ta: 0, tb: 0.6, wv: 0.1 }, r);
+    for (let i = 0; i < 3; i++) stroke(ctx, [[fah[0], fah[1] - 0.4], [fah[0] - 1 + i * 1.5, fah[1] + 3.0 + (i === 1 ? 0.7 : 0)]], { w: 0.8, jit: 0.15, ta: 0, tb: 0.6, wv: 0.1 }, r);
+    ctx.restore();
   }
 
   /* ---------- small things: gems, lantern, seed, trails ---------- */
@@ -1356,16 +1643,30 @@
         const s = mkSprite(16, 16, 8, 8, 5);
         const r = U.rng(hsh(v + 7, key.length, 37));
         const t = s.ctx;
-        // splash: central blot + radiating droplets
-        const P = spline(blobPts(0, 0, 3.4, 3.1, 0.35, r, 11), true, 3);
-        trace(t, P); t.fillStyle = col; t.globalAlpha = 0.92; t.fill();
-        for (let i = 0; i < 9; i++) {
-          const a = r.next() * TAU, d = 3.5 + r.next() * 3.6, rr = 0.25 + r.next() * 0.8;
+        // watercolour splash: one wet pool whose pigment dried into a dark rim, teardrop drops thrown outward
+        // (heads away from the centre), and a few fine spatter dots further out
+        const dk = U.rgb(U.mul(U.hex(col), key === 'ink' ? 1 : 0.62));
+        MIS = [0, 0];
+        const P = spline(blobPts(0, 0, 3.3, 2.9, 0.32, r, 10), true, 4);
+        wash(t, P, { c: col, blobs: [{ x: -0.7, y: -0.6, rx: 1.7, ry: 1.4, c: '#fffaf0', a: key === 'ink' ? 0.18 : 0.32, blur: 0.9 }], hi: 0, rim: 0.95, edge: dk, rimA: 0.8, rimBlur: 0.3, gran: 0.45 }, r);
+        const nd = 5 + r.int(0, 2), a0 = r.next() * TAU;
+        t.fillStyle = col;
+        for (let i = 0; i < nd; i++) {
+          const a = a0 + (i / nd) * TAU + (r.next() - 0.5) * 0.7, d = 4.6 + r.next() * 2.4, hw = 0.45 + r.next() * 0.5;
+          const ca = Math.cos(a), sa = Math.sin(a);
+          const d0 = 3.6 + r.next() * 0.8;
+          const DP = ribbon([[ca * d0, sa * d0], [ca * (d0 + d) * 0.5, sa * (d0 + d) * 0.5], [ca * d, sa * d]], (u) => 0.05 + hw * 2 * Math.pow(u, 1.6) * (u > 0.85 ? Math.sqrt((1 - u) / 0.15) * 0.6 + 0.4 : 1), 4);
+          t.globalAlpha = 0.85;
+          trace(t, DP); t.fill();
+          t.globalAlpha = 0.5; t.lineWidth = 0.22; t.strokeStyle = dk; t.stroke();
+        }
+        for (let i = 0; i < 6; i++) {
+          const a = r.next() * TAU, d = 5.4 + r.next() * 2, rr = 0.14 + r.next() * 0.22;
+          t.globalAlpha = 0.8;
           t.beginPath(); t.arc(Math.cos(a) * d, Math.sin(a) * d, rr, 0, TAU); t.fill();
-          t.lineWidth = rr * 0.9; t.strokeStyle = col;
-          t.beginPath(); t.moveTo(Math.cos(a) * 2.4, Math.sin(a) * 2.4); t.lineTo(Math.cos(a) * (d - rr), Math.sin(a) * (d - rr)); t.stroke();
         }
         t.globalAlpha = 1;
+        MIS = [0.45, 0.35];
         set.splat.push(s);
       }
     }
@@ -1402,6 +1703,44 @@
       }
       FX.smear = s;
     }
+    MIS = [0, 0];
+    // lifted pigment: a blotted paper-white patch with a faint tide line (impact core flash)
+    FX.lift = [0, 1].map((v) => {
+      const s = mkSprite(20, 20, 10, 10, 5), r = U.rng(4100 + v);
+      wash(s.ctx, spline(blobPts(0, 0, 8, 7.4, 0.2, r, 12), true, 4), { c: 'rgb(252,249,240)', blobs: [{ x: -1, y: -1, rx: 5, ry: 4.6, c: '#ffffff', a: 0.9, blur: 2 }], hi: 0, rim: 1.1, edge: '#d9ccb0', rimA: 0.55, rimBlur: 0.5, gran: 0.2, feather: 0.6 }, r);
+      return s;
+    });
+    // brush twinkle: four tapered ochre ticks + a paper dot (replaces generic star sparkles)
+    FX.tick = [0, 1].map((v) => {
+      const s = mkSprite(12, 12, 6, 6, 6), t = s.ctx, r = U.rng(4200 + v);
+      const arms = [[0, -5.2, 1.0], [0, 5.0, 0.9], [-3.6 - v * 0.6, 0.2, 0.75], [3.8, -0.2, 0.8]];
+      for (const [x, y, w] of arms) inkLine(t, spline([[0, 0], [x * 0.5 + (r.next() - 0.5) * 0.3, y * 0.5], [x, y]], false, 3), { w, ta: 0.05, tb: 0.85, wv: 0.1, color: '#d9972e' });
+      for (const [x, y, w] of arms) inkLine(t, [[0, 0], [x * 0.55, y * 0.55]], { w: w * 0.35, ta: 0, tb: 0.8, wv: 0, color: '#fff3c8', alpha: 0.9 });
+      t.fillStyle = 'rgba(255,252,240,0.95)'; t.beginPath(); t.arc(0, 0, 0.7, 0, TAU); t.fill();
+      return s;
+    });
+    // torn leaf bits for bursts
+    FX.leafBit = [['#6c8a38', '#a7bd68', '#3a4e1c'], ['#b5602e', '#d9a443', '#6a2c14'], ['#8a8a3a', '#c9a24a', '#4a4a1c']].map((cl, v) => {
+      const s = mkSprite(7, 7, 3.5, 3.5, 6), r = U.rng(4300 + v);
+      const P = ribbon([[-2.6, 0.4], [0, -0.6], [2.6, 0.2]], leafW(2.2));
+      wash(s.ctx, P, { c: cl[0], blobs: [{ x: -0.6, y: -0.4, rx: 1, ry: 0.7, c: cl[1], a: 0.7, blur: 0.4 }], hi: 0, rim: 0.5, edge: cl[2], rimA: 0.7, gran: 0.3 }, r);
+      inkLine(s.ctx, [[-2.4, 0.3], [2.2, 0.1]], { w: 0.22, ta: 0, tb: 0.5, wv: 0, alpha: 0.7 });
+      return s;
+    });
+    // rising wisp of grey-blue wash (fast creature bursts)
+    FX.wisp = [0, 1].map((v) => {
+      const s = mkSprite(14, 9, 7, 4.5, 5), r = U.rng(4400 + v);
+      const P = ribbon([[-6, 1.5], [-2, -1.2 + v], [2, 1], [6, -1.4]], (u) => 0.3 + 2.2 * Math.sin(Math.PI * u));
+      wash(s.ctx, P, { c: '#b9c6d6', blobs: [{ x: -1, y: 0, rx: 3, ry: 1.2, c: '#7f90ae', a: 0.6, blur: 0.8 }], hi: 0, rim: 0.7, edge: '#6c7c9c', rimA: 0.6, gran: 0.4, feather: 0.4 }, r);
+      return s;
+    });
+    // dust puff: a dry umber wash that blooms and fades (dash take-off)
+    FX.puff = [0, 1].map((v) => {
+      const s = mkSprite(16, 10, 8, 5, 5), r = U.rng(4500 + v);
+      wash(s.ctx, spline(blobPts(0, 0, 6.4, 3.4, 0.28, r, 11), true, 4), { c: '#b89a74', blobs: [{ x: 1.5, y: 0.8, rx: 3.4, ry: 2, c: '#8a6a48', a: 0.6, blur: 1 }], hi: 0, rim: 0.9, edge: '#7a5a3a', rimA: 0.6, gran: 0.7, feather: 0.8 }, r);
+      return s;
+    });
+    MIS = [0.45, 0.35];
     // glow halos
     FX.glow = radialSprite(64, [[0, 'rgba(255,226,140,0.95)'], [0.35, 'rgba(255,196,90,0.5)'], [1, 'rgba(255,170,60,0)']]);
     FX.pool = radialSprite(64, [[0, 'rgba(255,214,110,0.55)'], [0.6, 'rgba(255,200,100,0.22)'], [1, 'rgba(255,190,90,0)']]);
@@ -1426,65 +1765,142 @@
     ['#e08a3a', '#b8452c', '#d6aa4c'],
     ['#c49a3e', '#8f8a3a', '#b5602e'],
   ];
-  function drawTree(ctx, r, pal, h) {
-    // trunk
-    const tl = [[-3.8, 0.4], [-2.3, -3.6], [-1.6, -h * 0.25], [-1.3, -h * 0.46]];
-    const tr = [[1.6, -h * 0.46], [1.9, -h * 0.25], [2.6, -3.6], [4.4, 0.4]];
+  /** outline of a union of round lobes seen from (cx, cy): ray-cast against every lobe -> one scalloped silhouette */
+  function lobeUnion(cx, cy, lobes, n, r, rough) {
+    const out = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU, dx = Math.cos(a), dy = Math.sin(a);
+      let best = 0;
+      for (const [lx, ly, lr, sy] of lobes) {
+        // lobes are slightly flattened ellipses (sy) – scale y into circle space
+        const k = sy || 1, qx = lx - cx, qy = (ly - cy) / k, ddy = dy / k;
+        const dl = Math.sqrt(dx * dx + ddy * ddy), ux = dx / dl, uy = ddy / dl;
+        const b = ux * qx + uy * qy, c = qx * qx + qy * qy - lr * lr, disc = b * b - c;
+        if (disc < 0) continue;
+        const t = (b + Math.sqrt(disc)) / dl;
+        if (t > best) best = t;
+      }
+      best *= 1 + (r.next() - 0.5) * (rough || 0.05);
+      out.push([cx + dx * best, cy + dy * best]);
+    }
+    return out;
+  }
+  /* crown designs (lobe layouts in units of R): broad oak, tall oval, leaning two-mass, young sparse */
+  const CROWNS = [
+    { lobes: [[0, -0.32, 0.6], [-0.5, 0.02, 0.52], [0.52, 0.0, 0.54], [-0.22, 0.34, 0.48], [0.3, 0.36, 0.46], [-0.78, 0.3, 0.3], [0.8, 0.26, 0.32], [0.05, -0.72, 0.36]], sx: 1.1, sy: 0.92, clumps: [[0.3, 0.3, 0.42], [-0.35, 0.36, 0.36], [0.62, -0.02, 0.3], [-0.6, 0.04, 0.26]] },
+    { lobes: [[0, -0.6, 0.46], [-0.3, -0.18, 0.5], [0.32, -0.2, 0.48], [0, 0.22, 0.5], [-0.34, 0.48, 0.34], [0.36, 0.5, 0.36], [0.02, -0.98, 0.3]], sx: 0.78, sy: 1.25, clumps: [[0.25, 0.42, 0.38], [-0.28, 0.2, 0.32], [0.3, -0.3, 0.3]] },
+    { lobes: [[-0.36, -0.28, 0.6], [-0.86, 0.05, 0.42], [0.18, -0.05, 0.5], [0.66, 0.24, 0.4], [-0.3, 0.3, 0.46], [0.98, 0.36, 0.26], [-0.04, -0.7, 0.34]], sx: 1.08, sy: 0.86, clumps: [[0.5, 0.3, 0.38], [-0.2, 0.34, 0.4], [-0.7, 0.14, 0.28]] },
+    { lobes: [[0, -0.3, 0.46], [-0.5, 0.04, 0.38], [0.48, -0.04, 0.4], [-0.08, 0.3, 0.4], [0.62, 0.36, 0.24], [-0.6, 0.42, 0.22]], sx: 0.92, sy: 0.95, clumps: [[0.28, 0.24, 0.32], [-0.3, 0.26, 0.28]] },
+  ];
+  /* deciduous tree: one calm light wash for the whole crown, transparent glazes for the clumps on the shadow side,
+     dark pockets where branches enter, leaf dabs breaking the silhouette, ink only on the shade side */
+  function drawTree(ctx, r, pal, h, vi) {
+    const C = CROWNS[vi % CROWNS.length];
+    const young = vi === 3;
+    const ccx = vi === 2 ? -1.5 : 0.5, ccy = -h * (young ? 0.64 : 0.65), R = h * (young ? 0.26 : 0.31);
+    const L = C.lobes.map(([x, y, s]) => [ccx + x * R * C.sx, ccy + y * R * C.sy, s * R * (C.sx + C.sy) * 0.5, 0.9]);
+    // trunk: flared root, slight S-bend, bark strokes on the shade side
+    const lean = vi === 2 ? -1.6 : vi === 1 ? 0.4 : 0;
+    const tl = [[-3.8, 0.4], [-2.3, -3.6], [-1.5 + lean * 0.4, -h * 0.25], [-1.2 + lean, -h * 0.46]];
+    const tr = [[1.5 + lean, -h * 0.46], [1.9 + lean * 0.4, -h * 0.25], [2.6, -3.6], [4.4, 0.4]];
     const TP = spline(jit(tl, 0.25, r), false, 5).concat(spline(jit(tr, 0.25, r), false, 5));
     wash(ctx, TP, { c: '#7d5a3e', blobs: [{ x: -1.2, y: -h * 0.2, rx: 1.2, ry: h * 0.2, c: '#a88563', a: 0.7, blur: 1 }, { x: 2.4, y: -h * 0.18, rx: 1.4, ry: h * 0.2, c: '#4e3628', a: 0.65, blur: 1.2 }], hi: 0.1, rim: 0.8, edge: '#3a2618', gran: 0.6 }, r);
-    stroke(ctx, tl, { w: 0.8, jit: 0.2, ta: 0.05, tb: 0.3, wv: 0.3 }, r);
+    stroke(ctx, tl, { w: 0.75, jit: 0.2, ta: 0.05, tb: 0.3, wv: 0.3 }, r);
     stroke(ctx, tr, { w: 1.3, jit: 0.2, ta: 0.3, tb: 0.05, wv: 0.3 }, r);
     for (let i = 0; i < 4; i++) {
-      const y = -3 - r.next() * h * 0.36;
-      stroke(ctx, [[0.2 + r.next(), y], [1.2 + r.next(), y - 1.2]], { w: 0.3, jit: 0.1, ta: 0.1, tb: 0.5, wv: 0, alpha: 0.6 }, r);
+      const y = -3 - r.next() * h * 0.34;
+      stroke(ctx, [[0.6 + r.next() * 0.8, y], [1.5 + r.next() * 0.6, y - 1.4]], { w: 0.3, jit: 0.1, ta: 0.1, tb: 0.5, wv: 0, alpha: 0.6 }, r);
     }
-    // branches into the crown
-    const bt = -h * 0.44;
-    for (const [ex, ey] of [[-8, -h * 0.66], [7, -h * 0.7], [0.6, -h * 0.8], [-3.6, -h * 0.58]]) {
-      stroke(ctx, [[0.2, bt], [ex * 0.45, (bt + ey) / 2], [ex, ey]], { w: 1.1, jit: 0.6, ta: 0.05, tb: 0.65, wv: 0.3 }, r);
+    // branches: the trunk forks below the crown (Y silhouette), limbs fan up into the foliage
+    const bt = -h * 0.36, BR = young
+      ? [[-11, -h * 0.64], [10, -h * 0.68], [1, -h * 0.82], [-5, -h * 0.56], [6, -h * 0.54]]
+      : [[-10, -h * 0.62], [9, -h * 0.66], [0.6, -h * 0.78], [-4.5, -h * 0.55]];
+    const sil = lobeUnion(ccx, ccy, L, 72, r, 0.06);
+    const inside = (x, y) => {
+      let c = false;
+      for (let i = 0, j = sil.length - 1; i < sil.length; j = i++) {
+        const [xi, yi] = sil[i], [xj, yj] = sil[j];
+        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+      }
+      return c;
+    };
+    for (const e of BR) {
+      // limb tips stay under the foliage
+      for (let k = 0; k < 8 && !inside(e[0], e[1] - 1.5); k++) { e[0] = ccx + (e[0] - ccx) * 0.86; e[1] = ccy + (e[1] - ccy) * 0.86; }
     }
-    // crown: overlapping glazes
-    const ccx = 0.5, ccy = -h * 0.68, R = h * 0.3;
-    const blobs = [
-      [-R * 0.42, R * 0.12, 0.62], [R * 0.4, R * 0.1, 0.62], [0, -R * 0.38, 0.66], [-R * 0.2, R * 0.38, 0.5], [R * 0.28, R * 0.4, 0.5], [-R * 0.62, -R * 0.2, 0.4], [R * 0.6, -R * 0.24, 0.42],
-    ];
-    const all = [];
-    blobs.forEach((b, i) => {
-      const cx = ccx + b[0] + (r.next() - 0.5) * 2, cy = ccy + b[1] + (r.next() - 0.5) * 2, rr = R * b[2];
-      const P = spline(blobPts(cx, cy, rr, rr * 0.86, 0.16, r, 13), true, 4);
-      all.push(P);
-      const lit = (-(b[0]) * 0.6 - b[1] * 0.8) / R;
-      wash(ctx, P, {
-        c: pal[i % 3],
-        blobs: [
-          { x: cx - rr * 0.35, y: cy - rr * 0.35, rx: rr * 0.5, ry: rr * 0.42, c: '#f2d68c', a: 0.35 + Math.max(0, lit) * 0.3, blur: rr * 0.25 },
-          { x: cx + rr * 0.4, y: cy + rr * 0.4, rx: rr * 0.6, ry: rr * 0.5, c: pal[(i + 1) % 3], a: 0.55, blur: rr * 0.25 },
-        ],
-        hi: 0.15, rim: 1.4, edge: '#5a3a1a', rimA: 0.45, gran: 0.55, alpha: 0.86,
-      }, r);
-    });
-    // indigo shadow glaze on lower-right of the crown
-    const SP = spline(blobPts(ccx + R * 0.35, ccy + R * 0.38, R * 0.8, R * 0.55, 0.15, r, 12), true, 4);
-    wash(ctx, SP, { c: '#7d86a8', hi: 0, rim: 0, gran: 0.5, feather: 2.2, alpha: 0.45, op: 'multiply', dx: 0, dy: 0 }, r);
-    // loose scallops along the shadow edge + leaf-clump hints
-    for (let i = 0; i < 9; i++) {
-      const a = 0.0 + (i / 9) * 2.6 + (r.next() - 0.5) * 0.2;
-      const rr = R * (0.88 + r.next() * 0.1);
-      const x = ccx + Math.cos(a) * rr, y = ccy + Math.sin(a) * rr * 0.92;
-      const tx = -Math.sin(a), ty = Math.cos(a);
-      const L = 2 + r.next() * 2;
-      stroke(ctx, [[x - tx * L, y - ty * L], [x + Math.cos(a) * 1.0, y + Math.sin(a) * 1.0], [x + tx * L, y + ty * L]], { w: 0.75, jit: 0.2, ta: 0.25, tb: 0.35, wv: 0.3 }, r);
+    for (const [ex, ey] of BR) {
+      const mid = [ex * 0.45 + lean, (bt + ey) / 2 + 1];
+      stroke(ctx, [[0.2 + lean, bt], mid, [ex, ey]], { w: young ? 1.05 : 1.3, jit: 0.5, ta: 0.05, tb: 0.65, wv: 0.3 }, r);
     }
-    for (let i = 0; i < 7; i++) {
-      const x = ccx + (r.next() - 0.3) * R * 1.2, y = ccy + (r.next() - 0.35) * R * 1.1;
-      stroke(ctx, [[x - 1.6, y], [x, y + 0.9], [x + 1.6, y]], { w: 0.42, jit: 0.15, ta: 0.25, tb: 0.35, wv: 0.3, alpha: 0.55 }, r);
+    // 1) the whole crown in one light, wet wash: warm light top-left, the mid colour bleeding in from the lower right
+    const B = bbox(sil);
+    const light = U.rgb(U.mix(U.hex(pal[0]), [250, 232, 176], 0.28));
+    wash(ctx, sil, {
+      c: light,
+      blobs: [
+        { x: B.x0 + B.w * 0.3, y: B.y0 + B.h * 0.28, rx: B.w * 0.32, ry: B.h * 0.26, c: '#f4dc98', a: 0.7, blur: R * 0.22 },
+        { x: B.x0 + B.w * 0.72, y: B.y0 + B.h * 0.66, rx: B.w * 0.4, ry: B.h * 0.3, c: pal[1], a: 0.5, blur: R * 0.3 },
+        { x: B.x0 + B.w * 0.2, y: B.y0 + B.h * 0.7, rx: B.w * 0.18, ry: B.h * 0.16, c: pal[2], a: 0.45, blur: R * 0.22 },
+      ],
+      hi: 0.22, rim: 1.3, edge: U.rgb(U.mul(U.hex(pal[1]), 0.62)), rimA: 0.5, gran: 0.5,
+    }, r);
+    // 2) foliage tiers, clipped to the crown: each a transparent glaze whose scalloped top edge dried hard;
+    //    lower tiers are darker and climb higher on the shade side (light from the upper left)
+    const tier = (yf, rr, slant) => {
+      const yTop = (x) => ccy + R * yf - slant * (x - ccx);
+      const pts = [];
+      let x = B.x0 - rr * 0.6;
+      while (x < B.x1 + rr * 0.3) {
+        const w = rr * (0.75 + r.next() * 0.55), cx = x + w, ty = yTop(cx) + (r.next() - 0.5) * rr * 0.25;
+        for (let k = 0; k <= 5; k++) { const a = Math.PI + (k / 5) * Math.PI; pts.push([cx + Math.cos(a) * w, ty + Math.sin(a) * w * 0.72]); }
+        x += w * 1.8;
+      }
+      pts.push([B.x1 + 3, B.y1 + 4], [B.x0 - 3, B.y1 + 4]);
+      return pts;
+    };
+    const dkEdge = U.rgb(U.mul(U.hex(pal[1]), 0.5));
+    ctx.save();
+    trace(ctx, sil);
+    ctx.clip();
+    const T1 = tier(young ? 0.0 : -0.12, R * 0.27, 0.12);
+    wash(ctx, T1, { c: pal[1], blobs: [{ x: B.x0 + B.w * 0.3, y: ccy, rx: B.w * 0.3, ry: R * 0.3, c: pal[2], a: 0.45, blur: R * 0.25 }], hi: 0, rim: 1.0, edge: dkEdge, rimA: 0.6, gran: 0.45, alpha: 0.5, op: 'multiply' }, r);
+    const T2 = tier(young ? 0.5 : 0.4, R * 0.2, 0.3);
+    const midDk = U.rgb(U.mix(U.hex(pal[1]), [90, 74, 92], 0.4));
+    wash(ctx, T2, { c: midDk, hi: 0, rim: 0.9, edge: dkEdge, rimA: 0.6, gran: 0.5, alpha: 0.5, op: 'multiply' }, r);
+    // cool shadow glaze on the lower right, then the dark band under the foliage where the limbs enter
+    const SP = spline(blobPts(ccx + R * 0.45, ccy + R * 0.45, R * 0.8, R * 0.55, 0.15, r, 12), true, 4);
+    wash(ctx, SP, { c: '#7d86a8', hi: 0, rim: 0, gran: 0.5, feather: 2.6, alpha: 0.4, op: 'multiply', dx: 0, dy: 0 }, r);
+    const T3 = tier(0.8, R * 0.13, 0.2);
+    wash(ctx, T3, { c: '#5a4648', hi: 0, rim: 0.6, edge: '#2a1b14', rimA: 0.5, gran: 0.4, alpha: 0.45, op: 'multiply', dx: 0, dy: 0 }, r);
+    ctx.restore();
+    // brush accent: a loose line along part of the middle tier's edge (shade half, inside the crown only)
+    const edge2 = T2.slice(0, -2).filter((p, i) => i % 2 === 0 && p[0] > ccx - R * 0.1 && inside(p[0], p[1] + 0.8));
+    if (edge2.length > 3) stroke(ctx, edge2, { w: 0.6, jit: 0.15, ta: 0.3, tb: 0.4, wv: 0.4, color: '#3a2a1c', alpha: 0.7 }, r);
+    // 4) leaf dabs break the silhouette: light ones on the lit rim, darker ones hanging from the underside
+    for (let i = 0; i < (young ? 9 : 14); i++) {
+      const p = sil[(r.next() * sil.length) | 0];
+      const nx = p[0] - ccx, ny = p[1] - ccy, nl = hyp(nx, ny) || 1;
+      const litSide = (nx * LX + ny * LY) / nl;
+      const ang = Math.atan2(ny, nx) + (r.next() - 0.5) * 1.2, len = 2 + r.next() * 1.6;
+      const x0 = p[0] - nx / nl * 0.8, y0 = p[1] - ny / nl * 0.8;
+      const LP = ribbon([[x0, y0], [x0 + Math.cos(ang) * len * 0.5, y0 + Math.sin(ang) * len * 0.5], [x0 + Math.cos(ang) * len, y0 + Math.sin(ang) * len]], leafW(1.4 + r.next() * 0.6), 3);
+      const c = litSide > 0.2 ? light : litSide < -0.3 ? pal[1] : pal[(i % 2) * 2];
+      wash(ctx, LP, { c, hi: 0, rim: 0.4, edge: U.rgb(U.mul(U.hex(pal[1]), 0.6)), rimA: 0.6, gran: 0.3, alpha: 0.92 }, r);
     }
-    // a few falling leaves
-    for (let i = 0; i < 3; i++) {
-      const x = ccx + (r.next() - 0.5) * R * 2.4, y = ccy + R * (0.8 + r.next() * 0.9);
-      ctx.fillStyle = pal[i % 3];
-      ctx.beginPath(); ctx.ellipse(x, y, 0.9, 0.5, r.next() * 3, 0, TAU); ctx.fill();
-      ctx.lineWidth = 0.18; ctx.strokeStyle = INK; ctx.stroke();
+    // 5) a few paper-white reserves on the lit side (negative leaves)
+    for (let i = 0; i < 4; i++) {
+      const x = B.x0 + B.w * (0.18 + r.next() * 0.3), y = B.y0 + B.h * (0.14 + r.next() * 0.28);
+      const LP = ribbon([[x, y], [x + 0.9, y - 0.5], [x + 1.9, y - 0.2]], leafW(1.1), 3);
+      wash(ctx, LP, { c: '#fbf2da', hi: 0, rim: 0.3, edge: '#e8d4a0', rimA: 0.5, gran: 0, alpha: 0.75, dx: 0, dy: 0 }, r);
+    }
+    // 6) ink: broken contour on the shade side only
+    partialOutline(ctx, spline(sil, true, 2), { w: 0.85, side: 0.05, wv: 0.4 }, r);
+    // a couple of leaves on the way down
+    for (let i = 0; i < 2; i++) {
+      const x = ccx + (r.next() - 0.2) * R * 1.6, y = ccy + R * (1.0 + r.next() * 0.6);
+      const LP = ribbon([[x - 0.9, y], [x, y - 0.4], [x + 0.9, y + 0.1]], leafW(1.2), 3);
+      wash(ctx, LP, { c: pal[i * 2 % 3], hi: 0, rim: 0.3, edge: '#5a3a1a', rimA: 0.6, gran: 0.2 }, r);
+      inkLine(ctx, [[x - 0.8, y], [x + 0.8, y + 0.05]], { w: 0.16, ta: 0, tb: 0.5, wv: 0, alpha: 0.7 });
     }
   }
   function drawFir(ctx, r, h) {
@@ -1699,6 +2115,50 @@
     grassTuft(ctx, -8 * s, 0.5, r, INK, 0.6, 0.9);
     grassTuft(ctx, 7.5 * s, 0.5, r, INK, 0.6, 0.8);
   }
+  function drawReeds(ctx, r, v) {
+    // wet mud at the foot of the clump
+    wash(ctx, spline(blobPts(0.5, 0.2, 7, 1.8, 0.25, r, 9), true, 3), { c: '#8a7a4a', blobs: [{ x: 2, y: 0.6, rx: 4, ry: 1, c: '#4a4a3a', a: 0.5, blur: 0.8 }], hi: 0, rim: 0.6, edge: '#4a3e24', gran: 0.6, alpha: 0.55, feather: 0.5 }, r);
+    const n = 8 + r.int(0, 3);
+    const cols = [['#6f8a44', '#a6b86a', '#3f5428'], ['#8f9448', '#c8c27a', '#55582a'], ['#b59a5a', '#dcc68c', '#6e5a30']];
+    const blades = [];
+    for (let i = 0; i < n; i++) {
+      const u = i / (n - 1) - 0.5;
+      const bx = u * 9 + (r.next() - 0.5) * 1.2, h = 13 + r.next() * 11 - Math.abs(u) * 7;
+      const lean = u * 5 + (r.next() - 0.5) * 3;
+      blades.push({ bx, h, lean, c: cols[i % 5 === 3 ? 2 : i % 2], back: r.chance(0.5) });
+    }
+    blades.sort((a, b) => (a.back ? 0 : 1) - (b.back ? 0 : 1));
+    for (const b of blades) {
+      const pts = [[b.bx, 0.3], [b.bx + b.lean * 0.35, -b.h * 0.5], [b.bx + b.lean, -b.h]];
+      const P = ribbon(jit(pts, 0.15, r), (u) => 1.35 * (1 - u) + 0.08);
+      wash(ctx, P, { c: b.c[0], blobs: [{ x: b.bx + b.lean * 0.6, y: -b.h * 0.7, rx: 1, ry: b.h * 0.25, c: b.c[1], a: 0.6, blur: 0.6 }, { x: b.bx, y: -1.5, rx: 1.2, ry: 2.5, c: b.c[2], a: 0.6, blur: 0.6 }], hi: 0, rim: 0.4, edge: b.c[2], rimA: 0.6, gran: 0.4, alpha: b.back ? 0.75 : 0.95 }, r);
+      if (!b.back) stroke(ctx, pts, { w: 0.3, jit: 0.1, ta: 0.05, tb: 0.5, wv: 0.2, color: '#2c3420', alpha: 0.7 }, r);
+    }
+    if (v !== 1) {
+      // cattails: thin stems with velvet umber heads
+      const m = v === 0 ? 3 : 2;
+      for (let i = 0; i < m; i++) {
+        const sx = -3 + i * 3 + (r.next() - 0.5), h = 19 + r.next() * 7, lean = (r.next() - 0.4) * 2.4;
+        stroke(ctx, [[sx, 0.2], [sx + lean * 0.4, -h * 0.5], [sx + lean, -h]], { w: 0.42, ta: 0, tb: 0.1, wv: 0.1, color: '#4a4a2a' }, r);
+        const hx = sx + lean, hy = -h;
+        const HP = ribbon([[hx - lean * 0.02, hy + 0.4], [hx + lean * 0.05, hy - 2.4], [hx + lean * 0.08, hy - 5]], () => 1.7);
+        wash(ctx, HP, { c: '#6b4228', blobs: [{ x: hx - 0.4, y: hy - 3.2, rx: 0.5, ry: 1.6, c: '#a87a4e', a: 0.7, blur: 0.4 }], hi: 0, rim: 0.5, edge: '#3a2214', rimA: 0.7, gran: 0.5, dx: 0.15, dy: 0.12 }, r);
+        partialOutline(ctx, HP, { w: 0.32, side: -0.2, wv: 0.2 }, r);
+        inkLine(ctx, [[hx + lean * 0.08, hy - 5], [hx + lean * 0.12, hy - 7.4]], { w: 0.22, ta: 0, tb: 0.7, wv: 0, color: '#4a4a2a' });
+      }
+    } else {
+      // a yellow flag iris among the blades
+      const fx = 1.5, fy = -17;
+      stroke(ctx, [[1, 0.2], [1.4, -9], [fx, fy + 1]], { w: 0.4, ta: 0, tb: 0.1, wv: 0.1, color: '#3f5428' }, r);
+      for (const [a, L] of [[-2.4, 2.6], [-0.7, 2.4], [0.9, 2.6], [2.2, 1.8]]) {
+        const P = ribbon([[fx, fy], [fx + Math.cos(a) * L * 0.6, fy + Math.sin(a) * L * 0.6 - 0.4], [fx + Math.cos(a) * L, fy + Math.sin(a) * L]], leafW(1.6));
+        wash(ctx, P, { c: '#e2b23a', blobs: [{ x: fx, y: fy, rx: 0.8, ry: 0.8, c: '#a86a1a', a: 0.6, blur: 0.4 }], hi: 0, rim: 0.4, edge: '#9a6a14', gran: 0.3, dx: 0.15, dy: 0.1 }, r);
+      }
+      outline(ctx, spline(blobPts(fx, fy, 2.4, 1.8, 0.3, r, 7), true, 3), { w: 0.26, pieces: 2, wv: 0.3, alpha: 0.6 }, r);
+    }
+    grassTuft(ctx, -4.5, 0.6, r, '#24301e', 0.6, 0.9);
+    grassTuft(ctx, 4, 0.8, r, '#24301e', 0.6, 0.8);
+  }
   function buildProps() {
     const mk = (wu, hu, ax, ay, fn, seed) => {
       const s = mkSprite(wu, hu, ax, ay);
@@ -1706,7 +2166,7 @@
       s.f = U.flipX(s.c);
       return s;
     };
-    PROPS.tree = TREE_PALS.map((pal, i) => mk(64, 98, 32, 94, (c, r) => drawTree(c, r, pal, 80 + i * 3), 1100 + i));
+    PROPS.tree = TREE_PALS.map((pal, i) => mk(72, 102, 36, 98, (c, r) => drawTree(c, r, pal, 80 + i * 3, i), 1100 + i));
     PROPS.fir = [0, 1].map((i) => mk(40, 92, 20, 89, (c, r) => drawFir(c, r, 80 + i * 6), 1200 + i));
     PROPS.bush = [0, 1, 2].map((i) => mk(30, 22, 15, 19, (c, r) => drawBush(c, r), 1300 + i));
     const PCOL = [['#e8832f', '#f6b45e', '#bf531b', '#7e2f0e'], ['#e6a33a', '#f6cd7a', '#b8701c', '#7e4a0e'], ['#e9dcc0', '#fbf5e6', '#b8a688', '#6a5a40']];
@@ -1722,6 +2182,7 @@
     PROPS.sign = [mk(30, 40, 12, 37, (c, r) => drawSign(c, r), 1800)];
     PROPS.scare = [mk(32, 44, 16, 41, (c, r) => drawScarecrow(c, r), 1900)];
     PROPS.boulder = [mk(28, 18, 14, 15, (c, r) => drawBoulder(c, r, 1.15), 2000), mk(22, 14, 11, 11.5, (c, r) => drawBoulder(c, r, 0.8), 2001)];
+    PROPS.reeds = [0, 1, 2].map((i) => mk(24, 34, 12, 31, (c, r) => drawReeds(c, r, i), 2100 + i));
   }
 
   /* ======================================================================
@@ -1730,34 +2191,32 @@
   function frames(wu, hu, ax, ay, poses, fn, seedBase) {
     return poses.map((pose, i) => {
       const s = mkSprite(wu, hu, ax, ay);
-      fn(s.ctx, pose, U.rng(seedBase + i * 7919));
-      return finish(s);
+      const res = fn(s.ctx, pose, U.rng(seedBase + i * 7919));
+      finish(s);
+      if (res && res.face) s.face = [res.face[0] - ax, res.face[1] - ay];
+      return s;
     });
   }
   function buildCharacters() {
-    // Jack: idle (3 boils) + walk 4 poses x 3 boils
+    // main character: 6 breathing idles, blink, glance, 8-pose walk, crouch, dash stretch, flinch
     const jp = [];
-    for (let b = 0; b < 3; b++) jp.push({ ph: null, wave: Math.sin(b * 2.1) });
-    for (let p = 0; p < 4; p++) for (let b = 0; b < 3; b++) jp.push({ ph: (p / 4) * TAU, wave: Math.sin(p * 1.6 + b * 2.1) });
-    const jf = frames(30, 35, 15.5, 32.5, jp, drawJack, 5000);
-    SPR.jack = { idle: jf.slice(0, 3), walk: [0, 1, 2, 3].map((p) => jf.slice(3 + p * 3, 6 + p * 3)) };
-    // creepers: 2 palettes x (4 poses x 2 boils)
-    SPR.creeper = CREEP_PAL.map((pal, vi) => {
-      const poses = [];
-      for (let p = 0; p < 4; p++) for (let b = 0; b < 2; b++) poses.push({ ph: (p / 4) * TAU, sway: Math.sin(p * 1.7 + b * 2.4) });
-      return frames(26, 37, 13, 34, poses, (c, pose, r) => drawCreeper(c, pose, r, pal), 6000 + vi * 100);
-    });
-    const ghostPoses = [];
-    for (let p = 0; p < 4; p++) for (let b = 0; b < 2; b++) ghostPoses.push({ ph: (p / 4) * TAU + b * 0.4 });
-    SPR.ghost = [frames(26, 28, 11.5, 26, ghostPoses, drawGhost, 7000)];
-    const colPoses = [];
-    for (let p = 0; p < 4; p++) for (let b = 0; b < 2; b++) colPoses.push({ ph: (p / 4) * TAU });
-    SPR.colossus = [frames(50, 58, 24, 55, colPoses, drawColossus, 8000)];
-    // spawn (soft) + death (dissolve) versions
+    for (let i = 0; i < 6; i++) jp.push({ kind: 'idle', br: i / 6 });
+    jp.push({ kind: 'idle', br: 0, eyes: 'blink' }, { kind: 'idle', br: 0.25, look: true });
+    for (let i = 0; i < 8; i++) jp.push({ kind: 'walk', ph: (i / 8) * TAU });
+    jp.push({ kind: 'crouch' }, { kind: 'dash' }, { kind: 'hurt' });
+    const jf = frames(34, 36, 18, 33, jp, drawJack, 5000);
+    SPR.jack = { idle: jf.slice(0, 6), blink: jf[6], look: jf[7], walk: jf.slice(8, 16), crouch: jf[16], dash: jf[17], hurt: jf[18] };
+    // creatures: 6-pose cycles + one hit pose each (two colourings of the small creature)
+    const cyc = (n) => { const a = []; for (let i = 0; i < n; i++) a.push({ ph: (i / n) * TAU }); a.push({ hit: true }); return a; };
+    const pack = (f) => ({ walk: f.slice(0, f.length - 1), hit: f[f.length - 1] });
+    SPR.creeper = CREEP_PAL.map((pal, vi) => pack(frames(28, 37, 14, 34, cyc(6), (c, pose, r) => drawCreeper(c, pose, r, pal), 6000 + vi * 100)));
+    SPR.ghost = [pack(frames(28, 28, 12.5, 26, cyc(6), drawGhost, 7000))];
+    SPR.colossus = [pack(frames(50, 60, 24, 57, cyc(6), drawColossus, 8000))];
+    // spawn (wet, soft) + death (pigment bleeding out of the hit pose) versions
     SPR.soft = {}; SPR.death = {};
     for (const type of ['creeper', 'ghost', 'colossus']) {
-      SPR.soft[type] = SPR[type].map((set) => softOf(set[0], 4));
-      SPR.death[type] = SPR[type].map((set, i) => dissolveFrames(set[1], 4, 300 + i + type.length));
+      SPR.soft[type] = SPR[type].map((set) => softOf(set.walk[0], 4));
+      SPR.death[type] = SPR[type].map((set, i) => dissolveFrames(set.hit, 6, 300 + i + type.length));
     }
     // small sprites
     SPR.gem = [0, 1, 2].map((i) => { const s = mkSprite(8, 11, 4, 9.6, 4); MIS = [0, 0]; drawGemDrop(s.ctx, U.rng(9100 + i)); return s; });
@@ -2192,6 +2651,7 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
     ctx.fill(SHL);
     SH = SHL = null;
   }
+  const SWAY = { tree: 0.03, fir: 0.018, reeds: 0.075, bush: 0.022, hay: 0.008, scare: 0.012 };
   const COLS = {
     creeper: ['violet', 'cream', 'violet', 'leaf', 'plum'],
     ghost: ['ghost', 'frost', 'ghostDk', 'ghost'],
@@ -2215,7 +2675,7 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
     id: 'watercolor',
     name: 'Aquarell-Märchenbuch',
     family: 'Illustriert',
-    description: 'Lasuren aus Aquarellfarbe und lockere Tuschelinien auf kaltgepresstem Papier – ein lebendiges Märchenbuch.',
+    description: 'Transparent watercolour washes and loose, broken ink lines on warm cold-pressed paper: a living illustrated fairy-tale book.',
     groundColor: '#d6d7b2',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -2242,20 +2702,29 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
 
     propsForChunk(info) {
       const out = [];
-      const ok = (x, y, clear) => !G.nearSpawn(x, y, 95) && pathDist(x, y) > clear;
+      const ok = okProp;
       // trees: mostly inside forests, a few lone ones in meadows
       G.scatterOwned(info, 76, 7001, (x, y, r) => {
-        const f = fieldF(x, y) - T_F;
-        const pr = f > 0.012 ? 0.5 : f > -0.008 ? 0.16 : 0.03;
-        if (!r.chance(pr) || !ok(x, y, 12)) return;
-        const fir = f > 0.02 && r.chance(0.4);
-        out.push({ x, y, t: fir ? 'fir' : 'tree', v: fir ? r.int(0, 1) : r.int(0, 3), flip: r.chance(0.5), sh: fir ? [13, 4.5, 4] : [21, 6.5, 5], pad: 110, fade: fir ? [14, 82] : [26, 90] });
+        const tr = treeAt(x, y, r);
+        if (tr) out.push(tr);
       });
-      G.scatterOwned(info, 110, 7002, (x, y, r) => {
-        if (!r.chance(0.2) || !ok(x, y, 6)) return;
+      G.scatterOwned(info, 64, 7011, (x, y, r) => {
+        const tr = treeAt(x, y, r, true);
+        if (tr) out.push(tr);
+      });
+      // bushes gather along forest edges and pond banks
+      G.scatterOwned(info, 70, 7002, (x, y, r) => {
         const m = matAt(x, y);
-        if (m.kind === 'G' && !r.chance(0.3)) return;
+        const edge = Math.abs(m.f) < 0.012 || (m.w > -0.03 && m.w < -0.01);
+        if (!r.chance(edge ? 0.42 : m.kind === 'G' ? 0.02 : 0.06) || !ok(x, y, 6)) return;
         out.push({ x, y, t: 'bush', v: r.int(0, 2), flip: r.chance(0.5), sh: [10, 3.2, 2] });
+        if (edge && r.chance(0.4)) out.push({ x: x + r.sign() * (13 + r.next() * 6), y: y + (r.next() - 0.5) * 6, t: 'bush', v: r.int(0, 2), flip: r.chance(0.5), sh: [10, 3.2, 2] });
+      });
+      // reeds and cattails in clumps on the pond banks
+      G.scatterOwned(info, 22, 7010, (x, y, r) => {
+        const w = fieldW(x, y) - T_W;
+        if (w < -0.012 || w > 0.006 || !r.chance(0.62) || G.nearSpawn(x, y, 40)) return;
+        out.push({ x, y, t: 'reeds', v: r.int(0, 2), flip: r.chance(0.5), sh: [6, 1.6, 1.2], pad: 40 });
       });
       G.scatterOwned(info, 120, 7003, (x, y, r) => {
         const m = matAt(x, y);
@@ -2288,7 +2757,7 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
       });
       G.scatterOwned(info, 140, 7007, (x, y, r) => {
         const pd = pathDist(x, y);
-        if (pd < 3 || pd > 16 || !r.chance(0.6) || G.nearSpawn(x, y, 95)) return;
+        if (pd < 3 || pd > 16 || !r.chance(0.6) || G.nearSpawn(x, y, 95) || fieldW(x, y) > T_W - 0.01) return;
         out.push({ x, y, t: 'sign', v: 0, flip: r.chance(0.5), sh: [5, 1.8, 2], pad: 70 });
       });
       G.scatterOwned(info, 280, 7008, (x, y, r) => {
@@ -2297,9 +2766,13 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
         if (m.kind !== 'G' || !ok(x, y, 10)) return;
         out.push({ x, y, t: 'scare', v: 0, flip: r.chance(0.5), sh: [8, 2.4, 3], pad: 70 });
       });
-      G.scatterOwned(info, 200, 7009, (x, y, r) => {
-        if (!r.chance(0.14) || !ok(x, y, 10)) return;
-        out.push({ x, y, t: 'boulder', v: r.int(0, 1), flip: r.chance(0.5), sh: [11, 3.4, 2] });
+      // boulders: a big one with a smaller companion, more often by paths and water
+      G.scatterOwned(info, 170, 7009, (x, y, r) => {
+        const m = matAt(x, y);
+        const near = (m.pd > 6 && m.pd < 20) || (m.w > -0.03 && m.w < -0.012);
+        if (!r.chance(near ? 0.32 : 0.08) || !ok(x, y, 6)) return;
+        out.push({ x, y, t: 'boulder', v: 0, flip: r.chance(0.5), sh: [11, 3.4, 2] });
+        if (r.chance(0.7)) out.push({ x: x + r.sign() * (12 + r.next() * 4), y: y + 3 + r.next() * 4, t: 'boulder', v: 1, flip: r.chance(0.5), sh: [8, 2.6, 1.5] });
       });
       return out;
     },
@@ -2312,14 +2785,23 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
         const pl = view.game.player;
         if (pl.y < p.y - 1 && pl.y > p.y - p.fade[1] && Math.abs(pl.x - p.x) < p.fade[0]) ctx.globalAlpha = 0.42;
       }
-      blit(ctx, s, p.x, p.y, p.flip);
+      const amp = SWAY[p.t];
+      if (amp) {
+        // wind: a slow travelling gust bends plants from their base (shear), slower than any actor
+        const t = view.rt, gust = 0.55 + 0.45 * Math.sin(t * 0.37 + p.x * 0.004);
+        const k = amp * gust * (0.75 * Math.sin(t * 1.25 + p.x * 0.031 + p.y * 0.011) + 0.25 * Math.sin(t * 2.9 + p.x * 0.07));
+        // shear about the base line, then undo it exactly (cheaper than save/restore for ~150 props)
+        ctx.transform(1, 0, k, 1, -k * p.y, 0);
+        blit(ctx, s, p.x, p.y, p.flip);
+        ctx.transform(1, 0, -k, 1, k * p.y, 0);
+      } else blit(ctx, s, p.x, p.y, p.flip);
       ctx.globalAlpha = 1;
     },
 
     drawGroundOverlay(ctx, view, game) {
       SH = new Path2D();
       SHL = new Path2D();
-      // ground stains: landed paint, blooms, spawn puddles, lantern light
+      // ground stains: landed paint, blooms, residue puddles, spawn puddles, lantern light
       for (const pt of game.particles) {
         if (pt.kind === 'paint' && pt.z <= 0.3 && Math.abs(pt.vz) < 25) {
           const set = FX[pt.col] || FX.ink;
@@ -2327,17 +2809,39 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
           ctx.globalAlpha = Math.min(1, (pt.life / pt.max) * 3) * 0.85;
           ctx.drawImage(set.dot[pt.v || 0].c, pt.x - s / 2, pt.y - s * 0.3, s, s * 0.6);
         } else if (pt.kind === 'ring') {
-          const age = 1 - pt.life / pt.max, R = pt.size * (0.35 + 0.65 * U.ease.outQuad(Math.min(1, age * 1.6)));
-          ctx.globalAlpha = (1 - age) * 0.75;
+          // backrun bloom: the wet ring pushes outward fast, then dries and fades
+          const age = 1 - pt.life / pt.max, R = pt.size * (0.3 + 0.7 * easeOut3(Math.min(1, age * 1.8)));
+          ctx.globalAlpha = (1 - age * age) * 0.85;
           ctx.drawImage(FX.ringTint[pt.col] || FX.ringTint.ink, pt.x - R, pt.y - R * 0.62, R * 2, R * 1.24);
+        } else if (pt.kind === 'stain') {
+          // residue: the puddle a dissolved creature leaves behind, drying out slowly
+          const age = 1 - pt.life / pt.max, st = FX.stain[pt.col] || FX.stain.creeper;
+          const R = pt.size * (0.85 + 0.25 * easeOut3(Math.min(1, age * 2.5)));
+          ctx.globalAlpha = Math.min(1, pt.life / pt.max * 2.2) * 0.62;
+          ctx.drawImage(st.c, pt.x - R, pt.y - R * 0.55, R * 2, R * 1.1);
+        } else if (pt.kind === 'puff' && pt.z <= 0.1) {
+          const age = 1 - pt.life / pt.max, s = FX.puff[pt.v || 0];
+          const k = pt.size * (0.6 + 0.8 * easeOut3(age));
+          ctx.globalAlpha = (1 - age) * 0.55;
+          ctx.drawImage(s.c, pt.x - s.ax * k, pt.y - s.ay * k * 0.8, s.wu * k, s.hu * k * 0.8);
         }
       }
       for (const e of game.enemies) {
-        if (e.spawnT >= 1 || e.dying) continue;
         const st = FX.stain[e.type];
-        const k = U.ease.outQuad(Math.min(1, e.spawnT * 1.5));
-        const R = e.r * (0.6 + 1.1 * k);
-        ctx.globalAlpha = (1 - e.spawnT) * 0.85;
+        if (!st) continue;
+        if (e.dying) {
+          // the puddle forms under a dissolving creature
+          const k = easeOut3(Math.min(1, e.deathT * 1.3));
+          const R = e.r * (0.5 + 1.0 * k);
+          ctx.globalAlpha = 0.25 + 0.4 * k;
+          ctx.drawImage(st.c, e.x - R, e.y - R * 0.55, R * 2, R * 1.1);
+          continue;
+        }
+        if (e.spawnT >= 1) continue;
+        // spawn: a wet stain blooms first, the creature then rises out of it
+        const k = easeOut3(Math.min(1, e.spawnT * 2.2));
+        const R = e.r * (0.4 + 1.2 * k);
+        ctx.globalAlpha = (e.spawnT < 0.7 ? 1 : (1 - e.spawnT) / 0.3) * 0.85;
         ctx.drawImage(st.c, e.x - R, e.y - R * 0.6, R * 2, R * 1.2);
       }
       ctx.globalAlpha = 1;
@@ -2351,10 +2855,12 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
     drawShadow(ctx, o) {
       if (!SH) return;
       let rx, ry, ox = 0.8, oy = 0.4, light = false;
-      if (o.kind === 'player') { rx = 7.6; ry = 2.8; }
-      else if (o.kind === 'enemy') {
+      if (o.kind === 'player') {
+        rx = 7.6; ry = 2.8;
+        if (o.dashT > 0) { rx = 9; ry = 2.4; }
+      } else if (o.kind === 'enemy') {
         if (o.dying) return;
-        const sp = o.spawnT < 1 ? o.spawnT : 1;
+        const sp = o.spawnT < 1 ? U.smoothstep(0.25, 0.9, o.spawnT) : 1;
         if (o.type === 'ghost') { rx = 5.2 * sp; ry = 1.9 * sp; light = true; }
         else { rx = o.r * 0.95 * sp; ry = rx * 0.36; }
         if (rx < 0.5) return;
@@ -2370,11 +2876,23 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
     drawGem(ctx, g, view) {
       const set = g.big ? SPR.gemBig : SPR.gem;
       const s = set[(Math.floor(view.rt * 4 + g.seed * 3)) % 3];
-      const pop = g.pop > 0 ? 1 + Math.sin(g.pop * Math.PI) * 0.7 : 1;
-      const bob = g.big ? Math.sin(view.rt * 3 + g.seed * 20) * 1.0 - 1 : 0;
+      // pop out with an overshoot, then a slow eased hover (big) or rest (small)
+      const pop = g.pop > 0 ? 1 + Math.sin(g.pop * Math.PI) * 0.55 : 1;
+      const bob = g.big ? hover(view.rt * 2.6 + g.seed * 20) * 1.1 - 1.4 : 0;
       const sw = g.big ? 14 : 7;
-      ctx.drawImage(SPR.gemShadow, g.x - sw / 2 + 0.5, g.y - sw * 0.18, sw, sw * 0.36);
-      blit(ctx, s, g.x, g.y + bob, false, pop);
+      ctx.drawImage(SPR.gemShadow, g.x - sw / 2 + 0.5, g.y - sw * 0.18, sw * (1 + bob * 0.04), sw * 0.36);
+      blitXY(ctx, s, g.x, g.y + bob, false, pop, pop * (g.pop > 0.5 ? 1.15 : 1));
+      if (g.big) {
+        // a brush twinkle now and then, never in sync between two collectibles
+        const tw = (view.rt * 0.7 + g.seed * 5) % 2.2;
+        if (tw < 0.36) {
+          const u = tw / 0.36, k = (u < 0.4 ? U.ease.outBack(u / 0.4) : 1 - (u - 0.4) / 0.6) * 4.2;
+          const tk = FX.tick[0];
+          ctx.globalAlpha = 0.95;
+          ctx.drawImage(tk.c, g.x + 3.2 - k / 2, g.y + bob - 11 - k / 2, k, k);
+          ctx.globalAlpha = 1;
+        }
+      }
     },
 
     drawEnemy(ctx, e, view) {
@@ -2386,47 +2904,69 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
       const flip = e.facing < 0;
       const sc = 0.93 + e.seed * 0.14;
       let y = e.y;
-      if (e.type === 'ghost') y += -2.2 + Math.sin(view.rt * 3 + e.seed * 9) * 1.3;
-      const alphaBase = e.type === 'ghost' ? 0.9 : 1;
+      const ghost = e.type === 'ghost';
+      if (ghost) y += -2.4 + hover(view.rt * 2.7 + e.seed * 9) * 1.4;
+      const alphaBase = ghost ? 0.9 : 1;
       if (e.dying) {
-        const dfs = SPR.death[e.type][vi];
-        const i = Math.min(dfs.length - 1, Math.floor(e.deathT * dfs.length));
-        ctx.globalAlpha = alphaBase * (1 - e.deathT * 0.25);
-        blit(ctx, dfs[i], e.x, y, flip, sc);
-        ctx.globalAlpha = 1;
-        return;
-      }
-      const speedK = e.type === 'colossus' ? 0.45 : e.type === 'ghost' ? 0.35 : 0.7;
-      const pose = Math.floor(e.anim * speedK) & 3;
-      const boil = (Math.floor(view.rt * 5 + e.seed * 7)) & 1;
-      const fr = set[pose * 2 + boil];
-      if (e.spawnT < 1) {
-        const st = e.spawnT;
-        const soft = SPR.soft[e.type][vi];
-        const sy = 0.75 + 0.25 * U.ease.outQuad(st);
-        ctx.globalAlpha = alphaBase * Math.sin(Math.PI * Math.min(1, st * 1.1)) * 0.9;
-        const ax = flip ? soft.wu - soft.ax : soft.ax;
-        ctx.drawImage(flip ? soft.f : soft.c, e.x - ax * sc * 1.06, y - soft.ay * sc * sy, soft.wu * sc * 1.06, soft.hu * sc * sy);
-        const a2 = U.smoothstep(0.35, 1, st);
-        if (a2 > 0) {
-          ctx.globalAlpha = alphaBase * a2;
-          const fx = flip ? fr.wu - fr.ax : fr.ax;
-          ctx.drawImage(flip ? fr.f : fr.c, e.x - fx * sc, y - fr.ay * sc * sy, fr.wu * sc, fr.hu * sc * sy);
+        // designed death: freeze in the hit pose and lift to paper (0-18 %), then the wash slumps,
+        // spreads at the base and bleeds out top-down into the puddle drawn on the ground layer
+        const t = e.deathT;
+        if (t < 0.18) {
+          const u = t / 0.18;
+          blitXY(ctx, set.hit, e.x, y, flip, sc * (1 + 0.1 * u), sc * (1 - 0.08 * u));
+          ctx.globalAlpha = alphaBase * (0.75 - 0.25 * u);
+          blitXY(ctx, set.hit, e.x, y, flip, sc * (1 + 0.1 * u), sc * (1 - 0.08 * u), flip ? set.hit.flf : set.hit.fl);
+        } else {
+          const u = (t - 0.18) / 0.82;
+          const dfs = SPR.death[e.type][vi];
+          const i = Math.min(dfs.length - 1, Math.floor(u * dfs.length));
+          ctx.globalAlpha = alphaBase * (1 - u * u * 0.6);
+          blitXY(ctx, dfs[i], e.x, y + (ghost ? u * 2.4 : 0), flip, sc * (1.1 + 0.08 * u), sc * (0.92 - 0.2 * easeInOut(u)));
         }
         ctx.globalAlpha = 1;
         return;
       }
+      const n = set.walk.length;
+      const rate = e.type === 'colossus' ? 3.0 : ghost ? 1.4 : 3.9;   // small ~7 fps, fast ~4.5 fps (floaty), large ~3.3 fps (heavy) – held poses
+      const pose = (Math.floor(e.anim * rate * 0.5 + e.seed * n) % n + n) % n;
+      const hitting = e.hitT < 0.14 && e.flash > 0;
+      const fr = hitting ? set.hit : set.walk[pose];
+      if (e.spawnT < 1) {
+        // spawn: rise out of the wet stain with a stretch, overshoot, settle; the ink line arrives last
+        const st = e.spawnT;
+        const rise = U.smoothstep(0.18, 0.75, st);
+        const ov = st < 0.75 ? 0 : Math.sin((st - 0.75) / 0.25 * Math.PI) * 0.08;
+        const sy = Math.max(0.05, rise * (1 + ov) + (st < 0.75 ? 0.12 * rise : 0)), sx = 1 - (sy - 1) * 0.5;
+        const soft = SPR.soft[e.type][vi];
+        ctx.globalAlpha = alphaBase * Math.min(1, rise * 1.6) * (1 - U.smoothstep(0.7, 1, st)) * 0.95;
+        blitXY(ctx, soft, e.x, y, flip, sc * sx * 1.05, sc * sy);
+        const a2 = U.smoothstep(0.45, 1, st);
+        if (a2 > 0) {
+          ctx.globalAlpha = alphaBase * a2;
+          blitXY(ctx, fr, e.x, y, flip, sc * sx, sc * sy);
+        }
+        ctx.globalAlpha = 1;
+        return;
+      }
+      // hit: squash against the knock for ~140 ms while the pigment lifts to paper white
+      let sx = sc, sy = sc;
+      if (hitting) { const k = 1 - e.hitT / 0.14; sx = sc * (1 + 0.12 * k); sy = sc * (1 - 0.1 * k); }
+      else if (!ghost) {
+        // tiny per-actor breathing so a standing crowd never moves in lock-step
+        const b = Math.sin(view.rt * (2.1 + e.seed * 0.8) + e.seed * 40) * 0.012;
+        sx = sc * (1 - b); sy = sc * (1 + b);
+      }
       ctx.globalAlpha = alphaBase;
-      blit(ctx, fr, e.x, y, flip, sc);
+      blitXY(ctx, fr, e.x, y, flip, sx, sy);
       if (e.flash > 0) {
-        ctx.globalAlpha = Math.min(0.55, e.flash * 1.2) * alphaBase;
-        blit(ctx, fr, e.x, y, flip, sc, flip ? fr.flf : fr.fl);
+        ctx.globalAlpha = Math.min(0.8, e.flash * 1.4) * alphaBase;
+        blitXY(ctx, fr, e.x, y, flip, sx, sy, flip ? fr.flf : fr.fl);
       }
       ctx.globalAlpha = 1;
       if (e.type === 'colossus') {
-        // pulsing core glow
+        // pulsing core glow, flaring on a hit
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 0.22 + 0.1 * Math.sin(view.rt * 4 + e.seed * 9);
+        ctx.globalAlpha = 0.2 + 0.1 * Math.sin(view.rt * 3.3 + e.seed * 9) + (hitting ? 0.25 : 0);
         const gx = e.x + (flip ? -3.2 : 3.2) * sc, gy = y - 25.5 * sc;
         ctx.drawImage(FX.glow, gx - 9, gy - 9, 18, 18);
         ctx.globalCompositeOperation = 'source-over';
@@ -2436,16 +2976,30 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
 
     drawPlayer(ctx, p, view) {
       if (SH) flushShadows(ctx);
-      const rt = view.rt;
-      const boil = Math.floor(rt * 6) % 3;
-      let fr, bob;
-      if (p.moving) {
-        const ph = p.anim * 0.8;
-        fr = SPR.jack.walk[Math.floor(ph) & 3][boil];
-        bob = -0.9 * Math.abs(Math.cos(ph * Math.PI / 2));
+      const rt = view.rt, J = SPR.jack;
+      let fr, sx = 1, sy = 1, lean = 0;
+      if (p.dashT > 0) {
+        // anticipation crouch for the first 40 ms, then the stretched lunge
+        if (p.dashT > 0.16) { fr = J.crouch; sx = 1.08; sy = 0.9; }
+        else { fr = J.dash; sx = 1.1; sy = 0.94; }
+      } else if (p.hurtT > 0.55) {
+        fr = J.hurt;
+        const k = (p.hurtT - 0.55) / 0.45;
+        sx = 1 + 0.08 * k; sy = 1 - 0.07 * k;
+      } else if (p.moving) {
+        fr = J.walk[Math.floor(p.anim * 1.25) & 7];   // 8 poses, ~11 fps at walking speed
       } else {
-        fr = SPR.jack.idle[boil];
-        bob = Math.sin(rt * 2.4) * 0.35;
+        // breathing on twos (each pose held ~0.4 s), blinks and an occasional glance
+        fr = J.idle[Math.floor(rt / 0.42) % 6];
+        const bl = rt % 3.9, lk = rt % 9.7;
+        if (bl > 3.72 || (bl > 3.38 && bl < 3.48 && Math.floor(rt / 3.9) % 3 === 1)) fr = J.blink;
+        else if (lk > 6.2 && lk < 7.4) fr = J.look;
+      }
+      // landing squash right after a dash (recovery), eased back with overshoot
+      if (p.dashT <= 0 && p.dashCd > 1.05 && p.dashCd <= 1.2) {
+        const u = (1.2 - p.dashCd) / 0.15;
+        const k = 1 - U.ease.outBack(u);
+        sx *= 1 + 0.1 * k; sy *= 1 - 0.1 * k;
       }
       const flip = p.facing < 0;
       // level-up golden bloom
@@ -2455,40 +3009,47 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
         ctx.drawImage(FX.ringTint.gold, p.x - R, p.y - R * 0.62, R * 2, R * 1.24);
         ctx.globalAlpha = 1;
       }
-      // dash smear copies
+      // dash: two fading wet copies trail the lunge
       if (p.dashT > 0) {
         for (let i = 2; i >= 1; i--) {
-          ctx.globalAlpha = 0.22 / i;
-          blit(ctx, fr, p.x - p.dashX * 7 * i, p.y - p.dashY * 7 * i + bob, flip);
+          ctx.globalAlpha = 0.2 / i;
+          blitXY(ctx, fr, p.x - p.dashX * 7 * i, p.y - p.dashY * 7 * i, flip, sx, sy);
         }
         ctx.globalAlpha = 1;
       }
       let a = 1;
-      if (p.iframes > 0 && p.hurtT < 0.7 && Math.floor(rt * 16) % 2 === 0) a = 0.5;
+      if (p.iframes > 0 && p.hurtT < 0.55 && Math.floor(rt * 12) % 2 === 0) a = 0.55;
       ctx.globalAlpha = a;
-      blit(ctx, fr, p.x, p.y + bob, flip);
+      blitXY(ctx, fr, p.x, p.y, flip, sx, sy);
       if (p.hurtT > 0.4) {
         ctx.globalAlpha = Math.min(1, (p.hurtT - 0.4) * 2.5);
-        blit(ctx, fr, p.x, p.y + bob, flip, 1, flip ? fr.flf : fr.fl);
+        blitXY(ctx, fr, p.x, p.y, flip, sx, sy, flip ? fr.flf : fr.fl);
       }
-      // warm glow of the carved face
+      // warm glow of the carved face (follows the baked head position of the frame)
+      const f = fr.face || [2.1, -18.6];
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = (0.3 + 0.08 * Math.sin(rt * 11) + 0.05 * Math.sin(rt * 23)) * a;
-      const fx = p.x + (flip ? -2.1 : 2.1), fy = p.y + bob - 18.6;
-      ctx.drawImage(FX.glow, fx - 9, fy - 8, 18, 16);
+      ctx.globalAlpha = (0.3 + 0.08 * Math.sin(rt * 11) + 0.05 * Math.sin(rt * 23)) * a * (fr === J.blink ? 0.45 : 1);
+      const gx = p.x + (flip ? -f[0] : f[0]) * sx, gy = p.y + f[1] * sy;
+      ctx.drawImage(FX.glow, gx - 9, gy - 8, 18, 16);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
     },
 
     drawOrbital(ctx, o, view) {
-      const bob = Math.sin(view.rt * 3 + o.idx * 1.7) * 1.1;
-      const s = SPR.lantern[(Math.floor(view.rt * 5) + o.idx) % 3];
+      const bob = hover(view.rt * 2.6 + o.idx * 1.7) * 1.1;
+      const s = SPR.lantern[(Math.floor(view.rt * 4) + o.idx) % 3];
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.32 + 0.07 * Math.sin(view.rt * 9 + o.idx * 3);
       ctx.drawImage(FX.glow, o.x - 12, o.y - 18 + bob, 24, 22);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
+      // the lantern hangs from its looped stalk and swings behind the orbit (follow-through)
+      const sway = -0.32 * Math.cos(o.angle) + 0.06 * Math.sin(view.rt * 5.3 + o.idx);
+      const px = o.x, py = o.y + 2 + bob - 15;
+      ctx.save();
+      ctx.translate(px, py); ctx.rotate(sway); ctx.translate(-px, -py);
       blit(ctx, s, o.x, o.y + 2 + bob, Math.cos(o.angle) < 0);
+      ctx.restore();
     },
 
     drawProjectile(ctx, pr) {
@@ -2507,19 +3068,21 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
     },
 
     drawParticle(ctx, pt) {
-      const life = pt.life / pt.max;
+      const life = pt.life / pt.max, age = 1 - life;
       switch (pt.kind) {
         case 'paint': {
           if (pt.z <= 0.3 && Math.abs(pt.vz) < 25) return; // drawn on the ground layer
           const set = FX[pt.col] || FX.ink;
           const s = pt.size;
+          // drops stretch along their flight while fast
+          const v = Math.min(1, Math.abs(pt.vz) / 90);
           ctx.globalAlpha = 0.95;
-          ctx.drawImage(set.dot[pt.v || 0].c, pt.x - s / 2, pt.y - pt.z - s / 2, s, s);
+          ctx.drawImage(set.dot[pt.v || 0].c, pt.x - s / 2 * (1 - v * 0.25), pt.y - pt.z - s / 2 * (1 + v * 0.4), s * (1 - v * 0.25), s * (1 + v * 0.4));
           break;
         }
         case 'splat': {
           const set = FX[pt.col] || FX.ink;
-          const age = 1 - life, s = pt.size * (0.55 + 0.6 * Math.sqrt(age));
+          const s = pt.size * (0.5 + 0.65 * easeOut3(Math.min(1, age * 2.2)));
           ctx.globalAlpha = Math.min(1, life * 2.2) * (pt.a || 0.8);
           ctx.save();
           ctx.translate(pt.x, pt.y - pt.z);
@@ -2528,7 +3091,56 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
           ctx.restore();
           break;
         }
-        case 'ring': return;
+        case 'flash': {
+          // core: pigment lifted to paper white, snaps open and closes fast
+          const s = pt.size * (0.55 + 0.6 * easeOut3(Math.min(1, age * 3)));
+          const f = FX.lift[pt.v || 0];
+          ctx.globalAlpha = Math.pow(life, 0.6) * 0.95;
+          ctx.drawImage(f.c, pt.x - s / 2, pt.y - pt.z - s / 2, s, s);
+          break;
+        }
+        case 'tick': {
+          const u = Math.min(1, age / 0.3);
+          const s = pt.size * (age < 0.3 ? U.ease.outBack(u) : 1 - (age - 0.3) / 0.7 * 0.55);
+          ctx.globalAlpha = Math.min(1, life * 2.5);
+          ctx.save();
+          ctx.translate(pt.x, pt.y - pt.z);
+          ctx.rotate(pt.rot * 0.15);
+          const tk = FX.tick[pt.v || 0];
+          ctx.drawImage(tk.c, -s / 2, -s / 2, s, s);
+          ctx.restore();
+          break;
+        }
+        case 'leaf': {
+          // torn leaf: tumbles (edge-on flips) while it falls, then lies and fades
+          const s = pt.size, lf = FX.leafBit[pt.v || 0];
+          ctx.globalAlpha = Math.min(1, life * 3);
+          ctx.save();
+          ctx.translate(pt.x, pt.y - pt.z);
+          ctx.rotate(pt.rot);
+          ctx.scale(1, pt.z > 0.2 ? Math.cos(pt.rot * 2.3) : 0.8);
+          ctx.drawImage(lf.c, -s / 2, -s / 2, s, s);
+          ctx.restore();
+          break;
+        }
+        case 'wisp': {
+          const s = FX.wisp[pt.v || 0], k = pt.size * (0.7 + 0.6 * easeOut3(age));
+          ctx.globalAlpha = Math.min(1, life * 1.6) * 0.7;
+          ctx.save();
+          ctx.translate(pt.x, pt.y - pt.z);
+          ctx.rotate(pt.rot);
+          ctx.drawImage(s.c, -s.ax * k, -s.ay * k * (1 - age * 0.4), s.wu * k, s.hu * k * (1 - age * 0.4));
+          ctx.restore();
+          break;
+        }
+        case 'puff': {
+          if (pt.z <= 0.1) return; // on the ground layer
+          const s = FX.puff[pt.v || 0], k = pt.size * (0.6 + 0.8 * easeOut3(age));
+          ctx.globalAlpha = (1 - age) * 0.5;
+          ctx.drawImage(s.c, pt.x - s.ax * k, pt.y - pt.z - s.ay * k, s.wu * k, s.hu * k);
+          break;
+        }
+        case 'ring': case 'stain': return;
         case 'star': {
           const s = pt.size * (0.6 + 0.4 * Math.sin(life * Math.PI));
           ctx.globalAlpha = Math.min(1, life * 2.5);
@@ -2545,7 +3157,8 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
           ctx.translate(pt.x, pt.y - pt.z);
           ctx.rotate(pt.rot);
           const s = FX.smear;
-          ctx.drawImage(s.c, -s.ax, -s.ay, s.wu, s.hu);
+          const k = 0.85 + 0.3 * easeOut3(age);
+          ctx.drawImage(s.c, -s.ax * k, -s.ay, s.wu * k, s.hu);
           ctx.restore();
           break;
         }
@@ -2600,32 +3213,95 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
 
     drawIcon(ctx, id, size) { drawIconImpl(ctx, id, size); },
 
-    /* ---------- hooks ---------- */
+    drawWorldOverlay(ctx, view) {
+      // ambient: single leaves drift down through the scene on the wind, each casting a soft shadow;
+      // world-anchored cells, slower than any actor, never more than a handful on screen
+      const C = 230, t = view.rt;
+      const x0 = Math.floor((view.x0 - 60) / C), x1 = Math.floor((view.x1 + 20) / C);
+      const y0 = Math.floor((view.y0 - 20) / C), y1 = Math.floor((view.y1 + 80) / C);
+      for (let cy = y0; cy <= y1; cy++) {
+        for (let cx = x0; cx <= x1; cx++) {
+          const h = hsh(cx, cy, 515);
+          if ((h & 7) > 4) continue;
+          const per = 10 + ((h >>> 3) & 7);
+          const ph = ((t + (((h >>> 6) & 255) / 255) * per) % per) / per;
+          const fall = Math.min(1, ph / 0.82);
+          const gx = (cx + ((h >>> 14) & 255) / 255) * C + easeInOut(fall) * 52 + Math.sin(ph * 11 + (h & 31)) * 7 * (1 - fall);
+          const gy = (cy + ((h >>> 22) & 255) / 255) * C + fall * 16;
+          const z = (1 - fall) * 74 + Math.sin(ph * 23) * 1.6 * (1 - fall);
+          const a = Math.min(1, ph * 14) * (ph > 0.9 ? (1 - ph) * 10 : 1);
+          if (a <= 0.01) continue;
+          // shadow first (light from the upper left -> shadow to the lower right)
+          ctx.globalAlpha = a * 0.16 * (1 - z / 110);
+          ctx.fillStyle = 'rgb(50,54,92)';
+          ctx.beginPath(); ctx.ellipse(gx + z * 0.32, gy + z * 0.06, 1.7, 0.7, 0, 0, TAU); ctx.fill();
+          const lf = FX.leafBit[1 + (h & 1)], s = 4;
+          const rot = ph * TAU * 2.4 + (h & 15);
+          ctx.globalAlpha = a * 0.95;
+          ctx.save();
+          ctx.translate(gx, gy - z);
+          ctx.rotate(z > 0.5 ? Math.sin(rot) * 0.9 : 0.4);
+          ctx.scale(1, z > 0.5 ? 0.35 + 0.65 * Math.abs(Math.cos(rot * 1.3)) : 0.85);
+          ctx.drawImage(lf.c, -s / 2, -s / 2, s, s);
+          ctx.restore();
+        }
+      }
+      ctx.globalAlpha = 1;
+    },
+
+    /* ---------- hooks ----------
+       every effect is layered: core (paper lift) -> main shape (ink/pigment splat) -> debris (drops,
+       leaf bits, wisps) -> residue (dots and puddles that stay on the ground and dry out) */
     onHit(game, e, src) {
       const h = (HEIGHT[e.type] || 24) * 0.5;
-      game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splat', col: src === 'lantern' ? 'orange' : 'ink', life: 0.17, size: e.type === 'colossus' ? 15 : 10, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: 0.7 });
+      const big = e.type === 'colossus';
+      const kl = Math.hypot(e.kx || 0, e.ky || 0) || 1, kx = (e.kx || 0) / kl, ky = (e.ky || 0) / kl;
+      game.addParticle({ x: e.x, y: e.y + 0.5, z: h, kind: 'flash', life: 0.13, size: big ? 20 : 12, drag: 0, v: (Math.random() * 2) | 0 });
+      game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splat', col: src === 'lantern' ? 'orange' : 'ink', life: 0.24, size: big ? 18 : 11, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: 0.75 });
       const cols = COLS[e.type] || COLS.creeper;
-      for (let i = 0; i < 3; i++) {
-        const a = Math.random() * TAU, s = 30 + Math.random() * 50;
-        game.addParticle({ x: e.x, y: e.y, z: h, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 20 + Math.random() * 40, grav: 240, kind: 'paint', col: i === 0 ? 'ink' : cols[(Math.random() * cols.length) | 0], life: 0.6 + Math.random() * 0.5, size: 1 + Math.random() * 1.1, drag: 1.5, v: (Math.random() * 3) | 0 });
+      for (let i = 0; i < 4; i++) {
+        const a = Math.atan2(ky, kx) + (Math.random() - 0.5) * 1.6, s = 40 + Math.random() * 55;
+        game.addParticle({ x: e.x, y: e.y, z: h, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 25 + Math.random() * 45, grav: 240, kind: 'paint', col: i === 0 ? 'ink' : cols[(Math.random() * cols.length) | 0], life: 0.9 + Math.random() * 0.6, size: 1.1 + Math.random() * 1.2, drag: 1.5, v: (Math.random() * 3) | 0 });
       }
+      if (e.type === 'ghost') game.addParticle({ x: e.x, y: e.y, z: h, vx: kx * 20, vy: ky * 10, vz: 8, grav: -30, kind: 'wisp', life: 0.5, size: 0.8, drag: 2, rot: (Math.random() - 0.5) * 0.6, v: (Math.random() * 2) | 0 });
     },
     onKill(game, e) {
       const h = (HEIGHT[e.type] || 24) * 0.5;
       const big = e.type === 'colossus';
       const cols = COLS[e.type] || COLS.creeper;
-      dropBurst(game, e.x, e.y, h, big ? 22 : 10, cols.concat(['ink']), big ? 110 : 75, big ? 3.4 : 2.4);
-      game.addParticle({ x: e.x, y: e.y, kind: 'ring', col: e.type === 'ghost' ? 'ghost' : e.type === 'colossus' ? 'sienna' : 'violet', life: big ? 1.4 : 1.0, size: big ? 30 : 15, drag: 0 });
-      game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splat', col: cols[0], life: 0.28, size: big ? 30 : 16, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: 0.75 });
+      game.addParticle({ x: e.x, y: e.y + 0.5, z: h, kind: 'flash', life: 0.18, size: big ? 36 : 20, drag: 0, v: (Math.random() * 2) | 0 });
+      game.addParticle({ x: e.x, y: e.y, z: h, kind: 'splat', col: cols[0], life: 0.36, size: big ? 34 : 20, drag: 0, rot: Math.random() * TAU, v: (Math.random() * 2) | 0, a: 0.8 });
+      game.addParticle({ x: e.x, y: e.y, kind: 'ring', col: e.type === 'ghost' ? 'ghost' : big ? 'sienna' : 'violet', life: big ? 1.5 : 1.1, size: big ? 36 : 19, drag: 0 });
+      game.addParticle({ x: e.x, y: e.y, kind: 'stain', col: e.type, life: big ? 2.4 : 1.8, size: e.r * 1.6, drag: 0 });
+      dropBurst(game, e.x, e.y, h, big ? 18 : 9, cols.concat(['ink']), big ? 110 : 80, big ? 3.2 : 2.3);
+      if (e.type === 'ghost') {
+        for (let i = 0; i < 3; i++) game.addParticle({ x: e.x + (Math.random() - 0.5) * 8, y: e.y, z: h + Math.random() * 6, vx: (Math.random() - 0.5) * 24, vy: -4, vz: 14, grav: -26, kind: 'wisp', life: 0.7 + Math.random() * 0.3, size: 0.9 + Math.random() * 0.4, drag: 2, rot: (Math.random() - 0.5) * 0.8, v: i & 1 });
+      } else {
+        const n = big ? 6 : 3;
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * TAU, s = 30 + Math.random() * 50;
+          game.addParticle({ x: e.x, y: e.y, z: h + 4, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 50 + Math.random() * 50, grav: 150, kind: 'leaf', life: 1.2 + Math.random() * 0.6, size: big ? 5 : 4, drag: 2.2, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 14, v: big ? 1 + (i & 1) : 0 });
+        }
+      }
+      if (big) for (let i = 0; i < 3; i++) game.addParticle({ x: e.x + (Math.random() - 0.5) * 20, y: e.y, z: h + Math.random() * 16, vz: 6, grav: -8, kind: 'tick', life: 0.5, size: 7, drag: 2, rot: Math.random(), v: i & 1 });
     },
     onHurt(game, p) {
-      game.addParticle({ x: p.x, y: p.y, z: 14, kind: 'splat', col: 'red', life: 0.3, size: 18, drag: 0, rot: Math.random() * TAU, v: 0, a: 0.75 });
+      game.addParticle({ x: p.x, y: p.y + 0.5, z: 14, kind: 'flash', life: 0.14, size: 16, drag: 0, v: 0 });
+      game.addParticle({ x: p.x, y: p.y, z: 14, kind: 'splat', col: 'red', life: 0.32, size: 18, drag: 0, rot: Math.random() * TAU, v: 0, a: 0.75 });
       dropBurst(game, p.x, p.y, 14, 8, ['red', 'red', 'orange', 'ink'], 70, 2.2);
     },
     onPickup(game, g) {
-      const n = g.big ? 5 : 1;
+      if (g.big) {
+        game.addParticle({ x: g.x, y: g.y + 0.5, z: 6, kind: 'flash', life: 0.14, size: 12, drag: 0, v: 1 });
+        game.addParticle({ x: g.x, y: g.y, kind: 'ring', col: 'gold', life: 0.7, size: 13, drag: 0 });
+      }
+      const n = g.big ? 3 : 1;
       for (let i = 0; i < n; i++) {
-        game.addParticle({ x: g.x + (Math.random() - 0.5) * 8, y: g.y, z: 6 + Math.random() * 10, vz: 10, kind: 'star', life: 0.4 + Math.random() * 0.2, size: g.big ? 7 : 4.5, drag: 2, rot: Math.random(), vr: 3 });
+        game.addParticle({ x: g.x + (Math.random() - 0.5) * (g.big ? 12 : 4), y: g.y, z: 6 + Math.random() * 8, vz: 8, grav: -10, kind: 'tick', life: 0.42 + Math.random() * 0.18, size: g.big ? 7 : 5, drag: 2, rot: Math.random(), v: i & 1 });
+      }
+      for (let i = 0; i < (g.big ? 5 : 2); i++) {
+        const a = Math.random() * TAU, s = 15 + Math.random() * 30;
+        game.addParticle({ x: g.x, y: g.y, z: 5, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 40 + Math.random() * 30, grav: 220, kind: 'paint', col: i % 3 === 2 ? 'ochre' : 'gold', life: 0.7 + Math.random() * 0.3, size: 1 + Math.random() * 0.8, drag: 1.5, v: (Math.random() * 3) | 0 });
       }
     },
     onShoot(game, pr) {
@@ -2635,13 +3311,19 @@ ${S} #pausebox { font: 400 56px ${fell}; color: ${INK}; text-shadow: 0 0 6px #f5
     },
     onDash(game, p) {
       game.addParticle({ x: p.x - p.dashX * 4, y: p.y, z: 12, kind: 'smear', life: 0.38, size: 1, drag: 0, rot: Math.atan2(p.dashY, p.dashX), vr: 0 });
+      for (let i = 0; i < 2; i++) game.addParticle({ x: p.x - p.dashX * (2 + i * 5), y: p.y + 0.5, z: 0, vx: -p.dashX * (12 + i * 10), vy: -p.dashY * 8, kind: 'puff', life: 0.55 + i * 0.15, size: 0.9 + i * 0.25, drag: 4, v: i });
       for (let i = 0; i < 4; i++) game.addParticle({ x: p.x, y: p.y, z: 0, vx: -p.dashX * (20 + Math.random() * 30) + (Math.random() - 0.5) * 20, vy: -p.dashY * 20 + (Math.random() - 0.5) * 14, vz: 0, kind: 'paint', col: 'umber', life: 0.9, size: 1.4, drag: 4, v: i % 3 });
     },
     onLevelUp(game, p) {
       game.addParticle({ x: p.x, y: p.y, kind: 'ring', col: 'gold', life: 1.2, size: 40, drag: 0 });
-      for (let i = 0; i < 14; i++) {
-        const a = (i / 14) * TAU;
-        game.addParticle({ x: p.x, y: p.y, z: 14, vx: Math.cos(a) * 60, vy: Math.sin(a) * 40, vz: 40, grav: 60, kind: 'star', life: 0.8 + Math.random() * 0.4, size: 5 + Math.random() * 3, drag: 2.5, rot: Math.random() * 3, vr: (Math.random() - 0.5) * 6 });
+      game.addParticle({ x: p.x, y: p.y + 0.5, z: 10, kind: 'flash', life: 0.16, size: 15, drag: 0, v: 1 });
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU + Math.random() * 0.3, R = 16 + Math.random() * 10;
+        game.addParticle({ x: p.x + Math.cos(a) * R, y: p.y + Math.sin(a) * R * 0.5, z: 8 + Math.random() * 18, vz: 10, grav: -12, kind: 'tick', life: 0.6 + Math.random() * 0.5, size: 5.5 + Math.random() * 3, drag: 2, rot: Math.random() * 3, v: i & 1 });
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = Math.random() * TAU, s = 20 + Math.random() * 45;
+        game.addParticle({ x: p.x, y: p.y, z: 10, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: 60 + Math.random() * 60, grav: 150, kind: 'paint', col: i % 4 === 3 ? 'orange' : 'gold', life: 1.0 + Math.random() * 0.5, size: 1.2 + Math.random() * 1.1, drag: 1.4, v: (Math.random() * 3) | 0 });
       }
     },
     onDeath(game, p) {

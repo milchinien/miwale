@@ -95,6 +95,7 @@ The world is an endless drafting sheet, built in this order:
 2. **Canals.** A band of constant half-width 15 u around the zero line of `perlin(x/760) + 0.3*perlin(x/260)`, using `d = f / |grad f|` as signed distance, intersected with a region mask (`max(|d| - 15, -maskDistance)`), so canals have square-cut ends. Filled `#04284c` at 50 % with a 2-unit soft edge, *before* the grid.
 3. **Grid.** 0.9 px lines every 8 u at `rgba(205,236,255,.075)`, 1.15 px lines every 40 u at `.17`.
 4. **Topographic contours** in some regions (mask noise): marching squares on `fbm(x/560)` every 0.024; thin lines 0.32 u at 8.5–15 %, every fifth line 0.55 u at 14–26 %; skipped on water and roads.
+4b. **Site zones — the sheet is a site plan.** A slow zone field `fbm(x/520, y/520)` (two octaves) is contoured on a 6-unit lattice: level 0.37 becomes a **dash-dot property line** (dash `[9, 1.6, 1.4, 1.6]`, 0.75 u at 36 %) round equipment yards, level 0.61 a **dotted tree line** (round dots every 2.6 u, 1.25 u at 34 %) round groves; segments over water and roads are skipped. Zones carry italic hand-lettered labels (`YARD A`–`YARD H`, `GROVE`, 4.2–4.6 u at ~40 %). Two gaussian bumps put a grove right of the start and a yard down-left, so the first view is composed.
 5. **Roads.** Band of half-width 8 u, filled `#0f538c` at 96 % (a blank strip that hides grid and contours).
 6. **Paper grain** over everything: a 256 px tileable tile (white/navy speckles, low-alpha fbm, 70 short curved fibres) used as a world-aligned pattern at 1/3 scale.
 7. **Line work for bands.** Canal bank 0.7 u at 55 %, outer line at +3.2 u (30 %), flow lines at −6 and −12 u drawn on every other lattice cell (reads as dashed), comb hachures on the land side (2.2 / 4.2 u alternating, 30 %), small wave marks (two quadratic arcs, 6 u) every ~22 u inside. Road edges 0.7 u at 48 %, curb lines at +2.2 u, dashed centre line.
@@ -127,9 +128,9 @@ All characters share the two-pass bake, body fill `#1c6aa8`, back limbs `#165b93
 **Large creature – boiler walker** (~42 x 60 u): a vertical cylinder r 14 from y −45 to −19.5 with elliptical caps (ry 3.4), graduated vertical shading lines (`x = 14*cos(theta)`, theta 0.12–1.05 step 0.13), a dashed inner ring on the top face, a riveted seam, two portholes (r 2.9 / 2.6) with red pupils and heavy brow strokes, a grille mouth, a small name plate, a smoke stack puffing three dashed circles, clamp arms (3 u tubes with C-clamps) and piston legs (4.4 u tubes, knee discs with center marks, trapezoid foot plates with bolts). A live callout leader with `Ø28` is drawn beside it (opposite its facing) so the lettering never mirrors.
 
 States:
-- **Hit:** white silhouette over the sprite at `alpha = min(.9, flash*1.2)`, scaled up 6 %.
+- **Hit:** the drawing **jolts**: a second, misregistered pencil pass of the sprite offset 2.4 u along the push (and 0.8 u up) at 55 % of the flash, the figure tilted 0.14 rad, and only in the sharpest part of the flash a faint white silhouette (≤ 42 %, scaled up 6 %). Never a solid white blob.
 - **Draft-in (0.45 s):** a dashed construction ellipse shrinks from 2.6r to 1.2r around a center mark; after 8 % the sprite is revealed from the feet up (source-rect crop) with a white pen line on the edge.
-- **Erase (0.35 s):** the sprite is wiped from left to right while fading to 50 %, and a red X is drawn over it in two strokes (2.6 u navy underlay, 1.2 u red), fading out at the end.
+- **Exploded view + erase (0.35 s):** the sprite is cut at 42 % and 72 % of its height into three parts that separate along a chain-dash centre line (top +9 u, middle +4 u upwards, feet stay; ×1.8 for the large creature; ease-out over the first 42 %); a red X is drawn over it in two strokes from 22 % and 38 % (2.6 u navy underlay, 1.2 u red); from 50 % the eraser wipes the parts left to right; everything fades over the last 20 %.
 - **Main character hurt:** red silhouette at `alpha = hurtT*1.1` plus a fast ±0.05 rad shake; invulnerability blinks to 55 % at 14 Hz.
 
 ## Props
@@ -154,7 +155,7 @@ Placement: one candidate per 92-unit cell, 34 % kept, weighted tree 24 %, rock 1
 - **Collectibles:** small = amber hex nut (r 2.9) with a paper-coloured hole and a white glint; large = amber 8-tooth gear (r 4.6) with darker hatching and a center mark, spinning at 1.6 rad/s, with a small amber leader tag. Both bob 1.2 u above a scaled ground-line shadow; spawn pop with ease-out-back.
 - **Orbiting discs:** amber protractors (r 6, drawn at 0.85) with 24 degree ticks, a half-circle scale, a red needle and a paper hub, spinning at 5 rad/s, trailed by a dashed amber line through their last 11 positions.
 - **Impact:** a center-mark crosshair with a circle (5 u, 7 u on large creatures) shrinking to 70 % and fading in 0.2 s, plus two white / pale tick sparks.
-- **Erase burst:** 6 (14 on large) eraser crumbs – `#f3b6ae` capsules with a navy edge, gravity 240 – plus paper-dust dots and a dashed construction ring on the ground squashed to 42 % (large ones add a live radius label `R##`).
+- **Erase burst** (residue after the exploded view): 6 (14 on large) eraser crumbs – `#f3b6ae` capsules with a navy edge, gravity 240 – plus paper-dust dots and a dashed construction ring on the ground squashed to 42 % (large ones add a live radius label `R##`).
 - **Launch mark:** half of the shots leave a tiny pale crosshair at the muzzle.
 - **Collect:** an amber check mark pops (ease-out-back) and rises; large collectibles add a small amber ring.
 - **Dash:** a full dimension line with extension lines and arrowheads from start to end of the dash, labelled `Δ 62`; a dashed ring at the start and four dashed speed lines.
@@ -195,11 +196,11 @@ The HUD is drawing-sheet furniture:
 
 ## Motion and animation
 
-- **Main character:** walk 8 frames (bob −|sin|·1.1 u, feet ±3.3 u, lift 1.9 u, arms ±0.65 rad, antenna on a phase offset); idle 4 frames at 1.4 cycles/s (bob ±0.4 u, one lens blink); dash: one leaning pose plus three fading white after-images 7 u apart.
+- **Main character:** walk 8 frames (bob −|sin|·1.1 u, feet ±3.3 u, lift 1.9 u, arms ±0.65 rad, antenna on a phase offset); idle 4 frames at 1.4 cycles/s (bob ±0.4 u, one lens blink); dash: a 35 ms crouch on the idle frame (x +8 %, y −12 %) as anticipation, then one leaning pose plus three fading white after-images 7 u apart.
 - **Small creature:** 6 frames per cycle; the gear turns exactly one tooth pitch per cycle, so it rolls continuously; legs alternate in pairs; feelers wiggle at double frequency; body rocks ±0.05 rad.
 - **Fast creature:** 4 rotor frames at 14 fps, hover float `sin(t*3)*1.5 u`, tilt up to 0.18 rad with horizontal speed, plumb bob swing ±0.9 u.
 - **Large creature:** 6 frames, bob 1.3 u, feet lift 2.8 u, smoke circles rise 9 u and grow from 1.4 to 4 u over one cycle.
-- **Transitions:** draft-in 0.45 s (feet first), erase 0.35 s (wipe + red X in two overlapping strokes).
+- **Transitions:** draft-in 0.45 s (feet first, inside a shrinking construction ellipse), exploded view 0.35 s (parts separate on the centre line, red X in two overlapping strokes, eraser wipe). **Hit:** ~0.14 s jolt with a misregistered second pencil pass.
 - **Numbers and stamps:** pop 0.55→1.15→1x in 0.25 s and fade over the last 30 %; stamps slam from 1.7x in 15 % of their life.
 - **Rings** ease out (quad) and fade linearly; trajectory dashes move with age so lines look like they are being drawn.
 - No squash and stretch on machines beyond small 3–10 % pulses (shooting, celebration).
@@ -223,6 +224,8 @@ Don't:
 - Don't draw wobbly organic outlines for machines; only handwritten notes may wobble.
 - Don't let ground drawings compete with thick lines or high alpha.
 - Don't rely on web fonts inside the canvas.
+- Do compose the sheet as a site plan: dash-dot property lines round equipment yards, dotted tree lines round groves, props placed by zone (equipment in yards, trees in groves, lamps and survey instruments along roads).
+- Don't flash a figure as a solid white silhouette; jolt its line work with a misregistered second pencil pass.
 
 ## Implementation recipe
 
@@ -370,4 +373,6 @@ Use the "Blueprint" art style for my project: a living technical drawing.
 - Frame the screen like a drawing sheet: border with zone letters, title block (SHEET 04, REV B).
 - UI: title-block cells with 1.5 px pale borders, hatched bars, red rubber-stamp counters,
   Share Tech Mono + Architects Daughter.
+- Site plan: equipment yards fenced by dash-dot property lines, groves edged by dotted tree lines, hand-lettered zone labels; props clustered by zone, few strays.
+- Motion: hits jolt the drawing with a misregistered second pencil pass; creatures leave as an exploded view (parts separate on a chain centre line), get a red-pencil X and are erased; a quick crouch before the dash.
 ```

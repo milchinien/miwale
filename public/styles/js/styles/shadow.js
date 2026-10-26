@@ -238,12 +238,14 @@
   /* ===================================================================================== characters */
   /** Jack – shadow puppet with a carved, glowing pumpkin head. Facing +x. */
   function drawJack(c, ph, moving) {
+    const JOINTS = [];   // knee / elbow / shoulder pivots – punched as rivet holes at the end
     const s = Math.sin(ph * TAU), co = Math.cos(ph * TAU);
     const bob = moving ? -Math.abs(co) * 0.9 : Math.sin(ph * TAU) * 0.35;
     const hipY = -8.6 + bob;
     const sh = -16.2 + bob;
     // legs (puppet joints)
     const leg = (side) => {
+      const joints = JOINTS;
       const sw = moving ? s * side : 0;
       const thA = Math.PI / 2 - sw * 0.6;
       const hx = side * 1.2 + 0.3;
@@ -253,6 +255,7 @@
       limb(c, [[hx, hipY], [kx, ky], [fx, fy]], 1.15, 0.9);
       limb(c, [[fx - 0.7, fy - 0.6], [fx + 1.0, fy - 0.1], [fx + 2.3, fy - 0.5]], 1.4, 0.7);
       curl(c, fx + 2.2, fy - 0.5, -0.5, 2.2, -5.5, 0.55, 0.12);
+      joints.push([kx, ky]);
     };
     leg(-1);
     // back arm
@@ -284,6 +287,14 @@
     c.quadraticCurveTo(-5.4 + trail * 0.5, sh + 3.4, -3.2, sh);
     c.closePath();
     c.fill();
+    // cut-paper lace in the cloak: a row of pierced diamonds along the hem and a crescent moon – light shines through
+    cut(c, () => {
+      for (let k = 0; k < 4; k++) {
+        const x = 3.6 + (backX + 1.6 - 3.6) * (k / 3), y = hemY - 2.0 + (moving ? -0.35 * (k / 3) : 0);
+        poly(c, [[x, y - 0.75], [x + 0.45, y], [x, y + 0.75], [x - 0.45, y]]);
+      }
+      c.beginPath(); c.arc(0.6, sh + 4.6, 1.25, 0, TAU); c.arc(1.15, sh + 4.3, 1.05, 0, TAU, true); c.fill('evenodd');
+    });
     // little filigree clasp curls on the cloak edge
     curl(c, backX + 0.4, hemY - 1.2, Math.PI + 0.3, 1.8, 5.5, 0.5, 0.1);
     // scarf + streaming tails
@@ -306,6 +317,7 @@
       const hx = ex + Math.cos(fa) * 3.2, hy = ey + Math.sin(fa) * 3.2;
       limb(c, [[sx, sy], [ex, ey], [hx, hy]], 1.1, 0.8);
       circ(c, hx, hy, 0.9);
+      JOINTS.push([ex, ey], [sx, sy + 0.2]);
     }
     // pumpkin head
     const hb = moving ? -Math.abs(Math.cos(ph * TAU - 0.4)) * 0.9 : Math.sin(ph * TAU - 0.4) * 0.4;
@@ -330,6 +342,8 @@
       p.quadraticCurveTo(cx - 2.0, ya + 3.2, xa, ya - 0.3);
       p.closePath();
     }, cx + 1.4, cy + 0.6, 6, FACE_STOPS, 1.6, 'rgba(255,150,40,0.95)');
+    // rivets: every pivot of the puppet is a small punched hole
+    cut(c, () => { for (const j of JOINTS) circ(c, j[0], j[1], 0.36); });
   }
 
   /** Rüben-Schleicher – a waddling rutabaga puppet with root legs and a filigree leaf crown. */
@@ -845,6 +859,12 @@
       J.idleR[0][i] = r; J.idleR[1][i] = flipSpr(r);
       J.idleH[0][i] = hr; J.idleH[1][i] = flipSpr(hr);
     }
+    // anticipation (crouch, squashed on its pivots) and the stretched dash lean, both with their warm rim
+    const crouch = mk(jb[0] - 2, jb[1], jb[2] + 2, jb[3], (c) => { c.scale(1.08, 0.86); drawJack(c, 0.5, false); }, { pad: 3 });
+    const lean = mk(jb[0] - 4, jb[1] - 2, jb[2] + 8, jb[3], (c) => { c.translate(0, -8.6); c.rotate(0.24); c.translate(0, 8.6); drawJack(c, 0.25, true); }, { pad: 3 });
+    J.crouch = [crouch, flipSpr(crouch)]; J.lean = [lean, flipSpr(lean)];
+    const cr = rimSpr(crouch, '#ffb24a', 1.3), lr = rimSpr(lean, '#ffb24a', 1.3);
+    J.crouchR = [cr, flipSpr(cr)]; J.leanR = [lr, flipSpr(lr)];
     J.dash = [U.tint(J.walk[0][1].c, 'rgba(20,6,26,1)'), null];
     J.dash = [{ c: J.dash[0], ax: J.walk[0][1].ax, ay: J.walk[0][1].ay }];
     J.dash[1] = flipSpr(J.dash[0]);
@@ -1214,23 +1234,25 @@
         continue;
       }
       if (dep < 0.06) continue;
+      // lace motifs gather in clumps (a 150-unit noise field) – big calm light fields between them
+      const keep = U.smoothstep(0.45, 0.68, U.noise(x / 150, y / 150, 6390));
       if (kind === 0) {
-        if (b === 3 && r1 < 0.08 + 0.7 * U.smoothstep(0.42, 0.68, U.noise(x / 140, y / 140, 6301))) dGrass(lc, x, y, rng);
-        else if (b === 1 && r1 < 0.08 + 0.55 * U.smoothstep(0.4, 0.65, U.noise(x / 120, y / 120, 6302))) dLeafS(lc, x, y, rng);
-        else if (b === 2 && r1 < 0.16) dGrass(lc, x, y, rng, 0.75);
+        if (b === 3 && r1 < 0.012 + 0.72 * U.smoothstep(0.42, 0.68, U.noise(x / 140, y / 140, 6301))) dGrass(lc, x, y, rng);
+        else if (b === 1 && r1 < 0.012 + 0.6 * U.smoothstep(0.4, 0.65, U.noise(x / 120, y / 120, 6302))) dLeafS(lc, x, y, rng);
+        else if (b === 2 && r1 < 0.015 + 0.3 * keep) dGrass(lc, x, y, rng, 0.75);
       } else if (kind === 1) {
-        if (b === 2 && r1 < 0.62) dFiligree(lc, x, y, rng);
-        else if (b === 3 && r1 < 0.18) dClock(lc, x, y, rng);
+        if (b === 2 && r1 < 0.05 + 0.6 * keep) dFiligree(lc, x, y, rng);
+        else if (b === 3 && r1 < 0.02 + 0.3 * keep) dClock(lc, x, y, rng);
         else if (b === 0 && r1 < 0.5) dRipple(lc, x, y, rng, glints);
       } else if (kind === 2) {
-        if (b === 1 && r1 < 0.32) { if (r2 < 0.55) dStar(lc, x, y, rng); else glints.push([0, x, y, R(0.8, 1.4, rng)]); }
+        if (b === 1 && r1 < 0.04 + 0.4 * keep) { if (r2 < 0.55) dStar(lc, x, y, rng); else glints.push([0, x, y, R(0.8, 1.4, rng)]); }
         else if (b === 0 && r1 < 0.08) dLily(lc, x, y, rng);
       } else if (kind === 3) {
         if (b === 0 && r1 < 0.35) dReeds(lc, x, y, rng);
-        else if (b === 1 && r1 < 0.25) dLeafS(lc, x, y, rng, 1.6);
-        else if (b === 3 && r1 < 0.2) dClock(lc, x, y, rng);
+        else if (b === 1 && r1 < 0.03 + 0.35 * keep) dLeafS(lc, x, y, rng, 1.6);
+        else if (b === 3 && r1 < 0.02 + 0.3 * keep) dClock(lc, x, y, rng);
       } else if (kind === 4) {
-        if (b === 2 && r1 < 0.45 && dep > 0.15) dRosette(lc, x, y, rng);
+        if (b === 2 && r1 < 0.08 + 0.5 * keep && dep > 0.15) dRosette(lc, x, y, rng);
       }
     }
     yield;
@@ -1457,7 +1479,7 @@
     });
     G.scatterOwned(info, 74, 7106, (x, y, rng) => {
       const r0 = rng.next(), r1 = rng.next();
-      if (r0 > 0.3 || G.nearSpawn(x, y, 85)) return;
+      if (r0 > 0.04 + 0.55 * U.smoothstep(0.42, 0.66, U.noise(x / 260, y / 260, 7191)) || G.nearSpawn(x, y, 85)) return;   // pumpkin patches
       const m = matAt(x, y);
       if (m.b < 2 || m.d < 0.05) return;
       out.push({ x, y, t: 'pump', spr: P.pump[Math.floor(r1 * P.pump.length) % P.pump.length], anim: r1 * 10, sh: 0.9, pad: 30 });
@@ -1470,7 +1492,8 @@
     // standing weeds – foreground lace
     G.scatterOwned(info, 44, 7108, (x, y, rng) => {
       const r0 = rng.next(), r1 = rng.next();
-      if (r0 > 0.4 || G.nearSpawn(x, y, 60)) return;
+      // weeds grow in thickets (a 200-unit noise field), the open light between them stays clean
+      if (r0 > 0.02 + 0.75 * U.smoothstep(0.45, 0.7, U.noise(x / 200, y / 200, 7192)) || G.nearSpawn(x, y, 60)) return;
       const m = matAt(x, y);
       const v = m.b === 0 ? 1 : m.b === 1 ? 2 : r1 < 0.5 ? 0 : 1;
       out.push({ x, y, t: 'weed', spr: P.weed[v], flip: r1 > 0.5, sh: 0.6, pad: 20 });
@@ -1764,7 +1787,7 @@ body.style-shadow #pausebox { font-family: 'Cinzel', Georgia, serif; font-weight
     id: 'shadow',
     name: 'Schattentheater',
     family: 'Silhouette',
-    description: 'Ein hinterleuchtetes Papiertheater: Scherenschnitt-Figuren aus tiefem Schwarz vor glühenden Abendfarben – nur Kürbisgesichter und Geisteraugen leuchten.',
+    description: 'Backlit paper shadow-puppet theatre: indigo-black cut-paper silhouettes over glowing teal, violet, crimson and amber light fields.',
     groundColor: '#e07a3a',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1885,7 +1908,9 @@ body.style-shadow #pausebox { font-family: 'Cinzel', Georgia, serif; font-weight
       let fr, wob = 0, y = e.y;
       if (isG) {
         fr = Math.floor(view.rt * 6 + e.seed * 9) & 3;
-        y -= 2.2 + Math.sin(view.rt * 3.1 + e.seed * 20) * 1.2;
+        // eased hover on a triangle wave: the veil lingers at the top and the bottom, every ghost on its own clock
+        const u = (view.rt * 0.45 + e.seed * 3.1) % 1, tri = u < 0.5 ? u * 2 : 2 - u * 2;
+        y -= 1.2 + tri * tri * (3 - 2 * tri) * 2.6;
         wob = Math.sin(view.rt * 2.3 + e.seed * 9) * 0.06;
       } else if (isC) {
         fr = Math.floor(e.anim * 3.6) % 6;
@@ -1924,16 +1949,21 @@ body.style-shadow #pausebox { font-family: 'Cinzel', Georgia, serif; font-weight
         }
         return;
       }
-      // ---- hit: rim flash of light (capped)
+      // ---- hit: rim flash of light (capped) + the puppet is shoved on its rod and tilts away from the blow
+      let ex = e.x;
+      if (e.flash > 0) {
+        const kl = Math.hypot(e.kx, e.ky) || 1, k2 = e.flash * e.flash;
+        ex += (e.kx / kl) * (isC ? 1.4 : 2.6) * k2; y += (e.ky / kl) * 1.2 * k2; wob += (e.kx / kl) * (isC ? 0.1 : 0.22) * e.flash;
+      }
       const ra = isG ? e.flash * 0.9 : Math.max(0.2, Math.min(isC ? 0.7 : 0.9, e.flash * 1.1));
       if (ra > 0.02) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = ra;
-        blitRot(ctx, rims[fr], e.x, y, wob, 1);
+        blitRot(ctx, rims[fr], ex, y, wob, 1);
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
-      blitRot(ctx, spr, e.x, y, wob, 1);
+      blitRot(ctx, spr, ex, y, wob, 1);
       if (isC) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.45 + 0.25 * Math.sin(view.rt * 4 + e.seed * 10);
@@ -1951,8 +1981,14 @@ body.style-shadow #pausebox { font-family: 'Cinzel', Georgia, serif; font-weight
       let spr, rim, hr;
       if (p.moving) { const i = Math.floor(p.anim * 1.5) % 6; spr = J.walk[fi][i]; rim = J.walkR[fi][i]; hr = J.walkH[fi][i]; }
       else { const i = Math.floor(rt * 2.6) & 3; spr = J.idle[fi][i]; rim = J.idleR[fi][i]; hr = J.idleH[fi][i]; }
+      // dash: one crouch frame on the pivots (anticipation), then the stretched forward lean
+      if (p.dashT > 0.165) { spr = J.crouch[fi]; rim = J.crouchR[fi]; }
+      else if (p.dashT > 0) { spr = J.lean[fi]; rim = J.leanR[fi]; }
       const since = (performance.now() - hurtAt) / 1000;
-      const blink = p.iframes > 0 && since < 1 && (Math.floor(since * 14) & 1) === 1;
+      // invulnerable: the candle behind the screen flickers (a white rim flash) – the puppet never turns see-through
+      const blink = p.iframes > 0 && since < 1 && (Math.floor(since * 12) & 1) === 1;
+      // struck: the puppet is knocked back on its rod and swings back with one overshoot
+      const kick = p.hurtT > 0 ? -p.facing * 0.2 * Math.sin(p.hurtT * Math.PI * 1.5) * p.hurtT : 0;
       if (p.dashT > 0) {
         const k = p.dashT / 0.2;
         for (let i = 3; i >= 1; i--) {
@@ -1965,12 +2001,12 @@ body.style-shadow #pausebox { font-family: 'Cinzel', Georgia, serif; font-weight
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.75;
       blit(ctx, rim, p.x, p.y);
-      if (p.hurtT > 0) { ctx.globalAlpha = Math.min(0.9, p.hurtT); blit(ctx, hr, p.x, p.y); }
+      if (p.hurtT > 0) { ctx.globalAlpha = Math.min(0.9, p.hurtT); blitRot(ctx, hr, p.x, p.y, kick, 1); }
+      else if (blink) { ctx.globalAlpha = 0.6; blit(ctx, hr, p.x, p.y); }
       if (p.levelT > 0) { ctx.globalAlpha = Math.min(1, p.levelT * 1.5); blitRot(ctx, SPR.flare, p.x, p.y - 16, rt * 0.6, 2.2 + (1 - p.levelT)); }
       ctx.globalCompositeOperation = 'source-over';
-      ctx.globalAlpha = blink ? 0.45 : 1;
-      blit(ctx, spr, p.x, p.y);
       ctx.globalAlpha = 1;
+      if (kick) blitRot(ctx, spr, p.x, p.y, kick, 1); else blit(ctx, spr, p.x, p.y);
       // face glow halo (flickering candle inside)
       const fl = 0.8 + 0.12 * Math.sin(rt * 11) + 0.08 * Math.sin(rt * 27);
       ctx.globalCompositeOperation = 'lighter';

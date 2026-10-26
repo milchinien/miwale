@@ -790,7 +790,7 @@
     });
     // pebbles & twigs
     G.scatter(info, 22, 8113, 8, (x, y, rng) => {
-      if (!rng.chance(0.35)) return;
+      if (!rng.chance(U.fbm(x / 110 - 7.1, y / 110, 8119, 2) > 0.55 ? 0.6 : 0.06)) return;  // stones and twigs in clusters
       const ix = Math.round(x), iy = Math.round(y);
       if (rng.chance(0.5)) {
         const t = rng.int(2, 4);
@@ -806,7 +806,7 @@
     // single leaves blown around everywhere
     const LC = [GR.leafA, GR.leafB, GR.leafC, GR.leafD];
     G.scatter(info, 15, 8115, 4, (x, y, rng) => {
-      if (!rng.chance(0.22)) return;
+      if (!rng.chance(U.fbm(x / 130 + 3.3, y / 130, 8117, 2) > 0.56 ? 0.7 : 0.03)) return;   // leaf drifts, calm elsewhere
       const fam = LC[rng.int(0, 3)], ix = Math.round(x), iy = Math.round(y);
       ctx.fillStyle = cs(fam[2]); ctx.fillRect(ix, iy, 2, 1);
       ctx.fillStyle = cs(fam[1]); ctx.fillRect(ix + 1, iy + 1, rng.chance(0.5) ? 2 : 1, 1);
@@ -1211,12 +1211,13 @@
       }
     }
     // hand
-    p.set(cx + 4, by + 21, GL[2]); p.set(cx + 5, by + 21, GL[1]); p.set(cx + 4, by + 22, GL[1]); p.set(cx + 5, by + 22, GL[0]);
+    const hx = cx + 4 + (f.hand || 0), hy = by + 21 - Math.abs(f.hand || 0) * 0;   // the hand swings against the near leg
+    p.set(hx, hy, GL[2]); p.set(hx + 1, hy, GL[1]); p.set(hx, hy + 1, GL[1]); p.set(hx + 1, hy + 1, GL[0]);
     // scarf
     for (let x = cx - 4; x <= cx + 5; x++) { p.set(x, sy, SC[3]); p.set(x, sy + 1, SC[2]); p.set(x, sy + 2, SC[1]); }
     p.set(cx + 4, sy + 3, SC[2]); p.set(cx + 5, sy + 3, SC[1]); p.set(cx + 4, sy + 4, SC[1]); p.set(cx + 3, sy + 3, SC[1]);
     // pumpkin head
-    const hcx = 10.5, hcy = by + 7.2;
+    const hb = f.hb || 0, hcy = by + 7.2 + hb, hcx = 10.5;   // the head lands one frame after the body
     p.ell(hcx, hcy, 7.6, 6.3, (x, y, nx, ny) => {
       let v = 0.47 + shade(nx, ny) * 0.42;
       const seg = Math.asin(clamp(nx, -1, 1)) / (Math.PI / 2);
@@ -1226,9 +1227,10 @@
       p.set(x, y, pick(PU, v, x, y, 0.3));
     });
     // stem
-    p.set(10, by - 0, ST[3]); p.set(10, by + 1, ST[2]); p.set(11, by + 1, ST[1]); p.set(11, by - 1, ST[2]); p.set(12, by - 1, ST[1]);
+    const hy0 = by + hb;
+    p.set(10, hy0, ST[3]); p.set(10, hy0 + 1, ST[2]); p.set(11, hy0 + 1, ST[1]); p.set(11, hy0 - 1, ST[2]); p.set(12, hy0 - 1, ST[1]);
     // carved face
-    const fc = 12, fy = by + 4;
+    const fc = 12, fy = by + 4 + hb;
     const faceSet = new Set(FACE.map((q) => q[0] + ',' + q[1]));
     for (const [dx, dy, lv] of FACE) {
       p.set(fc + dx, fy + dy, PAL.face[lv + 1]);
@@ -1572,13 +1574,23 @@
     for (let x = 0; x < w; x++) if (p.al(x, 3) && U.hash2(x, 1, 7) < 0.3) p.set(x, 2, S[4]);
     return p.outline(OUT).canvas();
   }
+  // big-moment ring in the churchyard's own language: a broken ember circle carrying six small crosses
   function makeRing(r) {
-    const s = Math.ceil(r) * 2 + 3;
+    const s = Math.ceil(r) * 2 + 5;
     const p = new Pix(s, s);
-    const c = s / 2;
+    const c = s / 2, segs = Math.max(10, Math.round(r * 1.5));
     for (let y = 0; y < s; y++) for (let x = 0; x < s; x++) {
-      const d = Math.hypot((x + 0.5 - c), (y + 0.5 - c) * 1.25);
-      if (Math.abs(d - r) < 0.7) p.set(x, y, [255, 230, 170]);
+      const dx = x + 0.5 - c, dy = (y + 0.5 - c) * 1.25, d = Math.hypot(dx, dy);
+      if (Math.abs(d - r) >= 0.7) continue;
+      const u = (((Math.atan2(dy, dx) / TAU) * segs) % 1 + 1) % 1;
+      if (u < 0.62) p.set(x, y, u < 0.22 ? [255, 244, 206] : [255, 168, 78]);
+    }
+    for (let k = 0; k < 6; k++) {
+      const an = (k / 6) * TAU + r * 0.07;
+      const qx = Math.round(c + Math.cos(an) * r - 0.5), qy = Math.round(c + (Math.sin(an) * r) / 1.25 - 0.5);
+      p.set(qx, qy, [255, 240, 196]);
+      for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1]]) p.set(qx + ox, qy + oy, [255, 150, 60]);
+      p.set(qx, qy + 1, [196, 86, 36]); p.set(qx, qy + 2, [140, 52, 30]);
     }
     return p.canvas();
   }
@@ -2047,7 +2059,7 @@ ${B}.hurt #hud .hp-bar { filter: brightness(1.7) saturate(1.3); }
     id: 'gothic',
     name: 'Gothic Nacht',
     family: 'Pixel Art · Dark',
-    description: 'Mondbeschienener Friedhof voller Nebel – nur Jacks Kürbisgesicht, Laternen und Kerzen spenden warmes Licht.',
+    description: 'Moonlit cursed churchyard in detailed pixel art: a banded light map darkens a cold world; only faces, lanterns and candles glow warm.',
     pixelArt: { scale: 1 },
     groundColor: '#12151e',
     chunkSize: 256,
@@ -2066,16 +2078,24 @@ ${B}.hurt #hud .hp-bar { filter: brightness(1.7) saturate(1.3); }
       buildProps();
       // Jack
       const frames = [
-        { aDx: 2, aLift: 0, bDx: -2, bLift: 0, bob: 0, sway: -1, scarf: 0 },
-        { aDx: 0, aLift: 0, bDx: 0, bLift: 1, bob: -1, sway: 0, scarf: 1 },
-        { aDx: -2, aLift: 0, bDx: 2, bLift: 0, bob: 0, sway: 1, scarf: 2 },
-        { aDx: 0, aLift: 1, bDx: 0, bLift: 0, bob: -1, sway: 0, scarf: 3 },
-        { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 0, sway: 0, scarf: 3 },
-        { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 1, sway: 0, scarf: 2 },
+        { aDx: 2, aLift: 0, bDx: -2, bLift: 0, bob: 0, sway: -1, scarf: 0, hand: -1 },   // contact
+        { aDx: 2, aLift: 0, bDx: -2, bLift: 0, bob: 1, sway: -1, scarf: 0, hand: -1 },   // down
+        { aDx: 0, aLift: 0, bDx: 0, bLift: 2, bob: 0, sway: 0, scarf: 1, hand: 0 },      // passing
+        { aDx: -1, aLift: 0, bDx: 1, bLift: 1, bob: -1, sway: 1, scarf: 2, hand: 1 },    // up
+        { aDx: -2, aLift: 0, bDx: 2, bLift: 0, bob: 0, sway: 1, scarf: 2, hand: 1 },
+        { aDx: -2, aLift: 0, bDx: 2, bLift: 0, bob: 1, sway: 1, scarf: 3, hand: 1 },
+        { aDx: 0, aLift: 2, bDx: 0, bLift: 0, bob: 0, sway: 0, scarf: 3, hand: 0 },
+        { aDx: 1, aLift: 1, bDx: -1, bLift: 0, bob: -1, sway: -1, scarf: 0, hand: -1 },
       ];
+      frames.forEach((w, i) => { w.hb = frames[(i + 7) & 7].bob - w.bob; });
+      // idle breath: body sinks 1 px, the head follows a beat later (and rises a beat later)
+      frames.push({ aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 0, sway: 0, scarf: 3, hb: 0 },
+        { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 1, sway: 0, scarf: 3, hb: -1 },
+        { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 1, sway: 0, scarf: 2, hb: 0 },
+        { aDx: 1, aLift: 0, bDx: -1, bLift: 0, bob: 0, sway: 0, scarf: 2, hb: 1 });
       SPR.jack = frames.map((f) => {
         const s = mk(makeJack(f), 11, JH + 1, [], true);
-        s.bob = f.bob;
+        s.bob = f.bob + (f.hb || 0);   // the face overlay follows the head
         s.silR = U.tint(s.r, '#3a1c5a'); s.silL = U.flipX(s.silR);
         s.warmR = U.tint(s.r, '#ff7a1a'); s.warmL = U.flipX(s.warmR);
         return s;
@@ -2241,20 +2261,28 @@ ${B}.hurt #hud .hp-bar { filter: brightness(1.7) saturate(1.3); }
     drawEnemy(ctx, e, view) {
       const flip = e.facing < 0;
       let s;
-      if (e.type === 'creeper') s = SPR.creeper[e.seed < 0.5 ? 0 : 1][Math.floor(e.anim * 1.6) & 3];
+      if (e.type === 'creeper') s = SPR.creeper[e.seed < 0.5 ? 0 : 1][Math.floor(e.anim * 1.6 + e.seed * 4) & 3];
       else if (e.type === 'ghost') s = SPR.ghost[Math.floor(view.rt * 7 + e.seed * 4) & 3];
-      else s = SPR.colossus[Math.floor(e.anim * 2) & 3];
+      else s = SPR.colossus[Math.floor(e.anim * 2 + e.seed * 4) & 3];
       const x = Math.round(e.x);
       let y = Math.round(e.y);
-      if (e.type === 'ghost') y -= 4 + Math.round(Math.sin(view.rt * 3 + e.seed * 10) * 1.5);
+      if (e.type === 'ghost') y -= 3 + [0, 0, 1, 2, 3, 3, 2, 1][Math.floor(view.rt * 5 + e.seed * 8) & 7];   // eased float
       const dx = x - (flip ? s.w - 1 - s.ax : s.ax), dy = y - s.ay;
       if (e.dying) {
-        if (e.deathT < 0.18) ctx.drawImage(flip ? s.wl : s.wr, dx, dy);
-        else if (e.deathT < 0.4) {
-          ctx.globalAlpha = 0.5;
-          ctx.drawImage(flip ? s.wl : s.wr, dx, dy + 1);
+        const k = e.deathT;
+        if (k < 0.16) { ctx.drawImage(flip ? s.wl : s.wr, dx, dy); return; }          // pale flash
+        if (e.type === 'ghost') {                                                     // the shade rises and thins away
+          ctx.globalAlpha = 0.8 * (1 - (k - 0.16) / 0.84);
+          ctx.drawImage(flip ? s.l : s.r, dx, dy - Math.round((k - 0.16) * 16));
           ctx.globalAlpha = 1;
+          return;
         }
+        // roots are dragged back into the grave soil: the visible height shrinks behind a dirt lip
+        const u = U.ease.inQuad((k - 0.16) / 0.84), vh = Math.max(1, Math.round(s.h * (1 - u)));
+        const im = flip ? s.l : s.r;
+        ctx.drawImage(im, 0, 0, s.w, vh, dx, y - vh + 1, s.w, vh);
+        const dirt = e.type === 'colossus' ? SPR.dirtL : SPR.dirtS;
+        ctx.drawImage(dirt, x - (dirt.width >> 1), y - 4);
         return;
       }
       const white = e.flash > 0.5;
@@ -2289,7 +2317,10 @@ ${B}.hurt #hud .hp-bar { filter: brightness(1.7) saturate(1.3); }
             ctx.fillRect(Math.round(e.x + tx * (6 + i * 4) + k * 0.5), Math.round(e.y - 8 + ty * (6 + i * 4) + (i % 2)), 1, 1);
           }
         }
-      } else ctx.drawImage(img, dx, dy);
+      } else {
+        const rec = e.hitT < 0.13 && e.flash > 0.05 ? Math.round((1 - e.hitT / 0.13) * 2) * (flip ? 1 : -1) : 0;   // knock-back
+        ctx.drawImage(img, dx + rec, dy + (rec ? 1 : 0));
+      }
       if (!white) {
         const eyes = flip ? s.eyesL : s.eyes;
         for (let i = 0; i < eyes.length; i++) EYES.push(dx + eyes[i][0], dy + eyes[i][1], eyes[i][2]);
@@ -2300,8 +2331,10 @@ ${B}.hurt #hud .hp-bar { filter: brightness(1.7) saturate(1.3); }
     drawPlayer(ctx, p, view) {
       const rt = view.rt;
       let fi;
-      if (p.moving) fi = Math.floor(p.anim) & 3;
-      else fi = 4 + (Math.floor(rt * 1.6) & 1);
+      if (p.__ph === undefined) p.__ph = Math.random() * 10;
+      const tt = rt + p.__ph;
+      if (p.moving) fi = Math.floor(p.anim * 1.3) & 7;                       // 8 poses, ~12 fps
+      else { const half = Math.floor(tt / 1.1) & 1, early = (tt % 1.1) < 0.14; fi = half ? (early ? 9 : 10) : (early ? 11 : 8); }
       const s = SPR.jack[fi];
       const flip = p.facing < 0;
       const x = Math.round(p.x), y = Math.round(p.y);

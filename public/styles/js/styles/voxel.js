@@ -290,149 +290,200 @@
     };
   }
 
-  // Jack: 10 x 9 x 18. frame 0 = idle, 1..4 walk
+  /* ---------------- main character rig in voxels ----------------
+     Every pose re-assembles the parts (legs, cloak + fluttering hem, sleeves, scarf tail, head) on whole-voxel offsets,
+     so motion is snappy and grid-true. Frames: 0-7 walk, 8-11 idle breathing, 12 blink, 13 dash crouch, 14 dash lunge, 15 hurt. */
+  const J_IDLE = 8, J_BLINK = 12, J_CROUCH = 13, J_LUNGE = 14, J_HURT = 15;
+  function jackPose(f) {
+    if (f < 8) {
+      const L = [2, 1, 0, -1, -2, -1, 0, 1][f];
+      return { lf: L, rf: -L, ll: [0, 0, 0, 0, 0, 1, 1, 0][f], rl: [0, 1, 1, 0, 0, 0, 0, 0][f], bob: f % 4 === 2 ? 1 : 0,
+        al: -Math.sign(L) * (Math.abs(L) > 1 ? 1 : 0), ar: Math.sign(L) * (Math.abs(L) > 1 ? 1 : 0),
+        hz: (f + 3) % 4 === 0 ? 1 : 0, hem: 1 + ((f + 1) % 4 === 0 ? 1 : 0), scarf: f % 4 < 2 ? 1 : 2, leaf: f % 4 === 3 ? 1 : 0 };
+    }
+    if (f < 12) { const k = f - 8; return { hz: k >= 2 ? -1 : 0, hem: k === 1 ? 0 : 1, scarf: k === 3 ? 1 : 0, al: 0, ar: 0, au: k === 2 ? 1 : 0, leaf: k === 3 ? 1 : 0 }; }
+    if (f === J_BLINK) return { blink: true, hem: 1 };
+    if (f === J_CROUCH) return { bob: -1, lf: 1, rf: -1, al: -1, ar: -1, hz: -1, hy: 1, hem: 2, scarf: 2, leaf: -1 };
+    if (f === J_LUNGE) return { bob: 1, lf: 3, rf: -3, rl: 1, al: -2, ar: -2, hy: 1, hem: 3, scarf: 3, leaf: -1 };
+    return { lf: 1, rf: -1, ll: 0, al: 1, ar: 1, au: 4, hy: -1, hz: 1, hem: 0, scarf: 0, leaf: 1, hurt: true };
+  }
   function jackModel(f) {
-    const m = new Vox(10, 9, 18, 11);
-    const legY = [0, 1, 0, -1, 0][f], lift = [0, 0, 1, 0, 1][f];
-    const armY = -legY;
-    // legs
-    const legL = 2 + lift, legR = 2 + lift;
-    const raiseL = f === 4 ? 1 : 0, raiseR = f === 2 ? 1 : 0;
-    m.box(3, 4 + legY, raiseL, 4, 5 + legY, legL, (x, y, z) => (z === raiseL ? P.boot : P.pants));
-    m.box(5, 4 - legY, raiseR, 6, 5 - legY, legR, (x, y, z) => (z === raiseR ? P.boot : P.pants));
-    const b = 3 + lift;
-    // cloak body with flared hem
-    m.box(1, 2, b, 8, 7, b, (x, y) => ((x === 1 || x === 8 || y === 2 || y === 7) ? P.cloakDk : P.cloak));
-    m.box(2, 2, b + 1, 7, 6, b + 3, P.cloak);
-    m.box(4, 6, b + 1, 5, 6, b + 3, (x, y, z) => (z === b + 3 ? P.shirt : P.cloakLt));
-    m.set(4, 7, b, P.cloakLt); m.set(5, 7, b, P.cloakLt);
-    // arms
-    m.box(1, 3 + armY, b + 1, 1, 4 + armY, b + 3, P.cloak);
-    m.box(8, 3 - armY, b + 1, 8, 4 - armY, b + 3, P.cloak);
-    m.box(1, 3 + armY, b, 1, 4 + armY, b, P.glove);
-    m.box(8, 3 - armY, b, 8, 4 - armY, b, P.glove);
-    // scarf + tail
-    m.box(2, 2, b + 4, 7, 6, b + 4, (x, y) => ((x + y) % 3 === 0 ? P.scarfDk : P.scarf));
-    m.box(6, 1, b + 2, 7, 1, b + 4, P.scarf);
-    m.set(7, 1, b + 1, P.scarfDk);
-    // pumpkin head
-    const hz = b + 8.6;
-    m.blob(5, 4.5, hz, 5.05, 4.4, 3.75, ribCol(5, 4.5, hz + 3.0, P.pk, P.pkDk, P.pkLt), 2.6);
-    // stem + leaf
-    const top = Math.floor(hz + 3.6);
-    m.box(4, 4, top, 5, 4, top + 1, (x, y, z) => (z === top + 1 && x === 5 ? P.stemDk : P.stem));
-    m.set(4, 4, top + 2, P.stem);
-    m.set(6, 4, top, P.leafG); m.set(7, 4, top, P.leafG); m.set(7, 3, top + 1, P.leafG);
-    // carved glowing face
+    const q = jackPose(f);
+    const m = new Vox(12, 12, 22, 11);
+    const b = 3 + (q.bob || 0);
+    const leg = (x0, fwd, lift) => {
+      const y0 = 5 + fwd;
+      m.box(x0, y0, lift, x0 + 1, y0 + 1, Math.max(lift, b - 1), (x, y, z) => (z === lift ? P.boot : P.pants));
+      m.set(x0, y0 + 2, lift, P.boot); m.set(x0 + 1, y0 + 2, lift, P.boot);
+    };
+    leg(4, q.lf || 0, q.ll || 0);
+    leg(6, q.rf || 0, q.rl || 0);
+    // cloak: dark flared hem ring, body, light placket + buckle; the hem flutters back by q.hem voxels (follow-through)
+    m.box(2, 3, b, 9, 8, b, (x, y) => (x === 2 || x === 9 || y === 3 || y === 8 ? P.cloakDk : P.cloak));
+    for (let k = 1; k <= (q.hem || 0); k++) m.box(3, 3 - k, b + (k > 1 ? 1 : 0), 8, 3 - k, b + 1, k === q.hem ? P.cloakDk : P.cloak);
+    m.box(3, 4, b + 1, 8, 7, b + 4, P.cloak);
+    m.box(3, 4, b + 4, 8, 4, b + 4, P.cloakLt);
+    m.box(5, 7, b + 1, 6, 7, b + 4, (x, y, z) => (z === b + 4 ? P.shirt : P.cloakLt));
+    m.set(5, 8, b + 1, P.gold); m.set(6, 8, b + 1, P.goldDk);
+    const arm = (x, fwd, up) => {
+      const y0 = 5 + fwd;
+      if (up >= 3) { m.box(x, y0, b + 4, x, y0 + 1, b + up, P.cloak); m.box(x, y0, b + up + 1, x, y0 + 1, b + up + 1, P.glove); }
+      else { m.box(x, y0, b + 1 + up, x, y0 + 1, b + 4, P.cloak); m.box(x, y0, b + up, x, y0 + 1, b + up, P.glove); }
+    };
+    arm(2, q.al || 0, q.au || 0);
+    arm(9, q.ar || 0, q.au || 0);
+    // scarf ring + a tail that hangs (0), swings (1-2) or streams out behind (3)
+    m.box(3, 4, b + 5, 8, 7, b + 5, (x, y) => ((x + y) % 3 === 0 ? P.scarfDk : P.scarf));
+    const tail = [[[3, 3], [3, 2], [3, 1]], [[3, 3], [2, 3], [2, 2]], [[3, 4], [2, 4], [1, 3]], [[3, 4], [2, 4], [1, 4], [0, 4]]][q.scarf || 0];
+    for (const [y, dz] of tail) { m.set(6, y, b + dz + 1, P.scarf); m.set(7, y, b + dz + 1, dz < 3 ? P.scarfDk : P.scarf); }
+    // head (pumpkin) on its own offsets: lean (hy) and bob (hz) lag the body
+    const hz = b + 9.6 + (q.hz || 0), hy = 6 + (q.hy || 0);
+    m.blob(6, hy, hz, 5.05, 4.4, 3.75, ribCol(6, hy, hz + 3.0, P.pk, P.pkDk, P.pkLt), 2.6);
+    const top = Math.floor(hz + 3.6), sy = Math.floor(hy - 0.5);
+    m.box(5, sy, top, 6, sy, top + 1, (x, y, z) => (z === top + 1 && x === 6 ? P.stemDk : P.stem));
+    m.set(5, sy, top + 2, P.stem);
+    const lf = q.leaf || 0;
+    m.set(7, sy, top + Math.max(0, lf), P.leafG); m.set(8, sy, top + Math.max(0, lf), P.leafG); m.set(8, sy - 1, top + 1 + lf, P.leafG);
     const ez = Math.round(hz) + 1;
-    const face = [
-      [2, ez + 1], [7, ez + 1],
-      [1, ez], [2, ez], [3, ez], [6, ez], [7, ez], [8, ez],
-      [2, ez - 2], [3, ez - 2], [5, ez - 2], [6, ez - 2], [7, ez - 2],
-      [3, ez - 3], [4, ez - 3], [5, ez - 3], [6, ez - 3],
-    ];
+    let face, hot;
+    if (q.hurt) {
+      face = [[2, ez + 1], [3, ez], [2, ez - 1], [9, ez + 1], [8, ez], [9, ez - 1], [4, ez - 2], [5, ez - 2], [6, ez - 2], [7, ez - 2], [4, ez - 3], [7, ez - 3], [4, ez - 4], [5, ez - 4], [6, ez - 4], [7, ez - 4]];
+      hot = [];
+    } else {
+      const eyes = q.blink ? [[2, ez], [3, ez], [4, ez], [7, ez], [8, ez], [9, ez]] : [[3, ez + 1], [8, ez + 1], [2, ez], [3, ez], [4, ez], [7, ez], [8, ez], [9, ez]];
+      face = eyes.concat([[3, ez - 2], [4, ez - 2], [6, ez - 2], [7, ez - 2], [8, ez - 2], [4, ez - 3], [5, ez - 3], [6, ez - 3], [7, ez - 3]]);
+      hot = q.blink ? [] : [[3, ez], [8, ez]];
+    }
     const fset = new Set(face.map(([x, z]) => x + ',' + z));
     for (const [x, z] of face) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       if (!fset.has(x + dx + ',' + (z + dz))) m.paintFront(x + dx, z + dz, P.carve);
     }
-    for (const [x, z] of face) m.paintFront(x, z, z >= ez ? P.face : P.mouth);
-    m.paintFront(2, ez, P.faceHot); m.paintFront(7, ez, P.faceHot);
+    for (const [x, z] of face) m.paintFront(x, z, z >= ez - 1 ? P.face : P.mouth);
+    for (const [x, z] of hot) m.paintFront(x, z, P.faceHot);
     return m;
   }
 
-  // Rüben-Schleicher: 10 x 10 x 15
-  function creeperModel(f) {
-    const m = new Vox(10, 10, 15, 23);
-    const legY = [1, 0, -1, 0][f], lift = [0, 1, 0, 1][f], sway = [0, 1, 0, -1][f];
-    m.box(3, 5 + legY, 0, 3, 5 + legY, 1 + lift, P.tRoot);
-    m.box(6, 5 - legY, 0, 6, 5 - legY, 1 + lift, P.tRoot);
-    if (!lift) { m.set(3, 6 + legY, 0, P.tRoot); m.set(6, 6 - legY, 0, P.tRoot); }
-    const cz = 6.3 + lift;
-    m.blob(5, 5, cz, 4.7, 4.5, 4.4, (x, y, z) => {
-      const t = z + 0.5 - cz + (rnd3(x, y, z, 5) - 0.5) * 1.6;
-      if (t > 1.6) return z + 0.5 > cz + 3.4 ? P.tPurDk : (rnd3(x, y, z, 9) < 0.18 ? P.tPurLt : P.tPur);
-      if (t > 0.4) return rnd3(x, y, z, 3) < 0.5 ? P.tPur : P.tCream;
-      return z + 0.5 < cz - 2.8 ? P.tCreamDk : P.tCream;
+  /* ---------------- small creature: two designed variants, 6 waddle poses + hit pose ---------------- */
+  function creeperModel(i, o = {}) {
+    const v = o.v || 0, hurt = i >= 6;
+    const m = new Vox(12, 12, 18, 23 + v);
+    const sway = hurt ? 0 : [0, 1, 1, 0, -1, -1][i], hop = hurt ? 0 : [0, 0, 1, 0, 0, 1][i], sq = hurt ? 2 : [1, 0, 0, 1, 0, 0][i];
+    const lag = hurt ? 0 : [-1, 0, 1, 1, 0, -1][i], lf = hurt ? 0 : [1, 1, 0, -1, -1, 0][i];
+    const foot = (x, f, up) => { m.box(x, 6 + f, up, x, 6 + f, 1 + hop, P.tRoot); if (!up) m.set(x, 7 + f, 0, P.tRoot); };
+    foot(4, lf, hurt ? 0 : [0, 0, 0, 0, 0, 1][i]);
+    foot(7, -lf, hurt ? 0 : [0, 0, 1, 0, 0, 0][i]);
+    const cx = 6 + sway, rz = (v ? 5.0 : 4.4) - sq * 0.35, rx = (v ? 4.0 : 4.7) + sq * 0.25, ry = (v ? 4.0 : 4.5) + sq * 0.2;
+    const cz = (v ? 6.9 : 6.3) + hop - sq * 0.3;
+    m.blob(cx, 6, cz, rx, ry, rz, (x, y, z) => {
+      const t = z + 0.5 - cz + (rnd3(x, y, z, 5) - 0.5) * 1.2;
+      if (t > 1.6) return z + 0.5 > cz + rz - 1 ? P.tPurDk : (rnd3(x, y, z, 9) < 0.14 ? P.tPurLt : P.tPur);
+      if (t > 0.4) return (x + z) & 1 ? P.tPur : P.tCream; // zig-zag colour border, not noise
+      return z + 0.5 < cz - rz + 1.6 ? P.tCreamDk : P.tCream;
     });
-    m.set(5, 5, Math.floor(cz - 4.4) , P.tRoot); m.set(4, 5, Math.floor(cz - 4.4), P.tCreamDk);
-    // leaf tuft
-    const tz = Math.floor(cz + 4.3);
-    m.box(4, 5, tz, 5, 5, tz + 1, P.tLeafDk);
-    m.box(2 + sway, 4, tz + 2, 3 + sway, 5, tz + 3, P.tLeaf); m.set(1 + sway, 4, tz + 4, P.tLeaf); m.set(4, 5, tz + 2, P.tLeafDk);
-    m.box(6 + sway, 5, tz + 2, 7 + sway, 6, tz + 3, P.tLeaf); m.set(8 + sway, 6, tz + 4, P.tLeaf); m.set(5, 5, tz + 2, P.tLeafDk);
-    m.box(4 + sway, 3, tz + 3, 5 + sway, 3, tz + 5, P.tLeafDk); m.set(5 + sway, 3, tz + 6, P.tLeaf);
-    // angry face
+    m.set(cx, 6, Math.floor(cz - rz), P.tRoot);
+    const tz = Math.floor(cz + rz - 0.1);
+    if (hurt) {
+      m.box(cx - 1, 6, tz, cx, 6, tz + 1, P.tLeafDk);
+      m.box(cx - 3, 5, tz + 2, cx - 2, 6, tz + 4, P.tLeaf); m.box(cx + 1, 5, tz + 2, cx + 2, 6, tz + 4, P.tLeaf); m.box(cx - 1, 4, tz + 2, cx, 4, tz + 5, P.tLeafDk);
+    } else if (!v) {
+      m.box(cx - 1, 6, tz, cx, 6, tz + 1, P.tLeafDk);
+      m.box(cx - 3 + lag, 5, tz + 2, cx - 2 + lag, 6, tz + 3, P.tLeaf); m.set(cx - 4 + lag, 5, tz + 4, P.tLeaf); m.set(cx - 1, 6, tz + 2, P.tLeafDk);
+      m.box(cx + 1 + lag, 6, tz + 2, cx + 2 + lag, 7, tz + 3, P.tLeaf); m.set(cx + 3 + lag, 7, tz + 4, P.tLeaf); m.set(cx, 6, tz + 2, P.tLeafDk);
+      m.box(cx - 1 + lag, 4, tz + 3, cx + lag, 4, tz + 5, P.tLeafDk); m.set(cx + lag, 4, tz + 6, P.tLeaf);
+    } else {
+      // tall variant: one long sprout that whips with the step, two short side leaves, a root tail behind
+      m.box(cx, 6, tz, cx, 6, tz + 2, P.tLeafDk); m.box(cx + lag, 6, tz + 3, cx + lag, 6, tz + 4, P.tLeaf); m.set(cx + lag * 2, 6, tz + 5, P.tLeaf);
+      m.box(cx - 2, 6, tz + 1, cx - 1, 6, tz + 1, P.tLeaf); m.box(cx + 1, 6, tz + 1, cx + 2, 6, tz + 1, P.tLeaf);
+      m.box(cx, 1, 2 + hop, cx, 2, 2 + hop, P.tRoot); m.set(cx - lag, 0, 3 + hop, P.tRoot);
+    }
     const ez = Math.round(cz) + 1;
-    m.paintFront(3, ez, P.tEye); m.paintFront(6, ez, P.tEye);
-    m.paintFront(3, ez + 1, P.tBrow); m.paintFront(4, ez + 1, P.tBrow); m.paintFront(5, ez + 1, P.tBrow); m.paintFront(6, ez + 1, P.tBrow);
-    m.paintFront(4, ez - 2, P.tBrow); m.paintFront(5, ez - 2, P.tBrow);
+    if (hurt) {
+      for (const [x, z] of [[cx - 3, ez + 1], [cx - 2, ez], [cx - 3, ez - 1], [cx + 2, ez + 1], [cx + 1, ez], [cx + 2, ez - 1]]) m.paintFront(x, z, P.tBrow);
+      for (const [x, z] of [[cx - 1, ez - 2], [cx, ez - 2], [cx - 1, ez - 3], [cx, ez - 3]]) m.paintFront(x, z, P.cMouth);
+      return m;
+    }
+    m.paintFront(cx - 2, ez, P.tEye); m.paintFront(cx + 1, ez, P.tEye);
+    if (v) m.paintFront(cx + 1, ez - 1, P.tEye);
+    for (let x = cx - 2; x <= cx + 1; x++) m.paintFront(x, ez + 1, P.tBrow);
+    if (v) { m.paintFront(cx - 1, ez - 2, P.tBrow); m.paintFront(cx, ez - 2, P.tBrow); m.paintFront(cx + 1, ez - 2, P.tBrow); m.paintFront(cx + 1, ez - 3, P.tCream); }
+    else { m.paintFront(cx - 1, ez - 2, P.tBrow); m.paintFront(cx, ez - 2, P.tBrow); }
     return m;
   }
 
-  // Hungergeist: 11 x 9 x 15
-  function ghostModel(f) {
-    const m = new Vox(11, 9, 15, 37);
-    const sw = [0, 0.8, 0, -0.8][f], arm = [0, 1, 0, -1][f];
-    const hz = 10.2;
-    m.blob(5.5, 4.5, hz, 4.4, 3.7, 3.9, (x, y, z) => (z + 0.5 > hz + 2.4 ? (rnd3(x, y, z, 2) < 0.3 ? P.gFrost : P.gW) : P.gW));
+  /* ---------------- fast creature: a spirit with a curling tail, alternating arm strokes and a trailing wisp ---------------- */
+  function ghostModel(i) {
+    const hurt = i >= 6;
+    const m = new Vox(13, 10, 17, 37);
+    const sw = hurt ? -1.4 : Math.sin((i / 6) * TAU) * 0.9, al = hurt ? 3 : [1, 1, 0, -1, -1, 0][i];
+    const hz = 10.2, hy = hurt ? 4.3 : 5;
+    m.blob(6.5, hy, hz, 4.4, 3.7, 3.9, (x, y, z) => (z + 0.5 > hz + 2.4 ? (rnd3(x, y, z, 2) < 0.3 ? P.gFrost : P.gW) : P.gW));
     for (let z = 1; z <= 7; z++) {
       const r = 0.9 + (z - 1) * 0.55;
-      const cx = 5.5 + sw * (7 - z) * 0.35 + (z < 3 ? sw * 0.6 : 0);
-      m.blob(cx, 4.5 - (7 - z) * 0.12, z + 0.5, r, r * 0.85, 0.55, z < 3 ? P.gDeep : z < 5 ? P.gIce : P.gMid);
+      const cx = 6.5 + sw * (7 - z) * 0.35 + (z < 3 ? sw * 0.6 : 0);
+      m.blob(cx, 5 - (7 - z) * 0.12, z + 0.5, r, r * 0.85, 0.55, z < 3 ? P.gDeep : z < 5 ? P.gIce : P.gMid);
     }
-    // little tail curl
-    m.set(Math.round(5.5 + sw * 2.6), 4, 0, P.gDeep);
-    // arms reaching forward
-    m.box(0, 5, 7 + (arm > 0 ? 1 : 0), 1, 7, 7 + (arm > 0 ? 1 : 0), P.gMid);
-    m.box(9, 5, 7 + (arm < 0 ? 1 : 0), 10, 7, 7 + (arm < 0 ? 1 : 0), P.gMid);
-    m.set(0, 8, 7 + (arm > 0 ? 1 : 0), P.gIce); m.set(10, 8, 7 + (arm < 0 ? 1 : 0), P.gIce);
-    // hollow eyes + gaping mouth
+    m.set(Math.round(6.5 + sw * 2.6), 4, 0, P.gDeep);
+    const armZ = (a) => 7 + a;
+    m.box(0, 5, armZ(al), 1, 7, armZ(al), P.gMid); m.set(0, 8, armZ(al), P.gIce);
+    m.box(11, 5, armZ(hurt ? al : -al), 12, 7, armZ(hurt ? al : -al), P.gMid); m.set(12, 8, armZ(hurt ? al : -al), P.gIce);
+    // wisp: two voxels on top trailing back, flicking with the stroke
+    const wt = Math.ceil(hz + 3.9);
+    m.set(6, Math.round(hy) - 1, wt, P.gFrost); m.set(6 + (al > 0 ? 1 : 0), Math.round(hy) - 2, wt + 1, P.gFrost);
     const ez = Math.round(hz) + 1;
-    for (const [x, z] of [[3, ez], [4, ez], [3, ez - 1], [4, ez - 1], [6, ez], [7, ez], [6, ez - 1], [7, ez - 1]]) m.paintFront(x, z, P.gHole);
-    for (const [x, z] of [[5, ez - 3], [4, ez - 4], [5, ez - 4], [6, ez - 4], [5, ez - 5], [4, ez - 3], [6, ez - 3]]) m.paintFront(x, z, z === ez - 5 ? P.gMouth : P.gHole);
+    const eyes = hurt ? [[4, ez + 1], [5, ez + 1], [4, ez], [5, ez], [4, ez - 1], [5, ez - 1], [7, ez + 1], [8, ez + 1], [7, ez], [8, ez], [7, ez - 1], [8, ez - 1]]
+      : [[4, ez], [5, ez], [4, ez - 1], [5, ez - 1], [7, ez], [8, ez], [7, ez - 1], [8, ez - 1]];
+    for (const [x, z] of eyes) m.paintFront(x, z, P.gHole);
+    const mouth = hurt ? [[5, ez - 3], [6, ez - 3], [7, ez - 3], [5, ez - 4], [6, ez - 4], [7, ez - 4], [6, ez - 5]] : [[6, ez - 3], [5, ez - 4], [6, ez - 4], [7, ez - 4], [6, ez - 5], [5, ez - 3], [7, ez - 3]];
+    for (const [x, z] of mouth) m.paintFront(x, z, z === ez - 5 ? P.gMouth : P.gHole);
     return m;
   }
 
-  // Steckrüben-Koloss: 19 x 16 x 25
-  function colossusModel(f) {
-    const m = new Vox(19, 16, 25, 51);
-    const legY = [1, 0, -1, 0][f], lift = [0, 1, 0, 1][f], armY = -legY;
-    m.box(4, 6 + legY, 0, 7, 9 + legY, 4 + lift, (x, y, z) => (z === 0 ? P.cRoot : P.cBrDk));
-    m.box(11, 6 - legY, 0, 14, 9 - legY, 4 + lift, (x, y, z) => (z === 0 ? P.cRoot : P.cBrDk));
-    m.set(3, 9 + legY, 0, P.cRoot); m.set(15, 9 - legY, 0, P.cRoot);
-    const cz = 12.5 + lift;
-    m.blob(9.5, 8, cz, 7.6, 6.6, 8.4, (x, y, z) => {
-      const t = z + 0.5 - cz + (rnd3(x, y, z, 7) - 0.5) * 2.2;
+  /* ---------------- large creature: heavy stomp, body drops on every footfall, leaf crown lags ---------------- */
+  function colossusModel(i) {
+    const hurt = i >= 6;
+    const m = new Vox(19, 16, 28, 51);
+    const legY = hurt ? 0 : [1, 1, 0, -1, -1, 0][i];
+    const liftL = hurt ? 0 : [0, 0, 0, 0, 0, 1][i], liftR = hurt ? 0 : [0, 0, 1, 0, 0, 0][i];
+    const drop = hurt ? 0 : (i % 3 === 0 ? -1 : 0), armY = hurt ? 0 : -legY, leafUp = hurt ? 2 : (i % 3 === 0 ? 1 : 0);
+    m.box(4, 6 + legY, liftL, 7, 9 + legY, 4 + drop + 1, (x, y, z) => (z === liftL ? P.cRoot : P.cBrDk));
+    m.box(11, 6 - legY, liftR, 14, 9 - legY, 4 + drop + 1, (x, y, z) => (z === liftR ? P.cRoot : P.cBrDk));
+    m.set(3, 9 + legY, liftL, P.cRoot); m.set(15, 9 - legY, liftR, P.cRoot);
+    const cz = 13.5 + drop, cy = hurt ? 7 : 8;
+    m.blob(9.5, cy, cz, 7.6, 6.6, 8.4, (x, y, z) => {
+      const t = z + 0.5 - cz + (rnd3(x, y, z, 7) - 0.5) * 1.6;
       const sp = rnd3(x, y, z, 13);
-      if (t > 1.5) return sp < 0.16 ? P.cPurDk : sp > 0.9 ? P.cPurLt : P.cPur;
-      if (t > 0) return sp < 0.5 ? P.cPur : P.cBr;
-      return sp < 0.18 ? P.cBrDk : P.cBr;
+      if (t > 1.5) return sp < 0.12 ? P.cPurDk : sp > 0.92 ? P.cPurLt : P.cPur;
+      if (t > 0) return (x + z) % 3 === 0 ? P.cBr : P.cPur;
+      return sp < 0.14 ? P.cBrDk : P.cBr;
     }, 2.4);
-    // arms + fists
-    m.box(0, 6 + armY, Math.floor(cz) - 3, 2, 9 + armY, Math.floor(cz) + 3, (x, y, z) => (rnd3(x, y, z, 4) < 0.3 ? P.cPurDk : P.cPur));
-    m.box(16, 6 - armY, Math.floor(cz) - 3, 18, 9 - armY, Math.floor(cz) + 3, (x, y, z) => (rnd3(x, y, z, 4) < 0.3 ? P.cPurDk : P.cPur));
-    m.box(0, 6 + armY, Math.floor(cz) - 6, 2, 9 + armY, Math.floor(cz) - 4, P.cBrDk);
-    m.box(16, 6 - armY, Math.floor(cz) - 6, 18, 9 - armY, Math.floor(cz) - 4, P.cBrDk);
-    m.set(1, 8 + armY, Math.floor(cz) - 7, P.cRoot); m.set(17, 7 - armY, Math.floor(cz) - 7, P.cRoot);
-    // leaf crown
-    const tz = Math.floor(cz + 7.6);
-    m.box(8, 7, tz, 10, 9, tz + 1, P.cLeafDk);
+    const fz = Math.floor(cz);
+    if (hurt) {
+      m.box(0, 6, fz + 1, 2, 9, fz + 7, (x, y, z) => (rnd3(x, y, z, 4) < 0.3 ? P.cPurDk : P.cPur)); m.box(0, 6, fz + 8, 2, 9, fz + 10, P.cBrDk);
+      m.box(16, 6, fz + 1, 18, 9, fz + 7, (x, y, z) => (rnd3(x, y, z, 4) < 0.3 ? P.cPurDk : P.cPur)); m.box(16, 6, fz + 8, 18, 9, fz + 10, P.cBrDk);
+    } else {
+      m.box(0, 6 + armY, fz - 3, 2, 9 + armY, fz + 3, (x, y, z) => (rnd3(x, y, z, 4) < 0.3 ? P.cPurDk : P.cPur));
+      m.box(16, 6 - armY, fz - 3, 18, 9 - armY, fz + 3, (x, y, z) => (rnd3(x, y, z, 4) < 0.3 ? P.cPurDk : P.cPur));
+      m.box(0, 6 + armY, fz - 6, 2, 9 + armY, fz - 4, P.cBrDk); m.box(16, 6 - armY, fz - 6, 18, 9 - armY, fz - 4, P.cBrDk);
+      m.set(1, 8 + armY, fz - 7, P.cRoot); m.set(17, 7 - armY, fz - 7, P.cRoot);
+    }
+    const tz = Math.floor(cz + 7.6) + leafUp;
+    m.box(8, 7, tz - leafUp, 10, 9, tz + 1, P.cLeafDk);
     m.box(5, 7, tz + 2, 7, 8, tz + 4, P.cLeaf); m.box(4, 7, tz + 5, 5, 7, tz + 5, P.cLeaf);
     m.box(11, 8, tz + 2, 13, 9, tz + 4, P.cLeaf); m.box(13, 9, tz + 5, 14, 9, tz + 5, P.cLeaf);
     m.box(9, 6, tz + 2, 10, 6, tz + 5, P.cLeafDk); m.set(9, 6, tz + 6, P.cLeaf);
-    // glowing cracks
     const cracks = [
       [[5, 17], [6, 16], [6, 15], [7, 14], [7, 13], [6, 12], [6, 11], [7, 10], [7, 9]],
       [[13, 18], [13, 17], [12, 16], [12, 15], [13, 14], [13, 13], [12, 12]],
       [[10, 9], [10, 8], [11, 7], [11, 6]],
     ];
-    for (const cr of cracks) for (const [x, z] of cr) m.paintFront(x, z + lift, (z & 1) ? P.cCrack : P.cCrackHot);
-    // eyes + brow + mouth
+    for (const cr of cracks) for (const [x, z] of cr) m.paintFront(x, z + 1 + drop, (z & 1) ? P.cCrack : P.cCrackHot);
     const ez = Math.round(cz) + 3;
-    for (const x of [6, 7, 11, 12]) m.paintFront(x, ez, P.cEye);
-    for (const x of [5, 6, 7, 8, 10, 11, 12, 13]) m.paintFront(x, ez + 1, P.cPurDk);
+    const eyes = hurt ? [[6, ez], [7, ez], [6, ez + 1], [11, ez], [12, ez], [12, ez + 1]] : [[6, ez], [7, ez], [11, ez], [12, ez]];
+    for (const [x, z] of eyes) m.paintFront(x, z, P.cEye);
+    for (const x of [5, 6, 7, 8, 10, 11, 12, 13]) m.paintFront(x, ez + (hurt ? 2 : 1), P.cPurDk);
     for (const x of [7, 8, 9, 10, 11]) m.paintFront(x, ez - 3, P.cMouth);
     m.paintFront(8, ez - 4, P.cMouth); m.paintFront(10, ez - 4, P.cMouth); m.paintFront(9, ez - 3, P.cCrack);
+    if (hurt) for (const x of [8, 9, 10]) m.paintFront(x, ez - 5, P.cMouth);
     return m;
   }
 
@@ -694,10 +745,11 @@
 
   function buildAll() {
     buildPalette();
-    SET.jack = charSet(jackModel, 5, PPV);
-    SET.creeper = charSet(creeperModel, 4, PPV);
-    SET.ghost = charSet(ghostModel, 4, PPV, 2);
-    SET.colossus = charSet(colossusModel, 4, PPV);
+    SET.jack = charSet(jackModel, 16, PPV);
+    SET.creeper = charSet((f) => creeperModel(f), 7, PPV);
+    SET.creeper2 = charSet((f) => creeperModel(f, { v: 1 }), 7, PPV);
+    SET.ghost = charSet(ghostModel, 7, PPV, 2);
+    SET.colossus = charSet(colossusModel, 7, PPV);
     SET.lantern = spinSet(lanternModel(), 8, PPV * 0.85);
     SET.seed = spinSet(seedModel(), 6, PPV * 0.75);
     SET.gem = spinSet(gemModel(false), 8, PPV * 0.6);
@@ -793,13 +845,13 @@
   function cellColor(i, j, cm, out) {
     const x = (i + 0.5) * CELL, y = (j + 0.5) * CELL;
     const hv = U.hash2(i, j, 77);
-    const pn = U.noise(x / 44, y / 44, 13);
-    const v = clamp(pn * 0.85 + hv * 0.3 - 0.1, 0, 0.999);
+    const pn = U.noise(x / 64, y / 64, 13) * 0.75 + U.noise(x / 22, y / 22, 14) * 0.25;
+    const v = clamp(pn * 1.05 + hv * 0.1 - 0.1, 0, 0.999);
     let c;
     switch (cm.mat) {
       case GRASS: { const p = GP.grass; c = p[Math.floor(v * p.length)]; if (cm.h === 2) c = U.mul(c, 1.05); break; }
       case LEAF: {
-        const t = clamp(hv * 0.35 + U.noise(x / 26, y / 26, 17) * 0.8 - 0.12, 0, 0.999);
+        const t = clamp(hv * 0.12 + U.noise(x / 34, y / 34, 17) * 0.95 - 0.08, 0, 0.999);
         let k = 0; while (LEAF_CUM[k] < t && k < LEAF_CUM.length - 1) k++;
         c = GP.leaf[k]; if (cm.h === 2) c = U.mul(c, 1.05);
         break;
@@ -908,6 +960,23 @@
       return fy < Math.min(3.5, (hn - h) * 1.9) + 0.8;
     };
     let n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const sz = info.size;
+      for (const p of genProps({ cx: info.cx + dx, cy: info.cy + dy, wx: (info.cx + dx) * sz, wy: (info.cy + dy) * sz, size: sz })) {
+        const ci = p.t === 'tree0' ? 0 : p.t === 'tree1' ? 1 : p.t === 'tree2' ? 2 : -1;
+        if (ci < 0 || p.x < wx - 30 || p.x > wx + info.size + 30 || p.y < wy - 20 || p.y > wy + info.size + 20) continue;
+        for (let k = 0; k < 16; k++) {
+          const a = U.hash2(k, p.x | 0, 61) * TAU, rr = Math.sqrt(U.hash2(k, p.y | 0, 62));
+          const lx = Math.round((p.x + 3 + Math.cos(a) * rr * 18) * 2) / 2, ly = Math.round((p.y + 2 + Math.sin(a) * rr * 10) * 2) / 2;
+          const kk = at(lx, ly);
+          if (kk < 0 || MAT[kk] === WATER || MAT[kk] === PATH) continue;
+          const col = LITTER_COLS[ci][k % 3];
+          ctx.fillStyle = 'rgba(60,30,10,0.22)'; ctx.fillRect(lx + 0.4, ly + 0.4, 1.6, 1.1);
+          ctx.fillStyle = col; ctx.fillRect(lx, ly, 1.6, 1.1);
+        }
+      }
+    }
+    yield;
     const deco = [];
     G.scatter(info, 7, 8123, 5, (x, y, rng) => { deco.push(x, y, rng.next(), rng.next(), rng.next(), rng.next()); });
     for (let q = 0; q < deco.length; q += 6) {
@@ -918,13 +987,15 @@
       if (k < 0 || inBand(k, y)) continue;
       const mat = MAT[k];
       if (mat === GRASS) {
-        if (r0 < 0.38) tuft(ctx, x, y, r1, r2, GRASS_TUFT);
-        else if (r0 < 0.47) flower(ctx, x, y, r1, r2);
-        else if (r0 < 0.5) pebble(ctx, x, y, r1);
+        // tufts gather in clumps, flowers grow in patches of one colour, pebbles are rare
+        const clump = U.noise(x / 46, y / 46, 707), patch = U.noise(x / 80, y / 80, 808);
+        if (patch > 0.7 && r0 < 0.2) flower(ctx, x, y, U.noise(x / 150, y / 150, 812), r2);
+        else if (clump > 0.6 ? r0 < 0.45 : r0 < 0.025) tuft(ctx, x, y, r1, r2, GRASS_TUFT);
+        else if (r0 > 0.985) pebble(ctx, x, y, r1);
       } else if (mat === LEAF) {
-        if (r0 < 0.4) leafy(ctx, x, y, r1, r2, r3);
-        else if (r0 < 0.47) tuft(ctx, x, y, r1, r2, LEAF_TUFT);
-        else if (r0 < 0.5) twig(ctx, x, y, r1);
+        if (r0 < 0.06) leafy(ctx, x, y, r1, r2, r3);
+        else if (r0 < 0.1 && U.noise(x / 46, y / 46, 709) > 0.55) tuft(ctx, x, y, r1, r2, LEAF_TUFT);
+        else if (r0 < 0.12) twig(ctx, x, y, r1);
       } else if (mat === FIELD) {
         if (r0 < 0.22) sprout(ctx, x, Math.floor(y / CELL) * CELL + 2, r1);
         else if (r0 < 0.3) clod(ctx, x, y, r1);
@@ -977,6 +1048,7 @@
     if (r1 > 0.6) mini(ctx, x + s + 0.4, y + 0.6, 0.8, 0.5, '#c3c2c0', '#8e8c88');
   }
   const LEAVES = ['#f08a2c', '#e05a2e', '#f2b23e', '#c94a2c', '#e8702a'];
+  const LITTER_COLS = [['#f08a2c', '#e2701f', '#f7a845'], ['#df4c34', '#c93a2c', '#ec6a45'], ['#f0c03e', '#e2a52f', '#f8d867']];
   function leafy(ctx, x, y, r1, r2, r3) {
     const n = 1 + Math.floor(r2 * 3);
     for (let i = 0; i < n; i++) {
@@ -1024,7 +1096,11 @@
   }
 
   /* ================================ props ================================ */
+  const propMemo = new Map();
   function genProps(info) {
+    const key = info.cx + ',' + info.cy;
+    const hit = propMemo.get(key);
+    if (hit) return hit.map((p) => Object.assign({}, p));
     const out = [];
     const cm = {};
     const ok = (x, y, mat) => {
@@ -1069,6 +1145,8 @@
         else if (r < 0.36) add('jackl');
       }
     });
+    if (propMemo.size > 600) propMemo.clear();
+    propMemo.set(key, out.map((p) => Object.assign({}, p)));
     return out;
   }
 
@@ -1092,8 +1170,97 @@
       game.addParticle({ x, y, z, vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: (o.vz || 40) * Math.random(), grav: o.grav || 0, drag: 4, life: (o.life || 0.3) * (0.6 + Math.random() * 0.6), size: o.size || 1.6, kind: 'spark', color });
     }
   }
-  function ring(game, x, y, r0, r1, color, life = 0.5, lw = 2) {
-    game.addParticle({ x, y, z: 0, life, r0, r1, color, lw, kind: 'ring', drag: 0 });
+  function ring(game, x, y, r0, r1, color, life = 0.5, lw = 2, delay = 0) {
+    const p = game.addParticle({ x, y, z: 0, life: life + delay, r0, r1, color, lw, kind: 'ring', drag: 0 });
+    if (p) p.delay = delay;
+  }
+  /** Core flash: a voxel plus-burst that grows n whole steps. */
+  function flash(game, x, y, z, color, n, life) {
+    const p = game.addParticle({ x, y, z, life, kind: 'flash', color, drag: 0 });
+    if (p) p.n = n;
+  }
+  /** Residue: n dark tiles left on the ground grid. */
+  function scorch(game, x, y, n, color, life) {
+    const p = game.addParticle({ x, y, z: 0, life, kind: 'scorch', color, drag: 0 });
+    if (p) p.n = n;
+  }
+
+  const FR = { breaks: 0 };
+  const setOf = (e) => (e.type === 'creeper' && e.seed > 0.5 ? SET.creeper2 : SET[e.type]);
+  /** Death: the hit pose breaks into voxel blocks (rectangular slices of the sprite) that fly out, tumble in
+      eighth-turn steps, land on the ground and fade; spirits float up and shrink instead. */
+  function drawBreak(ctx, s, fl, x, y, u, type, alpha, seed) {
+    const W = s.c.width, H = s.c.height, big = type === 'colossus', ghost = type === 'ghost';
+    const cols = big ? 4 : 3, rows = big ? 5 : 4, pw = W / cols, ph = H / rows;
+    const ease = 1 - (1 - u) * (1 - u), fade = 1 - U.smoothstep(0.55, 1, u);
+    const cy0 = -(s.ay / K) * 0.5;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const h = U.hashInt(c, r, (seed * 1e5) | 0);
+      const hx = (h & 255) / 255, hy = ((h >>> 8) & 255) / 255, hs = ((h >>> 16) & 255) / 255;
+      const gx = (c * pw + pw / 2 - s.ax) / K, gy = (r * ph + ph / 2 - s.ay) / K;
+      let dx = gx, dy = gy - cy0;
+      const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      const sp = (big ? 7 : 13) * (0.7 + hx * 0.6);
+      const ox = dx * sp * ease, oy = dy * sp * 0.4 * ease;
+      const oz = ghost ? (6 + hy * 10) * ease : Math.max(gy + 1, (big ? 6 : 14) * (0.6 + hy * 0.7) * u - (big ? 30 : 40) * u * u);
+      const rot = Math.round((hs - 0.5) * 6 * ease) * (Math.PI / 4);
+      const sc = ghost ? 1 - 0.6 * u : 1;
+      ctx.save();
+      ctx.globalAlpha = alpha * fade;
+      ctx.translate(x + gx + ox, y + gy + oy - oz);
+      if (rot) ctx.rotate(rot);
+      if (sc !== 1) ctx.scale(sc, sc);
+      ctx.drawImage(s.c, c * pw, r * ph, pw, ph, -pw / 2 / K, -ph / 2 / K, pw / K, ph / K);
+      if (u < 0.35) { ctx.globalAlpha = alpha * fade * (1 - u / 0.35); ctx.drawImage(fl.c, c * pw, r * ph, pw, ph, -pw / 2 / K, -ph / 2 / K, pw / K, ph / K); }
+      ctx.restore();
+    }
+  }
+  /** Spawn: voxels stack up layer by layer from the ground (dirt cubes pop out), then the body lands with a bounce.
+      Spirits are revealed from the top down and flicker while they form. */
+  function drawStack(ctx, e, s, lift, alpha) {
+    const t = e.spawnT, layer = PPV * CP, total = s.c.height, u = Math.min(1, t / 0.75);
+    const x0 = Math.round(e.x * VSC - (s.ax * VSC) / K) / VSC, y0 = Math.round((e.y - lift) * VSC - (s.ay * VSC) / K) / VSC;
+    const vis = Math.min(total, Math.round(Math.ceil((U.ease.outQuad(u) * total) / layer) * layer));
+    ctx.globalAlpha = alpha;
+    if (e.type === 'ghost') {
+      if (vis > 0) {
+        ctx.globalAlpha = alpha * (u < 1 && Math.floor(RT * 26 + e.seed * 9) & 1 ? 0.55 : 1);
+        ctx.drawImage(s.c, 0, 0, s.c.width, vis, x0, y0, s.c.width / K, vis / K);
+      }
+    } else if (u < 1) {
+      if (vis > 0) { const sy = total - vis; ctx.drawImage(s.c, 0, sy, s.c.width, vis, x0, y0 + sy / K, s.c.width / K, vis / K); }
+    } else {
+      const b = (t - 0.75) / 0.25;
+      const st = b < 0.4 ? 1 + 0.1 * Math.sin((b / 0.4) * Math.PI) : 1 - 0.07 * Math.sin(((b - 0.4) / 0.6) * Math.PI);
+      blitScaled(ctx, s, e.x, e.y - lift, 1 / Math.sqrt(st), st);
+    }
+    if (e.type !== 'ghost') {
+      for (let i = 0; i < 5; i++) {
+        const a = e.seed * 20 + i * 1.3, r = (4 + t * 10) * (e.type === 'colossus' ? 1.6 : 1);
+        const z = Math.sin(Math.min(1, t * 1.4) * Math.PI) * (6 + i * 2);
+        const cf = CUBES[DEB.dirt[i % 3]][(i + Math.floor(t * 12)) % 6];
+        ctx.globalAlpha = 1 - t * 0.8;
+        blitScaled(ctx, cf, e.x + Math.cos(a) * r, e.y + Math.sin(a) * r * 0.5 - z, 0.7, 0.7);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  const leafMemo = new Map();
+  /** Falling-leaf cells over the autumn woods: 1 + colour index, or 0. */
+  function leafCell(i, j, C) {
+    const k = i * 100003 + j;
+    let v = leafMemo.get(k);
+    if (v !== undefined) return v;
+    const hsh = U.hashInt(i, j, 4040);
+    v = 0;
+    if (hsh & 1) {
+      const cm = {};
+      cellMat(Math.floor(((i + 0.5) * C) / CELL), Math.floor(((j + 0.5) * C) / CELL), cm);
+      if (cm.mat === LEAF) v = 1 + ((hsh >>> 3) % 5);
+    }
+    if (leafMemo.size > 6000) leafMemo.clear();
+    leafMemo.set(k, v);
+    return v;
   }
 
   /* ================================ screen fx ================================ */
@@ -1181,7 +1348,7 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
     id: 'voxel',
     name: 'Voxel-Würfelwelt',
     family: '3D-Look · Voxel',
-    description: 'Eine knallbunte Miniaturwelt aus kleinen Würfeln – Kürbis-Jack, Rüben und Geister als MagicaVoxel-Figuren im Herbstsonnenlicht.',
+    description: 'A bright MagicaVoxel-style miniature world: every object is a real 3D cube grid, baked to sprites under one warm afternoon sun.',
     groundColor: '#6eae46',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1204,6 +1371,7 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
     drawGroundOverlay(ctx, view) {
       VSC = view.S;
       RT = view.rt;
+      FR.breaks = 0;
       // water shimmer: little glints that blink on the pond voxels
       const s = 256;
       const cx0 = Math.floor(view.x0 / s), cx1 = Math.floor(view.x1 / s), cy0 = Math.floor(view.y0 / s), cy1 = Math.floor(view.y1 / s);
@@ -1256,12 +1424,12 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
       if (o.kind === 'prop') { const s = PROPS[o.t]; if (!s || !s.sh) return; sh = s.sh; a = 0.4; }
       else if (o.kind === 'player') sh = SET.jack.sh[yawSide(o.facing)];
       else {
-        const set = SET[o.type];
+        const set = setOf(o);
         if (!set) return;
         sh = set.sh[yawSide(o.facing)];
         if (o.type === 'ghost') a = 0.22;
         if (o.dying) a *= Math.max(0, 1 - o.deathT / 0.3);
-        if (o.spawnT < 1) a *= o.spawnT;
+        if (o.spawnT < 1) a *= U.smoothstep(0.1, 0.7, o.spawnT);
       }
       if (!sh || a <= 0.01) return;
       ctx.globalAlpha = a;
@@ -1273,7 +1441,9 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
       const fr = g.big ? SET.gemBig : SET.gem;
       const fi = Math.floor((view.rt * 1.6 + g.seed * 7) * fr.length) % fr.length;
       const hop = g.pop > 0 ? Math.sin(g.pop * Math.PI) * 9 : 0;
-      const z = 2.4 + Math.sin(view.rt * 3 + g.seed * 10) * 0.9 + hop;
+      // hover in whole half-voxel steps with a hold at the top and bottom
+      const w = U.fract(view.rt * 0.6 + g.seed * 3), tri = w < 0.5 ? w * 2 : 2 - w * 2;
+      const z = 1.6 + Math.round(U.smoothstep(0, 1, tri) * 3) * 0.6 + hop;
       ctx.globalAlpha = 0.28;
       ctx.fillStyle = '#1d2a14';
       const sw = g.big ? 5 : 3.2;
@@ -1288,58 +1458,45 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
     },
 
     drawEnemy(ctx, e) {
-      const set = SET[e.type];
+      const set = setOf(e);
       if (!set) return;
-      const side = yawSide(e.facing);
+      const side = yawSide(e.facing), NW = 6;
       let fi, lift = 0, alpha = 1;
       if (e.type === 'ghost') {
-        fi = Math.floor(RT * 6 + e.seed * 4) & 3;
-        lift = 2.5 + Math.sin(RT * 2.8 + e.seed * 20) * 1.5;
-        alpha = 0.84;
-      } else if (e.type === 'creeper') {
-        fi = Math.floor(e.anim * 1.8) & 3;
-      } else {
-        fi = Math.floor(e.anim * 1.3) & 3;
-      }
-      const s = set.frames[side][fi];
+        fi = Math.floor(RT * 9 + e.seed * 6) % NW;
+        const w = U.fract(RT * 0.45 + e.seed * 3.7), tri = w < 0.5 ? w * 2 : 2 - w * 2;
+        lift = 1.6 + Math.round(U.smoothstep(0, 1, tri) * 4) * 0.75; // eased hover, stepped
+        alpha = 0.86;
+      } else fi = Math.floor(e.anim * (e.type === 'creeper' ? 2.7 : 1.95)) % NW;
+      if (fi < 0) fi += NW;
       if (e.dying) {
-        const t = e.deathT / 0.28;
-        if (t >= 1) return;
-        ctx.globalAlpha = alpha;
-        blitScaled(ctx, s, e.x, e.y - lift, 1 + t * 0.35, 1 - t * 0.6);
-        ctx.globalAlpha = 0.6 * (1 - t);
-        blitScaled(ctx, tintOf(set, side, fi, '#ffffff'), e.x, e.y - lift, 1 + t * 0.35, 1 - t * 0.6);
-        ctx.globalAlpha = 1;
-        return;
-      }
-      if (e.spawnT < 1) {
-        const t = e.spawnT;
-        const layer = PPV * CP;
-        const total = s.c.height;
-        const vis = Math.min(total, Math.round(Math.ceil((U.ease.outQuad(t) * total) / layer) * layer));
-        if (vis > 0) {
-          const sy = total - vis;
+        const t = e.deathT, s = set.frames[side][NW];
+        if (t < 0.14) {
+          // anticipation: one voxel taller and wider, whiting out
+          const u = t / 0.14;
           ctx.globalAlpha = alpha;
-          const x0 = Math.round(e.x * VSC - (s.ax * VSC) / K) / VSC, y0 = Math.round((e.y - lift) * VSC - (s.ay * VSC) / K) / VSC;
-          ctx.drawImage(s.c, 0, sy, s.c.width, vis, x0, y0 + sy / K, s.c.width / K, vis / K);
-        }
-        // popping dirt cubes
-        for (let i = 0; i < 4; i++) {
-          const a = e.seed * 20 + i * 1.7, r = 4 + t * 10;
-          const z = Math.sin(Math.min(1, t * 1.4) * Math.PI) * (6 + i * 2);
-          const cf = CUBES[DEB.dirt[i % 3]][(i + Math.floor(t * 12)) % 6];
-          ctx.globalAlpha = 1 - t * 0.8;
-          blitScaled(ctx, cf, e.x + Math.cos(a) * r, e.y + Math.sin(a) * r * 0.5 - z, 0.7, 0.7);
-        }
+          blitScaled(ctx, s, e.x, e.y - lift, 1.1, 1.06);
+          ctx.globalAlpha = alpha * u;
+          blitScaled(ctx, tintOf(set, side, NW, '#ffffff'), e.x, e.y - lift, 1.1, 1.06);
+        } else if (FR.breaks++ < 8) drawBreak(ctx, s, tintOf(set, side, NW, '#ffffff'), e.x, e.y - lift, (t - 0.14) / 0.86, e.type, alpha, e.seed);
+        else { const u = (t - 0.14) / 0.86; ctx.globalAlpha = alpha * (1 - u); blitScaled(ctx, s, e.x, e.y - lift + u * 4, 1, 1 - 0.6 * u); }
         ctx.globalAlpha = 1;
         return;
       }
+      const s0 = set.frames[side][fi];
+      if (e.spawnT < 1) { drawStack(ctx, e, s0, lift, alpha); return; }
+      const hk = e.flash;
+      if (hk > 0.25) fi = NW;
+      const s = set.frames[side][fi];
       ctx.globalAlpha = alpha;
-      blit(ctx, s, e.x, e.y - lift);
-      if (e.flash > 0.04) {
-        ctx.globalAlpha = Math.min(0.58, e.flash * 0.8);
-        blit(ctx, tintOf(set, side, fi, '#ffffff'), e.x, e.y - lift);
-      }
+      if (hk > 0.25) {
+        // hit: hit pose, knocked one voxel in the push direction, squashed, white flash
+        const dir = Math.abs(e.kx) > 2 ? Math.sign(e.kx) : -e.facing;
+        const kx = hk > 0.55 ? dir * VW : 0;
+        blitScaled(ctx, s, e.x + kx, e.y - lift, 1.08, 0.93);
+        ctx.globalAlpha = Math.min(0.75, hk * 0.9);
+        blitScaled(ctx, tintOf(set, side, fi, '#ffffff'), e.x + kx, e.y - lift, 1.08, 0.93);
+      } else blit(ctx, s, e.x, e.y - lift);
       if (e.type === 'colossus') {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 0.32 + 0.12 * Math.sin(RT * 4 + e.seed * 9);
@@ -1352,12 +1509,15 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
 
     drawPlayer(ctx, p, view) {
       const set = SET.jack;
-      const side = yawSide(p.facing);
-      const fi = p.moving ? 1 + (Math.floor(p.anim * 1.6) & 3) : 0;
-      const lift = p.moving ? 0 : Math.max(0, Math.sin(view.rt * 2.6)) * 0.6;
+      const side = yawSide(p.dashT > 0 ? (p.dashX < 0 ? -1 : 1) : p.facing);
+      let fi;
+      if (p.hurtT > 0.62) fi = J_HURT;
+      else if (p.dashT > 0) fi = 0.2 - p.dashT < 0.045 ? J_CROUCH : J_LUNGE;
+      else if (p.moving) fi = Math.floor(p.anim * 3.2) % 8;
+      else fi = (view.rt + 0.9) % 3.4 < 0.14 ? J_BLINK : J_IDLE + (Math.floor(view.rt / 0.45) % 4);
       const s = set.frames[side][fi];
       if (p.levelT > 0) {
-        const t = 1 - p.levelT, r = 10 + t * 36;
+        const t = 1 - p.levelT, r = Math.round((10 + t * 36) / VW) * VW;
         ctx.globalAlpha = p.levelT;
         ctx.strokeStyle = '#ffd84a';
         ctx.lineWidth = 2.6 * p.levelT + 0.6;
@@ -1367,30 +1527,50 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
         ctx.drawImage(FX.warm, p.x - 30, p.y - 46, 60, 60);
         ctx.globalCompositeOperation = 'source-over';
       }
-      if (p.dashT > 0) {
+      if (p.dashT > 0 && fi === J_LUNGE) {
         const tt = tintOf(set, side, fi, '#ffb347');
-        for (let i = 3; i >= 1; i--) {
-          ctx.globalAlpha = 0.17 * (4 - i) * Math.min(1, p.dashT * 6);
-          blit(ctx, tt, p.x - p.dashX * i * 6, p.y - p.dashY * i * 6);
+        for (let i = 2; i >= 1; i--) {
+          ctx.globalAlpha = 0.22 * (3 - i) * Math.min(1, p.dashT * 6);
+          blit(ctx, tt, p.x - Math.round(p.dashX * i * 7 / VW) * VW, p.y - Math.round(p.dashY * i * 7 / VW) * VW);
         }
       }
       let a = 1;
       if (p.iframes > 0 && p.hurtT <= 0 && p.dashT <= 0) a = Math.floor(view.rt * 18) % 2 ? 0.5 : 1;
       ctx.globalAlpha = a;
-      blit(ctx, s, p.x, p.y - lift);
-      if (p.hurtT > 0) {
-        ctx.globalAlpha = Math.min(0.6, p.hurtT * 0.8);
-        blit(ctx, tintOf(set, side, fi, '#ff4a3a'), p.x, p.y - lift);
+      blit(ctx, s, p.x, p.y);
+      if (p.hurtT > 0 && fi === J_HURT) {
+        ctx.globalAlpha = Math.min(0.7, p.hurtT * 0.8);
+        blit(ctx, tintOf(set, side, fi, '#ff4a3a'), p.x, p.y);
       }
-      // bloom of the carved face
+      // bloom of the carved face (follows the head's voxel offsets, dimmed during a blink)
+      const q = jackPose(fi);
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.34 + 0.06 * Math.sin(view.rt * 9);
-      const gz = (fi === 2 || fi === 4 ? 13 : 12) * CP * VW + lift;
+      ctx.globalAlpha = (0.34 + 0.06 * Math.sin(view.rt * 9)) * (fi === J_BLINK ? 0.35 : 1);
+      const gz = (13 + (q.bob || 0) + (q.hz || 0)) * CP * VW;
       ctx.drawImage(FX.warm, p.x - 11 + (side ? -2.5 : 2.5), p.y - gz - 9, 22, 18);
       ctx.globalCompositeOperation = 'source-over';
       ctx.globalAlpha = 1;
     },
 
+    /** Ambient: single leaf voxels flutter down over the autumn woods (slower than the actors). */
+    drawWorldOverlay(ctx, view) {
+      const C = 56;
+      const i0 = Math.floor(view.x0 / C) - 1, i1 = Math.floor(view.x1 / C), j0 = Math.floor(view.y0 / C), j1 = Math.floor(view.y1 / C) + 1;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const v = leafCell(i, j, C);
+        if (!v) continue;
+        const h = U.hash2(i, j, 41), per = 5 + h * 3, ph = U.fract(view.rt / per + h * 7);
+        const z = Math.round((46 * (1 - ph)) / VW) * VW;
+        const x = Math.round(((i + h) * C + Math.sin(ph * TAU * 1.3 + h * 9) * 8 + ph * 14) / (VW * 0.5)) * VW * 0.5, y = (j + U.hash2(i, j, 42)) * C;
+        if (x < view.x0 - 8 || x > view.x1 + 8 || y - z < view.y0 - 8 || y > view.y1 + 60) continue;
+        const flip = Math.cos(view.rt * 3.2 + h * 20) > 0;
+        ctx.globalAlpha = Math.min(1, ph * 6, (1 - ph) * 8);
+        ctx.fillStyle = LEAVES[(v - 1) % LEAVES.length];
+        const s = VW * 0.9;
+        ctx.fillRect(x, y - z, flip ? s : s * 0.5, flip ? s * 0.5 : s);
+      }
+      ctx.globalAlpha = 1;
+    },
     drawOrbital(ctx, o, view) {
       const fr = SET.lantern;
       const fi = (((Math.floor((o.angle / (Math.PI / 2)) * fr.length) % fr.length) + fr.length) % fr.length);
@@ -1434,7 +1614,7 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
           const fi = ((Math.floor(pt.rot * 2) % 6) + 6) % 6;
           ctx.globalAlpha = k < 0.3 ? k / 0.3 : 1;
           if (pt.z <= 0.5) { ctx.globalAlpha *= 0.4; ctx.fillStyle = '#1d2a14'; ctx.fillRect(pt.x - pt.size * 0.3, pt.y - pt.size * 0.1, pt.size * 0.9, pt.size * 0.4); ctx.globalAlpha = k < 0.3 ? k / 0.3 : 1; }
-          const sc = pt.size / 2;
+          const sc = (pt.size / 2) * (pt.z <= 0.5 ? 0.6 + 0.4 * Math.min(1, k / 0.3) : 1);
           blitScaled(ctx, fr[fi], x, y + pt.size * 0.3, sc, sc);
           break;
         }
@@ -1446,12 +1626,41 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
           break;
         }
         case 'ring': {
-          const t = 1 - k;
-          const r = pt.r0 + (pt.r1 - pt.r0) * U.ease.outQuad(t);
-          ctx.globalAlpha = k * 0.85;
-          ctx.strokeStyle = pt.color;
-          ctx.lineWidth = pt.lw * k + 0.4;
-          ctx.strokeRect(pt.x - r, pt.y - r * SP, r * 2, r * 2 * SP);
+          // a square ring on the ground that grows in whole-voxel steps
+          const age = pt.max - pt.life, d = pt.delay || 0;
+          if (age < d) break;
+          const t = (age - d) / (pt.max - d), kk = 1 - t;
+          const r = Math.round((pt.r0 + (pt.r1 - pt.r0) * (1 - (1 - t) * (1 - t))) / VW) * VW;
+          ctx.globalAlpha = kk * 0.85;
+          ctx.fillStyle = pt.color;
+          const lw = Math.max(0.6, Math.round(pt.lw * kk * 2) / 2), hh = r * SP;
+          ctx.fillRect(pt.x - r, pt.y - hh, r * 2, lw); ctx.fillRect(pt.x - r, pt.y + hh - lw, r * 2, lw);
+          ctx.fillRect(pt.x - r, pt.y - hh, lw, hh * 2); ctx.fillRect(pt.x + r - lw, pt.y - hh, lw, hh * 2);
+          break;
+        }
+        case 'flash': {
+          // core flash: a voxel plus-burst (centre block + 4 arms) growing in whole steps, white core
+          const t = 1 - k, n = Math.min(pt.n, 1 + Math.floor(t * (pt.n + 1))), s = VW * 0.9;
+          ctx.globalAlpha = Math.min(1, k * 1.6);
+          ctx.fillStyle = pt.color;
+          ctx.fillRect(x - s * 0.5 - n * s, y - s * 0.5, s * (2 * n + 1), s);
+          ctx.fillRect(x - s * 0.5, y - s * 0.5 - n * s, s, s * (2 * n + 1));
+          if (n > 1) ctx.fillRect(x - s * 1.5, y - s * 1.5, s * 3, s * 3);
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x - s * 0.5, y - s * 0.5, s, s);
+          break;
+        }
+        case 'scorch': {
+          // residue: a few dark ground tiles on the voxel grid, fading
+          const age = pt.max - pt.life;
+          ctx.globalAlpha = 0.32 * Math.min(1, age * 8) * Math.min(1, k * 2.2);
+          ctx.fillStyle = pt.color;
+          const g = VW * 1.5, cx = Math.round(pt.x / g) * g, cy = Math.round(pt.y / g) * g;
+          for (let i = 0; i < pt.n; i++) {
+            const h = U.hashInt(i, (pt.seed * 1e6) | 0, 3);
+            const ox = ((h & 7) - 3.5) * g * 0.7, oy = (((h >>> 3) & 7) - 3.5) * g * 0.45;
+            ctx.fillRect(Math.round((cx + ox) / g) * g - g / 2, Math.round((cy + oy) / g) * g - g * SP / 2, g, g * SP);
+          }
           break;
         }
         default: {
@@ -1463,7 +1672,6 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
       }
       ctx.globalAlpha = 1;
     },
-
     drawNumber(ctx, n) {
       const k = n.life / n.max, age = 1 - k;
       const pop = age < 0.12 ? 0.6 + (age / 0.12) * 0.55 : 1.15 - Math.min(0.15, (age - 0.12) * 0.6);
@@ -1505,41 +1713,60 @@ body.style-voxel #pausebox { font: 400 52px ${FH}; color: #ffc23e; text-shadow: 
     onHit(game, e, src) {
       const pal = DEB[e.type] || DEB.creeper;
       const z = e.type === 'colossus' ? 22 : e.type === 'ghost' ? 14 : 10;
-      cubes(game, e.x, e.y, z, pal, e.type === 'colossus' ? 3 : 2, { speed: 50, life: 0.5, size: 1.6, vz: 60 });
+      flash(game, e.x, e.y, z, src === 'lantern' ? '#ffd27a' : '#ffffff', 2, 0.12);
+      cubes(game, e.x, e.y, z, pal, e.type === 'colossus' ? 4 : 3, { speed: 55, life: 0.5, size: 1.6, vz: 60 });
       sparks(game, e.x, e.y, z, 2, src === 'lantern' ? '#ffd27a' : '#ffffff', { speed: 80 });
     },
     onKill(game, e) {
       const pal = DEB[e.type] || DEB.creeper;
       if (e.type === 'colossus') {
-        cubes(game, e.x, e.y, 8, pal, 34, { speed: 95, life: 1.4, size: 3.6, vz: 140, zr: 34, spread: 24 });
+        flash(game, e.x, e.y, 24, '#ffd36a', 4, 0.2);
+        cubes(game, e.x, e.y, 8, pal, 30, { speed: 95, life: 1.4, size: 3.6, vz: 140, zr: 34, spread: 24 });
+        cubes(game, e.x, e.y, 2, DEB.dirt, 8, { speed: 60, life: 0.9, size: 2.2, vz: 70 });
         ring(game, e.x, e.y, 10, 48, '#fff1c8', 0.55, 3);
+        ring(game, e.x, e.y, 6, 30, '#ffcf6a', 0.45, 2, 0.1);
         sparks(game, e.x, e.y, 24, 8, '#ffcf6a', { speed: 120, life: 0.45, size: 2.4 });
+        scorch(game, e.x, e.y, 5, '#3a2a40', 1.8);
         game.shake = Math.max(game.shake || 0, 4);
       } else if (e.type === 'ghost') {
+        flash(game, e.x, e.y, 14, '#e2f6ff', 3, 0.16);
         cubes(game, e.x, e.y, 10, pal, 10, { speed: 50, life: 0.8, size: 2, vz: 50, grav: -30, drag: 2.5 });
+        ring(game, e.x, e.y, 5, 22, '#e2f6ff', 0.35, 1.6);
+        scorch(game, e.x, e.y, 3, '#9fc4ee', 0.9);
       } else {
+        flash(game, e.x, e.y, 10, '#f4e9cc', 3, 0.16);
         cubes(game, e.x, e.y, 4, pal, 14, { speed: 70, life: 1.1, size: 2.3, vz: 110, zr: 14 });
+        ring(game, e.x, e.y, 6, 24, '#f3ead6', 0.35, 2);
+        scorch(game, e.x, e.y, 3, '#4a2a5e', 1.2);
       }
     },
     onHurt(game, p) {
+      flash(game, p.x, p.y, 16, '#ffb347', 3, 0.14);
       cubes(game, p.x, p.y, 14, DEB.jack, 6, { speed: 70, life: 0.7, size: 2, vz: 80 });
       sparks(game, p.x, p.y, 16, 4, '#ffd27a', { speed: 90 });
     },
     onPickup(game, g) {
-      sparks(game, g.x, g.y, 6, g.big ? 5 : 2, g.big ? '#ffe58a' : '#b6ffe0', { speed: 40, vz: 30, life: 0.3, size: g.big ? 2 : 1.4 });
+      flash(game, g.x, g.y, 6, g.big ? '#ffe58a' : '#b6ffe0', 1, 0.12);
+      ring(game, g.x, g.y, 2, g.big ? 12 : 8, g.big ? '#ffe58a' : '#b6ffe0', 0.3, 1.2);
+      cubes(game, g.x, g.y, 6, g.big ? DEB.gold : DEB.mint, g.big ? 4 : 2, { speed: 20, life: 0.5, size: 1.2, vz: 70, grav: 160 });
     },
     onShoot(game, pr) {
       if (Math.random() < 0.3) cubes(game, pr.x, pr.y + 4, 4, DEB.seed, 1, { speed: 18, life: 0.35, size: 1, vz: 30 });
     },
     onDash(game, p) {
-      cubes(game, p.x, p.y, 1, DEB.dust, 6, { speed: 34, life: 0.5, size: 1.6, vz: 40 });
+      cubes(game, p.x - p.dashX * 4, p.y, 1, DEB.dust, 6, { speed: 34, life: 0.5, size: 1.6, vz: 40 });
+      ring(game, p.x, p.y, 3, 14, '#f3ead6', 0.28, 1.4);
     },
     onLevelUp(game, p) {
+      flash(game, p.x, p.y, 18, '#ffd84a', 4, 0.22);
       ring(game, p.x, p.y, 8, 54, '#ffd84a', 0.7, 3);
+      ring(game, p.x, p.y, 6, 34, '#b6ffe0', 0.55, 2, 0.12);
       cubes(game, p.x, p.y, 6, DEB.gold, 16, { speed: 40, life: 1.2, size: 2, vz: 90, grav: 120 });
     },
     onDeath(game, p) {
+      flash(game, p.x, p.y, 16, '#ffb347', 4, 0.22);
       cubes(game, p.x, p.y, 12, DEB.jack, 30, { speed: 90, life: 1.5, size: 2.8, vz: 120, zr: 18 });
+      scorch(game, p.x, p.y, 4, '#3a2a28', 2);
     },
   });
 })();

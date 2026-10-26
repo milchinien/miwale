@@ -3,10 +3,24 @@
   "name": "Clay World",
   "originalName": "Knetwelt",
   "family": "Claymation · Stop-motion plasticine",
-  "tags": ["claymation", "plasticine", "stop motion", "soft 3d", "miniature", "cozy", "outline-free"],
+  "tags": [
+    "claymation",
+    "plasticine",
+    "stop motion",
+    "soft 3d",
+    "miniature",
+    "cozy",
+    "outline-free"
+  ],
   "summary": "Stop-motion plasticine miniature set: soft gradient-built clay figures with fingerprints, warm studio light and 12 fps boil.",
   "description": "Everything looks hand-rolled from modelling clay and shot on a tabletop miniature set: characters are stacks of soft lumpy balls and sausages without any outlines, each lit by a warm top-left key light with inner ambient occlusion, a warm rim along the top edge, faint thumbprints and a broad soft specular. The ground is a set of flat clay sheets (meadow, soil, purple clay, ochre paths, sunken glossy ponds) with raised, bevelled edges and a lumpy hand-pressed surface. Animation steps at 12 fps and every frame is a slightly different 'boil' of the same model, which sells the stop-motion feel.",
-  "mood": ["cozy", "handmade", "playful", "tactile", "warm"],
+  "mood": [
+    "cozy",
+    "handmade",
+    "playful",
+    "tactile",
+    "warm"
+  ],
   "bestFor": [
     "top-down action and arena games",
     "cozy adventures and farming games",
@@ -35,26 +49,106 @@
     "texture": "Tileable 192 px fingerprint tile (concentric thumbprint arcs + tool smears, dark line plus light line 0.9 px lower, alpha 0.07–0.1) on every part; ground uses a tileable lumpy height field (2 texels per unit) whose diagonal derivative lights the surface ±10–15%."
   },
   "palette": [
-    { "name": "Meadow clay", "hex": "#76a454", "role": "Default ground sheet (~40% of the screen), also the canvas clear colour (#78a854)" },
-    { "name": "Meadow light", "hex": "#8cac5a", "role": "Second meadow tone, blended in large patches" },
-    { "name": "Purple clay", "hex": "#66507e", "role": "Raised dark-purple sheets, graveyard areas (~25%)" },
-    { "name": "Soil", "hex": "#986c4a", "role": "Raised brown field sheets with pebbles and worms" },
-    { "name": "Ochre path", "hex": "#d6a262", "role": "Raised winding paths and clearings with thumbprints" },
-    { "name": "Pond", "hex": "#7ebad2", "role": "Sunken, smooth, glossy water sheets with lily pads" },
-    { "name": "Pumpkin orange", "hex": "#ee7a22", "role": "Main character's round gourd head, main accent, HUD numbers (#f07a24)" },
-    { "name": "Overall blue", "hex": "#3c62a6", "role": "Main character's body/arms; pants #344c80" },
-    { "name": "Scarf green", "hex": "#68ae48", "role": "Main character's scarf; leaves #60a246" },
-    { "name": "Skin cream", "hex": "#f8e0ba", "role": "Hands, small light parts" },
-    { "name": "Bulb purple", "hex": "#8650ac", "role": "Purple top layer of the small root-bulb creatures (variants #b24c8e, #685cbe)" },
-    { "name": "Bulb cream", "hex": "#f4e8cc", "role": "Cream body base of the small root-bulb creatures, eye whites #faf8f0" },
-    { "name": "Ghost white", "hex": "#eaf0fc", "role": "Floating sheet creature, shaded to #96a4ce instead of darken()" },
-    { "name": "Giant mauve", "hex": "#7e5a68", "role": "Large lumpy root creature body; lumps #6c4a5c / #946c76" },
-    { "name": "Candle core", "hex": "#ffd458", "role": "Glow gradient #fff7c4 → #ffd458 → #ff8f22 in carved faces, cracks, cores" },
-    { "name": "Cavity", "hex": "#4e1606", "role": "Inside of carved holes" },
-    { "name": "Plum shadow", "hex": "#401a34", "role": "Shadow tint target of darken(); AO rgba(58,20,40), contact rgba(52,22,24), ground shadows rgba(44,24,16)" },
-    { "name": "Warm white", "hex": "#fffbf0", "role": "Highlight target of lighten(); rim light rgba(255,247,230)" },
-    { "name": "Panel cream", "hex": "#f5ddb8", "role": "HUD clay panels (#fff5e2 → #f5ddb8 → #e0b98a), extruded base #b98654" },
-    { "name": "Seed gold", "hex": "#ffca40", "role": "Small collectibles; large collectible #ff7c34" }
+    {
+      "name": "Meadow clay",
+      "hex": "#76a454",
+      "role": "Default ground sheet (~40% of the screen), also the canvas clear colour (#78a854)"
+    },
+    {
+      "name": "Meadow light",
+      "hex": "#8cac5a",
+      "role": "Second meadow tone, blended in large patches"
+    },
+    {
+      "name": "Purple clay",
+      "hex": "#806c96",
+      "role": "Dusty-purple heath patches (light enough that purple creatures read on them)"
+    },
+    {
+      "name": "Soil",
+      "hex": "#986c4a",
+      "role": "Raised brown field sheets with pebbles and worms"
+    },
+    {
+      "name": "Ochre path",
+      "hex": "#d6a262",
+      "role": "The winding path, rolled to a constant ~26-unit width; ochre pebbles line its edges"
+    },
+    {
+      "name": "Pond",
+      "hex": "#7ebad2",
+      "role": "Sunken, smooth, glossy water sheets with lily pads"
+    },
+    {
+      "name": "Pumpkin orange",
+      "hex": "#ee7a22",
+      "role": "Main character's round gourd head, main accent, HUD numbers (#f07a24)"
+    },
+    {
+      "name": "Overall blue",
+      "hex": "#3c62a6",
+      "role": "Main character's body/arms; pants #344c80"
+    },
+    {
+      "name": "Scarf green",
+      "hex": "#68ae48",
+      "role": "Main character's scarf; leaves #60a246"
+    },
+    {
+      "name": "Skin cream",
+      "hex": "#f8e0ba",
+      "role": "Hands, small light parts"
+    },
+    {
+      "name": "Bulb purple",
+      "hex": "#8650ac",
+      "role": "Purple top layer of the small root-bulb creatures (variants #b24c8e, #685cbe)"
+    },
+    {
+      "name": "Bulb cream",
+      "hex": "#f4e8cc",
+      "role": "Cream body base of the small root-bulb creatures, eye whites #faf8f0"
+    },
+    {
+      "name": "Ghost white",
+      "hex": "#eaf0fc",
+      "role": "Floating sheet creature, shaded to #96a4ce instead of darken()"
+    },
+    {
+      "name": "Giant mauve",
+      "hex": "#7e5a68",
+      "role": "Large lumpy root creature body; lumps #6c4a5c / #946c76"
+    },
+    {
+      "name": "Candle core",
+      "hex": "#ffd458",
+      "role": "Glow gradient #fff7c4 → #ffd458 → #ff8f22 in carved faces, cracks, cores"
+    },
+    {
+      "name": "Cavity",
+      "hex": "#4e1606",
+      "role": "Inside of carved holes"
+    },
+    {
+      "name": "Plum shadow",
+      "hex": "#401a34",
+      "role": "Shadow tint target of darken(); AO rgba(58,20,40), contact rgba(52,22,24), ground shadows rgba(44,24,16)"
+    },
+    {
+      "name": "Warm white",
+      "hex": "#fffbf0",
+      "role": "Highlight target of lighten(); rim light rgba(255,247,230)"
+    },
+    {
+      "name": "Panel cream",
+      "hex": "#f5ddb8",
+      "role": "HUD clay panels (#fff5e2 → #f5ddb8 → #e0b98a), extruded base #b98654"
+    },
+    {
+      "name": "Seed gold",
+      "hex": "#ffca40",
+      "role": "Small collectibles; large collectible #ff7c34"
+    }
   ],
   "paletteRules": [
     "Saturated but slightly muted 'toy clay' colours; nothing neon, nothing pure black or pure white.",
@@ -65,17 +159,39 @@
     "Roughly 60% ground greens/purples, 25% character colours, 15% warm accents (orange, gold, cream UI)."
   ],
   "typography": [
-    { "family": "Chewy", "weights": [400], "role": "Titles, HUD numbers, card names, floating numbers (rendered as extruded clay letters)", "source": "Google Fonts", "sample": "22:09", "css": "font: 400 40px/1.1 'Chewy', 'Baloo 2', system-ui, sans-serif; letter-spacing: 2px; color: #f07a24; text-shadow: 0 2px 0 #c85e1a, 0 4px 0 #a84a12, 0 5px 0 #8c3c0e, 0 9px 10px rgba(40,18,6,.45);" },
-    { "family": "Baloo 2", "weights": [500, 600, 700, 800], "role": "Body text, labels, card descriptions, hints", "source": "Google Fonts", "sample": "HAND ROLLED", "css": "font: 800 12px/1.2 'Baloo 2', system-ui, sans-serif; letter-spacing: 2px; color: #9a6a44;" }
+    {
+      "family": "Chewy",
+      "weights": [
+        400
+      ],
+      "role": "Titles, HUD numbers, card names, floating numbers (rendered as extruded clay letters)",
+      "source": "Google Fonts",
+      "sample": "22:09",
+      "css": "font: 400 40px/1.1 'Chewy', 'Baloo 2', system-ui, sans-serif; letter-spacing: 2px; color: #f07a24; text-shadow: 0 2px 0 #c85e1a, 0 4px 0 #a84a12, 0 5px 0 #8c3c0e, 0 9px 10px rgba(40,18,6,.45);"
+    },
+    {
+      "family": "Baloo 2",
+      "weights": [
+        500,
+        600,
+        700,
+        800
+      ],
+      "role": "Body text, labels, card descriptions, hints",
+      "source": "Google Fonts",
+      "sample": "HAND ROLLED",
+      "css": "font: 800 12px/1.2 'Baloo 2', system-ui, sans-serif; letter-spacing: 2px; color: #9a6a44;"
+    }
   ],
   "world": {
-    "summary": "A tabletop of flat clay sheets. Several noise fields decide where soil, purple clay, sunken ponds and ochre paths lie on top of the meadow; per-pixel signed distance to each sheet edge gives a lit bevel on the inside and a soft cast shadow on the outside (ponds are inverted: a sunken, darker bank). A tileable lumpy height texture modulates every pixel, then decals are pressed into the clay.",
+    "summary": "A tabletop set of flat clay sheets composed like a model railway table: a calm green meadow sheet, one winding ochre path rolled to a constant width, small furrowed garden beds, dusty-purple heath patches and sunken glossy ponds. Per-pixel signed distance gives each raised sheet a lit bevel, a rolled lip and a soft cast shadow (ponds are pressed in), a tileable lumpy height texture gives the hand-pressed surface, and decals gather in drifts, fringes and posies instead of an even sprinkle.",
     "layers": [
-      "Meadow base: mix of #76a454 and #8cac5a by low-frequency noise, times a ±4.5% tint field.",
-      "Raised sheets in order soil #986c4a, purple #66507e, sunken pond #7ebad2, ochre path #d6a262 (top): bevel width 3.0 units, cast shadow width 3.4 units, light vector (-0.42, -0.907).",
-      "Lumpy surface modulation: colour × (1 + MOD × m), m = 1 meadow, 1.1 soil, 1 purple, 0.35 pond (smooth), 0.9 path.",
-      "Decals (10-unit jittered grid): modelling-tool grass imprints, rolled grass sprouts, 5-petal clay flowers, pebbles (meadow); pebbles, pink worms, twigs (soil); spiral imprints, pebbles, tiny mushrooms (purple); lily pads, ripple rings, glossy light reflections (pond); thumbprints and pebbles (path).",
-      "Per frame on top of the ground: additive warm light pool under the main character (34×18 units, alpha 0.16), collectible glows, temporary clay splats where figures vanished, clay mounds where figures rise."
+      "Meadow sheet #76a454 <-> #8cac5a blended by low-frequency noise, lumpy height texture at full strength",
+      "Garden beds (soil #986c4a, fbm/460 - 0.64) with modelling-tool furrow rows 7 units apart pressed across them",
+      "Dusty-purple heath patches #806c96 (fbm/420 - 0.675)",
+      "Sunken ponds #7ebad2 (fbm/420 - 0.675): darker wet bank, inverted bevel, smooth glossy surface, studio-light reflections",
+      "The path #d6a262: half-width 13 minus |n|/|grad n| of a warped 1/1500 perlin -> constant ~26-unit width; raised bevel and cast shadow",
+      "Decals: grass imprints and rolled sprouts only in drifts (smoothstep(0.56, 0.78, noise/170)); sprouts and pebbles fringing every sheet edge; flower posies of 4-7 where a sparse patch field peaks; lily-pad rafts; thumbprints and footprints on the path; worms and pebbles in the beds"
     ]
   },
   "characters": {
@@ -86,7 +202,7 @@
       "Faces are either carved holes with candle glow, white clay eyeballs with glossy black pupils, or dark sockets pressed into the clay.",
       "Details such as head ribs, cloth folds and wood grain are pressed grooves, never drawn lines.",
       "Creatures are lighter/glossier than the ground and always carry eyes; small creatures sit at ~0.6× the main character's height, large ones ~2×.",
-      "Walk cycles are 4 frames + 1 idle frame stepping at 12 fps; whole sprites also squash/stretch 3–5% per step.",
+      "The main character walks through 8 drawn poses + 1 stand pose at 12 fps (contact, down, passing, up twice), arms and head one drawing behind; small creatures hop in 8 steps on twos; whole sprites also squash/stretch 3-10% per step.",
       "Mirror sprites for facing; the light still comes from the top-left in both directions because the mirror is baked from the same lit art (accepted cheat)."
     ]
   },
@@ -98,18 +214,44 @@
       "Fences: capsule posts and rails with pressed grooves.",
       "Gourds with pressed ribs; gravestones as grey slabs (#9a96a4) with a pressed cross and a chipped-corner groove.",
       "Hay domes from 90 straw strokes; rocks as 1–2 grey lumps.",
-      "2–4 baked variants per prop; light from the top-left like everything else."
+      "2–4 baked variants per prop; light from the top-left like everything else.",
+      "Placement is composed: a woodland field makes groves (trees inside with mushrooms underneath, bushes on the rim); cattails ring pond shores; fences and rocks follow the path edges; pumpkin patches and hay fill the garden beds; gravestones stand in little groups on the heath; the open meadow stays nearly empty.",
+      "Trees, bushes and cattails sway in a breeze sampled at 12 fps (on twos), each on its own phase, skewed around the base."
     ]
   },
   "effects": [
-    { "name": "Clay crumbs", "how": "Impacts and disappearing figures throw off 3–18 small baked clay balls (2 × 1.85 units, in the figure colours) that fly with gravity 300 and squash to 1.25 × 0.72 when they touch the ground." },
-    { "name": "Splat", "how": "A vanished figure leaves a flat lumpy clay pancake (4.6 × 2.4 units plus 3 droplets) that pops in with outBack over 8% of its 1.7–2.2 s life and fades/flattens in the last 30%." },
-    { "name": "Squash-out", "how": "Disappearing figures scale x by 1 + 0.7k and y by 1 - 0.8k (k = outQuad over 0.55 of the time) with a fading white-cream flash overlay (#fff8ec)." },
-    { "name": "Impact flash", "how": "A cream-tinted copy of the sprite is drawn at alpha min(0.55, flash × 0.8) while the sprite squashes 16% wide / 15% flat, plus an additive soft white flash puff (6–9 units, 0.12 s)." },
-    { "name": "Candle glow", "how": "Carved faces, lantern collectibles and glowing creature cores get an additive radial glow sprite (rgba(255,214,120,0.85) → rgba(255,140,40,0)) pulsing ±0.08–0.1 alpha on the 12 fps step." },
-    { "name": "Seed projectile", "how": "A baked glossy cream seed (#f8e8be) with a soft tapered streak behind it (rgba(255,244,214,0.75) → 0 over 11.5 units); the seed flips in steps by scaling y with 0.6 + 0.4|cos|." },
-    { "name": "Rise from the ground", "how": "Appearing figures emerge from a dark clay mound and are revealed row by row in 8 discrete steps (only the part above the feet line is drawn) with a 12% wobble." },
-    { "name": "Dust puffs", "how": "Dash and landing dust are soft beige radial blobs (rgba(236,214,182,0.9)) that grow 0.6 → 1.5× and fade over 0.25–0.6 s." }
+    {
+      "name": "Clay crumbs",
+      "how": "Impacts and disappearing figures throw off 3–18 small baked clay balls (2 × 1.85 units, in the figure colours) that fly with gravity 300 and squash to 1.25 × 0.72 when they touch the ground."
+    },
+    {
+      "name": "Splat",
+      "how": "A vanished figure leaves a flat lumpy clay pancake (4.6 × 2.4 units plus 3 droplets) that pops in with outBack over 8% of its 1.7–2.2 s life and fades/flattens in the last 30%."
+    },
+    {
+      "name": "Squash-out",
+      "how": "Disappearing figures scale x by 1 + 0.7k and y by 1 - 0.8k (k = outQuad over 0.55 of the time) with a fading white-cream flash overlay (#fff8ec)."
+    },
+    {
+      "name": "Impact flash",
+      "how": "A cream-tinted copy of the sprite is drawn at alpha min(0.55, flash × 0.8) while the sprite squashes 16% wide / 15% flat, plus an additive soft white flash puff (6–9 units, 0.12 s)."
+    },
+    {
+      "name": "Candle glow",
+      "how": "Carved faces, lantern collectibles and glowing creature cores get an additive radial glow sprite (rgba(255,214,120,0.85) → rgba(255,140,40,0)) pulsing ±0.08–0.1 alpha on the 12 fps step."
+    },
+    {
+      "name": "Seed projectile",
+      "how": "A baked glossy cream seed (#f8e8be) with a soft tapered streak behind it (rgba(255,244,214,0.75) → 0 over 11.5 units); the seed flips in steps by scaling y with 0.6 + 0.4|cos|."
+    },
+    {
+      "name": "Rise from the ground",
+      "how": "Appearing figures emerge from a dark clay mound and are revealed row by row in 8 discrete steps (only the part above the feet line is drawn) with a 12% wobble."
+    },
+    {
+      "name": "Dust puffs",
+      "how": "Dash and landing dust are soft beige radial blobs (rgba(236,214,182,0.9)) that grow 0.6 → 1.5× and fade over 0.25–0.6 s."
+    }
   ],
   "atmosphere": {
     "summary": "A warm tabletop studio: one key light from the top-left on every sprite, bevel and UI gradient, soft plum-brown shadows instead of black, additive candle glows for practical lights, and a warm brown vignette with a soft top light band over the whole screen.",
@@ -127,13 +269,14 @@
     "css": ".clay-panel { position: relative; padding: 3px 30px 9px; border-radius: 26px 30px 24px 28px / 28px 24px 30px 26px;\n  background: radial-gradient(120% 140% at 30% 18%, #fff5e2 0%, #f5ddb8 45%, #e0b98a 100%);\n  box-shadow: inset 0 3px 3px rgba(255,255,255,.8), inset 0 -6px 10px rgba(150,88,40,.38), inset 4px 0 8px rgba(255,255,255,.25), 0 5px 0 #b98654, 0 13px 18px rgba(50,24,10,.38); }\n.clay-panel::after { content: ''; position: absolute; right: 9px; bottom: 7px; width: 22px; height: 27px; border-radius: 50%; transform: rotate(-24deg); pointer-events: none;\n  background: repeating-radial-gradient(ellipse at 50% 58%, rgba(120,66,26,.2) 0 1px, rgba(255,255,255,.22) 1px 2px, rgba(0,0,0,0) 2px 3.3px);\n  -webkit-mask: radial-gradient(closest-side, #000 60%, transparent); mask: radial-gradient(closest-side, #000 60%, transparent); }\n.clay-number { font-family: 'Chewy', 'Baloo 2', system-ui, sans-serif; font-size: 40px; letter-spacing: 2px; color: #f07a24;\n  text-shadow: 0 2px 0 #c85e1a, 0 4px 0 #a84a12, 0 5px 0 #8c3c0e, 0 9px 10px rgba(40,18,6,.45); }\n.clay-bar { position: relative; width: 250px; height: 30px; border-radius: 999px; overflow: hidden;\n  background: linear-gradient(180deg, #6a4430, #8a5c40 60%, #9f6e4e);\n  box-shadow: inset 0 4px 7px rgba(30,12,4,.65), inset 0 -2px 2px rgba(255,220,180,.25), 0 2px 0 rgba(255,236,210,.35), 0 8px 12px rgba(40,20,8,.32); }\n.clay-bar > .fill { height: 100%; border-radius: 999px; background: linear-gradient(180deg, #ffab8f 0%, #f2613f 36%, #d23e26 72%, #a92c18 100%);\n  box-shadow: inset 0 -4px 5px rgba(90,18,4,.45), inset 0 2px 2px rgba(255,220,200,.6); }\n.clay-bar > .fill::after { content: ''; position: absolute; left: 12px; right: 16px; top: 5px; height: 5px; border-radius: 4px; background: rgba(255,255,255,.55); filter: blur(1px); }\n@keyframes clayPop { 0% { transform: scale(.3,.1) rotate(-6deg); } 50% { transform: scale(1.15,.85) rotate(-1deg); } 75% { transform: scale(.95,1.06) rotate(-3deg); } 100% { transform: scale(1) rotate(-2deg); } }"
   },
   "motion": [
-    "Everything steps at 12 fps: animation time is quantised with Math.floor(t * 12) / 12, even when the app runs at 60 fps.",
-    "Boil: each step adds hash-based jitter of ±1.75% scale x, ±1.5% scale y and ±0.02 rad rotation (creatures ±0.04 rad), plus every frame index is a separately seeded bake.",
-    "Main character: 1 idle + 4 walk frames; walk steps squash 1.04 × 0.96 on contact frames and stretch 0.98 × 1.03 on passing frames, lean 0.035 rad into the walk; idle breathes ±2.5% on a 6 fps step.",
-    "Small creatures: 4-frame waddle with ±0.07 rad rock and 1.1-unit hop on odd frames; large creatures: 4-frame stomp with 1.2-unit lift and ±0.03 rad.",
-    "Floating creatures hover 5 units up and bob ±1.6 units, tilt up to 0.12 rad with horizontal speed, alpha 0.84.",
-    "CSS UI animations use steps() timing (steps(3) wobble on alerts, steps(5–6) pop-in) to stay on the stop-motion beat.",
-    "Impacts squash, never shake the sprite; only big bursts shake the camera (3 units)."
+    "Everything steps at 12 fps (on twos) and boils: per step, a hash nudges scale (±2-3.5%) and rotation (±0.025-0.04 rad), and every baked frame has its own lump seed.",
+    "Main character: 8 drawn walk poses (contact, down, passing, up x2) at 12 fps from a pose table; arms one drawing behind the legs, the heavy head one drawing behind the body; down poses squash 1.045 x 0.955 at draw time.",
+    "Small creatures hop in 8 steps (crouch, take-off stretch, rise, apex, fall, fall stretch, landing squash, settle) with 4 boiled drawings held on twos; every creature on its own phase.",
+    "Floating creature: two-partial hover on twos, stretching 4.5% while it rises; large creature: 4-frame stomp with an 8% contact squash.",
+    "Hit: a thumb-press dent that springs back (e^(-9t)cos(26t), stepped at 24 fps), a 0.28 rad tilt away from the blow and the pale flash copy.",
+    "Removal: anticipation stretch, pressed flat by an invisible thumb with a twist, the clay disc shivers and sinks into the set (40 steps); ghosts slump and melt into a puddle; crumbs 0.8 s, splat decal ~2 s.",
+    "Spawn: a clay mound swells, the creature rises out of the ground row by row with a wobble, the mound shrinks away.",
+    "Props sway in a stepped breeze; collectibles bob and pop with outBack; numbers pop 0.4 -> 1.25 -> 1."
   ],
   "do": [
     "Build every shape from the clay() painter: base, radial key light, fingerprints, inner AO, rim, soft spec.",
@@ -153,5 +296,5 @@
     "Don't make highlights tiny and sharp (that reads as hard plastic or candy); clay specular is broad and soft, only heads get a small glossy dot.",
     "Don't use neon or fully saturated colours; plasticine pigment is slightly chalky."
   ],
-  "performance": "All characters, props, collectibles and particles are baked once into canvases at 3–5 px per world unit (the clay() painter with shadowBlur is far too expensive per frame); per frame only drawImage blits, a few additive glow sprites and the screen overlay remain. The ground is the hot spot: per-pixel SDF bevel plus height-texture lookup per 256-unit chunk, computed incrementally with a generator and cached. Fingerprint tile (192 px) and height texture (256×256) are built once at init."
+  "performance": "All characters, props, collectibles and particles are baked once into canvases at 3–5 px per world unit (the clay() painter with shadowBlur is far too expensive per frame); per frame only drawImage blits, a few additive glow sprites and the screen overlay remain. The ground is the hot spot: per-pixel SDF bevel plus height-texture lookup per 256-unit chunk, computed incrementally with a generator and cached. Fingerprint tile (192 px) and height texture (256×256) are built once at init. Composition adds work only at chunk build time (furrow rows, the path gradient, drift fields), which is spread over frames by the chunk generator; per frame the props add a stepped skew transform and the walk adds no cost (8 baked poses instead of 4)."
 }

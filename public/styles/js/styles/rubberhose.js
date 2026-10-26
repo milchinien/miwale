@@ -231,37 +231,59 @@
     });
   }
 
-  /* --- main character: a jaunty ink cat-fellow with a pale face mask, bow tie, shorts, gloves, big shoes */
+  /* --- main character: a jaunty ink cat-fellow with a pale face mask, bow tie, shorts, gloves, big shoes.
+     Walk = 8 drawn poses: contact – down – passing – up for each foot. Foot x/lift/shoe angle per frame;
+     the arms counter-swing one frame behind the legs (overlap), ears and tail follow through later still. */
+  const WALK = {
+    x: [6.2, 3.2, 0.2, -3.0, -6.0, -3.6, 1.0, 4.6],
+    l: [0, 0, 0, 0.5, 1.3, 3.4, 4.6, 2.4],
+    a: [-0.38, -0.05, 0, 0.22, 0.52, 0.35, 0.05, -0.25],
+    bob: [0.3, 1.3, -0.7, -1.9], // + = lower; contact, down, passing, up
+  };
   function heroPose(kind, f) {
-    const P = { bob: 0, lean: 0.04, face: 'norm', tail: 0 };
+    const P = { bob: 0, lean: 0.04, face: 'norm', tail: 0, ear: 0, tilt: 0 };
     if (kind === 'walk') {
-      const ph = (f / 8) * TAU, s = Math.sin(ph), cc = Math.cos(ph);
-      const up = Math.max(0, cc), upB = Math.max(0, -cc);
-      P.bob = -1.8 * (1 - Math.abs(s));
-      P.near = [1.5 + 4.7 * s, -3.0 * up, up > 0.05 ? -(1.1 + 2.6 * up) : 1.0 + Math.abs(s) * 0.4, -0.3 * up + 0.12 * s];
-      P.far = [-0.9 - 4.7 * s, -3.0 * upB, upB > 0.05 ? -(1.1 + 2.6 * upB) : 1.0 + Math.abs(s) * 0.4, -0.3 * upB - 0.12 * s];
-      const b = P.bob;
-      P.nArm = [2.3, -15.4 + b, 2.6 - 4.4 * s, -9.0 + b - 1.4 * Math.abs(s), 2.4 * cc];
-      P.fArm = [-1.8, -15.8 + b, -1.6 + 4.4 * s, -9.4 + b - 1.4 * Math.abs(s), -2.4 * cc];
-      P.tail = ph; P.lean = 0.06;
-      P.tilt = 0.05 * Math.sin(ph * 2);
+      const g = (f + 4) % 8, fp = (f + 7) % 8, gp = (g + 7) % 8;
+      const b = WALK.bob[f % 4];
+      P.bob = b;
+      P.near = [1.0 + WALK.x[f], -WALK.l[f], null, WALK.a[f]];
+      P.far = [-1.0 + WALK.x[g] * 0.92, -WALK.l[g], null, WALK.a[g]];
+      // arms: swing against the leg on the same side, one frame late; the noodle bows behind the motion
+      const sN = -WALK.x[fp] / 6.2, sNp = -WALK.x[(fp + 7) % 8] / 6.2, sF = -WALK.x[gp] / 6.2, sFp = -WALK.x[(gp + 7) % 8] / 6.2;
+      P.nArm = [2.3, -15.4 + b, 3.2 + sN * 6.0, -9.2 + b - sN * sN * 1.9 - Math.max(0, sN) * 1.2, 0.8 + (sN - sNp) * 3.4];
+      P.fArm = [-1.8, -15.8 + b, -1.6 + sF * 5.0, -9.6 + b - sF * sF * 1.6 - Math.max(0, sF) * 1.0, -0.8 - (sF - sFp) * 3.0];
+      const ph = (f / 8) * TAU;
+      P.tail = ph - 1.3; P.lean = 0.07;
+      P.tilt = 0.055 * Math.sin(ph * 2 - 1.1);
+      P.ear = 0.17 * Math.sin(ph * 2 - 1.9);
     } else if (kind === 'idle') {
-      P.bob = f ? -0.6 : 0;
-      P.near = [3.6, f ? -0.5 : 0, 0.9, f ? -0.42 : 0];
-      P.far = [-3.0, 0, -0.9, 0.05];
-      const b = P.bob;
-      P.nArm = [2.3, -15.4 + b, 5.4, -10.8 + b, -2.8];
-      P.fArm = [-1.8, -15.8 + b, -5.0, -11.0 + b, 2.8];
-      P.tail = f ? 1.4 : 0; P.lean = f ? 0.035 : 0.015;
-      P.tilt = f ? 0.06 : -0.02;
+      // 0 down (on the beat), 1 rising, 2 up + toe tap, 3 settle; frames 4/5 = 0/2 with closed eyes
+      const k = f < 4 ? f : f === 4 ? 0 : 2;
+      P.face = f >= 4 ? 'blink' : 'norm';
+      P.bob = [1.4, 0.2, -1.1, 0.3][k];
+      const tap = k === 2, b = P.bob, sw = [1, 0.35, -0.8, -0.15][k];
+      P.near = [3.8, tap ? -1.1 : 0, null, tap ? -0.55 : 0];
+      P.far = [-3.2, 0, null, 0.06];
+      P.nArm = [2.3, -15.4 + b, 5.4 + sw * 2.6, -10.2 + b - Math.abs(sw) * 1.6, -2.2 - sw * 1.4];
+      P.fArm = [-1.8, -15.8 + b, -5.0 - sw * 2.2, -10.4 + b - Math.abs(sw) * 1.4, 2.2 + sw * 1.2];
+      P.tail = [0.0, 0.9, 1.9, 2.8][k]; P.lean = [0.01, 0.025, 0.04, 0.02][k];
+      P.tilt = [0.03, -0.01, -0.05, 0.0][k]; P.ear = [0.14, 0.04, -0.1, 0.02][k];
     } else if (kind === 'dash') {
-      P.bob = -1.2; P.lean = 0.24; P.wheel = f; P.tail = 4 + f;
+      P.bob = -1.2; P.lean = 0.24; P.wheel = f; P.tail = 4 + f; P.ear = 0.38 + f * 0.06;
       const b = P.bob;
       P.nArm = [2.3, -15.4 + b, -6.4, -13.6 + b, 2.2];
       P.fArm = [-1.8, -15.8 + b, -8.4, -16.4 + b, -2.0];
       P.tilt = 0.04;
+    } else if (kind === 'skid') {
+      // the stop after a dash: heels dug in, body thrown back, arms flung up behind, ears still flying
+      P.bob = 0.9; P.lean = -0.17; P.tail = 3.6; P.ear = -0.34; P.tilt = -0.12; P.face = 'oops';
+      P.near = [7.6, -0.3, null, -0.62];
+      P.far = [3.2, 0, null, -0.34];
+      const b = P.bob;
+      P.nArm = [2.3, -15.4 + b, -4.4, -21.6 + b, 2.4];
+      P.fArm = [-1.8, -15.8 + b, -8.2, -18.4 + b, -1.8];
     } else { // hurt
-      P.bob = -2.4; P.lean = -0.06; P.face = 'hurt'; P.tail = 2;
+      P.bob = -2.4; P.lean = -0.06; P.face = 'hurt'; P.tail = 2; P.ear = -0.42;
       P.near = [5.2, -2.4, -2.2, -0.5];
       P.far = [-4.6, -2.0, 2.2, 0.45];
       const b = P.bob;
@@ -276,8 +298,12 @@
     P.hose(hosePath(A[0], A[1], A[2], A[3], A[4]), 1.45, INK);
     glove(P, A[2], A[3], Math.atan2(A[3] - q[1], A[2] - q[0]));
   }
+  /** Boneless leg: the shorter the hip-to-ankle span, the more the hose bows forward (a knee without a joint). */
   function heroLeg(P, hx, hy, F) {
-    P.hose(hosePath(hx, hy, F[0] + 0.2, F[1] - 1.6, F[2]), 1.75, INK);
+    const ax = F[0] + 0.2, ay = F[1] - 1.6;
+    let bend = F[2];
+    if (bend === null || bend === undefined) bend = -(0.5 + Math.max(0, 7.4 - Math.hypot(ax - hx, ay - hy)) * 1.25);
+    P.hose(hosePath(hx, hy, ax, ay, bend), 1.75, INK);
     shoe(P, F[0], F[1], F[3]);
   }
   function heroParts(P, pose) {
@@ -287,8 +313,8 @@
     const hipY = -8.2 + b;
     const hx = 1.3, hy = -24.4 + b * 1.15;
     // tail (behind everything)
-    const tw = Math.sin(pose.tail) * 1.4;
-    const tx = pose.wheel !== undefined ? -12.5 : -8.6, ty = pose.wheel !== undefined ? -12 + b : -16.2 + b + tw;
+    const tw = Math.sin(pose.tail) * 2.0;
+    const tx = pose.wheel !== undefined ? -12.5 : -8.6 + Math.cos(pose.tail) * 0.9, ty = pose.wheel !== undefined ? -12 + b : -16.2 + b + tw;
     P.hose((k) => { k.moveTo(-3.2, -9.6 + b); k.bezierCurveTo(-7.6, -9.2 + b, tx + 0.6, ty + 5.4, tx, ty + 0.6); spiral(k, tx + 1.3, ty + 0.6, 1.3, 0.35, 0.75, PI, 1); }, 1.05, INK);
     heroArm(P, pose.fArm);
     if (pose.wheel !== undefined) {
@@ -324,13 +350,14 @@
     P.part(E(bx, by, 0.95, 1.05), C.white, { shade: C.g4, sh: [-0.2, -0.2], inner: IL * 0.8 });
     // head
     c.save(); c.translate(hx, hy); c.rotate(pose.tilt || 0); c.translate(-hx, -hy);
-    P.part((k) => roundPoly(k, [[hx - 5.9, hy - 2.6], [hx - 6.6, hy - 10.6], [hx - 1.3, hy - 6.0]], 1.0), INK, {});
+    const ear = (bx, by, a, fn) => { c.save(); c.translate(bx, by); c.rotate(a); c.translate(-bx, -by); fn(); c.restore(); };
+    ear(hx - 3.6, hy - 4.3, -(pose.ear || 0) * 1.2, () => P.part((k) => roundPoly(k, [[hx - 5.9, hy - 2.6], [hx - 6.6, hy - 10.6], [hx - 1.3, hy - 6.0]], 1.0), INK, {}));
     P.part(E(hx, hy, 7.1, 6.7), INK, {
       detail(k) { k.strokeStyle = C.white; k.globalAlpha = 0.85; k.lineWidth = 0.6; k.beginPath(); k.arc(hx - 0.6, hy - 0.4, 5.3, PI * 1.08, PI * 1.38); k.stroke(); },
     });
-    P.part((k) => roundPoly(k, [[hx + 0.4, hy - 6.4], [hx + 3.4, hy - 11.8], [hx + 5.8, hy - 4.2]], 1.0), INK, {
+    ear(hx + 3.1, hy - 5.3, -(pose.ear || 0), () => P.part((k) => roundPoly(k, [[hx + 0.4, hy - 6.4], [hx + 3.4, hy - 11.8], [hx + 5.8, hy - 4.2]], 1.0), INK, {
       detail(k) { k.fillStyle = C.g1; k.beginPath(); roundPoly(k, [[hx + 1.9, hy - 6.4], [hx + 3.4, hy - 9.6], [hx + 4.6, hy - 5.0]], 0.5); k.fill(); },
-    });
+    }));
     const mask = (k) => blobPath(k, off([[0.4, -3.6], [1.8, -5.4], [3.5, -4.1], [5.0, -5.2], [6.9, -3.0], [8.2, 0.0], [8.0, 2.9], [5.6, 5.4], [2.0, 5.9], [-0.8, 4.4], [-1.3, 1.2], [-0.7, -1.8]], hx, hy), 0.95);
     P.part(mask, C.face, { shade: C.faceSh, sh: [-0.7, -0.8] });
     P.detail((k) => heroFace(k, hx, hy, pose.face), true);
@@ -348,8 +375,21 @@
       k.fillStyle = INK; k.beginPath(); k.ellipse(hx + 4.6, hy + 3.4, 1.4, 1.9, 0, 0, TAU); k.fill();
       k.fillStyle = C.g2; k.beginPath(); k.ellipse(hx + 4.7, hy + 4.4, 0.8, 0.6, 0, 0, TAU); k.fill();
     } else {
-      pieEye(k, hx + 2.4, hy - 1.7, 1.05, 1.95, 0.05, C.face, 1);
-      pieEye(k, hx + 5.1, hy - 1.6, 1.0, 1.9, -0.05, C.face, 1);
+      if (mode === 'blink') {
+        // closed: two heavy lid curves, lashes flicked out
+        k.strokeStyle = INK; k.lineWidth = 0.75; k.beginPath();
+        for (const e of [[2.4, -1.2], [5.1, -1.1]]) { const x = hx + e[0], y = hy + e[1]; k.moveTo(x - 1.2, y - 0.3); k.quadraticCurveTo(x, y + 0.9, x + 1.2, y - 0.3); k.moveTo(x + 1.1, y - 0.2); k.lineTo(x + 1.6, y - 0.8); }
+        k.stroke();
+      } else if (mode === 'oops') {
+        // wide startled eyes, pupils pinned to the back
+        k.fillStyle = C.white; k.strokeStyle = INK; k.lineWidth = 0.4;
+        for (const e of [[2.4, -2.0, 1.5, 2.4], [5.2, -1.9, 1.4, 2.3]]) { k.beginPath(); k.ellipse(hx + e[0], hy + e[1], e[2], e[3], 0, 0, TAU); k.fill(); k.stroke(); }
+        k.fillStyle = INK;
+        for (const e of [[1.9, -2.2], [4.7, -2.1]]) { k.beginPath(); k.ellipse(hx + e[0], hy + e[1], 0.7, 1.2, 0, 0, TAU); k.fill(); }
+      } else {
+        pieEye(k, hx + 2.4, hy - 1.7, 1.05, 1.95, 0.05, C.face, 1);
+        pieEye(k, hx + 5.1, hy - 1.6, 1.0, 1.9, -0.05, C.face, 1);
+      }
       // grin
       k.save();
       k.beginPath(); k.moveTo(hx + 1.6, hy + 2.3); k.quadraticCurveTo(hx + 4.4, hy + 3.4, hx + 7.4, hy + 2.0); k.quadraticCurveTo(hx + 5.6, hy + 7.0, hx + 2.6, hy + 4.4); k.closePath();
@@ -370,12 +410,15 @@
     { body: C.g2, sh: '#544e45', face: C.face, faceSh: C.faceSh, horn: INK, hornSh: INK, foot: [C.g1, INK] },
     { body: C.paper, sh: C.g4, face: '#dcd4c4', faceSh: '#bfb6a5', horn: INK, hornSh: INK, foot: [C.g1, INK] },
   ];
+  // hop: 0 crouch (anticipation), 1 take-off stretch, 2 rise, 3 apex, 4 fall stretch, 5 landing squash
+  const IMP_AIR = [0, 0.42, 0.86, 1.0, 0.62, 0.1];
+  const IMP_SQ = [0.9, -0.8, -0.35, 0.05, -0.5, 0.6]; // + squash, - stretch
   function impParts(P, f, v) {
     const col = IMP[v];
-    const t = f / 6, air = Math.sin(t * PI);
-    const by = -7.8 - air * 3.2;
-    const rx = 6.5 - air * 0.5 + (1 - air) * 0.35, ry = 5.9 + air * 0.6 - (1 - air) * 0.35;
-    const tw = Math.sin(t * TAU) * 1.4;
+    const air = IMP_AIR[f], sq = IMP_SQ[f];
+    const by = -7.8 + Math.max(0, sq) * 1.1 * (1 - air) - air * 3.8;
+    const rx = 6.5 * (1 + 0.11 * sq), ry = 5.9 * (1 - 0.13 * sq);
+    const tw = Math.sin(((f - 1.3) / 6) * TAU) * 1.9; // the tail lags the body
     // tail with an arrow tip
     P.hose((k) => { k.moveTo(-4.6, by + 2.2); k.bezierCurveTo(-8.8, by + 3.0, -10.2, by - 2.6 + tw, -8.6, by - 5.8 + tw); }, 0.85, INK);
     P.part((k) => roundPoly(k, [[-10.6, by - 5.0 + tw], [-8.4, by - 9.4 + tw], [-6.6, by - 5.4 + tw]], 0.35), INK, {});
@@ -392,8 +435,9 @@
     });
     // horns
     const horn = (x, y, lean) => (k) => { k.moveTo(x - 1.4, y + 0.6); k.quadraticCurveTo(x - 0.8 + lean * 2, y - 2.2, x + lean * 3.4, y - 4.0); k.quadraticCurveTo(x + 0.6 + lean, y - 1.6, x + 1.4, y + 0.6); k.closePath(); };
-    P.part(horn(-2.6, by - ry + 1.0, -0.5), col.horn, { shade: col.hornSh, sh: [-0.3, 0] });
-    P.part(horn(2.8, by - ry + 0.8, 0.45), col.horn, { shade: col.hornSh, sh: [-0.3, 0] });
+    const fl = IMP_SQ[(f + 5) % 6] * 0.35; // horns lag one frame behind the body
+    P.part(horn(-2.6, by - ry + 1.0, -0.5 - fl), col.horn, { shade: col.hornSh, sh: [-0.3, 0] });
+    P.part(horn(2.8, by - ry + 0.8, 0.45 + fl), col.horn, { shade: col.hornSh, sh: [-0.3, 0] });
     // face patch + face
     const fx = 2.2, fy = by + 0.6;
     P.part((k) => blobPath(k, off([[-3.2, -3.0], [-1.6, -4.4], [0.1, -3.4], [1.8, -4.5], [3.7, -3.0], [4.4, 0.2], [3.2, 3.4], [0.4, 4.3], [-2.5, 3.3], [-3.7, 0.2]], fx, fy), 0.95), col.face, { shade: col.faceSh, sh: [-0.5, -0.6] });
@@ -470,30 +514,51 @@
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  /* --- large creature: a big bully in a striped sweater and a derby hat */
+  /* --- large creature: a big bully in a striped sweater; the derby hat is a separate sprite (follow-through).
+     Walk = an 8-frame waddle: both feet down and lowest on frames 0/4 (heavy landing), one leg up per
+     half-cycle, the barrel rocks over the standing leg, the head lags the body by one frame.           */
   const stripes = (c, sh) => {
     c.fillStyle = sh ? C.g4 : C.paper; c.fillRect(-500, -500, 1000, 1000);
     c.fillStyle = sh ? INK : C.g1;
     for (let y = -44; y < -16; y += 6.2) c.fillRect(-40, y, 80, 3.1);
     c.fillStyle = sh ? INK : C.g1; c.fillRect(-40, -17.2, 80, 20);
   };
+  const BULLY_BOB = [1.8, 0.6, -0.9, 0.2, 1.8, 0.6, -0.9, 0.2]; // + = lower
+  const BULLY_LIFT = [0, 2.3, 4.4, 2.0];
+  function bullyFrame(f) {
+    const ph = (f / 8) * TAU;
+    return {
+      b: BULLY_BOB[f], hb: BULLY_BOB[(f + 7) % 8] * 1.2, lean: 0.085 * Math.sin(ph),
+      land: f % 4 === 0 ? 1 : f % 4 === 1 ? 0.4 : 0,
+      nl: f < 4 ? BULLY_LIFT[f] : 0, fl: f >= 4 ? BULLY_LIFT[f - 4] : 0,
+      nx: 8.2 + 2.2 * Math.sin(ph - 0.6), fx: -7.8 - 2.2 * Math.sin(ph - 0.6),
+      sw: Math.sin(ph + 0.7),
+    };
+  }
+  /** Where the hat sits on frame f (sprite space, facing right): the head top, moved by the body lean. */
+  function bullyHatAt(f) {
+    const F = bullyFrame(f), x = 5.6, y = -56 + F.hb, py = -12;
+    const co = Math.cos(F.lean), si = Math.sin(F.lean);
+    return [x * co - (y - py) * si, py + x * si + (y - py) * co];
+  }
   function bullyParts(P, f) {
-    const st = [0, 1, 0, -1][f];
-    const lift = (s) => Math.max(0, s) * 2.8;
-    const b = -Math.abs(st) * 0.8;
-    // boots + legs
+    const F = bullyFrame(f), c = P.ctx, b = F.b;
+    // boots + legs (legs stay planted; the body above them rocks)
     const leg = (hx, fx, fy) => {
-      P.hose(hosePath(hx, -12.0, fx + 0.4, fy - 2.6, hx < 0 ? 1.4 : -1.4), 4.4, INK);
+      P.hose(hosePath(hx, -12.0 + b * 0.5, fx + 0.4, fy - 2.6, hx < 0 ? 1.4 + b * 0.4 : -1.4 - b * 0.4), 4.4, INK);
       P.part(E(fx + 1.8, fy - 2.4, 6.4, 3.3), INK, {
         detail(k) { k.strokeStyle = C.g2; k.lineWidth = 0.7; k.beginPath(); k.ellipse(fx + 1.8, fy - 2.0, 5.6, 2.4, 0, PI * 0.15, PI * 0.85); k.stroke(); shine(k, [fx + 3.6, fy - 4.0, 2.0, 0.7, -0.15], 0.85); },
       });
     };
-    leg(-6.4, -7.8 + st * 2.0, -lift(st));
-    // far arm
-    const fh = [-20.0, -16.0 + st * 1.6 + b];
-    P.hose(hosePath(-12.6, -36.0 + b, fh[0], fh[1], 3.6), 3.7, INK);
+    leg(-6.4, F.fx, -F.fl);
+    c.save(); c.translate(0, -12); c.rotate(F.lean); c.translate(0, 12);
+    // far arm swings against the near one
+    const fh = [-20.0 - F.sw * 1.6, -16.0 + b + F.sw * 2.2];
+    P.hose(hosePath(-12.6, -36.0 + b, fh[0], fh[1], 3.6 + F.sw * 1.2), 3.7, INK);
     glove(P, fh[0], fh[1], PI * 0.62, 1.9);
-    // torso: striped barrel
+    // torso: striped barrel, squashed on the landing frames
+    const tq = F.land * 0.06;
+    c.save(); c.translate(0, -10); c.scale(1 + tq * 0.7, 1 - tq); c.translate(0, 10);
     const torso = (k) => blobPath(k, off([[-15.4, -12.8], [-17.6, -24.6], [-15.6, -37.4], [-6.4, -43.0], [6.4, -43.2], [15.8, -37.4], [17.8, -24.6], [15.6, -12.8], [0, -9.6]], 0, b), 1);
     P.part(torso, stripes, { sh: [-2.6, -2.0], inner: IL });
     P.detail((k) => {
@@ -502,9 +567,12 @@
       for (const x of [-6.5, 6.5]) { k.beginPath(); k.ellipse(x, -14.4 + b, 0.9, 0.9, 0, 0, TAU); k.fill(); k.stroke(); }
       k.restore();
     });
-    leg(6.4, 8.2 - st * 2.0, -lift(-st));
-    // head
-    const hx = 6.2, hy = -49.0 + b;
+    c.restore();
+    c.restore();
+    leg(6.4, F.nx, -F.nl);
+    c.save(); c.translate(0, -12); c.rotate(F.lean); c.translate(0, 12);
+    // head (lags the body bob by a frame)
+    const hx = 6.2, hy = -49.0 + F.hb;
     P.part(E(hx - 7.0, hy - 5.0, 2.7, 2.5), INK, {});
     P.part(E(hx, hy, 9.3, 8.4), INK, {
       detail(k) { k.strokeStyle = C.white; k.globalAlpha = 0.8; k.lineWidth = 0.7; k.beginPath(); k.arc(hx - 0.8, hy - 0.4, 7.0, PI * 1.1, PI * 1.36); k.stroke(); },
@@ -533,16 +601,19 @@
       k.fillStyle = INK; k.beginPath(); k.ellipse(hx + 11.6, hy + 0.4, 2.6, 2.1, 0.1, 0, TAU); k.fill();
       k.fillStyle = C.white; k.beginPath(); k.ellipse(hx + 10.8, hy - 0.5, 0.8, 0.45, -0.3, 0, TAU); k.fill();
     }, true);
-    // derby hat
-    P.part(E(hx - 0.6, hy - 7.0, 9.4, 1.7, -0.12), C.g2, { shade: C.shortsSh, sh: [0, -0.6] });
-    P.part((k) => { k.moveTo(hx - 6.4, hy - 7.4); k.bezierCurveTo(hx - 6.6, hy - 15.4, hx + 4.4, hy - 16.0, hx + 4.8, hy - 8.6); k.closePath(); }, C.g2, {
-      shade: C.shortsSh, sh: [-1.0, -0.6], inner: IL,
-      detail(k) { k.fillStyle = INK; k.beginPath(); k.moveTo(hx - 6.5, hy - 9.6); k.lineTo(hx + 4.9, hy - 10.6); k.lineTo(hx + 4.9, hy - 8.6); k.lineTo(hx - 6.4, hy - 7.6); k.closePath(); k.fill(); shine(k, [hx - 3.0, hy - 13.0, 1.6, 0.7, -0.5], 0.8); },
-    });
     // near arm
-    const nh = [21.6, -17.4 - st * 1.6 + b];
-    P.hose(hosePath(13.6, -35.0 + b, nh[0], nh[1], -3.6), 3.9, INK);
+    const nh = [21.6 + F.sw * 1.6, -17.4 + b - F.sw * 2.2];
+    P.hose(hosePath(13.6, -35.0 + b, nh[0], nh[1], -3.6 + F.sw * 1.2), 3.9, INK);
     glove(P, nh[0], nh[1], PI * 0.38, 2.0);
+    c.restore();
+  }
+  /** The derby hat, anchored at the middle of its brim. */
+  function bullyHatParts(P) {
+    P.part(E(0, 0, 9.4, 1.7, -0.12), C.g2, { shade: C.shortsSh, sh: [0, -0.6] });
+    P.part((k) => { k.moveTo(-5.8, -0.4); k.bezierCurveTo(-6.0, -8.4, 5.0, -9.0, 5.4, -1.6); k.closePath(); }, C.g2, {
+      shade: C.shortsSh, sh: [-1.0, -0.6], inner: IL,
+      detail(k) { k.fillStyle = INK; k.beginPath(); k.moveTo(-5.9, -2.6); k.lineTo(5.5, -3.6); k.lineTo(5.5, -1.6); k.lineTo(-5.8, -0.6); k.closePath(); k.fill(); shine(k, [-2.4, -6.0, 1.6, 0.7, -0.5], 0.8); },
+    });
   }
 
   /* ------------------------------------------------------------- effects */
@@ -829,17 +900,73 @@
     };
     if (v) { one(-4.6, 0.65); one(4.4, 0.72); one(0, 0.95); } else { one(-3.6, 0.72); one(2.2, 1.0); }
   }
+  /** Cattails at the water's edge: blade leaves, bowed stalks with ink heads (v1: taller, sparser). */
+  function reedParts(P, v) {
+    const leaf = (x, h, dir) => (k) => { k.moveTo(x - 0.9, 0.3); k.quadraticCurveTo(x + dir * 1.0, -h * 0.55, x + dir * h * 0.42, -h); k.quadraticCurveTo(x + dir * 2.2, -h * 0.48, x + 0.9, 0.3); k.closePath(); };
+    P.part(leaf(-2.4, v ? 13 : 11, -1), C.g2, { shade: C.shortsSh, sh: [-0.5, 0] });
+    P.part(leaf(2.8, v ? 9.5 : 10.5, 1), C.g2, { shade: C.shortsSh, sh: [-0.5, 0] });
+    const st = v ? [[-1.6, -21.5, -0.1, 1], [1.8, -17.0, 0.16, 0], [4.6, -12.5, 0.3, 1]] : [[-5.0, -14.0, -0.24, 1], [-1.4, -20.0, -0.06, 1], [1.8, -17.6, 0.08, 1], [4.8, -12.6, 0.26, 0]];
+    for (const s of st) {
+      const tx = s[0] + s[2] * 9, ty = s[1];
+      P.hose((k) => { k.moveTo(s[0] * 0.35, 0.2); k.quadraticCurveTo(s[0] * 0.8, ty * 0.5, tx, ty); }, 0.7, INK);
+      if (!s[3]) continue;
+      P.part(E(tx - s[2] * 2.6, ty + 3.2, 1.3, 3.0, s[2]), C.g1, { inner: IL * 0.6, hi: [tx - s[2] * 2.6 - 0.5, ty + 2.2, 0.35, 1.2, s[2]], hiA: 0.55 });
+    }
+    if (v) P.part(leaf(0.4, 8, -1), C.g3, { shade: C.g2, sh: [-0.4, 0] });
+  }
+  /** A windmill: tapered plank tower with a door "mouth" and an eye window, dark cap; the sails are a separate sprite. */
+  function millParts(P) {
+    const body = (k) => { k.moveTo(-9.6, 0.4); k.lineTo(-6.0, -38.4); k.quadraticCurveTo(0, -39.8, 6.0, -38.4); k.lineTo(9.6, 0.4); k.quadraticCurveTo(0, 1.8, -9.6, 0.4); k.closePath(); };
+    P.part(body, C.paper, {
+      shade: C.g4, sh: [-2.4, 0], inner: IL,
+      detail(k) {
+        k.strokeStyle = C.g3; k.lineWidth = 0.45; k.beginPath();
+        for (let y = -4; y > -37; y -= 3.4) { const w = 9.6 - (-y / 38.4) * 3.6; k.moveTo(-w + 0.4, y); k.quadraticCurveTo(0, y + 0.8, w - 0.4, y); }
+        k.stroke();
+        k.fillStyle = INK; k.beginPath(); roundPoly(k, [[-2.7, 0.7], [-2.7, -7.4], [2.7, -7.4], [2.7, 0.7]], 2.3); k.fill();
+        k.fillStyle = C.paper; k.beginPath(); k.arc(1.6, -3.4, 0.45, 0, TAU); k.fill();
+        winFace(k, 0.5, -21.5, 3.6, 4.2);
+      },
+    });
+    P.part((k) => { k.moveTo(-8.8, -37.0); k.bezierCurveTo(-8.6, -48.0, 8.6, -48.0, 8.8, -37.0); k.quadraticCurveTo(0, -35.2, -8.8, -37.0); k.closePath(); }, C.g1, {
+      shade: INK, sh: [-1.6, -0.9], inner: IL,
+      detail(k) { k.strokeStyle = C.g2; k.lineWidth = 0.5; k.beginPath(); for (const x of [-4.4, 0, 4.4]) { k.moveTo(x * 1.2, -36.6); k.quadraticCurveTo(x * 1.05, -42, x * 0.4, -45.6); } k.stroke(); shine(k, [-3.8, -43.0, 1.8, 0.7, -0.5], 0.7); },
+    });
+    P.hose((k) => { k.moveTo(0, -45.6); k.lineTo(0, -49.0); }, 0.6, INK);
+    P.part(E(0, -49.6, 0.95, 0.95), INK, {});
+  }
+  function bladesParts(P) {
+    for (let i = 0; i < 4; i++) {
+      const a = i * (PI / 2) + 0.3, co = Math.cos(a), si = Math.sin(a), px = -si, py = co;
+      const q = (d, w) => [co * d + px * w, si * d + py * w];
+      P.hose((k) => { k.moveTo(0, 0); k.lineTo(co * 16, si * 16); }, 1.0, INK);
+      const pts = [q(3.6, 0.5), q(15.8, 0.5), q(15.8, 4.6), q(4.6, 3.3)];
+      P.part((k) => roundPoly(k, pts, 0.4), C.white, {
+        shade: C.g4, sh: [-0.4, -0.4], inner: IL * 0.7,
+        detail(k) {
+          k.strokeStyle = INK; k.lineWidth = 0.32; k.beginPath();
+          for (let d = 6.4; d < 15.5; d += 3.0) { const p0 = q(d, 0.5), p1 = q(d, 3.3 + ((d - 4.6) / 11.2) * 1.3); k.moveTo(p0[0], p0[1]); k.lineTo(p1[0], p1[1]); }
+          const m1 = q(4.2, 1.9), m2 = q(15.8, 2.5); k.moveTo(m1[0], m1[1]); k.lineTo(m2[0], m2[1]);
+          k.stroke();
+        },
+      });
+    }
+    P.part(E(0, 0, 2.1, 2.1), C.g2, { shade: C.g1, sh: [-0.4, -0.4], hi: [-0.6, -0.7, 0.6, 0.35, -0.5] });
+  }
+  /* box = sprite bounds, sh = contact shadow radii, sw = sway amount, sq = beat squash, lag = beat delay (tall things follow through) */
   const PROP_DEF = {
-    tree: { n: 3, box: [-19, -54, 19, 2], fn: treeParts, sh: [14, 4.6] },
-    house: { n: 2, box: [-18, -49, 18, 2], fn: houseParts, sh: [16, 4.8] },
-    fence: { n: 1, box: [-20, -18, 20, 2], fn: fenceParts, sh: [18, 2.6] },
-    daisies: { n: 1, box: [-12, -25, 12, 2], fn: daisyParts, sh: [8, 2.4] },
-    hill: { n: 2, box: [-23, -16, 23, 3], fn: hillParts, sh: [20, 4.4] },
-    lamp: { n: 1, box: [-7, -44, 7, 2], fn: lampParts, sh: [5, 1.8] },
-    barrel: { n: 2, box: [-10, -18, 10, 2], fn: barrelParts, sh: [8, 2.6] },
-    shroom: { n: 2, box: [-11, -16, 11, 2], fn: shroomParts, sh: [8, 2.4] },
+    tree: { n: 3, box: [-19, -54, 19, 2], fn: treeParts, sh: [14, 4.6], sw: 0.045, sq: 0.04, lag: 0.07 },
+    house: { n: 2, box: [-18, -49, 18, 2], fn: houseParts, sh: [16, 4.8], sw: 0.025, sq: 0.05, lag: 0.03 },
+    mill: { n: 1, box: [-13, -52, 13, 2], fn: millParts, sh: [12, 4.0], sw: 0.02, sq: 0.035, lag: 0.05 },
+    fence: { n: 1, box: [-20, -18, 20, 2], fn: fenceParts, sh: [18, 2.6], sw: 0.03, sq: 0.0, lag: 0 },
+    daisies: { n: 1, box: [-12, -25, 12, 2], fn: daisyParts, sh: [8, 2.4], sw: 0.09, sq: 0.07, lag: 0.02 },
+    reeds: { n: 2, box: [-12, -27, 12, 2], fn: reedParts, sh: [7, 2.0], sw: 0.12, sq: 0.03, lag: 0.1 },
+    hill: { n: 2, box: [-23, -16, 23, 3], fn: hillParts, sh: [20, 4.4], sw: 0, sq: 0.025, lag: 0 },
+    lamp: { n: 1, box: [-7, -44, 7, 2], fn: lampParts, sh: [5, 1.8], sw: 0.03, sq: 0.03, lag: 0.06 },
+    barrel: { n: 2, box: [-10, -18, 10, 2], fn: barrelParts, sh: [8, 2.6], sw: 0, sq: 0.05, lag: 0 },
+    shroom: { n: 2, box: [-11, -16, 11, 2], fn: shroomParts, sh: [8, 2.4], sw: 0, sq: 0.08, lag: 0.01 },
   };
-
+  const PAD = { tree: 70, house: 70, mill: 75, lamp: 50 };
   /* ================================================================ ground
      Flat grey washes. Smooth noise fields on a coarse grid; per-pixel signed distance
      (value / gradient) gives crisp anti-aliased region edges, a lighter inner rim
@@ -847,24 +974,96 @@
   const GSTEP = 4;
   const BASE = [207, 200, 185];
   const INKC = [22, 18, 14];
-  const LAY = [ // bottom -> top; c2 = an inner, fainter contour line (rolling-hill rings)
-    { fill: [178, 170, 154], rim: [191, 184, 169], rw: 2.4, c2: 0 },    // meadow wash
-    { fill: [146, 138, 124], rim: [163, 155, 140], rw: 2.8, c2: 5.5 },  // dark hummocks
-    { fill: [228, 221, 205], rim: [214, 206, 190], rw: 1.6, c2: 0 },    // winding path
-    { fill: [86, 80, 71], rim: [114, 107, 96], rw: 2.6, c2: 4.0 },      // ponds
+  const LAY = [ // bottom -> top; c2 = an inner, fainter contour line; ink = weight of the edge line (line hierarchy)
+    { fill: [189, 182, 166], rim: [198, 191, 176], rw: 3.0, c2: 0, ink: 0.42 },     // meadow wash – soft, thin edge
+    { fill: [150, 142, 127], rim: [170, 162, 147], rw: 3.4, c2: 6.0, ink: 0.95 },   // rolling hills – ink edge + inner ring
+    { fill: [229, 222, 206], rim: [214, 206, 190], rw: 1.8, c2: 0, ink: 0.95 },     // the road
+    { fill: [78, 72, 64], rim: [110, 103, 92], rw: 3.0, c2: 4.2, ink: 1.0 },        // ponds – shore ring
   ];
   const LINE_W = 0.8; // ink contour width (world units)
   const NF = 5;
+  /* Every region is a (roughly) signed distance field in world units: > 0 inside.
+     Hills: one lobed oval per jittered 400-unit cell (55 % of the cells), union of the neighbours.
+     Road: the zero line of a warped noise, divided by its gradient -> a constant width (~21 units).
+     Ponds: lobed ovals on a 560-unit grid, cut back from the road and the hills.                  */
+  const HC = 400, PC = 560;
+  const HL = [{ x: 0, y: 0, h: 0 }, { x: 0, y: 0, h: 0 }];
+  /** The hill lobes of a cell (0, 1 or 2) into HL-like array o; lobe = {x, y, h}. */
+  function hillCell(cx, cy, o) {
+    const h = U.hashInt(cx, cy, 7717);
+    if ((h & 255) > 140) return 0;
+    const h2 = U.hashInt(cx, cy, 7718);
+    const a = o[0];
+    a.h = h; a.x = (cx + 0.3 + 0.4 * ((h2 & 1023) / 1023)) * HC; a.y = (cy + 0.3 + 0.4 * (((h2 >>> 10) & 1023) / 1023)) * HC;
+    if (((h2 >>> 20) & 3) !== 0) return 1;
+    // ridge: a second, smaller lobe overlapping the first
+    const b = o[1], an = (((h2 >>> 22) & 255) / 255) * TAU, r0 = hillRad(h, an) * 0.85;
+    b.h = (U.hashInt(cx, cy, 7719) & 0xffff7fff) >>> 0;
+    b.x = a.x + Math.cos(an) * r0; b.y = a.y + (Math.sin(an) * r0) / 1.3;
+    return 2;
+  }
+  function hillRad(h, a) {
+    const u = ((h >>> 8) & 255) / 255, base = (0.13 + 0.19 * u * u) * HC, p = (((h >>> 16) & 255) / 255) * TAU;
+    return base * (1 + 0.15 * Math.sin(2 * a + p) + 0.07 * Math.sin(3 * a + p * 1.7));
+  }
+  function hillField(x, y) {
+    const cx0 = Math.floor(x / HC), cy0 = Math.floor(y / HC);
+    let best = -1e9;
+    for (let j = -1; j <= 1; j++) {
+      for (let i = -1; i <= 1; i++) {
+        const n = hillCell(cx0 + i, cy0 + j, HL);
+        for (let l = 0; l < n; l++) {
+          const o = HL[l], dx = x - o.x, dy = (y - o.y) * 1.3, d = Math.sqrt(dx * dx + dy * dy);
+          if (0.38 * HC - d <= best) continue;
+          const f = hillRad(o.h, Math.atan2(dy, dx)) - d;
+          if (f > best) best = f;
+        }
+      }
+    }
+    return best;
+  }
+  const PO = { x: 0, y: 0, h: 0 };
+  function pondCell(cx, cy, o) {
+    const h = U.hashInt(cx, cy, 6161);
+    if ((h & 255) > 90) return false;
+    const h2 = U.hashInt(cx, cy, 6162);
+    o.h = h; o.x = (cx + 0.25 + 0.5 * ((h2 & 1023) / 1023)) * PC; o.y = (cy + 0.25 + 0.5 * (((h2 >>> 10) & 1023) / 1023)) * PC;
+    return true;
+  }
+  function pondRad(h, a) {
+    const base = 40 + 42 * (((h >>> 8) & 255) / 255), p = (((h >>> 16) & 255) / 255) * TAU;
+    return base * (1 + 0.17 * Math.sin(2 * a + p) + 0.08 * Math.sin(3 * a - p));
+  }
+  function pondRaw(x, y) {
+    const cx0 = Math.floor(x / PC), cy0 = Math.floor(y / PC);
+    let best = -1e9;
+    for (let j = -1; j <= 1; j++) {
+      for (let i = -1; i <= 1; i++) {
+        if (!pondCell(cx0 + i, cy0 + j, PO)) continue;
+        const dx = x - PO.x, dy = (y - PO.y) * 1.35, d = Math.sqrt(dx * dx + dy * dy);
+        if (110 - d <= best) continue;
+        const f = pondRad(PO.h, Math.atan2(dy, dx)) - d;
+        if (f > best) best = f;
+      }
+    }
+    return best;
+  }
+  function pathN(x, y) {
+    const qx = U.perlin(x / 480, y / 480, 325) * 60, qy = U.perlin(x / 480 + 5.1, y / 480, 326) * 60;
+    return U.perlin((x + qx) / 1500, (y + qy) / 1500, 324);
+  }
+  function pathField(x, y) {
+    const n0 = pathN(x, y), nx = pathN(x + 3, y), ny = pathN(x, y + 3);
+    const g = Math.sqrt((nx - n0) * (nx - n0) + (ny - n0) * (ny - n0)) / 3 + 1e-7;
+    return 10.5 + U.perlin(x / 230, y / 230, 327) * 2.2 - Math.abs(n0) / g;
+  }
   function fieldsAt(x, y, out) {
     const wx = U.perlin(x / 900, y / 900, 811) * 90, wy = U.perlin(x / 900 + 9.2, y / 900, 812) * 90;
-    const X = x + wx, Y = y + wy;
-    out[0] = U.fbm(X / 440 + 3.3, Y / 440, 121, 2) - 0.56;
-    out[1] = U.fbm(X / 300 + 13.7, Y / 300, 525, 2) - 0.655;
-    const qx = U.perlin(x / 480, y / 480, 325) * 60, qy = U.perlin(x / 480 + 5.1, y / 480, 326) * 60;
-    const pn = U.perlin((x + qx) / 1600, (y + qy) / 1600, 324);
-    const path = (0.017 - Math.abs(pn)) * 3.0;
-    out[2] = path;
-    out[3] = U.fbm(X / 620 - 7.1, Y / 620, 434, 2) - 0.69 - Math.max(0, path + 0.03) * 2.0;
+    out[0] = (U.fbm((x + wx) / 620 + 3.3, (y + wy) / 620, 121, 2) - 0.585) * 240;
+    const hf = hillField(x, y), pf = pathField(x, y);
+    out[1] = hf;
+    out[2] = pf;
+    out[3] = Math.min(pondRaw(x, y), -pf - 16, -hf - 12);
     out[4] = 1 + (U.noise(x / 1400, y / 1400, 626) - 0.5) * 0.08;
   }
   const FT = new Float32Array(NF);
@@ -878,6 +1077,20 @@
     if (matAt(x + r, y) !== m || matAt(x - r, y) !== m || matAt(x, y + r) !== m || matAt(x, y - r) !== m) return -1;
     return m;
   }
+  /** Visit every cell of a `cell` grid whose content may reach the chunk (reach = max distance from its cell). */
+  function forCells(info, cell, reach, fn) {
+    const x0 = Math.floor((info.wx - reach) / cell), x1 = Math.floor((info.wx + info.size + reach) / cell);
+    const y0 = Math.floor((info.wy - reach) / cell), y1 = Math.floor((info.wy + info.size + reach) / cell);
+    for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) fn(cx, cy);
+  }
+  /** Flower patches: one per 150-unit cell at most, on plain meadow – shared by decals and props. */
+  const PATCH = 150;
+  function patchAt(cx, cy, o) {
+    const h = U.hashInt(cx, cy, 5151);
+    if ((h & 255) > 92) return false;
+    o.h = h; o.x = (cx + 0.2 + 0.6 * (((h >>> 8) & 255) / 255)) * PATCH; o.y = (cy + 0.2 + 0.6 * (((h >>> 16) & 255) / 255)) * PATCH;
+    return matSafe(o.x, o.y, 10) === 0;
+  }
   const pack = (r, g, b) => (255 << 24) | ((b < 0 ? 0 : b > 255 ? 255 : b | 0) << 16) | ((g < 0 ? 0 : g > 255 ? 255 : g | 0) << 8) | (r < 0 ? 0 : r > 255 ? 255 : r | 0);
 
   // ink decals --------------------------------------------------------------
@@ -887,6 +1100,14 @@
     c.moveTo(x - 0.6 * s, y); c.quadraticCurveTo(x - 1.1 * s, y - 1.3 * s, x - 2.0 * s, y - 2.1 * s);
     c.moveTo(x, y); c.quadraticCurveTo(x + 0.2 * s, y - 1.7 * s, x - 0.1 * s, y - 3.0 * s);
     c.moveTo(x + 0.6 * s, y); c.quadraticCurveTo(x + 1.1 * s, y - 1.2 * s, x + 2.0 * s, y - 1.9 * s);
+    c.stroke();
+  }
+  function dReed(c, x, y, s, b) {
+    c.strokeStyle = 'rgba(22,18,14,0.85)'; c.lineWidth = 0.5;
+    c.beginPath();
+    c.moveTo(x - 0.5 * s, y); c.quadraticCurveTo(x - 0.8 * s, y - 2.2 * s, x - 1.7 * s + b, y - 4.0 * s);
+    c.moveTo(x, y); c.quadraticCurveTo(x + 0.1 * s, y - 2.9 * s, x + 0.3 * s + b, y - 5.4 * s);
+    c.moveTo(x + 0.5 * s, y); c.quadraticCurveTo(x + 1.2 * s, y - 1.6 * s, x + 2.5 * s + b, y - 2.7 * s);
     c.stroke();
   }
   function dCurl(c, x, y, s, col) {
@@ -902,13 +1123,6 @@
     c.fill();
     c.fillStyle = INK; c.beginPath(); c.arc(x, y, 0.55 * s, 0, TAU); c.fill();
   }
-  function dHatch(c, x, y, s, col, rng) {
-    c.strokeStyle = col; c.lineWidth = 0.4;
-    c.beginPath();
-    const n = 3 + ((rng() * 3) | 0);
-    for (let i = 0; i < n; i++) { const ox = x + i * 1.2 * s, l = (1.6 + rng() * 1.4) * s; c.moveTo(ox, y); c.lineTo(ox + l * 0.6, y - l); }
-    c.stroke();
-  }
   function dPebble(c, x, y, rx, ry, rot) {
     c.save(); c.translate(x, y); c.rotate(rot);
     c.fillStyle = C.paper; c.strokeStyle = INK; c.lineWidth = 0.4;
@@ -921,46 +1135,133 @@
     c.beginPath(); c.moveTo(x - 1.4 * s, y); c.quadraticCurveTo(x, y - 0.4 * s, x + 1.4 * s, y); c.stroke();
   }
   function dRipple(c, x, y, s) {
-    c.strokeStyle = 'rgba(239,233,220,0.75)'; c.lineWidth = 0.55;
+    c.strokeStyle = 'rgba(239,233,220,0.7)'; c.lineWidth = 0.55;
     c.beginPath(); c.ellipse(x, y, 3.2 * s, 1.1 * s, 0, PI * 1.1, PI * 1.9); c.stroke();
     c.beginPath(); c.ellipse(x + 1.0 * s, y + 1.4 * s, 2.0 * s, 0.7 * s, 0, PI * 1.15, PI * 1.85); c.stroke();
   }
   function dLily(c, x, y, s, rot) {
     c.fillStyle = C.g2; c.strokeStyle = INK; c.lineWidth = 0.45;
     c.beginPath(); c.moveTo(x, y); c.ellipse(x, y, 2.6 * s, 1.5 * s, 0, rot + 0.35, rot + TAU - 0.35); c.closePath(); c.fill(); c.stroke();
+    c.strokeStyle = C.g3; c.lineWidth = 0.3; c.beginPath(); c.ellipse(x, y, 1.7 * s, 0.9 * s, 0, rot + PI * 0.9, rot + PI * 1.5); c.stroke();
   }
 
-  function* decals(ctx, info) {
-    const pts = [];
-    G.scatter(info, 11, 9101, 6, (x, y, rng) => { pts.push(x, y, rng.next(), rng.next(), rng.next()); });
+  /* Decals are placed by the regions, not sprinkled: hatching on the shadow side of each hill and a shine
+     on its lit side, grass clumps at the foot of hills and along the road shoulders, reeds at the water's
+     edge, pebbles lining the road, ripples and lily pads on ponds, flower patches in the open meadow.
+     Large calm areas stay empty. mx = max of every field over the chunk (cheap pre-checks).            */
+  function* decals(ctx, info, mx) {
+    const F2 = new Float32Array(NF);
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    for (let i = 0; i < pts.length; i += 5) {
-      if (i % 250 === 245) yield;
-      const x = pts[i], y = pts[i + 1], r0 = pts[i + 2], r1 = pts[i + 3], r2 = pts[i + 4];
-      const m = matSafe(x, y, 4.5);
-      if (m < 0) continue;
-      const rr = U.mulberry32(((r1 * 1e9) | 0) ^ 0x5bd1e995);
-      if (m === 0) {
-        if (r0 < 0.2) dTuft(ctx, x, y, 0.9 + r1 * 0.4, 'rgba(22,18,14,0.75)');
-        else if (r0 < 0.24) dCurl(ctx, x, y, 0.9 + r2 * 0.4, 'rgba(22,18,14,0.6)');
-        else if (r0 < 0.28) dDaisy(ctx, x, y, 0.8 + r2 * 0.3);
-        else if (r0 < 0.31) dDash(ctx, x, y, 0.9, 'rgba(22,18,14,0.45)');
-      } else if (m === 1) {
-        if (r0 < 0.26) dTuft(ctx, x, y, 0.95 + r1 * 0.4, 'rgba(22,18,14,0.8)');
-        else if (r0 < 0.33) dHatch(ctx, x, y, 0.9, 'rgba(22,18,14,0.4)', rr);
-        else if (r0 < 0.37) dDaisy(ctx, x, y, 0.85);
-      } else if (m === 2) {
-        if (r0 < 0.24) dTuft(ctx, x, y, 1.0 + r1 * 0.4, 'rgba(232,225,210,0.7)');
-        else if (r0 < 0.38) dHatch(ctx, x, y, 1.0, 'rgba(22,18,14,0.45)', rr);
-        else if (r0 < 0.43) dCurl(ctx, x, y, 1.0, 'rgba(22,18,14,0.6)');
-      } else if (m === 3) {
-        if (r0 < 0.1) dPebble(ctx, x, y, 1.4 + r1 * 1.2, 0.9 + r2 * 0.6, (r1 - 0.5) * 0.8);
-        else if (r0 < 0.22) dDash(ctx, x, y, 0.8 + r2 * 0.4, 'rgba(22,18,14,0.35)');
-      } else {
-        if (r0 < 0.26) dRipple(ctx, x, y, 0.9 + r1 * 0.5);
-        else if (r0 < 0.3) dLily(ctx, x, y, 0.9 + r2 * 0.4, r1 * TAU);
-      }
+    const H2 = [{ x: 0, y: 0, h: 0 }, { x: 0, y: 0, h: 0 }];
+    // 1) hills: parallel hatch strokes inside the lower-right rim (light comes from the upper left), a shine arc upper left
+    if (mx[1] > -30) {
+      forCells(info, HC, HC * 0.45, (cx, cy) => {
+        const nl = hillCell(cx, cy, H2);
+        for (let l = 0; l < nl; l++) {
+        const hx = H2[l].x, hy = H2[l].y, h = H2[l].h;
+        if (hx < info.wx - 150 || hx > info.wx + info.size + 150 || hy < info.wy - 120 || hy > info.wy + info.size + 120) continue;
+        const R0 = hillRad(h, 0.8), step = 2.0 / R0;
+        ctx.strokeStyle = 'rgba(22,18,14,0.5)'; ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        for (let a = -0.3; a < 1.95; a += step) {
+          const t = (a + 0.3) / 2.25, L = 1.0 + 4.4 * Math.sin(t * PI) * (0.8 + 0.2 * Math.sin(a * 23 + h));
+          const r = hillRad(h, a) - 7.8, x = hx + Math.cos(a) * r, y = hy + (Math.sin(a) * r) / 1.3;
+          if (x < info.wx - 8 || x > info.wx + info.size + 8 || y < info.wy - 8 || y > info.wy + info.size + 8) continue;
+          if (hillField(x, y) > 9.5 || pathField(x, y) > -2 || pathField(x - 0.45 * L, y - 0.8 * L) > -2) continue;
+          ctx.moveTo(x, y); ctx.lineTo(x - 0.45 * L, y - 0.8 * L);
+        }
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(244,239,228,0.6)'; ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        let on = false;
+        for (let a = PI + 0.25; a < PI + 1.35; a += step * 2) {
+          const r = hillRad(h, a) - 3.6, x = hx + Math.cos(a) * r, y = hy + (Math.sin(a) * r) / 1.3;
+          if (hillField(x, y) > 5.5 || pathField(x, y) > -2) { on = false; continue; }
+          if (on) ctx.lineTo(x, y); else { ctx.moveTo(x, y); on = true; }
+        }
+        ctx.stroke();
+        }
+      });
     }
+    yield;
+    // 2) grass clumps where regions meet; reeds at the water's edge
+    G.scatter(info, 24, 9101, 9, (x, y, rng) => {
+      fieldsAt(x, y, F2);
+      const pond = F2[3], path = F2[2], hill = F2[1];
+      let p, reed = false;
+      if (pond > -1) return;
+      if (pond > -9) { p = 0.85; reed = true; }
+      else if (path > -1.5) return;
+      else if (path > -8) p = 0.42;
+      else if (hill > -11 && hill < -1) p = 0.78;
+      else if (hill >= -1) p = hill > 9 ? 0.05 : 0;
+      else if (Math.abs(F2[0]) < 5) p = 0.45;
+      else p = F2[0] > 0 ? 0.06 : 0.045;
+      if (rng.next() > p) return;
+      // a clump: one tall tuft and smaller ones leaning off it along a shallow arc (never a straight stamp row)
+      const n = (reed ? 3 : 1) + ((rng.next() * 3) | 0);
+      const b = (rng.next() - 0.5) * 1.4, arc = (rng.next() - 0.5) * 1.6, lead = (rng.next() * n) | 0;
+      for (let i = 0; i < n; i++) {
+        const u = i - (n - 1) / 2;
+        const tx = x + u * (2.2 + rng.next() * 1.6), ty = y + u * u * arc * 0.5 + (rng.next() - 0.5) * 1.2;
+        const s = (i === lead ? 1.35 : 0.8 + rng.next() * 0.25) * (reed ? 1 : 0.95 + rng.next() * 0.2);
+        if (reed) dReed(ctx, tx, ty, s * 1.15, b);
+        else dTuft(ctx, tx, ty, s, 'rgba(22,18,14,0.78)');
+      }
+    });
+    yield;
+    // 3) pebbles lining both road edges, a few faint wheel dashes inside
+    if (mx[2] > -14) {
+      G.scatter(info, 7, 9202, 3, (x, y, rng) => {
+        const r0 = rng.next();
+        if (r0 > 0.34) return;
+        const pf = pathField(x, y);
+        if (pf > 0.9 && pf < 3.3) {
+          if (pondRaw(x, y) > -4) return;
+          dPebble(ctx, x, y, 0.8 + rng.next() * 1.0, 0.55 + rng.next() * 0.45, (rng.next() - 0.5) * 0.8);
+        } else if (pf > 4.5 && pf < 8 && r0 < 0.03) dDash(ctx, x, y, 0.9, 'rgba(22,18,14,0.3)');
+      });
+    }
+    yield;
+    // 4) water: ripple arcs along the shore ring, lily pads in little rafts
+    if (mx[3] > -10) {
+      G.scatter(info, 11, 9303, 5, (x, y, rng) => {
+        if (rng.next() > 0.42) return;
+        fieldsAt(x, y, F2);
+        if (F2[3] > 1.5 && F2[3] < 8) dRipple(ctx, x, y, 0.75 + rng.next() * 0.5);
+      });
+      G.scatter(info, 44, 9304, 10, (x, y, rng) => {
+        if (rng.next() > 0.65) return;
+        fieldsAt(x, y, F2);
+        if (F2[3] < 10) return;
+        const n = 2 + ((rng.next() * 2) | 0);
+        for (let i = 0; i < n; i++) dLily(ctx, x + (rng.next() - 0.5) * 9, y + (rng.next() - 0.5) * 4, 0.8 + rng.next() * 0.5, rng.next() * TAU);
+      });
+    }
+    yield;
+    // 5) flower patches: small daisies around a centre (where a big faced daisy may stand) + a few tufts
+    const PO2 = { x: 0, y: 0, h: 0 };
+    forCells(info, PATCH, 30, (cx, cy) => {
+      if (!patchAt(cx, cy, PO2)) return;
+      const r = U.rng(PO2.h);
+      const n = 6 + ((r.next() * 6) | 0);
+      for (let i = 0; i < n; i++) {
+        const a = r.next() * TAU, d = 7 + Math.sqrt(r.next()) * 13;
+        const x = PO2.x + Math.cos(a) * d * 1.35, y = PO2.y + Math.sin(a) * d * 0.75;
+        const tuft = r.next() < 0.45, s = 1.0 + r.next() * 0.45;
+        if (matAt(x, y) !== 0) continue;
+        if (tuft) dTuft(ctx, x, y + 0.6, 0.95, 'rgba(22,18,14,0.75)');
+        dDaisy(ctx, x, y, s);
+      }
+    });
+    // 6) a few ink wind-curls in the open meadow
+    G.scatter(info, 96, 9405, 6, (x, y, rng) => {
+      if (rng.next() > 0.32) return;
+      const kind = rng.next();
+      if (matSafe(x, y, 4) !== 0) return;
+      if (kind < 0.5) dCurl(ctx, x, y, 0.95, 'rgba(22,18,14,0.5)');
+      else { dDash(ctx, x, y, 1.0, 'rgba(22,18,14,0.42)'); dDash(ctx, x + 2.4, y + 1.6, 0.7, 'rgba(22,18,14,0.42)'); }
+    });
   }
 
   /* ========================================================== draw helpers */
@@ -989,6 +1290,70 @@
     ctx.drawImage(s.c, -s.ox * k, -s.oy * k, s.c.width * k, s.c.height * k);
     ctx.setTransform(S, 0, 0, S, V.ox, V.oy);
   }
+  /** The bully's derby hat, placed on the head of body frame fi (follows the body's scale and rotation). */
+  function drawHat(ctx, V, x, y, sx, sy, rot, fi, left, lift, hrot, fl, alpha) {
+    const a = SPR.bullyHatAt[fi], d = left ? -1 : 1;
+    const ox = a[0] * d * sx, oy = a[1] * sy - lift;
+    const co = Math.cos(rot), si = Math.sin(rot);
+    const hx = x + ox * co - oy * si, hy = y + ox * si + oy * co;
+    const h = SPR.bullyHat, r = rot + hrot * d;
+    ctx.globalAlpha = alpha;
+    blitRot(ctx, V, left ? h.nl : h.n, hx, hy, sx, sy, r);
+    if (fl > 0.02) { ctx.globalAlpha = Math.min(0.9, fl * 1.4) * alpha; blitRot(ctx, V, left ? h.fl : h.f, hx, hy, sx, sy, r); }
+  }
+  /** Designed deaths over deathT 0..1 (0.35 s in play): see the comments per phase. */
+  function drawDeath(ctx, V, e, set, left, x, y, sx, sy, rot, fi) {
+    const q = e.deathT, big = e.type === 'colossus';
+    const sN = left ? set.nl : set.n, sF = left ? set.fl : set.f;
+    if (e.type === 'ghost') {
+      if (q < 0.14) {
+        // shock: puffs up in negative
+        const u = q / 0.14, k = 1 + 0.28 * U.ease.outQuad(u);
+        blitRot(ctx, V, sF, x, y - 3 * u, sx * k, sy * k, rot);
+      } else {
+        // the sheet deflates, sinks and lies on the ground as an empty, crumpled sheet that fades
+        const u = U.clamp((q - 0.14) / 0.42, 0, 1), e2 = u * u;
+        const wob = Math.sin(u * 16) * 0.12 * (1 - u);
+        const ky = 1.28 - 1.12 * e2 + wob, kx = 1.28 + 0.25 * e2 - wob * 0.6;
+        const yy = U.lerp(y - 3, e.y, U.smoothstep(0, 1, u));
+        ctx.globalAlpha = q > 0.7 ? Math.max(0, 1 - (q - 0.7) / 0.3) : 1;
+        blitRot(ctx, V, sN, x, yy, sx * kx, sy * Math.max(0.14, ky), rot * (1 - u));
+        ctx.globalAlpha = 1;
+      }
+      return;
+    }
+    // 0–0.14 jolts up, stretched, in negative · 0.14–0.3 slams down into a pancake ·
+    // 0.3–0.52 the pancake spins shut like a coin (the effects' poof covers it)
+    if (q < 0.52) {
+      let kx, ky, yy = y, s = sN, r = rot;
+      if (q < 0.14) { const u = U.ease.outQuad(q / 0.14); kx = 1 - 0.28 * u; ky = 1 + 0.42 * u; yy = y - 5 * u; s = sF; }
+      else if (q < 0.3) { const u = (q - 0.14) / 0.16, u2 = u * u; kx = 0.72 + 0.98 * u2; ky = 1.42 - 1.18 * u2; yy = y - 5 * (1 - u2); s = u < 0.5 ? sF : sN; }
+      else { const u = (q - 0.3) / 0.22; kx = 1.7 * Math.max(0, Math.cos(u * PI * 0.5)); ky = 0.24 + 0.06 * Math.sin(u * 20); r = 0; }
+      if (kx > 0.02) blitRot(ctx, V, s, x, yy, sx * kx, sy * ky, r);
+    }
+    if (big) {
+      // the hat pops off and tumbles away
+      const d = left ? -1 : 1, a = SPR.bullyHatAt[fi];
+      const hx = x + a[0] * d * sx + d * 18 * q, hy = y + a[1] * sy - 46 * q + 52 * q * q;
+      ctx.globalAlpha = q > 0.75 ? Math.max(0, 1 - (q - 0.75) / 0.25) : 1;
+      blitRot(ctx, V, left ? SPR.bullyHat.nl : SPR.bullyHat.n, hx, hy, sx, sy, d * q * 7);
+      ctx.globalAlpha = 1;
+    }
+    // the soul: a pale copy with a halo floats up, swaying, and fades
+    if (q > 0.16) {
+      const u = (q - 0.16) / 0.84;
+      const a = (big ? 0.5 : 0.72) * Math.pow(1 - u, 1.3) * U.clamp(u * 6, 0, 1);
+      if (a > 0.01) {
+        const k = (big ? 0.62 : 0.78) + 0.1 * Math.sin(u * 9), w = Math.sin(u * TAU * 1.25);
+        const px = x + w * 3.5, py = y - 6 - u * (big ? 34 : 26);
+        ctx.globalAlpha = a;
+        blitRot(ctx, V, sF, px, py, sx * k, sy * k, w * 0.15);
+        const H = (big ? 60 : 17) * sy * k;
+        blit(ctx, SPR.halo, px + (left ? -1 : 1) * (big ? 6 : 1.5) * sx, py - H - 2.5, big ? 1.3 : 0.75, big ? 1.3 : 0.75);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
   /** The shared beat: q = squash pulse (1 on the beat), sway = -1..1 swinging each beat. */
   const BEAT = { rt: -1, q: 0, sway: 0, ph: 0, n: 0 };
   function beat(rt) {
@@ -1000,6 +1365,15 @@
       BEAT.sway = Math.cos(b * PI);
     }
     return BEAT;
+  }
+
+  /** The beat at any time (for props that follow through a little after it). */
+  const BT = { q: 0, sway: 0 };
+  function beatAt(rt) {
+    const b = rt * BPS, ph = b - Math.floor(b), c = Math.cos(ph * PI);
+    BT.q = Math.pow(Math.max(0, c), 6) + Math.pow(Math.max(0, -c), 6);
+    BT.sway = Math.cos(b * PI);
+    return BT;
   }
 
   // number sprites (cached per value; Limelight once loaded)
@@ -1303,12 +1677,19 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
       K = Math.max(3, Math.min(6, Math.round(S * 1.25)));
       const HB = [-17, -41, 17, 2.5];
       SPR.walk = []; for (let f = 0; f < 8; f++) SPR.walk.push(set4(HB, (P) => heroParts(P, heroPose('walk', f))));
-      SPR.idle = [0, 1].map((f) => set4(HB, (P) => heroParts(P, heroPose('idle', f))));
+      SPR.idle = [0, 1, 2, 3, 4, 5].map((f) => set4(HB, (P) => heroParts(P, heroPose('idle', f))));
+      SPR.skid = set4(HB, (P) => heroParts(P, heroPose('skid', 0)));
       SPR.dash = [0, 1].map((f) => set4(HB, (P) => heroParts(P, heroPose('dash', f))));
       SPR.hurt = set4(HB, (P) => heroParts(P, heroPose('hurt', 0)));
       SPR.imp = [0, 1, 2].map((v) => [0, 1, 2, 3, 4, 5].map((f) => set4([-12, -25, 12, 2.5], (P) => impParts(P, f, v))));
       SPR.ghost = [0, 1, 2, 3, 4, 5].map((f) => set4([-14, -29, 17, 2.5], (P) => ghostParts(P, f), ghostFade, NEG));
-      SPR.bully = [0, 1, 2, 3].map((f) => set4([-30, -69, 30, 3], (P) => bullyParts(P, f)));
+      SPR.bully = [0, 1, 2, 3, 4, 5, 6, 7].map((f) => set4([-31, -62, 31, 3], (P) => bullyParts(P, f)));
+      SPR.bullyHat = set4([-11, -11, 11, 3], bullyHatParts);
+      SPR.bullyHatAt = [0, 1, 2, 3, 4, 5, 6, 7].map(bullyHatAt);
+      SPR.halo = plainSprite([-6, -2.6, 6, 2.6], (c) => {
+        c.lineWidth = 1.5; c.strokeStyle = INK; c.beginPath(); c.ellipse(0, 0, 4.6, 1.5, 0, 0, TAU); c.stroke();
+        c.lineWidth = 0.8; c.strokeStyle = C.white; c.stroke();
+      });
       SPR.note = [0, 1, 2].map((v) => build([-6.5, -11, 8, 4], (P) => noteParts(P, v), 'fill', 0.6, null, C.white));
       SPR.coin = build([-4.5, -4.5, 4.5, 4.5], coinParts);
       SPR.diamond = build([-6, -6.5, 6, 6], diamondParts);
@@ -1335,6 +1716,7 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
         SPR.props[t] = [];
         for (let v = 0; v < d.n; v++) SPR.props[t].push(withFlip(build(d.box, (P) => d.fn(P, v))));
       }
+      SPR.blades = build([-18, -18, 18, 18], bladesParts);
       FILM.key = '';
       if (document.fonts && document.fonts.load) { try { document.fonts.load('20px "Limelight"', '0123456789'); } catch (e) { /* ignore */ } }
     },
@@ -1356,6 +1738,8 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
         }
         if ((j & 7) === 7) yield;
       }
+      const mx = [-1e9, -1e9, -1e9, -1e9];
+      for (let i = 0; i < nn * nn; i++) for (let L = 0; L < 4; L++) if (F[i * NF + L] > mx[L]) mx[L] = F[i * NF + L];
       const cs = new Int32Array(nc + 1);
       for (let i = 0; i <= nc; i++) cs[i] = Math.max(0, Math.min(Wp, Math.ceil(i * cpx - 0.5)));
       const img = ctx.createImageData(Wp, Wp);
@@ -1420,7 +1804,7 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
                 }
                 if (ink > 0) {
                   if (ink > 1) ink = 1;
-                  ink *= 0.92;
+                  ink *= 0.92 * LAY[L].ink;
                   r += (INKC[0] - r) * ink; g += (INKC[1] - g) * ink; b += (INKC[2] - b) * ink;
                 }
               }
@@ -1432,70 +1816,143 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
       }
       ctx.putImageData(img, 0, 0);
       yield;
-      yield* decals(ctx, info);
+      yield* decals(ctx, info, mx);
     },
 
+    /* Props come in designed groups, never one-by-one: groves on the back rim of the hills (mushrooms at
+       their feet, a windmill on some hill tops), villages of 2–3 houses in a row with fences running off
+       both ends, a lamp and a barrel, lamp posts and fences lining the road, cattails around every pond,
+       a big faced daisy in the middle of each flower patch. Each member belongs to the chunk it stands in. */
     propsForChunk(info) {
       const out = [];
-      G.scatterOwned(info, 70, 4343, (x, y, rng) => {
+      const add = (x, y, t, v, f, ph) => {
+        if (x < info.wx || x >= info.wx + info.size || y < info.wy || y >= info.wy + info.size) return;
         if (G.nearSpawn(x, y, 95)) return;
-        const r = rng.next();
-        const m = matAt(x, y);
-        let t = null, v = 0;
-        const vr = rng.next();
-        if (m === 0) {
-          if (r < 0.1) { t = 'tree'; v = vr < 0.55 ? 0 : vr < 0.85 ? 1 : 2; }
-          else if (r < 0.15) { t = 'house'; v = vr < 0.6 ? 0 : 1; }
-          else if (r < 0.2) t = 'fence';
-          else if (r < 0.25) t = 'daisies';
-          else if (r < 0.28) t = 'lamp';
-          else if (r < 0.31) { t = 'barrel'; v = vr < 0.6 ? 0 : 1; }
-          else if (r < 0.33) { t = 'shroom'; v = vr < 0.5 ? 0 : 1; }
-        } else if (m === 1) {
-          if (r < 0.15) { t = 'tree'; v = vr < 0.6 ? 0 : 1; }
-          else if (r < 0.24) t = 'daisies';
-          else if (r < 0.3) { t = 'hill'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.35) { t = 'shroom'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.38) t = 'fence';
-        } else if (m === 2) {
-          if (r < 0.2) { t = 'hill'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.3) { t = 'tree'; v = vr < 0.5 ? 2 : 1; }
-          else if (r < 0.36) { t = 'shroom'; v = 1; }
-        } else if (m === 3) {
-          if (r < 0.07) t = 'lamp';
-          else if (r < 0.11) t = 'fence';
-          else if (r < 0.14) { t = 'barrel'; v = 0; }
+        out.push({ x, y, t, v, f, ph, pad: PAD[t] || 34 });
+      };
+      const ok = (x, y, r) => { const m = matSafe(x, y, r); return m >= 0 && m <= 2; }; // meadow, wash or hill – never road or water
+      const H3 = [{ x: 0, y: 0, h: 0 }, { x: 0, y: 0, h: 0 }];
+      // 1) hill groves + windmills
+      forCells(info, HC, HC * 0.5, (cx, cy) => {
+        const nl = hillCell(cx, cy, H3);
+        if (!nl) return;
+        const L0 = H3[0];
+        const r = U.rng(L0.h ^ 0x9e3779b9);
+        const nT = r.next() < 0.78 ? 2 + ((r.next() * 3) | 0) : 0;
+        let a = -PI / 2 - 1.05 + r.next() * 0.4;
+        for (let i = 0; i < nT; i++) {
+          a += 0.32 + r.next() * 0.34;
+          const rr = hillRad(L0.h, a) + 3 + r.next() * 4;
+          const x = L0.x + Math.cos(a) * rr, y = L0.y + (Math.sin(a) * rr) / 1.3;
+          const v = r.next() < 0.62 ? 0 : 1, f = r.next() < 0.5, ph = r.next(), sh = r.next();
+          if (!ok(x, y, 4) || hillField(x, y) > 0) continue;
+          add(x, y, 'tree', v, f, ph);
+          if (sh < 0.4 && ok(x + 10, y + 5, 3)) add(x + 10, y + 5, 'shroom', sh < 0.2 ? 0 : 1, false, ph);
         }
-        if (!t) return;
-        out.push({ x, y, t, v, f: rng.chance(0.5), ph: rng.next(), pad: t === 'tree' || t === 'house' ? 70 : 30 });
+        if (r.next() < 0.32 && matSafe(L0.x, L0.y + 6, 10) === 2) add(L0.x, L0.y + 6, 'mill', 0, r.next() < 0.5, r.next());
+      });
+      // 2) villages
+      forCells(info, 520, 120, (cx, cy) => {
+        const h = U.hashInt(cx, cy, 4401);
+        if ((h & 255) > 118) return;
+        const r = U.rng(h);
+        const vx = (cx + 0.25 + 0.5 * r.next()) * 520, vy = (cy + 0.25 + 0.5 * r.next()) * 520;
+        if (G.nearSpawn(vx, vy, 140) || matSafe(vx, vy, 30) > 1 || matSafe(vx, vy, 30) < 0) return;
+        const three = r.next() < 0.55, slots = three ? [-36, 0, 36] : [-19, 19], half = three ? 36 : 19;
+        slots.forEach((dx, i) => {
+          const x = vx + dx + (r.next() - 0.5) * 5, y = vy + (r.next() - 0.5) * 6 + (i % 2) * 5;
+          const v = r.next() < 0.62 ? 0 : 1, f = r.next() < 0.5, ph = r.next();
+          if (ok(x, y, 10)) add(x, y, 'house', v, f, ph);
+        });
+        const fence = r.next() < 0.8;
+        for (const s of [-1, 1]) { const x = vx + s * (half + 31), y = vy + 7, ph = r.next(); if (fence && ok(x, y, 12)) add(x, y, 'fence', 0, s < 0, ph); }
+        const ls = r.next() < 0.5 ? -1 : 1;
+        { const x = vx + ls * (half * 0.5 + 4), y = vy + 18; if (ok(x, y, 4)) add(x, y, 'lamp', 0, false, r.next()); }
+        { const x = vx - ls * (half + 13), y = vy + 11; if (ok(x, y, 6)) add(x, y, 'barrel', r.next() < 0.6 ? 0 : 1, false, r.next()); }
+        for (const s of [-1, 1]) {
+          const go = r.next() < 0.65, x = vx + s * (half + 10 + r.next() * 8), y = vy - 15 - r.next() * 6, v = r.next() < 0.5 ? 0 : 1, f = r.next() < 0.5;
+          if (go && ok(x, y, 5)) add(x, y, 'tree', v, f, r.next());
+        }
+      });
+      // 3) the road: lamp posts on its shoulders, fences along its straight east-west runs
+      forCells(info, 130, 70, (cx, cy) => {
+        const r = U.rng(U.hashInt(cx, cy, 4502));
+        if (r.next() > 0.62) return;
+        let x = (cx + r.next()) * 130, y = (cy + r.next()) * 130;
+        const want = r.next() < 0.5 ? -7 : -8, kind = r.next(), f = r.next() < 0.5, ph = r.next();
+        let pf = pathField(x, y);
+        if (pf < -62) return;
+        let gx = 0, gy = 0, gl = 1;
+        for (let k = 0; k < 3; k++) {
+          gx = (pathField(x + 1.5, y) - pf) / 1.5; gy = (pathField(x, y + 1.5) - pf) / 1.5; gl = Math.hypot(gx, gy) || 1;
+          const d = (want - pf) / gl;
+          x += (gx / gl) * d; y += (gy / gl) * d; pf = pathField(x, y);
+        }
+        if (Math.abs(pf - want) > 1.5) return;
+        const m = matSafe(x, y, 3);
+        if (m < 0 || m > 2) return;
+        const flat = Math.abs(gy / gl) > 0.9;
+        if (flat && kind < 0.4) add(x, y + (gy > 0 ? -2 : 2), 'fence', 0, f, ph);
+        else add(x, y, 'lamp', 0, f, ph);
+      });
+      // 4) cattails ring the ponds (projected onto the shore line)
+      forCells(info, 34, 30, (cx, cy) => {
+        const r = U.rng(U.hashInt(cx, cy, 4603));
+        if (r.next() > 0.55) return;
+        let x = (cx + r.next()) * 34, y = (cy + r.next()) * 34;
+        const v = r.next() < 0.6 ? 0 : 1, f = r.next() < 0.5, ph = r.next(), bare = r.next() < 0.12;
+        const want = bare ? -13 : -1.5;
+        let pf = pondRaw(x, y);
+        if (pf < -30 || pf > 30) return;
+        for (let k = 0; k < 2; k++) {
+          const gx = (pondRaw(x + 1.5, y) - pf) / 1.5, gy = (pondRaw(x, y + 1.5) - pf) / 1.5, gl = Math.hypot(gx, gy) || 1;
+          const d = (want - pf) / gl;
+          x += (gx / gl) * d; y += (gy / gl) * d; pf = pondRaw(x, y);
+        }
+        fieldsAt(x, y, FT);
+        if (Math.abs(FT[3] - want) > 3 || FT[2] > -6) return;
+        if (bare) { if (FT[1] < -4) add(x, y, 'tree', 2, f, ph); } else add(x, y, 'reeds', v, f, ph);
+      });
+      // 5) flower patches: a big faced daisy at the centre of most of them
+      const PO3 = { x: 0, y: 0, h: 0 };
+      forCells(info, PATCH, 0, (cx, cy) => {
+        if (!patchAt(cx, cy, PO3) || ((PO3.h >>> 24) & 3) === 0) return;
+        add(PO3.x, PO3.y, 'daisies', 0, ((PO3.h >>> 26) & 1) === 1, ((PO3.h >>> 27) & 31) / 31);
+      });
+      // 6) a few singles in the open: a barrel, mushrooms, a mound, a bare curly tree
+      G.scatterOwned(info, 150, 4343, (x, y, rng) => {
+        const r = rng.next(), vr = rng.next(), f = rng.chance(0.5), ph = rng.next();
+        if (r > 0.3 || G.nearSpawn(x, y, 95)) return;
+        const m = matSafe(x, y, 12);
+        if (m < 0 || m > 1) return;
+        const t = r < 0.08 ? 'barrel' : r < 0.18 ? 'shroom' : 'hill';
+        out.push({ x, y, t, v: vr < 0.5 ? 0 : 1, f, ph, pad: 34 });
       });
       return out;
     },
 
     drawProp(ctx, p, view) {
       markOwn('props', view.rt);
-      const s = SPR.props[p.t][p.v];
+      const d = PROP_DEF[p.t], s = SPR.props[p.t][p.v];
+      if (!d || !s) return;
       const spr = p.f ? s.l : s.n;
-      const V = tf(view), B2 = beat(view.rt);
-      // everything dances on the shared beat: squash on the beat, sway from beat to beat
-      let sx = 1, sy = 1, k = 0;
-      const q = B2.q, sw = B2.sway;
-      switch (p.t) {
-        case 'tree': k = sw * (p.v === 1 ? 0.05 : 0.04); sy = 1 - 0.04 * q; sx = 1 + 0.03 * q; break;
-        case 'daisies': k = sw * 0.09; sy = 1 - 0.07 * q; sx = 1 + 0.05 * q; break;
-        case 'house': k = sw * 0.025; sy = 1 - 0.05 * q; sx = 1 + 0.035 * q; break;
-        case 'lamp': k = sw * 0.03; sy = 1 - 0.03 * q; break;
-        case 'shroom': sy = 1 - 0.08 * q; sx = 1 + 0.06 * q; break;
-        case 'barrel': sy = 1 - 0.05 * q; sx = 1 + 0.04 * q; break;
-        case 'fence': k = sw * 0.03; break;
-        default: sy = 1 - 0.025 * q; sx = 1 + 0.02 * q;
-      }
+      const V = tf(view);
+      // everything dances on the shared beat: a squash on the beat, a sway from beat to beat. Tall props
+      // follow through a little later (lag), each prop swings with its own amplitude, so nothing is rigid.
+      const b = beatAt(view.rt - d.lag - p.ph * 0.04);
+      const amp = 0.8 + p.ph * 0.4;
+      const k = b.sway * d.sw * amp, sy = 1 - d.sq * b.q, sx = 1 + d.sq * 0.75 * b.q;
       blitSkew(ctx, V, spr, p.x, p.y, sx, sy, k);
       if (p.t === 'lamp') {
         const fl = 0.82 + 0.18 * h1(Math.floor(view.rt * 24), 7);
         ctx.globalAlpha = fl * 0.8;
         blit(ctx, SPR.glow, p.x + k * 34 * sy, p.y - 34 * sy, 1, 1);
         ctx.globalAlpha = 1;
+      } else if (p.t === 'mill') {
+        // the sails turn steadily and give a little kick on every beat
+        const dir = p.f ? -1 : 1;
+        const rot = dir * (view.rt * 0.85 + p.ph * 6 + 0.12 * b.q);
+        blitRot(ctx, V, SPR.blades, p.x + k * 43 * sy, p.y - 43 * sy, 1, 1, rot);
       } else if (p.t === 'house' && p.v === 0) {
         // chimney smoke: three curly puffs rising in turn
         const cx = p.x + (p.f ? -6.8 : 6.8), cy = p.y - 33 * sy;
@@ -1509,13 +1966,15 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
         ctx.globalAlpha = 1;
       }
     },
-
     drawShadow(ctx, o) {
       let rx, ry, x = o.x, y = o.y;
       if (o.kind === 'prop') { const d = PROP_DEF[o.t]; if (!d) return; rx = d.sh[0]; ry = d.sh[1]; }
       else if (o.kind === 'enemy') {
         let k = 1;
-        if (o.dying) { if (o.deathT > 0.45) return; k = 1 - o.deathT / 0.45; }
+        if (o.dying) {
+          if (o.type === 'ghost') k = Math.max(0, 1 - o.deathT);
+          else { if (o.deathT > 0.52) return; k = o.deathT < 0.3 ? 1 : 1 - (o.deathT - 0.3) / 0.22; }
+        }
         if (o.spawnT < 1) k *= U.clamp(o.spawnT * 2.5 - 0.3, 0, 1);
         if (k <= 0.02) return;
         if (o.type === 'ghost') { rx = 5.4 * k; ry = 1.9 * k; }
@@ -1603,101 +2062,119 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
 
     drawEnemy(ctx, e, view) {
       markOwn('chars', view.rt);
-      const V = tf(view);
-      let set, rot = 0, sx = 1, sy = 1, y = e.y, alpha = 1;
-      let scl = 0.95 + e.seed * 0.1;
-      const B2 = beat(view.rt);
+      const V = tf(view), rt = view.rt;
+      const ghost = e.type === 'ghost', big = e.type === 'colossus';
+      let set, rot = 0, sx = 1, sy = 1, y = e.y, x = e.x, alpha = 1, fi = 0;
+      const scl = (0.95 + e.seed * 0.1) * (e.type === 'creeper' ? 1.12 : 1);
+      const B2 = beat(rt);
+      let hatLift = 0, hatRot = 0;
       if (e.type === 'creeper') {
-        const ph = e.anim * 0.55 + e.seed;
-        const fr = U.fract(ph);
-        set = SPR.imp[Math.floor(e.seed * 3) % 3][Math.floor(fr * 6) % 6];
-        scl *= 1.12;
-        const contact = Math.max(0, 1 - Math.min(fr, 1 - fr) * 7);
-        sx = 1 + contact * 0.1; sy = 1 - contact * 0.12;
-        rot = Math.sin(fr * TAU) * 0.08;
-      } else if (e.type === 'ghost') {
-        set = SPR.ghost[Math.floor(view.rt * 8 + e.seed * 6) % 6];
-        y -= 4.5 + Math.sin(view.rt * 2.6 + e.seed * 12) * 1.8;
-        rot = U.clamp(e.vx / 64, -1, 1) * 0.14;
-        const b = Math.sin(view.rt * 5.4 + e.seed * 7);
-        sx = 1 + b * 0.05; sy = 1 - b * 0.05;
+        // a hop cycle with its own phase per creature (seed) – the baked frames carry the squash & stretch
+        const fr = U.fract(e.anim * 0.55 + e.seed);
+        fi = Math.floor(fr * 6) % 6;
+        set = SPR.imp[Math.floor(e.seed * 3) % 3][fi];
+        rot = Math.sin(fr * TAU) * 0.07;
+      } else if (ghost) {
+        const t = rt * 2.6 + e.seed * 12;
+        set = SPR.ghost[Math.floor(rt * 8 + e.seed * 6) % 6];
+        // an uneven hover (two partials) that lingers near the top; stretch while rising, squash while sinking
+        y -= 4.6 + Math.sin(t) * 1.5 + Math.sin(t * 2 + 1.1) * 0.55;
+        rot = U.clamp(e.vx / 64, -1, 1) * 0.16;
+        const b = Math.cos(t);
+        sx = 1 - b * 0.045; sy = 1 + b * 0.05;
       } else {
-        const ph = e.anim * 0.3 + e.seed;
-        const fr = U.fract(ph);
-        set = SPR.bully[Math.floor(fr * 4) % 4];
-        const sn = Math.sin(fr * TAU * 2);
-        const contact = Math.pow(1 - Math.abs(sn), 3);
-        sx = 1 + contact * 0.07 + 0.03 * B2.q; sy = 1 - contact * 0.08 - 0.03 * B2.q;
-        rot = Math.sin(fr * TAU) * 0.04;
+        const fr = U.fract(e.anim * 0.3 + e.seed);
+        fi = Math.floor(fr * 8) % 8;
+        set = SPR.bully[fi];
+        sx = 1 + 0.03 * B2.q; sy = 1 - 0.03 * B2.q;
+        rot = Math.sin(fr * TAU) * 0.03;
+        // the hat jumps a little after every heavy landing and tips the other way
+        hatLift = 2.6 * Math.pow(Math.max(0, Math.sin((fr * 2 - 0.16) * TAU)), 2);
+        hatRot = 0.11 * Math.sin(fr * TAU - 0.8);
       }
       sx *= scl; sy *= scl;
       const left = e.facing < 0;
       if (e.spawnT < 1) {
-        if (e.type === 'ghost') {
-          const q = U.clamp(e.spawnT / 0.8, 0, 1);
-          alpha *= q;
-          const p = U.ease.outBack(q);
-          sx *= p; sy *= 0.4 + 0.6 * p;
+        const t = e.spawnT;
+        if (ghost) {
+          // unrolls upward out of its puff: a thin streak first, then it fills out with an overshoot
+          const q = U.clamp(t / 0.75, 0, 1);
+          alpha *= U.clamp(t * 3.5, 0, 1);
+          sy *= 0.2 + 0.8 * U.ease.outBack(q); sx *= 0.5 + 0.5 * U.smoothstep(0.15, 1, q);
         } else {
-          const q = U.clamp((e.spawnT - 0.12) / 0.88, 0, 1);
-          if (q <= 0) return;
-          const p = U.ease.outElastic(q);
-          sy *= p; sx *= p > 0.05 ? U.clamp(1 / Math.sqrt(p), 0.7, 1.6) : 1.6;
-          rot *= q;
+          // the ink puddle spreads (to 0.18), the creature springs out of it stretched, lands in a squash, settles
+          if (t < 0.18) return;
+          const q = (t - 0.18) / 0.82;
+          let kx, ky, hop = 0;
+          if (q < 0.4) { const u = U.ease.outQuad(q / 0.4); ky = 0.1 + 1.2 * u; kx = 0.5 + 0.32 * u; hop = 4.5 * u; }
+          else if (q < 0.55) { const u = (q - 0.4) / 0.15, u2 = u * u; ky = 1.3 - 0.58 * u2; kx = 0.82 + 0.46 * u2; hop = 4.5 * (1 - u2); }
+          else { const u = (q - 0.55) / 0.45, sp = Math.exp(-5 * u) * Math.cos(u * 9); ky = 1 - 0.28 * sp; kx = 1 + 0.28 * sp; }
+          sx *= kx; sy *= ky; y -= hop * scl; rot *= q;
         }
       }
-      if (e.dying) {
-        // stretch up in negative, then snap flat and vanish – the poof takes over
-        const q = e.deathT;
-        if (q >= 0.55) return;
-        let kx, ky;
-        if (q < 0.25) { const u = U.ease.outQuad(q / 0.25); kx = 1 - 0.3 * u; ky = 1 + 0.4 * u; }
-        else { const u = (q - 0.25) / 0.3; kx = 0.7 + 0.9 * u; ky = 1.4 * (1 - u); }
-        ctx.globalAlpha = alpha;
-        const s = left ? set.fl : set.f;
-        if (rot) blitRot(ctx, V, s, e.x, y, sx * kx, sy * ky, rot); else blit(ctx, s, e.x, y, sx * kx, sy * ky);
-        ctx.globalAlpha = 1;
-        return;
+      if (e.dying) return drawDeath(ctx, V, e, set, left, x, y, sx, sy, rot, fi, rt);
+      // hit: a sharp squash that springs back through a stretch (~120 ms), the body recoils away from the blow,
+      // and a negative-flash frame on top
+      const hT = e.hitT;
+      if (hT < 0.45 && e.spawnT >= 1) {
+        const sp = Math.exp(-11 * hT) * Math.cos(hT * 30);
+        const A = big ? 0.2 : 0.3;
+        sx *= 1 + A * 0.8 * sp; sy *= 1 - A * sp;
+        rot += U.clamp((e.kx || 0) / 140, -1, 1) * 0.32 * Math.exp(-9 * hT);
+        if (big) hatLift += 7 * Math.exp(-7 * hT) * Math.max(0, Math.sin(hT * 9));
       }
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.22 * fl; sy *= 1 - 0.18 * fl; }
       ctx.globalAlpha = alpha;
       const s = left ? set.nl : set.n;
-      if (rot) blitRot(ctx, V, s, e.x, y, sx, sy, rot); else blit(ctx, s, e.x, y, sx, sy);
+      if (rot) blitRot(ctx, V, s, x, y, sx, sy, rot); else blit(ctx, s, x, y, sx, sy);
       if (fl > 0.02) {
         ctx.globalAlpha = Math.min(0.9, fl * 1.4) * alpha;
         const f2 = left ? set.fl : set.f;
-        if (rot) blitRot(ctx, V, f2, e.x, y, sx, sy, rot); else blit(ctx, f2, e.x, y, sx, sy);
+        if (rot) blitRot(ctx, V, f2, x, y, sx, sy, rot); else blit(ctx, f2, x, y, sx, sy);
       }
+      if (big) drawHat(ctx, V, x, y, sx, sy, rot, fi, left, hatLift, hatRot, fl, alpha);
       ctx.globalAlpha = 1;
     },
 
     drawPlayer(ctx, p, view) {
       markOwn('chars', view.rt);
-      const V = tf(view), game = view.game;
-      const B2 = beat(view.rt);
+      const V = tf(view), game = view.game, rt = view.rt;
+      const B2 = beat(rt);
       let set, sx = 1, sy = 1, lift = 0, rot = 0;
       const hurt = p.hurtT > 0;
       const left = p.facing < 0;
+      // per-actor phase (clones on the sheet do not blink in unison)
+      const own = U.fract((p.x || 0) * 0.0131 + (p.y || 0) * 0.0071);
+      // the skid: 0.16 s of heels-dug-in follow-through after every dash
+      if (p.dashT > 0) p._rhDashOn = true;
+      else if (p._rhDashOn) { p._rhDashOn = false; p._rhSkid = rt; }
+      const skid = p._rhSkid !== undefined && rt - p._rhSkid < 0.16 && p.dashT <= 0;
       if (hurt) set = SPR.hurt;
-      else if (p.dashT > 0) set = SPR.dash[Math.floor(view.rt * 22) & 1];
-      else if (p.moving) {
+      else if (p.dashT > 0) set = SPR.dash[Math.floor(rt * 22) & 1];
+      else if (skid) {
+        set = SPR.skid;
+        const q = (rt - p._rhSkid) / 0.16;
+        sx = 1 + 0.12 * (1 - q); sy = 1 - 0.1 * (1 - q);
+      } else if (p.moving) {
         const cyc = p.anim * 0.2, fr = U.fract(cyc);
-        set = SPR.walk[Math.floor(fr * 8) % 8];
+        const fi = Math.floor(fr * 8) % 8;
+        set = SPR.walk[fi];
+        // a touch of extra squash on the two "down" frames, a stretch on the "up" frames
+        const k = fi % 4;
+        if (k === 1) { sy = 0.955; sx = 1.035; } else if (k === 3) { sy = 1.03; sx = 0.98; }
         const step = Math.floor(cyc * 2);
-        const sp = U.fract(cyc * 2);
-        const contact = Math.max(0, 1 - Math.abs(sp - 0.25) * 6);
-        sy = 1 - 0.07 * contact; sx = 1 + 0.06 * contact;
         if (p._rhStep !== step) {
-          if (p._rhStep !== undefined && game && game.state === 'play' && p.dashT <= 0 && Math.random() < 0.7) {
-            puff(game, p.x - p.facing * 3, p.y + 0.5, 1.0, 1, 0.32, -p.vx * 0.12, -p.vy * 0.12, 0.3, 2.5);
+          if (p._rhStep !== undefined && game && game.state === 'play' && Math.random() < 0.45) {
+            puff(game, p.x - p.facing * 3, p.y + 0.5, 1.0, 1, 0.26, -p.vx * 0.12, -p.vy * 0.12, 0.28, 2.5);
           }
           p._rhStep = step;
         }
       } else {
-        // idle: tap the toe and bob on the beat
-        set = SPR.idle[B2.ph < 0.45 && (B2.n & 1) ? 1 : 0];
-        sy = 1 - 0.035 * B2.q; sx = 1 + 0.025 * B2.q;
+        // idle: dip on the beat, rise, tap the toe, settle – and blink now and then
+        const ph = B2.ph, k = ph < 0.18 ? 0 : ph < 0.42 ? 1 : ph < 0.78 ? 2 : 3;
+        const blink = U.fract(rt / 3.3 + own) < 0.045 && (k === 0 || k === 2);
+        set = SPR.idle[blink ? (k === 0 ? 4 : 5) : k];
+        rot = B2.sway * 0.022;
         p._rhStep = undefined;
       }
       if (p.shootT > 0) { sy *= 1 - 0.05 * p.shootT; sx *= 1 + 0.04 * p.shootT; }
@@ -1718,7 +2195,7 @@ ${B} #pausebox { font: 400 70px/1 'Limelight', Georgia, serif; letter-spacing: .
         ctx.globalAlpha = 1;
       }
       let a = 1;
-      if (p.iframes > 0 && !hurt && p.dashT <= 0 && (Math.floor(view.rt * 16) & 1)) a = 0.55;
+      if (p.iframes > 0 && !hurt && p.dashT <= 0 && (Math.floor(rt * 16) & 1)) a = 0.55;
       ctx.globalAlpha = a;
       blitRot(ctx, V, left ? set.nl : set.n, p.x, p.y - lift, sx, sy, rot);
       if (hurt) {

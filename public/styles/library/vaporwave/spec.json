@@ -3,12 +3,38 @@
   "name": "Vaporwave Sunset",
   "originalName": "Vaporwave Sunset",
   "family": "Vector · Vaporwave",
-  "tags": ["vaporwave", "pastel", "retro 90s", "marble", "checkerboard", "vhs", "gradient", "sunset"],
+  "tags": [
+    "vaporwave",
+    "pastel",
+    "retro 90s",
+    "marble",
+    "checkerboard",
+    "vhs",
+    "gradient",
+    "sunset"
+  ],
   "summary": "Pastel vaporwave plazas of pink marble, checkerboards and tiled pools under a sunset wash, with VHS fringes on every sprite.",
   "description": "A sunny 80s/90s vaporwave world seen from above: pink and lilac marble slabs, lavender checkerboard plazas, a deep purple pastel grid and mint terrazzo, all on a 32-unit block grid with raised white trims, plus stepped swimming pools with mosaic bands and white coping. Every character, prop and icon is a solid, gradient-shaded drawing with a deep-indigo outline, baked once with a soft pastel bloom and a pink-left / cyan-right chroma fringe like a worn VHS tape. Palms, Greek columns, marble busts, flamingos, a beige CRT monitor and floating gradient spheres, pyramids and rings fill the plazas; a sunset gradient wash, scanlines, tape grain and a rolling tracking band sit on top, and the interface is a kit of 90s OS windows with gradient title bars and chrome lettering.",
-  "mood": ["dreamy", "nostalgic", "sunny", "ironic", "chill"],
-  "bestFor": ["retro-themed arcade and arena games", "chill exploration or collecting games", "music, lo-fi and synthwave-adjacent projects", "menus, title screens and promo art with a 90s internet flavour", "satirical or meme-flavoured games"],
-  "avoidFor": ["horror and gritty realism", "dark, moody night scenes", "naturalistic or historical settings", "projects that need subtle facial acting"],
+  "mood": [
+    "dreamy",
+    "nostalgic",
+    "sunny",
+    "ironic",
+    "chill"
+  ],
+  "bestFor": [
+    "retro-themed arcade and arena games",
+    "chill exploration or collecting games",
+    "music, lo-fi and synthwave-adjacent projects",
+    "menus, title screens and promo art with a 90s internet flavour",
+    "satirical or meme-flavoured games"
+  ],
+  "avoidFor": [
+    "horror and gritty realism",
+    "dark, moody night scenes",
+    "naturalistic or historical settings",
+    "projects that need subtle facial acting"
+  ],
   "difficulty": {
     "stars": 4,
     "why": "Each new asset is a handful of closed paths with 2–4 stop gradients, a 0.6–0.9 unit indigo outline and the shared bake (bloom + chroma fringe), so drawing is quick. The craft lies in the gradient choices (every surface needs a light-to-dark pastel ramp lit from the upper left) and in keeping the pastel ground calm enough that the outlined subjects still pop."
@@ -24,31 +50,119 @@
     "texture": "Tileable marble veins (iso-lines of domain-warped noise), terrazzo chips, a polished diagonal gloss on marble and checker, a soft caustic web in the pools, 3-px scanlines and a faint baked tape grain over the whole picture."
   },
   "palette": [
-    { "name": "Ink indigo", "hex": "#2a1a4c", "role": "All outlines, text strokes, UI borders and hard shadows" },
-    { "name": "Hot pink", "hex": "#ff5fc1", "role": "Main character jacket, small creature, grid lines, title bars, rings" },
-    { "name": "Bubblegum", "hex": "#ff9ad5", "role": "Mid pink for gradients, grid lines, flamingos" },
-    { "name": "Blush", "hex": "#ffd1ea", "role": "Light end of pink gradients, bellies, highlights" },
-    { "name": "Peach", "hex": "#ffc1a1", "role": "Warm accents, palm trunks, confetti" },
-    { "name": "Sun yellow", "hex": "#fff27a", "role": "Top of the sunset sun, sunglasses reflection, emphasised numbers" },
-    { "name": "Sunset amber", "hex": "#ffb36b", "role": "Middle of the sunset sun, warm bloom" },
-    { "name": "Lavender", "hex": "#b892ff", "role": "Side faces, shadows on pink subjects, title-bar middle" },
-    { "name": "Lilac", "hex": "#dccbff", "role": "Pale violet panels and fills" },
-    { "name": "Violet", "hex": "#7a4fd0", "role": "Dark faces of pyramids, jacket hem, creature feet" },
-    { "name": "Mint", "hex": "#8ff5d2", "role": "Palm fronds, laurel wreath, small collectibles" },
-    { "name": "Teal", "hex": "#3fd8c8", "role": "Jacket band, dark end of palm fronds" },
-    { "name": "Cyan", "hex": "#5ee7ff", "role": "Fast creature, hair, statue eyes, grid crosses, chroma accents" },
-    { "name": "Aqua", "hex": "#1fb2e0", "role": "Deep pool water, iris shading" },
-    { "name": "Marble white", "hex": "#fff5fb", "role": "Statues, columns, busts, trims and pool coping" },
-    { "name": "Marble shade", "hex": "#c9b0ee", "role": "Shadow side of marble subjects" },
-    { "name": "Skin", "hex": "#ffcfb0", "role": "Main character face and hands (shade #f2a58c)" },
-    { "name": "Rose marble", "hex": "#ffdcee", "role": "Marble slab base (veins #c76aa8); lilac slabs #eee2ff, peach slabs #ffe6d8" },
-    { "name": "Checker lilac", "hex": "#cdb3f7", "role": "Dark squares of the checkerboard plazas (light squares #fff0f8)" },
-    { "name": "Grid purple", "hex": "#6d49b8", "role": "Base of the pastel grid plazas" },
-    { "name": "Terrazzo mint", "hex": "#c6f4e3", "role": "Base of the terrazzo plazas" },
-    { "name": "Pool water", "hex": "#62dcf7", "role": "Pool water (shallow #93f1ff to deep #2399d6), mosaic band #2f63d8 + #ff7fcf" }
+    {
+      "name": "Ink indigo",
+      "hex": "#2a1a4c",
+      "role": "All outlines, text strokes, UI borders and hard shadows"
+    },
+    {
+      "name": "Hot pink",
+      "hex": "#ff5fc1",
+      "role": "Main character jacket, small creature, grid lines, title bars, rings"
+    },
+    {
+      "name": "Bubblegum",
+      "hex": "#ff9ad5",
+      "role": "Mid pink for gradients, grid lines, flamingos"
+    },
+    {
+      "name": "Blush",
+      "hex": "#ffd1ea",
+      "role": "Light end of pink gradients, bellies, highlights"
+    },
+    {
+      "name": "Peach",
+      "hex": "#ffc1a1",
+      "role": "Warm accents, palm trunks, confetti"
+    },
+    {
+      "name": "Sun yellow",
+      "hex": "#fff27a",
+      "role": "Top of the sunset sun, sunglasses reflection, emphasised numbers"
+    },
+    {
+      "name": "Sunset amber",
+      "hex": "#ffb36b",
+      "role": "Middle of the sunset sun, warm bloom"
+    },
+    {
+      "name": "Lavender",
+      "hex": "#b892ff",
+      "role": "Side faces, shadows on pink subjects, title-bar middle"
+    },
+    {
+      "name": "Lilac",
+      "hex": "#dccbff",
+      "role": "Pale violet panels and fills"
+    },
+    {
+      "name": "Violet",
+      "hex": "#7a4fd0",
+      "role": "Dark faces of pyramids, jacket hem, creature feet"
+    },
+    {
+      "name": "Mint",
+      "hex": "#8ff5d2",
+      "role": "Palm fronds, laurel wreath, small collectibles"
+    },
+    {
+      "name": "Teal",
+      "hex": "#3fd8c8",
+      "role": "Jacket band, dark end of palm fronds"
+    },
+    {
+      "name": "Cyan",
+      "hex": "#5ee7ff",
+      "role": "Fast creature, hair, statue eyes, grid crosses, chroma accents"
+    },
+    {
+      "name": "Aqua",
+      "hex": "#1fb2e0",
+      "role": "Deep pool water, iris shading"
+    },
+    {
+      "name": "Marble white",
+      "hex": "#fff5fb",
+      "role": "Statues, columns, busts, trims and pool coping"
+    },
+    {
+      "name": "Marble shade",
+      "hex": "#c9b0ee",
+      "role": "Shadow side of marble subjects"
+    },
+    {
+      "name": "Skin",
+      "hex": "#ffcfb0",
+      "role": "Main character face and hands (shade #f2a58c)"
+    },
+    {
+      "name": "Rose marble",
+      "hex": "#ffdcee",
+      "role": "Marble slab base (veins #c76aa8); lilac slabs #eee2ff, peach slabs #ffe6d8"
+    },
+    {
+      "name": "Checker lilac",
+      "hex": "#cdb3f7",
+      "role": "Dark squares of the checkerboard plazas (light squares #fff0f8)"
+    },
+    {
+      "name": "Grid purple",
+      "hex": "#6d49b8",
+      "role": "Base of the pastel grid plazas"
+    },
+    {
+      "name": "Terrazzo mint",
+      "hex": "#c6f4e3",
+      "role": "Base of the terrazzo plazas"
+    },
+    {
+      "name": "Pool water",
+      "hex": "#62dcf7",
+      "role": "Pool water (shallow #93f1ff to deep #2399d6), mosaic band #2f63d8 + #ff7fcf"
+    }
   ],
   "paletteRules": [
-    "Pastel first: about 70 % of the screen is light (marble, checker, terrazzo, water); one deep grid-purple region gives contrast.",
+    "Pastel first: about 70 % of the screen is light (marble, checker, terrazzo, water); one deep grid-purple region gives contrast. Large floor areas stay low in detail and saturation so the ink-outlined, saturated actors are the clearest read.",
     "Every subject gets a deep-indigo #2a1a4c outline – never black, never no outline – so it reads on any pastel floor.",
     "Every surface is a gradient from a near-white tint to its base hue lit from the upper left; flat fills only for small details and low-poly facets.",
     "Sprites carry a fixed chroma fringe: pink #ff3fae on the left edge, cyan #2fe0ff on the right edge, 0.5 units wide.",
@@ -56,25 +170,52 @@
     "Forbidden: pure black, greys, browns, olive and khaki; avoid pale yellow lines on mint (they turn khaki)."
   ],
   "typography": [
-    { "family": "Monoton", "weights": [400], "role": "Big panel titles and pause/end screens", "source": "Google Fonts", "sample": "PANEL TITLE", "css": "font: 400 66px/1 'Monoton', cursive; letter-spacing: 4px; color: #fff; text-shadow: -4px 0 #2fe0ff, 4px 0 #ff3fae, 0 6px 0 #2a1a4c;" },
-    { "family": "Rubik Mono One", "weights": [400], "role": "Chrome numbers, card titles, the style name plate, floating numbers", "source": "Google Fonts", "sample": "12:30", "css": "font: 400 40px/1.05 'Rubik Mono One', sans-serif; background: linear-gradient(180deg,#ffffff 0%,#c4f6ff 30%,#5ee7ff 47%,#2a1a4c 50%,#7a4fd0 54%,#ff5fc1 70%,#ffe0f2 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 1px #2a1a4c;" },
-    { "family": "VT323", "weights": [400], "role": "Body text, labels, counters, hints, bar captions", "source": "Google Fonts", "sample": "Short card text", "css": "font: 400 21px/1.05 'VT323', monospace; color: #5b3a9a;" }
+    {
+      "family": "Monoton",
+      "weights": [
+        400
+      ],
+      "role": "Big panel titles and pause/end screens",
+      "source": "Google Fonts",
+      "sample": "PANEL TITLE",
+      "css": "font: 400 66px/1 'Monoton', cursive; letter-spacing: 4px; color: #fff; text-shadow: -4px 0 #2fe0ff, 4px 0 #ff3fae, 0 6px 0 #2a1a4c;"
+    },
+    {
+      "family": "Rubik Mono One",
+      "weights": [
+        400
+      ],
+      "role": "Chrome numbers, card titles, the style name plate, floating numbers",
+      "source": "Google Fonts",
+      "sample": "12:30",
+      "css": "font: 400 40px/1.05 'Rubik Mono One', sans-serif; background: linear-gradient(180deg,#ffffff 0%,#c4f6ff 30%,#5ee7ff 47%,#2a1a4c 50%,#7a4fd0 54%,#ff5fc1 70%,#ffe0f2 100%); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 1px #2a1a4c;"
+    },
+    {
+      "family": "VT323",
+      "weights": [
+        400
+      ],
+      "role": "Body text, labels, counters, hints, bar captions",
+      "source": "Google Fonts",
+      "sample": "Short card text",
+      "css": "font: 400 21px/1.05 'VT323', monospace; color: #5b3a9a;"
+    }
   ],
   "world": {
-    "summary": "A sunny plaza world on a 32-unit block grid: noise picks one of four floor types per block (rose marble slabs, lavender checkerboard, deep purple pastel grid, mint terrazzo), raised white trims separate them, and stepped pools of 16-unit cells sit on top.",
+    "summary": "A sunny plaza world on a 32-unit block grid: noise picks one of four floor types per block (rose marble halls, lavender checkerboard, deep purple pastel grid, mint terrazzo), raised white trims separate them and stepped pools of 16-unit cells sit on top. Detail is clustered – terrazzo chips gather in drifts, glints sit on polished stone, inlays follow a rhythm – so open floor stays calm and actors read first.",
     "layers": [
       "Region per 32 u block: argmax of 4 domain-warped fbm fields (scale ~860 u), so plazas are 300–700 u across with stair-stepped borders.",
-      "Marble: tileable vein texture (128 u period) in rose (68 %), lilac (22 %) or peach (10 %), slab bevel (white 0.7 u top/left, violet 0.8 u bottom/right), 7 % diamond inlays with a cyan dot.",
+      "Marble: tileable vein texture (128 u period) in rose, lilac or peach chosen by a slow 300 u noise, so each hall is one stone with a few odd slabs at the patch edges; slab bevel (white 0.7 u top/left, violet 0.8 u bottom/right); diamond inlays with a cyan dot on a regular 4-slab rhythm.",
       "Checker: 16 u squares #fff0f8 / #cdb3f7. Pastel grid: #6d49b8 base, 8 u lines rgba(255,154,213,0.3), 32 u lines with a 2.6 u pink glow + 0.65 u #ff9ad5 core, cyan crosses every 64 u.",
-      "Terrazzo: #c6f4e3 with pastel 3–5-sided chips (r 0.4–1.25 u, ~1 per 9 u²) and rare memphis squiggles, half circles and triangle outlines.",
+      "Terrazzo: #c6f4e3 with 3–5-sided chips gathered in drifts (chance 3–45 % from a 150 u cluster noise): most chips are quiet tints of the base (#ade9d6, #d4f7ea, #b9dcf2, #f1d6ea), bright pink/violet/cyan chips appear only inside drifts; memphis squiggles, half circles and triangle outlines only as small groups inside the drifts.",
       "Polished gloss: soft white diagonal bands (period 256 u, ≤ 20 % alpha) over marble and checker.",
-      "Decals: white four-point sparkles; cyan wire glyphs on the grid; rare landmarks 15–22 u: striped sun inlays with a white rim and pink rays (marble/checker), wire suns on the grid, memphis circles on terrazzo.",
+      "Decals: white four-point glints only on polished marble and checker (22 % of 46 u cells); cyan wire glyphs on the grid in clusters; rare landmarks 15–22 u: striped sun inlays with a white rim and pink rays (marble/checker), wire suns on the grid, memphis circles on terrazzo.",
       "Trims: 2.8 u white #fff6fb strips on every block edge between two regions, a 1.1 u violet shadow offset to the lower right, lilac seams every 16 u.",
       "Pools: water where a 420 u fbm exceeds 0.625, on 16 u cells; depth colour from distance to the edge (#93f1ff → #2399d6) smoothed by bilinear upscaling, caustic web, white glints, pink/blue mosaic band, violet coping shadow on the north and west sides, 3.4 u white coping with seams every 8 u."
     ]
   },
   "characters": {
-    "summary": "Chunky, sticker-like figures with gradient fills, deep-indigo outlines, a soft bloom and the pink/cyan fringe: a cool main character in wayfarer sunglasses, hopping one-eyed pyramids, gliding low-poly dolphins and a walking marble statue.",
+    "summary": "Chunky, sticker-like figures with gradient fills, deep-indigo outlines, a soft bloom and the pink/cyan fringe: a cool main character in wayfarer sunglasses (the strongest bloom of the cast), hopping one-eyed pyramids, gliding low-poly dolphins and a walking marble statue. Poses are computed (two-bone IK legs and arms, lagging head) and baked: main character 8 walk + 8 idle + 3 dash + 1 hurt, dolphin 8, statue 8, pyramid 2 (open / blink).",
     "rules": [
       "Main character (~18 × 34 u): peach face, tall cyan-to-violet flattop, wayfarer sunglasses with a sunset reflection (ink → violet → pink → yellow), pink windbreaker with a teal diagonal band and violet hem, indigo trousers, white sneakers.",
       "Small creature (~18 × 18 u): a three-quarter pyramid – pink front face (blush → hot pink) with two yellow sunset stripes, lavender side face, one big eye with a cyan iris, two violet feet; hops with squash and stretch.",
@@ -82,7 +223,8 @@
       "Large creature (~46 × 60 u): a white marble statue torso with a pink sash, fluted column legs, mint laurel wreath, glowing cyan eye slits, glowing pink cracks and one broken shoulder that shows a cyan wireframe core.",
       "Every type owns its hue family; outlines 0.85–1.0 u, faces 0.4–0.6 u; bloom in the type colour (pink, cyan, lavender).",
       "Appear like an old CRT switching on (a white line opening vertically), disappear like one switching off (squash to a line, white-out, shrinking line).",
-      "Hit: white silhouette flash plus pink/cyan copies split 1.8 u apart."
+      "Hit: white silhouette flash plus pink/cyan copies split 1.8 u apart, and a damped squash/stretch (16 %, ~250 ms) with a lean of up to 0.22 rad in the knock-back direction.",
+      "Light ranking: main character bloom 0.62, dolphin 0.45, pyramid 0.38, props 0.3 – the main character is the clearest read on any floor."
     ]
   },
   "props": {
@@ -96,14 +238,38 @@
     ]
   },
   "effects": [
-    { "name": "Projectile disc", "how": "An iridescent compact disc (conic gradient pink → lavender → cyan → mint → yellow → peach, white label ring, ink hole) spinning in a plane squashed to 72 %, with a pink-to-cyan streak trail." },
-    { "name": "Collectibles", "how": "Rotating octahedra with flat facets from a pastel ramp: small ones mint/cyan, large ones pink/lavender, ink silhouette, white sparkle, strong bloom." },
-    { "name": "Orbiting object", "how": "A striped sunset sun (yellow → amber → pink → magenta, four bands cut out of the lower half) with an amber bloom and a pink/cyan polyline trail of its last positions." },
-    { "name": "Impact", "how": "Short colour streaks with a faint ink underlay, two pastel confetti triangles and a small white ring." },
-    { "name": "Burst", "how": "Confetti triangles with thin ink edges in the creature's colours, pink/cyan glitch squares, a squashed ring (colour 1.8 u + white 0.55 u core); the statue breaks into white and lilac marble chunks." },
-    { "name": "Collect", "how": "A thin mint or pink ring at the main character's feet and rising white four-point stars." },
-    { "name": "Glow-up", "how": "A yellow-to-pink light column, an expanding ring with an ink edge and yellow core, rising stars and confetti." },
-    { "name": "Glitch", "how": "On big impacts the picture tears: 3–6 horizontal strips shifted up to 20 px and a pink flash, for 0.14–0.45 s only." }
+    {
+      "name": "Projectile disc",
+      "how": "An iridescent compact disc (conic gradient pink → lavender → cyan → mint → yellow → peach, white label ring, ink hole) spinning in a plane squashed to 72 %, with a pink-to-cyan streak trail."
+    },
+    {
+      "name": "Collectibles",
+      "how": "Rotating octahedra with flat facets from a pastel ramp: small ones mint/cyan, large ones pink/lavender, ink silhouette, white sparkle, strong bloom."
+    },
+    {
+      "name": "Orbiting object",
+      "how": "A striped sunset sun (yellow → amber → pink → magenta, four bands cut out of the lower half) with an amber bloom and a pink/cyan polyline trail of its last positions."
+    },
+    {
+      "name": "Impact",
+      "how": "Layered: an ink-edged white four-point sparkle snaps open and is gone in 100 ms, a thin white ring 1.5 → 7 u, 3 sparks (white + the creature colour) and 2 confetti triangles; the creature squashes and leans under its white/pink/cyan flash."
+    },
+    {
+      "name": "Burst",
+      "how": "Layered: white sparkle flash (8 u, large 13 u) → ink-edged floor ring in the creature colour → confetti triangles (marble chunks for the statue) and VHS pixel squares → residue: 3–6 pink/cyan pixels that hang and drift up for ~1 s and a soft pastel floor ring that tightens and fades over 0.9–1.3 s."
+    },
+    {
+      "name": "Collect",
+      "how": "A thin mint or pink ring at the main character's feet and rising white four-point stars."
+    },
+    {
+      "name": "Glow-up",
+      "how": "A yellow-to-pink light column, an expanding ring with an ink edge and yellow core, rising stars and confetti."
+    },
+    {
+      "name": "Glitch",
+      "how": "On big impacts the picture tears: 3–6 horizontal strips shifted up to 20 px and a pink flash, for 0.14–0.45 s only."
+    }
   ],
   "atmosphere": {
     "summary": "A warm-to-violet sunset wash, soft bloom and VHS artefacts over a bright pastel world.",
@@ -120,16 +286,19 @@
     "css": ".panel{padding:5px 10px;background:linear-gradient(180deg,#f6efff,#ddcdfb);border:2px solid;border-color:#ffffff #6b4fa8 #6b4fa8 #ffffff;box-shadow:0 0 0 2px #2a1a4c,5px 5px 0 2px rgba(42,26,76,.4);font:400 22px 'VT323',monospace;color:#2a1a4c}\n.titlebar{height:26px;background:repeating-linear-gradient(0deg,rgba(255,255,255,.18) 0 1px,transparent 1px 3px),linear-gradient(90deg,#ff5fc1 0%,#b892ff 55%,#5ee7ff 100%);border-bottom:2px solid #2a1a4c}\n.bar{position:relative;height:18px;background:#1d1040;border:2px solid;border-color:#6b4fa8 #ffffff #ffffff #6b4fa8}\n.bar-fill{height:100%;background:linear-gradient(90deg,#ff5fc1,#ff8fa3 45%,#ffb36b 75%,#fff27a)}\n.bar::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 14px,rgba(29,16,64,.85) 14px 17px),linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,0) 55%)}"
   },
   "motion": [
-    "Walk: 8 baked frames, legs swing ±3.6 u with a 1.8 u lift, arms counter-swing, body bobs 1.1 u twice per cycle; idle breathes ±0.5 u.",
-    "Dash: a leaning pose (0.24 rad) plus four alternating pink/cyan afterimages 7 u apart; fast walking leaves a faint pink/cyan double image.",
-    "Small creatures hop about once per second: up to 5.5 u high, squash to 82 % on landing, stretch to 107 % in the air; blink 7 % of the time.",
-    "Fast creatures: 6 tail-beat frames, a ±1.4 u hover bob and afterimages at 8 % and 16 % of their velocity.",
+    "Walk: 8 computed poses – contact (0), down (.125, body 0.9 u lower), passing (.25), up (.375) per step; IK knees (thigh 4.1, shin 4.0 u), stride ±3.7 u, foot lift 2.1 u; arms counter-swing ±0.75 rad with the forearm lifting on the forward swing; the head lands half a beat late (+0.35 u) and tilts 0.035 rad; one cycle per 2.6 distance units.",
+    "Idle: 8 poses over 3.4 s – shoulders breathe 0.3 u, a head nod on the beat at 30 % of the cycle, arms drift on their own phases, and a white glint sweeps across the sunglasses between 60 % and 90 %.",
+    "Dash (0.2 s): launch crouch (anticipation, 0.2 rad lean, body 1.5 u lower) → streak (stretch 15 %) → brake with a landing squash; four alternating pink/cyan afterimages whose spacing grows with dash progress.",
+    "Hurt: recoil pose (lean back 0.2 rad, arms up, sunglasses knocked askew, round mouth) held while the flash lasts, 12 % squash.",
+    "Small creatures hop on a per-actor clock: a ground beat (26 % of the cycle) that squashes to 78 % – landing absorb then anticipation crouch – then a 6.2 u arc that starts stretched to 112 %; blink 7 % of the time.",
+    "Fast creatures: 8 tail-beat frames at 1.6–2.1 beats/s per actor; they swim through the air with a quick rise and slow glide down (2.4–5.4 u, eased) and squash slightly at the bottom; afterimages at 8 % and 16 % of their velocity.",
     "Large creature: 8 frames, column legs lift 3.2 u, arms swing; every footfall sends out a white + pink floor ring.",
-    "Appear 0.45 s (CRT on), disappear 0.35 s (CRT off); collectibles bob ±0.8 u and spin through 8 frames."
+    "Hit reaction for every creature: squash 0.16·e^(−13t)·cos 26t over ~250 ms plus a knock-back lean.",
+    "Appear 0.45 s (CRT on), disappear 0.35 s (CRT off); collectibles bob ±0.8 u and spin through 8 frames; palms sway, floating shapes bob and spin – slower than the actors."
   ],
   "do": [
     "Outline everything in deep indigo #2a1a4c at 0.6–1.0 units.",
-    "Give every surface a gradient lit from the upper left.",
+    "Give every surface a gradient lit from the upper left; animate with computed poses (IK limbs, lagging head) and squash on contact.",
     "Bake bloom and the pink-left / cyan-right fringe into the sprite once.",
     "Use vaporwave icons as props: marble busts, columns, palms, flamingos, CRTs, floating geometric shapes.",
     "Build floors from crisp architectural blocks with white trims, and pools with white coping and a mosaic band.",
@@ -141,10 +310,10 @@
     "Don't use black outlines or grey shadows – they flatten the pastel glow.",
     "Don't blur, shift or chroma-split the whole screen every frame; bake it into sprites and use painted overlays.",
     "Don't fill large subjects with flat colour.",
-    "Don't let floor patterns compete with the subjects: chips and sparkles stay small and sparse.",
+    "Don't sprinkle chips, sparkles or squiggles evenly – gather them in drifts and on polished stone, and keep big floor areas calm.",
     "Don't put pale yellow lines on mint or peach floors – they turn khaki.",
     "Don't mix in naturalistic textures (wood grain, grass, dirt).",
     "Don't overdo the VHS noise – it is a whisper, under 5 % alpha."
   ],
-  "performance": "Baked once at load: ~60 character frames (both facings with flash, pink and cyan silhouettes), 16 collectible frames, 12 pyramid frames, 13 prop sprites with their shadow canvases, three marble textures, gloss, caustic and noise tiles. Ground chunks of 256 units take ~5–6 ms each (block regions and pool cells are sampled on a coarse 32/16-unit grid, patterns are canvas fills), spread over several frames by a generator. Per frame: one drawImage per actor and prop, batched particles (one path per colour and alpha step), one full-screen cached overlay plus the small tracking band. Never copy the canvas onto itself every frame – it stalls the GPU (only the short glitch on big impacts does it)."
+  "performance": "Baked once at load: ~80 character frames (main character 20 poses, dolphin 8, statue 8, pyramid 2; both facings with flash, pink and cyan silhouettes), 16 collectible frames, 12 pyramid-prop frames, 13 prop sprites with their shadow canvases, three marble textures, gloss, caustic and noise tiles. Ground chunks of 256 units take ~5–7 ms each (block regions and pool cells on a coarse 32/16-unit grid, cluster noise sampled per scatter point), spread over several frames by a generator. Per frame: one axis-aligned drawImage per actor and prop (squash is a scaled rect; a rotated transform only while a hit lean plays), particles batched per colour and alpha step and flushed after the last visible particle, one cached full-screen overlay plus the small tracking band. Measured against the previous version in the same session: play frame x0.98, chunk build x0.91, dense stage x1.30."
 }
