@@ -31,8 +31,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gesperrteWoerter } from "./bewertungen.mjs";
 import {
-  gleich, sicherSchreiben, lesen, sperrlisteLesen, besucherAdresse,
-  tempoGrenze, cookiesLesen, handlerAus
+  gleich, sicherSchreiben, lesen, sperrlisteLesen, besucherAdresse, tempoGrenze, cookiesLesen, handlerAus, adminSchutz, adminAbweisung, anschluss
 } from "./gemeinsam.mjs";
 
 const TAG = 24 * 60 * 60 * 1000;
@@ -77,7 +76,6 @@ const zielOk = (z) => ZIEL_RE.test(z) && !z.includes("//") && !z.includes("/.");
 
 // Tempolimit je Anschluss: IPv6-Adressen gibt es je Anschluss zu Milliarden
 // (ein /64-Netz), also zaehlt das Netz, nicht die einzelne Adresse.
-const anschluss = (ip) => (ip.includes(":") ? ip.split(":").slice(0, 4).join(":") + "::/64" : ip);
 
 export const ANBIETER = {
   discord: {
@@ -170,6 +168,7 @@ export function kontenBauen(optionen) {
   const holen = optionen.holen || fetch;
   const sicher = optionen.sicher !== false;
   const begrenzt = tempoGrenze(jetzt);
+  const admin = optionen.adminSchutz || adminSchutz(jetzt);
   const ALLE = { ...ANBIETER, ...(optionen.zusatzAnbieter || {}) };
   const zugaenge = Object.fromEntries(Object.entries(optionen.anbieter || {}).filter(([n, z]) => Object.hasOwn(ALLE, n) && z && z.id && z.secret));
   const bekannt = (name) => !!name && Object.hasOwn(zugaenge, name);
@@ -380,11 +379,8 @@ export function kontenBauen(optionen) {
 
     // ---- Verwaltung ----
     if (teile[0] === "admin") {
-      if (!passwort) return [503, { fehler: "verwaltung-aus" }];
-      if (!gleich(String(req.headers.authorization || "").replace(/^Bearer\s+/i, ""), passwort)) {
-        if (begrenzt("login|" + ip, GRENZEN.loginVersuche)) return [429, { fehler: "zu-viele-versuche" }];
-        return [401, { fehler: "passwort" }];
-      }
+      const nein = adminAbweisung(admin(req, passwort));
+      if (nein) return nein;
       if (teile[1] === "alle" && req.method === "GET" && !teile[2]) {
         const konten = speicher.konten
           .slice()
@@ -507,6 +503,11 @@ export function kontenBauen(optionen) {
   const handler = handlerAus(verarbeiten, { herkunft: optionen.herkunft });
   handler.wer = wer;
   handler.nameVon = nameVon;
+  // Konto zu einem Namen (ohne Gross-/Kleinschreibung), fuer oeffentliche Profile.
+  handler.idVon = (name) => {
+    const k = speicher.konten.find((x) => x.name.toLowerCase() === String(name).toLowerCase());
+    return k ? k.id : null;
+  };
   // Gibt es ueberhaupt eine Anmeldung? Ohne (Uebergang, solange Discord/Google
   // nicht eingerichtet sind) laufen Bewertungen und Game Requests wie vor den
   // Konten, je Geraet.

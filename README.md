@@ -214,6 +214,8 @@ mindforge, The Last Outpost, Flappy).
 
 Trailer und Screenshots im Querformat liegen unter `assets/games/shop/`. Ohne
 eigene Aufnahmen faellt die Seite auf die Bilder aus `bilder` zurueck.
+Screenshots als WebP, Trailer als VP9-WebM mit hoechstens 960×540 (siehe
+"Ladezeit").
 
 Oben rechts fuehrt **Portfolio →** nach `/portfolio`. `/games` leitet auf `/` um.
 
@@ -367,6 +369,52 @@ Spielfenster dorthin, und `miwale.com/games/<id>/...` leitet um
 (`docker/30-umgebung.sh`). Spielstaende im localStorage haengen an der Adresse:
 Wer schon unter `miwale.com` gespielt hat, faengt unter `play.miwale.com` neu an.
 
+#### Anmelden einschalten (Checkliste)
+
+Alles kostenlos. Reihenfolge einhalten: ohne getrennte Spiele-Adresse bleibt
+Anmelden aus, auch wenn die Zugänge gesetzt sind.
+
+1. **Spiele-Adresse.** DNS: `play.miwale.com` auf denselben Server wie
+   `miwale.com`. Im Ingress (`dev-cloud-server-config`, campsite-nginx) einen
+   Server-Block für `play.miwale.com` mit TLS, der wie `miwale.com` an den Container
+   `miwale:8080` weiterleitet und den `Host` mitschickt. Prüfen:
+   `curl -I https://play.miwale.com/games/wavebreaker/` → 200,
+   `curl -I https://play.miwale.com/` → 404.
+2. **Google.** [console.cloud.google.com](https://console.cloud.google.com) → neues
+   Projekt → „APIs & Dienste“ → „OAuth-Zustimmungsbildschirm“: Typ *Extern*, App-Name
+   „miwale“, Support-Mail, autorisierte Domain `miwale.com`, Datenschutz-Link
+   `https://miwale.com/privacy`; nur der Bereich `openid`. Dann „Anmeldedaten“ →
+   „OAuth-Client-ID“ → *Webanwendung*, autorisierte Weiterleitungs-URI genau
+   `https://miwale.com/api/konto/rueckruf/google`. Client-ID und -Secret notieren.
+   Den Zustimmungsbildschirm auf „In Produktion“ stellen, sonst dürfen sich nur
+   eingetragene Testnutzer anmelden.
+3. **Discord.** [discord.com/developers/applications](https://discord.com/developers/applications)
+   → „New Application“ („miwale“, Logo) → „OAuth2“: Redirect genau
+   `https://miwale.com/api/konto/rueckruf/discord`. Client-ID und (mit „Reset Secret“)
+   das Secret notieren. Kein Bot, keine weiteren Rechte.
+4. **Server.** In die `.env` neben `deploy/docker-compose.prod.yml` (nie ins Repo):
+   ```
+   SPIELE_ADRESSE=https://play.miwale.com
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   DISCORD_CLIENT_ID=...
+   DISCORD_CLIENT_SECRET=...
+   BEWERTUNGEN_ADMIN_PASSWORT=<lang und zufällig, z. B. openssl rand -base64 33>
+   ```
+   Dann `docker compose -f docker-compose.prod.yml up -d`. Das Log darf keine
+   Zeile „Anmelden ist aus“ mehr zeigen (`docker logs miwale | head`).
+5. **Prüfen.** `curl -s https://miwale.com/api/konto/ich` zeigt
+   `"anbieter":["discord","google"]`. Auf der Seite erscheinen „Sign in“, die Reiter
+   „Pearl Shop“ und „Profile“; einmal mit jedem Anbieter anmelden, Namen wählen,
+   abmelden, wieder anmelden (dasselbe Konto), Daten herunterladen, ein Testkonto löschen.
+6. **Backup.** Das Volume `miwale-bewertungen` (`/data`: Konten, Profile, Bewertungen,
+   Game Requests, `konten-geheimnis`) gehört ins nächtliche Backup. Geht
+   `konten-geheimnis` verloren, erkennt der Server niemanden wieder.
+
+Sicherheit kurz: Secrets nur in der `.env` auf dem Server; ein geleaktes Secret im
+Google- bzw. Discord-Portal sofort neu erzeugen und in der `.env` tauschen. Die
+Rückkehr-Adressen sind fest eingetragen, fremde Ziele lehnt der Anbieter ab.
+
 ### Sicherheits-Koepfe
 
 `docker/sicherheit.conf` fuer alles (nosniff, Referrer-Policy, X-Frame-Options,
@@ -490,6 +538,11 @@ in `play.html` eingetragen ist.
 in `shots/` – nur Design, ohne Spiel-HUD: Szene und dichte Szene
 (`stage.html`, `&dense`), Weitsicht (Kartenmodus von `play.html`), UI-Kit
 (`stage.html?view=ui`) und eine Nahaufnahme. Chromium kodiert das WebP selbst.
+Danach rechnet es für jedes neue Bild eine 800 px breite Fassung nach
+`shots/klein/` (`tools/shots-klein.mjs`, einzeln: `node tools/shots-klein.mjs`).
+Galerie, Mixer und Collagen laden nur diese; die großen Shots (bis 600 KB)
+laden erst die Detailseiten und die Lightbox. Der Style-Test schlägt fehl,
+wenn eine kleine Fassung fehlt.
 
 `node tools/build-styles.mjs` erzeugt aus den Library-Ordnern `styles.json`,
 `llms.txt`, `llms-full.txt`, die Seiten `/styles/<id>/` und `/styles/design/`
@@ -619,8 +672,148 @@ deshalb leer. Der Vite-Server kennt die kurzen Adressen und die Spiele:
 npm run dev
 ```
 
+Die Seite lädt bei jeder Änderung an `shop/`, `index.html`, dem Portfolio, `_ds/` oder `assets/` von selbst neu, auch auf Unterseiten wie `/library` (`tools/games-preview.mjs`, `handleHotUpdate`). Die Skripte sind keine Module, Vite allein würde das nicht tun. Laufen mehrere Dev-Server (die Dev-Zentrale zeigt sie), zeigt jeder den aktuellen Stand – Port im Browser prüfen.
+
 Ein einfacher Server wie `python -m http.server` zeigt nur die Startseite;
 `/projekte/...` und `/games` kennt er nicht.
+
+## Ladezeit
+
+Was eine Seite beim Öffnen lädt, misst `node tools/ladezeit.mjs <basis>
+[--mobil]` (Anfragen, übertragene KB je Art, größte Dateien, LCP, fremde
+Hosts, Konsolenfehler). Lokale Zeiten schwanken; die Bytes sind der
+verlässliche Vergleich.
+
+- **Keine fremden Server.** Schriften liegen in `assets/fonts/` (Quicksand,
+  Manrope, JetBrains Mono; variable woff2, Latin und Latin-Ext, SIL Open Font
+  License), React in `assets/vendor/` (byte-gleich mit den SRI-Hashes in
+  `support.js`, das Portfolio lädt es vor `support.js`). Google Fonts blockierte
+  die CSP der Spieleseite ohnehin, dort lief sie in Arial. Die CI prüft, dass
+  `fonts.googleapis`, `fonts.gstatic` und `unpkg.com` nicht zurückkommen.
+  Achtung beim Neu-Export des Design Systems: `_ds/.../tokens/fonts.css` darf
+  den Google-Import nicht zurückbringen.
+- **Bilder als WebP.** Screenshots mit Qualität 85, Pixel-Art-PNGs mit
+  Transparenz verlustfrei. Logo und Maskottchen sind Palette-PNGs mit exakt
+  denselben Pixeln. Trailer höchstens 960×540 (VP9, CRF um 34).
+- **Caching** (`docker/nginx.conf`): `assets/fonts/` und `assets/vendor/` ein
+  Jahr `immutable` — eine neue Version braucht einen neuen Dateinamen.
+  `assets/` und `styles/shots/` einen Tag, danach eine Woche
+  `stale-while-revalidate`. HTML, Seitenskripte und CSS fragen weiter bei
+  jedem Aufruf nach (`max-age=0`), damit ein Deployment sofort ankommt.
+- **Kompression** gilt für beide Hosts, also auch für die Spiel-Bundles auf
+  `play.miwale.com`.
+- Im **Datensparmodus** des Browsers starten die Trailer nicht von selbst.
+
+## Teilen, Suche und Presse
+
+Die Spieleseite ist eine Ein-Seiten-App: `index.html` hat ein leeres `#app`, den
+Rest zeichnet `shop/shop.js`. Discord, X, WhatsApp und viele Crawler (auch KI)
+führen kein JavaScript aus und sahen deshalb bei jedem Spiel dieselbe Vorschau.
+Darum entstehen beim Bauen aus dem Katalog (`shop/spiele.js`) eigene Seiten:
+
+| Adresse | Was |
+| --- | --- |
+| `/` | Startseite mit Spieleliste, `canonical` und JSON-LD (`WebSite`, `Organization`, `ItemList`) im HTML |
+| `/games/<id>` und `/games/<id>/spielen` | je Spiel: eigener Titel, Beschreibung, Vorschaubild, JSON-LD (`VideoGame`, `BreadcrumbList`) und der Text im HTML. `shop.js` ersetzt den Inhalt beim Start wie bisher |
+| `/press/` und `/press/miwale-presskit.zip` | Presse-Seite und Presskit: Fakten, Texte (EN/DE), Logo, Maskottchen, Farben, je Spiel Screenshots, Trailer und Teilen-Karte |
+| `/sitemap.xml`, `/robots.txt` | alle Spiele, Portfolio, Styles; `/admin`, `/dev`, `/usage`, `/api` ausgeschlossen |
+| `/feed.xml` | Atom-Feed: neue Spiele und Neuigkeiten. Kein Konto, keine E-Mail-Adresse |
+
+`tools/seiten.mjs` schreibt das (Bibliothek: `tools/seiten-lib.mjs`). Es steht
+**nicht im Repository**: Das Dockerfile ruft es beim Bauen auf, `npm run build`
+ebenso (nach `dist/`), und der Vite-Server baut jede Seite bei der Anfrage neu.
+So veraltet nichts. nginx liefert `/seiten/spiel/<id>.html`, und ein Spiel ohne
+eigene Datei bekommt weiter die allgemeine `index.html`.
+
+- **Teilen-Karten** (`assets/og/<id>.jpg`, 1200×630, JPEG): Screenshot, Logo, Name,
+  Kurztext, Tags, „Play free“. `node tools/og-bilder.mjs` erzeugt die fehlenden,
+  `--alle` alle neu, oder mit ids. Sie liegen im Repository;
+  `tools/sync-games.mjs` erzeugt sie für neu aufgenommene Spiele selbst. Fehlt
+  eine, zeigt die Seite `assets/og/miwale.jpg`.
+- **Neuigkeiten** zu einem Spiel: im Katalogeintrag
+  `neuigkeiten: [{ datum: "2026-11-01", titel: { en, de }, text: { en, de } }]`.
+  Sie erscheinen im Feed.
+- **Presskit** pflegen: Texte (`BOILERPLATE`), Farben und Kontakt stehen oben in
+  `tools/seiten-lib.mjs`. Die Entwürfe der Beschreibung bitte lesen und anpassen.
+- Prüfen: `node --test tools/seiten.test.mjs` (CI). Die CI ruft außerdem Spielseite,
+  Startseite, Sitemap, Feed und ZIP im gebauten Image ab.
+- Link-Vorschau testen: ohne JS, z. B. `curl -s https://miwale.com/games/dropfall | grep og:`,
+  oder mit den Debuggern von Facebook und X (zeigen auch alte Zwischenspeicher neu an).
+
+## Profil, Perlen und Erfolge
+
+Wer angemeldet ist (Konten, siehe oben), bekommt ein **Profil**: Spielzeit je Spiel,
+Level, Erfolge, **Perlen** und einen Perlen-Shop, in dem sich das Profil anpassen
+lässt. Alles ist Optik und kostenlos erspielbar; Geld spielt keine Rolle.
+
+| Adresse | Was |
+| --- | --- |
+| `/profile` | das eigene Profil mit Anpassen, Vitrine (3 Erfolge), Einstellungen und Perlen-Verlauf |
+| `/u/<name>` | das Profil eines anderen, so wie es der Server freigibt |
+| `/library` | Bibliothek wie bei Steam: links alle Spiele (Suche, Favoriten zuerst), rechts Regale mit Kacheln – Favoriten, Zuletzt gespielt, Alle Spiele (sortierbar). Stern auf der Kachel = Favorit, Play-Knopf startet direkt |
+| `/library/<id>` | ein Spiel in der Bibliothek: Spielen, Spielzeit, zuletzt gespielt, Erfolge (freigeschaltete zuerst, neueste oben, dann nach Fortschritt), Favorit, Link zur Shop-Seite |
+| `/pearls` | Perlen-Shop: Avatare, Rahmen, Banner, Namensstile, Titel, Akzentfarben |
+
+**Anmelden** öffnet überall ein Fenster in der Mitte (wie bei den meisten großen Seiten): Wal, „Anmelden oder registrieren“, je Anbieter ein Knopf mit Logo („Weiter mit Google/Discord“). Jeder Link mit `data-anmelden` öffnet es (`shop/konto.js`); ohne JavaScript führt derselbe Link auf `/account`. Neue Konten wählen danach auf `/account` ihren Namen – dieselbe Karte, mitten auf der Seite. Am Handy kommt das Fenster als Blatt von unten.
+
+In der Kopfzeile stehen Home · Library · Game Requests · Pearl Shop und rechts ein
+Chip mit Avatar, Level und Perlen. Unter 860 px Breite wandern die Reiter als
+Leiste nach unten (mit Profil als fünftem Reiter), wie in einer App. Der Chip ersetzt
+dort „Sign in“ nur, wenn jemand angemeldet ist.
+
+**Sichtbarkeit.** Das Profil ist öffentlich, **die Spielzeit privat**, bis man „Meine
+Spielzeit zeigen“ einschaltet. Perlenstand und Verlauf sieht niemand außer einem selbst.
+Ein verstecktes Profil liefert Fremden 404. `robots.txt` bittet Suchmaschinen, `/u/`,
+`/profile` und `/library` nicht aufzulisten. Der Datenschutztext (`shop/datenschutz.js`),
+der Datenabruf (`/api/konto/daten`) und das Löschen des Kontos kennen das Profil.
+
+**Ohne Konto** zählt die Spielzeit trotzdem: im Browser (`localStorage`, Schlüssel `miwale-spielzeit`, nur auf diesem Gerät), ebenso Favoriten. Meldet man sich an, wird beides einmal ins Profil übernommen (`POST /api/profil/import`, je Spiel höchstens 6 Stunden, je Konto höchstens 20; für die Zeit selbst gibt es keine Perlen, nur Spielzeit-Erfolge können dadurch frei werden). Mit Konto zählt der Server.
+
+**Favoriten:** Stern auf Kachel, Spielseite der Bibliothek oder der Shop-Seite (`data-fav-knopf`). Mit Konto `POST /api/profil/favorit { spiel, an }`, sonst im Browser.
+
+**Spielzeit** zählt nur, solange das Spielfenster offen und der Tab sichtbar ist. Alle 30
+Sekunden kommt ein Herzschlag (`shop/profil.js`); der Server schreibt nur die Zeit gut, die
+seit dem letzten Herzschlag **wirklich** vergangen ist (höchstens 90 s, höchstens einer je
+20 s, also zählen zwei Tabs nicht doppelt) und nur bis zur Tagesgrenze (12 h, 24 Perlen
+aus Spielzeit). Das ist kein Schutz gegen jemanden, der die Anfragen von Hand sendet,
+sondern dagegen, dass sich das lohnt: Perlen kaufen nur Optik, alles ist tempobegrenzt.
+
+**Regeln und Katalog** stehen in `shop/profil-katalog.js` — die eine Datei, aus der die
+Seite Shop und Profil zeichnet und gegen die der Server Preise, Voraussetzungen und
+Erfolge prüft (`REGELN` oben: 1 Perle je 5 Minuten, Besuchsbonus, Bewertung, Game Request,
+Level-Belohnung). Zu jedem Spiel entstehen von selbst ein Avatar, ein Banner (kaufbar nach
+10 Minuten in diesem Spiel) und drei Spielzeit-Erfolge (10 Min, 1 Std, 10 Std). Neuer
+Gegenstand: Eintrag in `ITEMS` (die `id` nie ändern, sonst verlieren Spieler ihren Kauf).
+Neuer Erfolg der Plattform: Eintrag in `ERFOLGE` **und** die Bedingung in `PRUEFER` in
+`server/profil.mjs` (der Test schlägt fehl, wenn eines fehlt). Texte immer en und de.
+
+**Erfolge in einem Spiel.** Ein Spiel meldet sie über das SDK (`public/sdk/miwale.js`,
+eine kleine Datei zum Kopieren ins Spiel, kein Nachladen von miwale.com):
+
+```js
+miwale.achievement("first-win");   // Spiel läuft nicht auf miwale.com? Dann tut es nichts.
+```
+
+Das Spiel schickt nur eine Nachricht an das Fenster darüber (`postMessage`). Die Seite
+nimmt sie an, wenn sie aus dem Rahmen des gerade geöffneten Spiels kommt und jemand
+angemeldet ist; der Server nimmt nur ids aus dem Katalog an (`SPIEL_ERFOLGE`) und nur,
+wenn der Spieler dort schon gespielt hat. Ein Erfolg zählt einmal. **Es gibt noch keine
+Erfolge in den Spielen**: Sie müssen in den Spiel-Repositories gemeldet **und** in
+`SPIEL_ERFOLGE` eingetragen werden — ein Erfolg, der nie kommen kann, soll nicht auftauchen.
+
+**Dienst:** `server/profil.mjs`, erreichbar unter `/api/profil/` (nginx, derselbe Prozess
+wie die anderen Dienste). Gespeichert wird in `profile.json` im Datenordner, gesammelt alle
+paar Sekunden (und beim Beenden). Verwaltung mit dem Passwort der Verwaltung:
+`GET /api/profil/admin/profile` (Liste), `PUT …/profile/<konto-id>` mit `{ "perlen": 50 }`
+(gutschreiben oder abziehen), `DELETE …/profile/<konto-id>` (zurücksetzen). Bewertungen
+und Game Requests melden dem Profil über `beiBewertung` und `beiIdee` (`server/start.mjs`).
+Lokal (`npm run dev`) liegen die Daten in `.bewertungen-dev/`; zum Ausprobieren melde dich
+mit dem Test-Anbieter an und schenke dir Perlen: `curl -X PUT -H "Authorization: Bearer dev"
+-H "Content-Type: application/json" -H "Origin: http://localhost:5310" -d '{"perlen":500}'
+http://localhost:5310/api/profil/admin/profile/<konto-id>` (die Id steht in der Liste).
+
+Prüfen: `node --test tools/profil.test.mjs` (Katalog, Regeln, Tagesgrenzen, Shop,
+Sichtbarkeit, Neustart, Löschen; CI).
 
 ## Design System
 
@@ -641,8 +834,9 @@ Elf der zwoelf Projekte verwenden eigene Illustrationen in den Projektkacheln un
 der Startseite, auf Desktop und Mobil. Der Reliktenschieber zeigt vorerst einen
 Screenshot aus dem Spiel, bis eine Illustration entsteht. Die Zuordnung steht im Feld `preview`;
 `shot` und `shots` behalten die bisherigen Detailbilder. Unter
-`assets/games/previews/` liegen die PNG-Originale, kompakte JPEG-Webdateien
-und die vollst?ndigen Generierungsprompts in `prompts.md`.
+`assets/games/previews/` liegen die PNG-Originale, die WebP-Webdateien
+und die vollständigen Generierungsprompts in `prompts.md`. Die PNG-Originale
+kommen nicht ins Image (`.dockerignore`).
 
 
 ## Spiele von GitHub (automatisch)

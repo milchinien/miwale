@@ -12,6 +12,33 @@
 <!-- Die Seite laeuft unter kurzen Adressen wie /projekte/chromatic. Ohne die
      Basis suchte sie support.js, _ds/ und assets/ dann unter /projekte/. -->
 <base href="/">
+<!-- Suchergebnis und Link-Vorschau des Portfolios. Alle Reiter (/projekte, /devlog, ...)
+     liefern diese Datei; die kanonische Adresse ist /portfolio. -->
+<title>miwale — Michel Waggoner · Game &amp; Software Developer</title>
+<meta name="description" content="Portfolio of Michel Waggoner (miwale) from Leipzig: idle games, card games, roguelites and tools, built with AI and tuned by hand. Play them free in your browser.">
+<link rel="canonical" href="https://miwale.com/portfolio">
+<meta property="og:site_name" content="miwale">
+<meta property="og:type" content="website">
+<meta property="og:title" content="miwale — Michel Waggoner · Game &amp; Software Developer">
+<meta property="og:description" content="Portfolio of Michel Waggoner (miwale) from Leipzig: idle games, card games, roguelites and tools, built with AI and tuned by hand. Play them free in your browser.">
+<meta property="og:url" content="https://miwale.com/portfolio">
+<meta property="og:image" content="https://miwale.com/assets/og/miwale.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="miwale — Michel Waggoner · Game &amp; Software Developer">
+<meta name="twitter:description" content="Portfolio of Michel Waggoner (miwale) from Leipzig: idle games, card games, roguelites and tools, built with AI and tuned by hand. Play them free in your browser.">
+<meta name="twitter:image" content="https://miwale.com/assets/og/miwale.jpg">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Person", "name": "Michel Waggoner", "alternateName": "miwale", "url": "https://miwale.com/portfolio", "jobTitle": "Game and software developer", "address": {"@type": "PostalAddress", "addressLocality": "Leipzig", "addressCountry": "DE"}, "sameAs": ["https://github.com/milchinien", "https://milchinien.itch.io/", "https://www.youtube.com/@miwale-games"], "worksFor": {"@type": "Organization", "name": "miwale", "url": "https://miwale.com"}}</script>
+<!-- Die beiden Schriften der ersten Ansicht; sonst fragt der Browser erst nach
+     dem CSS und dem ersten Layout nach ihnen. -->
+<link rel="preload" href="/assets/fonts/manrope-v20-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/quicksand-v37-latin.woff2" as="font" type="font/woff2" crossorigin>
+<!-- React von hier statt vom CDN in support.js: es nimmt window.React, wenn es
+     schon da ist. Spart die fremde Verbindung und gibt keine IP an Dritte.
+     Dateien byte-gleich mit den SRI-Hashes in support.js. -->
+<script src="/assets/vendor/react-18.3.1.production.min.js"></script>
+<script src="/assets/vendor/react-dom-18.3.1.production.min.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -1441,17 +1468,17 @@
 const PROJECTS = [
   {
     id: "dropfall", name: "Dropfall", trend: 1,
-    preview: "assets/games/previews/dropfall-v1.jpg",
+    preview: "assets/games/previews/dropfall-v1.webp",
     kind: "Idle incremental", status: "Playable prototype",
     genres: ["Idle", "Strategy"], geraete: ["pc", "handy"],
     art: "spiel", stand: "2026-09",
     tagline: "Balls fall through pegs and collect sparks on every contact",
     lead: "An incremental with a run structure. Balls fall through an arena of pegs and collect sparks on every contact. The skill tree is the main view; from there you start a run, and the run ends when the life bar is empty.",
     tags: ["TypeScript", "Skill tree", "Balancing simulation", "Playable on phone"],
-    shot: "assets/games/dropfall-main.jpg",
+    shot: "assets/games/dropfall-main.webp",
     shotAlt: "Arena 1 from Dropfall with a falling ball and pegs",
     shots: [
-      { src: "assets/games/dropfall-1.jpg", alt: "Dropfall skill tree in Outhold style" }
+      { src: "assets/games/dropfall-1.webp", alt: "Dropfall skill tree in Outhold style" }
     ],
     shotsCaption: "Arena and skill tree — a circle means unlocked, a question mark means locked.",
     buildTitle: "Proving numbers instead of guessing",
@@ -1477,17 +1504,17 @@ const PROJECTS = [
   },
   {
     id: "wavebreaker", name: "Wavebreaker", trend: 2,
-    preview: "assets/games/previews/wavebreaker-v1.jpg",
+    preview: "assets/games/previews/wavebreaker-v1.webp",
     kind: "Idle defense", status: "In polish",
     genres: ["Idle", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Modular battle station against endless waves · 692 self-tests passing",
     lead: "A modular battle station against endless waves. The main turret fights on its own; the work is in the build-out: turrets, rarities, buff fields, prestige.",
     tags: ["TypeScript", "DOM-free simulation", "Vite"],
-    shot: "assets/games/wavebreaker-main.jpg",
+    shot: "assets/games/wavebreaker-main.webp",
     shotAlt: "Battle station from Wavebreaker with range circle and incoming enemies",
     shots: [
-      { src: "assets/games/wavebreaker-1.jpg", alt: "Wavebreaker in combat during wave 3" },
+      { src: "assets/games/wavebreaker-1.webp", alt: "Wavebreaker in combat during wave 3" },
       { src: "assets/games/wb-station.svg", alt: "Battle station from Wavebreaker", fit: "contain" },
       { src: "assets/games/wb-turret.svg", alt: "Turret from Wavebreaker", fit: "contain" },
       { src: "assets/games/wb-boss.svg", alt: "Boss from Wavebreaker", fit: "contain" },
@@ -1515,21 +1542,21 @@ const PROJECTS = [
   },
   {
     id: "chromatic", name: "Chromatic", trend: 3,
-    preview: "assets/games/previews/chromatic-v1.jpg",
+    preview: "assets/games/previews/chromatic-v1.webp",
     kind: "Roguelite deckbuilder", status: "Playable",
     genres: ["Cards", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "A deckbuilder without mana · 25 cards, five colors, all the way to the final boss",
     lead: "A roguelite deckbuilder without mana. A fixed deck of 25 cards: draw five each round, pick three blind, play two. Five colors meet five classes and create auras that can turn a fight around.",
     tags: ["TypeScript", "Canvas", "No engine", "Vite"],
-    shot: "assets/games/chromatic-kampf-1.png",
+    shot: "assets/games/chromatic-kampf-1.webp",
     shotAlt: "Battle room from Chromatic with cards along the bottom edge",
     shots: [
-      { src: "assets/games/chromatic-kampf-2.png", alt: "Second battle room from Chromatic" },
-      { src: "assets/games/chromatic-akt-1.png", alt: "Act selection from Chromatic" },
-      { src: "assets/games/chromatic-card-1.png", alt: "Card from the Chromatic deck", fit: "contain" },
-      { src: "assets/games/chromatic-card-2.png", alt: "Second card from the Chromatic deck", fit: "contain" },
-      { src: "assets/games/chromatic-card-3.png", alt: "Third card from the Chromatic deck", fit: "contain" }
+      { src: "assets/games/chromatic-kampf-2.webp", alt: "Second battle room from Chromatic" },
+      { src: "assets/games/chromatic-akt-1.webp", alt: "Act selection from Chromatic" },
+      { src: "assets/games/chromatic-card-1.webp", alt: "Card from the Chromatic deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-2.webp", alt: "Second card from the Chromatic deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-3.webp", alt: "Third card from the Chromatic deck", fit: "contain" }
     ],
     shotsCaption: "Battle room, act selection and three cards from the 25-card deck.",
     buildTitle: "No framework, no engine — everything by hand",
@@ -1553,17 +1580,17 @@ const PROJECTS = [
   },
   {
     id: "reliktenschieber", name: "Reliktenschieber",
-    preview: "assets/games/previews/reliktenschieber-v1.jpg",
+    preview: "assets/games/previews/reliktenschieber-v1.webp",
     kind: "Idle coin pusher", status: "Playable prototype",
     genres: ["Idle", "Experiment"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Drop coins, push the pile over the edge, recover the treasure chest",
     lead: "A coin pusher as an idle game. You aim the drop, the pusher shoves the pile forward, and whatever falls over the edge pays out — double or nothing, depending on the slot. There is always a treasure chest on the platform, slowly creeping toward the edge.",
     tags: ["TypeScript", "Custom physics", "Skill tree", "Balancing simulation"],
-    shot: "assets/games/reliktenschieber-main.jpg",
+    shot: "assets/games/reliktenschieber-main.webp",
     shotAlt: "Reliktenschieber with a pile of coins, the treasure chest at the edge and a cascade in progress",
     shots: [
-      { src: "assets/games/reliktenschieber-1.jpg", alt: "Upgrade tree from Reliktenschieber in the Dropfall style" }
+      { src: "assets/games/reliktenschieber-1.webp", alt: "Upgrade tree from Reliktenschieber in the Dropfall style" }
     ],
     shotsCaption: "Machine with a cascade and the upgrade tree — shape and colors come from Dropfall.",
     buildTitle: "Next to Dropfall, on the same board",
@@ -1588,7 +1615,7 @@ const PROJECTS = [
   },
   {
     id: "xrai", name: "XRAI Order System",
-    preview: "assets/games/previews/xrai-v1.jpg",
+    preview: "assets/games/previews/xrai-v1.webp",
     kind: "Ordering system for restaurants", status: "In production",
     genres: ["Application"], geraete: [],
     art: "projekt", stand: "2026-05",
@@ -1617,17 +1644,17 @@ const PROJECTS = [
   },
   {
     id: "runecall", name: "Runecall",
-    preview: "assets/games/previews/runecall-v1.jpg",
+    preview: "assets/games/previews/runecall-v1.webp",
     kind: "Digital trick-taking card game", status: "Playable prototype",
     genres: ["Cards", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Call your tricks exactly — one too many is as bad as one too few",
     lead: "Before each round you predict exactly how many tricks you'll win, and then you have to hit that exact number. The rules follow the public-domain trick-bidding principle, extended with the Wizard, who wins every trick, and the Jester, who wants to win none.",
     tags: ["TypeScript", "Monorepo", "Bots", "Deterministic engine"],
-    shot: "assets/games/runecall-main.jpg",
+    shot: "assets/games/runecall-main.webp",
     shotAlt: "Runecall during bidding, with hand, trump and analysis panel",
     shots: [
-      { src: "assets/games/runecall-1.jpg", alt: "Runecall with a trick in progress on the table" }
+      { src: "assets/games/runecall-1.webp", alt: "Runecall with a trick in progress on the table" }
     ],
     shotsCaption: "Captures from Prototype 01, the public version on GitHub Pages.",
     buildTitle: "Rules first, and kept separate from everything else",
@@ -1651,17 +1678,17 @@ const PROJECTS = [
   },
   {
     id: "harmonics", name: "Harmonics",
-    preview: "assets/games/previews/harmonics-v1.jpg",
+    preview: "assets/games/previews/harmonics-v1.webp",
     kind: "Idle prototype", status: "Playable prototype",
     genres: ["Idle", "Experiment"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Nodes on a shared line pay out — the more at once, the more you get",
     lead: "Nodes orbit on tracks. When several pass through the same line at the same time, they pay out — exponentially with their number. Around that sit convergences, grades and a tree of upgrades.",
     tags: ["TypeScript", "Canvas", "Idle", "Vite"],
-    shot: "assets/games/harmonics-main.jpg",
+    shot: "assets/games/harmonics-main.webp",
     shotAlt: "Harmonics with orbiting nodes and the display for the next convergence",
     shots: [
-      { src: "assets/games/harmonics-1.jpg", alt: "Upgrade tree from Harmonics with locked nodes" }
+      { src: "assets/games/harmonics-1.webp", alt: "Upgrade tree from Harmonics with locked nodes" }
     ],
     shotsCaption: "Game view and upgrade tree from the published version.",
     buildTitle: "Split off from Dropfall",
@@ -1684,14 +1711,14 @@ const PROJECTS = [
   },
   {
     id: "dnd", name: "Dungeons & Diplomas",
-    preview: "assets/games/previews/dnd-v1.jpg",
+    preview: "assets/games/previews/dnd-v1.webp",
     kind: "Educational dungeon crawler", status: "Biggest side project",
     genres: ["Educational", "Strategy"], geraete: [],
     art: "spiel", stand: "2026-06",
     tagline: "Procedural dungeon with quiz enemies — 229 commits",
     lead: "A browser dungeon crawler with procedurally generated levels, real-time combat and enemies you defeat by answering quiz questions. Plus XP, items, high scores and a custom editor tool.",
     tags: ["TypeScript", "Next.js", "Custom canvas renderer", "Supabase"],
-    shot: "assets/games/dnd-main.jpg",
+    shot: "assets/games/dnd-main.webp",
     shotAlt: "Login screen of Dungeons & Diplomas",
     shots: [],
     shotsCaption: "",
@@ -1715,14 +1742,14 @@ const PROJECTS = [
   },
   {
     id: "mathuniverse", name: "Michis Mathe Universe",
-    preview: "assets/games/previews/mathuniverse-v1.jpg",
+    preview: "assets/games/previews/mathuniverse-v1.webp",
     kind: "Educational game collection", status: "Live",
     genres: ["Educational", "Experiment"], geraete: [],
     art: "spiel", stand: "2025-09",
     tagline: "Calculus through play — asymptotes, curves, fundamentals",
     lead: "A collection of small browser games about the fundamentals of calculus. The entry point is Asymptote Rush, where you learn how functions behave at their edges.",
     tags: ["JavaScript", "Educational", "GitHub Pages"],
-    shot: "assets/games/mathuniverse-main.jpg",
+    shot: "assets/games/mathuniverse-main.webp",
     shotAlt: "Start page of Michis Mathe Universe with the game selection",
     shots: [],
     shotsCaption: "",
@@ -1746,7 +1773,7 @@ const PROJECTS = [
   },
   {
     id: "mindforge", name: "mindforge-playground",
-    preview: "assets/games/previews/mindforge-v1.jpg",
+    preview: "assets/games/previews/mindforge-v1.webp",
     kind: "Playground", status: "Experiments",
     genres: ["Experiment"], geraete: [],
     art: "spiel", stand: "2026-03",
@@ -1776,7 +1803,7 @@ const PROJECTS = [
   },
   {
     id: "outpost", name: "The Last Outpost",
-    preview: "assets/games/previews/outpost-v1.jpg",
+    preview: "assets/games/previews/outpost-v1.webp",
     kind: "Design document", status: "On paper",
     genres: ["Strategy", "Experiment"], geraete: [],
     art: "spiel", stand: "",
@@ -1803,7 +1830,7 @@ const PROJECTS = [
   },
   {
     id: "flappy", name: "Flappy prototype",
-    preview: "assets/games/previews/flappy-v1.jpg",
+    preview: "assets/games/previews/flappy-v1.webp",
     kind: "My first game", status: "Not released",
     genres: ["Experiment"], geraete: [],
     art: "spiel", stand: "2024-06",
@@ -1836,17 +1863,17 @@ const PROJECTS = [
 const PROJECTS_DE = [
   {
     id: "dropfall", name: "Dropfall", trend: 1,
-    preview: "assets/games/previews/dropfall-v1.jpg",
+    preview: "assets/games/previews/dropfall-v1.webp",
     kind: "Idle-Incremental", status: "Prototyp spielbar",
     genres: ["Idle", "Strategy"], geraete: ["pc", "handy"],
     art: "spiel", stand: "2026-09",
     tagline: "Kugeln fallen durch Pegs und sammeln bei jedem Kontakt Funken",
     lead: "Incremental mit Lauf-Struktur. Kugeln fallen durch eine Arena aus Pegs und sammeln bei jedem Kontakt Funken. Der Skill Tree ist die Hauptansicht, von dort startet man einen Lauf, und der Lauf endet, wenn die Lebensleiste leer ist.",
     tags: ["TypeScript", "Skill Tree", "Balancing-Simulation", "am Handy spielbar"],
-    shot: "assets/games/dropfall-main.jpg",
+    shot: "assets/games/dropfall-main.webp",
     shotAlt: "Arena 1 aus Dropfall mit fallender Kugel und Pegs",
     shots: [
-      { src: "assets/games/dropfall-1.jpg", alt: "Skill Tree aus Dropfall im Outhold-Stil" }
+      { src: "assets/games/dropfall-1.webp", alt: "Skill Tree aus Dropfall im Outhold-Stil" }
     ],
     shotsCaption: "Arena und Skill Tree — Kreis heisst freigeschaltet, Fragezeichen heisst gesperrt.",
     buildTitle: "Zahlen belegen statt schätzen",
@@ -1872,17 +1899,17 @@ const PROJECTS_DE = [
   },
   {
     id: "wavebreaker", name: "Wavebreaker", trend: 2,
-    preview: "assets/games/previews/wavebreaker-v1.jpg",
+    preview: "assets/games/previews/wavebreaker-v1.webp",
     kind: "Idle-Verteidigung", status: "In Politur",
     genres: ["Idle", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Modulare Kampfstation gegen endlose Wellen · 692 Selbsttests grün",
     lead: "Eine modulare Kampfstation gegen endlose Wellen. Der Hauptturm kämpft allein, die Arbeit ist der Ausbau: Türme, Raritäten, Buff-Felder, Prestige.",
     tags: ["TypeScript", "DOM-freie Simulation", "Vite"],
-    shot: "assets/games/wavebreaker-main.jpg",
+    shot: "assets/games/wavebreaker-main.webp",
     shotAlt: "Kampfstation aus Wavebreaker mit Reichweitenkreis und anfliegenden Gegnern",
     shots: [
-      { src: "assets/games/wavebreaker-1.jpg", alt: "Wavebreaker in Welle 3 im Gefecht" },
+      { src: "assets/games/wavebreaker-1.webp", alt: "Wavebreaker in Welle 3 im Gefecht" },
       { src: "assets/games/wb-station.svg", alt: "Kampfstation aus Wavebreaker", fit: "contain" },
       { src: "assets/games/wb-turret.svg", alt: "Turm aus Wavebreaker", fit: "contain" },
       { src: "assets/games/wb-boss.svg", alt: "Boss aus Wavebreaker", fit: "contain" },
@@ -1910,21 +1937,21 @@ const PROJECTS_DE = [
   },
   {
     id: "chromatic", name: "Chromatic", trend: 3,
-    preview: "assets/games/previews/chromatic-v1.jpg",
+    preview: "assets/games/previews/chromatic-v1.webp",
     kind: "Roguelite-Deckbuilder", status: "Spielbar",
     genres: ["Cards", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Deckbuilder ohne Mana · 25 Karten, fünf Farben, bis zum Endboss",
     lead: "Ein Roguelite-Deckbuilder ohne Mana. Festes Deck aus 25 Karten, pro Runde fünf ziehen, drei blind wählen, zwei spielen. Fünf Farben treffen auf fünf Klassen und erzeugen Auren, die den Kampf drehen können.",
     tags: ["TypeScript", "Canvas", "ohne Engine", "Vite"],
-    shot: "assets/games/chromatic-kampf-1.png",
+    shot: "assets/games/chromatic-kampf-1.webp",
     shotAlt: "Kampfraum aus Chromatic mit Karten am unteren Rand",
     shots: [
-      { src: "assets/games/chromatic-kampf-2.png", alt: "Zweiter Kampfraum aus Chromatic" },
-      { src: "assets/games/chromatic-akt-1.png", alt: "Aktauswahl aus Chromatic" },
-      { src: "assets/games/chromatic-card-1.png", alt: "Karte aus dem Chromatic-Deck", fit: "contain" },
-      { src: "assets/games/chromatic-card-2.png", alt: "Zweite Karte aus dem Chromatic-Deck", fit: "contain" },
-      { src: "assets/games/chromatic-card-3.png", alt: "Dritte Karte aus dem Chromatic-Deck", fit: "contain" }
+      { src: "assets/games/chromatic-kampf-2.webp", alt: "Zweiter Kampfraum aus Chromatic" },
+      { src: "assets/games/chromatic-akt-1.webp", alt: "Aktauswahl aus Chromatic" },
+      { src: "assets/games/chromatic-card-1.webp", alt: "Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-2.webp", alt: "Zweite Karte aus dem Chromatic-Deck", fit: "contain" },
+      { src: "assets/games/chromatic-card-3.webp", alt: "Dritte Karte aus dem Chromatic-Deck", fit: "contain" }
     ],
     shotsCaption: "Kampfraum, Aktauswahl und drei Karten aus dem 25er-Deck.",
     buildTitle: "Kein Framework, keine Engine — alles von Hand",
@@ -1948,17 +1975,17 @@ const PROJECTS_DE = [
   },
   {
     id: "reliktenschieber", name: "Reliktenschieber",
-    preview: "assets/games/previews/reliktenschieber-v1.jpg",
+    preview: "assets/games/previews/reliktenschieber-v1.webp",
     kind: "Idle-Münzschieber", status: "Prototyp spielbar",
     genres: ["Idle", "Experiment"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Münzen einwerfen, den Haufen über die Kante schieben, die Schatztruhe bergen",
     lead: "Ein Münzschieber als Idle-Spiel. Man zielt den Einwurf, der Schieber drückt den Haufen nach vorn, und was über die Kante fällt, zahlt aus — je nach Fach doppelt oder gar nicht. Immer liegt eine Schatztruhe auf der Plattform, die sich langsam der Kante nähert.",
     tags: ["TypeScript", "Eigene Physik", "Skill Tree", "Balancing-Simulation"],
-    shot: "assets/games/reliktenschieber-main.jpg",
+    shot: "assets/games/reliktenschieber-main.webp",
     shotAlt: "Reliktenschieber mit Münzhaufen, Schatztruhe an der Kante und laufender Kaskade",
     shots: [
-      { src: "assets/games/reliktenschieber-1.jpg", alt: "Upgrade-Baum aus dem Reliktenschieber im Dropfall-Stil" }
+      { src: "assets/games/reliktenschieber-1.webp", alt: "Upgrade-Baum aus dem Reliktenschieber im Dropfall-Stil" }
     ],
     shotsCaption: "Automat mit Kaskade und Upgrade-Baum — Form und Farben stammen aus Dropfall.",
     buildTitle: "Neben Dropfall, auf demselben Brett",
@@ -1983,7 +2010,7 @@ const PROJECTS_DE = [
   },
   {
     id: "xrai", name: "XRAI Order System",
-    preview: "assets/games/previews/xrai-v1.jpg",
+    preview: "assets/games/previews/xrai-v1.webp",
     kind: "Bestellsystem für die Gastronomie", status: "Im Einsatz",
     genres: ["Application"], geraete: [],
     art: "projekt", stand: "2026-05",
@@ -2012,17 +2039,17 @@ const PROJECTS_DE = [
   },
   {
     id: "runecall", name: "Runecall",
-    preview: "assets/games/previews/runecall-v1.jpg",
+    preview: "assets/games/previews/runecall-v1.webp",
     kind: "Digitales Stichkartenspiel", status: "Prototyp spielbar",
     genres: ["Cards", "Strategy"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Stiche exakt ansagen — einer zu viel ist so schlecht wie einer zu wenig",
     lead: "Vor jeder Runde sagst du exakt voraus, wie viele Stiche du gewinnen wirst, und musst danach genau diese Zahl treffen. Die Regeln folgen dem gemeinfreien Stichansage-Prinzip, erweitert um den Magier, der jeden Stich gewinnt, und den Narren, der keinen gewinnen will.",
     tags: ["TypeScript", "Monorepo", "Bots", "deterministische Engine"],
-    shot: "assets/games/runecall-main.jpg",
+    shot: "assets/games/runecall-main.webp",
     shotAlt: "Runecall während der Ansage, mit Hand, Trumpf und Analysepanel",
     shots: [
-      { src: "assets/games/runecall-1.jpg", alt: "Runecall mit laufendem Stich auf dem Tisch" }
+      { src: "assets/games/runecall-1.webp", alt: "Runecall mit laufendem Stich auf dem Tisch" }
     ],
     shotsCaption: "Aufnahmen aus Prototyp 01, der öffentlichen Fassung auf GitHub Pages.",
     buildTitle: "Die Regeln zuerst, und zwar getrennt vom Rest",
@@ -2046,17 +2073,17 @@ const PROJECTS_DE = [
   },
   {
     id: "harmonics", name: "Harmonics",
-    preview: "assets/games/previews/harmonics-v1.jpg",
+    preview: "assets/games/previews/harmonics-v1.webp",
     kind: "Idle-Prototyp", status: "Prototyp spielbar",
     genres: ["Idle", "Experiment"], geraete: ["pc"],
     art: "spiel", stand: "2026-09",
     tagline: "Knoten auf gemeinsamer Linie zahlen aus — je mehr gleichzeitig, desto mehr",
     lead: "Knoten kreisen auf Bahnen. Laufen mehrere gleichzeitig durch dieselbe Linie, zahlen sie aus, und zwar exponentiell mit ihrer Zahl. Darum herum liegen Konvergenzen, Grade und ein Baum aus Ausbauten.",
     tags: ["TypeScript", "Canvas", "Idle", "Vite"],
-    shot: "assets/games/harmonics-main.jpg",
+    shot: "assets/games/harmonics-main.webp",
     shotAlt: "Harmonics mit kreisenden Knoten und der Anzeige zur nächsten Konvergenz",
     shots: [
-      { src: "assets/games/harmonics-1.jpg", alt: "Ausbaubaum aus Harmonics mit gesperrten Knoten" }
+      { src: "assets/games/harmonics-1.webp", alt: "Ausbaubaum aus Harmonics mit gesperrten Knoten" }
     ],
     shotsCaption: "Spielansicht und Ausbaubaum aus der veröffentlichten Fassung.",
     buildTitle: "Aus Dropfall herausgelöst",
@@ -2079,14 +2106,14 @@ const PROJECTS_DE = [
   },
   {
     id: "dnd", name: "Dungeons & Diplomas",
-    preview: "assets/games/previews/dnd-v1.jpg",
+    preview: "assets/games/previews/dnd-v1.webp",
     kind: "Lern-Dungeon-Crawler", status: "Größtes Nebenprojekt",
     genres: ["Educational", "Strategy"], geraete: [],
     art: "spiel", stand: "2026-06",
     tagline: "Prozeduraler Dungeon mit Quizgegnern — 229 Commits",
     lead: "Ein Dungeon-Crawler im Browser mit prozedural erzeugten Ebenen, Echtzeitkampf und Gegnern, die man über Quizfragen schlägt. Dazu XP, Gegenstände, Highscores und eigenes Editor-Werkzeug.",
     tags: ["TypeScript", "Next.js", "eigener Canvas-Renderer", "Supabase"],
-    shot: "assets/games/dnd-main.jpg",
+    shot: "assets/games/dnd-main.webp",
     shotAlt: "Anmeldebildschirm von Dungeons & Diplomas",
     shots: [],
     shotsCaption: "",
@@ -2110,14 +2137,14 @@ const PROJECTS_DE = [
   },
   {
     id: "mathuniverse", name: "Michis Mathe Universe",
-    preview: "assets/games/previews/mathuniverse-v1.jpg",
+    preview: "assets/games/previews/mathuniverse-v1.webp",
     kind: "Lernspiel-Sammlung", status: "Live",
     genres: ["Educational", "Experiment"], geraete: [],
     art: "spiel", stand: "2025-09",
     tagline: "Analysis spielerisch — Asymptoten, Kurven, Grundlagen",
     lead: "Eine Sammlung kleiner Browserspiele rund um die Grundlagen der Analysis. Der Einstieg ist die Asymptoten-Raserei, in der man lernt, wie sich Funktionen an ihren Rändern verhalten.",
     tags: ["JavaScript", "Lernspiel", "GitHub Pages"],
-    shot: "assets/games/mathuniverse-main.jpg",
+    shot: "assets/games/mathuniverse-main.webp",
     shotAlt: "Startseite von Michis Mathe Universe mit der Spielauswahl",
     shots: [],
     shotsCaption: "",
@@ -2141,7 +2168,7 @@ const PROJECTS_DE = [
   },
   {
     id: "mindforge", name: "mindforge-playground",
-    preview: "assets/games/previews/mindforge-v1.jpg",
+    preview: "assets/games/previews/mindforge-v1.webp",
     kind: "Spielwiese", status: "Experimente",
     genres: ["Experiment"], geraete: [],
     art: "spiel", stand: "2026-03",
@@ -2171,7 +2198,7 @@ const PROJECTS_DE = [
   },
   {
     id: "outpost", name: "The Last Outpost",
-    preview: "assets/games/previews/outpost-v1.jpg",
+    preview: "assets/games/previews/outpost-v1.webp",
     kind: "Design-Dokument", status: "Auf Papier",
     genres: ["Strategy", "Experiment"], geraete: [],
     art: "spiel", stand: "",
@@ -2198,7 +2225,7 @@ const PROJECTS_DE = [
   },
   {
     id: "flappy", name: "Flappy-Prototyp",
-    preview: "assets/games/previews/flappy-v1.jpg",
+    preview: "assets/games/previews/flappy-v1.webp",
     kind: "Erstes eigenes Spiel", status: "Nicht veröffentlicht",
     genres: ["Experiment"], geraete: [],
     art: "spiel", stand: "2024-06",

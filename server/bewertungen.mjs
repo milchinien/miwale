@@ -20,8 +20,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { START_SPERRLISTE } from "./sperrliste.mjs";
 import {
-  GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen,
-  besucherAdresse, adressKennung, tempoGrenze, kontenPflicht, handlerAus
+  GERAET_RE, FENSTER_MS, textPruefen, gleich, sicherSchreiben, lesen, besucherAdresse, adressKennung, tempoGrenze, kontenPflicht, handlerAus, adminSchutz, adminAbweisung
 } from "./gemeinsam.mjs";
 
 // Bewertet werden nur Spiele aus dem Katalog der Spieleseite (shop/spiele.js).
@@ -138,6 +137,7 @@ export function anwendungBauen(optionen) {
   const salz = optionen.salz || "miwale";
   const jetzt = optionen.jetzt || (() => Date.now());
   const begrenzt = tempoGrenze(jetzt);
+  const admin = optionen.adminSchutz || adminSchutz(jetzt);
   const wer = (req) => (optionen.konten ? optionen.konten.wer(req) : null);
   const nameVon = (id) => (optionen.konten ? optionen.konten.nameVon(id) : null);
 
@@ -173,13 +173,9 @@ export function anwendungBauen(optionen) {
 
     // ---- Verwaltung ----
     if (teile[0] === "admin") {
-      if (!passwort) return [503, { fehler: "verwaltung-aus" }];
-      // Erst begrenzen, dann vergleichen: sonst liesse sich raten, solange man will.
-      const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-      if (!gleich(auth, passwort)) {
-        if (begrenzt("login|" + ip, GRENZEN.loginVersuche)) return [429, { fehler: "zu-viele-versuche" }];
-        return [401, { fehler: "passwort" }];
-      }
+      // Erst die Sperre, dann der Vergleich (gemeinsam.mjs, adminSchutz).
+      const nein = adminAbweisung(admin(req, passwort));
+      if (nein) return nein;
 
       if (teile[1] === "alle" && req.method === "GET") {
         const bewertungen = speicher.alle
@@ -267,6 +263,8 @@ export function anwendungBauen(optionen) {
         speicher.alle.push({ id: randomUUID(), spiel, geraet: k.geraet, konto: konto ? konto.id : null, daumen: k.daumen, text: neuerText, privat, zeit, adresse, antwort: null });
       }
       speicher.speichern();
+      // Das Profil (Perlen, Erfolge) erfaehrt, dass das Konto bewertet hat.
+      if (konto && optionen.beiBewertung) optionen.beiBewertung(konto.id, spiel);
       return [200, zusammenfassung(spiel, konto, k.geraet)];
     }
 

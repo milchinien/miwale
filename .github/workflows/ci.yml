@@ -42,15 +42,28 @@ jobs:
           node --check shop/konto.js
           node --check shop/datenschutz.js
           node --check shop/umgebung.js
-          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs
+          node --check shop/profil.js
+          node --check shop/profil-seite.js
+          node --check shop/bibliothek.js
+          node --check shop/perlenshop.js
+          node --check shop/profil-katalog.js
+          node --check public/sdk/miwale.js
+          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs tools/seiten.test.mjs tools/profil.test.mjs
           node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
           node tools/check-games.mjs
+          node tools/seiten.mjs --ziel "$RUNNER_TEMP/seiten"
+          test -s "$RUNNER_TEMP/seiten/seiten/spiel/dropfall.html"
           grep -q "Chromatic und Wavebreaker" "miwale Portfolio.dc.html"
           grep -q "Chromatic" "miwale Portfolio.dc.html"
           grep -q "Wavebreaker" "miwale Portfolio.dc.html"
           test ! -e "miwale Portfolio Mobil.dc.html"
+          # Keine fremden Server fuer Schriften und React: die CSP der Spieleseite
+          # blockiert sie, und sie bekaemen die IP jedes Besuchers.
+          ! grep -n 'fonts.googleapis\|fonts.gstatic\|unpkg.com' index.html "miwale Portfolio.dc.html" _ds/*/tokens/fonts.css
+          test -s assets/fonts/manrope-v20-latin.woff2
+          test -s assets/vendor/react-dom-18.3.1.production.min.js
 
       - name: Build container
         run: docker build -t miwale:ci .
@@ -83,7 +96,7 @@ jobs:
               echo "$1:"; echo "$kopf"; exit 1
             fi
           }
-          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js; do
+          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js /games/dropfall /press/ /press/miwale-presskit.zip /robots.txt /sitemap.xml /feed.xml /assets/og/miwale.jpg /assets/og/dropfall.jpg; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
@@ -174,6 +187,52 @@ jobs:
           umleitung /Games 301 /
           umleitung '/miwale%20Portfolio.dc.html' 301 /portfolio
           umleitung '/miwale%20Portfolio%20Mobil.dc.html?test=1' 301 '/portfolio?test=1'
+          # Profile hinter nginx: ohne Konto 401, ohne Verwaltungs-Passwort 503, fremde
+          # Seiten duerfen nichts aendern; die Seiten der Spieleseite und das SDK sind da.
+          test "$(status /api/profil/healthz)" = 200
+          test "$(status /api/profil/ich)" = 401
+          test "$(status /api/profil/u/niemand)" = 404
+          test "$(status /api/profil/admin/profile)" = 503
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/profil/besuch)" = 403
+          for pfad in /library /library/chromatic /pearls /profile /u/Tester_Eins /sdk/miwale.js /shop/profil.js /shop/profil-katalog.js; do
+            test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
+          done
+          grep -q 'shop/shop.js' <<< "$(curl -fsS http://127.0.0.1:8080/u/Tester_Eins)"
+          # Link-Vorschauen und Suchmaschinen: jede Spielseite bringt ihre eigene
+          # Vorschau und den Text schon im HTML mit (kein JS noetig).
+          for id in dropfall wavebreaker chromatic timberline-idle; do
+            seite="$(curl -fsS "http://127.0.0.1:8080/games/$id")"
+            grep -q "<meta property=\"og:image\" content=\"https://miwale.com/assets/og/$id.jpg\">" <<< "$seite" || { echo "$id: og:image"; exit 1; }
+            grep -q "<link rel=\"canonical\" href=\"https://miwale.com/games/$id\">" <<< "$seite" || { echo "$id: canonical"; exit 1; }
+            grep -q '<h1>' <<< "$seite" || { echo "$id: kein h1 im HTML"; exit 1; }
+            grep -q '"@type":"VideoGame"' <<< "$seite" || { echo "$id: kein JSON-LD"; exit 1; }
+          done
+          test "$(curl -fsS http://127.0.0.1:8080/games/dropfall/spielen | grep -c 'rel="canonical" href="https://miwale.com/games/dropfall"')" = 1
+          seite="$(curl -fsS http://127.0.0.1:8080/)"
+          grep -q '<link rel="canonical" href="https://miwale.com/">' <<< "$seite" && grep -q 'href="/games/dropfall"' <<< "$seite"
+          # Ein Spiel ohne eigene Datei bekommt die allgemeine Seite statt eines Fehlers.
+          grep -q 'shop/shop.js' <<< "$(curl -fsS http://127.0.0.1:8080/games/gibt-es-nicht)"
+          grep -q '^Sitemap: https://miwale.com/sitemap.xml' <<< "$(curl -fsS http://127.0.0.1:8080/robots.txt)"
+          grep -q '<loc>https://miwale.com/games/dropfall</loc>' <<< "$(curl -fsS http://127.0.0.1:8080/sitemap.xml)"
+          grep -q '<feed xmlns="http://www.w3.org/2005/Atom"' <<< "$(curl -fsS http://127.0.0.1:8080/feed.xml)"
+          curl -sSI http://127.0.0.1:8080/press/miwale-presskit.zip | tr -d '\r' | grep -qi '^content-type: application/zip'
+          curl -sSI http://127.0.0.1:8080/feed.xml | tr -d '\r' | grep -qi '^content-type: application/atom+xml'
+          curl -sSI http://127.0.0.1:8080/assets/og/dropfall.jpg | tr -d '\r' | grep -qi '^content-type: image/jpeg'
+          # Ladezeit: Schriften und React von hier, versioniert und ewig gecacht;
+          # Bilder einen Tag; HTML und Seitenskripte fragen weiter jedes Mal nach.
+          zwischenspeicher() {
+            kopf="$(curl -sSI -H 'Host: '"${3:-localhost}" "http://127.0.0.1:8080$1" | tr -d '\r')"
+            grep -q '^HTTP/1.1 200' <<< "$kopf" && grep -qi "^cache-control: $2" <<< "$kopf" || { echo "$1:"; echo "$kopf"; exit 1; }
+            grep -qi '^x-content-type-options: nosniff' <<< "$kopf" || { echo "$1 ohne nosniff"; exit 1; }
+          }
+          zwischenspeicher /assets/fonts/manrope-v20-latin.woff2 'public, max-age=31536000, immutable'
+          zwischenspeicher /assets/vendor/react-18.3.1.production.min.js 'public, max-age=31536000, immutable'
+          zwischenspeicher /assets/games/shop/timberline-1.webp 'public, max-age=86400'
+          zwischenspeicher /styles/shots/klein/neon.webp 'public, max-age=86400'
+          zwischenspeicher /shop/shop.js 'public, max-age=0, must-revalidate'
+          zwischenspeicher /portfolio 'public, max-age=0, must-revalidate'
+          # Kompression auch auf play.miwale.com (Spiel-Bundles).
+          curl -sSI -H 'Host: play.miwale.com' -H 'Accept-Encoding: gzip' http://127.0.0.1:8080/games/wavebreaker/ | tr -d '\r' | grep -qi '^content-encoding: gzip'
 
       # Mit SPIELE_ADRESSE laufen die Spiele nur noch dort: Spieldateien leiten
       # um, die Seiten /games/<id> bleiben, und die Seite kennt die Adresse.

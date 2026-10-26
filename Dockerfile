@@ -14,6 +14,13 @@ COPY _ds /usr/share/nginx/html/_ds
 COPY assets /usr/share/nginx/html/assets
 COPY public /usr/share/nginx/html
 
+# Seiten fuer Link-Vorschauen und Suchmaschinen (eine je Spiel), die Presse-Seite
+# samt ZIP, robots.txt, sitemap.xml und feed.xml entstehen hier aus dem Katalog
+# (tools/seiten.mjs) und stehen nicht im Repository. Node ist fuer die Dienste
+# ohnehin im Image; die Werkzeuge werden danach wieder entfernt.
+COPY tools/seiten.mjs tools/seiten-lib.mjs tools/zip.mjs /tmp/tools/
+RUN node /tmp/tools/seiten.mjs --wurzel /usr/share/nginx/html --ziel /usr/share/nginx/html && rm -rf /tmp/tools
+
 COPY server /srv/dienste
 COPY docker/30-umgebung.sh /docker-entrypoint.d/30-umgebung.sh
 COPY docker/40-dienste.sh /docker-entrypoint.d/40-dienste.sh
@@ -32,6 +39,7 @@ VOLUME /data
 ENV BEWERTUNGEN_ORDNER=/data \
     BEWERTUNGEN_KATALOG=/usr/share/nginx/html/shop/spiele.js \
     STIMMEN_KATALOG=/usr/share/nginx/html/styles/styles.json \
+    PROFIL_KATALOG=/usr/share/nginx/html/shop/profil-katalog.js \
     MIWALE_ADRESSE=https://miwale.com \
     SPIELE_ADRESSE=
 
