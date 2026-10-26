@@ -79,8 +79,8 @@
       const badges = (rank[s.id] ? '<span class="badge badge-rank badge-' + rank[s.id] + '">#' + rank[s.id] + ' Top rated</span>' : '') +
         (s.original ? '<span class="badge badge-new">✦ New</span>' : '');
       return '<a class="card" href="' + s.id + '/">' +
-        '<div class="card-media"><img loading="lazy" src="shots/' + s.id + '.webp" alt="' + esc(s.name) + ' – scene" width="1600" height="900">' +
-        '<img class="alt" loading="lazy" src="shots/' + s.id + '_zoom.webp" alt="" aria-hidden="true">' +
+        '<div class="card-media"><img loading="lazy" src="shots/klein/' + s.id + '.webp" alt="' + esc(s.name) + ' – scene" width="800" height="450">' +
+        '<img class="alt" loading="lazy" src="shots/klein/' + s.id + '_zoom.webp" alt="" aria-hidden="true">' +
         (badges ? '<div class="badges">' + badges + '</div>' : '') + '</div>' +
         '<div class="card-palette" aria-hidden="true">' + s.palette.slice(0, 10).map((h) => '<i style="background:' + h + '"></i>').join('') + '</div>' +
         '<div class="card-body">' +

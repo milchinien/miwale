@@ -23,19 +23,19 @@ window.MIWALE_SPIELE = [
       "de": "Spielbarer Prototyp"
     },
     "spielen": "/games/timberline-idle/index.html",
-    "bild": "assets/games/shop/timberline-preview.jpg",
+    "bild": "assets/games/shop/timberline-preview.webp",
     "bilder": [
-      "assets/games/shop/timberline-1.jpg",
-      "assets/games/shop/timberline-2.jpg"
+      "assets/games/shop/timberline-1.webp",
+      "assets/games/shop/timberline-2.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/timberline-trailer.webm",
-      "poster": "assets/games/shop/timberline-trailer.jpg",
+      "poster": "assets/games/shop/timberline-trailer.webp",
       "screens": [
-        "assets/games/shop/timberline-1.jpg",
-        "assets/games/shop/timberline-2.jpg",
-        "assets/games/shop/timberline-3.jpg",
-        "assets/games/shop/timberline-4.jpg"
+        "assets/games/shop/timberline-1.webp",
+        "assets/games/shop/timberline-2.webp",
+        "assets/games/shop/timberline-3.webp",
+        "assets/games/shop/timberline-4.webp"
       ]
     },
     "texte": {
@@ -103,19 +103,19 @@ window.MIWALE_SPIELE = [
       "de": "Spielbarer Prototyp"
     },
     "spielen": "https://milchinien.github.io/Dropfall/",
-    "bild": "assets/games/previews/dropfall-v1.jpg",
+    "bild": "assets/games/previews/dropfall-v1.webp",
     "bilder": [
-      "assets/games/dropfall-main.jpg",
-      "assets/games/dropfall-1.jpg"
+      "assets/games/dropfall-main.webp",
+      "assets/games/dropfall-1.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/dropfall-trailer.webm",
-      "poster": "assets/games/shop/dropfall-trailer.jpg",
+      "poster": "assets/games/shop/dropfall-trailer.webp",
       "screens": [
-        "assets/games/shop/dropfall-1.jpg",
-        "assets/games/shop/dropfall-2.jpg",
-        "assets/games/shop/dropfall-3.jpg",
-        "assets/games/shop/dropfall-4.jpg"
+        "assets/games/shop/dropfall-1.webp",
+        "assets/games/shop/dropfall-2.webp",
+        "assets/games/shop/dropfall-3.webp",
+        "assets/games/shop/dropfall-4.webp"
       ]
     },
     "texte": {
@@ -180,19 +180,19 @@ window.MIWALE_SPIELE = [
       "de": "Im Feinschliff"
     },
     "spielen": "/games/wavebreaker/index.html",
-    "bild": "assets/games/previews/wavebreaker-v1.jpg",
+    "bild": "assets/games/previews/wavebreaker-v1.webp",
     "bilder": [
-      "assets/games/wavebreaker-main.jpg",
-      "assets/games/wavebreaker-1.jpg"
+      "assets/games/wavebreaker-main.webp",
+      "assets/games/wavebreaker-1.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/wavebreaker-trailer.webm",
-      "poster": "assets/games/shop/wavebreaker-trailer.jpg",
+      "poster": "assets/games/shop/wavebreaker-trailer.webp",
       "screens": [
-        "assets/games/shop/wavebreaker-1.jpg",
-        "assets/games/shop/wavebreaker-2.jpg",
-        "assets/games/shop/wavebreaker-3.jpg",
-        "assets/games/shop/wavebreaker-4.jpg"
+        "assets/games/shop/wavebreaker-1.webp",
+        "assets/games/shop/wavebreaker-2.webp",
+        "assets/games/shop/wavebreaker-3.webp",
+        "assets/games/shop/wavebreaker-4.webp"
       ]
     },
     "texte": {
@@ -258,20 +258,20 @@ window.MIWALE_SPIELE = [
       "de": "Spielbar"
     },
     "spielen": "/games/chromatic/index.html",
-    "bild": "assets/games/previews/chromatic-v2.jpg",
+    "bild": "assets/games/previews/chromatic-v2.webp",
     "bilder": [
-      "assets/games/shop/chromatic-4.jpg",
-      "assets/games/shop/chromatic-3.jpg",
-      "assets/games/shop/chromatic-2.jpg"
+      "assets/games/shop/chromatic-4.webp",
+      "assets/games/shop/chromatic-3.webp",
+      "assets/games/shop/chromatic-2.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/chromatic-trailer.webm",
-      "poster": "assets/games/shop/chromatic-trailer.jpg",
+      "poster": "assets/games/shop/chromatic-trailer.webp",
       "screens": [
-        "assets/games/shop/chromatic-1.jpg",
-        "assets/games/shop/chromatic-2.jpg",
-        "assets/games/shop/chromatic-3.jpg",
-        "assets/games/shop/chromatic-4.jpg"
+        "assets/games/shop/chromatic-1.webp",
+        "assets/games/shop/chromatic-2.webp",
+        "assets/games/shop/chromatic-3.webp",
+        "assets/games/shop/chromatic-4.webp"
       ]
     },
     "texte": {
@@ -336,19 +336,19 @@ window.MIWALE_SPIELE = [
       "de": "Spielbarer Prototyp"
     },
     "spielen": "/games/reliktenschieber/index.html",
-    "bild": "assets/games/previews/reliktenschieber-v1.jpg",
+    "bild": "assets/games/previews/reliktenschieber-v1.webp",
     "bilder": [
-      "assets/games/reliktenschieber-main.jpg",
-      "assets/games/reliktenschieber-1.jpg"
+      "assets/games/reliktenschieber-main.webp",
+      "assets/games/reliktenschieber-1.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/reliktenschieber-trailer.webm",
-      "poster": "assets/games/shop/reliktenschieber-trailer.jpg",
+      "poster": "assets/games/shop/reliktenschieber-trailer.webp",
       "screens": [
-        "assets/games/shop/reliktenschieber-1.jpg",
-        "assets/games/shop/reliktenschieber-2.jpg",
-        "assets/games/shop/reliktenschieber-3.jpg",
-        "assets/games/shop/reliktenschieber-4.jpg"
+        "assets/games/shop/reliktenschieber-1.webp",
+        "assets/games/shop/reliktenschieber-2.webp",
+        "assets/games/shop/reliktenschieber-3.webp",
+        "assets/games/shop/reliktenschieber-4.webp"
       ]
     },
     "texte": {
@@ -412,19 +412,19 @@ window.MIWALE_SPIELE = [
       "de": "Spielbarer Prototyp"
     },
     "spielen": "/games/runecall/index.html",
-    "bild": "assets/games/previews/runecall-v1.jpg",
+    "bild": "assets/games/previews/runecall-v1.webp",
     "bilder": [
-      "assets/games/runecall-main.jpg",
-      "assets/games/runecall-1.jpg"
+      "assets/games/runecall-main.webp",
+      "assets/games/runecall-1.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/runecall-trailer.webm",
-      "poster": "assets/games/shop/runecall-trailer.jpg",
+      "poster": "assets/games/shop/runecall-trailer.webp",
       "screens": [
-        "assets/games/shop/runecall-1.jpg",
-        "assets/games/shop/runecall-2.jpg",
-        "assets/games/shop/runecall-3.jpg",
-        "assets/games/shop/runecall-4.jpg"
+        "assets/games/shop/runecall-1.webp",
+        "assets/games/shop/runecall-2.webp",
+        "assets/games/shop/runecall-3.webp",
+        "assets/games/shop/runecall-4.webp"
       ]
     },
     "texte": {
@@ -488,19 +488,19 @@ window.MIWALE_SPIELE = [
       "de": "Früher Prototyp"
     },
     "spielen": "/games/harmonics/index.html",
-    "bild": "assets/games/previews/harmonics-v1.jpg",
+    "bild": "assets/games/previews/harmonics-v1.webp",
     "bilder": [
-      "assets/games/harmonics-main.jpg",
-      "assets/games/harmonics-1.jpg"
+      "assets/games/harmonics-main.webp",
+      "assets/games/harmonics-1.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/harmonics-trailer.webm",
-      "poster": "assets/games/shop/harmonics-trailer.jpg",
+      "poster": "assets/games/shop/harmonics-trailer.webp",
       "screens": [
-        "assets/games/shop/harmonics-1.jpg",
-        "assets/games/shop/harmonics-2.jpg",
-        "assets/games/shop/harmonics-3.jpg",
-        "assets/games/shop/harmonics-4.jpg"
+        "assets/games/shop/harmonics-1.webp",
+        "assets/games/shop/harmonics-2.webp",
+        "assets/games/shop/harmonics-3.webp",
+        "assets/games/shop/harmonics-4.webp"
       ]
     },
     "texte": {
@@ -562,18 +562,18 @@ window.MIWALE_SPIELE = [
       "de": "Spielbar"
     },
     "spielen": "https://milchinien.github.io/michi-math-universe/",
-    "bild": "assets/games/previews/mathuniverse-v1.jpg",
+    "bild": "assets/games/previews/mathuniverse-v1.webp",
     "bilder": [
-      "assets/games/mathuniverse-main.jpg"
+      "assets/games/mathuniverse-main.webp"
     ],
     "medien": {
       "trailer": "assets/games/shop/mathuniverse-trailer.webm",
-      "poster": "assets/games/shop/mathuniverse-trailer.jpg",
+      "poster": "assets/games/shop/mathuniverse-trailer.webp",
       "screens": [
-        "assets/games/shop/mathuniverse-1.jpg",
-        "assets/games/shop/mathuniverse-2.jpg",
-        "assets/games/shop/mathuniverse-3.jpg",
-        "assets/games/shop/mathuniverse-4.jpg"
+        "assets/games/shop/mathuniverse-1.webp",
+        "assets/games/shop/mathuniverse-2.webp",
+        "assets/games/shop/mathuniverse-3.webp",
+        "assets/games/shop/mathuniverse-4.webp"
       ]
     },
     "texte": {

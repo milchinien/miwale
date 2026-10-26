@@ -6,3 +6,13 @@ dist
 design
 .playwright-mcp
 *.log
+# Bildvorlagen der Projektvorschauen (siehe assets/games/previews/prompts.md).
+# Ausgeliefert werden die WebP-Dateien daneben.
+assets/games/previews/*.png
+assets/games/previews/*.md
+# Lokal erzeugt (tools/seiten.mjs); das Image baut sie selbst.
+public/seiten
+public/press
+public/robots.txt
+public/sitemap.xml
+public/feed.xml

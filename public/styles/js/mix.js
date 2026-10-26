@@ -44,7 +44,7 @@
         '<div class="pick-grid" role="radiogroup" aria-label="' + esc(e.name) + ' source">' + order.map((s) => {
           const c = L.votes.count('el:' + s.id + ':' + e.key);
           return '<button type="button" role="radio" class="pick-opt" data-id="' + s.id + '" aria-checked="' + (d.picks[e.key] === s.id) + '" title="' + esc(s.name) + '">' +
-            '<i style="background-image:url(shots/' + s.id + THUMB[e.key] + '.webp)">' + (s.original ? '<em class="badge badge-new">✦ New</em>' : '') + '</i>' +
+            '<i style="background-image:url(shots/klein/' + s.id + THUMB[e.key] + '.webp)">' + (s.original ? '<em class="badge badge-new">✦ New</em>' : '') + '</i>' +
             '<span>' + esc(s.name) + '</span>' + (c.hoch || c.runter ? '<small>▲ ' + c.hoch + ' · ▼ ' + c.runter + '</small>' : '<small>no votes yet</small>') + '</button>';
         }).join('') + '</div>' +
       '</section>';

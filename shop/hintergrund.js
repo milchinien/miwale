@@ -13,13 +13,13 @@
   // ersten Screenshot: das Motiv soll auch verschwommen noch nach dem Spiel
   // aussehen. Fehlt ein Spiel hier, nimmt die Seite den ersten Screenshot.
   const MOTIVE = {
-    dropfall: "assets/games/shop/dropfall-3.jpg",
-    wavebreaker: "assets/games/shop/wavebreaker-4.jpg",
-    chromatic: "assets/games/shop/chromatic-2.jpg",
-    reliktenschieber: "assets/games/shop/reliktenschieber-2.jpg",
-    runecall: "assets/games/shop/runecall-1.jpg",
-    harmonics: "assets/games/shop/harmonics-2.jpg",
-    mathuniverse: "assets/games/shop/mathuniverse-1.jpg"
+    dropfall: "assets/games/shop/dropfall-3.webp",
+    wavebreaker: "assets/games/shop/wavebreaker-4.webp",
+    chromatic: "assets/games/shop/chromatic-2.webp",
+    reliktenschieber: "assets/games/shop/reliktenschieber-2.webp",
+    runecall: "assets/games/shop/runecall-1.webp",
+    harmonics: "assets/games/shop/harmonics-2.webp",
+    mathuniverse: "assets/games/shop/mathuniverse-1.webp"
   };
 
   const app = document.getElementById("app");
