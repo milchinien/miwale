@@ -1,0 +1,152 @@
+{
+  "id": "rubberhose",
+  "name": "Rubber Hose 1930s",
+  "originalName": "Rubber Hose 1930s",
+  "family": "Cartoon · Vintage animation",
+  "tags": ["rubber hose", "1930s", "black and white", "vintage cartoon", "film grain", "ink outline", "squash and stretch", "art nouveau ui"],
+  "summary": "Black-and-white 1930s animation: ink figures with elbow-less rubber-hose limbs, white gloves and pie-cut eyes, projected through grainy, scratched film.",
+  "description": "An early sound-cartoon look in pure ink and four warm greys. Figures are round, bouncy ink shapes with elbow-less rubber-hose limbs, puffy four-finger white gloves, pie-cut eyes and oversized shoes; the whole world, down to the daisies and the cottages, squashes and sways together on a shared 120 bpm beat. Flat grey washes with crisp ink contour lines form the ground, and everything is shown through a projector: silver-sepia grade, grain, scratches, dust, flicker, a jumping gate and rounded, vignetted frame corners. UI panels are dark title cards with double paper rules and Art-Nouveau corner curls.",
+  "mood": ["jaunty", "nostalgic", "musical", "mischievous", "slightly eerie"],
+  "bestFor": ["retro top-down action with crowds of characters", "vintage cartoon platformers and brawlers", "music or rhythm projects", "spooky-cute or carnival themes", "nostalgic menus, title screens and trailers"],
+  "avoidFor": ["projects that need colour coding to read", "modern clean UI products", "realistic or gritty drama", "very small low-resolution screens"],
+  "difficulty": {
+    "stars": 4,
+    "why": "Characters are short lists of ellipses, blobs and stroked quadratic limbs run through a two-pass painter, so outlines come for free and new figures are quick. The craft is in the animation: 8-frame bouncy walks with bowing limbs, contact squash, and syncing props to the beat. The film layer and ground are written once and reused."
+  },
+  "technique": {
+    "renderer": "Canvas 2D (procedural, no image assets)",
+    "pixelArt": false,
+    "resolution": "Native display resolution. Sprites are baked once at K = clamp(round(screenPx/360 * 1.25), 3, 6) canvas px per world unit (8 walk frames, 2 idle, 2 run, 1 recoil for the main character; 6 frames per small/fast creature, 4 for the large one; normal + flash copies, both facings). Ground chunks of 256 units at up to 3 px per unit. The film layer is baked at grain resolution (1 grain px = round(screenH/900*1.3) display px).",
+    "summary": "Each sprite is a list of parts painted twice: an outline pass strokes and fills every part in ink #16120e at twice the outline weight (one merged silhouette line), then a fill pass paints flat greys, one grey crescent per part and small white shines. Limbs are stroked quadratic curves (rubber hoses) that take part in both passes. A baked film layer (vignette, gate, grain, flicker) is blitted over the finished frame.",
+    "linework": "One ink colour: #16120e. Outer silhouette 1.0 world unit (stroke width 2.0, half hidden under the fill), inner separation lines 0.5 units, small items 0.55–0.8. Limbs: ink strokes 1.45 (arms) and 1.75 (legs) wide plus the 1.0 outline, round caps. Ground contours: centred ink line 0.8 units at 92% opacity. Round joins everywhere.",
+    "shading": "Flat fills with at most ONE darker grey crescent per part (the part clipped against itself shifted up-left by 0.4–2.6 units). Black parts stay flat black and get a thin white rim arc (0.5–0.7 units, alpha 0.8) as rubbery shine. No gradients on figures.",
+    "lighting": "Implied light from the top-left: white shine ellipses top-left, crescents bottom-right. Solid ink drop shadows at 36% opacity under everything. The only glow is a soft white radial halo on street lamps, flickering at 24 fps.",
+    "texture": "Film grain over the whole picture (white and dark specks, alpha up to 0.21), changing 24 times a second; ground decals are tiny ink tufts, curls, hatch strokes, daisies and pebbles."
+  },
+  "palette": [
+    { "name": "Ink", "hex": "#16120e", "role": "Every outline, black bodies, limbs, pupils, mouths, notes, ground contours" },
+    { "name": "Soot", "hex": "#3a342d", "role": "Tree trunks, roofs, mushroom caps, dark stripes, inner ear" },
+    { "name": "Slate", "hex": "#6d665b", "role": "Shorts, hats, barrels, tongues, grey creatures; shade #4f493f" },
+    { "name": "Ash", "hex": "#a0988a", "role": "Tree canopies, hills, fence rails, coin emboss" },
+    { "name": "Fog", "hex": "#cdc5b5", "role": "Crescent shade of white parts, puffs" },
+    { "name": "Paper", "hex": "#efe9dc", "role": "Walls, stripes, coins, UI rules and text" },
+    { "name": "Highlight White", "hex": "#faf7ef", "role": "Gloves, eyes, bow tie, shines, petals" },
+    { "name": "Face", "hex": "#e6dece", "role": "Face masks of the ink figures; shade #c9c0ae" },
+    { "name": "Shoe", "hex": "#d9d1c1", "role": "Big shoes; shade #a59d8e" },
+    { "name": "Sheet", "hex": "#f4efe4", "role": "Ghost sheet; shade #cbc3b3" },
+    { "name": "Ground Base", "hex": "#cfc8b9", "role": "Base wash of the ground (~45% of the screen)" },
+    { "name": "Meadow Wash", "hex": "#b2aa9a", "role": "Lighter-rimmed meadow regions (rim #bfb8a9)" },
+    { "name": "Hummock Wash", "hex": "#928a7c", "role": "Dark rolling-hill regions with an inner contour ring (rim #a39b8c)" },
+    { "name": "Path", "hex": "#e4ddcd", "role": "Winding paths (rim #d6cebe)" },
+    { "name": "Pond", "hex": "#565047", "role": "Ponds with paper ripple arcs (rim #726b60)" },
+    { "name": "Sepia Grade", "hex": "#978c7b", "role": "'color' blend at 74% over foreign colours only" },
+    { "name": "Gate Black", "hex": "#0c0a08", "role": "Vignette, rounded gate corners, dark dust and scratches" },
+    { "name": "Title Card", "hex": "#17130f", "role": "UI panel and card fill" },
+    { "name": "Caption Grey", "hex": "#b9b1a1", "role": "UI labels and small caps" }
+  ],
+  "paletteRules": [
+    "No hue at all: ink, four warm greys (#3a342d, #6d665b, #a0988a, #cdc5b5) and two whites. The faint warmth is built into the greys.",
+    "Figures read by value: black bodies with pale face masks, white gloves and light shoes on a light-mid grey ground.",
+    "White details (gloves, eyes, buttons, petals) are the brightest values on screen and are reserved for small focal shapes.",
+    "Large dark areas are rare in the ground (ponds, hummocks) so ink figures never sink into them.",
+    "When other styles' elements are shown, the silver-sepia grade desaturates them; the native palette needs no grade."
+  ],
+  "typography": [
+    { "family": "Limelight", "weights": [400], "role": "Titles, counters, clock, floating numbers, bar caps", "source": "Google Fonts", "sample": "12:30",
+      "css": "font: 400 34px/1.05 'Limelight', Georgia, serif; letter-spacing: .06em; color: #efe9dc; text-shadow: 2px 3px 0 #000;" },
+    { "family": "Rye", "weights": [400], "role": "Card names", "source": "Google Fonts", "sample": "Card title",
+      "css": "font: 400 21px/1.15 'Rye', Georgia, serif; letter-spacing: .02em; color: #efe9dc; text-shadow: 2px 2px 0 #000;" },
+    { "family": "Special Elite", "weights": [400], "role": "Body copy, labels, hints (typewriter intertitle feel)", "source": "Google Fonts", "sample": "Short card text",
+      "css": "font: 400 15px/1.3 'Special Elite', 'Courier New', monospace; color: #cfc7b7;" }
+  ],
+  "world": {
+    "summary": "Flat grey washes like a painted studio background: large soft regions from low-frequency noise, rasterised per pixel with an analytic signed distance (value / gradient) so each region gets a crisp anti-aliased edge, a lighter inner rim band and a centred ink contour line; dark hummocks get a second faint contour ring 5.5 units inside. Tiny ink decals are baked on top.",
+    "layers": [
+      "Base wash #cfc8b9 with a ±4% very-low-frequency brightness tint",
+      "Meadow washes #b2aa9a, lighter rim #bfb8a9 (2.4 u), ink contour 0.8 u",
+      "Dark hummocks #928a7c, rim #a39b8c (2.8 u), ink contour + faint inner ring at 5.5 u",
+      "Winding paths #e4ddcd (zero-contour of noise, even width), rim #d6cebe, ink edges",
+      "Ponds #565047 with ink edge, inner ring at 4 u, paper ripple arcs and slate lily pads",
+      "Decals: three-stroke ink tufts, spiral curls, hatch clusters, ink-ringed white daisies, outlined pebbles, small dashes"
+    ]
+  },
+  "characters": {
+    "summary": "Round ink figures with elbow-less rubber-hose limbs. Main character (~20 u wide, ~36 u tall): a jaunty black cat-fellow with pointed ears, a pale face mask with two pie-cut eyes, a button nose and a wide open grin, a white polka-dot bow tie, slate shorts with two white buttons, white four-finger gloves, a curly tail and big pale shoes. Small creature: a hopping round imp (ink, slate or white body) with horns, white eyes with pie-cut pupils, a toothy grin and an arrow-tipped tail. Fast creature: a wobbly sheet ghost with big pie-cut eyes, worried brows, an O-mouth and two noodle arms reaching forward. Large creature: a big bully with a black head, stubbled jaw, unibrow, bulb nose, derby hat, a striped sweater barrel body, black boots and huge gloved fists.",
+    "rules": [
+      "Limbs are single quadratic curves from joint to hand/foot; bend comes only from moving the control point sideways – never an elbow or knee.",
+      "Every hand is a white glove with a rolled cuff, a thumb and two ink stitch lines; every foot is a big oval shoe with a toe-cap line and a white shine.",
+      "Eyes are pie-cut: an ink oval with a wedge cut out of its upper front, showing the face colour behind it.",
+      "Ink bodies always carry a pale face mask or patch so the face reads on black.",
+      "Walk: 8 frames, two bounces per cycle (body 1.8 u up at passing), lifted foot bows its leg forward, arms swing opposite and bow like noodles.",
+      "Hit flash replaces every fill with white (ghosts flash to negative ink); the face stays visible in the flash.",
+      "Recoil pose: arms flung up, legs splayed, X eyes and an O mouth."
+    ]
+  },
+  "props": {
+    "summary": "Simple inked studio scenery: curly-canopy trees with spiral curls, tall swirled poplars, bare trees whose branches end in curls, cottages whose windows look like sleepy eyes and whose door is a mouth (with curly chimney smoke), tall crooked houses with round attic windows, white picket fences, clumps of smiling daisies, low rolling hill mounds, curly iron street lamps with a soft glow, barrels, crates and spotted toadstools.",
+    "rules": [
+      "Same two-pass painter and ink outline as the figures; greys only, one crescent per part.",
+      "Everything dances on one shared beat (120 bpm): squash on the beat (sy −3…8%), sway from beat to beat (base-anchored skew up to 0.09).",
+      "Anthropomorphic touches are small: faces in daisies, eye-like windows – never full characters.",
+      "Props stand on solid ink drop shadows at 36% opacity.",
+      "Wobbly, hand-drawn geometry: fence pickets lean differently, walls are slightly out of square."
+    ]
+  },
+  "effects": [
+    { "name": "Projectile", "how": "An ink eighth note (or beamed pair / sixteenth) with a 0.6 u white halo outline, wobbling ±0.35 rad instead of rotating, followed by three short ink speed lines." },
+    { "name": "Collectibles", "how": "Small: a paper coin with an ash ring and star emboss, spinning by squashing its width (|cos|, min 0.18). Large: a white faceted diamond with ash/fog facets that pulses on the beat and twinkles." },
+    { "name": "Orbiting object", "how": "A little white bird with a black wing flapping between two frames at 10 fps, bobbing, facing its direction of travel, with a small drop shadow." },
+    { "name": "Impact", "how": "A jagged white POW burst (11 spikes, fog centre, ink outline) popping 0.5→1.25→0.35 scale over 0.16 s, plus a 4-point white twinkle flying off." },
+    { "name": "Poof burst", "how": "Curly cloud puffs (white and fog, each with an inner ink spiral) bursting outward and rising, white outlined stars bouncing out with gravity and ink drops splashing; large bursts add an ink-and-white ring and 14 radiating ink rays." },
+    { "name": "Spawn puddle", "how": "An ink puddle with splatter dots spreads under the ground (outBack), the creature springs out of it with an elastic stretch, then the puddle dries up." },
+    { "name": "Glow-up", "how": "Ring + rays, eight music notes floating up with a sway, and a fountain of stars." },
+    { "name": "Run", "how": "Legs turn into the classic spinning wheel of ink motion arcs; speed lines and zip dashes behind, dust puffs on take-off." }
+  ],
+  "atmosphere": {
+    "summary": "A projector look over the finished frame, stepped at 24 frames per second: flicker, grain, dust, scratches, gate weave and a heavy vignette with rounded gate corners – plus a silver-sepia grade for any foreign colour.",
+    "rules": [
+      "Vignette: radial ink gradient 0 → 0.18 → 0.48 → 0.76 from 40% to 102% of the half diagonal; rounded gate corners (radius 7.5% of the height, softly blurred, 94% black).",
+      "Grain: per-pixel white/dark specks, alpha up to 0.21, at round(H/900*1.3) px; 3 baked variants that also carry the flicker (−4.5%, 0, +3% brightness).",
+      "Every 1/24 s the variant and a ±3 px offset change; the vertical offset doubles as gate weave (about 1 px).",
+      "Dust: 0–4 specks or curly hairs per film frame, black or white, alpha 0.55–0.9, never two frames in a row.",
+      "Scratches: up to 3 long vertical lines (white or black, alpha 0.16–0.34) that live 14–36 film frames and jitter sideways.",
+      "A cue mark (black dot with a pale ring) blinks top-right for 5 frames every 30 s.",
+      "Colour grade: 'color' blend of #978c7b at 74% – only needed when other styles' elements are on screen."
+    ]
+  },
+  "ui": {
+    "summary": "Vintage title cards: dark #17130f panels inside an ornamental border-image (double paper rule with concave corners, a corner dot and an Art-Nouveau curl at each corner), Limelight numbers with a hard black drop shadow, Special Elite captions in wide letter-spacing. The top bar is a film strip with sprocket holes and silver frames; the health-style bar is a pill with a paper engraving-hatch fill. Cards pop in with a rubbery squash and wobble like jelly on hover; the overlay behind them is a sunburst of pale rays.",
+    "css": ".panel { border: 24px solid transparent; border-image: url(ornament.svg) 26 fill / 24px stretch; color: #efe9dc; font: 400 34px/1.05 'Limelight', Georgia, serif; letter-spacing: .06em; text-shadow: 2px 3px 0 #000; filter: drop-shadow(0 5px 0 rgba(10,8,6,.32)); }\n.panel small { font: 400 12px/1.2 'Special Elite', monospace; letter-spacing: .28em; color: #b9b1a1; }\n.bar { position: relative; width: 252px; height: 26px; border: 2px solid #efe9dc; border-radius: 13px; background: #17130f; box-shadow: 0 0 0 3px #17130f, 0 5px 0 3px rgba(10,8,6,.32); overflow: hidden; }\n.bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 11px; background: linear-gradient(180deg, rgba(255,255,255,.45) 0 22%, rgba(255,255,255,0) 22% 70%, rgba(23,19,15,.18) 70%), repeating-linear-gradient(-45deg, #efe9dc 0 4px, #c9c1b1 4px 6px); }\n.filmstrip { height: 26px; background: #17130f; position: relative; }\n.filmstrip::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 6px, #e9e2d2 6px 12px, transparent 12px 20px) left 0 top 3px / 100% 4px no-repeat, repeating-linear-gradient(90deg, transparent 0 6px, #e9e2d2 6px 12px, transparent 12px 20px) left 0 bottom 3px / 100% 4px no-repeat; }"
+  },
+  "motion": [
+    "One shared beat drives everything: 120 bpm; pulse q = max(0, cos(phase*PI))^6 (sharp on the beat), sway = cos(beats*PI) (alternates every beat).",
+    "Main character walk: cycle = anim*0.2, 8 frames, two contacts per cycle with squash sx 1.06 / sy 0.93; a small dust puff at 70% of steps.",
+    "Idle: hands on hips, toe tap on every other beat, body squash 3.5% on the beat.",
+    "Small creatures hop: 6 frames, body up 3.2 u at the peak, legs tuck in the air, contact squash 10–12%, rock ±0.08 rad.",
+    "Ghosts float 4.5 u up, bob ±1.8 u, wobble their hem and arms through 6 frames at 8 fps, lean into their motion.",
+    "Large creature stomps through 4 frames with contact squash 7–8% and an extra beat pulse.",
+    "Spawn: elastic stretch out of an ink puddle; removal: stretch up to 140% in the flash colour, then snap flat and vanish into the poof.",
+    "Floating numbers: stretch in (sy 1.6 → 1), overshoot sx 1.4, then shrink and fade.",
+    "Film effects step at 24 fps regardless of the frame rate."
+  ],
+  "do": [
+    "Draw limbs as one bowed curve – exaggerate the bow when a limb swings.",
+    "Put a white glove on every hand and a big shoe on every foot.",
+    "Cut a wedge out of every pupil (pie eyes).",
+    "Give ink bodies a pale face mask so expressions read.",
+    "Sync idle props and figures to one beat.",
+    "Keep the ground light-mid grey so black figures pop.",
+    "Step film effects at 24 fps for an authentic cadence.",
+    "Use ornamental title cards with double rules for every UI panel."
+  ],
+  "dont": [
+    "Don't add colour – even a single hue breaks the illusion.",
+    "Don't draw elbows, knees or tapered realistic limbs.",
+    "Don't use soft gradients or glossy highlights on figures.",
+    "Don't let grain, dust and scratches get so strong that small figures disappear.",
+    "Don't animate props out of sync – the shared beat is the joke.",
+    "Don't put dark regions under dense crowds of ink figures.",
+    "Don't use modern sans-serif fonts in the UI."
+  ],
+  "performance": "All figures, props, notes, coins, puffs and stars are baked once in init() (~170 canvases incl. flash and mirrored copies); per frame it is only drawImage with transforms, and the beat is computed once per frame. Ground chunks (256 u) are generators: noise on a coarse 4-unit grid, per-pixel signed-distance work only in cells near a region edge, decals baked in. The film layer is baked per screen size (3 variants at grain resolution, ~1 s to build at 1600×900) and costs one drawImage per frame; dust and scratches are a handful of strokes. The 'color' grade pass is a full-screen blend and is skipped when only native elements are on screen. Avoid reading the canvas back (no self-copies for gate weave)."
+}

@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import vm from 'node:vm';
-import { readStyle, styleIds, validate, stylesDir, ORIGINALS } from './styles-lib.mjs';
+import { readStyle, styleIds, validate, stylesDir, ORIGINALS, VARIANTS } from './styles-lib.mjs';
 
 export const SITE = 'https://miwale.com/styles';
 /** Broad groups for the gallery filter. New styles without an entry land in "Other". */
@@ -20,6 +20,8 @@ export const GROUPS = {
   cartoon: 'Illustrated', paper: 'Handcrafted', clay: 'Handcrafted', candy: 'Handcrafted',
   lowpoly: '3D look', voxel: '3D look',
   blueprint: 'Graphic', ukiyoe: 'Graphic', thermal: 'Digital', terminal: 'Digital', origami: 'Handcrafted',
+  rubberhose: 'Illustrated', vaporwave: 'Digital', sumie: 'Painterly', bricks: '3D look',
+  riso: 'Graphic', crayon: 'Illustrated', deepsea: 'Illustrated', artdeco: 'Graphic',
 };
 const VIEWS = [['', 'Scene'], ['_late', 'Dense scene'], ['_map', 'Wide view'], ['_lu', 'UI overlay'], ['_zoom', 'Close-up']];
 const ELEMENTS = [['world', 'World'], ['characters', 'Characters'], ['props', 'Props'], ['effects', 'Effects'], ['atmosphere', 'Atmosphere'], ['ui', 'UI & type']];
@@ -63,6 +65,7 @@ export function build() {
       family: spec.family,
       group: spec.group || GROUPS[id] || 'Other',
       original: ORIGINALS.includes(id),
+      ...(VARIANTS[id] ? { variantOf: VARIANTS[id] } : {}),
       tags: spec.tags,
       summary: spec.summary,
       mood: spec.mood,
