@@ -482,9 +482,10 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 }
 
 /* Vorab gezeichneter Inhalt (tools/seiten-lib.mjs): steht schon im HTML, fuer
-   Crawler, KI-Werkzeuge und die Zeit bis shop.js geladen hat. Danach ersetzt
-   shop.js ihn komplett. */
-.sp-vorab { padding: 32px 0 64px; }
+   Crawler und KI-Werkzeuge. shop.js ersetzt ihn komplett; bis dahin bleibt er
+   unsichtbar, sonst blitzt beim Neuladen die nackte Textliste auf. Ohne JS
+   blendet ein <noscript>-Style in index.html ihn wieder ein. */
+.sp-vorab { display: none; padding: 32px 0 64px; }
 .sp-vorab h1 { margin: 10px 0 6px; font: 700 clamp(32px, 5vw, 48px)/1.1 var(--font-brand, "Quicksand", system-ui, sans-serif); color: #fff; }
 .sp-vorab h2 { margin: 36px 0 12px; font: 700 13px/1 var(--font-ui, "Manrope", sans-serif); letter-spacing: .14em; text-transform: uppercase; color: var(--sp-akzent); }
 .sp-vorab p, .sp-vorab li { max-width: 72ch; color: var(--sp-text-leise); }
