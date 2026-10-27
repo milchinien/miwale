@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jack vs. the Turnip Ancestors</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/game.css">
+</head>
+<body class="in-menu">
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div class="xp"><div class="xp-fill"></div><span class="lvl">Lv 1</span></div>
+    <div class="topline">
+      <div class="hp">
+        <canvas class="hp-icon" width="48" height="48"></canvas>
+        <div class="hp-bar"><div class="hp-fill"></div></div>
+        <span class="hp-text">100/100</span>
+      </div>
+      <div class="clock"><span class="clock-time">4:00 PM</span><span class="clock-label">World 1</span></div>
+      <div class="rightcol">
+        <div class="kills"><canvas class="kills-icon" width="48" height="48"></canvas><span class="kills-num">0</span></div>
+        <div class="kills rutas" title="Rutabagas – spend them on permanent upgrades in World Select"><canvas class="rutas-icon" width="48" height="48"></canvas><span class="rutas-num">0</span></div>
+      </div>
+    </div>
+    <div class="bossbar hidden">
+      <div class="boss-name">The Great Turnip Ancestor</div>
+      <div class="hp-bar"><div class="hp-fill boss-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- level-up and world intro use the #levelup overlay, so every world skins them in its own look -->
+  <div id="levelup" class="hidden">
+    <div class="lu-title">Level Up!</div>
+    <div class="lu-sub"></div>
+    <div class="lu-cards"></div>
+    <div class="lu-actions"></div>
+    <div class="lu-hint">Choose with 1 · 2 · 3 or click</div>
+  </div>
+
+  <div id="gameover" class="hidden">
+    <div class="go-title">Jack has withered</div>
+    <div class="go-stats"></div>
+    <div class="go-reward"></div>
+    <div class="go-actions"></div>
+    <div class="go-hint"></div>
+  </div>
+
+  <!-- ===== main menu ===== -->
+  <div id="mainmenu" class="screen">
+    <div class="t-inner">
+      <div class="t-kicker">Ultimate AI-Powered Game Jam #5 · PUMPKIN × RUTABAGA</div>
+      <h1 class="t-logo">Jack <span>vs. the</span> Turnip Ancestors</h1>
+      <p class="t-pitch">The Turnip Ancestors want their lantern back. Survive every evening until midnight – world after world.</p>
+      <div class="t-buttons col">
+        <button class="btn primary big" data-act="play">▶ Play</button>
+        <button class="btn" data-act="settings">Settings</button>
+        <button class="btn" data-act="howto">How to Play</button>
+        <button class="btn ghost" data-act="credits">Credits</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== save slots ===== -->
+  <div id="slots" class="screen hidden">
+    <div class="panel wide">
+      <div class="p-head"><button class="btn ghost" data-act="back-main">← Back</button><h2>Choose a Save Slot</h2></div>
+      <div class="slot-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== hub: world select + permanent progression ===== -->
+  <div id="hub" class="screen hidden">
+    <div class="panel full">
+      <div class="p-head">
+        <button class="btn ghost" data-act="back-slots">← Save Slots</button>
+        <h2 class="hub-title">World Select</h2>
+        <div class="hub-wallet"><canvas width="48" height="48"></canvas><span>0</span><small>Rutabagas</small></div>
+      </div>
+      <div class="tabs"></div>
+      <div class="tab-body"></div>
+    </div>
+  </div>
+
+  <!-- ===== settings ===== -->
+  <div id="settings" class="screen hidden">
+    <div class="panel">
+      <div class="p-head"><button class="btn ghost" data-act="back-settings">← Back</button><h2>Settings</h2></div>
+      <div class="set-rows">
+        <h3>Audio</h3>
+        <label>Master volume <input type="range" min="0" max="100" data-set="master"><span class="set-val"></span></label>
+        <label>Music <input type="range" min="0" max="100" data-set="music"><span class="set-val"></span></label>
+        <label>Sound effects <input type="range" min="0" max="100" data-set="sfx"><span class="set-val"></span></label>
+        <h3>Graphics &amp; effects</h3>
+        <label>Particles <input type="range" min="0" max="100" step="33.34" data-set="particles"><span class="set-val"></span></label>
+        <label>Screen shake <input type="range" min="0" max="100" data-set="shakeAmount"><span class="set-val"></span></label>
+        <label>Render quality <select data-set="quality"><option value="high">High</option><option value="medium">Medium</option><option value="low">Low (faster)</option></select><span class="set-val"></span></label>
+        <label class="chk"><input type="checkbox" data-set="screenFx"> Screen effects (hurt vignette, low-HP pulse)</label>
+        <label class="chk"><input type="checkbox" data-set="flashes"> Screen flashes (level-up, boss)</label>
+        <label class="chk"><input type="checkbox" data-set="ambient"> Ambient particles (floating motes)</label>
+        <label class="chk"><input type="checkbox" data-set="hitstop"> Hit-stop on big hits</label>
+        <label class="chk"><input type="checkbox" data-set="numbers"> Damage numbers</label>
+        <div class="set-btns"><button class="btn" data-act="fullscreen">Toggle fullscreen</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="howto" class="screen hidden">
+    <div class="panel">
+      <div class="p-head"><button class="btn ghost" data-act="back-main">← Back</button><h2>How to Play</h2></div>
+      <div class="h-rows">
+        <div><b>WASD / Arrows</b> move – Jack throws pumpkin seeds automatically</div>
+        <div><b>Space</b> headbutt dash (briefly invulnerable)</div>
+        <div><b>1 · 2 · 3</b> pick an upgrade on level-up · <b>R</b> reroll</div>
+        <div><b>Esc / P</b> pause · <b>M</b> mute</div>
+      </div>
+      <p>Every world is one evening: from afternoon through dusk into the night, the world transforms around you. At midnight the world’s boss awakens – each world has its own. Defeat him and a portal opens – and the next world unlocks.</p>
+      <p>You always keep the <b>Rutabagas</b> you collect. In World Select you spend them on permanent upgrades, improve single upgrades through <b>Mastery</b> and unlock rare card <b>Rarities</b>.</p>
+    </div>
+  </div>
+
+  <div id="credits" class="screen hidden">
+    <div class="panel">
+      <div class="p-head"><button class="btn ghost" data-act="back-main">← Back</button><h2>Credits</h2></div>
+      <p><b>Jack vs. the Turnip Ancestors</b> – made for the Ultimate AI-Powered Game Jam #5 (themes: PUMPKIN × RUTABAGA).</p>
+      <p>Everything in this game – code, art in 20 visual styles, animation, sound effects and music – was created procedurally with AI (Claude by Anthropic). There are no external image, audio or model files.</p>
+      <p>Fonts are loaded from Google Fonts under the SIL Open Font License: Fraunces, Inter, Press Start 2P, Pixelify Sans, Silkscreen, Cinzel, Chewy, Baloo 2, Fredoka, Lilita One, Orbitron, Audiowide, Bangers, Comic Neue, Rye, Alfa Slab One, Special Elite, Nunito, Patrick Hand, Gochi Hand, Caveat, Cabin Sketch and others.</p>
+    </div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <div class="panel small">
+      <h2>Pause</h2>
+      <button class="btn primary" data-act="resume">Resume</button>
+      <button class="btn" data-act="build">Build &amp; Stats <small>(Tab)</small></button>
+      <button class="btn" data-act="settings">Settings</button>
+      <button class="btn ghost" data-act="quit">Leave World</button>
+    </div>
+  </div>
+
+  <div id="build" class="screen hidden">
+    <div class="panel wide">
+      <div class="p-head"><button class="btn ghost" data-act="back-build">← Back to game (Tab)</button><h2>Your Build</h2></div>
+      <div class="build-body"></div>
+    </div>
+  </div>
+
+  <div id="banner" class="hidden"></div>
+  <div id="fade"></div>
+  <pre id="errors"></pre>
+
+  <script>window.__LOCAL_FONTS=1</script>
+  <script src="js/core/util.js"></script>
+  <script src="js/core/styles.js"></script>
+  <script src="js/core/ground.js"></script>
+  <script src="js/core/weapons.js"></script>
+  <script src="js/core/game.js"></script>
+  <script src="js/core/render.js"></script>
+  <script src="js/core/hud.js"></script>
+  <script src="js/core/bosses.js"></script>
+  <script src="js/core/loot.js"></script>
+  <script src="js/core/fx.js"></script>
+  <script src="js/core/worlds.js"></script>
+  <script src="js/core/meta.js"></script>
+  <script src="js/core/audio.js"></script>
+  <script src="js/styles/harvest16.js"></script>
+  <script src="js/styles/kuerbisboy.js"></script>
+  <script src="js/styles/gothic.js"></script>
+  <script src="js/styles/dusk.js"></script>
+  <script src="js/styles/cartoon.js"></script>
+  <script src="js/styles/paper.js"></script>
+  <script src="js/styles/watercolor.js"></script>
+  <script src="js/styles/neon.js"></script>
+  <script src="js/styles/lowpoly.js"></script>
+  <script src="js/styles/linocut.js"></script>
+  <script src="js/styles/nes8bit.js"></script>
+  <script src="js/styles/stainedglass.js"></script>
+  <script src="js/styles/clay.js"></script>
+  <script src="js/styles/chalk.js"></script>
+  <script src="js/styles/candy.js"></script>
+  <script src="js/styles/crossstitch.js"></script>
+  <script src="js/styles/popart.js"></script>
+  <script src="js/styles/vangogh.js"></script>
+  <script src="js/styles/shadow.js"></script>
+  <script src="js/styles/voxel.js"></script>
+  <script src="js/content/load.js"></script>
+  <script src="js/ui/achievements.js"></script>
+  <script src="js/ui/skins.js"></script>
+  <script src="js/ui/build.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

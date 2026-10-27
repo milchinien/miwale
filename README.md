@@ -571,6 +571,52 @@ Ein neuer Style: Modul nach `js/styles/`, Screenshots nach `shots/`, Ordner
 `library/<id>/` nach `AUTHORING.md`, Gruppe in `GROUPS` von
 `tools/build-styles.mjs`, dann `node tools/build-styles.mjs`.
 
+## Game Jams (miwale.com/jam)
+
+Alle Game Jams, für die miwale Spiele gebaut hat. Links eine Leiste zum
+Sortieren (Neueste, Name, Meiste Bewertungen) und mit allen Jams, rechts die
+Jams als Karten: Titelbild, Name, Veranstalter, Thema, Kurztext, Link zu itch.io
+und die Abgabefrist mit Balken wie auf itch.io. Ein Klick öffnet
+`/jam/<id>` mit der Frist als laufender Uhr, einer Rangliste ("Welches Spiel
+soll ich einreichen?", ab zwei Spielen) und je Spiel Bild, Kurztext,
+Spielen-Knopf, Schnitt, Verteilung und den Bewertungen.
+
+- **Bewerten:** 1 bis 5 Sterne, Name (Pflicht, bis 30 Zeichen) und freiwillig
+  eine Begründung (bis 600). Ohne Konto, eine Bewertung je Gerät und Spiel
+  (Gerätekennung `miwale-geraet` wie bei den Spielbewertungen); wer erneut
+  bewertet, ändert seine, zurückziehen geht auch. Wortfilter, verstecktes Feld
+  gegen Bots, höchstens 20 schreibende Anfragen je Adresse in zehn Minuten.
+- **Daten:** `public/jam/jams.json`. Je Jam `id`, `name`, `host`, `itch`,
+  `bild`, `thema`, `beschreibung` (`en`/`de`), `start` und `abgabe` (ISO mit
+  `Z`, `null` = unbekannt) und `spiele` mit `id`, `name`, `bild`,
+  `beschreibung` und `spielen` (Link zum Spiel; leer = "Link folgt").
+  Spiel-ids müssen über alle Jams eindeutig sein, die Sterne hängen nur daran.
+  `bild` darf auch eine https-Adresse sein, z. B. das Titelbild von itch.io
+  (Rechtsklick auf das Bild → Bildadresse kopieren, `https://img.itch.zone/…`).
+- **Spielen:** Die Spiele laufen direkt hier. Jedes liegt als fertiger Build in
+  `public/jam-spiele/<id>/` (mit `index.html`, relativen Pfaden) und öffnet
+  sich über den Knopf „Spielen“ in einem neuen Tab (`"spielen":
+  "/jam-spiele/<id>/"`). Wie `/games/` laufen sie auf play.miwale.com, sobald
+  `SPIELE_ADRESSE` gesetzt ist; `miwale.com/jam-spiele/…` leitet dann dorthin
+  um (`docker/30-umgebung.sh`). Ein Spiel erneuern: Build nach
+  `public/jam-spiele/<id>/` kopieren, mit `--base=./` bauen (sonst suchen
+  Skripte ihre Dateien unter `/assets/` statt im Spielordner). Die Ordner
+  stehen nicht in `manifest.json`: `tools/sync-games.mjs` und
+  `tools/check-games.mjs` fassen sie nicht an.
+- **Vorschaubilder** der Spiele liegen in `assets/jam/` (960×540 WebP, Titelbild
+  aus dem jeweiligen Build).
+- **Dienst:** `server/jam.mjs` unter `/api/jam/`, im selben Prozess wie die
+  Bewertungen, Datei `jam.json` im Datenordner. Welche Spiele es gibt, liest er
+  aus `jams.json` (`JAM_KATALOG`), neu sobald sich die Datei ändert.
+  Verwaltung: `GET /api/jam/admin` und `DELETE /api/jam/admin/<id>` mit dem
+  Passwort der Verwaltung als Bearer.
+- **Seite:** `public/jam/index.html`, `jam.js`, `jam.css`. CSP in
+  `docker/sicherheit-jam.conf` (Bilder auch von https, für itch.io).
+
+```bash
+node --test tools/jam.test.mjs   # Katalog gültig (ids, Bilder, Daten), Dienst
+```
+
 ## Dev-Zentrale (miwale.com/dev)
 
 Zeigt alle Projekte und die laufenden Dev-Server (localhosts) des Rechners,

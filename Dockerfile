@@ -5,7 +5,7 @@ FROM nginx:alpine
 RUN apk add --no-cache nodejs
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY docker/sicherheit.conf docker/sicherheit-seite.conf docker/sicherheit-admin.conf docker/sicherheit-dev.conf docker/spiele-umleitung.conf docker/spiele-einbetten.conf /etc/nginx/miwale/
+COPY docker/sicherheit.conf docker/sicherheit-seite.conf docker/sicherheit-admin.conf docker/sicherheit-dev.conf docker/sicherheit-jam.conf docker/spiele-umleitung.conf docker/spiele-einbetten.conf /etc/nginx/miwale/
 COPY index.html /usr/share/nginx/html/index.html
 COPY ["miwale Portfolio.dc.html", "/usr/share/nginx/html/miwale Portfolio.dc.html"]
 COPY support.js /usr/share/nginx/html/support.js
@@ -40,6 +40,7 @@ ENV BEWERTUNGEN_ORDNER=/data \
     BEWERTUNGEN_KATALOG=/usr/share/nginx/html/shop/spiele.js \
     STIMMEN_KATALOG=/usr/share/nginx/html/styles/styles.json \
     PROFIL_KATALOG=/usr/share/nginx/html/shop/profil-katalog.js \
+    JAM_KATALOG=/usr/share/nginx/html/jam/jams.json \
     MIWALE_ADRESSE=https://miwale.com \
     SPIELE_ADRESSE=
 

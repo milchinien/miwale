@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>INFINITE BAIT – Everything is Bait</title>
+<meta name="description" content="An Infinite Craft clone where you fuse baits instead of elements - and every fish you catch becomes a bait itself." />
+<meta name="theme-color" content="#050d1a" />
+<!-- inline favicon: keeps the itch.io frame from firing a 404 for /favicon.ico -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%8E%A3%3C/text%3E%3C/svg%3E" />
+  <script type="module" crossorigin src="./assets/index-DtN4dLFO.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-a1vx8OAf.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>🎣 INFINITE<span>BAIT</span></h1>
+  <nav class="tabs">
+    <button class="tab active" data-tab="craft">🧪 Workshop</button>
+    <button class="tab" data-tab="fish">🌊 Fishing</button>
+    <button class="tab" data-tab="shop">🛠️ Upgrades</button>
+    <button class="tab" data-tab="dex">📖 Fishdex</button>
+  </nav>
+  <div class="stats">
+    <span class="stat" title="Baits discovered">🧩 <b id="stat-baits">0</b></span>
+    <span class="stat" title="Species caught">🐟 <b id="stat-fish">0</b></span>
+    <span class="stat gold" title="Coins">🪙 <b id="stat-coins">0</b></span>
+    <button id="btn-mute" class="icon-btn" title="Sound on/off">🔊</button>
+  </div>
+</header>
+
+<main>
+  <!-- ------------------------------------------------ WORKSHOP -->
+  <section id="view-craft" class="view active">
+    <div id="board">
+      <p class="board-hint">Drag baits from the right onto the board &rarr; drop one on another to fuse them</p>
+    </div>
+    <aside class="sidebar">
+      <div class="side-head">
+        <div class="side-title">YOUR BAITS <span id="side-count">0</span></div>
+      </div>
+      <div id="bait-list" class="bait-list"></div>
+      <div class="side-foot">
+        <input id="search" type="search" placeholder="Search baits…" autocomplete="off" />
+        <div class="side-actions">
+          <button id="btn-clear" class="mini">🧹 Clear board</button>
+          <button id="btn-oracle" class="mini gold">🔮 Oracle · <span id="oracle-cost">50</span></button>
+          <button id="btn-sort" class="mini" data-mode="new">Sort: Newest</button>
+        </div>
+        <button id="btn-reset" class="mini danger">Delete save</button>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ------------------------------------------------ FISHING -->
+  <section id="view-fish" class="view">
+    <div class="fish-wrap">
+
+      <div class="rod-deck">
+        <div class="bait-card">
+          <div class="bc-emoji" id="cur-emoji">🪱</div>
+          <div class="bc-body">
+            <span class="lbl">BAIT ON HOOK</span>
+            <span id="cur-bait" class="cur-bait">– none –</span>
+            <div id="cur-stats" class="stat-row"></div>
+          </div>
+        </div>
+        <div class="status-card" id="status-card" data-phase="idle">
+          <span class="lbl">STATUS</span>
+          <div id="fish-msg" class="hud-msg">Pick a bait, then hold to cast</div>
+          <div class="hint" id="fish-hint">HOLD to charge · RELEASE to cast</div>
+        </div>
+      </div>
+
+      <div class="water-frame">
+        <canvas id="water" width="960" height="520"></canvas>
+      </div>
+
+      <div class="tackle">
+        <div class="strip-head">
+          <span class="lbl">TACKLE BOX</span>
+          <input id="strip-filter" type="search" placeholder="Filter baits…" autocomplete="off" />
+        </div>
+        <div class="bait-strip" id="bait-strip"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------ UPGRADES -->
+  <section id="view-shop" class="view">
+    <div class="shop-head">
+      <h2>TACKLE SHOP</h2>
+      <p>Spend coins to make the fight easier. Every upgrade is permanent.</p>
+      <div class="shop-wallet">🪙 <b id="shop-coins">0</b></div>
+    </div>
+    <div id="shop-body" class="shop-body"></div>
+  </section>
+
+  <!-- ------------------------------------------------ FISHDEX -->
+  <section id="view-dex" class="view">
+    <div class="dex-head">
+      <h2>FISHDEX</h2>
+      <p id="dex-progress"></p>
+      <div class="dex-tools">
+        <input id="dex-search" type="search" placeholder="Search species…" autocomplete="off" />
+        <button id="dex-filter" class="mini" data-mode="all">Showing: All</button>
+      </div>
+    </div>
+    <div id="dex-grid" class="dex-grid"></div>
+  </section>
+</main>
+
+<div id="toasts" class="toasts"></div>
+
+<div id="catch-overlay" class="catch-overlay hidden">
+  <div id="catch-card" class="catch-card">
+    <div class="cc-banner">NEW CATCH</div>
+    <div class="cc-emoji"></div>
+    <div class="cc-name"></div>
+    <div class="cc-rar"></div>
+    <div class="cc-weight"></div>
+    <div class="cc-note"></div>
+    <button class="cc-close">CONTINUE</button>
+  </div>
+</div>
+
+</body>
+</html>

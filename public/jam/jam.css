@@ -1,0 +1,238 @@
+/* Jam-Seite (miwale.com/jam). Farben und Schrift wie die Spieleseite
+   (shop/shop.css): dunkles Wasser, Aqua als Akzent, Glasflaechen. Dazu Gold
+   fuer Sterne und ein warmes Rot fuer die laufende Frist, wie bei itch.io. */
+
+:root {
+  --jm-grund: #050A16;
+  --jm-flaeche: rgba(255, 255, 255, .055);
+  --jm-flaeche-hover: rgba(255, 255, 255, .09);
+  --jm-kante: rgba(255, 255, 255, .12);
+  --jm-kante-hell: rgba(255, 255, 255, .22);
+  --jm-text: #EDF3F9;
+  --jm-leise: rgba(237, 243, 249, .66);
+  --jm-sehrleise: rgba(237, 243, 249, .48);
+  --jm-akzent: var(--aqua-300, #7FE0EE);
+  --jm-play: linear-gradient(180deg, #8BEAF3 0%, #3FC6DC 100%);
+  --jm-stern: #FFC94A;
+  --jm-frist: #FF5D6C;
+  --jm-gruen: #6EE7A8;
+  --jm-radius: 10px;
+  --jm-kopfhoehe: 64px;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--jm-grund); color-scheme: dark; scroll-padding-top: calc(var(--jm-kopfhoehe) + 16px); }
+body {
+  margin: 0; min-height: 100dvh; color: var(--jm-text);
+  font: 400 16px/1.55 var(--font-ui, "Manrope", system-ui, sans-serif);
+  background:
+    radial-gradient(1200px 520px at 20% -8%, rgba(127, 224, 238, .18), rgba(127, 224, 238, 0) 70%),
+    radial-gradient(900px 600px at 95% 10%, rgba(23, 169, 196, .12), rgba(23, 169, 196, 0) 70%),
+    linear-gradient(180deg, #0D3A4E 0%, #0A2A3C 22%, #071A29 55%, #050A16 100%) fixed;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--jm-akzent); text-decoration: none; }
+a:hover { color: #fff; }
+img { display: block; max-width: 100%; }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--jm-akzent); outline-offset: 3px; }
+svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.jm-unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.jm-leise { color: var(--jm-leise); font-size: 14px; margin: 0; }
+h1, h2, h3, h4 { font-family: var(--font-display, "Quicksand", "Manrope", sans-serif); color: #fff; margin: 0; line-height: 1.2; }
+
+/* ---- Kopfzeile ---- */
+.jm-kopf {
+  position: sticky; top: 0; z-index: 20; height: var(--jm-kopfhoehe);
+  display: flex; align-items: center; gap: 18px; padding: 0 24px;
+  background: rgba(7, 22, 34, .74); backdrop-filter: blur(20px) saturate(1.5); -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-bottom: 1px solid var(--jm-kante);
+}
+.jm-marke img { height: 26px; width: auto; }
+.jm-kopf__titel { font: 700 20px/1 var(--font-display, sans-serif); color: #fff; padding-left: 18px; border-left: 1px solid var(--jm-kante-hell); }
+.jm-sprache { margin-left: auto; display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--jm-flaeche); border: 1px solid var(--jm-kante); }
+.jm-sprache button { border: 0; background: none; color: var(--jm-leise); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+.jm-sprache button[aria-pressed=true] { background: rgba(255, 255, 255, .14); color: #fff; }
+
+/* ---- Rahmen: Leiste links, Inhalt rechts (wie in der Skizze) ---- */
+.jm-rahmen { display: grid; grid-template-columns: 230px minmax(0, 1fr); min-height: calc(100dvh - var(--jm-kopfhoehe)); }
+.jm-rahmen > .jm-leise { padding: 40px 24px; grid-column: 1 / -1; }
+.jm-leiste {
+  position: sticky; top: var(--jm-kopfhoehe); align-self: start; max-height: calc(100dvh - var(--jm-kopfhoehe)); overflow-y: auto;
+  padding: 28px 18px 40px 24px; border-right: 1px solid var(--jm-kante); display: flex; flex-direction: column; gap: 12px;
+}
+.jm-leiste__titel { font: 700 12px/1 var(--font-ui, sans-serif); letter-spacing: .12em; text-transform: uppercase; color: var(--jm-sehrleise); margin-top: 6px; }
+.jm-sortierung, .jm-leiste__jams { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+.jm-sortierung button, .jm-leiste__jams a {
+  display: flex; align-items: center; gap: 9px; text-align: left; border: 0; background: none; cursor: pointer;
+  color: var(--jm-leise); font-size: 14px; padding: 7px 10px; border-radius: 8px; line-height: 1.3;
+}
+.jm-sortierung button:hover, .jm-leiste__jams a:hover { background: var(--jm-flaeche); color: #fff; }
+.jm-sortierung button[aria-pressed=true], .jm-leiste__jams a[aria-current=page] { background: rgba(127, 224, 238, .12); color: #fff; box-shadow: inset 2px 0 0 var(--jm-akzent); }
+.jm-punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--jm-sehrleise); flex: none; }
+.jm-punkt--laeuft { background: var(--jm-frist); box-shadow: 0 0 0 3px rgba(255, 93, 108, .18); }
+.jm-punkt--bald { background: var(--jm-akzent); }
+
+.jm-inhalt { padding: 32px clamp(18px, 3vw, 40px) 80px; display: flex; flex-direction: column; gap: 26px; min-width: 0; }
+.jm-einleitung h1 { font-size: clamp(28px, 3.4vw, 40px); }
+.jm-einleitung p { margin: 8px 0 0; color: var(--jm-leise); max-width: 640px; }
+
+/* ---- Jam-Karten ---- */
+.jm-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px; }
+.jm-karte {
+  display: flex; flex-direction: column; border-radius: var(--jm-radius); overflow: hidden;
+  background: rgba(10, 24, 36, .72); border: 1px solid var(--jm-kante);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.jm-karte:hover { transform: translateY(-3px); border-color: var(--jm-kante-hell); box-shadow: 0 14px 34px rgba(0, 0, 0, .35); }
+.jm-karte__bild { position: relative; aspect-ratio: 630 / 500; background: #08131d; overflow: hidden; }
+.jm-karte__bild img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease; }
+.jm-karte:hover .jm-karte__bild img { transform: scale(1.04); }
+.jm-karte__bild .jm-plakette { position: absolute; top: 10px; left: 10px; }
+.jm-karte__inhalt { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.jm-karte h3 { font-size: 19px; }
+.jm-karte h3 a { color: #fff; }
+.jm-karte h3 a:hover { color: var(--jm-akzent); }
+.jm-host { margin: 0; font-size: 13px; color: var(--jm-sehrleise); }
+.jm-kurz { margin: 0; font-size: 14px; color: var(--jm-leise); }
+.jm-thema { color: #fff; font-weight: 600; }
+.jm-karte__fuss { margin-top: auto; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; color: var(--jm-sehrleise); border-top: 1px solid var(--jm-kante); }
+.jm-karte__fuss a { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.jm-karte__fuss svg { width: 14px; height: 14px; }
+
+.jm-plakette { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.jm-plakette--laeuft { background: rgba(255, 93, 108, .9); color: #fff; }
+.jm-plakette--bald { background: rgba(127, 224, 238, .9); color: #062A33; }
+.jm-plakette--vorbei { background: rgba(5, 10, 22, .72); color: var(--jm-leise); border: 1px solid var(--jm-kante); }
+
+/* Frist: Text und Balken wie auf itch.io */
+.jm-frist { display: flex; flex-direction: column; gap: 6px; }
+.jm-frist p { margin: 0; font-size: 14px; color: var(--jm-text); }
+.jm-frist strong { color: #fff; font-variant-numeric: tabular-nums; }
+.jm-frist--leise { margin: 0; font-size: 13px; color: var(--jm-sehrleise); }
+.jm-balken { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.jm-balken span { display: block; height: 100%; border-radius: inherit; background: var(--jm-frist); transition: width 1s linear; }
+
+/* ---- Eine Jam ---- */
+.jm-zurueck { align-self: flex-start; font-size: 14px; font-weight: 600; }
+.jm-jamkopf { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 26px; align-items: start; padding: 20px; border-radius: 14px; background: rgba(10, 24, 36, .72); border: 1px solid var(--jm-kante); }
+.jm-jamkopf > img { width: 100%; aspect-ratio: 630 / 500; object-fit: cover; border-radius: var(--jm-radius); }
+.jm-jamkopf > div { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.jm-jamkopf h1 { font-size: clamp(26px, 3vw, 36px); }
+.jm-jamkopf__zeile { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.jm-jamkopf .jm-frist { width: min(440px, 100%); }
+.jm-jamkopf .jm-frist p { font-size: 16px; }
+.jm-jamkopf .jm-frist strong { font-size: 20px; }
+
+.jm-knopf {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px;
+  border-radius: 8px; border: 1px solid transparent; font: 600 14px/1 var(--font-ui, sans-serif); cursor: pointer; white-space: nowrap;
+  transition: background .18s ease, transform .18s ease, color .18s ease;
+}
+.jm-knopf:disabled { opacity: .55; cursor: default; }
+.jm-knopf--glas { background: rgba(255, 255, 255, .08); border-color: var(--jm-kante-hell); color: var(--jm-text); }
+.jm-knopf--glas:hover { background: rgba(255, 255, 255, .16); color: #fff; }
+.jm-knopf--play, .jm-knopf--haupt { background: var(--jm-play); color: #062A33; font-weight: 800; box-shadow: 0 6px 22px rgba(63, 198, 220, .25); }
+.jm-knopf--play { text-transform: uppercase; letter-spacing: .04em; }
+.jm-knopf--play:hover, .jm-knopf--haupt:hover:not(:disabled) { color: #062A33; transform: translateY(-1px); }
+.jm-knopf--leise { background: none; color: var(--jm-leise); padding: 6px 10px; min-height: 32px; }
+.jm-knopf--leise:hover { color: #fff; background: var(--jm-flaeche); }
+
+/* Rangliste */
+.jm-rang { padding: 18px 20px; border-radius: 14px; background: linear-gradient(135deg, rgba(255, 201, 74, .08), rgba(127, 224, 238, .05)); border: 1px solid rgba(255, 201, 74, .25); display: flex; flex-direction: column; gap: 12px; }
+.jm-rang h2 { font-size: 20px; }
+.jm-rang ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.jm-rang li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 8px; background: rgba(255, 255, 255, .04); }
+.jm-rang li a { color: #fff; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jm-rang__platz { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; font-size: 13px; font-weight: 800; background: rgba(255, 255, 255, .08); color: var(--jm-leise); }
+.jm-rang--vorn { background: rgba(255, 201, 74, .12) !important; box-shadow: inset 3px 0 0 var(--jm-stern); }
+.jm-rang--vorn .jm-rang__platz { background: var(--jm-stern); color: #3A2A00; }
+.jm-rang__zahl { font-size: 13px; color: var(--jm-leise); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Sterne: leere Reihe, darueber die volle, auf den Schnitt zugeschnitten */
+.jm-sterne { position: relative; display: inline-flex; vertical-align: middle; line-height: 0; }
+.jm-sterne__leer, .jm-sterne__voll { display: inline-flex; gap: 2px; }
+.jm-sterne__voll { position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; }
+.jm-sterne svg { width: 18px; height: 18px; stroke-width: 1.5; }
+.jm-sterne__leer svg { fill: rgba(255, 255, 255, .12); stroke: rgba(255, 255, 255, .18); }
+.jm-sterne__voll svg { fill: var(--jm-stern); stroke: var(--jm-stern); }
+.jm-sterne--klein svg { width: 14px; height: 14px; }
+
+/* Spiele einer Jam */
+.jm-spiele { display: flex; flex-direction: column; gap: 22px; }
+.jm-spiel { border-radius: 14px; background: rgba(10, 24, 36, .72); border: 1px solid var(--jm-kante); overflow: hidden; }
+.jm-spiel__oben { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.jm-spiel__bild { background: #08131d; }
+.jm-spiel__bild img { width: 100%; height: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.jm-spiel__info { padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.jm-spiel__info h3 { font-size: 24px; }
+.jm-schnitt { display: flex; align-items: center; gap: 12px; }
+.jm-schnitt__zahl { font: 800 34px/1 var(--font-display, sans-serif); color: #fff; font-variant-numeric: tabular-nums; }
+.jm-schnitt > div { display: flex; flex-direction: column; gap: 3px; }
+.jm-verteilung { width: 100%; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--jm-leise); font-variant-numeric: tabular-nums; }
+.jm-verteilung__zeile { display: grid; grid-template-columns: 10px 12px minmax(0, 1fr) 24px; gap: 6px; align-items: center; }
+.jm-verteilung__zeile svg { width: 12px; height: 12px; fill: var(--jm-stern); stroke: var(--jm-stern); }
+.jm-verteilung__zeile > span:last-child { text-align: right; }
+.jm-verteilung__balken { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.jm-verteilung__balken span { display: block; height: 100%; background: var(--jm-stern); border-radius: inherit; }
+
+.jm-spiel__unten { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 20px 22px 22px; border-top: 1px solid var(--jm-kante); }
+
+/* Formular */
+.jm-formular { display: flex; flex-direction: column; gap: 12px; }
+.jm-formular h4 { font-size: 17px; }
+.jm-wahl { border: 0; margin: 0; padding: 0; display: inline-flex; gap: 4px; }
+.jm-wahl input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.jm-wahl label { cursor: pointer; padding: 2px; border-radius: 6px; line-height: 0; }
+.jm-wahl label svg { width: 34px; height: 34px; stroke-width: 1.4; fill: rgba(255, 255, 255, .08); stroke: rgba(255, 255, 255, .3); transition: fill .12s ease, stroke .12s ease, transform .12s ease; }
+/* Gewaehlt: der Stern und alle davor. Beim Ueberfahren: der Stern unter der Maus und alle davor. */
+.jm-wahl label:has(~ input:checked) svg, .jm-wahl input:checked + label svg,
+.jm-wahl:hover label:is(:hover, :has(~ label:hover)) svg { fill: var(--jm-stern); stroke: var(--jm-stern); }
+.jm-wahl:hover label:not(:hover, :has(~ label:hover)) svg { fill: rgba(255, 255, 255, .08); stroke: rgba(255, 255, 255, .3); }
+.jm-wahl label:hover svg { transform: scale(1.12); }
+.jm-wahl input:focus-visible + label { outline: 2px solid var(--jm-akzent); outline-offset: 1px; }
+.jm-feld { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--jm-leise); }
+.jm-feld input, .jm-feld textarea {
+  width: 100%; font-size: 15px; color: #fff; background: rgba(1, 10, 17, .6); border: 1px solid var(--jm-kante-hell);
+  border-radius: 8px; padding: 9px 12px; resize: vertical;
+}
+.jm-feld input:focus, .jm-feld textarea:focus { outline: none; border-color: var(--jm-akzent); }
+.jm-falle { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.jm-formular__knoepfe { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.jm-meldung { margin: 0; font-size: 14px; min-height: 1.4em; }
+.jm-meldung--ok { color: var(--jm-gruen); }
+.jm-meldung--fehler { color: #FF9AA4; }
+
+/* Bewertungen */
+.jm-spiel__stimmen { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.jm-liste { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.jm-liste li { padding: 10px 12px; border-radius: 8px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .06); }
+.jm-liste__kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.jm-liste__kopf strong { color: #fff; overflow-wrap: anywhere; }
+.jm-liste__kopf time { margin-left: auto; font-size: 12px; color: var(--jm-sehrleise); }
+.jm-liste p { margin: 6px 0 0; font-size: 14px; color: var(--jm-leise); white-space: pre-line; overflow-wrap: anywhere; }
+
+/* ---- Schmal ---- */
+@media (max-width: 980px) {
+  .jm-spiel__oben, .jm-spiel__unten { grid-template-columns: 1fr; }
+  .jm-jamkopf { grid-template-columns: 1fr; }
+  .jm-jamkopf > img { max-width: 360px; }
+}
+@media (max-width: 760px) {
+  .jm-kopf { padding: 0 14px; gap: 12px; }
+  .jm-kopf__titel { padding-left: 12px; font-size: 17px; }
+  .jm-rahmen { grid-template-columns: 1fr; }
+  /* Die Leiste wird zur Wischleiste oben: Sortieren, dann die Jams. */
+  .jm-leiste { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--jm-kante); padding: 12px 14px; flex-direction: row; overflow-x: auto; gap: 6px; align-items: center; }
+  .jm-leiste__titel { display: none; }
+  .jm-sortierung, .jm-leiste__jams { flex-direction: row; margin: 0; flex: none; }
+  .jm-sortierung button, .jm-leiste__jams a { white-space: nowrap; border: 1px solid var(--jm-kante); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+  .jm-sortierung button[aria-pressed=true], .jm-leiste__jams a[aria-current=page] { box-shadow: none; border-color: var(--jm-akzent); }
+  .jm-sortierung { padding-right: 8px; border-right: 1px solid var(--jm-kante); }
+  .jm-inhalt { padding: 22px 14px 60px; }
+  .jm-rang li { grid-template-columns: 26px minmax(0, 1fr) auto; }
+  .jm-rang__zahl { grid-column: 2 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

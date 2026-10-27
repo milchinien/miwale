@@ -5,6 +5,7 @@ import { ideenBauen } from '../server/ideen.mjs';
 import { stimmenBauen } from '../server/stimmen.mjs';
 import { kontenBauen } from '../server/konten.mjs';
 import { profilBauen } from '../server/profil.mjs';
+import { jamBauen } from '../server/jam.mjs';
 
 // Lokal laufen die Dienste (Bewertungen, Game Requests, Konten) direkt in Vite,
 // ohne Container. Die Daten landen in .bewertungen-dev/ (von Git ignoriert).
@@ -86,6 +87,7 @@ export function diensteDev() {
       // Lokal sofort schreiben, damit man Aenderungen in der Datei sieht und ein Neustart nichts verliert.
       const profil = profilBauen({ ...optionen, konten, verzoegerungMs: 200 });
       const stimmen = stimmenBauen(optionen);
+      const jam = jamBauen(optionen);
       server.middlewares.use((req, res, next) => {
         const pfad = req.url.split('?')[0];
         // Der Dev-Server ist auch im WLAN erreichbar (Handy). Die Test-Anmeldung
@@ -100,6 +102,7 @@ export function diensteDev() {
         if (pfad === '/api/ideen' || pfad.startsWith('/api/ideen/')) return ideen(req, res);
         if (pfad === '/api/stimmen' || pfad.startsWith('/api/stimmen/')) return stimmen(req, res);
         if (pfad === '/api/profil' || pfad.startsWith('/api/profil/')) return profil(req, res);
+        if (pfad === '/api/jam' || pfad.startsWith('/api/jam/')) return jam(req, res);
         // Wie nginx: /styles und /Styles... fuehren auf /styles/, das die Galerie liefert.
         if (pfad === '/styles' || pfad.startsWith('/Styles')) {
           res.statusCode = 301;
@@ -110,6 +113,9 @@ export function diensteDev() {
         // Dev-Zentrale wie in nginx: /dev -> /dev/, das liefert index.html.
         if (pfad === '/dev') { res.statusCode = 301; res.setHeader('Location', '/dev/' + req.url.slice(pfad.length)); return res.end(); }
         if (pfad === '/dev/') { req.url = '/dev/index.html' + req.url.slice(pfad.length); return next(); }
+        // Jam-Seite wie in nginx: /jam -> /jam/, /jam/<id> ist dieselbe Seite.
+        if (pfad === '/jam') { res.statusCode = 301; res.setHeader('Location', '/jam/' + req.url.slice(pfad.length)); return res.end(); }
+        if (/^\/jam\/([a-z0-9-]+\/?)?$/.test(pfad)) { req.url = '/jam/index.html' + req.url.slice(pfad.length); return next(); }
         if (pfad === '/admin') { res.statusCode = 301; res.setHeader('Location', '/admin/'); return res.end(); }
         if (pfad === '/admin/') {
           res.setHeader('Content-Type', 'text/html; charset=utf-8');
