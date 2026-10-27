@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Everything is Bait — Pixel Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-BhGxZCeV.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BoWDFD_H.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="topbar pixel-panel">
+      <div class="brand">
+        <span class="brand-hook">J</span>
+        <div><h1>EVERYTHING IS BAIT</h1><p>DER KLEINE TEICH · PROTOTYP</p></div>
+      </div>
+      <div class="progress-block">
+        <div class="level-line"><span>ANGLER LV. <b id="level">1</b></span><span id="xpText">0 / 40 EP</span></div>
+        <div class="xp-bar"><i id="xpFill"></i></div>
+      </div>
+      <button class="sound-button" id="soundButton" aria-label="Ton umschalten">♪</button>
+    </header>
+
+    <section class="game-layout">
+      <section class="world pixel-frame" id="world">
+        <div class="world-controls" aria-label="Steuerung">
+          <span><kbd>WASD</kbd> / <kbd>PFEILE</kbd> LAUFEN</span>
+          <span><kbd>E</kbd> INTERAGIEREN</span>
+        </div>
+        <div class="stage" id="stage">
+        <canvas class="pixel-map" id="pixelMap" aria-label="Teichlichtung aus dem Sunnyside-Asset-Pack"></canvas>
+        <div class="interaction-prompt" id="interactionPrompt" aria-live="polite">
+          <kbd>E</kbd><span id="interactionText">INTERAGIEREN</span>
+        </div>
+        <div class="catch-card" id="catchCard">
+          <span class="rarity" id="catchRarity">GEWÖHNLICH</span>
+          <div class="catch-sprite" id="catchSprite">🐟</div>
+          <strong id="catchName">TEICHBARSCH</strong>
+          <small id="catchDetail">+10 EP · NEUER FANG!</small>
+        </div>
+
+        <div class="hint pixel-panel" id="hint">
+          <span class="hint-icon">!</span>
+          <span id="hintText">Laufe mit WASD oder den Pfeiltasten zu einer Hütte.</span>
+        </div>
+        </div>
+      </section>
+
+      <aside class="workbench pixel-panel closed" id="workbench">
+        <button class="panel-close" id="panelClose" aria-label="Menü schließen">×</button>
+        <section class="panel-welcome" id="panelWelcome">
+          <span class="welcome-icon">⌂</span>
+          <h2>ERKUNDE DEN TEICH</h2>
+          <p>Laufe zu einer Hütte und drücke <kbd>E</kbd>, um sie zu betreten.</p>
+          <div class="location-list">
+            <span><i class="dot bait-dot"></i>KÖDERSTUBE</span>
+            <span><i class="dot book-dot"></i>FISCHERHÜTTE</span>
+            <span><i class="dot dock-dot"></i>ANGELSTEG</span>
+          </div>
+        </section>
+        <nav class="tabs" aria-label="Spielmenüs">
+          <button class="tab active" data-tab="bait">KÖDER</button>
+          <button class="tab" data-tab="book">FANGBUCH <span id="bookCount">0</span></button>
+        </nav>
+
+        <section class="tab-view active" id="baitView">
+          <div class="section-title"><span>KÖDERKISTE</span><small>∞ UNBEGRENZT</small></div>
+          <div class="bait-grid" id="baitGrid"></div>
+
+          <div class="selected-bait">
+            <div class="bait-icon large" id="selectedIcon">🪱</div>
+            <div><small>AM HAKEN</small><strong id="selectedName">WURM</strong></div>
+          </div>
+
+          <div class="odds" id="odds"></div>
+
+          <button class="cast-button" id="castButton"><span>ANGEL AUSWERFEN</span><small>[ LEERTASTE ]</small></button>
+
+          <section class="mixer" id="mixer">
+            <div class="section-title"><span>MIX-STATION</span><small>2 KÖDER → 1 NEUER</small></div>
+            <div class="mix-slots">
+              <button class="mix-slot" id="mixA"><span>+</span><small>KÖDER A</small></button>
+              <span class="plus">+</span>
+              <button class="mix-slot" id="mixB"><span>+</span><small>KÖDER B</small></button>
+              <span class="equals">=</span>
+              <div class="mix-result" id="mixResult"><span>?</span><small>ERGEBNIS</small></div>
+            </div>
+            <button class="mix-button" id="mixButton" disabled>MIXEN!</button>
+            <p class="mix-help" id="mixHelp">Klicke zwei Köder aus deiner Kiste an.</p>
+          </section>
+        </section>
+
+        <section class="tab-view" id="bookView">
+          <div class="section-title"><span>DEINE ENTDECKUNGEN</span><small id="uniqueText">0 EINTRÄGE</small></div>
+          <div class="book-list" id="bookList"></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <div class="toast" id="toast"></div>
+</body>
+</html>

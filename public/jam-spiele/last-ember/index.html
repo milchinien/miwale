@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Last Ember</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect x=%227%22 y=%226%22 width=%222%22 height=%229%22 fill=%22%2363555c%22/%3E%3Crect x=%226%22 y=%222%22 width=%224%22 height=%225%22 fill=%22%23ff8a1c%22/%3E%3Crect x=%227%22 y=%223%22 width=%222%22 height=%223%22 fill=%22%23fff2b8%22/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jacquard+24&family=Pixelify+Sans:wght@400;600&display=swap" />
+    <!-- Bis main.ts fertig ist, nur den dunklen Hintergrund zeigen (sonst blitzt rohes HTML auf) -->
+    <style>
+      html, body { margin: 0; background: #12151e; }
+      body { visibility: hidden; }
+    </style>
+    <script type="module" crossorigin src="./assets/index-Cool78OG.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BYzA9V9H.css">
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <!-- ========================== Hauptmenue ========================== -->
+    <div class="hud hidden" id="menu">
+      <div class="menu-col">
+        <h1 class="menu-title">Last Ember</h1>
+        <p class="menu-tag">The sun is gone. Keep the last fire burning.</p>
+        <div class="menu-btns">
+          <button class="btn btn-big" id="btnMenuPlay">Play</button>
+          <button class="btn2" id="btnMenuHow">How to Play</button>
+          <button class="btn2" id="btnMenuSettings">Settings</button>
+          <button class="btn2" id="btnMenuCredits">Credits</button>
+        </div>
+      </div>
+      <div class="menu-foot">AI Browser Game Jam 5 · Theme: Torch</div>
+    </div>
+    <!-- Dunkelheit ueber dem Menue; Fackel und Mauszeiger brennen Licht hinein -->
+    <canvas id="menuShade" class="hidden"></canvas>
+
+    <!-- ===================== Skill-Tree-Bildschirm ===================== -->
+    <div class="hud" id="treeHud">
+      <div class="px res">
+        <img id="icoGlut" alt="" /><span class="res-num" id="glut">0</span><span class="res-name">Glut</span>
+        <span class="res-ash hidden" id="rowAsh"><span id="ash">0</span> Ash</span>
+      </div>
+      <div class="tabs">
+        <button class="btn btn-sm" id="tabTree">Skill Tree</button>
+        <button class="btn2 btn-sm" id="tabTorches">Torches</button>
+      </div>
+      <h1 class="title">Last Ember</h1>
+      <button class="btn2 icon-btn" id="btnSettings" title="Settings" aria-label="Settings"><span class="gear"></span></button>
+      <button class="btn2 btn-sm menu-back" id="btnToMenu">Menu</button>
+      <div class="px px-gold hint hidden" id="hint"></div>
+      <button class="btn btn-big" id="btnPlay" disabled>Play</button>
+    </div>
+
+    <div class="px px-gold tooltip hidden" id="tooltip" data-fx="quick"></div>
+    <div class="px px-ember toast hidden" id="toast"></div>
+
+    <!-- ========================= Lauf-HUD ========================= -->
+    <div class="hud hidden" id="runHud">
+      <div class="xp"><div class="xp-fill" id="xpFill"></div><span class="xp-lv" id="lvText">LV 1</span></div>
+
+      <div class="px stats">
+        <div class="bar-row">
+          <img id="icoHeart" alt="" />
+          <div class="bar"><div class="bar-fill bar-hp" id="hpFill"></div></div>
+          <span class="bar-num" id="hpText">100/100</span>
+        </div>
+        <div class="bar-row">
+          <img id="icoFlame" alt="" />
+          <div class="bar" id="fuelBar"><div class="bar-fill bar-fuel" id="fuelFill"></div><div class="ticks" id="ticks"></div></div>
+          <span class="bar-num" id="fuelText">60s</span>
+        </div>
+      </div>
+
+      <div class="px px-gold tip hidden" id="tip">
+        <img id="tipIco" alt="" />
+        <div class="tip-text"><b id="tipTitle"></b><span id="tipText"></span></div>
+      </div>
+
+      <div class="px clock">
+        <div class="clock-time" id="clockTime">0:00</div>
+        <div class="clock-label" id="clockLabel">Ashen Moor</div>
+        <div class="clock-sub" id="clockSub">Boss rush 4:00</div>
+      </div>
+
+      <div class="events" id="events"></div>
+
+      <div class="top-right">
+        <div class="px heatbox" id="heatBox">
+          <div class="hb-lv" id="heatLv">III</div>
+          <div class="hb-side">
+            <div class="hb-label" id="heatLabel">Heat</div>
+            <div class="hb-bar"><div class="hb-fill" id="heatFill"></div></div>
+            <div class="hb-pips" id="heatPips"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <div class="px counters">
+          <div><img id="icoGlut2" alt="" /><span id="runGlut">0</span></div>
+          <div><img id="icoSkull" alt="" /><span id="runKills">0</span></div>
+          <div><img id="icoCoin" alt="" /><span id="runCoins">0</span></div>
+        </div>
+      </div>
+
+      <div class="item-strip" id="itemStrip"></div>
+      <div class="item-toasts" id="itemToasts"></div>
+
+      <div class="loadout">
+        <div class="slots" id="slots"></div>
+        <div class="px dash" id="dash"><div class="dash-bar"><div class="dash-fill" id="dashFill"></div></div><span>Dash</span></div>
+      </div>
+
+      <div class="banner hidden" id="banner"><div class="banner-title" id="bannerTitle"></div><div class="banner-sub" id="bannerSub"></div></div>
+    </div>
+
+    <!-- ======================= Regionen-Auswahl ======================= -->
+    <div class="overlay hidden" id="regions">
+      <div class="px panel region-panel">
+        <h2 class="overlay-title">Choose a Region</h2>
+        <div class="region-stage">
+          <button class="px arrow" id="regPrev" aria-label="Previous region"><span class="arrow-l"></span></button>
+          <div class="px region-view">
+            <canvas id="regCanvas"></canvas>
+            <div class="rv-top"><span class="rv-name" id="rvName"></span><span class="rv-count" id="rvCount"></span></div>
+            <div class="rv-bottom">
+              <p class="rv-blurb" id="rvBlurb"></p>
+              <div class="rv-stats" id="rvStats"></div>
+            </div>
+          </div>
+          <button class="px arrow" id="regNext" aria-label="Next region"><span class="arrow-r"></span></button>
+        </div>
+        <div class="danger">
+          <div class="danger-pips" id="dangerPips"></div>
+          <div class="danger-text" id="dangerText"></div>
+        </div>
+        <div class="actions">
+          <button class="btn2" id="btnRegionBack">Back</button>
+          <button class="btn" id="btnRegionGo">Descend</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================== Level-up =========================== -->
+    <div class="overlay hidden" id="levelup">
+      <h2 class="overlay-title" id="levelupTitle">The fire grows</h2>
+      <div class="cards" id="cards"></div>
+      <p class="overlay-hint" id="levelupHint">Click a card or press 1 – 3</p>
+      <button class="btn2 btn-sm hidden" id="btnReroll">Reroll</button>
+    </div>
+
+    <!-- ============================ Pause ============================ -->
+    <div class="overlay hidden" id="pause">
+      <div class="px panel small-panel">
+        <h2 class="overlay-title">Paused</h2>
+        <div class="relics hidden" id="pauseRelics"></div>
+        <button class="btn" id="btnResume">Resume</button>
+        <button class="btn2" id="btnPauseSettings">Settings</button>
+        <button class="btn2" id="btnAbandon">Abandon run</button>
+      </div>
+    </div>
+
+    <!-- ============================ Haendler ============================ -->
+    <div class="overlay hidden" id="shop">
+      <h2 class="overlay-title">The Pale Merchant</h2>
+      <p class="overlay-hint shop-sub">"Coin for comfort, little flame." · You have <b id="shopCoins">0</b> coins</p>
+      <div class="cards shop-cards" id="shopCards"></div>
+      <button class="btn2" id="btnShopLeave">Leave</button>
+    </div>
+
+    <!-- ========================== Kiste oeffnen ========================== -->
+    <div class="overlay hidden" id="case">
+      <h2 class="overlay-title">Unsealed Chest</h2>
+      <div class="px case-window" id="caseWindow">
+        <div class="case-strip" id="caseStrip"></div>
+        <div class="case-marker"></div>
+      </div>
+      <div class="case-result pending" id="caseResult">
+        <div class="case-reveal">
+          <canvas id="caseRays" width="72" height="72"></canvas>
+          <div class="px case-big" id="caseBig"></div>
+        </div>
+        <div class="case-text">
+          <div class="case-name" id="caseName"></div>
+          <div class="case-kind" id="caseKind"></div>
+          <div class="case-desc" id="caseDesc"></div>
+        </div>
+      </div>
+      <div class="actions case-actions pending" id="caseActions">
+        <button class="btn2" id="btnCaseDrop">Discard</button>
+        <button class="btn" id="btnCaseKeep">Keep [E]</button>
+      </div>
+      <p class="overlay-hint" id="caseHint">Click or press Space to skip</p>
+      <canvas id="caseParts"></canvas>
+      <div id="caseFlash"></div>
+    </div>
+
+    <!-- ========================== Auswertung ========================== -->
+    <div class="overlay hidden" id="result">
+      <div class="px panel result-panel">
+        <h2 class="overlay-title" id="resTitle">The flame went out</h2>
+        <p class="result-sub" id="resSub"></p>
+        <div class="result-grid" id="resGrid"></div>
+        <div class="result-glut" id="resGlut"></div>
+        <div class="actions">
+          <button class="btn2" id="btnResTree">Back to the Tree</button>
+          <button class="btn" id="btnResAgain">Play again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================= Einstellungen ========================= -->
+    <div class="overlay hidden" id="settings">
+      <div class="px panel small-panel">
+        <h2 class="overlay-title">Settings</h2>
+        <label class="setting">
+          <span>Volume <b id="volText">70%</b></span>
+          <input type="range" id="vol" min="0" max="100" value="70" />
+        </label>
+        <button class="btn2" id="btnMute">Mute</button>
+        <div class="setting keys">
+          <span>Controls</span>
+          <p>Move: WASD / Arrows<br />Dash: Space / Shift<br />Pause: Esc</p>
+          <p class="muted">Key rebinding comes in a later version.</p>
+        </div>
+        <button class="btn2 danger" id="btnWipe">Delete save</button>
+        <button class="btn" id="btnSettingsClose">Close</button>
+      </div>
+    </div>
+
+    <!-- ========================= How to Play ========================= -->
+    <div class="overlay hidden" id="howto">
+      <div class="px panel howto-panel">
+        <div class="howto-top">
+          <span class="howto-step" id="howStep">1 / 5</span>
+          <button class="btn2 btn-sm" id="btnHowSkip">Skip</button>
+        </div>
+        <div class="howto-body">
+          <div class="px howto-art"><img id="howIco" alt="" /></div>
+          <div class="howto-text">
+            <h2 class="overlay-title howto-title" id="howTitle"></h2>
+            <div class="howto-desc" id="howDesc"></div>
+          </div>
+        </div>
+        <div class="howto-pips" id="howPips"></div>
+        <div class="actions">
+          <button class="btn2" id="btnHowBack">Back</button>
+          <button class="btn" id="btnHowNext">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================== Credits =========================== -->
+    <div class="overlay hidden" id="credits">
+      <div class="px panel credits-panel">
+        <h2 class="overlay-title">Credits</h2>
+        <div class="credits-text">
+          <p><b>Last Ember</b> was made for the <b>AI Browser Game Jam 5</b> (theme: Torch).</p>
+          <p><span class="muted">Design &amp; direction</span><br />milchinien</p>
+          <p><span class="muted">Code, pixel art &amp; sound</span><br />Written with Claude (Anthropic). All art is drawn by code, all sound is synthesized live.</p>
+          <p><span class="muted">Fonts</span><br />Jacquard 24, Pixelify Sans, Jersey 15 (SIL Open Font License)</p>
+          <p><span class="muted">Also</span><br />Skill tree layout from <i>Dropfall</i> · Gothic Night style from miwale.com/styles</p>
+        </div>
+        <button class="btn" id="btnCreditsClose">Close</button>
+      </div>
+    </div>
+
+    <div class="overlay hidden" id="loading"><div class="loading-text">Kindling…</div></div>
+
+  </body>
+</html>

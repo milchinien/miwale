@@ -48,7 +48,8 @@ jobs:
           node --check shop/perlenshop.js
           node --check shop/profil-katalog.js
           node --check public/sdk/miwale.js
-          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs tools/seiten.test.mjs tools/profil.test.mjs
+          node --check public/jam/jam.js
+          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs tools/seiten.test.mjs tools/profil.test.mjs tools/jam.test.mjs
           node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
@@ -96,7 +97,7 @@ jobs:
               echo "$1:"; echo "$kopf"; exit 1
             fi
           }
-          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /shop/shop.js /support.js /games/dropfall /press/ /press/miwale-presskit.zip /robots.txt /sitemap.xml /feed.xml /assets/og/miwale.jpg /assets/og/dropfall.jpg; do
+          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /jam/ /jam/ai-jam-5 /jam/jams.json /jam-spiele/last-ember/ /jam-spiele/last-ember/index.html /shop/shop.js /support.js /games/dropfall /press/ /press/miwale-presskit.zip /robots.txt /sitemap.xml /feed.xml /assets/og/miwale.jpg /assets/og/dropfall.jpg; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
@@ -108,6 +109,9 @@ jobs:
           grep -q '<base href="/">' <<< "$seite"
           grep -q '<x-dc>' <<< "$seite"
           test "$(status /gibtsnicht)" = 404
+          test "$(status /jam-spiele/gibt-es-nicht/)" = 404
+          grep -q 'Last Ember' <<< "$(curl -fsS http://127.0.0.1:8080/jam-spiele/last-ember/)"
+          grep -q 'jam.js' <<< "$(curl -fsS http://127.0.0.1:8080/jam/ai-jam-5)"
           # Glut ist eine eigene, nicht verlinkte Seite und schuetzt die API.
           test "$(status /usage/)" = 200
           test "$(status /usage/api/stats)" = 401
@@ -249,6 +253,12 @@ jobs:
           echo "$kopf" | grep -q '^HTTP/1.1 301' && echo "$kopf" | grep -qi '^location: https://play.miwale.com/games/wavebreaker/index.html$' || { echo "$kopf"; exit 1; }
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/games/wavebreaker)" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/games/wavebreaker/spielen)" = 200
+          # Die Spiele der Jam-Seite laufen ebenfalls nur unter play.miwale.com.
+          kopf="$(curl -sSI http://127.0.0.1:8081/jam-spiele/last-ember/ | tr -d '\r')"
+          echo "$kopf" | grep -q '^HTTP/1.1 301' && echo "$kopf" | grep -qi '^location: https://play.miwale.com/jam-spiele/last-ember/$' || { echo "$kopf"; exit 1; }
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: play.miwale.com' http://127.0.0.1:8081/jam-spiele/last-ember/)" = 200
+          curl -sSI -H 'Host: play.miwale.com' http://127.0.0.1:8081/jam-spiele/last-ember/ | tr -d '\r' | grep -qi '^content-security-policy: frame-ancestors https://miwale.com'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/jam/)" = 200
           grep -q 'spieleAdresse: "https://play.miwale.com"' <<< "$(curl -fsS http://127.0.0.1:8081/shop/umgebung.js)"
           # Eine kaputte Adresse bricht den Start ab, statt in nginx zu landen.
           ! docker run --rm -e 'SPIELE_ADRESSE=https://x.com"; evil' miwale:ci nginx -t

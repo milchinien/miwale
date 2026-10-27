@@ -1,0 +1,148 @@
+{
+  "jams": [
+    {
+      "id": "ai-jam-5",
+      "name": "AI Browser Game Jam 5",
+      "host": "Focaccai",
+      "itch": "https://itch.io/jam/ai-jam-5",
+      "bild": "/assets/jam/last-ember.webp",
+      "thema": "Torch",
+      "beschreibung": {
+        "en": "Two weeks, free browser games made mostly with AI.",
+        "de": "Zwei Wochen, kostenlose Browser-Spiele, zum großen Teil mit KI gebaut."
+      },
+      "start": "2026-10-17T03:00:00Z",
+      "abgabe": "2026-10-31T03:00:00Z",
+      "spiele": [
+        {
+          "id": "last-ember",
+          "name": "Last Ember",
+          "bild": "/assets/jam/last-ember.webp",
+          "beschreibung": {
+            "en": "Survive the night with a torch that only burns so long. Enemies drop fuel; between runs you spend embers in a skill tree.",
+            "de": "Überlebe die Nacht mit einer Fackel, die nur begrenzt brennt. Gegner lassen Brennstoff fallen, zwischen den Runs kaufst du mit Glut im Skill Tree."
+          },
+          "spielen": "/jam-spiele/last-ember/"
+        },
+        {
+          "id": "keepers-light",
+          "name": "Keeper's Light",
+          "bild": "/assets/jam/keepers-light.webp",
+          "beschreibung": {
+            "en": "Turn a lighthouse beam at night. Ships need the light to miss the rocks, sea monsters burn in it. One beam, two jobs.",
+            "de": "Dreh nachts den Strahl eines Leuchtturms. Schiffe brauchen das Licht, um nicht an den Felsen zu zerschellen, Seemonster verbrennen darin. Ein Strahl, zwei Aufgaben."
+          },
+          "spielen": "/jam-spiele/keepers-light/"
+        }
+      ]
+    },
+    {
+      "id": "ultimate-ai-jam-5",
+      "name": "Ultimate AI-Powered Game Jam #5",
+      "host": "",
+      "itch": "",
+      "bild": "/assets/jam/jack-vs-the-turnip-ancestors.webp",
+      "thema": "Pumpkin × Rutabaga",
+      "beschreibung": {
+        "en": "A game jam for AI-powered games, with two themes at once.",
+        "de": "Eine Game Jam für KI-gestützte Spiele, mit zwei Themen auf einmal."
+      },
+      "start": null,
+      "abgabe": null,
+      "spiele": [
+        {
+          "id": "jack-vs-the-turnip-ancestors",
+          "name": "Jack vs. the Turnip Ancestors",
+          "bild": "/assets/jam/jack-vs-the-turnip-ancestors.webp",
+          "beschreibung": {
+            "en": "Bullet heaven with Jack the pumpkin against waves of turnip ancestors. Seven worlds, drawn in 20 different art styles.",
+            "de": "Bullet Heaven mit Kürbis Jack gegen Wellen von Rüben-Ahnen. Sieben Welten in 20 verschiedenen Grafikstilen."
+          },
+          "spielen": "/jam-spiele/jack-vs-the-turnip-ancestors/"
+        }
+      ]
+    },
+    {
+      "id": "micro-jam-066",
+      "name": "Micro Jam 066",
+      "host": "Micro Jam",
+      "itch": "https://itch.io/jam/micro-jam-066",
+      "bild": "/assets/jam/dosis.webp",
+      "thema": "Toxic",
+      "beschreibung": {
+        "en": "48 hours. Prerequisite: \"Can't live without it!\"",
+        "de": "48 Stunden. Zusatzregel: „Can't live without it!“"
+      },
+      "start": "2026-10-03T01:00:00Z",
+      "abgabe": "2026-10-05T01:00:00Z",
+      "spiele": [
+        {
+          "id": "dosis",
+          "name": "DOSIS",
+          "bild": "/assets/jam/dosis.webp",
+          "beschreibung": {
+            "en": "3D runner through a poisoned neon city. Your toxin bar is life, ammo and speed: 0 is withdrawal, 100 is an overdose.",
+            "de": "3D-Runner durch eine vergiftete Neonstadt. Der Toxin-Balken ist Leben, Munition und Tempo: 0 ist Entzug, 100 Überdosis."
+          },
+          "spielen": "/jam-spiele/dosis/"
+        },
+        {
+          "id": "letzter-atemzug",
+          "name": "Letzter Atemzug",
+          "bild": "/assets/jam/letzter-atemzug.webp",
+          "beschreibung": {
+            "en": "A toad leads her tadpoles through a poisoned river and holds her breath to survive. A quiet, wordless game about pollution.",
+            "de": "Eine Kröte führt ihre Kaulquappen durch einen vergifteten Fluss und hält die Luft an, um zu überleben. Ein stilles Spiel ohne Worte über Umweltverschmutzung."
+          },
+          "spielen": "/jam-spiele/letzter-atemzug/"
+        }
+      ]
+    },
+    {
+      "id": "micro-jam-065",
+      "name": "Micro Jam 065",
+      "host": "Micro Jam",
+      "itch": "https://itch.io/jam/micro-jam-065",
+      "bild": "/assets/jam/infinite-bait.webp",
+      "thema": "Fishing",
+      "beschreibung": {
+        "en": "48 hours. Prerequisite: \"Everything is bait\".",
+        "de": "48 Stunden. Zusatzregel: „Everything is bait“."
+      },
+      "start": "2026-09-19T01:00:00Z",
+      "abgabe": "2026-09-21T01:00:00Z",
+      "spiele": [
+        {
+          "id": "infinite-bait",
+          "name": "Infinite Bait",
+          "bild": "/assets/jam/infinite-bait.webp",
+          "beschreibung": {
+            "en": "Infinite Craft with bait: combine baits, cast them, and every catch becomes a new bait. Over 7,000 species to find.",
+            "de": "Infinite Craft mit Ködern: Köder mischen, auswerfen, und jeder Fang wird selbst zum Köder. Über 7.000 Arten zu finden."
+          },
+          "spielen": "/jam-spiele/infinite-bait/"
+        },
+        {
+          "id": "hooked",
+          "name": "HOOKED",
+          "bild": "/assets/jam/hooked.webp",
+          "beschreibung": {
+            "en": "Turn-based roguelite: a little otter with a lantern fights monsters that always go for whatever smells best. Everything is bait. Even you.",
+            "de": "Rundenbasiertes Roguelite: Ein kleiner Otter mit Laterne kämpft gegen Monster, die immer angreifen, was am besten riecht. Alles ist Köder. Auch du."
+          },
+          "spielen": "/jam-spiele/hooked/"
+        },
+        {
+          "id": "everything-is-bait",
+          "name": "Everything is Bait",
+          "bild": "/assets/jam/everything-is-bait.webp",
+          "beschreibung": {
+            "en": "Top-down pixel prototype: mix two baits into a new one, cast, catch rare fish and fill your fish book.",
+            "de": "Pixel-Prototyp von oben: zwei Köder zu einem neuen mischen, auswerfen, seltene Fische fangen und das Fangbuch füllen."
+          },
+          "spielen": "/jam-spiele/everything-is-bait/"
+        }
+      ]
+    }
+  ]
+}

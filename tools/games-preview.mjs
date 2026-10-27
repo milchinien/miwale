@@ -21,7 +21,8 @@ const SEITEN = [
 // otherwise miss new hashed files after games:sync, yielding an empty iframe.
 export function gamesPreview() {
   const root = fileURLToPath(new URL('../public/games/', import.meta.url));
-  const types = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.mp3':'audio/mpeg', '.ogg':'audio/ogg', '.wav':'audio/wav', '.woff2':'font/woff2', '.ttf':'font/ttf' };
+  const jamRoot = fileURLToPath(new URL('../public/jam-spiele/', import.meta.url));
+  const types = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg', '.webp':'image/webp', '.mp3':'audio/mpeg', '.ogg':'audio/ogg', '.wav':'audio/wav', '.woff2':'font/woff2', '.ttf':'font/ttf', '.glb':'model/gltf-binary', '.wasm':'application/wasm' };
   return {
     name: 'game-bundles',
     // Die Seite laedt ihre Skripte klassisch (<script src="shop/...">), nicht als
@@ -30,7 +31,7 @@ export function gamesPreview() {
     // ein volles Neuladen; die eingefrorenen Spiele (public/games) zaehlen nicht.
     handleHotUpdate({ file, server }) {
       const pfad = file.replace(/\\/g, '/');
-      if (pfad.includes('/public/games/') || pfad.includes('/node_modules/') || pfad.includes('/.bewertungen-dev/')) return;
+      if (pfad.includes('/public/games/') || pfad.includes('/public/jam-spiele/') || pfad.includes('/node_modules/') || pfad.includes('/.bewertungen-dev/')) return;
       if (/\/(shop|_ds|assets|public)\/|\/index\.html$|Portfolio\.dc\.html$|\/support\.js$/.test(pfad)) {
         server.ws.send({ type: 'full-reload', path: '*' });
         return [];
@@ -71,12 +72,15 @@ export function gamesPreview() {
         try { datei = readFileSync(seite[1], 'utf8'); } catch { res.statusCode = 500; return res.end(); }
         return htmlSenden(datei);
       });
-      server.middlewares.use('/games', (req,res) => {
+      // Dieselbe Auslieferung fuer die Jam-Spiele (/jam-spiele/<id>/): Vite
+      // wuerde fuer Ordner sonst die Spieleseite zurueckgeben. /games zuletzt: der
+      // Test greift sich die zuletzt eingehaengte Auslieferung.
+      for (const [basis, ordner] of [['/jam-spiele', jamRoot], ['/games', root]]) server.middlewares.use(basis, (req,res) => {
         try {
           let path = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
           if (path.endsWith('/')) path += 'index.html';
-          const file = resolve(root, '.' + path);
-          if (!file.startsWith(resolve(root) + sep) || !statSync(file).isFile()) throw new Error('not found');
+          const file = resolve(ordner, '.' + path);
+          if (!file.startsWith(resolve(ordner) + sep) || !statSync(file).isFile()) throw new Error('not found');
           res.setHeader('Content-Type',types[extname(file)] || 'application/octet-stream');
           res.setHeader('Cache-Control','no-cache');
           res.setHeader('Content-Length',statSync(file).size);

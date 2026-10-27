@@ -1,0 +1,71 @@
+/* Base HUD layout. Styles re-skin everything under body.style-<id> via their `css` string. */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+body { font-family: system-ui, 'Segoe UI', sans-serif; color: #fff; user-select: none; }
+#game { position: fixed; inset: 0; display: block; }
+body.pixel #game { image-rendering: pixelated; }
+.hidden { display: none !important; }
+body.nohud #hud, body.nohud #stylebar { display: none; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0 0 auto 0; pointer-events: none; padding: 10px 16px; }
+#hud .xp { position: relative; height: 14px; background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.25); border-radius: 8px; overflow: hidden; }
+#hud .xp-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, #6fd6ff, #9dff7a); transition: width .15s; }
+#hud .lvl { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+#hud .topline { display: flex; align-items: flex-start; justify-content: space-between; margin-top: 10px; }
+#hud .hp { display: flex; align-items: center; gap: 8px; }
+#hud .hp-icon, #hud .kills-icon { width: 24px; height: 24px; image-rendering: auto; }
+body.pixel #hud .hp-icon, body.pixel #hud .kills-icon, body.pixel .card-icon { image-rendering: pixelated; }
+#hud .hp-bar { position: relative; width: 220px; height: 16px; background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.3); border-radius: 8px; overflow: hidden; }
+#hud .hp-fill { position: absolute; inset: 0 auto 0 0; width: 100%; background: linear-gradient(#ff7a4a, #d2361f); transition: width .12s; }
+#hud .hp-text { font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+#hud .clock { display: flex; flex-direction: column; align-items: center; }
+#hud .clock-time { font-size: 30px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 4px #000; }
+#hud .clock-label { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 2px; }
+#hud .kills { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 700; text-shadow: 0 2px 3px #000; min-width: 220px; justify-content: flex-end; }
+body.hurt #hud .hp-bar { filter: brightness(1.6); }
+
+/* ---------- style bar ---------- */
+#stylebar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px;
+  padding: 8px 16px; background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2); border-radius: 999px; font-size: 12px; white-space: nowrap; }
+#stylebar .style-family { opacity: .7; text-transform: uppercase; letter-spacing: 1.5px; font-size: 10px; }
+#stylebar .style-name { font-weight: 800; font-size: 15px; cursor: pointer; }
+#stylebar .style-hint { opacity: .65; }
+#stylebar .auto.on { color: #9dff7a; opacity: 1; font-weight: 700; }
+body.shot #stylebar .style-hint { display: none; }
+
+#stylemenu { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); display: grid; grid-template-columns: repeat(3, 300px); gap: 6px; max-height: 80vh; overflow: auto;
+  padding: 10px; background: rgba(10,10,14,.92); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; z-index: 30; font-family: system-ui, sans-serif; }
+#stylemenu .sm-item { display: grid; grid-template-columns: 24px 1fr; grid-template-rows: auto auto; text-align: left; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid transparent; background: rgba(255,255,255,.05); color: #fff; cursor: pointer; font: inherit; }
+#stylemenu .sm-item:hover { background: rgba(255,255,255,.12); }
+#stylemenu .sm-item.active { border-color: #ffb347; }
+#stylemenu .sm-num { grid-row: span 2; opacity: .5; font-weight: 700; align-self: center; }
+#stylemenu .sm-name { font-weight: 700; font-size: 14px; }
+#stylemenu .sm-fam { font-size: 11px; opacity: .6; }
+
+/* ---------- level up ---------- */
+#levelup { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  background: rgba(0,0,0,.55); z-index: 20; }
+#levelup .lu-title { font-size: 44px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 3px 0 #000; }
+#levelup .lu-cards { display: flex; gap: 20px; }
+#levelup .card { position: relative; width: 210px; min-height: 250px; padding: 18px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  background: #1d1a24; border: 3px solid #ffb347; border-radius: 14px; cursor: pointer; transition: transform .12s; text-align: center; }
+#levelup .card:hover { transform: translateY(-6px); }
+#levelup .card-icon { width: 96px; height: 96px; }
+#levelup .card-name { font-size: 19px; font-weight: 800; }
+#levelup .card-desc { font-size: 14px; opacity: .85; }
+#levelup .card-key { position: absolute; top: 8px; left: 10px; font-size: 13px; opacity: .55; font-weight: 700; }
+#levelup .lu-hint { font-size: 13px; opacity: .7; }
+
+/* ---------- game over / pause ---------- */
+#gameover { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  background: rgba(0,0,0,.65); z-index: 20; }
+#gameover .go-title { font-size: 52px; font-weight: 900; }
+#gameover .go-stats { font-size: 18px; opacity: .9; }
+#gameover .go-hint { font-size: 14px; opacity: .7; }
+#pausebox { display: none; position: fixed; left: 50%; top: 45%; transform: translate(-50%,-50%); font-size: 40px; font-weight: 900; z-index: 25; text-shadow: 0 3px 0 #000; }
+body.paused #pausebox { display: block; }
+
+#errors { display: none; position: fixed; left: 10px; bottom: 60px; max-width: 70vw; max-height: 50vh; overflow: auto; z-index: 99; margin: 0;
+  padding: 10px; background: rgba(120,0,0,.92); color: #fff; font: 12px/1.35 Consolas, monospace; white-space: pre-wrap; border-radius: 6px; }

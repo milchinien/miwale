@@ -5,5 +5,8 @@
 # Darum: unveraendert lassen.
 public/games/** -text
 
+# Die Spiele der Jam-Seite sind ebenfalls fertige Builds: nicht umschreiben.
+public/jam-spiele/** -text
+
 # Shellskripte laufen im Linux-Container. Mit Windows-Zeilenenden bricht sh ab.
 *.sh text eol=lf

@@ -1,0 +1,8 @@
+Jack vs. the Turnip Ancestors
+Made for the Ultimate AI-Powered Game Jam #5 (themes: PUMPKIN x RUTABAGA).
+
+All code, graphics and audio were generated with AI (Claude by Anthropic) and are drawn/synthesised
+procedurally at runtime - there are no external image or audio assets.
+
+Fonts: Alegreya, Alfa Slab One, Architects Daughter, Audiowide, Baloo 2, Bangers, Bungee, Cabin Sketch, Caveat, Caveat Brush, Chakra Petch, Chewy, Cinzel, Cinzel Decorative, Comic Neue, Cormorant Garamond, Fraunces, Fredericka the Great, Fredoka, Gochi Hand, Grandstander, IM Fell English, IM Fell English SC, Inter, Lilita One, Mali, Monoton, Nunito, Orbitron, Patrick Hand, Pirata One, Pixelify Sans, Press Start 2P, Rajdhani, Rock Salt, Rye, Silkscreen, Sniglet, Special Elite, UnifrakturMaguntia.
+All under the SIL Open Font License 1.1, from Google Fonts (see fonts/LICENSES.txt).
