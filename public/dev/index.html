@@ -11,18 +11,18 @@
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
 <!--
-  Dev-Zentrale: zeigt die Dev-Server des Geraets, auf dem die Seite gerade
-  offen ist, und startet oder beendet sie. Die Seite selbst weiss nichts ueber
-  Geraete; zentrale.js fragt im Browser den Agenten auf 127.0.0.1:5300
-  (agent.mjs). Wer ihn nicht installiert hat, sieht nur die Anleitung.
+  Dev-Zentrale: zeigt die Projekte und Dev-Server des Geraets, auf dem die
+  Seite gerade offen ist, und startet oder beendet sie. Die Seite selbst weiss
+  nichts ueber Geraete; zentrale.js fragt im Browser den Agenten auf
+  127.0.0.1:5300 (agent.mjs). Wer ihn nicht installiert hat, sieht nur die Anleitung.
 -->
 <style>
-  :root { color-scheme: dark; --akzent: #7FE0EE; --leise: rgba(237,243,249,.62); }
+  :root { color-scheme: dark; --akzent: #7FE0EE; --leise: rgba(237,243,249,.62); --linie: rgba(255,255,255,.08); --mono: ui-monospace, 'JetBrains Mono', Consolas, monospace; }
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; background: #050A16; color: #EDF3F9; font: var(--type-body, 16px/1.5 system-ui, sans-serif); }
-  main { width: min(980px, 100%); margin: 0 auto; padding: 36px 20px 80px; display: flex; flex-direction: column; gap: 22px; }
+  main { width: min(1120px, 100%); margin: 0 auto; padding: 36px 20px 80px; display: flex; flex-direction: column; gap: 26px; }
   h1 { margin: 0; font: var(--type-h2, 700 28px/1.2 system-ui); color: #fff; }
-  h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
+  h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--leise); display: inline-flex; align-items: center; gap: 8px; }
   a { color: var(--akzent); }
   .kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .geraet { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--leise); }
@@ -31,42 +31,89 @@
   .klein { font-size: 13px; color: var(--leise); }
   .karte { padding: 18px 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); display: flex; flex-direction: column; gap: 12px; }
   .zeile { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .abschnitt { display: flex; flex-direction: column; gap: 10px; }
-  .abschnitt-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  input[type=search] { width: 100%; font: inherit; font-size: 17px; color: #fff; background: rgba(1,10,17,.6); border: 1px solid rgba(255,255,255,.2); border-radius: 14px; padding: 13px 16px; }
+  .abschnitt { display: flex; flex-direction: column; gap: 12px; }
+  .abschnitt-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 36px; }
+  .zahl { min-width: 22px; padding: 1px 7px; border-radius: 999px; background: rgba(255,255,255,.08); color: #fff; font-size: 12px; letter-spacing: 0; text-align: center; }
+  input[type=search] { width: 100%; font: inherit; font-size: 16px; color: #fff; background: rgba(1,10,17,.6); border: 1px solid rgba(255,255,255,.18); border-radius: 12px; padding: 11px 14px; }
   input[type=search]:focus { outline: none; border-color: var(--akzent); }
-  button { font: inherit; font-size: 14px; min-height: 36px; padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #EDF3F9; cursor: pointer; white-space: nowrap; }
+  button { font: inherit; font-size: 14px; min-height: 34px; padding: 5px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #EDF3F9; cursor: pointer; white-space: nowrap; }
   button:hover { background: rgba(255,255,255,.14); }
   button:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
   button:disabled { opacity: .5; cursor: default; }
-  button.haupt { background: linear-gradient(180deg, #BDF3FA, #7FE0EE); color: #06303C; border: 0; font-weight: 600; }
+  button.haupt { background: linear-gradient(180deg, #BDF3FA, #7FE0EE); color: #06303C; border: 0; font-weight: 600; min-width: 84px; }
   button.gefahr { border-color: rgba(242,179,155,.55); color: #F7C7B4; }
-  button.leise { border-color: transparent; background: none; color: var(--leise); padding: 6px 8px; }
-  button.leise:hover { color: #fff; }
-  .liste { display: flex; flex-direction: column; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); overflow: hidden; }
-  .eintrag { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 12px; padding: 11px 14px; background: rgba(255,255,255,.03); border-top: 1px solid rgba(255,255,255,.07); }
-  .eintrag:first-child { border-top: 0; }
-  .eintrag.treffer { background: rgba(127,224,238,.09); }
-  .eintrag.laeuft { background: rgba(110,231,168,.06); }
+  button.leise { border-color: transparent; background: none; color: var(--leise); padding: 5px 8px; }
+  button.leise:hover { color: #fff; background: rgba(255,255,255,.06); }
+  button.symbol { width: 34px; padding: 0; display: inline-grid; place-items: center; border-color: transparent; background: none; color: var(--leise); }
+  button.symbol:hover { color: #fff; background: rgba(255,255,255,.08); }
+  button.symbol svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Werkzeugleiste: Suche, Filter, Optionen */
+  .werkzeuge { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 10px 14px; align-items: center; }
+  .filter { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: rgba(255,255,255,.05); border: 1px solid var(--linie); }
+  .filter button { border: 0; background: none; color: var(--leise); min-height: 30px; padding: 4px 12px; font-size: 13px; }
+  .filter button[aria-pressed=true] { background: rgba(255,255,255,.12); color: #fff; }
+  .filter .anzahl { margin-left: 6px; font-variant-numeric: tabular-nums; opacity: .7; }
+  .optionen { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+  label.schalter { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--leise); cursor: pointer; }
+
+  /* Listen */
+  .liste { display: flex; flex-direction: column; border-radius: 16px; border: 1px solid rgba(255,255,255,.1); overflow: hidden; background: rgba(255,255,255,.02); }
+  .eintrag { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 10px 14px; border-top: 1px solid var(--linie); }
+  .eintrag:first-child, .tabkopf + .eintrag { border-top: 0; }
+  .eintrag.laeuft { background: rgba(110,231,168,.05); }
+  .eintrag.treffer { background: rgba(127,224,238,.09); box-shadow: inset 3px 0 0 var(--akzent); }
+  .tabelle .eintrag, .tabkopf { grid-template-columns: 28px minmax(0, 1fr) 104px 112px 232px; }
+  .tabkopf { display: grid; gap: 12px; padding: 8px 14px; border-bottom: 1px solid var(--linie); background: rgba(255,255,255,.03); }
+  .tabkopf button { justify-self: start; border: 0; background: none; padding: 2px 0; min-height: 24px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
+  .tabkopf button:hover, .tabkopf button[aria-sort=ascending], .tabkopf button[aria-sort=descending] { color: #fff; background: none; }
+  .tabkopf .pfeil { display: inline-block; width: 1em; text-align: center; }
+  .tabkopf .rechts { justify-self: end; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
   .nr { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; font-size: 12px; font-weight: 800; color: var(--leise); background: rgba(255,255,255,.07); }
+  .haupt-spalte { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .titelzeile { display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
   .name { font-weight: 600; color: #fff; overflow-wrap: anywhere; }
-  .pfad { font-size: 12px; color: var(--leise); overflow-wrap: anywhere; }
-  .aktionen { display: flex; gap: 6px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-  .marke { padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.08); }
+  .pfad { font-size: 12px; color: var(--leise); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pfad .unter { color: #A8D8E0; }
+  .datum { font-size: 13px; color: #DCE6EF; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .datum.leer { color: var(--leise); }
+  .mobil-label { display: none; }
+  .aktionen { display: flex; gap: 4px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+  .extra { grid-column: 2 / -1; display: flex; flex-direction: column; gap: 6px; }
+
+  .art { padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: .02em; color: var(--leise); border: 1px solid rgba(255,255,255,.14); }
+  .marke { padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.08); }
   .marke.laeuft { background: rgba(110,231,168,.18); color: #A8F0C8; }
   .marke.startet { background: rgba(243,213,139,.18); color: #F3D58B; }
   .marke.fehler { background: rgba(242,179,155,.18); color: #F7C7B4; }
-  .ports a { margin-right: 8px; font-variant-numeric: tabular-nums; }
-  .fehlertext { margin: 4px 0 0; font-size: 12px; color: #F7C7B4; white-space: pre-wrap; overflow-wrap: anywhere; }
-  pre.log { margin: 6px 0 0; max-height: 260px; overflow: auto; padding: 10px 12px; border-radius: 10px; background: #02060E; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .marke.archiv { background: rgba(243,213,139,.1); color: #E9D29A; font-weight: 600; }
+  button.chip { min-height: 22px; padding: 0 8px; font-size: 12px; font-weight: 600; border-color: rgba(255,255,255,.14); background: none; color: var(--leise); }
+  button.chip:hover { color: #fff; }
+  .ports a { margin-right: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .fehlertext { margin: 0; font-size: 12px; color: #F7C7B4; white-space: pre-wrap; overflow-wrap: anywhere; }
+  pre.log { margin: 0; max-height: 260px; overflow: auto; padding: 10px 12px; border-radius: 10px; background: #02060E; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .kopien { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.03); border: 1px solid var(--linie); }
+  .kopie { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .kopie .pfad { flex: 1; }
+  .leer-text { padding: 16px; font-size: 14px; color: var(--leise); }
+
   .befehl { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
   .befehl code { flex: 1; min-width: 240px; padding: 10px 12px; border-radius: 12px; background: #02060E; font-size: 13px; overflow-wrap: anywhere; }
   ol.schritte { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
   kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); border-bottom-width: 2px; font: 12px/1.6 ui-monospace, monospace; text-align: center; color: #fff; }
   .tasten { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--leise); }
-  label.schalter { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--leise); cursor: pointer; }
-  .leer { padding: 16px; font-size: 14px; color: var(--leise); }
-  @media (max-width: 620px) { .eintrag { grid-template-columns: 1fr; } .nr { display: none; } .aktionen { justify-content: flex-start; } }
+
+  @media (max-width: 860px) {
+    .werkzeuge { grid-template-columns: 1fr; }
+    .tabkopf { display: none; }
+    .tabelle .eintrag { grid-template-columns: 28px minmax(0, 1fr); }
+    .tabelle .datum { grid-column: 2; display: inline; font-size: 12px; color: var(--leise); }
+    .mobil-label { display: inline; }
+    .tabelle .aktionen { grid-column: 2; justify-content: flex-start; }
+    .eintrag { grid-template-columns: 28px minmax(0, 1fr); }
+    .eintrag > .aktionen { grid-column: 2; justify-content: flex-start; }
+  }
+  @media (max-width: 520px) { .nr { display: none; } .eintrag, .tabelle .eintrag { grid-template-columns: 0 minmax(0, 1fr); column-gap: 0; } }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -80,7 +127,7 @@
   <!-- Kein Agent auf diesem Geraet -->
   <section id="ohneAgent" class="karte" hidden>
     <h2 style="color:#fff;font-size:15px;letter-spacing:0;text-transform:none;">Auf diesem Gerät läuft noch kein Agent</h2>
-    <p class="klein" style="margin:0;">Der Agent ist ein kleines Programm, das nur auf diesem Rechner läuft. Er zeigt der Seite die eigenen Dev-Server und startet oder beendet sie. Einmal pro Rechner einrichten (Windows, Node.js muss installiert sein):</p>
+    <p class="klein" style="margin:0;">Der Agent ist ein kleines Programm, das nur auf diesem Rechner läuft. Er zeigt der Seite die eigenen Projekte und Dev-Server und startet oder beendet sie. Einmal pro Rechner einrichten (Windows, Node.js muss installiert sein):</p>
     <ol class="schritte">
       <li>Befehl kopieren: <button id="kopieren" class="haupt" type="button">Kopieren</button> <span id="kopiert" class="klein" hidden>Kopiert ✓</span></li>
       <li><kbd>Win</kbd> + <kbd>R</kbd> drücken, mit <kbd>Strg</kbd> + <kbd>V</kbd> einfügen, <kbd>Enter</kbd>.</li>
@@ -95,12 +142,10 @@
     <div class="befehl"><code id="installBefehl2"></code><button id="kopieren2" type="button">Kopieren</button></div>
   </section>
 
-  <div id="mitAgent" class="abschnitt" hidden>
-    <input id="suche" type="search" placeholder="Projekt suchen … Enter startet und öffnet" autocomplete="off" spellcheck="false" aria-label="Projekt suchen">
-
+  <div id="mitAgent" class="abschnitt" style="gap:26px" hidden>
     <section class="abschnitt">
       <div class="abschnitt-kopf">
-        <h2>Läuft gerade</h2>
+        <h2>Läuft gerade <span id="laufendZahl" class="zahl">0</span></h2>
         <button id="alleStoppen" class="gefahr" type="button" title="Taste Entf">Alle stoppen</button>
       </div>
       <div id="laufend" class="liste"></div>
@@ -108,25 +153,46 @@
 
     <section class="abschnitt">
       <div class="abschnitt-kopf">
-        <h2 id="projekteTitel">Projekte</h2>
-        <div class="zeile">
-          <label class="schalter"><input id="oeffnen" type="checkbox" checked> Nach dem Start öffnen</label>
-          <button id="neuSuchen" class="leise" type="button">Neu suchen</button>
+        <h2>Projekte <span id="projekteZahl" class="zahl">0</span></h2>
+      </div>
+      <div class="werkzeuge">
+        <input id="suche" type="search" placeholder="Suchen nach Name, Ordner oder Art … Enter startet / öffnet" autocomplete="off" spellcheck="false" aria-label="Projekt suchen">
+        <div id="filter" class="filter" role="group" aria-label="Filter">
+          <button type="button" data-filter="alle" aria-pressed="true">Alle<span class="anzahl"></span></button>
+          <button type="button" data-filter="startbar" aria-pressed="false" title="Projekte mit Dev-Server (dev-, start- oder serve-Skript)">Startbar<span class="anzahl"></span></button>
+          <button type="button" data-filter="laeuft" aria-pressed="false">Läuft<span class="anzahl"></span></button>
+        </div>
+        <div class="optionen">
+          <label class="schalter"><input id="oeffnen" type="checkbox" checked> Nach dem Start im Browser öffnen</label>
+          <span class="zeile" style="gap:6px">
+            <span id="suchStand" class="klein"></span>
+            <button id="neuSuchen" class="leise" type="button">Neu suchen</button>
+          </span>
         </div>
       </div>
-      <div id="projekte" class="liste"></div>
+      <div class="liste tabelle">
+        <div class="tabkopf" id="tabkopf">
+          <span></span>
+          <button type="button" data-sort="name">Projekt<span class="pfeil"></span></button>
+          <button type="button" data-sort="erstellt">Erstellt<span class="pfeil"></span></button>
+          <button type="button" data-sort="aktiv">Bearbeitet<span class="pfeil"></span></button>
+          <span class="rechts">Aktionen</span>
+        </div>
+        <div id="projekte"></div>
+      </div>
       <p id="ausgeblendet" class="klein" style="margin:0;" hidden></p>
     </section>
 
     <section id="sonstigeAbschnitt" class="abschnitt" hidden>
       <h2>Sonstige Server</h2>
-      <p class="klein" style="margin:0;">Gehören zu keinem gefundenen Projekt. „Alle stoppen“ lässt sie in Ruhe.</p>
+      <p class="klein" style="margin:0;">Gehören zu keinem gefundenen Projekt (oder laufen aus einer Kopie). „Alle stoppen“ lässt sie in Ruhe.</p>
       <div id="sonstige" class="liste"></div>
     </section>
 
     <div class="tasten">
       <span><kbd>A</kbd>–<kbd>Z</kbd> suchen</span>
-      <span><kbd>Enter</kbd> erstes Projekt starten / öffnen</span>
+      <span><kbd>↑</kbd> <kbd>↓</kbd> Treffer wählen</span>
+      <span><kbd>Enter</kbd> Treffer starten / öffnen</span>
       <span><kbd>1</kbd>–<kbd>9</kbd> Projekt Nr. starten / öffnen</span>
       <span><kbd>Entf</kbd> alle stoppen</span>
       <span><kbd>Esc</kbd> Suche leeren</span>

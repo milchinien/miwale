@@ -4,7 +4,8 @@
 // immer der Rechner, an dem man gerade sitzt.
 //
 // Was er kann: laufende Dev-Server zeigen und beenden, Projekte auf den
-// Laufwerken finden und mit ihrem dev-Skript starten. Mehr nicht -- die Seite
+// Laufwerken finden (Node, Godot, Unity, Rust, HTML, ...) und die mit einem
+// dev-Skript starten. Mehr nicht -- die Seite
 // kann nur "starte Projekt X" sagen; welcher Befehl dahintersteht, bestimmt
 // allein der Agent aus der package.json. Beenden darf er nur Prozesse, die er
 // selbst als Dev-Server auflistet.
@@ -25,11 +26,12 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const VERSION = 3;
+export const VERSION = 4;
 export const PORT = 5300;
 const DATEN = path.join(process.env.LOCALAPPDATA || os.homedir(), 'miwale-dev');
 const EINSTELLUNGEN = path.join(DATEN, 'einstellungen.json');
 const PROJEKTE_CACHE = path.join(DATEN, 'projekte.json');
+const GIT_CACHE = path.join(DATEN, 'git.json');
 const LOGS = path.join(DATEN, 'logs');
 const STANDARD_SEITE = 'https://miwale.com/dev/';
 
@@ -133,9 +135,125 @@ export function projektId(ordner) {
   return crypto.createHash('sha1').update(ordner.toLowerCase()).digest('hex').slice(0, 10);
 }
 
+// Woran man ein Projekt erkennt. Mit package.json: das Framework aus den
+// Abhaengigkeiten. null: kein Projekt, weitersuchen.
+const RAHMEN = [
+  ['electron', 'Electron'], ['next', 'Next.js'], ['nuxt', 'Nuxt'], ['astro', 'Astro'], ['@sveltejs/kit', 'SvelteKit'],
+  ['@remix-run/dev', 'Remix'], ['vite', 'Vite'], ['webpack', 'Webpack'], ['parcel', 'Parcel'],
+];
+
+export function erkenneArt(namen, paket) {
+  if (paket) {
+    const abh = { ...(paket.dependencies || {}), ...(paket.devDependencies || {}) };
+    const rahmen = RAHMEN.find(([n]) => abh[n]);
+    return rahmen ? rahmen[1] : 'Node';
+  }
+  const dateien = [...namen];
+  if (namen.has('project.godot')) return 'Godot';
+  if (namen.has('ProjectSettings') && namen.has('Assets')) return 'Unity';
+  if (dateien.some((n) => /\.uproject$/i.test(n))) return 'Unreal';
+  if (namen.has('Cargo.toml')) return 'Rust';
+  if (namen.has('go.mod')) return 'Go';
+  if (namen.has('CMakeLists.txt')) return 'C++';
+  if (dateien.some((n) => /\.(sln|csproj)$/i.test(n))) return '.NET';
+  if (namen.has('pyproject.toml') || namen.has('requirements.txt')) return 'Python';
+  if (namen.has('index.html')) return 'HTML';
+  if (namen.has('.git')) return 'Git';
+  return null;
+}
+
+// Bei diesen Arten sitzt der Dev-Server oft eine Ebene tiefer
+// (Traffic Simulator/prototypes). Godot, Unity & Co. startet man im Editor.
+const SCHWACHE_ARTEN = new Set(['Git', 'Node', 'HTML']);
+
+// Installierte Programme (Unity-Editor, Git, Krita) enthalten tausende Ordner
+// und keine eigenen Projekte.
+export function istProgrammOrdner(dateinamen) {
+  let exe = 0;
+  let dll = 0;
+  for (const name of dateinamen) {
+    const n = name.toLowerCase();
+    if (/^unins\d*\.exe$/.test(n)) return true;
+    if (n.endsWith('.exe')) exe++;
+    else if (n.endsWith('.dll')) dll++;
+  }
+  return exe > 0 && dll >= 3;
+}
+
+// Liegt ein Ordner in einer Sicherung oder einem Archiv? Zaehlt nur fuer die
+// Elternordner, damit "CoD Copy" selbst kein Backup ist.
+const ARCHIV = /backup|sicherung|archiv|^_?umbau$|^(old|alt|bak)$/i;
+
+export function imArchiv(ordner) {
+  return path.win32.dirname(ordner).split(/[\\/]/).some((teil) => ARCHIV.test(teil));
+}
+
+const ARBEITSKOPIE = /^te?mp([-_ ].*)?$/i;
+
+// Welcher Fundort ist das Original? Erst nicht im Archiv, dann nicht in einem
+// tmp-Ordner, dann startbar, dann erkannt (Godot statt nur .git), dann zuletzt bearbeitet.
+function rang(p) {
+  const teile = path.win32.dirname(p.ordner).split(/[\\/]/);
+  return [
+    imArchiv(p.ordner) ? 1 : 0,
+    teile.some((t) => ARBEITSKOPIE.test(t)) ? 1 : 0,
+    p.skript ? 0 : 1,
+    SCHWACHE_ARTEN.has(p.art) ? 1 : 0,
+    -(p.aktiv || 0),
+  ];
+}
+
+function vergleicheRang(a, b) {
+  const x = rang(a);
+  const y = rang(b);
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
+  return 0;
+}
+
+const ohneLaufwerk = (o) => o.toLowerCase().replace(/\//g, '\\').replace(/^[a-z]:/, '').replace(/\\+$/, '');
+
+// Zwei Fundorte desselben Projekts: gleicher Ordnername und entweder dasselbe
+// erste Commit oder der eine Pfad endet auf den anderen (D:\Projects\FG3 und
+// E:\Backup_D\Projects\FG3). Gleiches erstes Commit unter anderem Namen ist ein
+// Worktree oder Fork und bleibt eigenstaendig.
+export function sindKopien(a, b) {
+  if (path.win32.basename(a.ordner).toLowerCase() !== path.win32.basename(b.ordner).toLowerCase()) return false;
+  if (a.git && b.git) return a.git === b.git;
+  const x = ohneLaufwerk(a.ordner);
+  const y = ohneLaufwerk(b.ordner);
+  return x === y || x.endsWith(y) || y.endsWith(x);
+}
+
+// Je Projekt ein Eintrag: das Original vorn (rang), die anderen Fundorte
+// als Kopien daran. Erstellt ist der
+// frueheste Zeitpunkt aller Fundorte.
+export function fasseKopienZusammen(projekte) {
+  const gruppen = [];
+  for (const p of projekte) {
+    const gruppe = gruppen.find((g) => g.some((q) => sindKopien(p, q)));
+    if (gruppe) gruppe.push(p);
+    else gruppen.push([p]);
+  }
+  return gruppen.map((g) => {
+    g.sort(vergleicheRang);
+    const [haupt, ...rest] = g;
+    const fruehester = g.filter((p) => p.erstellt).sort((a, b) => a.erstellt - b.erstellt)[0];
+    return {
+      ...haupt,
+      erstellt: fruehester ? fruehester.erstellt : 0,
+      erstelltQuelle: fruehester ? fruehester.erstelltQuelle : '',
+      backup: imArchiv(haupt.ordner),
+      kopien: rest.map((k) => ({ id: k.id, ordner: k.ordner, aktiv: k.aktiv, backup: imArchiv(k.ordner) })),
+    };
+  });
+}
+
 // Gleichnamige Ordner (zweimal "tools") bekommen den Elternordner dazu,
 // nichtssagende ("src", "app") stellen ihn voran: "mathequiz/src".
-const NICHTSSAGEND = new Set(['src', 'app', 'web', 'www', 'site', 'client', 'frontend', 'backend', 'server', 'ui', 'game', 'public']);
+const NICHTSSAGEND = new Set([
+  'src', 'app', 'web', 'www', 'site', 'client', 'frontend', 'backend', 'server', 'ui', 'game', 'public',
+  'prototype', 'prototypes', 'prototyp', 'prototypen', 'project', 'projekt', 'code',
+]);
 
 export function vergibNamen(projekte) {
   const zahl = new Map();
@@ -306,38 +424,125 @@ function protokoll(...teile) {
 }
 
 // ---------------------------------------------------------------------------
-// Projekte finden: alle Laufwerke, Ordner mit package.json und dev-Skript.
+// Projekte finden: alle Laufwerke. Ein Projekt ist ein Ordner mit
+// package.json, project.godot, Unity-Projekt, Cargo.toml, index.html, .git ...
+// (erkenneArt); darunter wird nicht weitergesucht.
 
 const UEBERSPRINGEN = new Set([
-  'node_modules', 'dist', 'build', 'out', 'library', 'temp', 'tmp', 'obj', 'bin', 'logs', 'coverage', 'vendor',
+  'node_modules', 'dist', 'build', 'builds', 'out', 'library', 'temp', 'tmp', 'obj', 'bin', 'logs', 'coverage', 'vendor',
   'appdata', 'anwendungsdaten', 'lokale einstellungen', 'windows', 'program files', 'program files (x86)',
   'programdata', 'recovery', 'perflogs', 'msocache', 'system volume information', 'intel', 'amd', 'nvidia',
   'drivers', 'users', 'benutzer', 'steamlibrary', 'steam', 'epic games', 'riot games', 'xboxgames',
   'windowsapps', 'onedrivetemp', '__pycache__', 'venv', 'site-packages', 'packages', 'pods',
+  'docs', 'doc', 'public', 'static', 'assets', 'art', 'shots', 'screenshots', 'captures', 'artifacts',
+  'addons', 'third_party', 'thirdparty', 'external', 'cache', 'downloads', '_downloads',
 ]);
+// Fuer den Dev-Server unter einem Projekt: Monorepos legen ihn nach packages/.
+const UEBERSPRINGEN_DARUNTER = new Set([...UEBERSPRINGEN].filter((n) => n !== 'packages'));
 
-const MAX_ORDNER = 60000;
+const MAX_ORDNER = 200000;
+const SUCHZEIT = 2 * 60 * 1000;
 
-async function sucheIn(ordner, tiefe, funde, zaehler) {
-  if (zaehler.n++ > MAX_ORDNER) return;
-  let eintraege;
-  try { eintraege = await fsp.readdir(ordner, { withFileTypes: true }); } catch { return; }
-  const namen = new Set(eintraege.map((e) => e.name));
-  if (namen.has('package.json')) {
-    const paket = leseJson(path.join(ordner, 'package.json'), null);
-    const info = paket && projektAusPaket(paket, namen);
-    if (info) {
-      if (info.installiert) info.installiert = fehlendePakete(ordner, paket).length === 0;
-      funde.push({ id: projektId(ordner), ordner, ...info, port: portAusProjekt(paket, leseKonfig(ordner)), aktiv: await letzteAenderung(ordner) });
-      return;
-    }
+function unterordner(eintraege, auslassen = UEBERSPRINGEN) {
+  return eintraege.filter((e) => e.isDirectory() && !/^[.$~]/.test(e.name) && !auslassen.has(e.name.toLowerCase()));
+}
+
+async function leseOrdner(ordner) {
+  try {
+    const eintraege = await fsp.readdir(ordner, { withFileTypes: true });
+    const namen = new Set(eintraege.map((e) => e.name));
+    const paket = namen.has('package.json') ? leseJson(path.join(ordner, 'package.json'), null) : null;
+    return { ordner, eintraege, namen, paket };
+  } catch { return null; }
+}
+
+// Ordner mit startbarer package.json bis zwei Ebenen unter einem Projekt.
+async function startbareDarunter(ordner, tiefe, eintraege) {
+  const treffer = [];
+  for (const e of unterordner(eintraege, UEBERSPRINGEN_DARUNTER)) {
+    const o = await leseOrdner(path.join(ordner, e.name));
+    if (!o) continue;
+    if (o.paket && projektAusPaket(o.paket, o.namen)) treffer.push(o);
+    else if (tiefe > 1) treffer.push(...await startbareDarunter(o.ordner, tiefe - 1, o.eintraege));
   }
-  // Unity-Projekte: riesig, und darin liegt nichts zum Starten.
-  if (namen.has('ProjectSettings') && namen.has('Assets')) return;
+  return treffer;
+}
+
+// Projekt aus einem Ordner; start ist der Ordner mit dem Dev-Server (meist derselbe).
+async function baueProjekt(o, art, start = o) {
+  const info = start.paket ? projektAusPaket(start.paket, start.namen) : null;
+  if (info?.installiert) info.installiert = fehlendePakete(start.ordner, start.paket).length === 0;
+  return {
+    id: projektId(o.ordner), ordner: o.ordner, art,
+    start: info && start.ordner !== o.ordner ? start.ordner : null,
+    ...(info || { skript: null }),
+    port: info ? portAusProjekt(start.paket, leseKonfig(start.ordner)) : 0,
+    aktiv: await letzteAenderung(o.ordner),
+    dateiZeit: await aeltesteDatei(o.ordner, o.eintraege),
+  };
+}
+
+async function pruefeProjekt(o) {
+  const art = erkenneArt(o.namen, o.paket);
+  if (!art) return null;
+  if ((o.paket && projektAusPaket(o.paket, o.namen)) || !SCHWACHE_ARTEN.has(art)) return [await baueProjekt(o, art)];
+  const darunter = await startbareDarunter(o.ordner, 2, o.eintraege);
+  // Mehrere Dev-Server darunter: eigene Projekte, kein Sammelordner.
+  if (darunter.length > 1) return Promise.all(darunter.map((d) => baueProjekt(d, erkenneArt(d.namen, d.paket))));
+  if (darunter.length === 1) return [await baueProjekt(o, erkenneArt(darunter[0].namen, darunter[0].paket), darunter[0])];
+  return [await baueProjekt(o, art)];
+}
+
+async function sucheIn(ordner, tiefe, funde, zaehler, wurzel = false) {
+  if (zaehler.n++ > MAX_ORDNER || Date.now() > zaehler.bis) { zaehler.abgebrochen = true; return; }
+  const o = await leseOrdner(ordner);
+  if (!o) return;
+  // Laufwerk und Benutzerordner sind nie selbst ein Projekt, auch mit .git.
+  if (!wurzel) {
+    const projekte = await pruefeProjekt(o);
+    if (projekte) { funde.push(...projekte); return; }
+    if (istProgrammOrdner(o.eintraege.filter((e) => e.isFile()).map((e) => e.name))) return;
+  }
   if (tiefe <= 0) return;
-  await Promise.all(eintraege
-    .filter((e) => e.isDirectory() && !/^[.$~]/.test(e.name) && !UEBERSPRINGEN.has(e.name.toLowerCase()))
-    .map((e) => sucheIn(path.join(ordner, e.name), tiefe - 1, funde, zaehler)));
+  await Promise.all(unterordner(o.eintraege).map((e) => sucheIn(path.join(ordner, e.name), tiefe - 1, funde, zaehler)));
+}
+
+// Ersatz fuer das Erstelldatum ohne Git: das aelteste Datum im Ordner.
+// Kopiert (robocopy, Explorer) behalten Dateien ihr Aenderungsdatum, der
+// Ordner selbst bekommt ein neues Erstelldatum -- darum beides.
+const FRUEHESTENS = Date.UTC(2000, 0, 1);
+
+async function aeltesteDatei(ordner, eintraege) {
+  let zeit = Infinity;
+  try { const st = await fsp.stat(ordner); zeit = st.birthtimeMs || st.mtimeMs; } catch { /* fehlt */ }
+  for (const e of eintraege.filter((x) => x.isFile()).slice(0, 300)) {
+    try {
+      const m = (await fsp.stat(path.join(ordner, e.name))).mtimeMs;
+      if (m > FRUEHESTENS) zeit = Math.min(zeit, m);
+    } catch { /* weg */ }
+  }
+  return Number.isFinite(zeit) ? Math.round(zeit) : 0;
+}
+
+// Erstes Commit, das diesen Ordner beruehrt: Erstelldatum und Kennung, an der
+// man Kopien erkennt. null ohne Git oder ohne Commits.
+export function leseGitLog(text) {
+  const zeilen = text.trim().split(/\r?\n/).filter((z) => /^[0-9a-f]{40} \d+$/.test(z));
+  if (!zeilen.length) return null;
+  const [hash, zeit] = zeilen[zeilen.length - 1].split(' ');
+  return { hash, erstellt: Number(zeit) * 1000 };
+}
+
+async function gitInfo(ordner) {
+  const text = await fuehreAus('git', ['-c', 'safe.directory=*', '-C', ordner, 'log', '--format=%H %at', '--', '.'], { env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' }, timeout: 20000 });
+  return leseGitLog(text);
+}
+
+async function jeweils(liste, zahl, arbeit) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(zahl, liste.length) }, async () => {
+    while (i < liste.length) await arbeit(liste[i++]);
+  }));
 }
 
 // Woran zuletzt gearbeitet wurde: .git/index aendert sich bei jedem Commit
@@ -351,24 +556,41 @@ async function letzteAenderung(ordner) {
 }
 
 async function wurzeln(einstellungen) {
-  const liste = [{ ordner: os.homedir(), tiefe: 5 }];
+  const liste = [{ ordner: os.homedir(), tiefe: 6, wurzel: true }];
   for (const buchstabe of 'CDEFGHIJKLMNOPQRSTUVWXYZ') {
     const laufwerk = `${buchstabe}:\\`;
     try { await fsp.access(laufwerk); } catch { continue; }
     // Auf C: liegt das Benutzerverzeichnis schon oben; dort nur flacher suchen.
-    liste.push({ ordner: laufwerk, tiefe: buchstabe === 'C' ? 3 : 5 });
+    // Sonst 7 Ebenen: D:\Projects\Browser\Desktop\Games\X\prototypes.
+    liste.push({ ordner: laufwerk, tiefe: buchstabe === 'C' ? 3 : 7, wurzel: true });
   }
-  for (const o of einstellungen.ordner) liste.push({ ordner: o, tiefe: 6 });
+  for (const o of einstellungen.ordner) liste.push({ ordner: o, tiefe: 6, wurzel: false });
   return liste;
 }
 
-export async function sucheProjekte(einstellungen) {
+// gitCache: Ordner -> { hash, erstellt, geprueft }. Das erste Commit aendert
+// sich nicht; ohne Git wird alle sechs Stunden neu gefragt.
+export async function sucheProjekte(einstellungen, gitCache = new Map()) {
   const funde = [];
-  const zaehler = { n: 0 };
-  for (const w of await wurzeln(einstellungen)) await sucheIn(w.ordner, w.tiefe, funde, zaehler);
+  const zaehler = { n: 0, bis: Date.now() + SUCHZEIT, abgebrochen: false };
+  for (const w of await wurzeln(einstellungen)) await sucheIn(w.ordner, w.tiefe, funde, zaehler, w.wurzel);
+  if (zaehler.abgebrochen) protokoll(`Suche nach ${zaehler.n} Ordnern abgebrochen`);
   const eindeutig = new Map();
   for (const p of funde) eindeutig.set(p.id, p);
-  return vergibNamen([...eindeutig.values()]).sort((a, b) => b.aktiv - a.aktiv);
+  const liste = [...eindeutig.values()];
+  await jeweils(liste, 6, async (p) => {
+    const schluessel = p.ordner.toLowerCase();
+    let g = gitCache.get(schluessel);
+    if (!g || (!g.hash && Date.now() - (g.geprueft || 0) > 6 * 60 * 60 * 1000)) {
+      g = { ...(await gitInfo(p.ordner)), geprueft: Date.now() };
+      gitCache.set(schluessel, g);
+    }
+    p.git = g.hash || '';
+    p.erstellt = g.erstellt || p.dateiZeit;
+    p.erstelltQuelle = g.erstellt ? 'git' : p.dateiZeit ? 'dateien' : '';
+    delete p.dateiZeit;
+  });
+  return vergibNamen(fasseKopienZusammen(liste)).sort((a, b) => b.aktiv - a.aktiv);
 }
 
 // ---------------------------------------------------------------------------
@@ -427,9 +649,9 @@ class PowerShell {
   }
 }
 
-function fuehreAus(datei, argumente) {
+function fuehreAus(datei, argumente, optionen = {}) {
   return new Promise((resolve) => {
-    execFile(datei, argumente, { windowsHide: true, maxBuffer: 16 * 1024 * 1024 }, (fehler, stdout) => resolve(fehler && !stdout ? '' : String(stdout)));
+    execFile(datei, argumente, { windowsHide: true, maxBuffer: 16 * 1024 * 1024, ...optionen }, (fehler, stdout) => resolve(fehler && !stdout ? '' : String(stdout)));
   });
 }
 
@@ -444,7 +666,10 @@ class Zentrale {
   constructor() {
     this.einstellungen = ladeEinstellungen();
     this.projekte = leseJson(PROJEKTE_CACHE, []);
-    if (!Array.isArray(this.projekte)) this.projekte = [];
+    // Aeltere Agenten kannten nur startbare Node-Projekte (ohne "art"): neu suchen.
+    this.projekte = Array.isArray(this.projekte) ? this.projekte.filter((p) => p && p.art) : [];
+    const git = leseJson(GIT_CACHE, {});
+    this.gitCache = new Map(git && typeof git === 'object' ? Object.entries(git) : []);
     this.suche = null;
     this.letzteSuche = 0;
     this.ps = new PowerShell();
@@ -463,11 +688,12 @@ class Zentrale {
 
   neuSuchen() {
     if (this.suche) return this.suche;
-    this.suche = sucheProjekte(this.einstellungen)
+    this.suche = sucheProjekte(this.einstellungen, this.gitCache)
       .then((projekte) => {
         this.projekte = projekte;
         this.letzteSuche = Date.now();
         schreibeJson(PROJEKTE_CACHE, projekte);
+        schreibeJson(GIT_CACHE, Object.fromEntries(this.gitCache));
       })
       .catch((f) => protokoll('Suche fehlgeschlagen:', f.message))
       .finally(() => { this.suche = null; });
@@ -501,8 +727,11 @@ class Zentrale {
       let zustand = eigene.length ? 'laeuft' : start ? start.zustand : 'aus';
       if (zustand === 'laeuft' && !eigene.length && start && !prozesse.has(start.pid)) zustand = 'aus';
       return {
-        id: p.id, name: p.name, ordner: p.ordner, skript: p.skript, pm: p.pm, installiert: p.installiert,
-        befehl: startBefehl(p), aktiv: p.aktiv, zustand, ports: eigene.flatMap((s) => s.ports).sort((a, b) => a - b),
+        id: p.id, name: p.name, ordner: p.ordner, art: p.art, startbar: Boolean(p.skript),
+        start: p.start ? path.relative(p.ordner, p.start) : '', skript: p.skript, pm: p.pm, installiert: p.installiert,
+        befehl: p.skript ? startBefehl(p) : '', aktiv: p.aktiv, erstellt: p.erstellt || 0, erstelltQuelle: p.erstelltQuelle || '',
+        backup: Boolean(p.backup), kopien: (p.kopien || []).map((k) => ({ id: k.id, ordner: k.ordner, backup: k.backup })),
+        zustand, ports: eigene.flatMap((s) => s.ports).sort((a, b) => a - b),
         seit: eigene[0]?.seit || (start ? new Date(start.seit).toISOString() : null), fehler: start?.fehler || null,
         installiertGerade: Boolean(start?.installieren && start.zustand === 'startet'), repariert: Boolean(start?.reparieren && start.zustand === 'startet'),
       };
@@ -562,7 +791,10 @@ class Zentrale {
   async starten(id, oeffnen, reparieren = false) {
     const projekt = this.projekte.find((p) => p.id === id);
     if (!projekt) return { status: 404, fehler: 'Projekt unbekannt' };
-    const paket = leseJson(path.join(projekt.ordner, 'package.json'), null);
+    if (!projekt.skript) return { status: 400, fehler: `${projekt.art}-Projekt ohne Dev-Server – über „Ordner“ öffnen` };
+    // Der Dev-Server kann in einem Unterordner liegen (Projekt/prototypes).
+    const ordner = projekt.start || projekt.ordner;
+    const paket = leseJson(path.join(ordner, 'package.json'), null);
     if (!paket) return { status: 404, fehler: 'Ordner oder package.json nicht mehr da – „Neu suchen“' };
     const st = await this.stand();
     const jetzt = st.projekte.find((p) => p.id === id);
@@ -574,23 +806,25 @@ class Zentrale {
 
     // Bei jedem Start frisch: Skript, Paketmanager, und ob wirklich alle Pakete da sind.
     let namen = new Set();
-    try { namen = new Set(fs.readdirSync(projekt.ordner)); } catch { /* gleich unten egal */ }
-    Object.assign(projekt, projektAusPaket(paket, namen) || {}, { port: portAusProjekt(paket, leseKonfig(projekt.ordner)) });
-    const fehlend = fehlendePakete(projekt.ordner, paket);
+    try { namen = new Set(fs.readdirSync(ordner)); } catch { /* gleich unten egal */ }
+    const info = projektAusPaket(paket, namen);
+    if (!info) return { status: 400, fehler: 'Kein dev-, start- oder serve-Skript mehr in der package.json – „Neu suchen“' };
+    Object.assign(projekt, info, { port: portAusProjekt(paket, leseKonfig(ordner)) });
+    const fehlend = fehlendePakete(ordner, paket);
     projekt.installiert = fehlend.length === 0;
     const { install, lauf } = befehle(projekt, await this.pmVorhanden(projekt.pm), true);
     const installieren = reparieren || fehlend.length > 0;
 
     fs.mkdirSync(LOGS, { recursive: true });
     const log = path.join(LOGS, `${id}.log`);
-    const kopf = [`> in ${projekt.ordner}`];
+    const kopf = [`> in ${ordner}`];
     if (reparieren) kopf.push('> Reparatur: Der erste Start ist gescheitert, darum neu installieren.');
     else if (fehlend.length) kopf.push(`> Fehlende Pakete: ${fehlend.slice(0, 8).join(', ')}${fehlend.length > 8 ? ' …' : ''}`);
     fs.writeFileSync(log, `${kopf.join('\n')}\n`);
     // Ueber einen Zwischenprozess (kindProzess unten), losgeloest vom Agenten:
     // So laufen die Server weiter, wenn der Agent neu startet. Direkt mit
     // detached gestartet, verloere Vite seine Ausgabe ins Log.
-    const auftrag = Buffer.from(JSON.stringify({ ordner: projekt.ordner, log, install: installieren ? install : '', lauf })).toString('base64url');
+    const auftrag = Buffer.from(JSON.stringify({ ordner, log, install: installieren ? install : '', lauf })).toString('base64url');
     const kind = spawn(process.execPath, [fileURLToPath(import.meta.url), '--kind', auftrag], { detached: true, windowsHide: true, stdio: 'ignore' });
     kind.unref();
     const eintrag = { pid: kind.pid, seit: Date.now(), oeffnen: Boolean(oeffnen), zustand: 'startet', fehler: null, installieren, reparieren };
@@ -602,7 +836,7 @@ class Zentrale {
       const port = portBelegt(text);
       // Einmal selbst reparieren -- ausser der Port ist belegt, da hilft kein Installieren.
       if (eintrag.zustand === 'startet' && !reparieren && !port) {
-        protokoll('Start gescheitert, repariere', projekt.ordner);
+        protokoll('Start gescheitert, repariere', ordner);
         this.gestartet.delete(id);
         this.starten(id, eintrag.oeffnen, true).catch((f) => protokoll('Reparatur:', f.message));
         return;
@@ -622,7 +856,7 @@ class Zentrale {
     kind.on('error', (f) => { eintrag.zustand = 'fehler'; eintrag.fehler = f.message; });
     this.aufnahmeZeit = 0;
     this.beobachten();
-    protokoll(reparieren ? 'Reparatur-Start' : 'Start', projekt.ordner, installieren ? `${install} && ${lauf}` : lauf);
+    protokoll(reparieren ? 'Reparatur-Start' : 'Start', ordner, installieren ? `${install} && ${lauf}` : lauf);
     return { ok: true };
   }
 
@@ -736,9 +970,12 @@ function dienst() {
       else if (pfad === '/suchen') { z.neuSuchen(); antwort = { ok: true }; }
       else if (pfad === '/ausblenden') antwort = z.ausblenden(String(daten.id || ''), daten.aus !== false);
       else if (pfad === '/ordner') {
+        // Nur Ordner, die der Agent selbst gefunden hat: Projekte und ihre Kopien.
         const p = z.projekte.find((x) => x.id === daten.id);
-        if (p) oeffneAdresse(p.ordner);
-        antwort = p ? { ok: true } : { status: 404, fehler: 'Projekt unbekannt' };
+        const ordner = p ? p.ordner : z.projekte.flatMap((x) => x.kopien || []).find((k) => k.id === daten.id)?.ordner;
+        const index = p && daten.datei === 'index' && p.art === 'HTML' ? path.join(p.ordner, 'index.html') : '';
+        if (ordner) oeffneAdresse(index && fs.existsSync(index) ? index : ordner);
+        antwort = ordner ? { ok: true } : { status: 404, fehler: 'Projekt unbekannt' };
       } else if (pfad === '/beenden') {
         antworte(res, 200, { ok: true });
         protokoll('Beendet auf Anfrage');

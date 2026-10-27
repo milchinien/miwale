@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   erlaubterUrsprung, erlaubterHost, projektAusPaket, startBefehl, leseNetstat,
   zuordnen, stoppWurzel, baueServer, vergibNamen, fehlerAusLog, fehlendePakete, befehle, portBelegt, portAusProjekt,
+  erkenneArt, istProgrammOrdner, imArchiv, sindKopien, fasseKopienZusammen, leseGitLog,
 } from '../public/dev/agent.mjs';
 
 test('nur miwale.com und localhost duerfen den Agenten ansprechen', () => {
@@ -160,4 +161,69 @@ test('fester Port aus dev-Skript oder vite.config', () => {
   assert.equal(portAusProjekt({ scripts: { dev: 'vite --port 5276' } }), 5276);
   assert.equal(portAusProjekt({ scripts: { dev: 'vite' } }, 'export default { server: { port: 5276, strictPort: true } }'), 5276);
   assert.equal(portAusProjekt({ scripts: { dev: 'vite' } }, 'export default {}'), 0);
+});
+
+test('Projektarten: nicht nur Node', () => {
+  const namen = (...n) => new Set(n);
+  assert.equal(erkenneArt(namen('package.json'), { devDependencies: { vite: '7' } }), 'Vite');
+  assert.equal(erkenneArt(namen('package.json'), { dependencies: { next: '15', react: '19' } }), 'Next.js');
+  assert.equal(erkenneArt(namen('package.json'), { scripts: { test: 'node --test' } }), 'Node');
+  assert.equal(erkenneArt(namen('project.godot', 'scripts'), null), 'Godot');
+  assert.equal(erkenneArt(namen('Assets', 'ProjectSettings', 'Library'), null), 'Unity');
+  assert.equal(erkenneArt(namen('Cargo.toml', 'src', '.git'), null), 'Rust');
+  assert.equal(erkenneArt(namen('index.html', 'style.css'), null), 'HTML');
+  assert.equal(erkenneArt(namen('.git', 'docs', 'prototypes'), null), 'Git');
+  assert.equal(erkenneArt(namen('Bilder', 'notizen.txt'), null), null);
+});
+
+test('installierte Programme werden uebersprungen, Projekte mit Export nicht', () => {
+  assert.equal(istProgrammOrdner(['git-bash.exe', 'unins000.exe', 'unins000.dat']), true);
+  assert.equal(istProgrammOrdner(['Unity.exe', 'a.dll', 'b.dll', 'c.dll']), true);
+  assert.equal(istProgrammOrdner(['Desktop Pet.exe', 'README.md']), false);
+});
+
+test('Backup-Kopien gehoeren zum Original', () => {
+  assert.equal(imArchiv('E:\\Backup_D_vor-Umbau_2026-10-26\\Projects\\JAM Games\\FG3'), true);
+  assert.equal(imArchiv('D:\\99_Archiv\\_Umbau\\verirrt-c'), true);
+  assert.equal(imArchiv('D:\\Projects\\Browser\\Desktop\\Games\\CoD Copy'), false, 'nur Elternordner zaehlen');
+  const d = { ordner: 'D:\\Projects\\JAM Games\\FG3' };
+  const e = { ordner: 'E:\\Backup_D_vor-Umbau_2026-10-26\\Projects\\JAM Games\\FG3' };
+  assert.equal(sindKopien(d, e), true, 'Pfad endet auf den anderen');
+  assert.equal(sindKopien({ ordner: 'D:\\Projects\\JAM Games\\Fishing Game' }, { ordner: 'D:\\Projects\\Browser\\Games\\Fishing Game' }), false, 'gleicher Name, anderes Projekt');
+  assert.equal(sindKopien({ ordner: 'D:\\tmp-tl\\Cozy', git: 'abc' }, { ordner: 'D:\\Spiele\\Cozy', git: 'abc' }), true, 'verschoben, gleiches erstes Commit');
+  assert.equal(sindKopien({ ordner: 'D:\\Web\\miwale', git: 'abc' }, { ordner: 'D:\\Web\\miwale-styles-wt', git: 'abc' }), false, 'Worktree bleibt eigenstaendig');
+  assert.equal(sindKopien({ ordner: 'D:\\A\\x', git: 'abc' }, { ordner: 'E:\\Backup\\A\\x', git: 'def' }), false, 'verschiedene Repos');
+});
+
+test('Kopien zusammenfassen: Original vorn, fruehestes Erstelldatum', () => {
+  const [p, ...rest] = fasseKopienZusammen([
+    { id: 'e', ordner: 'E:\\Backup_D\\Projects\\FG3', aktiv: 300, erstellt: 100, erstelltQuelle: 'dateien', skript: 'dev', art: 'Vite' },
+    { id: 'd', ordner: 'D:\\Projects\\FG3', aktiv: 200, erstellt: 150, erstelltQuelle: 'dateien', skript: 'dev', art: 'Vite' },
+    { id: 'n', ordner: 'D:\\Projects\\Neu', aktiv: 1, erstellt: 0, art: 'Git' },
+  ]);
+  assert.equal(rest.length, 1);
+  assert.equal(p.id, 'd', 'nicht das Backup, auch wenn es juenger bearbeitet ist');
+  assert.equal(p.erstellt, 100);
+  assert.deepEqual(p.kopien, [{ id: 'e', ordner: 'E:\\Backup_D\\Projects\\FG3', aktiv: 300, backup: true }]);
+  assert.equal(p.backup, false);
+  const [nurBackup] = fasseKopienZusammen([{ id: 's', ordner: 'E:\\Backup_D\\Unity\\Slimoria', art: 'Unity' }]);
+  assert.equal(nurBackup.backup, true);
+  const [cozy] = fasseKopienZusammen([
+    { id: 't', ordner: 'D:\\tmp-tl\\Cozy', git: 'abc', art: 'Git', aktiv: 9 },
+    { id: 'g', ordner: 'D:\\Games\\Cozy', git: 'abc', art: 'Godot', aktiv: 1 },
+  ]);
+  assert.equal(cozy.id, 'g', 'tmp-Ordner und nur .git zaehlen weniger');
+});
+
+test('Git: erstes Commit des Ordners', () => {
+  const a = 'a'.repeat(40);
+  const b = 'b'.repeat(40);
+  assert.deepEqual(leseGitLog(`${b} 1760000000\n${a} 1750000000\n`), { hash: a, erstellt: 1750000000000 });
+  assert.equal(leseGitLog("fatal: your current branch 'master' does not have any commits yet"), null);
+  assert.equal(leseGitLog(''), null);
+});
+
+test('nichtssagende Ordner wie "game" oder "prototype" bekommen den Elternordner davor', () => {
+  const p = vergibNamen([{ ordner: 'D:\\Games\\The Labyrinth\\game' }, { ordner: 'D:\\Games\\The Labyrinth\\prototype' }]);
+  assert.deepEqual(p.map((x) => x.name), ['The Labyrinth/game', 'The Labyrinth/prototype']);
 });

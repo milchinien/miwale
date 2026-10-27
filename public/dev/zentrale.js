@@ -5,7 +5,7 @@
   'use strict';
 
   const AGENT = 'http://127.0.0.1:5300';
-  const VERSION = 3;
+  const VERSION = 4;
   const basis = `${location.origin}/dev/`;
   const installBefehl = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:MIWALE_DEV='${basis}'; irm ${basis}installieren.ps1 | iex"`;
 
@@ -19,12 +19,29 @@
   let sichtbar = [];
   const wartend = new Map(); // id -> 'start' | 'stopp', bis der Agent es meldet
   const logs = new Map(); // id -> Text, solange das Log aufgeklappt ist
+  const offen = new Set(); // ids mit aufgeklappten Kopien
+
+  // Filter und Sortierung bleiben ueber Besuche hinweg.
+  const FILTER = {
+    alle: () => true,
+    startbar: (p) => startbar(p),
+    laeuft: (p) => laeuftGerade(p),
+  };
+  let filter = FILTER[localStorage.getItem('miwale-dev-filter')] ? localStorage.getItem('miwale-dev-filter') : 'alle';
+  let sortierung = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('miwale-dev-sortierung'));
+      if (['name', 'erstellt', 'aktiv'].includes(s.feld) && [1, -1].includes(s.richtung)) return s;
+    } catch { /* Standard */ }
+    return { feld: 'aktiv', richtung: -1 };
+  })();
 
   const meldung = document.createElement('p');
   meldung.className = 'klein';
   meldung.style.margin = '0';
+  meldung.setAttribute('role', 'status');
   meldung.hidden = true;
-  suche.before(meldung);
+  $('filter').parentElement.before(meldung);
 
   function zeige(text, fehler = false) {
     meldung.textContent = text;
@@ -83,10 +100,14 @@
       stand = null;
       zeichne();
     }
-    const eilig = wartend.size || stand?.projekte.some((p) => p.zustand === 'startet');
+    const eilig = wartend.size || stand?.projekte.some((p) => p.zustand === 'startet') || stand?.suche.laeuft;
     naechste = setTimeout(abfragen, document.hidden ? 10000 : stand ? (eilig ? 1000 : 2500) : 3000);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) abfragen(); });
+
+  // Aeltere Agenten (bis 3) kannten nur startbare Projekte.
+  const startbar = (p) => p.startbar ?? true;
+  const laeuftGerade = (p) => p.ports.length > 0 || p.zustand === 'startet' || p.zustand === 'laeuft' || wartend.get(p.id) === 'start';
 
   // --- Aktionen ------------------------------------------------------------
 
@@ -94,9 +115,16 @@
     window.open(`http://localhost:${port}/`, '_blank', 'noopener');
   }
 
+  function zeigeOrdner(id, datei) {
+    agent('/ordner', datei ? { id, datei } : { id }).catch((f) => zeige(f.message, true));
+  }
+
+  // Enter, Ziffer oder Hauptknopf: laeuft -> oeffnen, startbar -> starten,
+  // HTML -> index.html im Browser, sonst den Ordner.
   async function aktion(p) {
     if (!p) return;
     if (p.ports.length) return oeffne(p.ports[0]);
+    if (!startbar(p)) return zeigeOrdner(p.id, p.art === 'HTML' ? 'index' : '');
     if (p.zustand === 'startet' || wartend.has(p.id)) return;
     wartend.set(p.id, 'start');
     zeichne(true);
@@ -158,6 +186,25 @@
     abfragen();
   });
 
+  for (const knopf of $('filter').querySelectorAll('button')) {
+    knopf.addEventListener('click', () => {
+      filter = knopf.dataset.filter;
+      localStorage.setItem('miwale-dev-filter', filter);
+      auswahl = 0;
+      zeichne();
+    });
+  }
+
+  // Gleiche Spalte noch mal: Richtung umdrehen. Neue Spalte: Name A–Z, Daten neueste zuerst.
+  for (const knopf of $('tabkopf').querySelectorAll('button[data-sort]')) {
+    knopf.addEventListener('click', () => {
+      const feld = knopf.dataset.sort;
+      sortierung = sortierung.feld === feld ? { feld, richtung: -sortierung.richtung } : { feld, richtung: feld === 'name' ? 1 : -1 };
+      localStorage.setItem('miwale-dev-sortierung', JSON.stringify(sortierung));
+      zeichne();
+    });
+  }
+
   // --- Darstellung ---------------------------------------------------------
 
   function el(tag, eigenschaften = {}, ...kinder) {
@@ -173,6 +220,39 @@
     return e;
   }
 
+  const SVG = 'http://www.w3.org/2000/svg';
+  const SYMBOL = {
+    ordner: 'M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2h7.4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z',
+    aus: 'M6.5 6.5l11 11M17.5 6.5l-11 11',
+  };
+
+  function symbolKnopf(symbol, titel, onclick) {
+    const svg = document.createElementNS(SVG, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const pfad = document.createElementNS(SVG, 'path');
+    pfad.setAttribute('d', SYMBOL[symbol]);
+    svg.append(pfad);
+    return el('button', { class: 'symbol', type: 'button', title: titel, 'aria-label': titel, onclick }, svg);
+  }
+
+  const datumFormat = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const zeitFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'long', timeStyle: 'short' });
+
+  function vorher(ms) {
+    const heute = new Date();
+    heute.setHours(0, 0, 0, 0);
+    const tag = new Date(ms);
+    tag.setHours(0, 0, 0, 0);
+    const tage = Math.round((heute - tag) / 864e5);
+    if (tage <= 0) return 'heute';
+    if (tage === 1) return 'gestern';
+    if (tage < 14) return `vor ${tage} Tagen`;
+    if (tage < 60) return `vor ${Math.round(tage / 7)} Wochen`;
+    if (tage < 730) return `vor ${Math.round(tage / 30.4)} Monaten`;
+    return `vor ${Math.floor(tage / 365)} Jahren`;
+  }
+
   function dauer(seit) {
     if (!seit) return '';
     const min = Math.max(0, Math.round((Date.now() - new Date(seit).getTime()) / 60000));
@@ -182,9 +262,30 @@
     return std < 48 ? `seit ${std} Std.` : `seit ${Math.floor(std / 24)} Tagen`;
   }
 
+  function zuletztGesucht(s) {
+    if (s.laeuft || !s.zeit) return '';
+    const min = Math.round((Date.now() - s.zeit) / 60000);
+    return min < 1 ? 'Gerade gesucht' : min < 60 ? `Gesucht vor ${min} Min.` : `Gesucht vor ${Math.floor(min / 60)} Std.`;
+  }
+
   function passt(p, woerter) {
-    const text = `${p.name} ${p.ordner}`.toLowerCase();
+    const text = `${p.name} ${p.ordner} ${p.art || ''} ${p.start || ''}`.toLowerCase();
     return woerter.every((w) => text.includes(w));
+  }
+
+  // Fehlende Daten stehen in beiden Richtungen hinten.
+  const VERGLEICH = {
+    name: (a, b) => a.name.localeCompare(b.name, 'de', { sensitivity: 'base', numeric: true }),
+    erstellt: (a, b) => (a.erstellt || 0) - (b.erstellt || 0),
+    aktiv: (a, b) => (a.aktiv || 0) - (b.aktiv || 0),
+  };
+
+  function sortiere(liste) {
+    const { feld, richtung } = sortierung;
+    return [...liste].sort((a, b) => {
+      if (feld !== 'name' && Boolean(a[feld]) !== Boolean(b[feld])) return a[feld] ? -1 : 1;
+      return VERGLEICH[feld](a, b) * richtung || VERGLEICH.name(a, b);
+    });
   }
 
   function zustandMarke(p) {
@@ -203,14 +304,24 @@
     return el('span', { class: 'ports' }, ports.map((port) => el('a', { href: `http://localhost:${port}/`, target: '_blank', rel: 'noopener', text: `:${port}` })));
   }
 
+  function logKnopf(p) {
+    return el('button', { class: 'leise', type: 'button', text: logs.has(p.id) ? 'Log zu' : 'Log', onclick: () => zeigeLog(p) });
+  }
+
+  function hauptKnopf(p) {
+    const w = wartend.get(p.id);
+    if (p.ports.length) return el('button', { class: 'haupt', type: 'button', text: 'Öffnen', title: `localhost:${p.ports[0]}`, onclick: () => oeffne(p.ports[0]) });
+    if (p.zustand === 'startet' || w === 'start') return el('button', { class: 'haupt', type: 'button', disabled: 'disabled', text: 'Startet …' });
+    if (startbar(p)) return el('button', { class: 'haupt', type: 'button', text: p.zustand === 'fehler' ? 'Neu starten' : 'Start', title: p.befehl, onclick: () => aktion(p) });
+    if (p.art === 'HTML') return el('button', { type: 'button', text: 'Im Browser', title: 'index.html öffnen', onclick: () => aktion(p) });
+    return null;
+  }
+
   function projektZeile(p, nr, treffer) {
     const w = wartend.get(p.id);
     const laeuft = p.ports.length > 0;
-    const knoepfe = [];
-    if (laeuft) knoepfe.push(el('button', { class: 'haupt', type: 'button', text: 'Öffnen', onclick: () => oeffne(p.ports[0]) }));
-    else if (p.zustand === 'startet' || w === 'start') knoepfe.push(el('button', { class: 'haupt', type: 'button', disabled: 'disabled', text: 'Startet …' }));
-    else knoepfe.push(el('button', { class: 'haupt', type: 'button', text: 'Start', title: p.befehl, onclick: () => aktion(p) }));
     const instanzen = stand.server.filter((s) => s.projekt === p.id).length;
+    const knoepfe = [hauptKnopf(p)];
     if (p.zustand !== 'aus' || laeuft) {
       knoepfe.push(el('button', {
         class: 'gefahr', type: 'button', text: instanzen > 1 ? `Alle ${instanzen} stoppen` : 'Stop',
@@ -218,29 +329,61 @@
         disabled: w === 'stopp' ? 'disabled' : null, onclick: () => stoppe({ id: p.id }, p.name),
       }));
     }
-    if (p.zustand !== 'aus') knoepfe.push(el('button', { class: 'leise', type: 'button', text: logs.has(p.id) ? 'Log zu' : 'Log', onclick: () => zeigeLog(p) }));
-    knoepfe.push(el('button', { class: 'leise', type: 'button', text: 'Ordner', title: 'Im Explorer öffnen', onclick: () => agent('/ordner', { id: p.id }).catch((f) => zeige(f.message, true)) }));
-    knoepfe.push(el('button', { class: 'leise', type: 'button', text: '×', title: 'Ausblenden', 'aria-label': `${p.name} ausblenden`, onclick: () => agent('/ausblenden', { id: p.id }).then(abfragen).catch((f) => zeige(f.message, true)) }));
+    if (p.zustand === 'fehler') knoepfe.push(logKnopf(p));
+    knoepfe.push(symbolKnopf('ordner', 'Ordner im Explorer öffnen', () => zeigeOrdner(p.id)));
+    knoepfe.push(symbolKnopf('aus', `${p.name} ausblenden`, () => agent('/ausblenden', { id: p.id }).then(abfragen).catch((f) => zeige(f.message, true))));
 
+    const kopien = p.kopien || [];
+    const kopienOffen = offen.has(p.id);
+    const titel = el('div', { class: 'titelzeile' },
+      el('span', { class: 'name', text: p.name }),
+      p.art ? el('span', { class: 'art', text: p.art }) : null,
+      zustandMarke(p), portLinks(p.ports),
+      laeuft ? el('span', { class: 'klein', 'data-seit': p.seit, text: dauer(p.seit) }) : null,
+      p.backup ? el('span', { class: 'marke archiv', text: 'nur im Backup', title: 'Liegt nur in einem Sicherungs- oder Archivordner' }) : null,
+      kopien.length ? el('button', {
+        class: 'chip', type: 'button', 'aria-expanded': String(kopienOffen),
+        text: `${kopien.length} ${kopien.length === 1 ? 'Kopie' : 'Kopien'} ${kopienOffen ? '▴' : '▾'}`,
+        title: 'Dasselbe Projekt liegt noch an anderen Orten (z. B. im Backup)',
+        onclick: () => { if (!offen.delete(p.id)) offen.add(p.id); zeichne(true); },
+      }) : null);
+    const pfad = el('div', { class: 'pfad', title: p.start ? `${p.ordner}\nDev-Server in: ${p.start}` : p.ordner },
+      p.ordner, p.start ? el('span', { class: 'unter', text: ` → ${p.start}` }) : null);
+
+    const extra = [];
+    if (p.zustand === 'fehler' && p.fehler) extra.push(el('p', { class: 'fehlertext', text: p.fehler }));
+    if (logs.has(p.id)) extra.push(el('pre', { class: 'log', text: logs.get(p.id) }));
+    if (kopienOffen) {
+      extra.push(el('div', { class: 'kopien' },
+        el('span', { class: 'klein', text: 'Weitere Fundorte – gestartet wird immer der obere Ordner:' }),
+        kopien.map((k) => el('div', { class: 'kopie' },
+          el('span', { class: 'pfad', title: k.ordner, text: k.ordner }),
+          k.backup ? el('span', { class: 'marke archiv', text: 'Backup' }) : null,
+          symbolKnopf('ordner', 'Diesen Ordner im Explorer öffnen', () => zeigeOrdner(k.id))))));
+    }
+
+    const quelle = p.erstelltQuelle === 'git' ? 'erstes Commit' : 'ältestes Dateidatum im Ordner';
     return el('div', { class: `eintrag${treffer ? ' treffer' : ''}${laeuft ? ' laeuft' : ''}` },
       el('span', {}, nr <= 9 ? el('span', { class: 'nr', text: String(nr) }) : null),
-      el('div', {},
-        el('div', { class: 'zeile', style: 'gap:8px' }, el('span', { class: 'name', text: p.name }), zustandMarke(p), portLinks(p.ports),
-          laeuft ? el('span', { class: 'klein', 'data-seit': p.seit, text: dauer(p.seit) }) : null),
-        el('div', { class: 'pfad', text: `${p.ordner} · ${p.befehl}` }),
-        p.zustand === 'fehler' && p.fehler ? el('p', { class: 'fehlertext', text: p.fehler }) : null,
-        logs.has(p.id) ? el('pre', { class: 'log', text: logs.get(p.id) }) : null),
-      el('div', { class: 'aktionen' }, knoepfe));
+      el('div', { class: 'haupt-spalte' }, titel, pfad),
+      el('div', { class: `datum${p.erstellt ? '' : ' leer'}`, title: p.erstellt ? `${zeitFormat.format(p.erstellt)} · ${quelle}` : 'unbekannt' },
+        el('span', { class: 'mobil-label', text: 'Erstellt ' }), p.erstellt ? datumFormat.format(p.erstellt) : '–'),
+      el('div', { class: `datum${p.aktiv ? '' : ' leer'}`, title: p.aktiv ? `Zuletzt geändert: ${zeitFormat.format(p.aktiv)}` : '' },
+        el('span', { class: 'mobil-label', text: 'Bearbeitet ' }), p.aktiv ? vorher(p.aktiv) : '–'),
+      el('div', { class: 'aktionen' }, knoepfe),
+      extra.length ? el('div', { class: 'extra' }, extra) : null);
   }
 
   // Ein Projekt, das noch keinen Port hat (startet gerade oder hat keinen Server).
   function startendZeile(p) {
     return el('div', { class: 'eintrag laeuft' },
       el('span', {}),
-      el('div', {},
-        el('div', { class: 'zeile', style: 'gap:8px' }, el('span', { class: 'name', text: p.name }), zustandMarke(p),
-          el('span', { class: 'klein', 'data-seit': p.seit, text: dauer(p.seit) }))),
+      el('div', { class: 'haupt-spalte' },
+        el('div', { class: 'titelzeile' }, el('span', { class: 'name', text: p.name }), zustandMarke(p),
+          el('span', { class: 'klein', 'data-seit': p.seit, text: dauer(p.seit) })),
+        logs.has(p.id) ? el('pre', { class: 'log', text: logs.get(p.id) }) : null),
       el('div', { class: 'aktionen' },
+        logKnopf(p),
         el('button', { class: 'gefahr', type: 'button', text: 'Stop', disabled: wartend.get(p.id) === 'stopp' ? 'disabled' : null, onclick: () => stoppe({ id: p.id }, p.name) })));
   }
 
@@ -251,12 +394,15 @@
     const stoppt = wartend.get(`pid:${s.pid}`) === 'stopp' || (p && wartend.get(p.id) === 'stopp');
     return el('div', { class: 'eintrag laeuft' },
       el('span', {}),
-      el('div', {},
-        el('div', { class: 'zeile', style: 'gap:8px' }, el('span', { class: 'name', text: name }),
+      el('div', { class: 'haupt-spalte' },
+        el('div', { class: 'titelzeile' }, el('span', { class: 'name', text: name }),
           el('span', { class: `marke${stoppt ? '' : ' laeuft'}`, text: stoppt ? 'stoppt …' : 'läuft' }), portLinks(s.ports),
           el('span', { class: 'klein', 'data-seit': s.seit, text: dauer(s.seit) }),
-          el('span', { class: 'klein', text: `PID ${s.pid}` }))),
+          el('span', { class: 'klein', text: `PID ${s.pid}` })),
+        p ? el('div', { class: 'pfad', title: p.ordner, text: p.ordner }) : null,
+        p && nr === 1 && logs.has(p.id) ? el('pre', { class: 'log', text: logs.get(p.id) }) : null),
       el('div', { class: 'aktionen' },
+        p && nr === 1 ? logKnopf(p) : null,
         el('button', { class: 'haupt', type: 'button', text: 'Öffnen', onclick: () => oeffne(s.ports[0]) }),
         el('button', { class: 'gefahr', type: 'button', text: 'Stop', title: 'Nur diese Instanz stoppen', disabled: stoppt ? 'disabled' : null,
           onclick: () => stoppe({ pid: s.pid }, `${p ? p.name : s.name} :${s.ports[0]}`) })));
@@ -265,9 +411,9 @@
   function sonstigeZeile(s) {
     return el('div', { class: 'eintrag' },
       el('span', {}),
-      el('div', {},
-        el('div', { class: 'zeile', style: 'gap:8px' }, el('span', { class: 'name', text: s.name }), portLinks(s.ports), el('span', { class: 'klein', text: `PID ${s.pid}` })),
-        el('div', { class: 'pfad', text: s.befehl })),
+      el('div', { class: 'haupt-spalte' },
+        el('div', { class: 'titelzeile' }, el('span', { class: 'name', text: s.name }), portLinks(s.ports), el('span', { class: 'klein', text: `PID ${s.pid}` })),
+        el('div', { class: 'pfad', title: s.befehl, text: s.befehl })),
       el('div', { class: 'aktionen' }, el('button', { class: 'gefahr', type: 'button', text: 'Stop', onclick: () => stoppe({ pid: s.pid }, `PID ${s.pid}`) })));
   }
 
@@ -284,15 +430,14 @@
       return;
     }
     $('geraet').textContent = `Dieses Gerät: ${stand.rechner}`;
+    $('suchStand').textContent = zuletztGesucht(stand.suche);
 
     const woerter = suche.value.toLowerCase().split(/\s+/).filter(Boolean);
-    const text = JSON.stringify([stand, woerter, auswahl, [...wartend], [...logs]]);
+    const text = JSON.stringify([stand, woerter, auswahl, [...wartend], [...logs], [...offen], filter, sortierung]);
     if (!erzwingen && text === letzterText) return;
     letzterText = text;
 
-    sichtbar = stand.projekte.filter((p) => passt(p, woerter));
-    if (auswahl >= sichtbar.length) auswahl = Math.max(0, sichtbar.length - 1);
-
+    // Laeuft gerade
     const projektVon = new Map(stand.projekte.map((p) => [p.id, p]));
     const instanzen = stand.server.filter((s) => s.projekt);
     const zeilen = [];
@@ -306,15 +451,37 @@
     for (const p of stand.projekte) {
       if (!p.ports.length && (p.zustand === 'startet' || p.zustand === 'laeuft' || wartend.get(p.id) === 'start')) zeilen.push(startendZeile(p));
     }
-    $('laufend').replaceChildren(...(zeilen.length ? zeilen : [el('div', { class: 'leer', text: 'Gerade läuft nichts.' })]));
+    $('laufend').replaceChildren(...(zeilen.length ? zeilen : [el('div', { class: 'leer-text', text: 'Gerade läuft nichts.' })]));
+    $('laufendZahl').textContent = String(zeilen.length);
     $('alleStoppen').disabled = !zeilen.length;
 
-    $('projekteTitel').textContent = woerter.length ? `Projekte · ${sichtbar.length} von ${stand.projekte.length}` : `Projekte · ${stand.projekte.length}`;
+    // Projekte: Suche -> Zahlen je Filter -> Filter -> Sortierung
+    const passend = stand.projekte.filter((p) => passt(p, woerter));
+    for (const knopf of $('filter').querySelectorAll('button')) {
+      const f = knopf.dataset.filter;
+      knopf.setAttribute('aria-pressed', String(f === filter));
+      knopf.querySelector('.anzahl').textContent = String(passend.filter(FILTER[f]).length);
+    }
+    for (const knopf of $('tabkopf').querySelectorAll('button[data-sort]')) {
+      const aktiv = knopf.dataset.sort === sortierung.feld;
+      if (aktiv) knopf.setAttribute('aria-sort', sortierung.richtung > 0 ? 'ascending' : 'descending');
+      else knopf.removeAttribute('aria-sort');
+      knopf.querySelector('.pfeil').textContent = aktiv ? (sortierung.richtung > 0 ? '↑' : '↓') : '';
+    }
+
+    sichtbar = sortiere(passend.filter(FILTER[filter]));
+    if (auswahl >= sichtbar.length) auswahl = Math.max(0, sichtbar.length - 1);
+    $('projekteZahl').textContent = String(stand.projekte.length);
+
     let leer = stand.suche.laeuft ? 'Suche Projekte auf allen Laufwerken …' : 'Keine Projekte gefunden.';
-    if (woerter.length && stand.projekte.length) leer = 'Kein Projekt passt zur Suche.';
+    if (stand.projekte.length) {
+      if (woerter.length) leer = 'Kein Projekt passt zur Suche.';
+      else if (filter === 'laeuft') leer = 'Gerade läuft keins der Projekte.';
+      else if (filter === 'startbar') leer = 'Kein Projekt mit Dev-Server gefunden.';
+    }
     $('projekte').replaceChildren(...(sichtbar.length
       ? sichtbar.map((p, i) => projektZeile(p, i + 1, woerter.length > 0 && i === auswahl))
-      : [el('div', { class: 'leer', text: leer })]));
+      : [el('div', { class: 'leer-text', text: leer })]));
 
     const aus = $('ausgeblendet');
     aus.hidden = !stand.ausgeblendet;
