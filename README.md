@@ -573,8 +573,8 @@ Ein neuer Style: Modul nach `js/styles/`, Screenshots nach `shots/`, Ordner
 
 ## Dev-Zentrale (miwale.com/dev)
 
-Zeigt die laufenden Dev-Server (localhosts) des Rechners, an dem man gerade
-sitzt, und startet oder stoppt sie. Die Seite selbst weiss nichts ueber
+Zeigt alle Projekte und die laufenden Dev-Server (localhosts) des Rechners,
+an dem man gerade sitzt, und startet oder stoppt sie. Die Seite selbst weiss nichts ueber
 Geraete: `public/dev/zentrale.js` fragt im Browser den **Agenten** auf
 `127.0.0.1:5300` (`public/dev/agent.mjs`, ohne Abhaengigkeiten). Wer keinen
 hat, sieht nur die Anleitung.
@@ -584,9 +584,28 @@ hat, sieht nur die Anleitung.
   nach `%LOCALAPPDATA%\miwale-dev`, in den Autostart und ins Startmenue mit
   dem Kuerzel **Strg+Alt+D** (oeffnet die Seite). Im Repo:
   `pnpm zentrale:installieren`.
-- **Projekte** findet der Agent selbst: alle Ordner mit `package.json` und
-  einem Skript `dev`, `start`, `serve` oder `develop`, auf allen Laufwerken.
-  Paketmanager aus `packageManager` oder der Lock-Datei. Vor jedem Start prueft
+- **Projekte** findet der Agent selbst, auf allen Laufwerken (7 Ebenen tief,
+  installierte Programme wie der Unity-Editor werden uebersprungen). Ein
+  Projekt ist ein Ordner mit `package.json`, `project.godot`, Unity-Projekt,
+  `Cargo.toml`, `CMakeLists.txt`, `.sln`, `pyproject.toml`, `index.html` oder
+  `.git` (`erkenneArt`). Gestartet werden kann, was ein Skript `dev`, `start`,
+  `serve` oder `develop` hat -- auch eine Ebene tiefer: Ein Git-Ordner mit
+  genau einem Dev-Server darunter (`Traffic Simulator/prototypes`) ist ein
+  Projekt, das dort startet. HTML-Projekte oeffnen ihre `index.html`, Godot,
+  Unity & Co. nur den Ordner.
+- **Kopien:** Dasselbe Projekt an mehreren Orten (die Sicherung auf `E:`, ein
+  zweiter Checkout) steht nur einmal da, die anderen Fundorte klappen darunter
+  auf. Kopie heisst: gleicher Ordnername und dasselbe erste Commit oder der
+  eine Pfad endet auf den anderen (`sindKopien`). Gezeigt und gestartet wird
+  das Original: nicht in einem Backup-/Archivordner, nicht in `tmp`, startbar,
+  zuletzt bearbeitet.
+- **Erstellt** ist das erste Commit, das den Ordner beruehrt; ohne Git das
+  aelteste Dateidatum im Ordner (Kopieren behaelt die Dateidaten, nicht das
+  Erstelldatum des Ordners). Die Git-Daten merkt sich `git.json`.
+  **Bearbeitet** kommt von `.git/index`, `package.json` und dem Ordner.
+  Sortiert wird per Klick auf die Spaltenkoepfe, gefiltert nach Alle /
+  Startbar / Laeuft; beides merkt sich der Browser.
+- Paketmanager aus `packageManager` oder der Lock-Datei. Vor jedem Start prueft
   der Agent, ob Node jedes Paket aus der `package.json` wirklich findet (nach
   dem Verschieben eines Projekts zeigen pnpms Links ins Leere) und installiert
   sonst zuerst. Scheitert der Start trotzdem, repariert er einmal selbst:
@@ -598,8 +617,9 @@ hat, sieht nur die Anleitung.
   Gezaehlt werden Node, Bun, Deno, Python & Co. mit offenem Port; zugeordnet
   ueber den Projektpfad in der Befehlszeile. "Alle stoppen" laesst Server ohne
   Projekt in Ruhe.
-- **Tastatur:** Tippen sucht, `Enter` startet/oeffnet den Treffer, `1`–`9` das
-  Projekt mit der Nummer, `Entf` stoppt alle, `Esc` leert die Suche.
+- **Tastatur:** Tippen sucht (Name, Ordner, Art wie "godot"), `↑`/`↓` waehlt,
+  `Enter` startet/oeffnet den Treffer, `1`–`9` das Projekt mit der Nummer,
+  `Entf` stoppt alle, `Esc` leert die Suche.
 - **Sicherheit:** Der Agent lauscht nur auf 127.0.0.1, nimmt Anfragen nur von
   `https://miwale.com` und `http://localhost:*` an (Origin- und Host-Pruefung)
   und kennt keine freien Befehle: Starten heisst immer das Skript aus der
