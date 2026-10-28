@@ -19,8 +19,8 @@
           "name": "Last Ember",
           "bild": "/assets/jam/last-ember.webp",
           "beschreibung": {
-            "en": "Survive the night with a torch that only burns so long. Enemies drop fuel; between runs you spend embers in a skill tree.",
-            "de": "Überlebe die Nacht mit einer Fackel, die nur begrenzt brennt. Gegner lassen Brennstoff fallen, zwischen den Runs kaufst du mit Glut im Skill Tree."
+            "en": "Survive the night with a torch that only burns so long. Enemies drop fuel, a boss rush ends every region. Between runs you spend embers in a skill tree and on eight torches.",
+            "de": "Überlebe die Nacht mit einer Fackel, die nur begrenzt brennt. Gegner lassen Brennstoff fallen, jede Region endet mit einem Boss-Rush. Zwischen den Runs kaufst du mit Glut im Skill Tree und bei acht Fackeln."
           },
           "spielen": "/jam-spiele/last-ember/"
         },

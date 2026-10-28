@@ -5,16 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Last Ember</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect x=%227%22 y=%226%22 width=%222%22 height=%229%22 fill=%22%2363555c%22/%3E%3Crect x=%226%22 y=%222%22 width=%224%22 height=%225%22 fill=%22%23ff8a1c%22/%3E%3Crect x=%227%22 y=%223%22 width=%222%22 height=%223%22 fill=%22%23fff2b8%22/%3E%3C/svg%3E" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jacquard+24&family=Pixelify+Sans:wght@400;600&display=swap" />
     <!-- Bis main.ts fertig ist, nur den dunklen Hintergrund zeigen (sonst blitzt rohes HTML auf) -->
     <style>
       html, body { margin: 0; background: #12151e; }
       body { visibility: hidden; }
     </style>
-    <script type="module" crossorigin src="./assets/index-Cool78OG.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BYzA9V9H.css">
+    <script type="module" crossorigin src="./assets/index-DQGQHMd-.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CyYshnbT.css">
   </head>
   <body>
     <canvas id="stage"></canvas>
@@ -86,6 +83,11 @@
 
       <div class="events" id="events"></div>
 
+      <div class="px bossbar hidden" id="bossBar">
+        <div class="bb-top"><span class="bb-name" id="bossName"></span><span class="bb-stage" id="bossStage"></span></div>
+        <div class="bb-bar"><div class="bb-trail" id="bossTrail"></div><div class="bb-fill" id="bossFill"></div></div>
+      </div>
+
       <div class="top-right">
         <div class="px heatbox" id="heatBox">
           <div class="hb-lv" id="heatLv">III</div>
@@ -124,6 +126,7 @@
             <div class="rv-top"><span class="rv-name" id="rvName"></span><span class="rv-count" id="rvCount"></span></div>
             <div class="rv-bottom">
               <p class="rv-blurb" id="rvBlurb"></p>
+              <p class="rv-rule" id="rvRule"></p>
               <div class="rv-stats" id="rvStats"></div>
             </div>
           </div>
@@ -194,6 +197,30 @@
       <div id="caseFlash"></div>
     </div>
 
+    <!-- ============================ Sieg ============================ -->
+    <div class="overlay hidden" id="victory">
+      <div class="px px-gold panel victory-panel">
+        <h2 class="overlay-title">Dawn breaks</h2>
+        <p class="result-sub">The boss rush is broken. Take your reward now, or keep the fire burning through an endless night. The Glut keeps coming, and so do they. You keep the victory either way.</p>
+        <div class="actions">
+          <button class="btn2" id="btnEndless">Endless night</button>
+          <button class="btn" id="btnClaim">Claim reward</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================== Fackel-Shop ========================== -->
+    <div class="overlay hidden" id="torches">
+      <div class="px panel torch-panel">
+        <h2 class="overlay-title">Torches</h2>
+        <p class="overlay-hint torch-sub">You carry one torch per run. Each one burns its own way. <span id="torchWallet"></span></p>
+        <div class="torch-grid" id="torchGrid"></div>
+        <div class="actions torch-actions">
+          <button class="btn btn-sm" id="btnTorchClose">Back to the Tree</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ========================== Auswertung ========================== -->
     <div class="overlay hidden" id="result">
       <div class="px panel result-panel">
@@ -217,10 +244,11 @@
           <input type="range" id="vol" min="0" max="100" value="70" />
         </label>
         <button class="btn2" id="btnMute">Mute</button>
+        <button class="btn2" id="btnShake">Screen shake: On</button>
+        <button class="btn2" id="btnFx">Effects: Full</button>
         <div class="setting keys">
           <span>Controls</span>
           <p>Move: WASD / Arrows<br />Dash: Space / Shift<br />Pause: Esc</p>
-          <p class="muted">Key rebinding comes in a later version.</p>
         </div>
         <button class="btn2 danger" id="btnWipe">Delete save</button>
         <button class="btn" id="btnSettingsClose">Close</button>
