@@ -49,7 +49,8 @@ jobs:
           node --check shop/profil-katalog.js
           node --check public/sdk/miwale.js
           node --check public/jam/jam.js
-          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs tools/seiten.test.mjs tools/profil.test.mjs tools/jam.test.mjs
+          node --check public/minecraft/statistics/statistik.js
+          node --test tools/bewertungen.test.mjs tools/ideen.test.mjs tools/konten.test.mjs tools/styles.test.mjs tools/stimmen.test.mjs tools/seiten.test.mjs tools/profil.test.mjs tools/jam.test.mjs tools/minecraft.test.mjs
           node -e 'global.window={}; require("./shop/spiele.js"); require("./shop/spiele-auto.js"); const s=window.MIWALE_SPIELE; if(!s.length) throw 1; for (const x of s) for (const l of ["en","de"]) if(!x.texte[l].kurz) throw new Error(x.id+" "+l)'
           test -d _ds
           test -d assets
@@ -97,7 +98,7 @@ jobs:
               echo "$1:"; echo "$kopf"; exit 1
             fi
           }
-          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /jam/ /jam/ai-jam-5 /jam/jams.json /jam-spiele/last-ember/ /jam-spiele/last-ember/index.html /shop/shop.js /support.js /games/dropfall /press/ /press/miwale-presskit.zip /robots.txt /sitemap.xml /feed.xml /assets/og/miwale.jpg /assets/og/dropfall.jpg; do
+          for pfad in / /requests /requests/new /account /privacy /datenschutz /portfolio /projekte /projekte/chromatic /projekte/chromatic/spielen /kontakt /games/chromatic /games/chromatic/spielen /games/wavebreaker/ /jam/ /jam/ai-jam-5 /jam/jams.json /minecraft/statistics/ /minecraft/statistics/statistik.js /minecraft/statistics/statistik.css /jam-spiele/last-ember/ /jam-spiele/last-ember/index.html /shop/shop.js /support.js /games/dropfall /press/ /press/miwale-presskit.zip /robots.txt /sitemap.xml /feed.xml /assets/og/miwale.jpg /assets/og/dropfall.jpg; do
             test "$(status "$pfad")" = 200 || { echo "$pfad: $(status "$pfad")"; exit 1; }
           done
           # Erst speichern, dann suchen: grep -q schliesst die Leitung sonst,
@@ -112,6 +113,14 @@ jobs:
           test "$(status /jam-spiele/gibt-es-nicht/)" = 404
           grep -q 'Last Ember' <<< "$(curl -fsS http://127.0.0.1:8080/jam-spiele/last-ember/)"
           grep -q 'jam.js' <<< "$(curl -fsS http://127.0.0.1:8080/jam/ai-jam-5)"
+          # Minecraft-Statistik: jede Schreibweise fuehrt auf die Seite, ihre CSP
+          # laesst nur eigene Skripte, Bilder und Schriften zu.
+          umleitung /Minecraft/Statistics 301 /minecraft/statistics/
+          umleitung /Minecraft/Statisics 301 /minecraft/statistics/
+          umleitung /minecraft 301 /minecraft/statistics/
+          umleitung /minecraft/statistik 301 /minecraft/statistics/
+          grep -q 'statistik.js' <<< "$(curl -fsS http://127.0.0.1:8080/minecraft/statistics/)"
+          curl -sSI http://127.0.0.1:8080/minecraft/statistics/ | tr -d '\r' | grep -qi "^content-security-policy: default-src 'self'; script-src 'self';"
           # Glut ist eine eigene, nicht verlinkte Seite und schuetzt die API.
           test "$(status /usage/)" = 200
           test "$(status /usage/api/stats)" = 401
@@ -123,6 +132,10 @@ jobs:
           test "$(status /api/bewertungen/gibtsnicht)" = 404
           test "$(status /api/bewertungen/admin/alle)" = 503
           test "$(status /admin/)" = 200
+          # Minecraft-Statistik hinter nginx: lesen offen, ohne Passwort kein Hochladen
+          test "$(status /api/minecraft/)" = 200
+          grep -q '"leer":true' <<< "$(curl -fsS http://127.0.0.1:8080/api/minecraft/)"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Authorization: Bearer x' -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/minecraft/)" = 503
           # Game Requests hinter nginx
           test "$(status /api/ideen/)" = 200
           test "$(status /api/ideen/admin/alle)" = 503

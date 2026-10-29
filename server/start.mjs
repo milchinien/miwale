@@ -2,8 +2,9 @@
 // Bewertungen (/api/bewertungen/), Game Requests (/api/ideen/), Konten
 // (/api/konto/), die Stimmen der Style Library (/api/stimmen/) und Profile mit
 // Spielzeit, Erfolgen und Perlen-Shop (/api/profil/) und die Sterne der
-// Jam-Spiele (/api/jam/). Gestartet von docker/40-dienste.sh; nginx reicht alle
-// sechs Pfade hierher durch.
+// Jam-Spiele (/api/jam/) und die Statistiken des Minecraft-Servers
+// (/api/minecraft/). Gestartet von docker/40-dienste.sh; nginx reicht alle
+// sieben Pfade hierher durch.
 //
 // Alle teilen Datenordner, Wortsperrliste und das Passwort der Verwaltung.
 
@@ -16,6 +17,7 @@ import { kontenBauen } from "./konten.mjs";
 import { stimmenBauen, stylesAusKatalog, STYLE_KATALOG } from "./stimmen.mjs";
 import { profilBauen } from "./profil.mjs";
 import { jamBauen } from "./jam.mjs";
+import { minecraftBauen } from "./minecraft.mjs";
 
 const port = Number(process.env.BEWERTUNGEN_PORT || 8081);
 const ordner = process.env.BEWERTUNGEN_ORDNER || "/data";
@@ -64,6 +66,8 @@ const profil = profilBauen({ ...gemeinsam, konten });
 const stimmen = stimmenBauen({ ...gemeinsam, katalog: stylesAusKatalog(process.env.STIMMEN_KATALOG || STYLE_KATALOG) });
 // Sterne der Jam-Spiele (miwale.com/jam); welche Spiele es gibt, steht in jams.json.
 const jam = jamBauen({ ...gemeinsam, ...(process.env.JAM_KATALOG ? { katalog: process.env.JAM_KATALOG } : {}) });
+// Statistiken des Minecraft-Servers (miwale.com/minecraft/statistics); der Stand kommt vom Panel auf dem PC.
+const minecraft = minecraftBauen({ ...gemeinsam, schluessel: process.env.MINECRAFT_TOKEN || "" });
 
 const unter = (url, basis) => url === basis || url.startsWith(basis + "/") || url.startsWith(basis + "?");
 
@@ -73,6 +77,7 @@ http.createServer((req, res) => {
   if (unter(req.url, "/api/stimmen")) return stimmen(req, res);
   if (unter(req.url, "/api/profil")) return profil(req, res);
   if (unter(req.url, "/api/jam")) return jam(req, res);
+  if (unter(req.url, "/api/minecraft")) return minecraft(req, res);
   return bewertungen(req, res);
 }).listen(port, "127.0.0.1", () => console.log("Dienste auf 127.0.0.1:" + port));
 
