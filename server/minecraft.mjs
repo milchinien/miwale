@@ -8,11 +8,14 @@
 // Minecraft-Installation auf dem PC und liegen darum nicht in diesem
 // (oeffentlichen) Repository, sondern nur im Datenordner.
 //
-// Schreiben darf nur das Panel: mit einem Schluessel, der aus dem Passwort der
-// Verwaltung abgeleitet ist (oder fest aus MINECRAFT_TOKEN). Das Panel holt ihn
-// einmal ueber POST /api/minecraft/verbinden mit dem Passwort und speichert nur
-// den Schluessel, nie das Passwort. Wird das Passwort geaendert, gilt auch ein
-// neuer Schluessel.
+// Schreiben darf nur das Panel, mit einem Schluessel. Gueltig ist
+//   - ein Schluessel, dessen SHA-256 in server/minecraft-schluessel.json steht.
+//     Die Pruefsumme darf oeffentlich sein: der Schluessel ist zufaellig
+//     (256 Bit) und laesst sich aus ihr nicht zurueckrechnen. So braucht es
+//     weder eine Einstellung auf dem Server noch das Passwort der Verwaltung.
+//   - der aus dem Passwort der Verwaltung abgeleitete (oder fest aus
+//     MINECRAFT_TOKEN). Das Panel holt ihn einmal ueber
+//     POST /api/minecraft/verbinden mit dem Passwort und speichert nur ihn.
 //
 // Lesen ist oeffentlich:
 //   GET /api/minecraft/                     Stand ohne Grafik (JSON)
@@ -20,9 +23,21 @@
 //   GET /api/minecraft/schrift.woff         die Schrift
 
 import { createHash, createHmac } from "node:crypto";
+import { fileURLToPath } from "node:url";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { sicherSchreiben, lesenRoh, adminSchutz, adminAbweisung } from "./gemeinsam.mjs";
+import { sicherSchreiben, lesenRoh, adminSchutz, adminAbweisung, gleich, anschluss, besucherAdresse, FENSTER_MS } from "./gemeinsam.mjs";
+
+export const SCHLUESSEL_DATEI = fileURLToPath(new URL("./minecraft-schluessel.json", import.meta.url));
+
+// Pruefsummen der Panel-Schluessel (siehe oben).
+export function schluesselHashesLesen(pfad = SCHLUESSEL_DATEI) {
+  try {
+    return (JSON.parse(readFileSync(pfad, "utf8")).sha256 || []).filter((h) => /^[0-9a-f]{64}$/.test(h));
+  } catch {
+    return [];
+  }
+}
 
 export const GRENZEN = {
   koerper: 1024 * 1024,
@@ -116,10 +131,31 @@ export function minecraftBauen(optionen) {
   const jetzt = optionen.jetzt || (() => Date.now());
   const passwort = optionen.passwort || "";
   const schluessel = optionen.schluessel || schluesselAus(passwort);
+  const hashes = optionen.schluesselHashes || schluesselHashesLesen();
   const admin = optionen.adminSchutz || adminSchutz(jetzt);
-  // Eigene Sperre fuer falsche Schluessel: Raten am Schluessel soll nicht die
-  // Verwaltung sperren, und umgekehrt.
-  const schluesselSchutz = adminSchutz(jetzt);
+
+  // Schluessel pruefen, mit eigener Sperre nach 10 Fehlversuchen je Anschluss
+  // (Raten am Schluessel soll nicht die Verwaltung sperren, und umgekehrt).
+  // "ok" | "aus" | "gesperrt" | "falsch"
+  const fehl = new Map();
+  function schluesselPruefen(req) {
+    if (!schluessel && !hashes.length) return "aus";
+    const t = jetzt();
+    const wer = anschluss(besucherAdresse(req));
+    let e = fehl.get(wer);
+    if (e && t - e.start > FENSTER_MS) { fehl.delete(wer); e = null; }
+    if (e && e.n >= 10) return "gesperrt";
+    const kopf = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const summe = createHash("sha256").update(kopf).digest("hex");
+    if (kopf && ((schluessel && gleich(kopf, schluessel)) || hashes.some((h) => gleich(h, summe)))) return "ok";
+    if (!e) {
+      if (fehl.size > 5000) for (const [k, v] of fehl) if (t - v.start > FENSTER_MS) fehl.delete(k);
+      e = { start: t, n: 0 };
+      fehl.set(wer, e);
+    }
+    e.n++;
+    return "falsch";
+  }
 
   let stand = null;
   // Antwort fuer GET /api/minecraft/, einmal je Stand gebaut.
@@ -199,10 +235,9 @@ export function minecraftBauen(optionen) {
 
     // ---- Neuer Stand vom Panel ----
     if (pfad === "" && req.method === "PUT") {
-      if (!schluessel) return antworten(res, 503, { fehler: "aus" });
-      const pruefung = schluesselSchutz(req, schluessel);
+      const pruefung = schluesselPruefen(req);
       if (pruefung !== "ok") {
-        const [status, inhalt] = pruefung === "gesperrt" ? [429, { fehler: "zu-viele-versuche" }] : [401, { fehler: "schluessel" }];
+        const [status, inhalt] = { aus: [503, { fehler: "aus" }], gesperrt: [429, { fehler: "zu-viele-versuche" }] }[pruefung] || [401, { fehler: "schluessel" }];
         return antworten(res, status, inhalt);
       }
       const roh = await lesenRoh(req, GRENZEN.koerper);

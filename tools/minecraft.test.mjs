@@ -4,7 +4,8 @@ import http from "node:http";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { minecraftBauen, schluesselAus } from "../server/minecraft.mjs";
+import { createHash } from "node:crypto";
+import { minecraftBauen, schluesselAus, schluesselHashesLesen } from "../server/minecraft.mjs";
 
 const PASSWORT = "geheim-fuer-tests";
 const SCHLUESSEL = schluesselAus(PASSWORT);
@@ -79,7 +80,7 @@ test("connecting with the admin password returns the key", async (t) => {
 });
 
 test("without password and MINECRAFT_TOKEN uploads are off", async (t) => {
-  const a = await starten(t, { passwort: "" });
+  const a = await starten(t, { passwort: "", schluesselHashes: [] });
   assert.equal((await a("", { methode: "PUT", koerper: STAND, auth: "egal" })).status, 503);
   assert.equal((await a("verbinden", { methode: "POST", auth: "egal" })).status, 503);
 });
@@ -141,4 +142,20 @@ test("rejects broken uploads", async (t) => {
   const riesig = { ...STAND, namen: { x: "a".repeat(1.2 * 1024 * 1024) } };
   assert.equal((await a("", { methode: "PUT", koerper: riesig, auth: SCHLUESSEL })).status, 413);
   assert.deepEqual((await a("")).daten, { leer: true });
+});
+
+test("a key whose SHA-256 is listed works without any password", async (t) => {
+  const key = "mcp_" + "ab".repeat(32);
+  const hash = createHash("sha256").update(key).digest("hex");
+  const a = await starten(t, { passwort: "", schluesselHashes: [hash] });
+  assert.equal((await a("", { methode: "PUT", koerper: STAND, auth: "mcp_falsch" })).status, 401);
+  assert.equal((await a("", { methode: "PUT", koerper: STAND, auth: hash })).status, 401, "die Pruefsumme selbst ist kein Schluessel");
+  assert.equal((await a("", { methode: "PUT", koerper: STAND, auth: key })).status, 200);
+  assert.equal((await a("verbinden", { methode: "POST", auth: "egal" })).status, 503);
+});
+
+test("the listed key hashes are valid", () => {
+  const hashes = schluesselHashesLesen();
+  assert.ok(hashes.length >= 1);
+  for (const h of hashes) assert.match(h, /^[0-9a-f]{64}$/);
 });

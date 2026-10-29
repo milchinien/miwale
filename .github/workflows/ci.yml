@@ -132,10 +132,10 @@ jobs:
           test "$(status /api/bewertungen/gibtsnicht)" = 404
           test "$(status /api/bewertungen/admin/alle)" = 503
           test "$(status /admin/)" = 200
-          # Minecraft-Statistik hinter nginx: lesen offen, ohne Passwort kein Hochladen
+          # Minecraft-Statistik hinter nginx: lesen offen, hochladen nur mit Schluessel
           test "$(status /api/minecraft/)" = 200
           grep -q '"leer":true' <<< "$(curl -fsS http://127.0.0.1:8080/api/minecraft/)"
-          test "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Authorization: Bearer x' -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/minecraft/)" = 503
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Authorization: Bearer x' -H 'Content-Type: application/json' -d '{}' http://127.0.0.1:8080/api/minecraft/)" = 401
           # Game Requests hinter nginx
           test "$(status /api/ideen/)" = 200
           test "$(status /api/ideen/admin/alle)" = 503

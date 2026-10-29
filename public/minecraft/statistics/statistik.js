@@ -248,8 +248,10 @@
       const r = await fetch(API, { cache: "no-cache" });
       if (!r.ok) throw new Error(String(r.status));
       const d = await r.json();
+      $("warten").hidden = !d.leer;
+      $("inhalt").hidden = !!d.leer;
       if (d.leer) {
-        $("stand").textContent = "Noch keine Statistiken – sobald der Server sie schickt, erscheinen sie hier.";
+        $("stand").textContent = "";
         return;
       }
       if (stand && stand.zeit === d.zeit) { standZeile(); serverZeile(); return; }
