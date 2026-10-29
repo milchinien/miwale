@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Minecraft-Server · Statistiken · miwale</title>
+<meta name="description" content="Ranglisten und Statistiken unseres Minecraft-Servers: abgebaute Blöcke, besiegte Monster, Spielzeit und mehr.">
+<meta property="og:site_name" content="miwale">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Minecraft-Server · Statistiken">
+<meta property="og:description" content="Wer hat am meisten abgebaut? Ranglisten und Statistiken unseres Minecraft-Servers.">
+<meta name="theme-color" content="#1e1610">
+<link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon-whale-light.png">
+<link rel="stylesheet" href="/minecraft/statistics/statistik.css">
+<!--
+  Statistik-Seite des Minecraft-Servers. Die Daten (und alle Minecraft-Grafik:
+  Texturen, Koepfe, Schrift) liefert server/minecraft.mjs unter /api/minecraft/;
+  dorthin schickt sie das Panel auf dem PC mit dem Server. statistik.js baut
+  die Seite und laedt jede Minute neu.
+-->
+<script src="/minecraft/statistics/statistik.js" defer></script>
+</head>
+<body>
+<div class="seite">
+  <header class="kopf">
+    <h1 class="titel">Server-Statistiken</h1>
+    <div class="splash" id="splash" aria-hidden="true"></div>
+  </header>
+
+  <section class="serverzeile" id="server" aria-label="Server"></section>
+
+  <section aria-labelledby="h-welt">
+    <h2 class="ueberschrift" id="h-welt">Die Welt bisher</h2>
+    <div class="summen" id="summen"></div>
+  </section>
+
+  <section aria-labelledby="h-rang">
+    <h2 class="ueberschrift" id="h-rang">Rangliste</h2>
+    <div class="knoepfe" id="kategorien" role="tablist" aria-label="Kategorie"></div>
+    <div class="liste" id="rangliste" role="tabpanel"></div>
+  </section>
+
+  <section aria-labelledby="h-spieler">
+    <h2 class="ueberschrift" id="h-spieler">Spieler</h2>
+    <div class="karten" id="spieler"></div>
+  </section>
+
+  <section aria-labelledby="h-top">
+    <h2 class="ueberschrift" id="h-top">Rekorde der Welt</h2>
+    <div class="inventare" id="inventare"></div>
+  </section>
+
+  <footer class="fuss">
+    <p id="stand">Lade Statistiken …</p>
+    <p class="hinweis">Kein offizielles Minecraft-Produkt. Nicht von Mojang oder Microsoft genehmigt oder mit ihnen verbunden.</p>
+    <p><a href="/">miwale.com</a></p>
+  </footer>
+</div>
+<div class="tooltip" id="tooltip" hidden></div>
+<noscript><p class="ohne-js">Diese Seite braucht JavaScript.</p></noscript>
+</body>
+</html>

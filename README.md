@@ -617,6 +617,46 @@ Spielen-Knopf, Schnitt, Verteilung und den Bewertungen.
 node --test tools/jam.test.mjs   # Katalog gültig (ids, Bilder, Daten), Dienst
 ```
 
+## Minecraft-Statistik (miwale.com/minecraft/statistics)
+
+Ranglisten und Statistiken des Minecraft-Servers der Familie, im Stil des
+Spiels: Erd-Hintergrund, Minecraft-Schrift, Knöpfe, Erfahrungsleisten,
+Inventar-Slots mit Tooltips. Oben die Server-Zeile (online/offline, wer gerade
+spielt), dann die Summen der Welt, eine Rangliste je Kategorie (Abgebaut, Mobs
+besiegt, Spielzeit, Strecke, Tode, …), eine Karte je Spieler und die Rekorde
+der Welt. Lädt jede Minute neu. `/Minecraft/Statistics`, `/minecraft`,
+`/minecraft/statistik` usw. führen alle auf `/minecraft/statistics/`.
+
+- **Woher die Daten kommen:** Der Server läuft zu Hause auf einem PC. Dessen
+  Verwaltungs-Panel schickt alle paar Minuten seinen Stand per
+  `PUT /api/minecraft/`. Die Minecraft-Grafik (Block-/Item-Texturen,
+  Spawn-Eier als Mob-Bilder, Spielerköpfe, die Schrift als WOFF) und die
+  deutschen Namen der Blöcke und Mobs liest das Panel aus der
+  Minecraft-Installation des PCs und schickt sie mit. Sie liegen darum nur im
+  Datenordner, nicht in diesem öffentlichen Repository.
+- **Wer schreiben darf:** nur das Panel, mit einem Schlüssel. Der ist aus dem
+  Passwort der Verwaltung abgeleitet (HMAC), es braucht also keine neue
+  Einstellung auf dem Server. Das Panel holt ihn einmal über
+  `POST /api/minecraft/verbinden` mit dem Passwort als Bearer und speichert nur
+  den Schlüssel. Wird das Passwort geändert, muss das Panel neu verbinden.
+  Statt des abgeleiteten Schlüssels geht auch ein fester: `MINECRAFT_TOKEN`.
+  Falsche Schlüssel sperren nach 10 Versuchen für 10 Minuten.
+- **Dienst:** `server/minecraft.mjs` unter `/api/minecraft/`, im selben
+  Prozess wie die Bewertungen, Datei `minecraft/stand.json` im Datenordner.
+  Er behält nur, was die Seite zeigt (Namen, Zahlen, Toplisten, PNGs bis
+  16 KB, Schrift bis 256 KB), höchstens 1 MB je Stand. Lesen:
+  `GET /api/minecraft/` (JSON ohne Grafik), `…/textur/<name>.png` und
+  `…/schrift.woff` (mit `?v=<prüfsumme>` dauerhaft zwischenspeicherbar).
+- **Seite:** `public/minecraft/statistics/index.html`, `statistik.js`,
+  `statistik.css`. CSP in `docker/sicherheit-minecraft.conf`: nur eigene
+  Skripte, Bilder und Schriften.
+- Im Fuß steht der Hinweis, dass es kein offizielles Minecraft-Produkt ist
+  (verlangen die Nutzungsrichtlinien von Mojang).
+
+```bash
+node --test tools/minecraft.test.mjs   # Schlüssel, Prüfung des Stands, Texturen, Neustart
+```
+
 ## Dev-Zentrale (miwale.com/dev)
 
 Zeigt alle Projekte und die laufenden Dev-Server (localhosts) des Rechners,
