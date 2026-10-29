@@ -214,6 +214,12 @@ a:hover, a:focus-visible { text-decoration: underline; }
 }
 .tooltip .unter { color: var(--grau); text-shadow: 2px 2px 0 #2a2a2a; }
 
+/* ---------- Noch kein Stand ---------- */
+.warten { text-align: center; padding: 40px 24px; background: rgba(0, 0, 0, .55); border: 2px solid #000; box-shadow: inset 0 0 0 2px #2b2b2b; color: var(--grau); text-shadow: 2px 2px 0 #2a2a2a; }
+.warten .gross { font-size: 24px; line-height: 28px; color: var(--weiss); text-shadow: 2px 2px 0 #3f3f3f; animation: puls 1.2s ease-in-out infinite alternate; }
+@keyframes puls { from { opacity: .55; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .warten .gross { animation: none; } }
+
 /* ---------- Fuss ---------- */
 .fuss { margin-top: 48px; text-align: center; color: var(--grau); text-shadow: 2px 2px 0 #2a2a2a; }
 .fuss p { margin: 8px 0; }

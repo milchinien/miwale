@@ -1,0 +1,6 @@
+{
+  "hinweis": "SHA-256 der Schluessel, mit denen das Minecraft-Panel Statistiken hochladen darf (server/minecraft.mjs). Nur Pruefsummen, nie die Schluessel selbst.",
+  "sha256": [
+    "663802410cdbcc4937b5745c785feb53e5e190730621cc7a70c8eeab4967ff8d"
+  ]
+}
