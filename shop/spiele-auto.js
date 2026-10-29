@@ -13,7 +13,6 @@
     "id": "castle-scaremore",
     "name": "Castle Scaremore",
     "auto": true,
-    "neu": true,
     "veroeffentlicht": "2026-09-29",
     "geraete": [
       "pc",
