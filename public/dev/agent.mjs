@@ -26,7 +26,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const VERSION = 6;
+export const VERSION = 7;
 export const PORT = 5300;
 const DATEN = path.join(process.env.LOCALAPPDATA || os.homedir(), 'miwale-dev');
 const EINSTELLUNGEN = path.join(DATEN, 'einstellungen.json');
@@ -609,25 +609,27 @@ async function sucheWerkzeuge(einstellungen) {
       if (e.isDirectory() && await istDatei(exe)) unity.set(e.name, exe);
     }
   }
-  let godot = typeof einstellungen.godot === 'string' && await istDatei(einstellungen.godot) ? einstellungen.godot : '';
-  if (!godot) {
-    const orte = [path.join(os.homedir(), 'Downloads'), path.join(os.homedir(), 'Desktop'), path.join(process.env.LOCALAPPDATA || '', 'Programs'),
-      'C:\\Program Files', 'C:\\Program Files (x86)\\Steam\\steamapps\\common'];
-    for (const w of await wurzeln(einstellungen)) {
-      if (!/^[a-z]:\\$/i.test(w.ordner)) continue;
-      for (const e of (await leseOrdner(w.ordner))?.eintraege || []) {
-        if (e.isDirectory() && /godot|downloads|werkzeuge|tools|gamedev|programme/i.test(e.name)) orte.push(path.join(w.ordner, e.name));
-      }
+  const orte = [path.join(os.homedir(), 'Downloads'), path.join(os.homedir(), 'Desktop'), path.join(process.env.LOCALAPPDATA || '', 'Programs'),
+    'C:\\Program Files', 'C:\\Program Files (x86)\\Steam\\steamapps\\common'];
+  for (const w of await wurzeln(einstellungen)) {
+    if (!/^[a-z]:\\$/i.test(w.ordner)) continue;
+    for (const e of (await leseOrdner(w.ordner))?.eintraege || []) {
+      if (e.isDirectory() && /godot|blender|downloads|werkzeuge|tools|gamedev|programme/i.test(e.name)) orte.push(path.join(w.ordner, e.name));
     }
-    const funde = [];
-    for (const ort of orte) {
-      for (const exe of await exeIn(ort, 2)) if (/^godot.*\.exe$/i.test(path.basename(exe)) && !/console/i.test(exe)) funde.push(exe);
-    }
-    // Die neueste Version: Godot_v4.7.2 vor Godot_v4.3.
-    godot = funde.sort((a, b) => path.basename(b).localeCompare(path.basename(a), 'en', { numeric: true }))[0] || '';
   }
-  const cargo = [path.join(os.homedir(), '.cargo', 'bin', 'cargo.exe')];
-  return { unity, godot, cargo: (await istDatei(cargo[0])) ? cargo[0] : (await fuehreAus('where', ['cargo'])).split(/\r?\n/)[0].trim() };
+  const exes = [];
+  for (const ort of orte) exes.push(...await exeIn(ort, 2));
+  // Die neueste Version zuerst: Godot_v4.7.2 vor Godot_v4.3.
+  const neueste = (muster) => exes.filter((e) => muster.test(path.basename(e)))
+    .sort((a, b) => path.basename(b).localeCompare(path.basename(a), 'en', { numeric: true }))[0] || '';
+  const imPfad = async (datei, name) => ((await istDatei(datei)) ? datei : (await fuehreAus('where', [name])).split(/\r?\n/)[0].trim());
+  return {
+    unity,
+    godot: typeof einstellungen.godot === 'string' && await istDatei(einstellungen.godot) ? einstellungen.godot : neueste(/^godot(?!.*console).*\.exe$/i),
+    blender: neueste(/^blender\.exe$/i),
+    cargo: await imPfad(path.join(os.homedir(), '.cargo', 'bin', 'cargo.exe'), 'cargo'),
+    claude: await imPfad(path.join(os.homedir(), '.local', 'bin', 'claude.exe'), 'claude'),
+  };
 }
 
 async function findeProgramm(p, w) {
@@ -648,6 +650,16 @@ async function findeProgramm(p, w) {
     const exe = waehleProgramm(await exeIn(path.join(p.ordner, 'build'), 2));
     if (exe) return { text: 'Start', titel: path.relative(p.ordner, exe), datei: exe, argumente: [] };
   }
+  // Blender-Projekt (Python-Skripte um .blend-Dateien): die zuletzt bearbeitete Szene.
+  const szenen = dateien.filter((n) => /\.blend$/i.test(n));
+  if (szenen.length && w.blender) {
+    const zeiten = await Promise.all(szenen.map((n) => fsp.stat(path.join(p.ordner, n)).then((s) => s.mtimeMs, () => 0)));
+    const szene = szenen[zeiten.indexOf(Math.max(...zeiten))];
+    return { text: 'Blender', titel: `${szene} in Blender öffnen`, datei: w.blender, argumente: [path.join(p.ordner, szene)] };
+  }
+  // Alles andere (Claude-Mods, Werkzeuge, reine Git-Ordner): Claude Code im
+  // Ordner. HTML oeffnet die Seite selbst im Browser.
+  if (p.art !== 'HTML' && w.claude) return { text: 'Claude', titel: 'Claude Code in diesem Ordner öffnen', datei: 'cmd.exe', argumente: ['/k', w.claude] };
   return null;
 }
 
