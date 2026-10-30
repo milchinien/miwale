@@ -5,7 +5,7 @@
   'use strict';
 
   const AGENT = 'http://127.0.0.1:5300';
-  const VERSION = 5;
+  const VERSION = 6;
   const basis = `${location.origin}/dev/`;
   const installBefehl = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:MIWALE_DEV='${basis}'; irm ${basis}installieren.ps1 | iex"`;
 
@@ -24,7 +24,7 @@
   // Filter und Sortierung bleiben ueber Besuche hinweg.
   const FILTER = {
     alle: () => true,
-    startbar: (p) => startbar(p),
+    startbar: (p) => startbar(p) || Boolean(p.programm),
     laeuft: (p) => laeuftGerade(p),
   };
   let filter = FILTER[localStorage.getItem('miwale-dev-filter')] ? localStorage.getItem('miwale-dev-filter') : 'alle';
@@ -124,6 +124,14 @@
   async function aktion(p) {
     if (!p) return;
     if (p.ports.length) return oeffne(p.ports[0]);
+    // Ohne Dev-Server: Editor, Startskript oder Programm. Laeuft dann im eigenen Fenster.
+    if (!startbar(p) && p.programm) {
+      try {
+        await agent('/starten', { id: p.id });
+        zeige(`${p.name}: ${p.programm.titel} …`);
+      } catch (f) { zeige(`${p.name}: ${f.message}`, true); }
+      return;
+    }
     if (!startbar(p)) return zeigeOrdner(p.id, p.art === 'HTML' ? 'index' : '');
     if (p.zustand === 'startet' || wartend.has(p.id)) return;
     wartend.set(p.id, 'start');
@@ -313,6 +321,7 @@
     if (p.ports.length) return el('button', { class: 'haupt', type: 'button', text: 'Öffnen', title: `localhost:${p.ports[0]}`, onclick: () => oeffne(p.ports[0]) });
     if (p.zustand === 'startet' || w === 'start') return el('button', { class: 'haupt', type: 'button', disabled: 'disabled', text: 'Startet …' });
     if (startbar(p)) return el('button', { class: 'haupt', type: 'button', text: p.zustand === 'fehler' ? 'Neu starten' : 'Start', title: p.befehl, onclick: () => aktion(p) });
+    if (p.programm) return el('button', { class: 'haupt', type: 'button', text: p.programm.text, title: p.programm.titel, onclick: () => aktion(p) });
     if (p.art === 'HTML') return el('button', { type: 'button', text: 'Im Browser', title: 'index.html öffnen', onclick: () => aktion(p) });
     return null;
   }
@@ -477,7 +486,7 @@
     if (stand.projekte.length) {
       if (woerter.length) leer = 'Kein Projekt passt zur Suche.';
       else if (filter === 'laeuft') leer = 'Gerade läuft keins der Projekte.';
-      else if (filter === 'startbar') leer = 'Kein Projekt mit Dev-Server gefunden.';
+      else if (filter === 'startbar') leer = 'Kein startbares Projekt gefunden.';
     }
     $('projekte').replaceChildren(...(sichtbar.length
       ? sichtbar.map((p, i) => projektZeile(p, i + 1, woerter.length > 0 && i === auswahl))

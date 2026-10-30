@@ -26,7 +26,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const VERSION = 5;
+export const VERSION = 6;
 export const PORT = 5300;
 const DATEN = path.join(process.env.LOCALAPPDATA || os.homedir(), 'miwale-dev');
 const EINSTELLUNGEN = path.join(DATEN, 'einstellungen.json');
@@ -416,6 +416,8 @@ function ladeEinstellungen() {
     // Zusaetzliche Ordner, falls Projekte ausserhalb der ueblichen Orte liegen.
     ordner: Array.isArray(e.ordner) ? e.ordner.filter((o) => typeof o === 'string') : [],
     ausblenden: Array.isArray(e.ausblenden) ? e.ausblenden.filter((o) => typeof o === 'string') : [],
+    // Pfad zur Godot-exe, falls die Suche sie nicht findet.
+    godot: typeof e.godot === 'string' ? e.godot : '',
   };
 }
 
@@ -560,6 +562,95 @@ async function letzteAenderung(ordner) {
   return Math.round(zeit);
 }
 
+// ---------------------------------------------------------------------------
+// Projekte ohne Dev-Server starten: im Editor (Unity, Godot), mit dem eigenen
+// Startskript, cargo run oder dem gebauten Programm. programm: { text, titel,
+// datei, argumente } -- welches Programm, bestimmt allein der Agent.
+
+// start.bat, "Panel starten.bat", run.cmd; selbst benannte "... starten" zuerst.
+export function waehleStartSkript(dateinamen) {
+  const skripte = dateinamen.filter((n) => /\.(bat|cmd)$/i.test(n));
+  return skripte.find((n) => /starten/i.test(n)) || skripte.find((n) => /^(start|run)\.(bat|cmd)$/i.test(n)) || null;
+}
+
+// Gebautes C++-Programm: der Editor vor Spiel und Engine, nie Tests oder Werkzeuge.
+export function waehleProgramm(exes) {
+  const kandidaten = exes.filter((n) => !/test|cooker|bench|unins|setup/i.test(path.win32.basename(n)));
+  return kandidaten.find((n) => /editor/i.test(path.win32.basename(n)))
+    || kandidaten.find((n) => /game|engine|spiel/i.test(path.win32.basename(n))) || kandidaten[0] || null;
+}
+
+async function exeIn(ordner, tiefe) {
+  const o = await leseOrdner(ordner);
+  if (!o) return [];
+  const exes = o.eintraege.filter((e) => e.isFile() && /\.exe$/i.test(e.name)).map((e) => path.join(ordner, e.name));
+  if (tiefe > 0) for (const e of unterordner(o.eintraege)) exes.push(...await exeIn(path.join(ordner, e.name), tiefe - 1));
+  return exes;
+}
+
+const istDatei = (datei) => fsp.stat(datei).then((s) => s.isFile(), () => false);
+
+// Editoren und Werkzeuge, hoechstens alle zehn Minuten. Godot hat keinen
+// Installer und liegt meist irgendwo in Downloads oder einem Werkzeug-Ordner.
+let werkzeugCache = { zeit: 0, wert: null };
+
+async function findeWerkzeuge(einstellungen) {
+  if (werkzeugCache.wert && Date.now() - werkzeugCache.zeit < 10 * 60 * 1000) return werkzeugCache.wert;
+  werkzeugCache = { zeit: Date.now(), wert: await sucheWerkzeuge(einstellungen) };
+  return werkzeugCache.wert;
+}
+
+async function sucheWerkzeuge(einstellungen) {
+  const unity = new Map();
+  const hub = leseJson(path.join(process.env.APPDATA || '', 'UnityHub', 'secondaryInstallPath.json'), '');
+  for (const wurzel of [hub, 'C:\\Program Files\\Unity\\Hub\\Editor'].filter((w) => typeof w === 'string' && w)) {
+    for (const e of (await leseOrdner(wurzel))?.eintraege || []) {
+      const exe = path.join(wurzel, e.name, 'Editor', 'Unity.exe');
+      if (e.isDirectory() && await istDatei(exe)) unity.set(e.name, exe);
+    }
+  }
+  let godot = typeof einstellungen.godot === 'string' && await istDatei(einstellungen.godot) ? einstellungen.godot : '';
+  if (!godot) {
+    const orte = [path.join(os.homedir(), 'Downloads'), path.join(os.homedir(), 'Desktop'), path.join(process.env.LOCALAPPDATA || '', 'Programs'),
+      'C:\\Program Files', 'C:\\Program Files (x86)\\Steam\\steamapps\\common'];
+    for (const w of await wurzeln(einstellungen)) {
+      if (!/^[a-z]:\\$/i.test(w.ordner)) continue;
+      for (const e of (await leseOrdner(w.ordner))?.eintraege || []) {
+        if (e.isDirectory() && /godot|downloads|werkzeuge|tools|gamedev|programme/i.test(e.name)) orte.push(path.join(w.ordner, e.name));
+      }
+    }
+    const funde = [];
+    for (const ort of orte) {
+      for (const exe of await exeIn(ort, 2)) if (/^godot.*\.exe$/i.test(path.basename(exe)) && !/console/i.test(exe)) funde.push(exe);
+    }
+    // Die neueste Version: Godot_v4.7.2 vor Godot_v4.3.
+    godot = funde.sort((a, b) => path.basename(b).localeCompare(path.basename(a), 'en', { numeric: true }))[0] || '';
+  }
+  const cargo = [path.join(os.homedir(), '.cargo', 'bin', 'cargo.exe')];
+  return { unity, godot, cargo: (await istDatei(cargo[0])) ? cargo[0] : (await fuehreAus('where', ['cargo'])).split(/\r?\n/)[0].trim() };
+}
+
+async function findeProgramm(p, w) {
+  const dateien = ((await leseOrdner(p.ordner))?.eintraege || []).filter((e) => e.isFile()).map((e) => e.name);
+  const skript = waehleStartSkript(dateien);
+  // Voller Pfad: "cmd /c start.bat" liest cmd als eingebauten Befehl start.
+  if (skript) return { text: 'Start', titel: `${skript} in eigenem Fenster`, datei: 'cmd.exe', argumente: ['/c', path.join(p.ordner, skript)] };
+  if (p.art === 'Unity') {
+    const text = (() => { try { return fs.readFileSync(path.join(p.ordner, 'ProjectSettings', 'ProjectVersion.txt'), 'utf8'); } catch { return ''; } })();
+    const version = (/m_EditorVersion:\s*(\S+)/.exec(text) || [])[1] || '';
+    const neueste = [...w.unity.keys()].sort((a, b) => b.localeCompare(a, 'en', { numeric: true }))[0];
+    const exe = w.unity.get(version) || (neueste && w.unity.get(neueste));
+    if (exe) return { text: 'Unity', titel: `Im Unity-Editor ${w.unity.has(version) ? version : `${neueste} (Projekt: ${version || '?'})`} öffnen`, datei: exe, argumente: ['-projectPath', p.ordner] };
+  }
+  if (p.art === 'Godot' && w.godot) return { text: 'Godot', titel: `Im Godot-Editor öffnen (${path.basename(w.godot)})`, datei: w.godot, argumente: ['--path', p.ordner, '-e'] };
+  if (p.art === 'Rust' && w.cargo) return { text: 'Start', titel: 'cargo run in eigenem Fenster', datei: 'cmd.exe', argumente: ['/k', w.cargo, 'run'] };
+  if (p.art === 'C++') {
+    const exe = waehleProgramm(await exeIn(path.join(p.ordner, 'build'), 2));
+    if (exe) return { text: 'Start', titel: path.relative(p.ordner, exe), datei: exe, argumente: [] };
+  }
+  return null;
+}
+
 async function wurzeln(einstellungen) {
   const liste = [{ ordner: os.homedir(), tiefe: 6, wurzel: true }];
   for (const buchstabe of 'CDEFGHIJKLMNOPQRSTUVWXYZ') {
@@ -635,7 +726,10 @@ export async function sucheProjekte(einstellungen, gitCache = new Map()) {
     p.erstelltQuelle = g.erstellt ? 'git' : p.dateiZeit ? 'dateien' : '';
     delete p.dateiZeit;
   });
-  return vergibNamen(fasseKopienZusammen(liste)).sort((a, b) => b.aktiv - a.aktiv);
+  const projekte = vergibNamen(fasseKopienZusammen(liste));
+  const werkzeuge = await findeWerkzeuge(einstellungen);
+  await jeweils(projekte.filter((p) => !p.skript), 6, async (p) => { p.programm = await findeProgramm(p, werkzeuge); });
+  return projekte.sort((a, b) => b.aktiv - a.aktiv);
 }
 
 // ---------------------------------------------------------------------------
@@ -810,7 +904,7 @@ class Zentrale {
       return {
         id: p.id, name: p.name, ordner: p.ordner, art: p.art, startbar: Boolean(p.skript),
         start: p.start ? path.relative(p.ordner, p.start) : '', skript: p.skript, pm: p.pm, installiert: p.installiert,
-        befehl: p.skript ? startBefehl(p) : '', aktiv: p.aktiv, erstellt: p.erstellt || 0, erstelltQuelle: p.erstelltQuelle || '',
+        befehl: p.skript ? startBefehl(p) : '', programm: !p.skript && p.programm ? { text: p.programm.text, titel: p.programm.titel } : null, aktiv: p.aktiv, erstellt: p.erstellt || 0, erstelltQuelle: p.erstelltQuelle || '',
         backup: Boolean(p.backup), kopien: (p.kopien || []).map((k) => ({ id: k.id, ordner: k.ordner, backup: k.backup })),
         zustand, ports: eigene.flatMap((s) => s.ports).sort((a, b) => a - b),
         seit: eigene[0]?.seit || (start ? new Date(start.seit).toISOString() : null), fehler: start?.fehler || null,
@@ -867,11 +961,28 @@ class Zentrale {
     return da;
   }
 
+  // Editor oder Programm mit eigenem Fenster; der Agent verfolgt es nicht
+  // weiter (kein Port, kein Stop) -- man schliesst es selbst.
+  async programmStarten(projekt) {
+    const { datei, argumente } = projekt.programm;
+    if (datei !== 'cmd.exe' && !(await istDatei(datei))) {
+      werkzeugCache.zeit = 0;
+      return { status: 404, fehler: `${path.basename(datei)} nicht mehr da – „Neu suchen“` };
+    }
+    if (!fs.existsSync(projekt.ordner)) return { status: 404, fehler: 'Ordner nicht mehr da – „Neu suchen“' };
+    const kind = spawn(datei, argumente, { cwd: projekt.ordner, detached: true, stdio: 'ignore', windowsHide: false });
+    kind.on('error', (f) => protokoll('Programmstart gescheitert:', datei, f.message));
+    kind.unref();
+    protokoll('Programm', projekt.ordner, datei, argumente.join(' '));
+    return { ok: true, programm: projekt.programm.text };
+  }
+
   // reparieren: zweiter Versuch nach einem gescheiterten Start -- immer erst
   // installieren, und scheitert das, node_modules neu aufbauen (kindProzess).
   async starten(id, oeffnen, reparieren = false) {
     const projekt = this.projekte.find((p) => p.id === id);
     if (!projekt) return { status: 404, fehler: 'Projekt unbekannt' };
+    if (!projekt.skript && projekt.programm) return this.programmStarten(projekt);
     if (!projekt.skript) return { status: 400, fehler: `${projekt.art}-Projekt ohne Dev-Server – über „Ordner“ öffnen` };
     // Der Dev-Server kann in einem Unterordner liegen (Projekt/prototypes).
     const ordner = projekt.start || projekt.ordner;
