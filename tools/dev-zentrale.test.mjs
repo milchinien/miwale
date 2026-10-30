@@ -4,6 +4,7 @@ import {
   erlaubterUrsprung, erlaubterHost, projektAusPaket, startBefehl, leseNetstat,
   zuordnen, stoppWurzel, baueServer, vergibNamen, fehlerAusLog, fehlendePakete, befehle, portBelegt, portAusProjekt,
   erkenneArt, istProgrammOrdner, imArchiv, sindKopien, fasseKopienZusammen, leseGitLog, aendertProjekte,
+  waehleStartSkript, waehleProgramm,
 } from '../public/dev/agent.mjs';
 
 test('nur miwale.com und localhost duerfen den Agenten ansprechen', () => {
@@ -178,6 +179,17 @@ test('Projektarten: nicht nur Node', () => {
   assert.equal(erkenneArt(namen('server.properties', 'eula.txt', 'mods', 'panel'), null), 'Minecraft');
   assert.equal(erkenneArt(namen('.claude-plugin', 'snake'), null), 'Claude-Mod');
   assert.equal(erkenneArt(namen('Bilder', 'notizen.txt'), null), null);
+});
+
+test('Projekte ohne Dev-Server: Startskript und gebautes Programm', () => {
+  assert.equal(waehleStartSkript(['start.bat', 'Panel starten.bat', 'backup.ps1', 'eula.txt']), 'Panel starten.bat');
+  assert.equal(waehleStartSkript(['Cargo.toml', 'start.bat']), 'start.bat');
+  assert.equal(waehleStartSkript(['run.cmd']), 'run.cmd');
+  assert.equal(waehleStartSkript(['build.bat', 'deploy.cmd', 'README.md']), null, 'Bauen ist kein Starten');
+  const build = (...n) => n.map((x) => `D:\\S\\build\\windows-mingw-debug\\${x}`);
+  assert.equal(waehleProgramm(build('SlimoriaAssetCooker.exe', 'SlimoriaEditorTests.exe', 'SlimoriaEditor.exe', 'SlimoriaEngine.exe')), build('SlimoriaEditor.exe')[0]);
+  assert.equal(waehleProgramm(build('SlimoriaRhiTests.exe', 'SlimoriaEngine.exe')), build('SlimoriaEngine.exe')[0]);
+  assert.equal(waehleProgramm(build('a_test.exe')), null);
 });
 
 test('Ueberwachung: neue, umbenannte und geloeschte Projekte loesen eine Suche aus', () => {
