@@ -26,7 +26,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const VERSION = 4;
+export const VERSION = 5;
 export const PORT = 5300;
 const DATEN = path.join(process.env.LOCALAPPDATA || os.homedir(), 'miwale-dev');
 const EINSTELLUNGEN = path.join(DATEN, 'einstellungen.json');
@@ -142,6 +142,8 @@ const RAHMEN = [
   ['@remix-run/dev', 'Remix'], ['vite', 'Vite'], ['webpack', 'Webpack'], ['parcel', 'Parcel'],
 ];
 
+const JAVA = ['build.gradle', 'build.gradle.kts', 'settings.gradle', 'settings.gradle.kts', 'pom.xml'];
+
 export function erkenneArt(namen, paket) {
   if (paket) {
     const abh = { ...(paket.dependencies || {}), ...(paket.devDependencies || {}) };
@@ -156,6 +158,9 @@ export function erkenneArt(namen, paket) {
   if (namen.has('go.mod')) return 'Go';
   if (namen.has('CMakeLists.txt')) return 'C++';
   if (dateien.some((n) => /\.(sln|csproj)$/i.test(n))) return '.NET';
+  if (JAVA.some((n) => namen.has(n))) return 'Java';
+  if (namen.has('server.properties') && namen.has('eula.txt')) return 'Minecraft';
+  if (namen.has('.claude-plugin')) return 'Claude-Mod';
   if (namen.has('pyproject.toml') || namen.has('requirements.txt')) return 'Python';
   if (namen.has('index.html')) return 'HTML';
   if (namen.has('.git')) return 'Git';
@@ -568,6 +573,46 @@ async function wurzeln(einstellungen) {
   return liste;
 }
 
+// Was die Ueberwachung beobachtet: jede Wurzel der Suche rekursiv (unter
+// Windows ein einziger Handle je Wurzel). C:\ nicht, und im Benutzerordner nur
+// die Unterordner -- in AppData wird staendig geschrieben.
+async function beobachtungsZiele(einstellungen) {
+  const ziele = [];
+  for (const w of await wurzeln(einstellungen)) {
+    if (/^c:\\$/i.test(w.ordner)) continue;
+    if (w.ordner !== os.homedir()) { ziele.push({ ordner: w.ordner, rekursiv: true }); continue; }
+    ziele.push({ ordner: w.ordner, rekursiv: false });
+    const o = await leseOrdner(w.ordner);
+    for (const e of o ? unterordner(o.eintraege) : []) ziele.push({ ordner: path.join(w.ordner, e.name), rekursiv: true });
+  }
+  return ziele;
+}
+
+// Dateien und Ordner, an denen erkenneArt ein Projekt erkennt.
+const MERKMALE = new Set(['package.json', 'project.godot', 'projectsettings', 'cargo.toml', 'go.mod', 'cmakelists.txt',
+  'pyproject.toml', 'requirements.txt', 'index.html', '.git', 'server.properties', '.claude-plugin', ...JAVA]);
+
+// Aendert ein Dateiereignis die Projektliste? relativ: Pfad unter der
+// beobachteten Wurzel, projekte: bekannte Projektordner in Kleinbuchstaben.
+// In einem Projekt zaehlen nur Erkennungsdateien bis drei Ebenen tief (so tief
+// sucht startbareDarunter den Dev-Server) und das Projekt selbst; ausserhalb
+// jeder neue, umbenannte oder geloeschte Ordner -- Ordner erkennt man hier nur
+// am Namen ohne Dateiendung.
+export function aendertProjekte(wurzel, relativ, ereignis, projekte) {
+  const teile = relativ.split(/[\\/]+/).filter(Boolean);
+  if (!teile.length) return false;
+  const name = teile[teile.length - 1].toLowerCase();
+  const merkmal = MERKMALE.has(name) || /\.(sln|csproj|uproject)$/.test(name);
+  if (!merkmal && /^[.$~]/.test(name)) return false;
+  if (teile.slice(0, -1).some((t) => /^[.$~]/.test(t) || UEBERSPRINGEN_DARUNTER.has(t.toLowerCase()))) return false;
+  let ordner = wurzel.toLowerCase().replace(/[\\/]+$/, '');
+  for (let i = 0; i < teile.length; i++) {
+    ordner += `\\${teile[i].toLowerCase()}`;
+    if (projekte.has(ordner)) return i === teile.length - 1 || (merkmal && teile.length - 1 - i <= 3);
+  }
+  return merkmal || (ereignis === 'rename' && !/\.[a-z0-9]{1,8}$/.test(name));
+}
+
 // gitCache: Ordner -> { hash, erstellt, geprueft }. Das erste Commit aendert
 // sich nicht; ohne Git wird alle sechs Stunden neu gefragt.
 export async function sucheProjekte(einstellungen, gitCache = new Map()) {
@@ -679,6 +724,12 @@ class Zentrale {
     // id -> { pid, seit, oeffnen, zustand: 'startet'|'laeuft'|'fehler', fehler }
     this.gestartet = new Map();
     this.beobachter = null;
+    // Dateiueberwachung: Ziel -> FSWatcher. veraendert: wann zuletzt ein
+    // Projekt dazukam, umbenannt oder geloescht wurde (0: seit der Suche nichts).
+    this.waechter = new Map();
+    this.waechterFehler = new Set();
+    this.bekannteOrdner = new Set();
+    this.veraendert = 0;
   }
 
   sichtbareProjekte() {
@@ -688,16 +739,44 @@ class Zentrale {
 
   neuSuchen() {
     if (this.suche) return this.suche;
+    this.veraendert = 0;
     this.suche = sucheProjekte(this.einstellungen, this.gitCache)
-      .then((projekte) => {
+      .then(async (projekte) => {
         this.projekte = projekte;
         this.letzteSuche = Date.now();
         schreibeJson(PROJEKTE_CACHE, projekte);
         schreibeJson(GIT_CACHE, Object.fromEntries(this.gitCache));
+        await this.beobachteOrdner();
       })
       .catch((f) => protokoll('Suche fehlgeschlagen:', f.message))
       .finally(() => { this.suche = null; });
     return this.suche;
+  }
+
+  // Neue, umbenannte und geloeschte Projekte gleich bemerken, nicht erst bei
+  // der Suche alle fuenf Minuten. Die Ereignisse merken nur vor; gesucht wird,
+  // wenn die Seite das naechste Mal fragt (stand).
+  async beobachteOrdner() {
+    this.bekannteOrdner = new Set(this.projekte.flatMap((p) => [p.ordner, ...(p.kopien || []).map((k) => k.ordner)]).map((o) => o.toLowerCase()));
+    const ziele = await beobachtungsZiele(this.einstellungen);
+    const schluessel = (z) => `${z.rekursiv ? 'r' : 'f'}:${z.ordner}`;
+    const gewollt = new Set(ziele.map(schluessel));
+    for (const [k, w] of this.waechter) if (!gewollt.has(k)) { w.close(); this.waechter.delete(k); }
+    for (const z of ziele) {
+      const k = schluessel(z);
+      if (this.waechter.has(k)) continue;
+      try {
+        const w = fs.watch(z.ordner, { recursive: z.rekursiv, persistent: false }, (ereignis, datei) => {
+          if (datei && aendertProjekte(z.ordner, String(datei), ereignis, this.bekannteOrdner)) this.veraendert = Date.now();
+        });
+        // Wurzel weg oder Puffer uebergelaufen: bei der naechsten Suche neu.
+        w.on('error', () => { w.close(); this.waechter.delete(k); this.veraendert = Date.now(); });
+        this.waechter.set(k, w);
+      } catch (f) {
+        if (!this.waechterFehler.has(k)) protokoll('Beobachten nicht moeglich:', z.ordner, f.message);
+        this.waechterFehler.add(k);
+      }
+    }
   }
 
   async momentaufnahme(frisch = false) {
@@ -716,8 +795,10 @@ class Zentrale {
   }
 
   async stand() {
-    if (!this.projekte.length && !this.letzteSuche) this.neuSuchen();
-    else if (Date.now() - this.letzteSuche > 5 * 60 * 1000) this.neuSuchen();
+    // Nach einer Aenderung kurz warten (Kopieren, git clone) und hoechstens
+    // alle 15 Sekunden suchen; ohne Aenderung alle fuenf Minuten zur Sicherheit.
+    const alter = Date.now() - this.letzteSuche;
+    if (alter > 5 * 60 * 1000 || (this.veraendert && alter > 15000 && Date.now() - this.veraendert > 1500)) this.neuSuchen();
     const { prozesse, hoeren } = await this.momentaufnahme();
     this.abgleichen(prozesse);
     const server = baueServer(hoeren, prozesse, this.projekte, this.gestartet, process.pid);
