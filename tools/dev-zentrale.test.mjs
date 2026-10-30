@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   erlaubterUrsprung, erlaubterHost, projektAusPaket, startBefehl, leseNetstat,
   zuordnen, stoppWurzel, baueServer, vergibNamen, fehlerAusLog, fehlendePakete, befehle, portBelegt, portAusProjekt,
-  erkenneArt, istProgrammOrdner, imArchiv, sindKopien, fasseKopienZusammen, leseGitLog,
+  erkenneArt, istProgrammOrdner, imArchiv, sindKopien, fasseKopienZusammen, leseGitLog, aendertProjekte,
 } from '../public/dev/agent.mjs';
 
 test('nur miwale.com und localhost duerfen den Agenten ansprechen', () => {
@@ -173,7 +173,36 @@ test('Projektarten: nicht nur Node', () => {
   assert.equal(erkenneArt(namen('Cargo.toml', 'src', '.git'), null), 'Rust');
   assert.equal(erkenneArt(namen('index.html', 'style.css'), null), 'HTML');
   assert.equal(erkenneArt(namen('.git', 'docs', 'prototypes'), null), 'Git');
+  assert.equal(erkenneArt(namen('build.gradle', 'gradlew', 'src'), null), 'Java');
+  assert.equal(erkenneArt(namen('pom.xml', 'src'), null), 'Java');
+  assert.equal(erkenneArt(namen('server.properties', 'eula.txt', 'mods', 'panel'), null), 'Minecraft');
+  assert.equal(erkenneArt(namen('.claude-plugin', 'snake'), null), 'Claude-Mod');
   assert.equal(erkenneArt(namen('Bilder', 'notizen.txt'), null), null);
+});
+
+test('Ueberwachung: neue, umbenannte und geloeschte Projekte loesen eine Suche aus', () => {
+  const projekte = new Set(['d:\\projects\\jam games\\fg3', 'c:\\users\\michi\\desktop\\pet']);
+  const aendert = (rel, ereignis = 'rename', wurzel = 'D:\\') => aendertProjekte(wurzel, rel, ereignis, projekte);
+  // ausserhalb bekannter Projekte: neue oder umbenannte Ordner
+  assert.equal(aendert('\\06_Experimente\\Neues Spiel'), true, 'Laufwerkswurzel liefert fuehrenden Backslash');
+  assert.equal(aendert('06_Experimente\\Neues Spiel\\package.json'), true);
+  assert.equal(aendert('06_Experimente\\Neues Spiel\\package.json', 'change'), true);
+  assert.equal(aendert('03_Medien\\video.mp4'), false, 'Dateien sind keine Ordner');
+  assert.equal(aendert('03_Medien\\Ordner', 'change'), false, 'nur Inhalt geaendert');
+  // im Projekt: nur das Projekt selbst und Erkennungsdateien bis drei Ebenen tief
+  assert.equal(aendert('Projects\\JAM Games\\FG3'), true, 'geloescht oder umbenannt');
+  assert.equal(aendert('Projects\\JAM Games\\FG3\\src\\neu'), false);
+  assert.equal(aendert('Projects\\JAM Games\\FG3\\src\\main.ts', 'change'), false);
+  assert.equal(aendert('Projects\\JAM Games\\FG3\\prototypes\\a\\package.json'), true);
+  assert.equal(aendert('Projects\\JAM Games\\FG3\\a\\b\\c\\d\\package.json'), false);
+  // nie: node_modules, .git-Inneres, versteckte und uebersprungene Ordner
+  assert.equal(aendert('Projects\\X\\node_modules\\vite\\package.json'), false);
+  assert.equal(aendert('Projects\\JAM Games\\FG3\\.git\\index', 'change'), false);
+  assert.equal(aendert('Projects\\Y\\.git'), true, 'neues Git-Projekt');
+  assert.equal(aendert('Downloads\\entpackt'), false);
+  // Benutzerordner: Wurzel ist der Unterordner
+  assert.equal(aendert('pet', 'rename', 'C:\\Users\\michi\\Desktop'), true);
+  assert.equal(aendert('pet\\src\\x', 'rename', 'C:\\Users\\michi\\Desktop'), false);
 });
 
 test('installierte Programme werden uebersprungen, Projekte mit Export nicht', () => {
