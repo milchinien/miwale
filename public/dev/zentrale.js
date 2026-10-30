@@ -5,7 +5,7 @@
   'use strict';
 
   const AGENT = 'http://127.0.0.1:5300';
-  const VERSION = 6;
+  const VERSION = 7;
   const basis = `${location.origin}/dev/`;
   const installBefehl = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$env:MIWALE_DEV='${basis}'; irm ${basis}installieren.ps1 | iex"`;
 
