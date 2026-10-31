@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zombie Horde Defense – Outbreak Simulator</title>
+  <style>:root{--bg:#0a0d12;--panel:#0e121ad1;--line:#7896be38;--txt:#d6deea;--dim:#7f8ca0;--green:#35f06a;--orange:#ff9a1f;--blue:#9ec4ff;--red:#ff4a4a}*{box-sizing:border-box}html,body{background:var(--bg);height:100%;color:var(--txt);-webkit-user-select:none;user-select:none;margin:0;font:13px/1.4 Segoe UI,system-ui,sans-serif;overflow:hidden}canvas#c{cursor:crosshair;width:100%;height:100%;display:block;position:fixed;inset:0}.panel{background:var(--panel);border:1px solid var(--line);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:8px;padding:10px 12px;position:fixed}h1{letter-spacing:.14em;text-transform:uppercase;color:#fff;margin:0 0 2px;font-size:15px}h1 span{color:var(--green)}.sub{color:var(--dim);margin-bottom:8px;font-size:11px}label{color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 3px;font-size:11px;display:block}select,button{color:var(--txt);border:1px solid var(--line);font:inherit;cursor:pointer;background:#161d29;border-radius:5px;padding:5px 8px}select{width:100%}button:hover,select:hover{border-color:#4b6a99}button.on{border-color:var(--green);color:#fff;background:#1f3d2c}#menu{width:230px;top:12px;left:12px}#menu .row{gap:6px;margin-top:10px;display:flex}#menu .row button{flex:1}#stats{width:290px;top:12px;right:12px}#stats .line span{white-space:nowrap}#stats .line{justify-content:space-between;align-items:baseline;margin:2px 0;display:flex}#stats .line b{font-variant-numeric:tabular-nums;font-size:17px}.dot{border-radius:50%;width:9px;height:9px;margin-right:7px;display:inline-block}#stage{border-top:1px solid var(--line);margin-top:8px;padding-top:8px}#stagebar{background:#1a2230;border-radius:3px;height:5px;margin-top:4px;overflow:hidden}#stagebar i{background:linear-gradient(90deg,#35f06a,#d6ff3a,#ff9a1f,#ff4a4a);width:0;height:100%;display:block}#spark{width:100%;height:54px;margin-top:8px;display:block}#bar{align-items:center;gap:6px;padding:7px 10px;display:flex;bottom:14px;left:50%;transform:translate(-50%)}#bar .sep{background:var(--line);width:1px;height:20px;margin:0 4px}#bar .tag{color:var(--dim);margin-right:2px;font-size:11px}#hint{text-align:center;border-color:#ff4a4a80;padding:8px 16px;font-size:14px;top:14px;left:50%;transform:translate(-50%)}#hint.after{border-color:var(--line);color:var(--dim);font-size:12px}#hint b{color:var(--red)}#help{color:var(--dim);font-size:11px;line-height:1.6;bottom:14px;left:12px}#help kbd{border:1px solid var(--line);color:var(--txt);background:#1a2230;border-radius:3px;padding:0 4px}#loading{background:var(--bg);z-index:10;letter-spacing:.06em;flex-direction:column;justify-content:center;align-items:center;gap:10px;font-size:15px;display:flex;position:fixed;inset:0}#loading small{color:var(--dim);font-size:12px}#loading.hidden{display:none}</style>
+  <script type="module" crossorigin src="./assets/index-qYhntX1M.js"></script>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <div id="menu" class="panel">
+    <h1>Zombie <span>Horde</span></h1>
+    <div class="sub">Outbreak simulator · prototype v0.1</div>
+    <label for="city">City</label>
+    <select id="city"></select>
+    <label for="pop">Population</label>
+    <select id="pop">
+      <option value="20000">Quiet · 20,000</option>
+      <option value="40000" selected>Busy · 40,000</option>
+      <option value="80000">Crowded · 80,000</option>
+      <option value="150000">Packed · 150,000</option>
+      <option value="250000">Metropolis · 250,000</option>
+    </select>
+    <div class="row"><button id="restart">New outbreak</button></div>
+  </div>
+
+  <div id="stats" class="panel">
+    <div class="line"><span><i class="dot" style="background:#c8dcff"></i>Humans</span><b id="s-humans">–</b></div>
+    <div class="line"><span><i class="dot" style="background:#ff9420"></i>Infected</span><b id="s-inf">–</b></div>
+    <div class="line"><span><i class="dot" style="background:#2df25a"></i>Zombies</span><b id="s-zom">–</b></div>
+    <div class="line" style="color:var(--dim)"><span>Running / panicking</span><span><span id="s-run">0</span> / <span id="s-pan">0</span></span></div>
+    <div id="stage">
+      <div class="line"><span style="color:var(--dim)">Outbreak time</span><b id="s-time" style="font-size:14px">--:--</b></div>
+      <div class="line"><span id="s-stage" style="color:var(--green)">Stage –</span><span id="s-speed" style="color:var(--dim)"></span></div>
+      <div id="stagebar"><i id="stagefill"></i></div>
+    </div>
+    <div class="line" style="color:var(--dim)"><span>Performance</span><span id="s-perf">–</span></div>
+    <canvas id="spark" width="460" height="108"></canvas>
+  </div>
+
+  <div id="hint" class="panel">Click anywhere on the map to release <b>Patient Zero</b></div>
+
+  <div id="bar" class="panel">
+    <span class="tag">SPEED</span>
+    <button data-speed="0" id="btn-pause" title="Space">❚❚</button>
+    <button data-speed="1" class="on">1×</button>
+    <button data-speed="2">2×</button>
+    <button data-speed="4">4×</button>
+    <button data-speed="8">8×</button>
+    <button data-speed="16">16×</button>
+    <span class="sep"></span>
+    <span class="tag">VIEW</span>
+    <button id="btn-zglow" class="on" title="Z">Horde glow</button>
+    <button id="btn-hglow" class="on" title="H">Crowds</button>
+  </div>
+
+  <div id="help" class="panel">
+    <kbd>Left click</kbd> release a zombie · <kbd>Left drag</kbd> / <kbd>WASD</kbd> pan<br />
+    <kbd>Right drag</kbd> / <kbd>Q</kbd><kbd>E</kbd> rotate &amp; tilt · <kbd>Wheel</kbd> zoom · <kbd>Space</kbd> pause<br />
+    Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">OpenStreetMap contributors</a>
+  </div>
+
+  <div id="loading"><div id="loadtext">Loading city…</div><small id="loadsub"></small></div>
+</body>
+</html>
