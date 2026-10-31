@@ -22,6 +22,7 @@ export const GROUPS = {
   blueprint: 'Graphic', ukiyoe: 'Graphic', thermal: 'Digital', terminal: 'Digital', origami: 'Handcrafted',
   rubberhose: 'Illustrated', vaporwave: 'Digital', sumie: 'Painterly', bricks: '3D look',
   riso: 'Graphic', crayon: 'Illustrated', deepsea: 'Illustrated', artdeco: 'Graphic',
+  cardtable: 'Pixel art',
 };
 const VIEWS = [['', 'Scene'], ['_late', 'Dense scene'], ['_map', 'Wide view'], ['_lu', 'UI overlay'], ['_zoom', 'Close-up']];
 const ELEMENTS = [['world', 'World'], ['characters', 'Characters'], ['props', 'Props'], ['effects', 'Effects'], ['atmosphere', 'Atmosphere'], ['ui', 'UI & type']];

@@ -3249,6 +3249,106 @@
           "url": "https://miwale.com/styles/shots/artdeco_zoom.webp"
         }
       ]
+    },
+    {
+      "id": "cardtable",
+      "name": "Psychedelic Card Table",
+      "family": "Pixel Art · CRT Card Table",
+      "group": "Pixel art",
+      "original": true,
+      "tags": [
+        "balatro-like",
+        "pixel art",
+        "crt",
+        "paint swirl",
+        "playing cards",
+        "juice",
+        "psychedelic",
+        "casino"
+      ],
+      "summary": "A Balatro-like card table: a flowing paint swirl floor, wobbling pixel cards and chip tokens, foil and holo editions, burn dissolves and a CRT screen.",
+      "mood": [
+        "hypnotic",
+        "playful",
+        "snappy",
+        "retro",
+        "casino-lounge"
+      ],
+      "bestFor": [
+        "card, deck-building and dice projects",
+        "puzzle and casino-themed arcade games",
+        "menus, shops and reward screens that need juice",
+        "top-down arcade action with a playful tone",
+        "any project that wants a strong CRT pixel identity"
+      ],
+      "difficulty": 4,
+      "pixelArt": true,
+      "palette": [
+        "#50846e",
+        "#b44430",
+        "#8a71e1",
+        "#2b6e8f",
+        "#009dff",
+        "#fe5f55",
+        "#f3b958",
+        "#fda200",
+        "#4bc292",
+        "#a782d1",
+        "#13afce",
+        "#ffffff",
+        "#bfc7d5",
+        "#f03464",
+        "#f06b3f",
+        "#403995",
+        "#235955",
+        "#c9473a",
+        "#da4a41",
+        "#3a5055",
+        "#26353a",
+        "#24302f"
+      ],
+      "fonts": [
+        "Jersey 10",
+        "3x5 pixel digits"
+      ],
+      "page": "https://miwale.com/styles/cardtable/",
+      "files": {
+        "spec": "https://miwale.com/styles/library/cardtable/STYLE.md",
+        "tokens": "https://miwale.com/styles/library/cardtable/spec.json",
+        "starter": "https://miwale.com/styles/library/cardtable/starter.js",
+        "module": "https://miwale.com/styles/js/styles/cardtable.js"
+      },
+      "previews": {
+        "scene": "https://miwale.com/styles/stage.html?style=cardtable&view=scene",
+        "world": "https://miwale.com/styles/stage.html?style=cardtable&view=world",
+        "characters": "https://miwale.com/styles/stage.html?style=cardtable&view=characters",
+        "props": "https://miwale.com/styles/stage.html?style=cardtable&view=props",
+        "effects": "https://miwale.com/styles/stage.html?style=cardtable&view=effects",
+        "atmosphere": "https://miwale.com/styles/stage.html?style=cardtable&view=atmosphere",
+        "ui": "https://miwale.com/styles/stage.html?style=cardtable&view=ui"
+      },
+      "screenshots": [
+        {
+          "label": "Scene",
+          "url": "https://miwale.com/styles/shots/cardtable.webp"
+        },
+        {
+          "label": "Dense scene",
+          "url": "https://miwale.com/styles/shots/cardtable_late.webp"
+        },
+        {
+          "label": "Wide view",
+          "url": "https://miwale.com/styles/shots/cardtable_map.webp"
+        },
+        {
+          "label": "UI overlay",
+          "url": "https://miwale.com/styles/shots/cardtable_lu.webp"
+        },
+        {
+          "label": "Close-up",
+          "url": "https://miwale.com/styles/shots/cardtable_zoom.webp"
+        }
+      ]
     }
   ]
 }

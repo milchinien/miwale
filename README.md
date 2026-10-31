@@ -465,7 +465,7 @@ Secrets gehoeren nur in die `.env` auf dem Server, nie ins Repository.
 
 ## Game Style Library (miwale.com/styles)
 
-Eine offene Seite **für KIs**: 33 fertige Grafik-Styles, so genau beschrieben,
+Eine offene Seite **für KIs**: 34 fertige Grafik-Styles, so genau beschrieben,
 dass eine KI sie für ein eigenes Projekt übernehmen kann. Viele KIs erfinden
 schlechte Styles; hier kopieren sie einen, der funktioniert. Es geht **nur um
 Design**: Texte, Specs und Vorschauen erwähnen kein Spiel und keine
