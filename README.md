@@ -1011,6 +1011,14 @@ danebenliegt; `fertig` zeigt auf einen eingecheckten fertigen Web-Build. Das ist
 der Weg fuer Unity (WebGL) und Godot (Web-Export), die sich ohne Lizenz und
 Vorlagen nicht in der Action bauen lassen.
 
+**Spiele ohne Repository** (z. B. Zombie Horde) werden von Hand eingefroren:
+lokal mit relativen Pfaden bauen (`vite build --base=./`), den Build nach
+`public/games/<id>/` kopieren, mit `node tools/kern-pruefung.mjs
+public/games/<id> <id>` pruefen, einen Eintrag in `shop/spiele.js` schreiben und
+in `manifest.json` die Pruefsumme mit `"repo": null` eintragen. Die Automatik
+laesst sie stehen, weil ihr Eintrag in `shop/spiele.js` auf `/games/<id>/` zeigt.
+Ein neuer Build heisst: dieselben Schritte noch einmal, mit neuer Pruefsumme.
+
 **Was die Action tut.** Hat sich etwas geaendert, committet sie auf den Branch
 `automatisch/spiele`, laesst dort dieselbe CI laufen wie bei einem PR und spult
 bei Gruen `main` vor; danach startet sie Publish. Ein Pushen mit dem

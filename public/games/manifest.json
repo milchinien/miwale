@@ -47,5 +47,12 @@
     "repo": "milchinien/Castle-Scaremore",
     "commit": "204dac23b8a75d0215178172796235bbfe154fb9",
     "handy": true
+  },
+  "zombie-horde": {
+    "path": "games/zombie-horde/",
+    "sha256": "ef73594afcb71396e3a4265cabdd31d871538b421ff1cf74f8aa81129bc8fa95",
+    "repo": null,
+    "commit": null,
+    "handy": true
   }
 }

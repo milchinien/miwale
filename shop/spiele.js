@@ -324,6 +324,82 @@ window.MIWALE_SPIELE = [
     }
   },
   {
+    "id": "zombie-horde",
+    "name": "Zombie Horde",
+    "neu": true,
+    "veroeffentlicht": "2026-10-31",
+    "geraete": [
+      "pc",
+      "handy"
+    ],
+    "status": {
+      "en": "Early prototype",
+      "de": "Früher Prototyp"
+    },
+    "spielen": "/games/zombie-horde/",
+    "bild": "assets/games/shop/zombie-horde-preview.webp",
+    "bilder": [
+      "assets/games/shop/zombie-horde-1.webp",
+      "assets/games/shop/zombie-horde-2.webp"
+    ],
+    "medien": {
+      "screens": [
+        "assets/games/shop/zombie-horde-1.webp",
+        "assets/games/shop/zombie-horde-2.webp",
+        "assets/games/shop/zombie-horde-3.webp",
+        "assets/games/shop/zombie-horde-4.webp"
+      ]
+    },
+    "texte": {
+      "en": {
+        "kurz": "Release Patient Zero in a real city and watch the outbreak spread street by street through tens of thousands of people.",
+        "tags": [
+          "Simulation",
+          "Sandbox",
+          "Zombies",
+          "3D"
+        ],
+        "ueber": [
+          "Delft, Amsterdam and Manhattan, built from real OpenStreetMap data: every street, canal and building. Up to 80,000 people walk the real road network. Click anywhere and release Patient Zero.",
+          "People scream, panic and run along the roads. Zombies follow the noise and the crowds, and the longer the outbreak lasts, the smarter they get: faster, better senses, tighter hordes and finally runners.",
+          "A pure simulation sandbox for now: no safe zones, soldiers or economy yet. Early prototype – more is coming."
+        ],
+        "features": [
+          "Three real cities from OpenStreetMap data",
+          "Up to 80,000 simulated people at once",
+          "Zombies that grow smarter in stages as the outbreak goes on",
+          "Speed from 1× up to 16×, pause any time",
+          "Horde glow and crowd glow to read the outbreak at a glance",
+          "Free camera: pan, rotate, tilt and zoom"
+        ],
+        "steuerung": "Left click: release a zombie · Left drag or WASD: pan · Right drag or Q/E: rotate and tilt · Wheel: zoom · Space: pause · 1–5: speed · Z/H: horde and crowd glow."
+      },
+      "de": {
+        "kurz": "Setz Patient Null in einer echten Stadt aus und sieh zu, wie sich der Ausbruch Straße für Straße durch Zehntausende Menschen frisst.",
+        "tags": [
+          "Simulation",
+          "Sandbox",
+          "Zombies",
+          "3D"
+        ],
+        "ueber": [
+          "Delft, Amsterdam und Manhattan, gebaut aus echten OpenStreetMap-Daten: jede Straße, jede Gracht, jedes Gebäude. Bis zu 80.000 Menschen laufen über das echte Straßennetz. Ein Klick irgendwohin, und Patient Null ist draußen.",
+          "Menschen schreien, geraten in Panik und fliehen über die Straßen. Zombies folgen dem Lärm und den Menschenmengen, und je länger der Ausbruch dauert, desto schlauer werden sie: schneller, bessere Sinne, engere Horden und am Ende Sprinter.",
+          "Noch eine reine Simulations-Sandbox: keine Schutzzonen, keine Soldaten, keine Wirtschaft. Früher Prototyp – es kommt noch mehr."
+        ],
+        "features": [
+          "Drei echte Städte aus OpenStreetMap-Daten",
+          "Bis zu 80.000 simulierte Menschen gleichzeitig",
+          "Zombies werden in Stufen schlauer, je länger der Ausbruch läuft",
+          "Tempo von 1× bis 16×, jederzeit pausieren",
+          "Horden- und Menschenmengen-Leuchten zeigen den Ausbruch auf einen Blick",
+          "Freie Kamera: verschieben, drehen, neigen, zoomen"
+        ],
+        "steuerung": "Linksklick: Zombie aussetzen · Links ziehen oder WASD: verschieben · Rechts ziehen oder Q/E: drehen und neigen · Mausrad: zoomen · Leertaste: Pause · 1–5: Tempo · Z/H: Horden- und Mengen-Leuchten."
+      }
+    }
+  },
+  {
     "id": "reliktenschieber",
     "name": "Reliktenschieber",
     "neu": true,
