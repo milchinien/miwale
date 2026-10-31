@@ -1,6 +1,6 @@
 # miwale Game Style Library
 
-> 33 complete visual styles for 2D games, each documented in enough detail that an AI can reproduce it: exact palette (hex), fonts, rendering technique, and the six design elements – world, characters, props, effects, atmosphere, UI – plus motion, do/don't rules, a step-by-step recipe and dependency-free starter code (Canvas 2D).
+> 34 complete visual styles for 2D games, each documented in enough detail that an AI can reproduce it: exact palette (hex), fonts, rendering technique, and the six design elements – world, characters, props, effects, atmosphere, UI – plus motion, do/don't rules, a step-by-step recipe and dependency-free starter code (Canvas 2D).
 
 Use it when you have to give a project a distinct, coherent art style. Pick the style that fits the requested mood, read its STYLE.md completely and follow its rules; start from its starter.js. Elements of different styles can be combined – every element section of a STYLE.md stands on its own. All styles are free to copy and adapt.
 
@@ -41,6 +41,7 @@ Every style ships three files: `STYLE.md` (full spec, start here), `spec.json` (
 - [Crayon Kids](https://miwale.com/styles/library/crayon/STYLE.md): Hand-drawn · Wax crayon. A child's wax-crayon drawing brought to life: toothy white paper, zigzag scribble fills that go outside the lines, wobbly boiling outlines. Best for: children's and family games, cozy or comedic top-down action, educational and storybook projects, doodle-themed menus, tutorials and level select screens, party and casual mobile games. Complexity 4/10.
 - [Deep Sea Glow](https://miwale.com/styles/library/deepsea/STYLE.md): Underwater · Bioluminescent. The abyssal sea floor at night, lit only by living light: glowing jellies, kelp and coral, marine snow and blue depth fog. Best for: underwater exploration games, calm atmospheric adventures, horror games about light and darkness, night or deep-space style worlds with glowing life, relaxing collect-and-explore games. Complexity 5/10.
 - [Art Deco Gold](https://miwale.com/styles/library/artdeco/STYLE.md): Vector · Art Deco. A 1920s grand lobby: onyx, emerald and midnight marble inlaid with metallic gold sunbursts, chevrons, fans and stepped corners. Best for: stylish top-down action and arcade projects, heist, casino, hotel or jazz-age settings, luxury puzzle and match games, elegant menus, title screens and card UIs, art-deco inspired city builders and museums. Complexity 5/10.
+- [Psychedelic Card Table](https://miwale.com/styles/library/cardtable/STYLE.md): Pixel Art · CRT Card Table. A Balatro-like card table: a flowing paint swirl floor, wobbling pixel cards and chip tokens, foil and holo editions, burn dissolves and a CRT screen. Best for: card, deck-building and dice projects, puzzle and casino-themed arcade games, menus, shops and reward screens that need juice, top-down arcade action with a playful tone, any project that wants a strong CRT pixel identity. Complexity 4/10.
 
 ## Machine-readable
 
@@ -84,3 +85,4 @@ Every style ships three files: `STYLE.md` (full spec, start here), `spec.json` (
 - [Crayon Kids – page](https://miwale.com/styles/crayon/) · [tokens](https://miwale.com/styles/library/crayon/spec.json) · [starter.js](https://miwale.com/styles/library/crayon/starter.js)
 - [Deep Sea Glow – page](https://miwale.com/styles/deepsea/) · [tokens](https://miwale.com/styles/library/deepsea/spec.json) · [starter.js](https://miwale.com/styles/library/deepsea/starter.js)
 - [Art Deco Gold – page](https://miwale.com/styles/artdeco/) · [tokens](https://miwale.com/styles/library/artdeco/spec.json) · [starter.js](https://miwale.com/styles/library/artdeco/starter.js)
+- [Psychedelic Card Table – page](https://miwale.com/styles/cardtable/) · [tokens](https://miwale.com/styles/library/cardtable/spec.json) · [starter.js](https://miwale.com/styles/library/cardtable/starter.js)
