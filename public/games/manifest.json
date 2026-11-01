@@ -54,5 +54,12 @@
     "repo": "milchinien/Castle-Scaremore",
     "commit": "204dac23b8a75d0215178172796235bbfe154fb9",
     "handy": true
+  },
+  "wuerfelglueck": {
+    "path": "games/wuerfelglueck/",
+    "sha256": "86b45acfba428df0697158d4cffd344f6b3ecfd191424da8d6b37315d18649bb",
+    "repo": null,
+    "commit": null,
+    "handy": true
   }
 }

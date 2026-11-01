@@ -324,6 +324,79 @@ window.MIWALE_SPIELE = [
     }
   },
   {
+    "id": "wuerfelglueck",
+    "name": "Würfelglück",
+    "neu": true,
+    "veroeffentlicht": "2026-11-01",
+    "geraete": [
+      "pc"
+    ],
+    "status": {
+      "en": "Early prototype",
+      "de": "Früher Prototyp"
+    },
+    "spielen": "/games/wuerfelglueck/",
+    "bild": "assets/games/shop/wuerfelglueck-preview.webp",
+    "bilder": [
+      "assets/games/shop/wuerfelglueck-1.webp",
+      "assets/games/shop/wuerfelglueck-2.webp"
+    ],
+    "medien": {
+      "screens": [
+        "assets/games/shop/wuerfelglueck-1.webp",
+        "assets/games/shop/wuerfelglueck-2.webp",
+        "assets/games/shop/wuerfelglueck-3.webp",
+        "assets/games/shop/wuerfelglueck-4.webp"
+      ]
+    },
+    "texte": {
+      "en": {
+        "kurz": "A dice roguelite: hold, reroll and score poker-style hands, then build your run from 80+ relics that turn small rolls into huge combos.",
+        "tags": [
+          "Roguelite",
+          "Dice",
+          "Strategy",
+          "Pixel Art"
+        ],
+        "ueber": [
+          "Roll five dice, hold the ones you like and reroll the rest. Every hand scores Pips times Power, and you have four hands to beat the target of each round. Three rounds make a stage, the last one is a boss with its own nasty rule.",
+          "Between rounds you shop: relics that change how you score, constellations that level up your favourite hands, oracles that rewrite dice faces, new dice for your bag and permanent upgrades. Relics carry tags, and three or five of the same tag unlock set bonuses.",
+          "Start a run with a different cup to change the rules: one hand with twelve rerolls, cursed dice, a full vault or a new twist every stage. And if you are new, Jonny, a slightly nervous dice tutor, walks you through your first stage. He takes it personally."
+        ],
+        "features": [
+          "Over 80 relics, 11 upgrades and 11 oracles across 9 build styles",
+          "Luck, skull faces, a growing vault and number levels",
+          "12 cups that change your starting dice, relics or rules",
+          "Fully scripted tutorial with Jonny, who gets angrier with every mistake",
+          "3 save slots, own soundtrack, tooltips you can dig into for every term"
+        ],
+        "steuerung": "Mouse: click dice to hold them, buttons to reroll and play · Enter: play hand · R: reroll · 1–6: hold dice · O: settings · Hover anything until the ring fills to read more."
+      },
+      "de": {
+        "kurz": "Ein Würfel-Roguelite: halten, neu würfeln und Hände werten, dann den Run mit über 80 Relikten zu riesigen Kombos ausbauen.",
+        "tags": [
+          "Roguelite",
+          "Würfel",
+          "Strategie",
+          "Pixel-Art"
+        ],
+        "ueber": [
+          "Wirf fünf Würfel, halte die guten und würfle den Rest neu. Jede Hand wertet Pips mal Power, und du hast vier Hände, um das Ziel jeder Runde zu schaffen. Drei Runden ergeben eine Stage, die letzte ist ein Boss mit eigener fieser Regel.",
+          "Zwischen den Runden geht es in den Shop: Relikte, die das Werten verändern, Constellations, die deine Lieblingshände aufwerten, Orakel, die Würfelseiten umschreiben, neue Würfel und dauerhafte Upgrades. Relikte tragen Tags, drei oder fünf gleiche schalten Set-Boni frei.",
+          "Mit einem anderen Becher startet der Run mit anderen Regeln: eine Hand mit zwölf Neuwürfen, verfluchte Würfel, ein voller Tresor oder jede Stage eine neue Wendung. Und wer neu ist, wird von Jonny durch die erste Stage geführt, einem leicht nervösen Würfel-Tutor. Er nimmt alles persönlich."
+        ],
+        "features": [
+          "Über 80 Relikte, 11 Upgrades und 11 Orakel in 9 Build-Richtungen",
+          "Glück, Schädelseiten, ein wachsender Tresor und Zahlenstufen",
+          "12 Becher, die Startwürfel, Relikte oder Regeln ändern",
+          "Komplett geskriptetes Tutorial mit Jonny, der mit jedem Fehler wütender wird",
+          "3 Speicherplätze, eigener Soundtrack, Erklärungen zu jedem Begriff per Tooltip"
+        ],
+        "steuerung": "Maus: Würfel anklicken zum Halten, Knöpfe zum Neuwürfeln und Spielen · Enter: Hand spielen · R: neu würfeln · 1–6: Würfel halten · O: Einstellungen · Mit der Maus auf etwas zeigen, bis der Ring voll ist, für mehr Infos."
+      }
+    }
+  },
+  {
     "id": "zombie-horde",
     "name": "Zombie Horde",
     "neu": true,
