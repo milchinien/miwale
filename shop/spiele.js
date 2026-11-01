@@ -400,6 +400,229 @@ window.MIWALE_SPIELE = [
     }
   },
   {
+    "id": "last-ember",
+    "name": "Last Ember",
+    "neu": true,
+    "veroeffentlicht": "2026-10-31",
+    "geraete": [
+      "pc"
+    ],
+    "status": {
+      "en": "Game jam entry",
+      "de": "Game-Jam-Beitrag"
+    },
+    "spielen": "/jam-spiele/last-ember/",
+    "bild": "assets/jam/last-ember.webp",
+    "bilder": [
+      "assets/games/shop/last-ember-1.webp",
+      "assets/games/shop/last-ember-2.webp"
+    ],
+    "medien": {
+      "screens": [
+        "assets/games/shop/last-ember-1.webp",
+        "assets/games/shop/last-ember-2.webp",
+        "assets/games/shop/last-ember-3.webp",
+        "assets/games/shop/last-ember-4.webp"
+      ]
+    },
+    "texte": {
+      "en": {
+        "kurz": "Your torch is your light, your timer and your life. Feed the flame and survive the dark.",
+        "tags": [
+          "Survivors-like",
+          "Roguelite",
+          "Action",
+          "Pixel art"
+        ],
+        "ueber": [
+          "The sun is gone. Your torch is not a weapon: it is your light, your timer and your life, and it burns down every second. Enemies drop fuel that keeps it alive. The more fuel you carry, the hotter it burns: a bigger light, but more monsters crawling out of the dark.",
+          "Your weapons fire on their own, but only find targets inside the light. Level up, draw tarot cards, open chests and accept shrine blessings that always come with a price. Hold out until the boss rush, then claim your reward or keep going into an endless night.",
+          "Win or lose, you keep your Glut for a skill tree with 49 nodes and eight torches with their own play style. Made for AI Browser Game Jam 5, theme: Torch."
+        ],
+        "features": [
+          "A torch that is your health clock, your vision and your difficulty",
+          "15 weapons and stacking buffs on tarot level-up cards",
+          "13 night events like Blood Moon, Eclipse or The Hunter",
+          "Boss rush with three giant bosses, then an endless night",
+          "Six regions with their own rules and five danger levels",
+          "Skill tree with 49 nodes and 8 torches to unlock"
+        ],
+        "steuerung": "WASD or arrow keys: move · Space or Shift: dash · 1–3 or click: pick a card · Esc: pause · Mouse: menus and skill tree."
+      },
+      "de": {
+        "kurz": "Deine Fackel ist dein Licht, deine Uhr und dein Leben. Füttere die Flamme und überlebe die Dunkelheit.",
+        "tags": [
+          "Survivors-like",
+          "Roguelite",
+          "Action",
+          "Pixel Art"
+        ],
+        "ueber": [
+          "Die Sonne ist weg. Deine Fackel ist keine Waffe: Sie ist dein Licht, deine Uhr und dein Leben, und sie brennt jede Sekunde herunter. Gegner lassen Brennstoff fallen, der sie am Leben hält. Je mehr du trägst, desto heißer brennt sie: mehr Licht, aber auch mehr Monster aus der Dunkelheit.",
+          "Deine Waffen feuern von selbst, treffen aber nur im Licht. Steig auf, zieh Tarotkarten, öffne Truhen und nimm Segen an Schreinen an, die immer einen Preis haben. Halte bis zum Boss-Rush durch, dann hol dir die Belohnung oder spiel weiter in die endlose Nacht.",
+          "Ob Sieg oder Niederlage, deine Glut behältst du: für einen Skill Tree mit 49 Knoten und acht Fackeln mit eigenem Spielstil. Gebaut für die AI Browser Game Jam 5, Thema: Torch."
+        ],
+        "features": [
+          "Eine Fackel als Lebensuhr, Sicht und Schwierigkeitsgrad zugleich",
+          "15 Waffen und stapelbare Buffs auf Tarot-Karten",
+          "13 Nacht-Ereignisse wie Blutmond, Finsternis oder Der Jäger",
+          "Boss-Rush mit drei riesigen Bossen, danach die endlose Nacht",
+          "Sechs Regionen mit eigenen Regeln und fünf Gefahrenstufen",
+          "Skill Tree mit 49 Knoten und 8 freischaltbare Fackeln"
+        ],
+        "steuerung": "WASD oder Pfeiltasten: bewegen · Leertaste oder Shift: Dash · 1–3 oder Klick: Karte wählen · Esc: Pause · Maus: Menüs und Skill Tree."
+      }
+    }
+  },
+  {
+    "id": "keepers-light",
+    "name": "Keeper's Light",
+    "neu": true,
+    "veroeffentlicht": "2026-10-31",
+    "geraete": [
+      "pc"
+    ],
+    "status": {
+      "en": "Game jam entry",
+      "de": "Game-Jam-Beitrag"
+    },
+    "spielen": "/jam-spiele/keepers-light/",
+    "bild": "assets/jam/keepers-light.webp",
+    "bilder": [
+      "assets/games/shop/keepers-light-1.webp",
+      "assets/games/shop/keepers-light-2.webp"
+    ],
+    "medien": {
+      "screens": [
+        "assets/games/shop/keepers-light-1.webp",
+        "assets/games/shop/keepers-light-2.webp",
+        "assets/games/shop/keepers-light-3.webp",
+        "assets/games/shop/keepers-light-4.webp"
+      ]
+    },
+    "texte": {
+      "en": {
+        "kurz": "One beam, two jobs: guide the ships home and burn what rises from the sea.",
+        "tags": [
+          "Defense",
+          "Strategy",
+          "Story",
+          "Pixel art"
+        ],
+        "ueber": [
+          "The old keeper is gone. The light is yours now. Every night from 12 to 6 AM you turn the beam of a lighthouse on a dark, rocky coast. Ships need your light to find the harbor, things from the deep burn in it. You only have one beam, so every second you decide who you save.",
+          "At dawn you spend your gold on lenses, harbor upgrades and defenses. The coast and the town grow every night, and new dangers keep coming: whirlpools, a sea beast and leviathans. Later you run up to three lighthouses at once and switch between them like security cameras.",
+          "Old Hobb, the grumpy former keeper, talks you through it over the radio. Twelve nights, and a voice that counts a little lower every night. Made for AI Browser Game Jam 5, theme: Torch."
+        ],
+        "features": [
+          "Focus the beam: narrower, longer and three times the burn",
+          "Twelve nights with a story and an ending",
+          "Up to three lighthouses with sonar monitors",
+          "Upgrades at dawn: lenses, harbor, flares, foghorn, dynamite",
+          "37 achievements and hidden secrets",
+          "An old radio with five stations of crackling records"
+        ],
+        "steuerung": "Mouse (or A/D): turn the beam · Hold click or Space: focused beam · 1–3 or Tab: switch lighthouse · F: flare · H: foghorn · R/T: radio · M: mute · Esc or P: pause."
+      },
+      "de": {
+        "kurz": "Ein Strahl, zwei Aufgaben: Bring die Schiffe nach Hause und verbrenne, was aus dem Meer steigt.",
+        "tags": [
+          "Defense",
+          "Strategie",
+          "Story",
+          "Pixel Art"
+        ],
+        "ueber": [
+          "Der alte Leuchtturmwärter ist weg. Das Licht gehört jetzt dir. Jede Nacht von 0 bis 6 Uhr drehst du den Strahl eines Leuchtturms über eine dunkle Felsküste. Schiffe brauchen dein Licht, um den Hafen zu finden, Wesen aus der Tiefe verbrennen darin. Du hast nur einen Strahl, also entscheidest du jede Sekunde, wen du rettest.",
+          "Im Morgengrauen gibst du dein Gold für Linsen, Hafen-Ausbau und Verteidigung aus. Küste und Stadt wachsen jede Nacht, und es kommen neue Gefahren: Strudel, ein Seeungeheuer und Leviathane. Später hältst du bis zu drei Leuchttürme gleichzeitig am Laufen und schaltest zwischen ihnen um wie zwischen Überwachungskameras.",
+          "Der grantige alte Wärter Old Hobb begleitet dich über Funk. Zwölf Nächte, und eine Stimme, die jede Nacht ein bisschen weiter herunterzählt. Gebaut für die AI Browser Game Jam 5, Thema: Torch."
+        ],
+        "features": [
+          "Strahl bündeln: schmaler, länger und dreimal so heiß",
+          "Zwölf Nächte mit Geschichte und Ende",
+          "Bis zu drei Leuchttürme mit Sonar-Monitoren",
+          "Upgrades im Morgengrauen: Linsen, Hafen, Leuchtkugeln, Nebelhorn, Dynamit",
+          "37 Erfolge und versteckte Geheimnisse",
+          "Ein altes Radio mit fünf knisternden Sendern"
+        ],
+        "steuerung": "Maus (oder A/D): Strahl drehen · Klick oder Leertaste halten: gebündelter Strahl · 1–3 oder Tab: Leuchtturm wechseln · F: Leuchtkugel · H: Nebelhorn · R/T: Radio · M: Ton aus · Esc oder P: Pause."
+      }
+    }
+  },
+  {
+    "id": "jack-vs-the-turnip-ancestors",
+    "name": "Jack vs. the Turnip Ancestors",
+    "neu": true,
+    "veroeffentlicht": "2026-10-10",
+    "geraete": [
+      "pc"
+    ],
+    "status": {
+      "en": "Game jam entry",
+      "de": "Game-Jam-Beitrag"
+    },
+    "spielen": "/jam-spiele/jack-vs-the-turnip-ancestors/",
+    "bild": "assets/jam/jack-vs-the-turnip-ancestors.webp",
+    "bilder": [
+      "assets/games/shop/jack-vs-the-turnip-ancestors-1.webp",
+      "assets/games/shop/jack-vs-the-turnip-ancestors-2.webp"
+    ],
+    "medien": {
+      "screens": [
+        "assets/games/shop/jack-vs-the-turnip-ancestors-1.webp",
+        "assets/games/shop/jack-vs-the-turnip-ancestors-2.webp",
+        "assets/games/shop/jack-vs-the-turnip-ancestors-3.webp",
+        "assets/games/shop/jack-vs-the-turnip-ancestors-4.webp"
+      ]
+    },
+    "texte": {
+      "en": {
+        "kurz": "Bullet heaven with Jack the pumpkin against waves of turnip ancestors – across 20 worlds in 20 art styles.",
+        "tags": [
+          "Bullet heaven",
+          "Roguelite",
+          "Action",
+          "Survivors-like"
+        ],
+        "ueber": [
+          "The Turnip Ancestors want their lantern back. You are Jack, a living pumpkin with a headbutt and a bag of seeds. Survive every evening until midnight, then face The Great Turnip Ancestor and step through the portal into the next world.",
+          "Every world is drawn in a completely different art style: pixel art, gothic, neon, watercolor, stained glass, clay, linocut, voxel and more, and each one turns from afternoon through dusk into night.",
+          "Collect Rutabagas and spend them on permanent upgrades between runs. Made for the Ultimate AI-Powered Game Jam #5, themes Pumpkin and Rutabaga."
+        ],
+        "features": [
+          "20 worlds, each in its own art style",
+          "Level-up cards with rerolls and a boss at midnight in every world",
+          "Permanent upgrades, mastery and rare card rarities",
+          "Three save slots, achievements and skins",
+          "Build and stats screen, many graphics and accessibility settings"
+        ],
+        "steuerung": "WASD or arrow keys: move (seeds fire on their own) · Space: headbutt dash · 1–3: pick an upgrade, R: reroll · Esc or P: pause · Tab: build and stats · M: mute."
+      },
+      "de": {
+        "kurz": "Bullet Heaven mit Kürbis Jack gegen Wellen von Rüben-Ahnen – durch 20 Welten in 20 Grafikstilen.",
+        "tags": [
+          "Bullet Heaven",
+          "Roguelite",
+          "Action",
+          "Survivors-like"
+        ],
+        "ueber": [
+          "Die Rüben-Ahnen wollen ihre Laterne zurück. Du bist Jack, ein lebendiger Kürbis mit Kopfstoß und einem Beutel voller Kerne. Überlebe jeden Abend bis Mitternacht, dann stell dich dem Großen Rüben-Ahnen und geh durch das Portal in die nächste Welt.",
+          "Jede Welt ist in einem völlig anderen Stil gezeichnet: Pixel Art, Gothic, Neon, Aquarell, Buntglas, Knete, Linolschnitt, Voxel und mehr, und jede wird vom Nachmittag über die Dämmerung zur Nacht.",
+          "Sammle Steckrüben und gib sie zwischen den Runs für dauerhafte Upgrades aus. Gebaut für die Ultimate AI-Powered Game Jam #5, Themen Pumpkin und Rutabaga."
+        ],
+        "features": [
+          "20 Welten, jede in einem eigenen Grafikstil",
+          "Level-up-Karten mit Reroll und ein Boss um Mitternacht in jeder Welt",
+          "Dauerhafte Upgrades, Meisterschaft und seltene Karten",
+          "Drei Speicherstände, Erfolge und Skins",
+          "Build- und Statistik-Ansicht, viele Grafik- und Barrierefreiheits-Optionen"
+        ],
+        "steuerung": "WASD oder Pfeiltasten: bewegen (Kerne fliegen von selbst) · Leertaste: Kopfstoß-Dash · 1–3: Upgrade wählen, R: neu ziehen · Esc oder P: Pause · Tab: Build und Statistik · M: Ton aus."
+      }
+    }
+  },
+  {
     "id": "reliktenschieber",
     "name": "Reliktenschieber",
     "neu": true,

@@ -268,7 +268,7 @@
   // (im Container aus SPIELE_ADRESSE); ohne sie laufen sie hier mit (lokal).
   function spielAdresse(sp) {
     const basis = (window.MIWALE_UMGEBUNG || {}).spieleAdresse || "";
-    return basis && /^\/games\//.test(sp.spielen) ? basis + sp.spielen : sp.spielen;
+    return basis && /^\/(games|jam-spiele)\//.test(sp.spielen) ? basis + sp.spielen : sp.spielen;
   }
 
   // Leise Toene aus shop/klang.js; fehlt die Datei, bleibt die Seite still.

@@ -21,7 +21,7 @@ test('every game page has its own title, description, image and canonical addres
   for (const sp of spiele) {
     const html = spielSeite(wurzel, sp.id, spiele);
     assert.ok(html, sp.id);
-    assert.ok(tag(html, /<title>([^<]*)<[/]title>/).includes(sp.name), sp.id);
+    assert.ok(entities(tag(html, /<title>([^<]*)<[/]title>/)).includes(sp.name), sp.id);
     assert.equal(tag(html, /<link rel="canonical" href="([^"]*)"/), `${SITE}/games/${sp.id}`);
     assert.equal(entities(meta(html, 'og:description')), sp.texte.en.kurz, sp.id);
     assert.equal(meta(html, 'og:image'), `${SITE}/${ogBild(wurzel, sp.id)}`);
