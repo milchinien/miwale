@@ -603,6 +603,10 @@ Spielen-Knopf, Schnitt, Verteilung und den Bewertungen.
   Skripte ihre Dateien unter `/assets/` statt im Spielordner). Die Ordner
   stehen nicht in `manifest.json`: `tools/sync-games.mjs` und
   `tools/check-games.mjs` fassen sie nicht an.
+- **Auch auf der Spieleseite:** Ausgewählte Jam-Spiele (Last Ember, Keeper's
+  Light, Jack vs. the Turnip Ancestors) haben zusätzlich einen Eintrag in
+  `shop/spiele.js` mit `"spielen": "/jam-spiele/<id>/"`. `shop.js` startet sie
+  wie `/games/` unter der Spiele-Adresse.
 - **Vorschaubilder** der Spiele liegen in `assets/jam/` (960×540 WebP, Titelbild
   aus dem jeweiligen Build).
 - **Dienst:** `server/jam.mjs` unter `/api/jam/`, im selben Prozess wie die
