@@ -238,7 +238,15 @@
       tone('sine', mtof(33), m0 + 1.25, 2.2, 0.3, { a: 0.05 });
     },
     // Dieters Stimme: kurze Piepser, Tonhöhe je nach Stimmung
-    voice: (t, o) => { const f = o.f || 520, harsh = o.mood === 'angry' || o.mood === 'furious'; tone(harsh ? 'sawtooth' : 'square', f, t, 0.045, harsh ? 0.03 : 0.025, { lp: harsh ? 1500 : 2400, to: f * (0.85 + Math.random() * 0.3), glide: 0.04 }); },
+    voice: (t, o) => { const f = o.f || 520, harsh = o.mood === 'angry' || o.mood === 'furious', v = o.vol === undefined ? 1 : o.vol; if (v <= 0) return; tone(harsh ? 'sawtooth' : 'square', f, t, 0.045, (harsh ? 0.03 : 0.025) * v, { lp: harsh ? 1500 : 2400, to: f * (0.85 + Math.random() * 0.3), glide: 0.04 }); },
+    achieve: (t) => {
+      // Achievement: das Würfel-Motiv hell auf Glocken, dann ein weicher Akkord mit Funkeln und Münzen
+      MOTIF.forEach((m, i) => bell(mtof(79 + m), t + i * 0.06, 0.7, 0.06, { ratio: 2, index: 1.2, wet: 0.6 }));
+      const c = t + 0.34;
+      [72, 76, 79, 84].forEach((m) => epiano(mtof(m), c, 1.2, 0.04));
+      [96, 100, 103].forEach((m, i) => bell(mtof(m), c + i * 0.05, 0.9, 0.035, { ratio: 3.01, index: 1, wet: 0.8 }));
+      for (let i = 0; i < 3; i++) SFX.coin(c + 0.05 + i * 0.07);
+    },
     chime: (t) => { bell(mtof(79), t, 0.7, 0.06, { ratio: 2, index: 1, wet: 0.7 }); bell(mtof(86), t + 0.12, 0.9, 0.05, { ratio: 2, index: 1, wet: 0.7 }); },
     boss: (t) => {
       tone('sawtooth', 55, t, 1.6, 0.16, { lp: 420, a: 0.35 });
@@ -408,7 +416,8 @@
     if (ac.state === 'suspended') ac.resume();
     startMusic();
   }
-  ['pointerdown', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { capture: true }));
+  // Handy: Browser erlauben Ton erst beim Loslassen (touchend/pointerup), nicht schon beim Berühren
+  (window.WG_MOBILE ? ['pointerdown', 'pointerup', 'touchend', 'keydown'] : ['pointerdown', 'keydown']).forEach((ev) => window.addEventListener(ev, unlock, { capture: true }));
   document.addEventListener('visibilitychange', () => {
     if (!ac) return;
     if (document.hidden) ac.suspend(); else ac.resume();
@@ -419,6 +428,6 @@
     applyVolumes();
   }
 
-  window.WGSound = { unlock, play, mood, setVolume, get ready() { return !!ac && ac.state === 'running'; },
+  window.WGSound = { unlock, play, mood, setVolume, context: () => (init() ? ac : null), get ready() { return !!ac && ac.state === 'running'; },
     names: () => Object.keys(SFX), _tap: () => (ac ? { ac, post } : null) };   // _tap: nur für automatische Pegel-Tests
 })();

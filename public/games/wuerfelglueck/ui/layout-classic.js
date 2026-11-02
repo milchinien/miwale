@@ -19,6 +19,7 @@
     // Blind und Ziel (im Shop: der nächste Blind)
     UI.box(ctx, 28, 22, 258, 100, { colour: lab.colour, radius: 12, emboss: 4 });
     UI.dynaText(ctx, (S.phase === 'shop' ? 'Next: ' : '') + lab.name, 157, 46, { size: S.phase === 'shop' ? 26 : 30, time: t, wave: 1.5 });
+    if (K.jonnyBoss && K.jonnyBoss()) K.drawJonnyHead(ctx, 32, 20, 46);   // Endboss: Jonnys Kopf neben seinem Namen
     UI.box(ctx, 40, 66, 234, 46, { colour: darken(lab.colour, 0.5), radius: 9, shadow: false });
     UI.text(ctx, 'Target', 82, 89, { size: 18, colour: P.TEXT_LABEL });
     UI.text(ctx, UI.num(S.target), 196, 89, { size: 32, colour: P.RED });
@@ -75,7 +76,9 @@
   function drawBag(ctx) {
     K.area(ctx, 330, 560, 930, 144);
     UI.text(ctx, 'Bag ' + S.bag.length + '/' + K.bagMax() + '  ·  ' + K.drawCount() + ' dice per hand', 350, 578, { size: 15, colour: P.TEXT_SOFT, align: 'left' });
-    UI.text(ctx, '[Enter] Play  [R] Reroll  [1-6] Hold  ·  drag relics to reorder  ·  [O]', 1160, 578, { size: 13, colour: P.TEXT_DIM, align: 'right' });
+    const job = K.jobLine && K.jobLine();
+    if (job) UI.text(ctx, job.text, 1160, 578, { size: K.fitText(ctx, job.text, 560, 15), colour: job.colour, align: 'right' });
+    else UI.text(ctx, '[Enter] Play  [R] Reroll  [1-6] Hold  ·  drag relics to reorder  ·  [O]', 1160, 578, { size: 13, colour: P.TEXT_DIM, align: 'right' });
   }
 
   function drawPlay(ctx) {
@@ -121,14 +124,18 @@
       UI.text(ctx, '$' + S.vault + ' / $' + K.VAULT_MAX, 1109, 356, { size: 30, colour: P.GOLD });
       UI.text(ctx, '+20% every round  ·  withdrawing costs $2', 1109, 386, { size: 13, colour: P.TEXT_HINT });
     }
-    const lab = K.blindLabel();
-    UI.text(ctx, 'Up next: ' + lab.name + '  ·  Target ' + UI.num(S.target), 795, 482, { size: 20, colour: P.TEXT_SOFT });
-    if (S.boss && S.ante <= K.ANTES) UI.text(ctx, 'Boss of this stage: ' + S.boss.name + ' - ' + S.boss.desc, 795, 512, { size: 16, colour: lighten(S.boss.colour, 0.45) });
+    // Unten: links Jonny hinter der Theke (zeichnet das Spiel), daneben sein Auftrag, rechts der Boss der Stage
+    if (K.drawJob) K.drawJob(ctx, { x: 776, y: 460, w: 180, h: 80 });
+    if (S.boss && S.ante <= K.ANTES) {
+      UI.box(ctx, 966, 460, 286, 80, { colour: P.PANEL, radius: 10, emboss: 3 });
+      UI.text(ctx, 'Stage boss: ' + S.boss.name, 1109, 476, { size: 16, colour: lighten(S.boss.colour, 0.45) });
+      K.wrapPlain(ctx, S.boss.desc, 262, 13).slice(0, 3).forEach((ln, i) => UI.text(ctx, ln, 1109, 497 + i * 15, { size: 13, colour: P.TEXT_SOFT }));
+    }
   }
 
   function drawMenu(back, front, t) {
     UI.dynaText(front, 'WÜRFELGLÜCK', 640, 170, { size: 96, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
-    UI.dynaText(front, 'a dice roguelite', 640, 240, { size: 28, time: t, wave: 1.5, colour: '#FFFFFF' });
+    UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 240, { size: 28, time: t, wave: 1.5, colour: '#FFFFFF' });
     UI.text(front, 'Hold dice, reroll, play your hand. 8 stages. Good luck.', 640, 672, { size: 18, colour: P.TEXT_SOFT });
   }
 

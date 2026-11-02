@@ -82,5 +82,22 @@
       },
     },
   ];
+  // Geheime Palette: Jonnys Keller (senfgelbes Hemd, braune Haare, lila Licht). Freigeschaltet durch ein Secret.
+  PALETTES.push({
+    id: 'basement', name: "Jonny's Basement", secret: true,
+    colours: Object.assign({}, PALETTES[0].colours, {
+      RED: '#D9573F', BLUE: '#8A63C2', CHIPS: '#8A63C2', PLANET: '#5C8FD0', GREEN: '#6BAA5A', ORANGE: '#E7B23C', IMPORTANT: '#E7B23C',
+      GOLD: '#F0C24A', MONEY: '#F3CB62', PURPLE: '#B07ACF', TAROT: '#B07ACF', BLACK: '#221C1A', L_BLACK: '#4A3A30', GREY: '#6E6050',
+      PANEL: '#3F3346', PANEL_DARK: '#2A2130', BLIND: '#5A3F6E', BOSS: '#A3402E', WON: '#4A3A30',
+      SIDEBAR: 'rgba(36,27,40,0.9)', OVERLAY_SOLID: 'rgba(38,29,42,0.97)', OVERLAY: 'rgba(38,29,42,0.94)',
+      ROUND_1: '#8A63C2', ROUND_2: '#C98A2E', ROUND_3: '#A3402E', SELL: '#C98A2E', DEPOSIT: '#B58A2A', GOLD_TEXT: '#9A6A1A',
+    }),
+    bg: {
+      menu: { c1: '#8A63C2', c2: '#B8862B', c3: '#1A141E', contrast: 3.2, lighting: 0.35, spinAmount: 0.25 },
+      table: { base: '#4A3A5A', contrast: 1 }, shop: { base: '#4A3550', special: '#E7B23C', contrast: 1.6 },
+      won: { base: '#4A3A30', contrast: 1 }, gold: { base: '#B8862B', special: '#8A63C2', contrast: 2.5 },
+      lose: { base: '#6A2A22', special: '#24130F', contrast: 3 },
+    },
+  });
   global.WG_PALETTES = PALETTES;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -118,6 +118,7 @@ uniform vec3 uC1, uC2, uC3;
 uniform float uContrast, uLighting, uSpinAmount, uPixel;
 uniform vec2 uOffset;
 uniform int uStyle;
+uniform float uFragScale;   // 1 = volle Auflösung; >1: Hintergrund wird verkleinert gerendert (ein Texel pro Hintergrund-Pixel)
 out vec4 o;
 ${GLSL_NOISE}
 mat2 rot(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
@@ -171,7 +172,7 @@ float styleKaleido(vec2 uv, float t, float spin){
 void main(){
   vec2 res = uRes;
   float px = length(res) / uPixel;
-  vec2 uv = (floor(gl_FragCoord.xy / px) * px - 0.5 * res) / length(res) - uOffset;
+  vec2 uv = (floor(gl_FragCoord.xy * uFragScale / px) * px - 0.5 * res) / length(res) - uOffset;
   if (uStyle > 0) {
     float paint = uStyle == 1 ? styleLava(uv, uFlow, uSpin) : uStyle == 2 ? styleTide(uv, uFlow, uSpin)
                 : uStyle == 3 ? stylePips(uv, uFlow, uSpin) : styleKaleido(uv, uFlow, uSpin);
@@ -346,6 +347,11 @@ void main(){
 precision highp float;
 in vec2 vUv; uniform sampler2D uTex; out vec4 o;
 void main(){ o = texture(uTex, vec2(vUv.x, 1. - vUv.y)); }`;
+  // Kopiert eine FBO-Textur (gleiche Orientierung) auf den Bildschirm, für den verkleinerten Hintergrund
+  const FS_BLIT = `#version 300 es
+precision highp float;
+in vec2 vUv; uniform sampler2D uTex; out vec4 o;
+void main(){ o = texture(uTex, vUv); }`;
 
   // CRT: Wölbung, chromatische Aberration, Bloom (über Mipmaps), Scanlines, Rauschen, Vignette.
   const FS_CRT = `#version 300 es
@@ -576,12 +582,16 @@ void main(){
   class Engine {
     /**
      * @param {HTMLCanvasElement} canvas
-     * @param {object} opts { width, height (virtuelle Auflösung), maxDpr, crt:{…}, background:'menu'|{…} }
+     * @param {object} opts { width, height (virtuelle Auflösung), maxDpr, maxPixels, bgLowRes, crt:{…}, background:'menu'|{…} }
+     *   maxPixels: Obergrenze für die Pixel des Zeichenpuffers (senkt die Pixeldichte, z. B. auf Handys)
+     *   bgLowRes: Hintergrund nur einmal pro Hintergrund-Pixel berechnen (deutlich schneller, gleiche Optik)
      */
     constructor(canvas, opts = {}) {
       this.canvas = canvas;
       this.W = opts.width || 1280; this.H = opts.height || 720;
       this.maxDpr = opts.maxDpr || 2;
+      this.maxPixels = opts.maxPixels || 0;
+      this.bgLowRes = !!opts.bgLowRes;
       const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, stencil: false, premultipliedAlpha: true });
       if (!gl) throw new Error('BalatroFX benötigt WebGL2.');
       this.gl = gl;
@@ -625,6 +635,7 @@ void main(){
         layer: createProgram(gl, VS_FULLSCREEN, FS_LAYER),
         crt: createProgram(gl, VS_FULLSCREEN, FS_CRT),
       };
+      if (this.bgLowRes) { this.prog.blit = createProgram(gl, VS_FULLSCREEN, FS_BLIT); this.bgFbo = gl.createFramebuffer(); this.bgTex = null; this.bgSize = [0, 0]; }
       this.vaoEmpty = gl.createVertexArray();
 
       this.vaoQuad = gl.createVertexArray();
@@ -680,8 +691,9 @@ void main(){
     }
 
     resize() {
-      const dpr = Math.min(global.devicePixelRatio || 1, this.maxDpr);
+      let dpr = Math.min(global.devicePixelRatio || 1, this.maxDpr);
       const cw = this.canvas.clientWidth || global.innerWidth, ch = this.canvas.clientHeight || global.innerHeight;
+      if (this.maxPixels && cw * ch * dpr * dpr > this.maxPixels) dpr = Math.max(1, Math.sqrt(this.maxPixels / (cw * ch)));
       const bw = Math.max(1, Math.round(cw * dpr)), bh = Math.max(1, Math.round(ch * dpr));
       this.dpr = dpr; this.cssW = cw; this.cssH = ch;
       this.scale = Math.min(cw / this.W, ch / this.H);
@@ -709,9 +721,17 @@ void main(){
     _bindInput() {
       const c = this.canvas;
       const pos = (e) => { const p = this.toVirtual(e.clientX, e.clientY); this.mouse.x = p.x; this.mouse.y = p.y; };
-      c.addEventListener('pointermove', (e) => { pos(e); this._fire('move', this.mouse); });
-      c.addEventListener('pointerdown', (e) => { pos(e); this.mouse.down = true; c.setPointerCapture && c.setPointerCapture(e.pointerId); this._fire('down', this.mouse); });
-      c.addEventListener('pointerup', (e) => { pos(e); this.mouse.down = false; this._fire('up', this.mouse); });
+      const extra = (e) => e.pointerType === 'touch' && e.isPrimary === false;   // weitere Finger
+      c.addEventListener('pointermove', (e) => { if (extra(e)) return; pos(e); this._fire('move', this.mouse); });
+      c.addEventListener('pointerdown', (e) => {
+        if (extra(e)) return;
+        pos(e); this.mouse.down = true; c.setPointerCapture && c.setPointerCapture(e.pointerId);
+        this.lastPointer = e.pointerType;
+        if (e.pointerType && e.pointerType !== 'mouse') this._pickHover();   // Touch/Stift: vorher gab es kein Hover
+        this._fire('down', this.mouse);
+      });
+      c.addEventListener('pointerup', (e) => { if (extra(e)) return; pos(e); this.mouse.down = false; this._fire('up', this.mouse); });
+      c.addEventListener('pointercancel', (e) => { if (extra(e) || e.pointerType === 'mouse') return; this.mouse.down = false; this._fire('up', this.mouse); });
       c.addEventListener('pointerleave', () => { if (!this.mouse.down) { this.mouse.x = -9999; this.mouse.y = -9999; } });
       c.addEventListener('contextmenu', (e) => e.preventDefault());
     }
@@ -832,15 +852,7 @@ void main(){
         if (tw.t >= tw.dur) { this.tweens.splice(i, 1); tw.onDone && tw.onDone(); }
       }
 
-      // Hover (oberstes interaktives Sprite)
-      let hov = null;
-      const sorted = this.sprites.slice().sort((a, c) => c.z - a.z);
-      for (const s of sorted) if (s.visible && s.interactive && !s._dead && s.contains(this.mouse.x, this.mouse.y)) { hov = s; break; }
-      if (hov !== this.hovered) {
-        if (this.hovered) this.hovered.hover = false;
-        if (hov) { hov.hover = true; hov.juiceUp(0.05, 0.03); this._fire('hover', hov); }
-        this.hovered = hov;
-      }
+      this._pickHover();
 
       for (const s of this.sprites) s.update(dt, t);
       this.sprites = this.sprites.filter((s) => !s._dead);
@@ -863,6 +875,18 @@ void main(){
       this.shakeAmt = damp(this.shakeAmt, 0, 7, dt);
       this.shakeOff.x = (Math.random() * 2 - 1) * this.shakeAmt;
       this.shakeOff.y = (Math.random() * 2 - 1) * this.shakeAmt;
+    }
+
+    /** Hover: oberstes interaktives Sprite unter der Maus. */
+    _pickHover() {
+      let hov = null;
+      const sorted = this.sprites.slice().sort((a, c) => c.z - a.z);
+      for (const s of sorted) if (s.visible && s.interactive && !s._dead && s.contains(this.mouse.x, this.mouse.y)) { hov = s; break; }
+      if (hov !== this.hovered) {
+        if (this.hovered) this.hovered.hover = false;
+        if (hov) { hov.hover = true; hov.juiceUp(0.05, 0.03); this._fire('hover', hov); }
+        this.hovered = hov;
+      }
     }
 
     /** Bereitet die beiden 2D-Ebenen (hinter/vor den Sprites) für das Zeichnen vor. */
@@ -954,10 +978,26 @@ void main(){
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-      // 1) Hintergrund
+      // 1) Hintergrund (bgLowRes: erst in eine kleine Textur, ein Texel pro Hintergrund-Pixel, dann hochskaliert)
       const B = this.prog.bg, b = this.bg;
+      const bgPx = Math.hypot(W, H) / b.pixelFilter, low = this.bgLowRes && bgPx > 1.2;
+      if (low) {
+        const lw = Math.max(1, Math.ceil(W / bgPx)), lh = Math.max(1, Math.ceil(H / bgPx));
+        if (!this.bgTex || this.bgSize[0] !== lw || this.bgSize[1] !== lh) {
+          if (this.bgTex) gl.deleteTexture(this.bgTex);
+          this.bgTex = this._makeTex(gl.NEAREST);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, lw, lh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, this.bgFbo);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.bgTex, 0);
+          this.bgSize = [lw, lh];
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.bgFbo);
+        gl.viewport(0, 0, lw, lh);
+        gl.disable(gl.BLEND);
+      }
       gl.useProgram(B.p);
       gl.bindVertexArray(this.vaoEmpty);
+      gl.uniform1f(B.u.uFragScale, low ? bgPx : 1);
       gl.uniform2f(B.u.uRes, W, H);
       gl.uniform1f(B.u.uFlow, this.bgFlow);
       gl.uniform1f(B.u.uSpin, this.bgSpin);
@@ -970,6 +1010,17 @@ void main(){
       gl.uniform2f(B.u.uOffset, 0, 0);
       gl.uniform1i(B.u.uStyle, this.bgStyle || 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      if (low) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
+        gl.viewport(0, 0, W, H);
+        const Q = this.prog.blit;
+        gl.useProgram(Q.p);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.bgTex);
+        gl.uniform1i(Q.u.uTex, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.enable(gl.BLEND);
+      }
 
       const view = this._viewUniform();
 

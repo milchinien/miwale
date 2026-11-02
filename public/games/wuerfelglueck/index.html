@@ -2,8 +2,21 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="theme-color" content="#000000">
   <title>Würfelglück</title>
+  <script>
+    // Handy und Tablet (Touch ohne Maus) bekommen das Handy-Layout (ui/layout-mobile.js). ?mobile=1 / ?mobile=0 erzwingt es.
+    (function () {
+      var q = location.search.match(/[?&]mobile=([01])/);
+      var mm = function (s) { return !!(window.matchMedia && window.matchMedia(s).matches); };
+      window.WG_MOBILE = q ? q[1] === '1' : mm('(hover: none) and (pointer: coarse)');
+      if (window.WG_MOBILE) document.documentElement.className += ' mobile';
+    })();
+  </script>
   <style>
     /* Eigene Pixelschrift (fonts/build_font.py), Pixelify Sans (OFL) als Ersatz für fehlende Zeichen. */
     @font-face { font-family: 'Wuerfel Pixel'; src: url('fonts/WuerfelPixel.ttf') format('truetype'); font-display: block; }
@@ -26,11 +39,26 @@
     #dev button:nth-child(2) { background: #FDA200; box-shadow: 0 3px 0 #a86c00; }
     #dev button:nth-child(3) { background: #FE5F55; box-shadow: 0 3px 0 #a83e37; }
     #dev button:active { transform: translateY(3px); box-shadow: none; }
+    /* Nur Handy: ganzer sichtbarer Bereich, kein Zoomen/Markieren, Hinweis im Hochformat */
+    html.mobile, html.mobile body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+    html.mobile #game { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100dvh; }
+    #rotate { display: none; }
+    @media (orientation: portrait) {
+      html.mobile #rotate {
+        display: flex; position: fixed; inset: 0; z-index: 10; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+        background: #12181b; color: #F3B958; font: 26px 'Pixelify Sans', monospace; text-align: center; padding: 24px;
+      }
+    }
+    #rotate small { color: #9FB0B4; font-size: 17px; }
+    #rotate .phone { width: 64px; height: 112px; border: 6px solid #F3B958; border-radius: 12px; position: relative; animation: wg-turn 2.4s ease-in-out infinite; }
+    #rotate .phone::after { content: ''; position: absolute; left: 50%; bottom: 7px; width: 14px; height: 4px; margin-left: -7px; background: #F3B958; border-radius: 2px; }
+    @keyframes wg-turn { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
   <div id="dev"></div>
+  <div id="rotate"><div class="phone"></div><div>Turn your phone sideways</div><small>Würfelglück is played in landscape</small></div>
   <script src="balatro-fx/balatro-fx.js"></script>
   <script src="balatro-fx/balatro-fx-art.js"></script>
   <script src="rules.js"></script>
@@ -38,11 +66,13 @@
   <script src="ui/palettes.js"></script>
   <script src="ui/glossary.js"></script>
   <script src="ui/layout-classic.js"></script>
+  <script src="ui/layout-mobile.js"></script>
   <script src="sound.js"></script>
   <script src="musics/manifest.js"></script>
   <script src="music.js"></script>
   <script src="tutorial.js"></script>
   <script src="saves.js"></script>
+  <script src="achievements.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -33,6 +33,8 @@
   useMaterial('cold_storage azure refraction purist mirror moonstone', 'ivory','gold','blue');
   useMaterial('overdraft overdrive dial', 'steel','green','red');
   useMaterial('snake_eyes', 'green','red','green');
+  useMaterial('jonny_glasses off_record', 'charcoal','gold','blue');
+  useMaterial('mood_ring jonny_autograph', 'gold','gold','violet');
 
   function shadeSprite(ctx, id) {
     const data = ctx.getImageData(0,0,32,32), src = new Uint8ClampedArray(data.data), out = data.data;
@@ -138,6 +140,26 @@
 
   // One authored motif per card ID. Related effects share visual vocabulary.
   const motifs = {
+    // Jonny: dicke eckige Brille, geschwärzte Akte, Stimmungsring, Autogramm
+    jonny_glasses: p => {
+      p.rect(1,10,13,12,PAPER);p.rect(18,10,13,12,PAPER);p.rect(3,12,9,8,COOL);p.rect(20,12,9,8,COOL);
+      p.rect(13,13,6,3,PAPER);p.rect(4,13,3,2,'#FFFFFF');p.rect(21,13,3,2,'#FFFFFF');
+      p.star(26,5,4,GOLD);p.rect(25,4,2,2,'#FFFFFF');
+    },
+    off_record: p => {
+      p.rect(6,3,20,27,PAPER);p.rect(8,5,16,1,'#FFF9E7');
+      p.rect(9,8,14,3,INK);p.rect(9,14,9,3,INK);p.rect(20,14,3,3,COOL);p.rect(9,20,13,3,INK);
+      p.poly([[17,22],[30,18],[31,22],[19,27]],GOLD);p.rect(27,19,2,2,'#FFF0B2');
+    },
+    mood_ring: p => {
+      p.ring(16,21,9,GOLD);p.disc(16,10,6,COOL);p.disc(16,10,4,'#B7EFF5');
+      p.rect(13,9,2,2,INK);p.rect(18,9,2,2,INK);p.rect(14,12,5,1,INK);p.rect(13,7,2,1,'#FFFFFF');
+    },
+    jonny_autograph: p => {
+      p.rect(4,5,24,22,PAPER);p.rect(6,7,20,1,'#FFF9E7');
+      p.line(7,19,10,13,INK,1);p.line(10,13,12,20,INK,1);p.line(12,20,15,14,INK,1);p.line(15,14,17,19,INK,1);p.line(17,19,22,15,INK,1);p.line(22,15,25,17,INK,1);
+      p.line(8,23,24,22,COOL,1);p.star(25,8,4,GOLD);
+    },
     snake_eyes: p => {p.line(8,24,23,24,COOL,4);p.line(23,24,23,15,COOL,4);p.line(23,15,8,15,COOL,4);p.line(8,15,8,6,COOL,4);p.rect(8,5,16,7);p.rect(12,7,2,2,INK);p.rect(20,7,2,2,INK);},
     evens_club: p => {p.line(16,5,16,26,GOLD);p.line(5,10,26,10);p.line(7,10,4,18);p.line(7,10,11,18);p.line(24,10,20,18);p.line(24,10,28,18);p.rect(3,19,10,3,COOL);p.rect(19,19,10,3,COOL);p.rect(10,27,14,2);},
     odd_fellow: p => {p.rect(9,6,15,18);p.rect(5,24,24,3);p.rect(9,19,15,4,GOLD);p.rect(12,8,2,8,COOL);},

@@ -327,6 +327,22 @@
     onReroll: (s, g, info) => { if (info.held > 0) { s.chips += 2 * g.grow; return { text: '+' + fmt(2 * g.grow) + ' Pips' }; } } });
   relic('spiral', 'Spiral of Fate', 'R', ['luck', 'pattern'], '🌀', 'Lucky Hits can also land on the number that continues a Straight');
 
+  // Jonny (freigeschaltet über seine Achievements; der Jonny's Cup startet mit einem davon)
+  const MOODS = { happy: 'Happy: earn $3', smug: 'Smug: +12 Power', nervous: 'Nervous: +60 Pips', furious: 'Furious: x2 Power, -30 Pips' };
+  relic('jonny_glasses', "Jonny's Glasses", 'U', ['luck'], '👓', '+15 Luck. Dice that will land a Lucky Hit on your next reroll sparkle', { luck: () => 15 });
+  relic('off_record', 'Off the Record', 'U', ['risk'], '🤫', 'Once per round, a Bust is ignored and the hand scores normally. *ahem* It never happened', {
+    state: () => ({ used: false }), stateText: (s) => (s.used ? 'Used this round' : 'Ready this round'),
+    startBlind: (s) => { s.used = false; } });
+  relic('mood_ring', "Jonny's Mood Ring", 'U', ['luck'], '💍', "Jonny's mood changes every hand. Happy: earn $3. Smug: +12 Power. Nervous: +60 Pips. Furious: x2 Power, -30 Pips", {
+    state: () => ({ mood: 'smug' }), stateText: (s) => 'Jonny is ' + MOODS[s.mood],
+    newHand: (s, g) => { s.mood = pick(Object.keys(MOODS), g.rnd); return { text: s.mood[0].toUpperCase() + s.mood.slice(1) }; },
+    onHand: (h, s) => (s.mood === 'happy' ? { money: 3 } : s.mood === 'smug' ? { mult: 12 } : s.mood === 'nervous' ? { chips: 60 } : [{ chips: -30 }, { xmult: 2 }]) });
+  relic('jonny_autograph', "Jonny's Autograph", 'L', ['growth'], '✍️', 'x1.5 Power. Gains x0.5 Power for every Showdown you win this run', {
+    state: () => ({ x: 1.5 }), stateText: (s) => 'Currently x' + fmt(s.x) + ' Power',
+    onHand: (h, s) => ({ xmult: s.x }),
+    endBlind: (s, g) => { if (g.isBoss) { s.x += 0.5 * g.grow; return { text: 'x' + fmt(s.x) }; } } });
+  const JONNY_RELICS = ['jonny_glasses', 'off_record', 'mood_ring'];
+
   const RELIC_BY_ID = Object.fromEntries(RELICS.map((r) => [r.id, r]));
   const MAX_RELICS = 5, MAX_CONS = 2, MIN_BAG = 5, MAX_BAG = 12;
   const comboSafe = (h) => !!h && (h.keep || (h.has('iron_focus') && h.heldCount >= 3));
@@ -566,6 +582,12 @@
     let faces = g.faces;
     let ev = evaluateFaces(faces, g.levels, opts);
     let bust = ev.skulls >= bustAt;
+    // Off the Record: einmal pro Runde zählt ein Bust nicht
+    const record = bust && !has('evil_eye') && eff.find((e) => e.def.id === 'off_record' && !e.s.used);
+    if (record) {
+      record.s.used = true; bust = false;
+      steps.push({ src: 'relic', r: record.ri, text: 'It never happened.' });
+    }
     if (bust && has('evil_eye')) {
       faces = faces.map((f) => (isSkull(f) ? face(6) : f));
       ev = evaluateFaces(faces, g.levels, opts);
@@ -663,7 +685,7 @@
       if (s.xmult) mult *= s.xmult;
       if (s.money) money += s.money;
     }
-    return Object.assign(res, { chips, mult, money, total: Math.round(chips * mult * res.factor) });
+    return Object.assign(res, { chips, mult, money, total: Math.round(Math.max(0, chips) * mult * res.factor) });
   }
 
   // ── Kleine Hilfen ───────────────────────────────────────────────────────
@@ -680,8 +702,8 @@
     return item.id === 'nest_egg' ? 2 + Math.floor((item.state && item.state.bonus) || 0) : base;
   }
   // Stärkstes Relikt eines Tags, das man noch nicht hat (Crossroads)
-  function strongestOfTag(tag, owned, rnd = Math.random) {
-    const pool = RELICS.filter((d) => !d.hidden && d.tags.includes(tag) && !owned.includes(d.id) && d.id !== 'crossroads');
+  function strongestOfTag(tag, owned, rnd = Math.random, allow = () => true) {
+    const pool = RELICS.filter((d) => !d.hidden && d.tags.includes(tag) && !owned.includes(d.id) && d.id !== 'crossroads' && allow(d));
     if (!pool.length) return null;
     const top = Math.max(...pool.map((d) => RARITY_RANK[d.rarity] * 100 + d.cost));
     return pick(pool.filter((d) => RARITY_RANK[d.rarity] * 100 + d.cost === top), rnd);
@@ -690,7 +712,7 @@
   const api = {
     HANDS, HAND_ORDER, handValues, FACE_KINDS, DIE_TYPES, makeDie, copyDie, isSkull,
     TAGS, TAG_ORDER, RARITY, RELICS, RELIC_BY_ID, VINES, DIAL_MODES, UPGRADES, UPGRADE_BY_ID, ORACLES, ORACLE_BY_ID, NUMBER_NAMES, BOSSES,
-    MAX_RELICS, MAX_CONS, MIN_BAG, MAX_BAG,
+    MAX_RELICS, MAX_CONS, MIN_BAG, MAX_BAG, JONNY_RELICS, MOODS,
     effective, tagCounts, relicTags, mostCommonTag, setLevel, topNumber, effNumLevels,
     interestInfo, interest, luckOf, luckTargets, rollFace, raiseFace,
     evaluate, evaluateFaces, scoreHand, pick, pickWeighted, sellValue, strongestOfTag,

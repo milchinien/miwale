@@ -15,6 +15,23 @@
     const MAX_MISTAKES = 8;
     const TIP = { x: 184, y: 578, w: 814, h: 120 };      // Sprechblase
     const FACE = { x: 42, y: 574, s: 1.875 };            // Porträt (64 px × s)
+    // Handy: Plätze, Knöpfe und Schriftgröße kommen aus dem Layout (ui/layout-mobile.js, L.tut)
+    const MOB = !!K.mobile;
+    const LT = () => (MOB && K.L() && K.L().tut) || null;
+    const tipBox = () => (LT() ? LT().tip : TIP);
+    const faceBox = () => (LT() ? LT().face : FACE);
+    const FONT_K = () => (LT() ? LT().font : 1);
+    const dim = (ctx, a) => { if (K.dim) K.dim(ctx, a); else { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,' + a + ')'; ctx.fillRect(0, 0, 1280, 720); ctx.restore(); } };
+    // Auf dem Handy wird getippt statt geklickt, und Tooltips öffnen sich per langem Druck
+    const MOBILE_TEXT = [
+      [/point at \{g\|Triple Threat\} and keep the mouse still\. A little \{g\|ring\} fills up\./, 'touch {g|Triple Threat} and {g|keep holding}. A box with all the details pops up.'],
+      [/When it is full, the box stays open and you can point at the underlined words for more\./, 'Tap the underlined words in it for more. Tap anywhere else to close it.'],
+      [/Point at a card until the ring is full/, 'Touch and hold a card'],
+      [/Point at a relic/, 'Touch and hold a relic'],
+      [/The ring tooltips will\. Point at anything and wait for the ring\./, 'The tooltips will. Touch and hold anything to read about it.'],
+      [/\bClick\b/g, 'Tap'], [/\bclick\b/g, 'tap'], [/\bclicking\b/g, 'tapping'], [/\bthe mouse\b/g, 'your finger'],
+    ];
+    const mobText = (text) => (MOB ? MOBILE_TEXT.reduce((t, [re, to]) => t.replace(re, to), text) : text);
 
     // ── Zustand ───────────────────────────────────────────────────────────
     let active = false, modal = false, finished = false;
@@ -52,7 +69,7 @@
     }
     const BORED_FILLER = ['Anyway.', 'Yeah.', '*yawn*', 'Whatever.', 'Mhm.', 'So.'];
     function show(line, reaction) {
-      let text = val(line.text);
+      let text = mobText(val(line.text));
       const mood = moodFor(line.mood || 'neutral', reaction);
       // Nach dem Aufgeben: Effekte weg, gelangweilte Einleitung
       if (gaveUp && !reaction && line.mood !== 'fourth') text = BORED_FILLER[(Math.random() * BORED_FILLER.length) | 0] + ' ' + text.replace(/\{[a-z]+\|([^}]*)\}/g, (_, x) => '{g|' + x + '}');
@@ -561,7 +578,7 @@
       if (key.startsWith('shop')) return key.slice(4).split('').map((k) => shopR(+k)).filter((r, k) => S.shop && S.shop[+key.slice(4)[k]]);
       if (key === 'relics') return K.relicSprites().map((sp) => ({ x: sp.x - 44, y: sp.y - 56, w: 88, h: 112 }));
       if (key === 'cons') return K.consSprites().map((sp) => ({ x: sp.x - 44, y: sp.y - 56, w: 88, h: 112 }));
-      const AREAS = { target: { x: 46, y: 28, w: 248, h: 104 }, score: { x: 42, y: 136, w: 252, h: 58 }, pipspower: { x: 40, y: 236, w: 252, h: 96 },
+      const AREAS = (MOB && Lay.tutAreas) || { target: { x: 46, y: 28, w: 248, h: 104 }, score: { x: 42, y: 136, w: 252, h: 58 }, pipspower: { x: 40, y: 236, w: 252, h: 96 },
         hands_left: { x: 40, y: 344, w: 118, h: 78 }, money: { x: 40, y: 432, w: 252, h: 58 }, hands: { x: 1004, y: 172, w: 242, h: 292 } };
       return AREAS[key] ? [AREAS[key]] : [];
     }
@@ -626,8 +643,8 @@
     const O = '#16111A', HAIR = '#8A5A2E', HAIR_D = '#5C3819', HAIR_L = '#A97A44', BEARD = '#74481F';
     const LENS = '#ECF6FB', LENS_D = '#C9DDE9', MOUTH = '#4A1A1A';
 
-    function paintJonny(mood, open, blink, lx) {
-      const key = mood + '|' + open + '|' + blink + '|' + lx;
+    function paintJonny(mood, open, blink, lx, head) {
+      const key = mood + '|' + open + '|' + blink + '|' + lx + '|' + !!head;
       if (cache.has(key)) return cache.get(key);
       const c = document.createElement('canvas'); c.width = c.height = N;
       g = c.getContext('2d');
@@ -636,11 +653,13 @@
       const ly = (f.look || [0, 0])[1];
 
       // Hemd (senfgelb) mit Kragen und Stifteschutz
-      px(4, 57, 56, 7, O); px(5, 58, 54, 6, '#E7B23C'); px(5, 58, 54, 1, '#F3CB62');
-      px(22, 55, 20, 4, SKIN_D);
-      line([[20, 56], [26, 61], [31, 57]], O); line([[44, 56], [38, 61], [33, 57]], O);
-      px(21, 57, 5, 3, '#FFFFFF'); px(38, 57, 5, 3, '#FFFFFF');
-      px(9, 60, 8, 4, '#FFFFFF'); px(10, 58, 1, 3, '#2F6FD0'); px(12, 58, 1, 3, '#C2312A'); px(14, 59, 1, 2, '#2E8B57');
+      if (!head) {   // ohne Hemd: nur der Kopf (schwebender Jonny im Hintergrund)
+        px(4, 57, 56, 7, O); px(5, 58, 54, 6, '#E7B23C'); px(5, 58, 54, 1, '#F3CB62');
+        px(22, 55, 20, 4, SKIN_D);
+        line([[20, 56], [26, 61], [31, 57]], O); line([[44, 56], [38, 61], [33, 57]], O);
+        px(21, 57, 5, 3, '#FFFFFF'); px(38, 57, 5, 3, '#FFFFFF');
+        px(9, 60, 8, 4, '#FFFFFF'); px(10, 58, 1, 3, '#2F6FD0'); px(12, 58, 1, 3, '#C2312A'); px(14, 59, 1, 2, '#2E8B57');
+      }
 
       // Kopf etwas höher setzen, damit Hals, Bart und Kragen Platz haben
       g.save(); g.translate(0, -3);
@@ -781,11 +800,11 @@
     // ── Sprechblase mit Wort-Effekten ─────────────────────────────────────
     const SPEED = { excited: 75, angry: 80, furious: 95, bored: 26, nervous: 62, paranoid: 60, fourth: 38, disappointed: 34 };
     const VOICE = { nervous: 640, paranoid: 610, excited: 700, happy: 580, neutral: 520, smug: 470, annoyed: 440, angry: 360, furious: 300, disappointed: 380, bored: 330, shocked: 720, fourth: 470 };
-    function layoutWords(ctx, words, maxW) {
+    function layoutWords(ctx, words, maxW, k = 1) {
       const out = [];
       let x = 0, row = 0;
       for (const w of words) {
-        const size = w.f.includes('b') ? 26 : w.f.includes('q') ? 16 : 20;
+        const size = (w.f.includes('b') ? 26 : w.f.includes('q') ? 16 : 20) * FONT_K() * k;
         ctx.font = UI.font(size);
         const ww = ctx.measureText(w.t).width;
         if (!w.space && x + ww > maxW && x > 0) { x = 0; row++; }
@@ -805,16 +824,16 @@
       ctx.fillStyle = fill;
       ctx.beginPath(); ctx.moveTo(x + 4, y + 48); ctx.lineTo(x - 15, y + 58); ctx.lineTo(x + 4, y + 66); ctx.fill();
     }
-    function drawText(ctx, t, box) {
-      const dark = cur.mood === 'fourth';
-      const pad = 22, maxW = box.w - pad * 2 - 30;
-      if (!cur.layout) cur.layout = layoutWords(ctx, cur.words, maxW);
-      const rows = cur.layout.length ? cur.layout[cur.layout.length - 1].row + 1 : 1;
-      const lh = 28, top = box.y + box.h / 2 - ((rows - 1) * lh) / 2 - (dark ? 4 : 0);
-      let budget = Math.floor(cur.shown);
-      const base = dark ? '#E8EEF2' : cur.mood === 'bored' ? '#6E6A62' : '#2A2620';
-      const globalShake = { angry: 0.8, furious: 1.8 }[cur.mood] || 0;
-      for (const it of cur.layout) {
+    function drawText(ctx, t, box, c = cur, k = 1) {
+      const dark = c.mood === 'fourth';
+      const pad = 22 * k, maxW = box.w - pad * 2 - 30 * k;
+      if (!c.layout) c.layout = layoutWords(ctx, c.words, maxW, k);
+      const rows = c.layout.length ? c.layout[c.layout.length - 1].row + 1 : 1;
+      const lh = (LT() ? LT().lineH : 28) * k, top = box.y + box.h / 2 - ((rows - 1) * lh) / 2 - (dark ? 4 : 0);
+      let budget = Math.floor(c.shown);
+      const base = dark ? '#E8EEF2' : c.mood === 'bored' ? '#6E6A62' : '#2A2620';
+      const globalShake = { angry: 0.8, furious: 1.8 }[c.mood] || 0;
+      for (const it of c.layout) {
         if (budget <= 0) break;
         const w = it.w, text = w.t.slice(0, budget);
         budget -= w.t.length;
@@ -847,6 +866,40 @@
       }
     }
 
+    // ── Sprüche außerhalb des Tutorials (Shop, Jonny's Cup, Endboss, Run-Ende) ──
+    // Das Spiel verwaltet Reihenfolge und Platz; hier: Satz bauen, tippen lassen (mit Stimme) und zeichnen.
+    function makeLine(text, mood = 'neutral') {
+      const tx = mobText(text);
+      return { words: parse(tx), mood, shown: 0, chars: tx.replace(/\{[a-z]+\||\}/g, '').length, layout: null, blip: 0 };
+    }
+    function tickLine(c, dt) {
+      if (!c || c.shown >= c.chars) return;
+      const before = Math.floor(c.shown);
+      c.shown = Math.min(c.chars, c.shown + dt * (SPEED[c.mood] || 52) * (K.textSpeed ? K.textSpeed() : 1));
+      c.blip += Math.floor(c.shown) - before;
+      if (c.blip >= 3) { c.blip = 0; sfx('voice', { f: (VOICE[c.mood] || 520) * (0.92 + Math.random() * 0.16), mood: c.mood }); }
+    }
+    // face: {x, y, s} (oder null), box: Sprechblase. o.k: Schriftgröße, o.tag: Namensschild, o.fit: Blase so schmal wie der Text.
+    // Gibt die gezeichnete Blase zurück (für Klicks).
+    function drawSpeech(ctx, t, c, face, box, o = {}) {
+      const k = o.k || 1;
+      if (face) drawJonny(ctx, face.x, face.y, face.s, c.mood, c.shown < c.chars, t, !!o.tag);
+      if (o.fit) {
+        const pad = 22 * k, extra = pad * 2 + 30 * k;
+        if (!c.layout) c.layout = layoutWords(ctx, c.words, box.w - extra, k);
+        const wide = Math.max(0, ...c.layout.map((it) => it.x + it.width));
+        box = Object.assign({}, box, { w: Math.min(box.w, Math.max(o.minW || 180, wide + extra)) });
+      }
+      drawBubble(ctx, t, box, c.mood, c.mood === 'fourth');
+      drawText(ctx, t, box, c, k);
+      if (c.shown >= c.chars && c.more) {
+        const bob = Math.sin(t * 6) * 3;
+        ctx.fillStyle = c.mood === 'fourth' ? '#E8EEF2' : '#2A2620';
+        for (let q = 0; q < 5; q++) ctx.fillRect(box.x + box.w - 24 + q, box.y + box.h - 16 + bob + q, 10 - q * 2, 1.5);
+      }
+      return box;
+    }
+
     // ── Pro Bild ──────────────────────────────────────────────────────────
     let lastT = 0, blipAcc = 0;
     function update() {
@@ -854,7 +907,7 @@
       if (!cur) return;
       if (cur.shown < cur.chars) {
         const before = Math.floor(cur.shown);
-        cur.shown = Math.min(cur.chars, cur.shown + dt * (SPEED[cur.mood] || 52));
+        cur.shown = Math.min(cur.chars, cur.shown + dt * (SPEED[cur.mood] || 52) * (K.textSpeed ? K.textSpeed() : 1));
         blipAcc += Math.floor(cur.shown) - before;
         if (blipAcc >= 3) { blipAcc = 0; sfx('voice', { f: (VOICE[cur.mood] || 520) * (0.92 + Math.random() * 0.16), mood: cur.mood }); }
       } else if (cur.reaction && eng.time - cur.t0 > 2.6 + cur.chars * 0.035) popQueue();
@@ -871,26 +924,37 @@
         ]);
       }
     }
-    function bubbleBox() { return modal ? { x: 470, y: 222, w: 560, h: 150 } : TIP; }
+    function bubbleBox() {
+      if (!LT()) return modal ? { x: 470, y: 222, w: 560, h: 150 } : TIP;
+      // Handy: wird der Satz länger als die Blase, wächst sie nach oben
+      const b = Object.assign({}, modal ? LT().modalBox : LT().tip);
+      if (cur && cur.layout && cur.layout.length) {
+        const rows = cur.layout[cur.layout.length - 1].row + 1, need = rows * LT().lineH + 34;
+        if (need > b.h) { if (!modal) b.y -= need - b.h; b.h = need; }
+      }
+      return b;
+    }
     function draw(ctx, t) {
       if (!active && !modal) return;
-      if (modal) { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, 1280, 720); ctx.restore(); }
+      if (modal) dim(ctx, 0.55);
       const st = step();
       // Zeiger auf das, worum es gerade geht
       if (active && cur && !cur.reaction) drawPointers(ctx, (cur.line && cur.line.point) || (st && st.point), t);
       if (!cur) return;
-      const box = bubbleBox(), dark = cur.mood === 'fourth';
-      if (dark && !modal) { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, 1280, 720); ctx.restore(); }
+      if (!cur.layout) cur.layout = layoutWords(ctx, cur.words, bubbleBox().w - 74);   // Größe der Blase hängt am Umbruch
+      const box = bubbleBox(), dark = cur.mood === 'fourth', fk = FONT_K();
+      if (dark && !modal) dim(ctx, 0.35);
       const talking = cur.shown < cur.chars;
       const away = modal && leaving ? Math.max(0, eng.time - leaving.t0) : 0;
       if (away > 0) ctx.save(), ctx.globalAlpha = Math.max(0, 1 - away / 1.8);
-      if (modal) drawJonny(ctx, 286 - away * away * 260, 196 + Math.abs(Math.sin(away * 9)) * -8, 2.7, cur.mood, talking, t, true);
-      else drawJonny(ctx, FACE.x, FACE.y, FACE.s, cur.mood, talking, t, false);
+      const mf = LT() ? LT().modalFace : { x: 286, y: 196, s: 2.7 }, fb = faceBox();
+      if (modal) drawJonny(ctx, mf.x - away * away * 260, mf.y + Math.abs(Math.sin(away * 9)) * -8, mf.s, cur.mood, talking, t, true);
+      else drawJonny(ctx, fb.x, fb.y, fb.s, cur.mood, talking, t, false);
       drawBubble(ctx, t, box, cur.mood, dark);
       // Namensschild oben links an der Blase
       let tabEnd = box.x + 18;
-      if (!modal) { UI.box(ctx, box.x + 18, box.y - 26, 96, 26, { colour: P.GOLD, radius: 8, emboss: 2 }); UI.text(ctx, 'JONNY', box.x + 66, box.y - 13, { size: 16, colour: P.BLACK, shadow: false }); tabEnd = box.x + 124; }
-      if (dark) UI.text(ctx, '(off the record)', box.x + box.w - 16, box.y + 16, { size: 13, colour: '#7F9099', align: 'right', shadow: false });
+      if (!modal) { UI.box(ctx, box.x + 18, box.y - 26 * fk, 96 * fk, 26 * fk, { colour: P.GOLD, radius: 8, emboss: 2 }); UI.text(ctx, 'JONNY', box.x + 18 + 48 * fk, box.y - 13 * fk, { size: 16 * fk, colour: P.BLACK, shadow: false }); tabEnd = box.x + 24 + 100 * fk; }
+      if (dark) UI.text(ctx, '(off the record)', box.x + box.w - 16, box.y + 16, { size: 13 * fk, colour: '#7F9099', align: 'right', shadow: false });
       drawText(ctx, t, box);
       // Weiter-Hinweis oder Aufgabe
       if (!talking) {
@@ -902,25 +966,26 @@
         }
       }
       if (active && st && st.task && !cur.reaction && typeof st.wait === 'function') {
-        const label = 'TO DO: ' + st.task;
-        ctx.font = UI.font(16);
+        const label = 'TO DO: ' + mobText(st.task);
+        ctx.font = UI.font(16 * fk);
         const w = ctx.measureText(label).width + 28;
-        UI.box(ctx, tabEnd, box.y - 26, w, 26, { colour: P.PANEL_DARK, radius: 13, emboss: 2, outline: P.GOLD, outlineWidth: 2 });
-        UI.text(ctx, label, tabEnd + w / 2, box.y - 13, { size: 16, colour: P.GOLD, shadow: false });
+        UI.box(ctx, tabEnd, box.y - 26 * fk, w, 26 * fk, { colour: P.PANEL_DARK, radius: 13, emboss: 2, outline: P.GOLD, outlineWidth: 2 });
+        UI.text(ctx, label, tabEnd + w / 2, box.y - 13 * fk, { size: 16 * fk, colour: P.GOLD, shadow: false });
       }
       if (active && mistakes > 0) {
         const lab = gaveUp ? 'Jonny gave up' : 'Mistakes: ' + mistakes + ' / ' + MAX_MISTAKES;
-        UI.text(ctx, lab, box.x + box.w - 18, box.y - 14, { size: 15, colour: gaveUp ? '#9AA8B0' : mistakes >= 5 ? '#FF6A5A' : P.TEXT_SOFT, align: 'right' });
+        UI.text(ctx, lab, box.x + box.w - 18, box.y - 14 * fk, { size: 15 * fk, colour: gaveUp ? '#9AA8B0' : mistakes >= 5 ? '#FF6A5A' : P.TEXT_SOFT, align: 'right' });
       }
       if (away > 0) ctx.restore();
       if (modal) for (const b of buttons()) UI.button(ctx, b, t);
       // Das X wackelt verführerisch
-      if (modal && stage >= 2 && promptChoice === null) UI.text(ctx, stage === 2 ? 'close?' : 'really?', B.tutX.x + B.tutX.w / 2, B.tutX.y + B.tutX.h + 14, { size: 14, colour: P.TEXT_DIM });
+      if (modal && stage >= 2 && promptChoice === null) UI.text(ctx, stage === 2 ? 'close?' : 'really?', B.tutX.x + B.tutX.w / 2, B.tutX.y + B.tutX.h + 14 * fk, { size: 14 * fk, colour: P.TEXT_DIM });
       else if (active && st && st.final && lastLine() && !talking) UI.button(ctx, B.tutDone, t);
     }
     function inBubble(m) {
       const b = bubbleBox();
-      return (m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h) || (!modal && m.x >= FACE.x - 4 && m.x <= FACE.x + 64 * FACE.s + 4 && m.y >= FACE.y - 4 && m.y <= FACE.y + 64 * FACE.s + 28);
+      const F = faceBox();
+      return (m.x >= b.x && m.x <= b.x + b.w && m.y >= b.y && m.y <= b.y + b.h) || (!modal && m.x >= F.x - 4 && m.x <= F.x + 64 * F.s + 4 && m.y >= F.y - 4 && m.y <= F.y + 64 * F.s + 28);
     }
     function click(m) {
       if (!cur || (!active && !modal) || !inBubble(m)) return false;
@@ -944,6 +1009,7 @@
       modal = true; promptCb = cb; promptChoice = null; stage = 0; leaving = null;
       B.tutYes.x = 492; B.tutYes.y = 400; B.tutNo.x = 772; B.tutNo.y = 400;
       Object.assign(B.tutNo, NO_STYLE, { colour: P.RED });
+      if (LT()) { Object.assign(B.tutYes, LT().yes); Object.assign(B.tutNo, LT().no, { label: 'No thanks' }); Object.assign(B.tutX, LT().x); }
       show({ mood: 'nervous', text: "Oh! A new player. Okay. Okay okay okay. {q|Be cool, Jonny.} Hi! I'm {g|Jonny}, your dice tutor. Would you like a {g|tutorial}? {w|I've been practising.}" });
     }
     function finishPrompt(yes, delay) {
@@ -1032,7 +1098,10 @@
     function roundStart(idx) { round = idx; handInRound = -1; }
 
     return {
-      get active() { return active; }, get totalMistakes() { return totalMistakes; },
+      get active() { return active; }, get totalMistakes() { return totalMistakes; }, get everGaveUp() { return everGaveUp; },
+      head: (mood, blink) => paintJonny(mood || 'neutral', false, !!blink, 0, true),
+      makeLine, tickLine, drawSpeech, moods: Object.keys(FACES),
+      face: (ctx, x, y, s, mood, t, talking) => drawJonny(ctx, x, y, s, mood, !!talking, t, false),
       portrait: (ctx, x, y, s, mood, t) => drawJonny(ctx, x, y, s, mood, false, t, true), get modal() { return modal; }, get mistakes() { return mistakes; },
       start, stop, prompt, answer, closeX, event, rig, beginHand, beginReroll, roundStart, shopItem, update, draw, click, buttons, advance,
       // Im Tutorial gibt es kein Verlieren: Jonny schenkt eine Hand
