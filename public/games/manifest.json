@@ -20,6 +20,13 @@
     "commit": "f979818f7ba60d3d22e3231e331e5c302767066f",
     "handy": true
   },
+  "wuerfelglueck": {
+    "path": "games/wuerfelglueck/",
+    "sha256": "86b45acfba428df0697158d4cffd344f6b3ecfd191424da8d6b37315d18649bb",
+    "repo": null,
+    "commit": null,
+    "handy": true
+  },
   "zombie-horde": {
     "path": "games/zombie-horde/",
     "sha256": "ef73594afcb71396e3a4265cabdd31d871538b421ff1cf74f8aa81129bc8fa95",
@@ -53,13 +60,6 @@
     "sha256": "3997186a28c8640b8927e1b17e591d0ce44880b7fc8c7cd77dccf229025cb0b4",
     "repo": "milchinien/Castle-Scaremore",
     "commit": "204dac23b8a75d0215178172796235bbfe154fb9",
-    "handy": true
-  },
-  "wuerfelglueck": {
-    "path": "games/wuerfelglueck/",
-    "sha256": "86b45acfba428df0697158d4cffd344f6b3ecfd191424da8d6b37315d18649bb",
-    "repo": null,
-    "commit": null,
     "handy": true
   }
 }
