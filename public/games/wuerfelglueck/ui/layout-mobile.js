@@ -39,7 +39,9 @@
     UI.dynaText(ctx, name, cx, 42, { size: fit(ctx, name, 260, 30, 20), time: t, wave: 1.5 });
     if (K.jonnyBoss && K.jonnyBoss()) K.drawJonnyHead(ctx, x + 14, 20, 44);
     UI.box(ctx, x + 20, 64, 260, 50, { colour: darken(lab.colour, 0.5), radius: 9, shadow: false });
-    UI.text(ctx, 'Target', x + 66, 89, { size: 22, colour: P.TEXT_LABEL });
+    const heat = K.heatPct ? K.heatPct() : 0;   // Heat: Ziel wegen der starken letzten Runde erhöht
+    if (heat) { UI.text(ctx, 'Target', x + 66, 80, { size: 19, colour: P.TEXT_LABEL }); UI.dynaText(ctx, 'Heat +' + heat + '%', x + 66, 101, { size: 15, colour: P.ORANGE, time: t, wave: heat >= 100 ? 2 : 0.6 }); }
+    else UI.text(ctx, 'Target', x + 66, 89, { size: 22, colour: P.TEXT_LABEL });
     UI.text(ctx, UI.num(S.target), x + 194, 89, { size: fit(ctx, UI.num(S.target), 160, 36, 22), colour: P.RED });
     // Score
     UI.box(ctx, x + 10, 134, 280, 62, { colour: P.PANEL, radius: 10, emboss: 3 });
@@ -70,7 +72,8 @@
     if (vault) { UI.text(ctx, 'Vault', x + 228, 421, { size: 17, colour: P.TEXT_DIM }); UI.text(ctx, '$' + S.vault, x + 228, 443, { size: 26, colour: P.GOLD }); }
     // Stage und Runde
     UI.box(ctx, x + 10, 474, 280, 56, { colour: P.PANEL, radius: 10, emboss: 3 });
-    UI.text(ctx, 'Stage ' + Math.min(S.ante, K.ANTES) + '/' + K.ANTES, x + 80, 502, { size: 24, colour: P.ORANGE });
+    const sb = K.stageBox();
+    UI.text(ctx, sb[0] + ' ' + sb[1], x + 80, 502, { size: 24, colour: P.ORANGE });
     UI.text(ctx, 'Round ' + (S.blindIdx + 1) + '/' + K.BLINDS.length, x + 214, 502, { size: 24, colour: P.ORANGE });
     // Upgrades
     UI.box(ctx, x + 10, 540, 280, 162, { colour: P.PANEL, radius: 10, emboss: 3 });
@@ -115,7 +118,7 @@
     let line = null, col = P.TEXT_SOFT, size = 30;
     if (S.handName) { line = S.handName; col = P.GOLD; size = 36; }
     else if (pv && K.isBust(pv)) { line = 'BUST!  ' + pv.skulls + ' Skulls'; col = P.RED; }
-    else if (pv) line = pv.name + '   ' + R.handValues(pv.name, S.levels).join(' x ') + (pv.skulls ? '   ' + pv.skulls + ' Skull' + (pv.skulls > 1 ? 's' : '') : '');
+    else if (pv) { const tired = K.fatigueFor(pv.name); line = pv.name + '   ' + R.handValues(pv.name, S.levels).join(' x ') + (pv.skulls ? '   ' + pv.skulls + ' Skull' + (pv.skulls > 1 ? 's' : '') : '') + (tired ? '   Tired -' + tired + '%' : ''); }
     if (line) UI.text(ctx, line, G.cx, 210, { size: fit(ctx, line, W, size, 20), colour: col });
     if (K.isBossBlind() && S.boss) {
       const b = S.boss.name + ': ' + S.boss.desc;
@@ -127,6 +130,7 @@
     const nl = [1, 2, 3, 4, 5, 6].filter((v) => (S.numLevels[v] || 1) > 1);
     if (nl.length) parts.push([nl.map((v) => v + 's Lv ' + S.numLevels[v]).join('  '), lighten(K.TYPE_COL.tally, 0.4)]);
     if (K.anchorCap()) parts.push(['Anchors ' + K.anchorCap(), P.ANCHOR]);
+    if (K.formParts) parts.push(...K.formParts());
     if (parts.length) {
       const txt = parts.map((q) => q[0]).join('   ·   ');
       const sz = fit(ctx, txt, W, 21, 14);
@@ -189,7 +193,7 @@
     const lab = K.blindLabel(), W = G.cw - 24;
     if (K.drawJob && !(K.tutorial && K.tutorial())) K.drawJob(ctx, { x: G.c0 + 12, y: 486, w: W, h: 40 });
     else { const up = 'Up next: ' + lab.name + '  ·  Target ' + UI.num(S.target); UI.text(ctx, up, G.cx, 506, { size: fit(ctx, up, W, 24), colour: P.TEXT_SOFT }); }
-    if (S.boss && S.ante <= K.ANTES) {
+    if (S.boss && (S.ante <= K.ANTES || S.endless)) {
       const b = 'Boss of this stage: ' + S.boss.name + ' - ' + S.boss.desc;
       UI.text(ctx, b, G.cx, 540, { size: fit(ctx, b, W, 20, 14), colour: lighten(S.boss.colour, 0.45) });
     }
@@ -280,7 +284,8 @@
     L.buttons = {
       roll: { x: cx - 284, y: 436, w: 272, h: 92, size: 32 }, play: { x: cx + 12, y: 436, w: 272, h: 92, size: 32 },
       start: { x: 520, y: 520, w: 240, h: 104, size: 46 },
-      options: { x: 800, y: 532, w: 230, h: 84, size: 30 }, trophies: { x: 250, y: 532, w: 230, h: 84, size: 30 },
+      options: { x: 780, y: 532, w: 200, h: 84, size: 28 }, trophies: { x: 300, y: 532, w: 200, h: 84, size: 28 },
+      codex: { x: 80, y: 532, w: 200, h: 84, size: 28 }, history: { x: 1000, y: 532, w: 200, h: 84, size: 28 },
       retry: { x: cx + 10, y: 440, w: 250, h: 88, size: 30 }, home: { x: cx - 260, y: 440, w: 250, h: 88, size: 30 },
       next: { x: rx + 6, y: 268, w: RIGHT_W - 12, h: 92, size: 32 }, shopReroll: { x: rx + 6, y: 372, w: RIGHT_W - 12, h: 78, size: 28 },
       deposit: { x: rx + 14, y: 612, w: 118, h: 80, size: 21 }, withdraw: { x: rx + 138, y: 612, w: 118, h: 80, size: 21 },

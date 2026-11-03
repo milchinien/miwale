@@ -45,6 +45,12 @@
     anchor: { title: 'Anchor', text: 'An anchored die stays on the table for the next hand and keeps its face.' },
     rarity: { title: 'Rarity', text: 'How often something appears in the shop: Common often, Uncommon less, Rare seldom, Legendary almost never.' },
     consumable: { title: 'Consumable', text: 'Used once. You can carry 2: Oracles, Tallies and Constellations.' },
+    formation: { title: 'Formation', text: 'How your dice lie on the table, from left to right. Drag a die onto another one to Shift them. Formations work on every hand except Five of a Kind and Large Straight.' },
+    link: { title: 'Link', text: 'Two scored dice side by side that show the same number. Every Link gives +4 Pips. Drag dice next to each other to make Links.' },
+    shift: { title: 'Shift', text: 'Drag a die onto another die to swap their slots. You get 1 Shift per hand. Rerolls keep every die in its slot.' },
+    step: { title: 'Step', text: 'Two scored dice side by side whose numbers are one apart, like 3-4 or 5-4.' },
+    chain: { title: 'Chain', text: 'A row of dice joined by Links, like 4-4-4. Your longest chain counts.' },
+    slot: { title: 'Slot', text: 'A place on the table. The middle slot is in the centre of your dice, the end slots are the far left and far right.' },
   };
   // Handarten
   const HANDS = {
@@ -73,6 +79,8 @@
     tag: 'tag', tags: 'tag', 'set bonus': 'set', relic: 'relic', relics: 'relic', Relic: 'relic', Oracle: 'oracle', Oracles: 'oracle',
     Constellation: 'constellation', Constellations: 'constellation', Tally: 'tally', Tallies: 'tally', upgrade: 'upgrade', Upgrade: 'upgrade',
     bag: 'bag', Bag: 'bag', anchored: 'anchor', Anchor: 'anchor', consumable: 'consumable', Rarity: 'rarity',
+    Link: 'link', Links: 'link', Shift: 'shift', Shifts: 'shift', Step: 'step', chain: 'chain', Formation: 'formation',
+    'middle slot': 'slot', 'end slots': 'slot', slot: 'slot',
   };
   for (const name of Object.keys(HANDS)) PHRASES[name] = 'hand:' + name;
   global.WG_GLOSSARY = { TERMS, PHRASES };

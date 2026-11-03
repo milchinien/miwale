@@ -391,8 +391,150 @@
     },
   });
 
-  const vineMarks = {golden_vine:'bank',clover_vine:'luck',thorn_vine:'risk',pattern_vine:'pattern',root_vine:'hold',dice_vine:'reroll',number_vine:'number',bag_vine:'bag'};
-  const tagMotifs = {bank:'vault',number:'big_six',pattern:'fusion',luck:'clover',risk:'loaded_skulls',reroll:'loaded',hold:'anchor',bag:'backpack',growth:'seedling'};
+  // Formation: Dominosteine, Plätze, Ketten – alles dreht sich um die Lage auf dem Tisch
+  useMaterial('domino architect palindrome sleight', 'ivory','gold','red');
+  useMaterial('chain_reaction keystone turntable', 'steel','gold','red');
+  useMaterial('lodestone magnetic', 'red','gold','steel');
+  useMaterial('centerpiece spotlight bookends', 'gold','gold','blue');
+  useMaterial('flanking stepping shuffleboard', 'blue','gold','ivory');
+  Object.assign(motifs, {
+    domino: p => {
+      p.poly([[9,2],[23,2],[25,4],[25,28],[23,30],[9,30],[7,28],[7,4]],PAPER);
+      p.rect(9,15,14,2,INK);
+      [[11,6],[19,6],[15,10]].forEach(([x,y])=>p.rect(x,y,3,3,INK));
+      [[11,19],[19,19],[11,25],[19,25]].forEach(([x,y])=>p.rect(x,y,3,3,INK));
+      p.rect(8,3,2,10,'#FFFFFF');
+    },
+    centerpiece: p => {
+      p.rect(2,24,28,3,COOL);p.rect(4,27,4,3,COOL);p.rect(24,27,4,3,COOL);
+      p.poly([[11,22],[9,15],[12,8],[20,8],[23,15],[21,22]],GOLD);
+      p.rect(13,4,6,4,GOLD);p.rect(12,12,8,2,PAPER);p.rect(14,16,4,4,'#C34A55');
+    },
+    flanking: p => {
+      p.poly([[2,5],[11,3],[12,18],[7,27],[2,18]],COOL);p.poly([[30,5],[21,3],[20,18],[25,27],[30,18]],COOL);
+      p.rect(5,9,4,8,GOLD);p.rect(23,9,4,8,GOLD);p.die(12,10,1,8);
+    },
+    stepping: p => {
+      p.disc(6,25,4,COOL);p.disc(15,19,4,PAPER);p.disc(24,12,4,COOL);
+      p.rect(4,23,4,2,'#FFFFFF');p.rect(13,17,4,2,'#FFFFFF');p.rect(22,10,4,2,'#FFFFFF');
+      p.line(5,15,11,10,GOLD,2);p.line(14,8,20,4,GOLD,2);
+    },
+    bookends: p => {
+      p.poly([[2,28],[2,6],[9,6],[9,22],[12,22],[12,28]],GOLD);p.poly([[30,28],[30,6],[23,6],[23,22],[20,22],[20,28]],GOLD);
+      p.rect(11,8,4,14,'#C34A55');p.rect(15,10,3,12,COOL);p.rect(18,7,3,15,PAPER);
+    },
+    shuffleboard: p => {
+      p.rect(3,4,26,25,COOL);p.rect(5,6,22,21,PAPER);p.rect(5,10,22,1,COOL);p.rect(5,20,22,1,COOL);
+      p.disc(11,15,4,'#C34A55');p.disc(21,24,3,GOLD);p.line(13,15,23,24,INK,1);
+    },
+    palindrome: p => {
+      p.die(1,9,3,13);p.die(18,9,3,13);p.rect(15,6,2,20,GOLD);
+      p.poly([[7,4],[12,1],[12,3],[20,3],[20,1],[25,4],[20,7],[20,5],[12,5],[12,7]],COOL);
+      p.poly([[7,28],[12,25],[12,27],[20,27],[20,25],[25,28],[20,31],[20,29],[12,29],[12,31]],COOL);
+    },
+    lodestone: p => {
+      p.poly([[5,6],[13,6],[13,20],[16,22],[19,20],[19,6],[27,6],[27,21],[21,28],[11,28],[5,21]],PAPER);
+      p.rect(5,6,8,5,COOL);p.rect(19,6,8,5,COOL);p.die(11,10,2,10);
+    },
+    chain_reaction: p => {
+      const link=(x,y)=>{p.rect(x,y,10,3);p.rect(x,y+7,10,3);p.rect(x,y,3,10);p.rect(x+7,y,3,10);};
+      link(2,4);link(11,11);link(20,18);
+      p.rect(9,13,5,3,GOLD);p.rect(18,20,5,3,GOLD);p.star(26,7,4,GOLD);
+    },
+    keystone: p => {
+      p.poly([[2,28],[2,18],[10,18],[10,28]],COOL);p.poly([[22,28],[22,18],[30,18],[30,28]],COOL);
+      p.poly([[3,17],[9,10],[23,10],[29,17],[22,17],[10,17]],PAPER);
+      p.poly([[12,17],[11,5],[21,5],[20,17]],GOLD);p.star(16,11,3,'#FFFFFF');
+    },
+    architect: p => {
+      p.poly([[3,28],[3,4],[7,4],[7,24],[28,24],[28,28]],GOLD);
+      p.line(8,22,25,5,PAPER,2);p.line(9,8,9,20,COOL,1);p.line(11,22,24,22,COOL,1);
+      [[12,17],[17,12],[22,7]].forEach(([x,y])=>p.rect(x,y,3,3,'#C34A55'));
+    },
+    turntable: p => {
+      p.rect(2,6,28,22,COOL);p.disc(14,17,9,INK);p.disc(14,17,7,'#35394E');p.disc(14,17,2,GOLD);
+      p.line(26,8,22,20,PAPER,2);p.rect(24,6,4,4,PAPER);
+    },
+    spotlight: p => {
+      p.poly([[12,2],[20,2],[29,26],[3,26]],'#FFF0B2');p.rect(10,1,12,4,COOL);
+      p.rect(4,26,24,4,GOLD);p.die(12,17,1,8);
+    },
+    magnetic: p => {
+      p.poly([[3,4],[13,4],[13,16],[16,19],[19,16],[19,4],[29,4],[29,17],[22,25],[10,25],[3,17]],PAPER);
+      p.rect(3,4,10,5,COOL);p.rect(19,4,10,5,COOL);
+      p.die(5,22,2,9);p.die(18,22,2,9);
+    },
+    sleight: p => {
+      p.poly([[4,20],[10,12],[22,12],[28,20],[22,28],[10,28]],PAPER);
+      p.die(5,3,4,11);p.die(17,3,4,11);p.line(10,16,22,16,GOLD,2);p.poly([[20,13],[25,16],[20,19]],GOLD);
+    },
+  });
+
+  // v2: Relikte und Upgrades für Luck, Reroll, Bag, Risk, Hold und Formation
+  useMaterial('wishbone ossuary bone_polish', 'ivory','gold','red');
+  useMaterial('horseshoe lucky_charm', 'green','gold','steel');
+  useMaterial('second_thought momentum quick_hands', 'blue','gold','ivory');
+  useMaterial('pack_mule menagerie saddlebag', 'leather','gold','red');
+  useMaterial('iron_grip', 'steel','gold','red');
+  useMaterial('conga', 'violet','gold','ivory');
+  Object.assign(motifs, {
+    wishbone: p => {
+      p.line(16,26,16,16,PAPER,3);p.line(16,16,7,4,PAPER,3);p.line(16,16,25,4,PAPER,3);
+      p.disc(7,4,2,PAPER);p.disc(25,4,2,PAPER);p.disc(16,27,3,PAPER);p.star(24,22,5,GOLD);
+    },
+    horseshoe: p => {
+      p.poly([[5,6],[11,6],[11,19],[16,24],[21,19],[21,6],[27,6],[27,21],[20,29],[12,29],[5,21]],COOL);
+      [[7,9],[7,15],[23,9],[23,15]].forEach(([x,y])=>p.rect(x,y,2,2,INK));
+      p.rect(5,5,6,3,GOLD);p.rect(21,5,6,3,GOLD);p.star(16,12,4,GOLD);
+    },
+    second_thought: p => {
+      p.disc(16,13,10,PAPER);p.disc(9,25,3,PAPER);p.disc(5,29,2,PAPER);
+      p.rect(13,7,6,3,INK);p.rect(17,10,3,3,INK);p.rect(14,13,3,3,INK);p.rect(14,18,3,2,INK);p.die(19,17,2,9,GOLD);
+    },
+    momentum: p => {
+      p.line(3,24,12,24,COOL,2);p.line(2,18,10,18,COOL,2);p.line(4,12,11,12,COOL,2);
+      p.die(12,9,6,17);p.poly([[29,17],[24,12],[24,22]],GOLD);
+    },
+    pack_mule: p => {
+      p.poly([[4,14],[22,14],[26,10],[30,12],[27,18],[24,20],[24,28],[21,28],[21,22],[8,22],[8,28],[5,28],[5,20]],'#B98A62');
+      p.rect(27,8,2,4,'#B98A62');p.rect(9,8,12,7,GOLD);p.die(11,9,3,6);p.die(16,7,5,6);p.rect(27,14,1,1,INK);
+    },
+    menagerie: p => {
+      p.poly([[16,2],[30,12],[2,12]],'#C34A55');p.rect(4,12,24,3,GOLD);p.rect(5,15,22,14,PAPER);
+      p.rect(5,15,3,14,'#C34A55');p.rect(24,15,3,14,'#C34A55');
+      p.die(9,18,1,7);p.die(16,18,6,7);p.rect(15,1,2,3,GOLD);
+    },
+    ossuary: p => {
+      p.poly([[6,10],[26,10],[24,29],[8,29]],GOLD);p.rect(4,8,24,3,'#D77E35');p.rect(8,4,16,4,GOLD);
+      p.skull(9,13);
+    },
+    iron_grip: p => {
+      p.rect(6,10,20,14,COOL);p.rect(6,8,5,4,COOL);p.rect(11,7,5,4,COOL);p.rect(16,7,5,4,COOL);p.rect(21,8,5,4,COOL);
+      p.rect(8,13,16,2,'#334564');p.die(10,16,4,10);p.rect(3,14,4,8,COOL);
+    },
+    conga: p => {
+      [[2,18],[11,14],[20,10]].forEach(([x,y],i)=>p.die(x,y,[3,3,3][i],10));
+      p.line(12,23,14,20,GOLD,2);p.line(21,19,23,16,GOLD,2);p.star(27,6,4,GOLD);
+    },
+    lucky_charm: p => {
+      p.line(16,2,16,8,GOLD,1);p.ring(16,4,2,GOLD);p.disc(16,18,11,COOL);p.disc(16,18,8,PAPER);
+      p.disc(13,15,3,'#32936A');p.disc(19,15,3,'#32936A');p.disc(13,21,3,'#32936A');p.disc(19,21,3,'#32936A');p.disc(16,18,2,'#D0ED9A');
+    },
+    quick_hands: p => {
+      p.poly([[5,20],[5,11],[8,9],[11,11],[11,7],[14,5],[17,7],[17,9],[20,8],[23,10],[23,22],[18,28],[10,28]],PAPER);
+      p.die(18,2,2,9);p.line(26,14,30,12,GOLD,1);p.line(26,18,30,18,GOLD,1);p.line(26,22,30,24,GOLD,1);
+    },
+    saddlebag: p => {
+      p.rect(3,6,26,4,'#956047');p.poly([[3,10],[13,10],[13,26],[10,29],[3,29]],'#D2995E');p.poly([[19,10],[29,10],[29,29],[22,29],[19,26]],'#D2995E');
+      p.rect(6,14,4,4,GOLD);p.rect(22,14,4,4,GOLD);p.die(11,15,5,9);
+    },
+    bone_polish: p => {
+      p.skull(6,4);p.poly([[23,24],[30,17],[31,22],[26,29]],GOLD);p.star(6,26,4,'#FFFFFF');p.star(27,8,3,'#FFFFFF');
+    },
+  });
+
+  const vineMarks = {golden_vine:'bank',clover_vine:'luck',thorn_vine:'risk',pattern_vine:'pattern',root_vine:'hold',dice_vine:'reroll',number_vine:'number',bag_vine:'bag',link_vine:'formation'};
+  const tagMotifs = {bank:'vault',number:'big_six',pattern:'fusion',luck:'clover',risk:'loaded_skulls',reroll:'loaded',hold:'anchor',bag:'backpack',growth:'seedling',formation:'domino'};
   for (const [id, tag] of Object.entries(vineMarks)) motifs[id] = p => {
     materialById[id] = ['green',tag==='bank'?'gold':'green','green'];
     p.line(8,29,6,20,COOL,3);p.line(6,20,11,11,COOL,3);p.line(11,11,9,4,COOL,3);

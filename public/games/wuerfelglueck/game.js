@@ -19,16 +19,8 @@
 
   // ── Konstanten ──────────────────────────────────────────────────────────
   const DIE_S = MOBILE ? 2.9 : 2.2;  // 32 px × 2.2 ≈ 70 px auf dem Bildschirm (Handy größer)
-  const HANDS_MAX = 4;               // Hände pro Blind
-  const REROLLS_MAX = 3;             // Neu-Würfe pro Hand
-  const ANTES = 8, START_MONEY = 4, START_BAG = 6;
-  const ANTE_TARGET = [150, 400, 900, 2000, 4500, 9000, 18000, 35000]; // Platzhalter, zum Balancen
-  const BLINDS = [
-    { name: 'Warm-up', key: 'ROUND_1', factor: 1, reward: 3 },
-    { name: 'High Stakes', key: 'ROUND_2', factor: 1.5, reward: 4 },
-    { name: 'Showdown', key: 'ROUND_3', factor: 2, reward: 5, boss: true },
-  ];
-  const VAULT_MAX = 60;
+  // Balance-Werte stehen in rules.js (R.BALANCE), damit der Simulator (tools/sim) dieselben Zahlen nutzt
+  const { HANDS_MAX, REROLLS_MAX, ANTES, START_MONEY, START_BAG, ANTE_TARGET, BLINDS, VAULT_MAX, ENDLESS_GROWTH, HEAT_PULL, HEAT_CAP } = R.BALANCE;
   const CARD_S = MOBILE ? 1.3 : 1.12;   // Relikte und Verbrauchsgüter in den Leisten
   const TYPE_COL = { relic: '#E07A2E', constellation: P.PLANET, oracle: P.TAROT, tally: '#2F8F9D', die: P.GREEN, upgrade: '#3B5B9A' };
   const TYPE_NAME = { relic: 'Relic', constellation: 'Constellation', oracle: 'Oracle', tally: 'Tally', die: 'Die', upgrade: 'Upgrade' };
@@ -93,7 +85,7 @@
   const drawableCups = () => CUPS.filter((c) => c.id !== 'classic' && !c.jonny);
   if (ACH) ACH.setCupPool(drawableCups().map((c) => c.id));
   // Endboss in Stage 8: Jonny. Er schummelt und nimmt jede Hand die Regel eines anderen Bosses (S.jonnyRule).
-  const JONNY_BOSS = { id: 'jonny', name: 'Jonny', colour: '#A8742A', factor: 2.5, final: true,
+  const JONNY_BOSS = { id: 'jonny', name: 'Jonny', colour: '#A8742A', factor: R.BALANCE.JONNY_FACTOR, final: true,
     get desc() {
       const r = jonnyRuleBoss();
       return r ? 'This hand: ' + r.name + ' - ' + r.desc : 'The final boss. He cheats: every hand he picks a new rule from the other bosses';
@@ -218,7 +210,10 @@
     hands: HANDS_MAX, rerolls: REROLLS_MAX, money: START_MONEY, chips: 0, mult: 0, handName: '', handNameT: 0, msg: null,
     bag: [], relics: [], cons: [], upgrades: [], levels: {}, numLevels: {}, handCounts: {}, boss: null, usedBosses: [],
     played: [], rerollsHand: 0, rerollsBlind: 0, rerollTotal: 0, freeReroll: false, lucky: 0, whirls: 0, coldHand: 0,
-    vault: 0, anchored: [],
+    vault: 0, anchored: [], shifts: 0,
+    endless: false,   // nach dem Sieg in Stage 8 weitergespielt (Endless-Modus)
+    runId: 0, stats: null, runAch: [],   // Statistik des Runs und in diesem Run freigeschaltete Achievements
+    summary: null,    // Auswertung am Ende des Runs (dieselbe Form wie ein Eintrag der Laufhistorie)
     shop: null, shopRerollCost: 1, upgradeOffer: null, bought: false, pruneUsed: false, choice: null,
     cup: 'classic', time: 0, scoreStep: 0, chaos: null, cupDrawn: false, cupDraw: null,
     ach: null,   // Achievement-Zähler für diesen Run: letzte Hand, Serie, Busts, Shops ohne Kauf
@@ -230,6 +225,10 @@
   S.jonny = freshJonny();
   const freshAch = () => ({ last: null, streak: 0, busts: 0, noBuy: 0 });
   S.ach = freshAch();
+  // Statistik eines Runs (Pause-Ansicht, Auswertung am Ende, Laufhistorie)
+  const freshStats = () => ({ heat: 0, hands: 0, rounds: 0, bosses: 0, rerolls: 0, lucky: 0, busts: 0, links: 0, chain: 0, palindromes: 0, shifts: 0,
+    earned: 0, spent: 0, bought: 0, sold: 0, used: 0, best: 0, bestName: '', total: 0, maxMoney: 0, fives: 0, said: {} });
+  S.stats = freshStats();
   const cup = () => CUP_BY_ID[S.cup] || CUPS[0];
   const chaosRule = () => (cup().chaos && S.chaos ? CHAOS_BY_ID[S.chaos] : null);
   const chaosVal = (k) => { const c = chaosRule(); return (c && c[k]) || 0; };
@@ -270,6 +269,12 @@
     achPrev: btn(470, 622, 70, 52, '<', P.ORANGE, { size: 30 }),
     achNext: btn(740, 622, 70, 52, '>', P.ORANGE, { size: 30 }),
     help: btn(900, 494, 86, 52, 'Help!', '#8F5FC0', { size: 20 }),
+    codex: btn(210, 566, 150, 54, 'Codex', P.PURPLE, { size: 24 }),
+    history: btn(920, 566, 150, 54, 'History', P.GREEN, { size: 24 }),
+    share: btn(0, 0, 190, 50, 'Share Image', P.BLUE, { size: MOBILE ? 26 : 22 }),
+    endless: btn(0, 0, 210, 50, 'Keep Going', P.PURPLE, { size: 22 }),
+    pagePrev: btn(470, 622, 70, 52, '<', P.ORANGE, { size: 30 }),
+    pageNext: btn(740, 622, 70, 52, '>', P.ORANGE, { size: 30 }),
   };
   const BUY = [0, 1, 2, 3, 4].map((k) => btn(0, 412, 100, 38, 'Buy', P.BLUE, { size: 20, slot: k }));
   const CHOICE = [0, 1, 2].map((k) => btn(0, 300, 170, 60, '', P.BLUE, { size: 22, choice: k }));
@@ -292,6 +297,7 @@
       { key: 'speed', label: 'Game speed' }, { key: 'tipDelay', label: 'Tooltip delay' }, { key: 'textSpeed', label: 'Jonny text speed' },
       { key: 'jonnyTalk', label: 'Jonny chatter' }, { key: 'reset', label: 'Reset progress', action: 'Reset' }] },
     { id: 'controls', label: 'Controls', rows: [] },
+    { id: 'run', label: 'Run', rows: [] },   // Handy: Statistik des Runs (am PC steht sie links neben den Einstellungen)
   ];
   if (MOBILE) {
     // Handy: Tooltips per langem Druck (keine Verzögerung einstellbar), Vollbild nur, wenn der Browser es kann
@@ -311,23 +317,27 @@
     SET_BTNS.push(btn(870, SET_Y(k) - 18, 44, 36, '>', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: 1 }));
   }));
   const setRows = () => SET_TABS[setTab].rows;
+  const tabVisible = (i) => SET_TABS[i].id !== 'run' || (MOBILE && !inMenus() && !TUT.active);
+  const visTabBtns = () => SET_TAB_BTNS.filter((b) => tabVisible(b.setTab));
   const setBtnsNow = () => SET_BTNS.filter((b) => b.inTab === setTab);
   const ALL_BUTTONS = Object.values(B).concat(BUY, CHOICE, SET_TAB_BTNS, SET_BTNS, SLOT_MAIN, SLOT_DEL);
-  const MENU_PHASES = ['menu', 'slots', 'cups', 'trophies'];
+  const MENU_PHASES = ['menu', 'slots', 'cups', 'trophies', 'codex', 'history'];
   const inMenus = () => MENU_PHASES.includes(S.phase);
   // Speichern und Beenden geht nur in ruhigen Momenten (Würfel liegen, Shop offen) – oder nach Ende des Runs
   const canQuit = () => (['select', 'shop'].includes(S.phase) && !S.choice && !eng.busy) || ['lost', 'runWon'].includes(S.phase);
   function activeButtons() {
-    if (settingsOpen) return [...SET_TAB_BTNS, ...setBtnsNow(), B.close, ...(inMenus() ? [] : [B.quit])];
+    if (settingsOpen) return [...visTabBtns(), ...setBtnsNow(), B.close, ...(inMenus() ? [] : [B.quit])];
     const tb = TUT.buttons();
     if (TUT.modal || tb.length) return tb;
     if (S.cupDraw) return [B.collect];
     if (S.choice) return CHOICE;
-    if (S.phase === 'menu') return [B.start, B.options, ...(ACH ? [B.trophies] : [])];
+    if (S.phase === 'menu') return [B.start, B.options, ...(ACH ? [B.trophies] : []), B.codex, B.history];
+    if (S.phase === 'codex') return [...CODEX_TAB_BTNS, B.pagePrev, B.pageNext, B.back];
+    if (S.phase === 'history') return histSel >= 0 ? [B.back, B.share] : [B.pagePrev, B.pageNext, B.back];
     if (S.phase === 'slots') return [...slotButtons(), ...(tutorialSeen() ? [B.tutSlot] : []), B.back];
     if (S.phase === 'cups') return [B.cupPrev, B.cupNext, B.begin, B.back];
     if (S.phase === 'trophies') return [B.achPrev, B.achNext, B.back];
-    if (S.phase === 'lost' || S.phase === 'runWon') return [B.retry, ...(profile ? [B.home] : []), B.settings];
+    if (S.phase === 'lost' || S.phase === 'runWon') return S.summary ? summaryButtons() : [B.settings];
     if (S.phase === 'won') return [B.settings];
     const sel = selButtons();
     if (S.phase === 'shop') return [B.settings, B.next, B.shopReroll, ...BUY.filter((b) => S.shop && S.shop[b.slot]), ...(upg('vault') ? [B.deposit, B.withdraw] : []), ...sel];
@@ -357,12 +367,17 @@
   const upg = (id) => S.upgrades.includes(id);
   const setOn = (tag, n) => R.setLevel(R.tagCounts(S.relics), tag) >= n;
   const relicSprite = (id) => relicSprites[eff().findIndex((e) => e.def.id === id)];
-  const bagMax = () => R.MAX_BAG + (cup().bagPlus || 0) + (upg('backpack') ? 4 : 0) + (setOn('bag', 3) ? 2 : 0);
+  const bagMax = () => R.MAX_BAG + (cup().bagPlus || 0) + (upg('backpack') ? 4 : 0) + (upg('saddlebag') ? 3 : 0) + (setOn('bag', 3) ? 2 : 0);
   const minMoney = () => (upg('overdraft') ? -20 : 0);
   const canPay = (price) => S.money - price >= minMoney();
   const drawCount = () => Math.min(S.bag.length, upg('spare_die') ? 6 : 5);
+  // Formation: die Lage auf dem Tisch zählt (außer im Tutorial). Shifts = Tauschzüge pro Hand.
+  const formationOn = () => !TUT.active;
+  const shiftsMax = () => (formationOn() ? 1 + (upg('turntable') ? 1 : 0) + (setOn('formation', 3) ? 1 : 0) : 0);
+  const FORM_COL = () => R.TAGS.formation.colour;
   const handsMax = () => Math.max(1, cup().hands + chaosVal('hands') - (upg('overdrive') ? 1 : 0) - (has('blood_pact') ? 1 : 0));
-  const rerollsMax = () => (bossActive('clamp') ? 1 : Math.max(0, cup().rerolls + chaosVal('rerolls')) + (upg('overdrive') ? 2 : 0) + (setOn('reroll', 3) ? 1 : 0) + eff().reduce((a, e) => a + (e.def.extraRerolls || 0), 0));
+  const rerollsBase = () => Math.max(0, cup().rerolls + chaosVal('rerolls')) + (upg('overdrive') ? 2 : 0) + (upg('quick_hands') ? 1 : 0) + (setOn('reroll', 3) ? 1 : 0) + eff().reduce((a, e) => a + (e.def.extraRerolls || 0), 0);
+  const rerollsMax = () => (bossActive('clamp') ? Math.max(1, rerollsBase() - 2) : rerollsBase());   // The Clamp: -2, aber nie unter 1
   const anchorCap = () => (cup().anchors || 0) + (upg('anchor') ? 1 : 0) + (setOn('hold', 3) ? 1 : 0);
   const bustAt = () => 3 + (upg('rabbit_foot') ? 1 : 0) + (setOn('risk', 3) ? 1 : 0);
   const heldCount = () => dice.filter((d) => d.data.held).length;
@@ -383,16 +398,43 @@
       boss: isBossBlind() ? curBoss() : null, isBoss: isBossBlind() && S.phase !== 'shop', played: S.played, handCounts: S.handCounts,
       rerollsHand: S.rerollsHand, rerollsBlind: S.rerollsBlind, rerollsLeft: S.rerolls, money: S.money, vault: S.vault,
       bag: S.bag, bagSize: S.bag.length, bagTypes: new Set(S.bag.map((d) => d.type)).size,
-      lucky: S.lucky, whirls: S.whirls, skullsShowing: skullsShowing(), heldCount: heldCount(),
-      grow: setOn('growth', 3) ? 1.5 : 1, keep: setOn('growth', 5), mostPlayed: mostPlayed(), rnd: Math.random,
-      bonusLuck: (cup().luck || 0) + chaosVal('luck'),
+      lucky: S.lucky, luckyRound: S.luckyBlind || 0, whirls: S.whirls, skullsShowing: skullsShowing(), heldCount: heldCount(),
+      grow: setOn('growth', 3) ? 1.3 : 1, keep: setOn('growth', 5), mostPlayed: mostPlayed(), rnd: Math.random,
+      bonusLuck: (cup().luck || 0) + chaosVal('luck'), formation: formationOn(),
+      lastHand: S.ach ? S.ach.last : null, handStreak: S.ach ? S.ach.streak : 0,
     }, extra);
   }
   const luck = (extra) => R.luckOf(ctx(extra));
-  function blindTarget(idx) {
-    const base = ANTE_TARGET[Math.min(S.ante - 1, ANTE_TARGET.length - 1)];
+  // Endless: nach Stage 8 wächst das Ziel pro Stage um den Faktor ENDLESS_GROWTH (R.BALANCE)
+  function stageBase(ante) {
+    if (ante <= ANTE_TARGET.length) return ANTE_TARGET[Math.max(0, ante - 1)];
+    const x = ANTE_TARGET[ANTE_TARGET.length - 1] * Math.pow(ENDLESS_GROWTH, ante - ANTE_TARGET.length);
+    const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(x)) - 2));
+    return Math.round(x / step) * step;
+  }
+  // Ziel ohne Heat (Stage, Blind, Boss, Chaos-Regel)
+  function baseTarget(idx) {
+    const base = stageBase(S.ante);
     const factor = idx === 2 ? (S.boss && S.boss.factor) || BLINDS[2].factor : BLINDS[idx].factor;
     return Math.round(base * factor * (chaosVal('target') || 1));
+  }
+  // Heat: Wer die letzte Runde weit übertroffen hat, bekommt stärkere Gegner. Der Score der letzten Runde zieht das Ziel
+  // zu sich heran (abgerundet), aber nie unter das normale Ziel und nie über das Doppelte davon. Wie stark, hängt vom Tempo ab:
+  // Sieg mit Hand 1 = voller Zug (HEAT_PULL), danach weniger, Sieg mit der letzten Hand = keine Heat (S.lastSpeed).
+  const heatOn = () => !TUT.active;
+  function blindTarget(idx) {
+    const base = baseTarget(idx), last = S.lastScore || 0;
+    if (!heatOn() || last <= base) return base;
+    const speed = S.lastSpeed === undefined ? 1 : S.lastSpeed;
+    const pull = base + (last - base) * HEAT_PULL * speed;
+    if (pull <= base) return base;
+    const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(pull)) - 1));   // auf 2 Stellen abrunden
+    return Math.max(base, Math.min(Math.round(base * HEAT_CAP), Math.floor(pull / step) * step));
+  }
+  // Heat in Prozent über dem normalen Ziel (0 = keine)
+  function heatPct(idx = S.blindIdx) {
+    if (!heatOn() || !S.target) return 0;
+    return Math.max(0, Math.round((S.target / Math.max(1, baseTarget(idx)) - 1) * 100));
   }
   function blindLabel(idx = S.blindIdx) {
     return idx === 2 && S.boss ? { name: S.boss.name, colour: S.boss.colour } : { name: BLINDS[idx].name, colour: P[BLINDS[idx].key] };
@@ -449,6 +491,7 @@
   }
   function addMoney(v, x, y) {
     S.money += v; J.money.up(0.4);
+    if (v > 0 && S.stats) S.stats.earned += v;
     sfx(v < 0 ? 'pay' : 'coin');
     if (v < 0) { eng.popup(x, y, '-$' + -v, { colour: P.RED }); return; }
     eng.popup(x, y, '+$' + v, { colour: P.MONEY, textColour: P.BLACK });
@@ -461,8 +504,8 @@
   // Gehaltene Würfel werden angehoben und orange getönt (verankerte blau), eingefrorene hellblau.
   function layoutDice() {
     dice.forEach((d, i) => {
-      d.z = 10 + i;
-      d.moveTo(dieX(i), dieY() - (d.data.held ? L.die.lift : 0), 0);
+      d.z = d.dragging ? 100 : 10 + i;
+      if (!d.dragging) d.moveTo(dieX(i), dieY() - (d.data.held ? L.die.lift : 0), 0);
       d.tint = d.data.held ? [d.data.anchored ? P.BLUE : P.ORANGE, 0.3] : frozen(d) ? ['#9FD8FF', 0.45] : null;
     });
   }
@@ -485,13 +528,14 @@
     const pool = shuffle(S.bag.filter((d) => !kept.has(d)));
     dice.forEach((sp, i) => {
       const a = keep.find((x) => x.i === i);
-      Object.assign(sp.data, { held: !!a, anchored: !!a, rerolled: 0, rnd: fresh() });
+      Object.assign(sp.data, { held: !!a, anchored: !!a, rerolled: 0, luckyHit: false, rnd: fresh() });
       if (a) { sp.data.die = a.die; sp.data.up = a.up; refreshDieTex(sp); } else { sp.data.die = pool.pop(); sp.data.up = 0; }
     });
     if (isBossBlind() && S.boss === JONNY_BOSS && !TUT.active) jonnyNewRule();
     S.rerolls = rerollsMax(); S.rerollsHand = 0; S.freeReroll = has('loaded'); S.lucky = 0; S.whirls = 0; S.coldHand = 0;
+    S.shifts = shiftsMax();
     fire('newHand');
-    if (S.hands === 1 && handsMax() > 1) jonnyLastHand();
+    if (S.hands === 1 && handsMax() > 1) { jonnyLastHand(); jonnyEvents('lastHand'); }
     layoutDice();
     if (TUT.active) TUT.beginHand();
     animate(outcomes(allIdx().filter((i) => !dice[i].data.anchored), true));
@@ -511,8 +555,9 @@
   function animate(out, done) {
     S.phase = 'rolling';
     const idx = Object.keys(out).map(Number);
+    const rolled = idx.map((i) => dice[i]);
     let pending = idx.length;
-    const finishRoll = () => { layoutDice(); S.phase = 'select'; if (done) done(); autosave(); TUT.event('handReady'); };
+    const finishRoll = () => { magnetize(rolled); layoutDice(); S.phase = 'select'; if (done) done(); autosave(); TUT.event('handReady'); };
     if (!pending) { eng.after(0.2, finishRoll); return; }
     sfx('rattle', { n: idx.length, dur: 0.55 + 0.1 * (idx.length - 1) });
     idx.forEach((i, k) => {
@@ -593,13 +638,77 @@
     if (jackpot) forceFive(idx, out);
     else if (has('last_call') && !free && S.rerolls === 0) forcePair(idx, out);
     let lucky = 0;
-    idx.forEach((i) => { if (out[i].lucky) { lucky++; luckyHit(i, out[i]); } });
-    S.lucky += lucky;
-    achieve('reroll', { n: S.rerollsHand, lucky });
+    idx.forEach((i) => { dice[i].data.luckyHit = !!out[i].lucky; if (out[i].lucky) { lucky++; luckyHit(i, out[i]); } });
+    S.lucky += lucky; S.luckyBlind = (S.luckyBlind || 0) + lucky;
+    S.stats.rerolls++; S.stats.lucky += lucky;
+    achieve('reroll', { n: S.rerollsHand, lucky, luckyRound: S.luckyBlind || 0, round: S.rerollsBlind });
     jobEvent('reroll', { lucky });
     jonnyReroll(lucky);
+    jonnyEvents('reroll', { lucky });
     fire('onReroll', [{ lucky, held }]);
-    animate(out);
+    const luckyDice = idx.filter((i) => out[i].lucky).map((i) => dice[i]);
+    animate(out, has('lodestone') && luckyDice.length ? () => slideTogether(luckyDice, true, 'lodestone') : null);
+  }
+
+  // ── Formation: Würfel tauschen (Shift), Magnetic Table, Lodestone ──────────
+  const dieVal = (d) => { const f = d && d.data.die ? upFace(d) : null; return !f || R.isSkull(f) || f.kind === 'wild' || f.kind === 'hex' ? 0 : f.v; };
+  const canShift = () => S.phase === 'select' && formationOn() && S.shifts > 0 && dice.length > 1 && !S.choice;
+  function nearestSlot(x) {
+    let best = -1, bd = 1e9;
+    dice.forEach((_, i) => { const dx = Math.abs(dieX(i) - x); if (dx < bd) { bd = dx; best = i; } });
+    return best;
+  }
+  // Tauscht die Würfel auf den Plätzen a und b. free: kostet keinen Shift (Magnetic Table, Lodestone)
+  function swapDice(a, b, free) {
+    if (a === b || !dice[a] || !dice[b]) return;
+    [dice[a], dice[b]] = [dice[b], dice[a]];
+    const col = FORM_COL();
+    for (const d of [dice[a], dice[b]]) { d.juiceUp(0.35); eng.emit(d.x, d.y, { count: 10, colours: [col, P.WHITE], speed: 200, size: 7, life: 0.45 }); }
+    if (free) return;
+    S.shifts--; S.stats.shifts++;
+    sfx('card');
+    fire('onShift');
+    achieve('shift');
+    jonnyEvents('shift');
+  }
+  function dropDie(d, m) {
+    d.dragging = false;
+    const from = dice.indexOf(d), to = nearestSlot(m.x);
+    dragSlot = -1;
+    if (from >= 0 && to >= 0 && to !== from && canShift()) swapDice(from, to, false);
+    layoutDice();
+  }
+  let dragSlot = -1;
+  // Würfel rutschen neben einen Würfel mit derselben Zahl (gehaltene Würfel bleiben liegen).
+  // needHeld: nur neben gehaltene Würfel (Lodestone). Gibt zurück, ob sich etwas bewegt hat.
+  function slideTogether(list, needHeld, source) {
+    let moved = false;
+    for (const d of list) {
+      const i = dice.indexOf(d), v = dieVal(d);
+      if (i < 0 || !v) continue;
+      const same = (j) => j >= 0 && j < dice.length && dieVal(dice[j]) === v && (!needHeld || dice[j].data.held);
+      if (same(i - 1) || same(i + 1)) continue;
+      const linked = (j) => { const w = dieVal(dice[j]); return !!w && (dieVal(dice[j - 1]) === w || dieVal(dice[j + 1]) === w); };
+      let target = -1;
+      for (let j = 0; j < dice.length && target < 0; j++) {
+        if (j === i || !same(j)) continue;
+        for (const t of [j - 1, j + 1]) if (t >= 0 && t < dice.length && t !== i && !dice[t].data.held && dieVal(dice[t]) !== v && !linked(t)) { target = t; break; }
+      }
+      if (target < 0) continue;
+      swapDice(i, target, true);
+      moved = true;
+    }
+    if (!moved) return false;
+    layoutDice();
+    sfx('magic');
+    const rs = source && relicSprite(source);
+    if (rs) { rs.juiceUp(0.4); eng.popup(rs.x, fxY(rs), 'Slide!', { colour: lighten(FORM_COL(), 0.3), size: 18 }); }
+    else eng.popup(L.msg.x, dieY() - 112, 'Magnetic!', { colour: lighten(FORM_COL(), 0.3), size: 22 });
+    return true;
+  }
+  function magnetize(rolled) {
+    if (!upg('magnetic') || !formationOn() || dice.length < 3) return;
+    slideTogether(rolled.filter((d) => dice.includes(d) && !d.data.held), false, null);
   }
 
   function luckyHit(i, o) {
@@ -647,7 +756,7 @@
     fire('beforeHand');
     const res = R.scoreHand(ctx({
       faces: dice.map(upFace), held: dice.map((d) => d.data.held),
-      extras: dice.map((d) => ({ chips: d.data.die.chips || 0, rerolled: d.data.rerolled || 0 })),
+      extras: dice.map((d) => ({ chips: d.data.die.chips || 0, rerolled: d.data.rerolled || 0, lucky: !!d.data.luckyHit })),
     }));
     S.played.push(res.name);
     S.handName = res.name; S.handNameT = eng.time; J.name.up(0.3);
@@ -657,6 +766,7 @@
     dice.forEach((d, i) => {
       const f = upFace(d), v = res.vals[i];
       if (res.used.includes(i) && v && (f.kind === 'wild' || f.kind === 'hex' || f.kind === 'skull' || (f.kind === 'twin' && v !== f.v))) eng.popup(d.x, d.y + 56, '= ' + v, { colour: P.PURPLE, size: 20 });
+      else if (res.keystone && res.keystone.includes(i) && v !== f.v) eng.popup(d.x, d.y + 56, 'Keystone = ' + v, { colour: lighten(FORM_COL(), 0.3), size: 20 });
     });
 
     eng.queue(() => res.scoring.forEach((i) => dice[i].moveTo(dieX(i), dieY() - 30, 0)), 0.5);
@@ -671,7 +781,14 @@
       A.streak = res.name === A.last ? A.streak + 1 : 1; A.last = res.name;
       if (res.bust) A.busts++;
       const gold = res.bust ? 0 : res.scoring.filter((i) => ['gold', 'prism'].includes(upFace(dice[i]).kind)).length;
-      achieve('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, streak: A.streak, gold });
+      const fo = res.form && res.form.ok ? res.form : null, st = S.stats;
+      st.hands++; st.total += total;
+      if (total > st.best) { st.best = total; st.bestName = res.name; }
+      if (res.bust) st.busts++;
+      if (res.name === 'Five of a Kind' && !res.bust) st.fives++;
+      if (fo && !res.bust) { st.links += fo.links; st.chain = Math.max(st.chain, fo.chain.length); if (fo.palindrome) st.palindromes++; }
+      achieve('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, streak: A.streak, gold, chain: fo ? fo.chain.length : 0, palindrome: !!(fo && fo.palindrome) });
+      jonnyEvents('hand', { res, total, fo, streak: A.streak });
       jobEvent('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, rerolls: S.rerollsHand, held: heldCount(), vals: res.scoring.map((i) => res.vals[i]) });
       S.jonny.best = Math.max(S.jonny.best, total);
       jonnyHand(res, total);
@@ -693,7 +810,7 @@
     fuse = { t0: eng.time, chips: S.chips, mult: S.mult, total, ratio: total / Math.max(1, S.target - S.score), hit: false, landed: false };
     const [mx, my] = spot('multBox');
     sfx('whoosh');
-    if (profile) { const st = meta().stats; st.hands++; st.bestHand = Math.max(st.bestHand, total); }
+    if (profile) { const st = meta().stats; st.hands++; newRecord = !TUT.active && st.bestHand > 0 && total > st.bestHand; st.bestHand = Math.max(st.bestHand, total); }
     eng.emit(mx, my, { count: 12, colours: [P.MULT, P.WHITE], speed: 200, size: 8, life: 0.5 });
   }
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -810,7 +927,15 @@
     const rs = s.r !== undefined ? relicSprites[s.r] : null;
     let x = rs ? rs.x : d ? d.x : L.msg.x, y = rs ? fxY(rs) : d ? d.y - 70 : dieY() - 110;
     if (s.src === 'upg') [x, y] = spot('upgrade');
-    if (s.src === 'debuff') { d.juiceUp(0.2); eng.popup(x, y, 'Debuffed', { colour: P.GREY, size: 20 }); return; }
+    if (s.src === 'upg' && s.i !== undefined && d) { x = d.x; y = d.y - 70; }
+    if (s.src === 'link') { linkFlash(s); return; }
+    if (s.src === 'debuff') { d.juiceUp(0.2); eng.popup(x, y, curBoss() && curBoss().id === 'snake' ? 'Eaten!' : 'Debuffed', { colour: P.GREY, size: 20 }); return; }
+    if (s.src === 'fatigue' || s.src === 'boss') {
+      const col = s.src === 'boss' && S.boss ? lighten(S.boss.colour, 0.35) : P.GREY;
+      eng.popup(L.msg.x, dieY() - 112, s.text, { colour: col, size: 24, life: 1.2 });
+      xMult(s.xmult, ...spot('multBox'));
+      return;
+    }
     if (s.src === 'msg') {
       if (s.small) { d.juiceUp(0.3); eng.popup(x, y - 24, s.text, { colour: P.ORANGE, size: 20 }); return; }
       eng.popup(x, y, s.text, { colour: P.RED, size: s.bust ? 44 : 30, life: 1.4 });
@@ -826,7 +951,7 @@
       const t = R.TAGS[s.tag];
       eng.popup(d ? d.x : L.msg.x, (d ? d.y : dieY()) - 104, t.name + ' set', { colour: lighten(t.colour, 0.3), size: 18 });
     }
-    if (s.src === 'upg') eng.popup(x, y - 26, R.UPGRADE_BY_ID[s.id].name, { colour: P.WHITE, size: 18 });
+    if (s.src === 'upg') eng.popup(x, y - 26, R.UPGRADE_BY_ID[s.id].name, { colour: s.id === 'spotlight' ? '#FFF0B2' : P.WHITE, size: 18 });
     if (rs) { rs.juiceUp(0.45); rs.flashWhite(0.35); }
     if (d) { d.juiceUp(0.35); d.flashWhite(0.4); }
     if (s.text && rs) eng.popup(x, y - 24, s.text, { colour: P.GOLD, size: 20 });
@@ -836,9 +961,23 @@
     if (s.money) addMoney(s.money, x, y);
   }
 
+  // Link-Schritt: Blitz zwischen den beiden Würfeln, Kette leuchtet auf
+  const linkFx = [];
+  function linkFlash(s) {
+    const a = dice[s.i], b = dice[s.j];
+    if (!a || !b) return;
+    const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2, col = FORM_COL();
+    linkFx.push({ a, b, t0: eng.time, big: !!s.xmult });
+    a.juiceUp(0.3); b.juiceUp(0.3);
+    for (let k = 0; k <= 4; k++) eng.emit(lerp(a.x, b.x, k / 4), lerp(a.y, b.y, k / 4), { count: 4, colours: [col, P.WHITE, P.GOLD], speed: 160, size: 7, life: 0.45, shape: 'diamond' });
+    sfx('relic', { step: S.scoreStep });
+    if (s.chips) { eng.popup(x, y - 66, 'Link', { colour: lighten(col, 0.35), size: 18, life: 0.9 }); addChips(s.chips, x, y - 40); }
+    if (s.xmult) xMult(s.xmult, x, y - 40);
+  }
+
   // ── Spielablauf ─────────────────────────────────────────────────────────
   function pickBoss() {
-    if (S.ante >= ANTES && !TUT.active) { S.boss = JONNY_BOSS; return; }
+    if (S.ante === ANTES && !TUT.active) { S.boss = JONNY_BOSS; return; }
     let pool = R.BOSSES.filter((b) => !S.usedBosses.includes(b.id));
     if (!pool.length) { S.usedBosses = []; pool = R.BOSSES.slice(); }
     S.boss = R.pick(pool);
@@ -857,7 +996,9 @@
     S.relics = []; S.cons = []; S.upgrades = c.upgrades.slice(); S.levels = {}; S.numLevels = Object.assign({}, c.numLevels); S.handCounts = {}; S.usedBosses = [];
     S.rerollTotal = 0; S.anchored = []; S.msg = null; S.choice = null; S.ach = freshAch();
     S.job = null; S.jonny = freshJonny(); S.jonnyRule = null;
+    S.endless = false; S.runId = Date.now(); S.stats = freshStats(); S.runAch = []; S.summary = null; S.shifts = 0; S.lastScore = 0; S.lastSpeed = 1;
     S.bag = c.bag.map((type) => R.makeDie(type));
+    seen('cup', cupId); [...new Set(c.bag)].forEach((type) => seen('die', type)); c.upgrades.forEach((id) => seen('upgrade', id));
     pickBoss();
     S.upgradeOffer = rollUpgrade();
     refreshBag(); refreshUpgrades();
@@ -876,20 +1017,23 @@
     S.phase = 'rolling';
     S.target = blindTarget(S.blindIdx);
     S.score = 0; S.dispScore = 0; S.hands = handsMax(); S.chips = 0; S.mult = 0; S.handName = '';
-    S.played = []; S.rerollsBlind = 0; S.anchored = []; S.jonnyRule = null; S.jonny.help = false;
+    S.played = []; S.rerollsBlind = 0; S.luckyBlind = 0; S.anchored = []; S.jonnyRule = null; S.jonny.help = false;
     if (b.boss) {
       bgName = 'table';
       eng.setBackgroundColour(S.boss.colour, { contrast: 2 });
       showMsg(S.boss.name, S.boss.colour, S.boss.desc, S.boss === JONNY_BOSS ? 3.2 : 2.6);
       sfx('boss');
-      if (S.boss === JONNY_BOSS) jonnyIntro();
+      seen('boss', S.boss.id);
+      if (S.boss === JONNY_BOSS) jonnyIntro(); else jonnyEvents('boss');
     } else {
       setBg('table');
-      showMsg(lab.name, lab.colour, 'Reach ' + UI.num(S.target) + ' points', 1.8);
+      showMsg(lab.name, lab.colour, 'Reach ' + UI.num(S.target) + ' points' + (heatPct() ? '  ·  Heat +' + heatPct() + '%' : ''), 1.8);
       sfx('chime');
     }
     musicMood(roundMood());
-    if (!b.boss) jonnyRoundStart();
+    const heat = heatPct();
+    if (!b.boss) { jonnyRoundStart(); if (!heat) jonnyEvents('roundStart'); }
+    if (heat) { S.stats.heat = Math.max(S.stats.heat || 0, heat); eng.after(b.boss ? 3.4 : 0.9, () => jonnyEvents('heat')); }   // statt des allgemeinen Rundenspruchs
     fire('startBlind');
     if (TUT.active) TUT.roundStart(S.blindIdx);
     createHandDice(drawCount());
@@ -906,6 +1050,7 @@
     if (jobPay) parts.push(["Jonny's job", jobPay]);
     if (S.jonny.cut) { parts.push(["Jonny's cut", -S.jonny.cut]); S.jonny.cut = 0; }
     S.jonny.last = { score: S.score, target: S.target, boss: isBossBlind() && S.boss ? S.boss.name : null };
+    S.lastScore = S.score; S.lastSpeed = R.heatSpeed(S.played.length, handsMax());   // schneller gewonnen = mehr Heat
     if (isBossBlind() && S.boss === JONNY_BOSS) jonnySay(BOSS_TALK.defeat.slice(0, 1), { important: true, replace: true, place: 'corner' });
     if (ii.maxed) eff().forEach((e) => { if (e.def.id === 'compound') { e.s.grow++; const rs = relicSprites[e.ri]; rs.juiceUp(0.4); eng.popup(rs.x, fxY(rs), 'Cap +$1', { colour: P.GOLD, size: 18 }); } });
     fire('endBlind', [], { noMoney: true }).forEach((o) => { if (o.money) parts.push([relicName(o.ri), o.money]); });
@@ -921,6 +1066,9 @@
     S.bag.forEach((d) => { d.scoredBlind = 0; });
     refreshBag();
     const reward = parts.reduce((s, p) => s + p[1], 0);
+    S.stats.rounds++; if (isBossBlind()) S.stats.bosses++;
+    if (reward > 0) S.stats.earned += reward;
+    jonnyEvents('roundWon', { handsLeft: S.hands, over: S.score - S.target });
     setBg('won', { spin: 2.5 });
     jingle('cleared', 2.6);
     showMsg('Round cleared!', P.GOLD, parts.filter((p) => p[1] !== 0).map((p) => p[0] + (p[1] < 0 ? ' -$' + -p[1] : ' $' + p[1])).join('  ·  '), 2.6);
@@ -932,8 +1080,8 @@
     eng.after(2.8, () => {
       const go = () => {
         S.blindIdx++;
-        if (S.blindIdx >= BLINDS.length) { S.blindIdx = 0; S.ante++; if (S.ante <= ANTES) { pickBoss(); anteStart(); } }
-        if (S.ante > ANTES) runWon(); else enterShop();
+        if (S.blindIdx >= BLINDS.length) { S.blindIdx = 0; S.ante++; if (S.ante <= ANTES || S.endless) { pickBoss(); anteStart(); } }
+        if (S.ante > ANTES && !S.endless) runWon(); else enterShop();
       };
       if (TUT.active && isBossBlind()) return;   // Tutorial endet nach dem ersten Showdown
       if (profile && !S.cupDrawn && S.ante === CUP_DRAW_STAGE && isBossBlind()) startCupDraw(go); else go();
@@ -958,8 +1106,9 @@
     jingle('gameover', 4);
     musicMood('lose');
     endRun(false);
-    showMsg('Game Over', P.RED, 'Stage ' + S.ante + ', ' + blindLabel().name, 999);
+    showMsg(S.endless ? 'Endless over' : 'Game Over', S.endless ? P.PURPLE : P.RED, (S.endless ? 'Endless stage ' : 'Stage ') + S.ante + ', ' + blindLabel().name, 999);
     eng.after(1.3, () => jonnyEnd(false));
+    eng.after(1.9, () => openSummary());
     clearSprites({ colours: [P.ORANGE, P.RED] });
     eng.shake(10);
   }
@@ -973,7 +1122,33 @@
     clearSprites({ colours: [P.GOLD, P.WHITE] });
     showMsg('Run complete!', P.GOLD, 'All ' + ANTES + ' stages cleared', 999);
     eng.after(1.3, () => jonnyEnd(true));
+    eng.after(2.2, () => openSummary());
     eng.emit(L.msg.x, L.msg.y, { count: 120, colours: [P.MONEY, P.GOLD, '#FFFFFF'], speed: 700, size: 12, life: 1.6, gravity: 500, shape: 'star' });
+  }
+
+  // Endless: nach dem Sieg weiterspielen. Der Sieg ist schon verbucht; Karten und Beutel kommen zurück.
+  function startEndless() {
+    if (S.phase !== 'runWon' || S.endless || !S.summary) return;
+    S.endless = true; S.summary = null; S.msg = null;
+    eng.events.length = 0; eng.timers.length = 0;
+    jonnyClear();
+    rebuildSprites();
+    pickBoss(); anteStart();
+    enterShop();
+    showMsg('Endless mode', P.PURPLE, 'The targets keep growing. How far can you go?', 2.8);
+    jingle('cupdraw', 2.5);
+    eng.after(0.6, () => jonnyEvents('endless'));
+  }
+  // Relikte, Verbrauchsgüter, Beutel und Upgrades wieder auf den Tisch legen (Spielstand laden, Endless)
+  function rebuildSprites() {
+    refreshBag(); refreshUpgrades();
+    const owned = (item, kind, pos, i, n) => {
+      const p = pos(i, n), sp = eng.sprite({ tex: itemTex(item), x: p.x, y: p.y, s: CARD_S, z: 20 + i, tiltStrength: 0.8, ambient: 2.2, data: { kind, item } });
+      sp.materialize(0.5 + i * 0.08, { colours: [P.WHITE, TYPE_COL[item.type]] });
+      return sp;
+    };
+    relicSprites = S.relics.map((it, i) => owned(it, 'relic', L.relicPos, i, S.relics.length));
+    consSprites = S.cons.map((it, i) => owned(it, 'cons', L.consPos, i, S.cons.length));
   }
 
   function clearSprites(opts) {
@@ -983,6 +1158,7 @@
   }
 
   function backToMenu() {
+    S.summary = null;
     TUT.stop();
     clearSprites();
     eng.events.length = 0; eng.timers.length = 0;   // offene Abläufe der verlassenen Runde verwerfen
@@ -1006,6 +1182,7 @@
     placeMenuDice();
   }
   function retryRun() {
+    S.summary = null;
     clearSprites();
     eng.events.length = 0; eng.timers.length = 0; fuse = null; S.msg = null;
     jonnyClear();
@@ -1023,7 +1200,8 @@
   const slotData = [null, null, null];
   const RUN_KEYS = ['cup', 'ante', 'blindIdx', 'target', 'score', 'hands', 'rerolls', 'money', 'vault', 'bag', 'relics', 'cons', 'upgrades',
     'levels', 'numLevels', 'handCounts', 'usedBosses', 'played', 'rerollsHand', 'rerollsBlind', 'rerollTotal', 'freeReroll', 'lucky', 'whirls',
-    'coldHand', 'shop', 'shopRerollCost', 'upgradeOffer', 'bought', 'pruneUsed', 'chaos', 'cupDrawn', 'ach', 'job', 'jonny', 'jonnyRule'];
+    'coldHand', 'shop', 'shopRerollCost', 'upgradeOffer', 'bought', 'pruneUsed', 'chaos', 'cupDrawn', 'ach', 'job', 'jonny', 'jonnyRule',
+    'shifts', 'endless', 'runId', 'stats', 'runAch', 'lastScore', 'lastSpeed', 'luckyBlind'];
 
   function snapshot() {
     const bi = (d) => S.bag.indexOf(d);
@@ -1042,20 +1220,25 @@
       lastSaved = js;
       profile.run = JSON.parse(js);
       profile.run.time = S.time;
-      meta().stats.bestStage = Math.max(meta().stats.bestStage, S.ante);
+      meta().stats.bestStage = Math.max(meta().stats.bestStage, Math.min(S.ante, ANTES));
+      if (S.endless) meta().stats.bestEndless = Math.max(meta().stats.bestEndless || 0, S.ante);
     }
     if (profile.run) { Saves.save(slot, profile); slotData[slot] = profile; }
     Saves.saveMeta();
   }
   // Run zu Ende: Statistik fortschreiben, der Platz wird wieder frei
+  // Run zu Ende: Statistik fortschreiben, Eintrag in die Laufhistorie, der Platz wird wieder frei.
+  // Im Endless-Modus ist der Sieg schon gezählt: dann wird nur der Eintrag der Historie aktualisiert.
   function endRun(won) {
+    S.summary = null;
     if (!profile) return;
     const st = meta().stats;
-    st.runs++;
-    if (won) st.wins++;
+    if (!S.endless) { st.runs++; if (won) st.wins++; }
     st.bestStage = Math.max(st.bestStage, Math.min(S.ante, ANTES));
+    if (S.endless) st.bestEndless = Math.max(st.bestEndless || 0, S.ante);
     profile.run = null; lastSaved = '';
-    achieve('run', { won });
+    if (!S.endless) achieve('run', { won });
+    recordHistory(won || S.endless);
     Saves.remove(slot); slotData[slot] = null;
     Saves.saveMeta();
   }
@@ -1119,6 +1302,7 @@
   function loadRun(snap) {
     clearMenuSprites();
     S.chaos = null; S.cupDrawn = false; S.cupDraw = null; S.ach = freshAch(); S.job = null; S.jonny = freshJonny(); S.jonnyRule = null;
+    S.endless = false; S.stats = null; S.runAch = []; S.runId = 0; S.shifts = undefined; S.lastScore = 0;
     for (const k of RUN_KEYS) if (snap[k] !== undefined) S[k] = snap[k];
     S.jonny = Object.assign(freshJonny(), S.jonny);
     S.boss = R.BOSSES.find((b) => b.id === snap.boss) || (snap.boss === 'jonny' ? JONNY_BOSS : null);
@@ -1126,14 +1310,9 @@
     S.anchored = (snap.anchored || []).map((a) => ({ i: a.i, die: S.bag[a.die], up: a.up })).filter((a) => a.die);
     S.time = snap.time || 0; S.choice = null; S.msg = null; S.chips = 0; S.mult = 0; S.handName = ''; S.dispScore = S.score;
     selected = null; fuse = null; lastSaved = '';
-    refreshBag(); refreshUpgrades();
-    const owned = (item, kind, pos, i, n) => {
-      const p = pos(i, n), sp = eng.sprite({ tex: itemTex(item), x: p.x, y: p.y, s: CARD_S, z: 20 + i, tiltStrength: 0.8, ambient: 2.2, data: { kind, item } });
-      sp.materialize(0.5 + i * 0.08, { colours: [P.WHITE, TYPE_COL[item.type]] });
-      return sp;
-    };
-    relicSprites = S.relics.map((it, i) => owned(it, 'relic', L.relicPos, i, S.relics.length));
-    consSprites = S.cons.map((it, i) => owned(it, 'cons', L.consPos, i, S.cons.length));
+    S.stats = Object.assign(freshStats(), S.stats || {}); S.runAch = S.runAch || []; S.runId = S.runId || Date.now(); S.summary = null;
+    if (S.shifts === undefined) S.shifts = shiftsMax();
+    rebuildSprites();
     if (snap.phase === 'shop') {
       S.phase = 'shop';
       setBg('shop', { spin: 1.5 });
@@ -1165,7 +1344,7 @@
     if (!ACH || !profile || TUT.active) return;
     const got = ACH.record(meta(), ev, e);
     if (!got.length) return;
-    got.forEach((a) => toasts.push({ a, t0: null }));
+    got.forEach((a) => { toasts.push({ a, t0: null }); if (S.runAch && !S.runAch.includes(a.id)) S.runAch.push(a.id); });
     Saves.saveMeta();
   }
   // Secrets: kommen auch aus Menü und Tutorial (ohne laufenden Run)
@@ -1173,7 +1352,7 @@
     if (!ACH || ACH.earned(meta(), id)) return;
     const got = ACH.record(meta(), 'secret', { id });
     if (!got.length) return;
-    got.forEach((a) => toasts.push({ a, t0: null }));
+    got.forEach((a) => { toasts.push({ a, t0: null }); if (!inMenus() && S.runAch && !S.runAch.includes(a.id)) S.runAch.push(a.id); });
     Saves.saveMeta();
   }
   // Was die Zustands-Achievements brauchen (Geld, Luck, Beutel, Zahlenstufen, Tags)
@@ -1509,7 +1688,7 @@
     if (c.money) addMoney(c.money, ...spot('money'));
     if (c.level) { const h = R.pick(R.HAND_ORDER); S.levels[h] = (S.levels[h] || 1) + 1; }
     if (c.gift && S.relics.length < relicMax()) { const id = randomRelic(c.gift); if (id) addRelic(id); }
-    if (S.ante > 1) eng.after(0.3, () => { showMsg('Chaos: ' + c.name, P.PURPLE, c.desc, 2.4); sfx('magic'); });
+    if (S.ante > 1) eng.after(0.3, () => { showMsg('Chaos: ' + c.name, P.PURPLE, c.desc, 2.4); sfx('magic'); jonnyEvents('chaos', { rule: c.name }); });
   }
 
   function placeMenuDice() {
@@ -1565,6 +1744,7 @@
   }
   function addRelic(id, x = L.msg.x, y = L.msg.y + 30) {
     const item = newRelicItem(id);
+    seen('relic', id);
     S.relics.push(item);
     const sp = eng.sprite({ tex: itemTex(item), x, y, s: 1.25, z: 15, tiltStrength: 0.8, ambient: 2.2, data: { kind: 'relic', item } });
     sp.materialize(0.5, { colours: [P.WHITE, R.RELIC_BY_ID[id].colour] });
@@ -1586,6 +1766,7 @@
     }
     const def = R.RELIC_BY_ID[id], item = newRelicItem(id);
     S.relics[ri] = item;
+    seen('relic', id);
     const sp = relicSprites[ri];
     sp.data.item = item; sp.tex = itemTex(item);
     sp.juiceUp(0.8); sp.flashWhite(1);
@@ -1598,6 +1779,7 @@
     if (!['select', 'shop'].includes(S.phase)) return { ok: false, why: 'Not right now' };
     if (item.type === 'constellation' || item.type === 'tally') return { ok: true };
     const def = R.ORACLE_BY_ID[item.id];
+    if (def.inHand && S.phase !== 'select') return { ok: false, why: 'Use it during a hand' };
     if (def.max === 0) return { ok: true };
     if (S.phase !== 'select') return { ok: false, why: 'Use it during a hand on held dice' };
     const held = heldCount();
@@ -1624,6 +1806,7 @@
       eng.emit(...spot('cons'), { count: 40, colours: [TYPE_COL.tally, '#FFFFFF', P.GOLD], speed: 420, size: 10, life: 0.9, shape: 'star' });
       fire('onLevelUp');
     } else { applyOracle(R.ORACLE_BY_ID[item.id]); achieve('oracle'); }
+    S.stats.used++;
     sfx('magic');
     TUT.event('use', { item });
     S.cons = S.cons.filter((c) => c !== item);
@@ -1656,6 +1839,10 @@
       animate(outcomes([dice.indexOf(sp)], true));
     } else if (def.id === 'windfall') {
       addMoney(Math.min(20, Math.max(0, S.money)), ...spot('money'));
+    } else if (def.id === 'sleight') {
+      S.shifts += 3;
+      dice.forEach((d) => { d.juiceUp(0.3); eng.emit(d.x, d.y, { count: 8, colours: [FORM_COL(), P.TAROT, '#FFFFFF'], speed: 220, size: 7, life: 0.5, shape: 'star' }); });
+      eng.popup(L.msg.x, dieY() - 112, '+3 Shifts', { colour: lighten(FORM_COL(), 0.3), size: 24 });
     }
     layoutDice();
   }
@@ -1663,6 +1850,7 @@
   function sellSelected() {
     const sp = selected; if (!sp || !['select', 'shop'].includes(S.phase) || !['relic', 'cons'].includes(sp.data.kind)) return;
     const item = sp.data.item;
+    S.stats.sold++;
     sfx('sell');
     TUT.event('sell', { item, name: item.type === 'relic' ? R.RELIC_BY_ID[item.id].name : TYPE_NAME[item.type] });
     if (sellPrice(item) > 0) addMoney(sellPrice(item), sp.x, fxY(sp)); else { sfx('deny'); eng.popup(sp.x, fxY(sp), 'No refunds!', { colour: P.GREY, size: 20 }); }
@@ -1704,7 +1892,7 @@
   }
 
   // ── Shop ────────────────────────────────────────────────────────────────
-  const constPrice = () => (upg('telescope') ? 2 : 3);
+  const constPrice = (hand) => (upg('telescope') ? 2 : 3) + Math.max(0, ((hand && S.levels[hand]) || 1) - 1);   // +$1 pro Stufe der Hand
   function genItem(existing) {
     const r = Math.random();
     if (r < 0.52) {
@@ -1712,7 +1900,7 @@
       const pool = R.RELICS.filter((d) => !d.hidden && !taken.has(d.id) && open('relic', d.id));
       if (pool.length) { const id = R.pickWeighted(pool.map((d) => [d.id, R.RARITY[d.rarity].weight])); return { type: 'relic', id, price: R.RELIC_BY_ID[id].cost }; }
     }
-    if (r < 0.74) return { type: 'constellation', hand: R.pick(R.HAND_ORDER), price: constPrice() };
+    if (r < 0.74) { const hand = R.pick(R.HAND_ORDER); return { type: 'constellation', hand, price: constPrice(hand) }; }
     if (r < 0.88) return { type: 'oracle', id: R.pick(R.ORACLES.filter((q) => open('oracle', q.id))).id, price: 3 };
     return { type: 'tally', n: 1 + ((Math.random() * 6) | 0), price: 3 };
   }
@@ -1733,7 +1921,7 @@
       const mp = mostPlayed();
       if (k === 3 && !TUT.active) S.shop[k] = genDie();
       else if (k === 4) S.shop[k] = S.upgradeOffer ? { type: 'upgrade', id: S.upgradeOffer, price: R.UPGRADE_BY_ID[S.upgradeOffer].cost } : null;
-      else if (k === 2 && upg('telescope') && mp) S.shop[k] = { type: 'constellation', hand: mp, price: constPrice() };
+      else if (k === 2 && upg('telescope') && mp) S.shop[k] = { type: 'constellation', hand: mp, price: constPrice(mp) };
       else if (TUT.active) S.shop[k] = TUT.shopItem(k);
       else S.shop[k] = genItem(others);
       shopSprites[k] = S.shop[k] ? shopSprite(S.shop[k], k) : null;
@@ -1758,6 +1946,7 @@
   function rerollShop() {
     if (S.phase !== 'shop' || !canPay(S.shopRerollCost)) return;
     S.money -= S.shopRerollCost; J.money.up(0.3);
+    S.stats.spent += S.shopRerollCost;
     S.shopRerollCost++;
     TUT.event('shopReroll');
     shopRerolled();
@@ -1775,6 +1964,12 @@
     if (it.type === 'die' && S.bag.length >= bagMax()) return denied(x, y, 'Bag is full');
     if (it.id === 'crossroads' && !crossroadsOptions().length) return denied(x, y, 'Nothing left to become');
     S.money -= it.price; J.money.up(0.4);
+    S.stats.spent += it.price; S.stats.bought++;
+    if (it.type === 'relic' && it.id !== 'crossroads') seen('relic', it.id);
+    else if (it.type === 'upgrade') seen('upgrade', it.id);
+    else if (it.type === 'oracle') seen('oracle', it.id);
+    else if (it.type === 'die') seen('die', it.dieType);
+    if (it.id === 'crossroads') seen('relic', 'crossroads');
     sfx('buy');
     TUT.event('buy', { item: it, name: it.type === 'relic' ? R.RELIC_BY_ID[it.id].name : TYPE_NAME[it.type] });
     S.bought = true;
@@ -1853,6 +2048,7 @@
     fire('leaveShop', [], { bought: S.bought });
     S.ach.noBuy = S.bought ? 0 : S.ach.noBuy + 1;
     achieve('shop', { noBuy: S.ach.noBuy, money: S.money, bought: S.bought });
+    shopBye();
     for (const s of shopSprites) if (s) s.dissolveOut(0.4);
     shopSprites = []; S.shop = null; selected = null;
     startBlind();
@@ -1873,6 +2069,13 @@
     if (!settingsOpen && TUT.click(m)) return;   // Klick auf Jonnys Sprechblase
     if (TUT.modal) return;
     if (MOBILE && S.phase === 'trophies' && !settingsOpen) { trophyTap(m); return; }
+    if (S.phase === 'codex' && !settingsOpen) { codexClick(m); return; }
+    if (S.phase === 'history' && !settingsOpen) { historyClick(m); return; }
+    if (MOBILE && S.summary && !settingsOpen) {
+      const hh = sumHits.find((q) => UI.inside(q.r, m));
+      if (hh && hh.info) openTip({ key: 'sum:' + hh.r.x + ':' + hh.r.y, anchor: hh.r, info: hh.info }); else tips = [];
+      return;
+    }
     if (S.choice || settingsOpen || S.cupDraw) return;
     const h = eng.hovered;
     if (MOBILE && !h && !inMenus()) {
@@ -1885,7 +2088,8 @@
     if (k === 'cup') return selectCup(h.data.i);
     if (k === 'menu') return rollMenuDie(h);
     if (MOBILE && spriteInfo(h)) longPress = { sprite: h, t0: nowSec(), x: m.x, y: m.y, fired: false };
-    if (k === 'die') { if (MOBILE) { press = { die: h }; return; } return toggleHold(h); }   // Handy: erst beim Loslassen (langer Druck = Tooltip)
+    // Würfel: Klick hält ihn (beim Loslassen), Ziehen auf einen anderen Platz tauscht die beiden (Shift)
+    if (k === 'die') { press = { die: h, x: m.x, y: m.y, dx: h.x - m.x, dy: h.y - m.y }; return; }
     if (k === 'relic' || k === 'cons') { press = { sprite: h, x: m.x, y: m.y, dx: h.x - m.x, dy: h.y - m.y }; return; }
     if (MOBILE) { press = { tap: h }; return; }
     if (k === 'bagdie' && actFor(h)) { selected = selected === h ? null : h; h.juiceUp(0.3); return; }
@@ -1894,6 +2098,7 @@
   eng.on('move', (m) => {
     if (sliderDrag >= 0) { setSlider(sliderDrag, m); return; }
     if (longPress && !longPress.fired && Math.hypot(m.x - longPress.x, m.y - longPress.y) > 14) longPress = null;
+    if (press && press.die) { dragDie(m); return; }
     if (!press || !press.sprite || press.sprite.data.kind !== 'relic' || S.phase === 'scoring') return;
     const s = press.sprite;
     if (!s.dragging && Math.hypot(m.x - press.x, m.y - press.y) > (MOBILE ? 14 : 8)) { s.dragging = true; s.juiceUp(0.15); sfx('card'); if (MOBILE) { tips = []; longPress = null; } }
@@ -1912,7 +2117,8 @@
     } else if (lp && lp.fired) {
       // langer Druck hat den Tooltip geöffnet: kein Klick
     } else if (press.die) {
-      if (!press.die._dead) toggleHold(press.die);
+      if (press.drag) dropDie(press.die, m);
+      else if (!press.denied && !press.die._dead) toggleHold(press.die);
     } else if (press.tap) {
       tapSprite(press.tap);
     } else if (press.sprite) {
@@ -1922,6 +2128,21 @@
     }
     press = null;
   });
+  // Würfel ziehen: ab ein paar Pixeln Bewegung wird aus dem Klick ein Shift (falls noch einer übrig ist)
+  function dragDie(m) {
+    const d = press.die;
+    if (press.denied || d._dead || !formationOn()) return;
+    if (!press.drag) {
+      if (Math.hypot(m.x - press.x, m.y - press.y) <= (MOBILE ? 16 : 9)) return;
+      if (S.phase !== 'select') return;
+      if (!canShift()) { press.denied = true; denied(d.x, d.y - 74, 'No Shifts left'); return; }
+      press.drag = true; d.dragging = true; d.juiceUp(0.15); sfx('card');
+      if (MOBILE) { tips = []; longPress = null; }
+    }
+    d.moveTo(m.x + press.dx, m.y + press.dy, clamp((m.x - press.x) * 0.002, -0.25, 0.25));
+    d.z = 100;
+    dragSlot = nearestSlot(m.x);
+  }
   function onButton(b) {
     if (b === B.play) playHand();
     else if (b === B.roll) reroll();
@@ -1937,9 +2158,16 @@
     else if (b.setTab !== undefined) { if (setTab !== b.setTab) { setTab = b.setTab; sfx('page'); } }
     else if (b.setRow !== undefined) { const key = SET_TABS[b.inTab].rows[b.setRow].key; if (b.action) settingAction(key, b); else changeSetting(key, b.dir); }
     else if (b === B.trophies) openTrophies();
+    else if (b === B.codex) openCodex();
+    else if (b === B.history) openHistory();
+    else if (b.codexTab !== undefined) { if (codexTab !== b.codexTab) { codexTab = b.codexTab; codexPage = 0; codexSel = null; sfx('page'); } }
+    else if (b === B.pagePrev) { if (S.phase === 'codex') turnCodexPage(-1); else turnHistoryPage(-1); }
+    else if (b === B.pageNext) { if (S.phase === 'codex') turnCodexPage(1); else turnHistoryPage(1); }
+    else if (b === B.share) shareRecord(S.phase === 'history' ? history()[histSel] : S.summary);
+    else if (b === B.endless) startEndless();
     else if (b === B.retry) retryRun();
     else if (b === B.home) backToMenu();
-    else if (b === B.back) { if (S.phase === 'cups') openSlots(); else setupMenu(); }
+    else if (b === B.back) { if (S.phase === 'cups') openSlots(); else if (S.phase === 'history' && histSel >= 0) { histSel = -1; tips = []; sfx('page'); } else setupMenu(); }
     else if (b === B.begin) beginRun();
     else if (b === B.collect) collectCups();
     else if (b === B.cupPrev) selectCup(cupSel - 1);
@@ -1971,7 +2199,11 @@
     if (k === ' ' && !settingsOpen && JS.cur) { e.preventDefault(); advanceJonny(); return; }
     if (k === 'h') return toggleDevPanel();
     if (k === 'escape') {
-      if (settingsOpen) { settingsOpen = false; sfx('panel', { close: true }); } else if (S.phase === 'cups') openSlots(); else if (S.phase === 'slots' || S.phase === 'trophies') setupMenu(); else selected = null;
+      if (settingsOpen) { settingsOpen = false; sfx('panel', { close: true }); } else if (S.phase === 'cups') openSlots();
+      else if (S.phase === 'history' && histSel >= 0) { histSel = -1; tips = []; sfx('page'); }
+      else if (['slots', 'trophies', 'codex', 'history'].includes(S.phase)) setupMenu();
+      else if (selected) selected = null;
+      else if (!inMenus() && !TUT.modal) { settingsOpen = true; sfx('panel'); }   // Pause: Einstellungen mit der Statistik des Runs
       return;
     }
     if (k === 'o') { settingsOpen = !settingsOpen; sfx('panel', { close: !settingsOpen }); return; }
@@ -1983,6 +2215,15 @@
     if (S.phase === 'trophies') {
       if (e.key === 'ArrowLeft') return turnTrophyPage(-1);
       if (e.key === 'ArrowRight') return turnTrophyPage(1);
+    }
+    if (S.phase === 'codex') {
+      if (e.key === 'ArrowLeft') return turnCodexPage(-1);
+      if (e.key === 'ArrowRight') return turnCodexPage(1);
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { codexTab = (codexTab + (e.key === 'ArrowDown' ? 1 : CODEX_TABS.length - 1)) % CODEX_TABS.length; codexPage = 0; codexSel = null; sfx('page'); return; }
+    }
+    if (S.phase === 'history' && histSel < 0) {
+      if (e.key === 'ArrowLeft') return turnHistoryPage(-1);
+      if (e.key === 'ArrowRight') return turnHistoryPage(1);
     }
     if (S.phase === 'cups') {
       if (e.key === 'Enter') return beginRun();
@@ -2029,8 +2270,20 @@
         eng.popup(d.x + 18, d.y - 52, idle > 150 ? 'Zzz' : idle > 100 ? 'Zz' : 'z', { colour: P.TEXT_SOFT, size: 16 + Math.min(10, idle / 20), life: 1.8 });
       }
       if (idle > 180) secret('snooze');
+      if (idle > 75) jonnyEvents('idle');
     }
     if (MOBILE) mobilePlace(); else B.collect.x = L.msg.x - 90;
+    if (!tabVisible(setTab)) setTab = 0;
+    for (const k of ['pagePrev', 'pageNext']) Object.assign(B[k], { x: B[k === 'pagePrev' ? 'achPrev' : 'achNext'].x, y: B.achPrev.y, w: B.achPrev.w, h: B.achPrev.h, size: B.achPrev.size });
+    if (S.phase === 'codex') { B.pagePrev.disabled = codexPage <= 0; B.pageNext.disabled = codexPage >= codexPages() - 1; CODEX_TAB_BTNS.forEach((b, i) => { b.colour = i === codexTab ? P.BLUE : darken(P.PANEL, 0.1); }); }
+    if (S.phase === 'history') {
+      B.pagePrev.disabled = histPage <= 0; B.pageNext.disabled = histPage >= histPages() - 1;
+      if (histSel >= 0) { B.back.w = 170; B.share.w = 190; placeRow([B.back, B.share], SUM.y + SUM.h - 60, MOBILE ? 54 : 48); B.back.label = 'Back'; }
+    }
+    if (S.summary) {
+      Object.assign(B.home, { w: 170, label: 'Main Menu' }); B.retry.w = 170; B.share.w = 190; B.endless.w = 210;
+      placeRow(summaryButtons(), SUM.y + SUM.h - 60, MOBILE ? 54 : 48);
+    }
     if (confirmBtn && eng.time > confirmBtn.until) confirmBtn = null;
     B.shopReroll.label = 'Reroll $' + S.shopRerollCost;
     B.shopReroll.disabled = !canPay(S.shopRerollCost);
@@ -2082,7 +2335,8 @@
     // Spielzeit in echter Zeit (unabhängig von der Spielgeschwindigkeit)
     if (profile && !['lost', 'runWon'].includes(S.phase)) { const rdt = dt / (eng.timeScale || 1); S.time += rdt; meta().playTime += rdt; }
     if (['select', 'shop'].includes(S.phase) && !S.choice && !eng.busy && eng.time - saveClock > 1.5) { saveClock = eng.time; autosave(); }
-    if (['select', 'shop', 'won'].includes(S.phase) && eng.time - achClock > 0.5) { achClock = eng.time; achieve('state', achState()); }
+    if (['select', 'shop', 'won'].includes(S.phase) && eng.time - achClock > 0.5) { achClock = eng.time; achieve('state', achState()); jonnyEvents('state'); }
+    if (S.stats && S.money > S.stats.maxMoney) S.stats.maxMoney = S.money;
   }
 
   // ── Zeichnen: Hilfen ────────────────────────────────────────────────────
@@ -2402,10 +2656,17 @@
   function preview() {
     if (!dice.length || dice.some((d) => !d.data.die)) return null;
     const faces = dice.map(upFace);
-    const opts = { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt: bustAt() };
+    const opts = handOpts(faces);
     const key = faces.map((f) => f.v + f.kind).join(',') + JSON.stringify(S.levels) + JSON.stringify(opts);
     if (key !== previewKey) { previewKey = key; previewRes = R.evaluateFaces(faces, S.levels, opts); }
     return previewRes;
+  }
+  // Optionen für die Handerkennung (Vorschau, Jonnys Hilfe): wie in rules.scoreHand
+  // Ermüdung, die diese Handart beim Spielen bekäme (dieselbe Handart mehrmals direkt hintereinander)
+  const fatigueFor = (name) => (S.ach && name ? R.fatigueOf(name === S.ach.last ? S.ach.streak + 1 : 1) : 0);
+  function handOpts(faces) {
+    const f = formationOn();
+    return { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt: bustAt(), formation: f, wild: f && has('keystone') ? R.keystoneSlots(faces) : [] };
   }
   const offReady = () => S.relics.some((r) => r.id === 'off_record' && !(r.state && r.state.used));
   const isBust = (pv) => pv.skulls >= bustAt() && !has('ritual_candle') && !has('evil_eye') && !offReady();
@@ -2520,6 +2781,8 @@
       if (S.phase === 'menu') { L.drawMenu(back, front, t); for (const b of activeButtons()) UI.button(front, b, t); }
       else if (S.phase === 'slots') drawSlots(back, front, t);
       else if (S.phase === 'trophies') drawTrophies(back, front, t);
+      else if (S.phase === 'codex') drawCodex(back, front, t);
+      else if (S.phase === 'history') drawHistory(back, front, t);
       else drawCups(back, front, t);
       TUT.draw(front, t);
       drawToasts(front);
@@ -2538,14 +2801,17 @@
       if (upg('vault')) { UI.button(front, B.deposit, t); UI.button(front, B.withdraw, t); }
     } else {
       L.drawPlay(back, front, t);
+      drawTable(back);
       drawDiceExtras(front);
+      drawLinks(front);
+      if (S.phase === 'select') drawFormationLine(front);
       drawFuse(front);
       if (!S.cupDraw) for (const b of [B.roll, B.play]) UI.button(front, b, t);
       if (!S.cupDraw && helpShown()) UI.button(front, B.help, t);
     }
     if (selected) for (const b of selButtons()) UI.button(front, b, t);
     drawMsg(front, t);
-    if (S.phase === 'lost' || S.phase === 'runWon') { UI.button(front, B.retry, t); if (profile) UI.button(front, B.home, t); }
+    if (S.summary && ['lost', 'runWon'].includes(S.phase)) drawRunCard(back, front, t, S.summary, true);
     drawJonnyTalk(front, t);
     drawChoice(front, t);
     drawCupDraw(back, front, t);
@@ -2554,9 +2820,9 @@
     drawToasts(front);
     drawSong(front);
     drawPeek(front, t);
-    if (S.phase !== 'menu') UI.button(front, B.settings, t);
+    if (S.phase !== 'menu' && !S.summary) UI.button(front, B.settings, t);
     drawSettings(front, t);
-    if (S.choice || settingsOpen || S.cupDraw) { tips = []; return; }
+    if (S.choice || settingsOpen || S.cupDraw || S.summary) { if (!S.summary || settingsOpen) tips = []; return; }
     if (MOBILE) drawTipsTouch(front); else drawTips(front);
   }
 
@@ -2591,7 +2857,8 @@
   };
   const BTN_KEYS = { roll: 'ORANGE', play: 'BLUE', start: 'BLUE', options: 'ORANGE', retry: 'RED', next: 'RED', shopReroll: 'GREEN',
     deposit: 'DEPOSIT', withdraw: 'ORANGE', use: 'GREEN', sell: 'SELL', act: 'PURPLE', settings: 'L_BLACK', close: 'RED',
-    quit: 'ORANGE', home: 'L_BLACK', back: 'RED', begin: 'BLUE', cupPrev: 'ORANGE', cupNext: 'ORANGE', tutSlot: 'PURPLE', tutX: 'RED' };
+    quit: 'ORANGE', home: 'L_BLACK', back: 'RED', begin: 'BLUE', cupPrev: 'ORANGE', cupNext: 'ORANGE', tutSlot: 'PURPLE', tutX: 'RED',
+    codex: 'PURPLE', history: 'GREEN', share: 'BLUE', endless: 'PURPLE', pagePrev: 'ORANGE', pageNext: 'ORANGE' };
   let settingsOpen = false;
   let PAL = PALETTES[0];
 
@@ -2722,7 +2989,7 @@
         const c = CUPS.find((q) => q.id === r.cup) || CUPS[0];
         const where = r.phase === 'shop' ? 'Shop' : r.blindIdx === 2 ? (R.BOSSES.find((b) => b.id === r.boss) || BLINDS[2]).name : BLINDS[r.blindIdx].name;
         UI.text(front, 'Run in progress', cx, ry + 20, { size: 20, colour: P.GOLD });
-        UI.text(front, 'Stage ' + r.ante + '  ·  ' + where, cx, ry + 48, { size: 22 });
+        UI.text(front, (r.endless ? 'Endless ' : 'Stage ') + r.ante + '  ·  ' + where, cx, ry + 48, { size: 22 });
         UI.text(front, r.phase === 'shop' ? 'Between rounds' : 'Score ' + UI.num(r.score || 0) + ' / ' + UI.num(r.target || 0), cx, ry + 76, { size: 17, colour: P.TEXT_SOFT });
         const ids = r.relics.map((q) => q.id).filter((id) => R.RELIC_BY_ID[id]), n = Math.min(ids.length, 7);
         if (!n) UI.text(front, 'No relics yet', cx, ry + 114, { size: 15, colour: P.TEXT_DIM });
@@ -2819,9 +3086,10 @@
     if (!settingsOpen) return;
     if (MOBILE) return drawSettingsMobile(ctx, t);
     dim(ctx, 0.5);
+    drawRunPanel(ctx, t);
     UI.box(ctx, 340, 84, 600, 576, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
     UI.dynaText(ctx, 'Settings', 640, 118, { size: 40, colour: P.GOLD, time: t, wave: 2 });
-    for (const b of SET_TAB_BTNS) UI.button(ctx, b, t);
+    for (const b of visTabBtns()) UI.button(ctx, b, t);
     const tab = SET_TABS[setTab];
     if (tab.id === 'controls') {
       CONTROLS.forEach(([key, what], i) => {
@@ -2905,7 +3173,7 @@
   // Jonny redet außerhalb des Tutorials an drei Plätzen: 'corner' (unten links, kurz eingeblendet), 'shop' (hinter der
   // Theke, der letzte Satz bleibt stehen) und 'end' (Kommentar zum Run-Ende). Einstellung "Jonny chatter": Normal / Less / Off.
   const JONNY_GOLD = '#E7B23C';
-  const JS = { q: [], cur: null, last: -99, rect: null, shopT: 0, nudged: false };
+  const JS = { q: [], cur: null, last: -99, rect: null, shopT: 0, nudged: false, shopSaid: 0, shopBuys: 0 };
   const JONNY_PLACES = {
     corner: { face: { x: 22, y: 584, s: 1.6 }, box: { x: 150, y: 598, w: 560, h: 88 }, k: 0.9, fit: true },
     shop: { face: { x: 344, y: 462, s: 1.2 }, box: { x: 448, y: 466, w: 318, h: 72 }, k: 0.74 },
@@ -2948,9 +3216,9 @@
     if (inMenus()) { if (JS.cur || JS.q.length) jonnyClear(); return; }
     JS.q = JS.q.filter((x) => placeFits(x.place) && eng.time < x.until);
     // Im Shop: lange nichts gekauft -> Jonny drängelt einmal
-    if (S.phase === 'shop' && !S.choice && !settingsOpen && !JS.nudged && eng.time - JS.shopT > 24) {
+    if (S.phase === 'shop' && !S.choice && !settingsOpen && !JS.nudged && eng.time - JS.shopT > 40) {
       JS.nudged = true;
-      jonnySay(say1(SHOP_TALK.nudge), { chance: 0.8 });
+      jonnySay([pickLine('nudge', SHOP_TALK.nudge)], { chance: 0.6 });
     }
     const c = JS.cur;
     if (!c) return;
@@ -2982,7 +3250,7 @@
     const counter = S.phase === 'shop' && !TUT.active && TUT.face && !(L.jonny && L.jonny.shopTransient);
     if (counter && (!c || c.place !== 'shop')) {
       const f = jPlace('shop').face;
-      TUT.face(ctx, f.x, f.y, f.s, eng.time - JS.shopT > 24 ? 'bored' : 'neutral', t, false);
+      TUT.face(ctx, f.x, f.y, f.s, eng.time - JS.shopT > 40 ? 'bored' : 'neutral', t, false);
     }
     if (!c) return;
     const p = jPlace(c.place);
@@ -3133,47 +3401,69 @@
       showMsg("Jonny's Special", JONNY_GOLD, note, 2);
     }
   }
+  // Jonny im Shop: nach der Begrüßung höchstens SHOP_CHAT Sprüche pro Besuch, mit Abstand dazwischen
+  const SHOP_CHAT = 2;
+  function shopChat(line, chance, o = {}) {
+    if (!line) return false;
+    if (!o.important && JS.shopSaid >= SHOP_CHAT) return false;
+    const said = jonnySay([line], Object.assign({ replace: true, chance, gap: o.important ? 0 : 7 }, o));
+    if (said && !o.important) JS.shopSaid++;
+    return said;
+  }
   function shopHello() {
-    JS.shopT = eng.time; JS.nudged = false;
-    const last = S.jonny.last, lines = [];
-    if (last && last.boss && last.boss !== 'Jonny') lines.push(['happy', 'You beat {g|' + last.boss + '}! I never liked them.']);
-    else if (last && last.score <= last.target * 1.05) lines.push(['nervous', "That round was {s|close}. My heart can't take this."]);
-    else if (last && last.score >= last.target * 2.5) lines.push(['smug', '{g|' + fmtX(Math.floor((last.score / last.target) * 10) / 10) + 'x} the target. {q|Show-off.}']);
-    else lines.push(R.pick(SHOP_TALK.hello));
+    JS.shopT = eng.time; JS.nudged = false; JS.shopSaid = 0; JS.shopBuys = 0;
+    const T = SHOP_TALK, H = T.hello || {}, last = S.jonny.last, lines = [];
+    const tier = S.ante > ANTES ? 'endless' : S.ante >= 7 ? 'late' : S.ante >= 4 ? 'mid' : 'early';
+    const v = { stage: S.ante, money: S.money };
+    let hello = null;
+    if (last && last.boss && last.boss !== 'Jonny') hello = fillLine(pickLine('afterBoss', T.afterBoss), { boss: last.boss });
+    else if (last && last.score <= last.target * 1.05) hello = fillLine(pickLine('close', T.close), { n: UI.num(Math.max(0, last.score - last.target)) });
+    else if (last && last.score >= last.target * 2.5) hello = fillLine(pickLine('huge', T.huge), { x: fmtX(Math.floor((last.score / last.target) * 10) / 10) });
+    else if (S.jonny.visit === 1) hello = pickLine('first', H.first);
+    else if (S.money >= 40) hello = fillLine(pickLine('rich', H.rich), v);
+    else if (S.money <= 1) hello = fillLine(pickLine('broke', H.broke), v);
+    else if (Math.random() < 0.6) hello = fillLine(pickLine('hello:' + tier, H[tier]), v);
+    if (hello) lines.push(hello);
     const intro = profile && !meta().jonnyJobs;
-    if (intro && S.job) { meta().jonnyJobs = 1; lines.push(['neutral', 'See that card? A {g|job}. Do it next round and I pay you.']); }
-    else if (S.shop && S.shop.some((x) => x && x.special)) lines.push(R.pick(SHOP_TALK.special));
-    else if (!S.job && S.boss === JONNY_BOSS) lines.push(['smug', 'Next round is {g|me}. {q|Buy something nice for your funeral.}']);
-    else if (Math.random() < 0.3 && S.job) lines.push(R.pick(SHOP_TALK.job));
-    jonnySay(lines, { replace: true, important: intro });
+    if (intro && S.job) { meta().jonnyJobs = 1; lines.push(T.jobIntro[0]); }
+    else if (S.shop && S.shop.some((x) => x && x.special)) lines.push(pickLine('special', T.special));
+    else if (!S.job && S.boss === JONNY_BOSS) lines.push(pickLine('lastStage', T.lastStage));
+    else if (S.job && Math.random() < 0.2) lines.push(pickLine('job', T.job));
+    if (lines.length) jonnySay(lines.filter(Boolean), { replace: true, important: intro });
   }
   function shopBought(it) {
-    JS.shopT = eng.time;
-    let line;
+    JS.shopT = eng.time; JS.shopBuys = (JS.shopBuys || 0) + 1;
+    const T = SHOP_TALK;
     if (it.type === 'relic') {
       const d = R.RELIC_BY_ID[it.id], tag = d.tags[0];
       if (tag) S.jonny.tags[tag] = (S.jonny.tags[tag] || 0) + 1;
-      if (SHOP_TALK.mine[it.id]) line = SHOP_TALK.mine[it.id];
-      else if (d.rarity === 'L') line = ['shocked', "{b|LEGENDARY.} I'm not jealous. {s|At all.}"];
-      else if (tag && S.jonny.tags[tag] >= 3 && Math.random() < 0.6) line = ['annoyed', 'Ugh, {g|' + R.TAGS[tag].name + '} again? {q|Predictable.}'];
-      else if (d.rarity === 'R' && Math.random() < 0.5) line = ['excited', 'Ooh, a {g|Rare}! Careful, it bites.'];
-      else line = R.pick(SHOP_TALK.tags[tag || 'none']);
-    } else if (it.type === 'die') line = it.dieType === 'cursed' ? ['shocked', 'A {g|Cursed Die}? On {s|purpose}?'] : R.pick(SHOP_TALK.die);
-    else line = R.pick(SHOP_TALK[it.type] || SHOP_TALK.die);
-    jonnySay([line], { replace: true, chance: 0.75 });
+      if (T.mine[it.id]) return shopChat(T.mine[it.id], 1, { important: true });
+      if (d.rarity === 'L') return shopChat(pickLine('legendary', T.legendary), 1, { important: true });
+      if (tag && S.jonny.tags[tag] >= 3 && Math.random() < 0.5) return shopChat(fillLine(pickLine('sameTag', T.sameTag), { tag: R.TAGS[tag].name }), 0.6);
+      if (d.rarity === 'R') return shopChat(pickLine('rare', T.rare), 0.5);
+      return shopChat(pickLine('tag:' + (tag || 'none'), T.tags[tag || 'none']), 0.3);
+    }
+    if (it.type === 'die') return it.dieType === 'cursed' ? shopChat(pickLine('cursedDie', T.cursedDie), 0.7) : shopChat(pickLine('die', T.die), 0.25);
+    return shopChat(pickLine(it.type, T[it.type] || T.die), it.type === 'upgrade' ? 0.5 : 0.3);
   }
   function shopSold(item) {
     JS.shopT = eng.time;
     if (item.specialVisit && item.specialVisit === S.jonny.visit) secret('buyers_remorse');
-    jonnySay(say1(SHOP_TALK.sell), { replace: true, chance: 0.7 });
+    shopChat(pickLine('sell', SHOP_TALK.sell), 0.35);
   }
   function shopRerolled() {
     JS.shopT = eng.time;
     S.jonny.rerolls++;
-    const pool = SHOP_TALK.reroll[Math.min(2, S.jonny.rerolls - 1)];
-    jonnySay(say1(pool), { replace: true, chance: S.jonny.rerolls === 1 ? 0.5 : 0.7 });
+    const n = S.jonny.rerolls, tier = n >= 4 ? 2 : n >= 2 ? 1 : 0;
+    shopChat(fillLine(pickLine('reroll' + tier, SHOP_TALK.reroll[tier]), { n }), [0.25, 0.4, 0.6][tier]);
   }
-  function shopBroke() { jonnySay(say1(SHOP_TALK.broke), { replace: true, gap: 5, chance: 0.7 }); }
+  function shopBroke() { shopChat(pickLine('broke', SHOP_TALK.broke), 0.45, { gap: 10 }); }
+  // Beim Verlassen sagt Jonny selten noch etwas (unten links, schon am Tisch)
+  function shopBye() {
+    if (TUT.active || !SHOP_TALK.leave) return;
+    const T = SHOP_TALK.leave, buys = JS.shopBuys || 0;
+    jonnySay([pickLine('leave', !S.bought ? T.nothing : buys >= 3 ? T.spree : T.normal)], { chance: 0.22, gap: 6, place: 'corner' });
+  }
 
   // ── Jonny's Cup: er spielt mit, kommentiert und würfelt einmal pro Runde gratis für dich ──
   const helpShown = () => cup().jonny && !TUT.active && ['rolling', 'select', 'scoring'].includes(S.phase);
@@ -3181,7 +3471,7 @@
   // (alle Varianten benutzen dieselben Probewürfe, damit Zufall nicht eine schlechte Wahl begünstigt)
   function bestHold(samples = 48) {
     const n = dice.length, faces = dice.map(upFace);
-    const opts = { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt: bustAt() };
+    const opts = handOpts(faces);
     const fixed = dice.map((d) => frozen(d));
     const rolls = Array.from({ length: samples }, () => dice.map((d) => R.pick(d.data.die.faces)));
     let best = null;
@@ -3285,6 +3575,11 @@
       else lines.push(['fourth', 'Seriously. Well played. {q|*ahem*} I said nothing.']);
       return lines;
     }
+    if (S.endless) {
+      lines.push(['excited', 'Endless stage {g|' + S.ante + '}! That is ' + (S.ante - ANTES) + ' stages past the end. {q|I counted twice.}']);
+      lines.push(S.ante >= 12 ? ['shocked', 'Honestly? {w|Legendary.} Now go drink some water.'] : ['smug', 'Endless ends when you lose. {q|Which you just did.}']);
+      return lines;
+    }
     if (isBossBlind() && S.boss === JONNY_BOSS) {
       lines.push(['excited', '{b|HA!} The {g|final boss} wins! I {w|knew} it!']);
       lines.push(['smug', "Come back when you've practiced. I'll be here. {q|I'm always here.}"]);
@@ -3306,10 +3601,10 @@
   }
   const BOSS_LOSS = {
     snake: ['paranoid', '{g|The Snake} got you? I never trusted him. {q|No legs. Suspicious.}'],
-    clamp: ['smug', '{g|The Clamp}. One reroll and you {d|fell apart}.'],
+    clamp: ['smug', '{g|The Clamp}. Two rerolls less and you {d|fell apart}.'],
     frost: ['smug', 'Frozen by {g|The Frost}. {q|Chilling.} Sorry. I had to.'],
     chaos: ['excited', "{g|The Chaos} won. Chaos always wins. {q|That's my motto.}"],
-    echo: ['smug', '{g|The Echo}. Same hand, same mistake. {q|Same... same... same...}'],
+    echo: ['smug', '{g|The Echo}. Same hand, half the Power. {q|Same... same... same...}'],
     wall: ['annoyed', "{g|The Wall}. It's a wall. It doesn't even {s|move}."],
   };
   const END_FILLER = [
@@ -3319,52 +3614,8 @@
   ];
 
   // ── Sprüche ──
-  const SHOP_TALK = {
-    hello: [
-      ['happy', "Welcome to Jonny's! Everything is {g|legal}. {q|Mostly.}"], ['neutral', 'Hi! Buy something. {q|I have rent.}'],
-      ['smug', 'Back again? I knew you would be.'], ['paranoid', "Psst. Don't touch the stuff under the counter."],
-      ['excited', "Fresh stock! {w|Smell} that? That's {g|relic} smell."], ['fourth', 'Do you think this shop is real? {q|*ahem*} Welcome!'],
-    ],
-    special: [['paranoid', "Psst. {g|Jonny's Special}. Half price. {q|Don't ask about the catch.}"], ['smug', "See the {g|Special}? Half price. {q|Totally no catch.}"]],
-    job: [['smug', 'Got another {g|job} for you. {q|Cash. No questions.}'], ['neutral', 'Do the {g|job}, get paid. Simple. {q|Like you.}']],
-    nudge: [['bored', 'Are you buying, or just {g|breathing} on the glass?'], ['fourth', '{q|Hello? Did you go get snacks?}'], ['annoyed', "I close in five minutes. {q|I don't. But hurry.}"]],
-    sell: [['annoyed', 'Selling my stuff back to me? {s|Bold.}'], ['smug', "I'll sell that to the next person for {g|double}."]],
-    broke: [['smug', "No money? I take... no. I don't take anything else."], ['disappointed', 'Window shopping. {d|Classic.}']],
-    reroll: [
-      [['annoyed', 'Not good enough for you?'], ['neutral', 'New stuff. {q|Same old me.}']],
-      [['annoyed', 'Again? I {s|just} put those out!']],
-      [['angry', '{s|Fine.} New stuff. {q|Happy now?}'], ['furious', 'Do you know how {s|heavy} these shelves are?!']],
-    ],
-    die: [['bored', 'A die. {d|Riveting.}'], ['neutral', 'More dice, more problems. {q|Good problems.}']],
-    upgrade: [['happy', 'An upgrade! Finally something {g|sensible}.']],
-    constellation: [['smug', 'Stars! {q|Nerd.} I mean that as a compliment.']],
-    oracle: [['paranoid', 'Oracles work on {g|held} dice. {q|Not on me. Please.}']],
-    tally: [['excited', 'Number levels. {w|Beautiful} math.']],
-    tags: {
-      bank: [['smug', 'Bank build. Saving for something? {q|A personality?}']],
-      number: [['excited', 'Numbers! My favourite. {q|After dice. And dinosaurs.}']],
-      pattern: [['smug', 'Patterns. I respect patterns. {q|I AM a pattern.}']],
-      luck: [['smug', 'Luck. The strategy of people without one.']],
-      risk: [['nervous', 'Skulls again? You need a {g|safer} hobby.']],
-      reroll: [['annoyed', 'More rerolls. Shake shake shake. {q|My wrists hurt.}']],
-      hold: [['happy', "Holding dice. {g|Commitment}! I've heard of that."]],
-      bag: [['neutral', 'Bigger bag. {g|Bigger} problems.']],
-      growth: [['neutral', 'Growth! Patience pays. {q|Eventually. Allegedly.}']],
-      none: [['smug', 'That one is... flexible. {q|Like my morals.}']],
-    },
-    mine: {
-      jonny_glasses: ['shocked', 'Those are MY {g|glasses}! {q|That explains the blur.}'],
-      off_record: ['paranoid', '{g|Off the Record}? {s|Shh.} We never talked about this.'],
-      mood_ring: ['angry', "My {g|Mood Ring}! It's always on {s|furious}. {q|Weird.}"],
-      jonny_autograph: ['excited', 'My {g|autograph}! I {w|knew} it was worth something!'],
-    },
-    catch: {
-      none: [['shocked', "No catch! I'm being {w|nice}."], ['paranoid', "{q|Don't tell anyone.}"]],
-      cursed: [['smug', 'It came with a {g|Cursed Die}. Package deal. {q|No refunds.}']],
-      tax: [['smug', 'Tiny thing: I keep {g|$4} of your next round reward. {q|Fine print.}']],
-      nosell: [['smug', 'Also: {g|non-refundable}. It sells for $0. {q|Fine print.}']],
-    },
-  };
+  // Shop-Sprüche: jonny-lines.js (window.WG_JONNY.SHOP)
+  const SHOP_TALK = (window.WG_JONNY && window.WG_JONNY.SHOP) || {};
   const JOB_TALK = {
     done: [['happy', 'Job done! You get paid after the round. {q|Probably.}'], ['smug', 'Nice work. {q|I could have done it faster.}']],
     failed: [['disappointed', 'Job failed. {d|I believed in you.} For a second.'], ['annoyed', 'That was the {g|one} thing I asked.']],
@@ -3394,17 +3645,17 @@
     defeat: [['shocked', 'No. {s|No no no.} I {b|wrote} those rules!'], ['disappointed', "Fine. You win. {q|I'll go practice my autograph.}"]],
   };
   const RULE_TALK = {
-    snake: [['smug', '{g|The Snake}: your 1s are worth nothing. {q|Like my opinion, apparently.}']],
-    clamp: [['excited', '{g|The Clamp}! One reroll per hand. Choose {w|wisely}.']],
+    snake: [['smug', '{g|The Snake}: it eats your lowest scored die. {q|Keep your numbers high.}']],
+    clamp: [['excited', '{g|The Clamp}! Two rerolls less per hand. Choose {w|wisely}.']],
     frost: [['smug', '{g|The Frost}. Your 6s are frozen. {q|Brrr.}']],
     chaos: [['paranoid', '{g|The Chaos}. Even held dice might roll. {s|Trust no one.}']],
-    echo: [['smug', '{g|The Echo}. Every hand type counts only once. {q|Once. Once. Once.}']],
+    echo: [['smug', '{g|The Echo}. Repeat a hand and it gets {g|half} Power. {q|Half. Half. Half.}']],
   };
 
   // ── Easter Eggs und Secrets ─────────────────────────────────────────────
   // Jonnys Kopf schwebt selten durch den Hintergrund (alle 15 s eine Chance von 1 zu 40, also etwa alle 10 Minuten).
   // Gesehen = Secret, angeklickt = noch eins.
-  const FLOAT = { every: 15, chance: 1 / 40, dur: 18, size: 104 };
+  const FLOAT = { every: 15, chance: 1 / 40, dur: 18, size: 64, wave: 44, freq: 1.5 };
   let floatHead = null, floatClock = performance.now() / 1000;
   function spawnHead() {
     floatHead = { t0: nowSec(), dir: Math.random() < 0.5 ? 1 : -1, y0: 150 + Math.random() * 380, spin: (Math.random() - 0.5) * 0.5,
@@ -3413,9 +3664,12 @@
   function headPos(h) {
     const age = nowSec() - h.t0, k = age / FLOAT.dur, s = FLOAT.size;
     const x0 = h.dir > 0 ? -s : 1280 + s, x1 = h.dir > 0 ? 1280 + s : -s;
-    let x = x0 + (x1 - x0) * k, y = h.y0 + Math.sin(age * 1.1) * 34;
-    if (h.caught) { const c = nowSec() - h.caught; y -= c * c * 900; x += h.dir * c * 260; }
-    return { x, y, rot: Math.sin(age * 0.8) * 0.35 + h.spin * age };
+    // Schwimmt in Wellen: auf und ab, und neigt sich in die Richtung, in die er gerade schwimmt
+    let x = x0 + (x1 - x0) * k, y = h.y0 + Math.sin(age * FLOAT.freq) * FLOAT.wave;
+    const vx = Math.abs(x1 - x0) / FLOAT.dur, vy = Math.cos(age * FLOAT.freq) * FLOAT.wave * FLOAT.freq;
+    let rot = Math.atan(vy / vx) * h.dir * 0.7 + Math.sin(age * 4.2) * 0.06;
+    if (h.caught) { const c = nowSec() - h.caught; y -= c * c * 900; x += h.dir * c * 260; rot += h.spin * c * 8; }
+    return { x, y, rot };
   }
   function updateHead() {
     const now = nowSec();
@@ -3701,7 +3955,8 @@
   // ── Knöpfe der Menüs und Fenster: Positionen aus dem sichtbaren Bereich ──
   function mobilePlace() {
     const v = viewBox(), vc = (v.l + v.r) / 2, g = mSetGeom();
-    SET_TAB_BTNS.forEach((b, i) => Object.assign(b, { x: g.vc + (i - 1.5) * (g.tabW + 14) - g.tabW / 2, y: 20, w: g.tabW, h: 80, size: 30 }));
+    const vt = visTabBtns();
+    vt.forEach((b, i) => Object.assign(b, { x: g.vc + (i - (vt.length - 1) / 2) * (g.tabW + 14) - g.tabW / 2, y: 20, w: g.tabW, h: 80, size: 30 }));
     for (const b of SET_BTNS) {
       const q = mSetRow(b.setRow, SET_TABS[b.inTab].rows.length), y = q.y + (q.h - 76) / 2;
       if (b.action) Object.assign(b, { x: q.x + q.w - 236, y, w: 222, h: 76, size: 28 });
@@ -3729,7 +3984,7 @@
   // ── Einstellungen (Handy): Reiter oben, Zeilen in zwei Spalten, große Pfeile und Regler ──
   function mSetGeom() {
     const v = viewBox(), vc = (v.l + v.r) / 2, pw = Math.min(1440, v.r - v.l - 24);
-    return { vc, pw, colW: Math.min(640, (pw - 64) / 2), tabW: Math.min(250, (pw - 40) / 4 - 14) };
+    return { vc, pw, colW: Math.min(640, (pw - 64) / 2), tabW: Math.min(250, (pw - 40) / visTabBtns().length - 14) };
   }
   function mSetRow(k, n = setRows().length) {
     const g = mSetGeom();
@@ -3749,8 +4004,9 @@
     dim(ctx, 0.5);
     const g = mSetGeom();
     UI.box(ctx, g.vc - g.pw / 2, 8, g.pw, 704, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
-    for (const b of SET_TAB_BTNS) UI.button(ctx, b, t);
+    for (const b of visTabBtns()) UI.button(ctx, b, t);
     const tab = SET_TABS[setTab];
+    if (tab.id === 'run') drawRunTabMobile(ctx);
     if (tab.id === 'controls') {
       const w = Math.min(900, g.pw - 40), x = g.vc - w / 2;
       CONTROLS_TOUCH.forEach(([key, what], i) => {
@@ -3805,7 +4061,7 @@
         const c = CUPS.find((q) => q.id === r.cup) || CUPS[0];
         const where = r.phase === 'shop' ? 'Shop' : r.blindIdx === 2 ? (R.BOSSES.find((b) => b.id === r.boss) || BLINDS[2]).name : BLINDS[r.blindIdx].name;
         UI.text(front, 'Run in progress', cx, py + 24, { size: 23, colour: P.GOLD });
-        const s1 = 'Stage ' + r.ante + '  ·  ' + where;
+        const s1 = (r.endless ? 'Endless ' : 'Stage ') + r.ante + '  ·  ' + where;
         UI.text(front, s1, cx, py + 58, { size: fitText(front, s1, w - 44, 27) });
         const s2 = r.phase === 'shop' ? 'Between rounds' : 'Score ' + UI.num(r.score || 0) + ' / ' + UI.num(r.target || 0);
         UI.text(front, s2, cx, py + 92, { size: fitText(front, s2, w - 44, 21), colour: P.TEXT_SOFT });
@@ -3982,6 +4238,739 @@
     ctx.restore();
   }
 
+  // ── Formation auf dem Tisch: Plätze, Links, Zeile unter den Würfeln ─────────
+  // Die Plätze sind immer leicht zu sehen; mit Formation-Relikten oder -Upgrades deutlicher. Mitte und Ränder
+  // leuchten, wenn ein Relikt sie belohnt. Links (gleiche Nachbarn) zeigen ein Kettenglied zwischen den Würfeln.
+  let formKey = '', formRes = null;
+  function formationNow() {
+    if (!formationOn() || S.phase !== 'select') return null;
+    const pv = preview();
+    if (!pv) return null;
+    const key = previewKey + '|' + dice.length;
+    if (key !== formKey) { formKey = key; formRes = R.formationOf(pv.vals, pv.scoring, dice.length, pv.name); formRes.keystone = handOpts(dice.map(upFace)).wild.filter((i) => pv.used.includes(i)); }
+    return formRes;
+  }
+  const formationOwned = () => (R.tagCounts(S.relics).formation || 0) > 0 || upg('turntable') || upg('magnetic') || upg('spotlight');
+  function drawTable(back) {
+    if (!['rolling', 'select', 'scoring'].includes(S.phase) || !dice.length || !formationOn() || S.cupDraw) return;
+    const n = dice.length, Y = dieY(), mids = R.midSlots(n), col = FORM_COL(), sz = Math.round(DIE_S * 32 + 16);
+    const midHot = has('centerpiece') || has('keystone') || upg('spotlight'), endHot = has('bookends') || has('flanking');
+    const base = formationOwned() ? 0.26 : 0.13, dragging = dice.some((d) => d.dragging);
+    if (upg('spotlight')) mids.forEach((i) => {
+      const x = dieX(i, n);
+      back.save(); back.globalAlpha = 0.11 + 0.04 * Math.sin(eng.time * 2.2); back.fillStyle = '#FFF0B2';
+      back.beginPath(); back.moveTo(x - 16, Y - 160); back.lineTo(x + 16, Y - 160); back.lineTo(x + sz / 2 + 6, Y + sz / 2 + 6); back.lineTo(x - sz / 2 - 6, Y + sz / 2 + 6); back.fill();
+      back.restore();
+    });
+    for (let i = 0; i < n; i++) {
+      const x = dieX(i, n), hot = dragging && dragSlot === i;
+      const special = (midHot && mids.includes(i)) || (endHot && (i === 0 || i === n - 1));
+      back.save(); back.globalAlpha = hot ? 0.95 : special ? base + 0.3 : base;
+      UI.box(back, x - sz / 2, Y - sz / 2 + 6, sz, sz, { colour: hot ? 'rgba(232,182,91,0.25)' : 'rgba(0,0,0,0.55)', radius: 14, shadow: false,
+        outline: hot ? P.GOLD : special ? lighten(col, 0.3) : 'rgba(255,255,255,0.55)', outlineWidth: hot ? 3 : 2 });
+      back.restore();
+    }
+  }
+  // Kettenglied (zwei verschränkte Glieder) zwischen zwei Würfeln
+  function chainIcon(c, a, b, colour, alpha, scale = 1) {
+    const x = (a.x + b.x) / 2, y = (a.y + b.y) / 2, ang = Math.atan2(b.y - a.y, b.x - a.x);
+    c.save(); c.globalAlpha = clamp(alpha, 0, 1); c.translate(x, y); c.rotate(ang); c.scale(scale, scale);
+    const link = (cx, cy) => {
+      c.lineWidth = 4; c.strokeStyle = darken(colour, 0.5); c.strokeRect(cx - 8, cy - 4, 16, 10);
+      c.lineWidth = 3; c.strokeStyle = colour; c.strokeRect(cx - 8, cy - 5, 16, 10);
+    };
+    link(-6, 0); link(6, 0);
+    c.restore();
+  }
+  function drawLinks(front) {
+    if (!dice.length || !formationOn()) { linkFx.length = 0; return; }
+    const col = lighten(FORM_COL(), 0.15);
+    const fo = formationNow();
+    if (fo && fo.ok && !dice.some((d) => d.dragging)) fo.linkPairs.forEach(([a, b]) => { if (dice[a] && dice[b]) chainIcon(front, dice[a], dice[b], col, 0.6 + 0.3 * Math.sin(eng.time * 4 + a)); });
+    for (let k = linkFx.length - 1; k >= 0; k--) {
+      const f = linkFx[k], age = eng.time - f.t0;
+      if (age > 0.75 || f.a._dead || f.b._dead) { linkFx.splice(k, 1); continue; }
+      chainIcon(front, f.a, f.b, f.big ? P.GOLD : lighten(FORM_COL(), 0.4), 1 - age / 0.75, 1.1 + (1 - age / 0.75) * 0.7);
+    }
+  }
+  // Was die Formation gerade bringt (für die Zeile unter den Würfeln bzw. die Statuszeile auf dem Handy)
+  function formParts() {
+    if (!formationOn() || S.phase !== 'select' || !dice.length) return [];
+    const fo = formationNow(), out = [], col = lighten(FORM_COL(), 0.4);
+    if (fo && fo.ok) {
+      if (fo.links) out.push([fo.links + (fo.links === 1 ? ' Link' : ' Links') + ' +' + fo.links * R.LINK_PIPS + ' Pips', col]);
+      if (has('chain_reaction') && fo.chain.length >= 2) out.push(['Chain of ' + fo.chain.length, col]);
+      if (has('bookends') && fo.bookends) out.push(['Bookends x2', P.GOLD]);
+      if (has('palindrome') && fo.palindrome) out.push(['Palindrome x2.5', P.GOLD]);
+      if (has('stepping') && fo.steps) out.push([fo.steps + (fo.steps === 1 ? ' Step' : ' Steps'), col]);
+      if (fo.keystone && fo.keystone.length) out.push(['Keystone', P.GOLD]);
+    }
+    out.push(['Shifts ' + S.shifts, S.shifts ? P.TEXT_SOFT : P.TEXT_DIM]);
+    return out;
+  }
+  function drawFormationLine(front) {
+    if (!L.formLine) return;
+    const parts = formParts();
+    if (!parts.length) return;
+    const txt = parts.map((q) => q[0]).join('   ·   '), size = L.formLine.size || 14, y = dieY() + (L.formLine.dy || 80);
+    front.font = UI.font(size);
+    let x = L.die.x - front.measureText(txt).width / 2;
+    parts.forEach((q, i) => {
+      const seg = (i ? '   ·   ' : '') + q[0];
+      UI.text(front, seg, x, y, { size, colour: q[1], align: 'left' });
+      front.font = UI.font(size); x += front.measureText(seg).width;
+    });
+  }
+
+  // ── Jonny: Sprüche nach Situation (jonny-lines.js) ──────────────────────────
+  // Jede Situation hat Stufen (je heftiger, desto lauter). Gleiche Sätze kommen erst wieder, wenn die Hälfte der Liste
+  // dran war. Pro Situation gibt es eine Pause (cd), außerdem einen Mindestabstand zu jedem anderen Spruch (gap).
+  const JL = window.WG_JONNY || { SHOP: {}, EVENT: {} };
+  const lineMemory = {};
+  function pickLine(key, pool) {
+    if (!pool || !pool.length) return null;
+    const used = lineMemory[key] || (lineMemory[key] = []);
+    const free = pool.map((_, i) => i).filter((i) => !used.includes(i));
+    const i = R.pick(free.length ? free : pool.map((_, k) => k));
+    used.push(i);
+    while (used.length > Math.floor(pool.length / 2)) used.shift();
+    return pool[i];
+  }
+  const fillLine = (line, vars) => (line ? [line[0], line[1].replace(/#(\w+)#/g, (m, k) => (vars && vars[k] !== undefined ? String(vars[k]) : m))] : null);
+  const evClock = {};
+  function jonnyLine(key, pool, vars, o = {}) {
+    if (!pool || !pool.length || TUT.active) return false;
+    if (!o.important && evClock[key] !== undefined && eng.time - evClock[key] < (o.cd || 30)) return false;
+    const line = fillLine(pickLine(key, pool), vars);
+    const said = jonnySay([line], { chance: o.chance === undefined ? 1 : o.chance, gap: o.gap === undefined ? 12 : o.gap, important: o.important, key: o.key || 'event', replace: o.replace, place: o.place });
+    if (said) evClock[key] = eng.time;
+    return said;
+  }
+  // einmal pro Run (in S.stats.said gemerkt, damit es auch nach dem Laden gilt)
+  const once = (k) => { const said = S.stats && S.stats.said; if (!said || said[k]) return false; said[k] = 1; return true; };
+  const stageTier = () => (S.ante > ANTES ? 'endless' : S.ante >= 7 ? 'late' : S.ante >= 4 ? 'mid' : 'early');
+  let newRecord = false;   // die gerade gewertete Hand ist die beste aller Runs (setzt startFuse)
+  function jonnyEvents(kind, e = {}) {
+    if (TUT.active || inMenus() || !JL.EVENT) return;
+    const E = JL.EVENT, cupJ = cup().jonny, bossJ = S.boss === JONNY_BOSS && isBossBlind();
+    const v = { stage: S.ante, score: UI.num(S.target) };
+    if (kind === 'roundStart') {
+      if (S.endless && S.blindIdx === 0) { const tier = S.ante >= 12 ? 2 : S.ante >= 10 ? 1 : 0; jonnyLine('endless:' + tier, E.endless.stage[tier], v, { chance: 0.85, gap: 4 }); return; }
+      if (!cupJ) jonnyLine('round:' + stageTier(), E.roundStart[stageTier()], v, { chance: S.blindIdx === 0 ? 0.3 : 0.15, cd: 60 });
+      return;
+    }
+    if (kind === 'heat') {
+      // Heat: Jonny merkt, dass der Spieler zu gut ist. Beim ersten Mal und beim Maximum sicher, sonst ab und zu.
+      const h = heatPct(), tier = h >= (HEAT_CAP - 1) * 100 ? 2 : h >= 50 ? 1 : 0, hv = Object.assign({}, v, { x: h });
+      if (once('heat' + tier)) jonnyLine('heat:' + tier, E.heat[tier], hv, { chance: 1, gap: 0, important: true, replace: true });
+      else jonnyLine('heat:' + tier, E.heat[tier], hv, { chance: 0.3, cd: 120 });
+      return;
+    }
+    if (kind === 'boss') { const id = S.boss && S.boss.id; if (E.boss[id]) jonnyLine('boss:' + id, E.boss[id], v, { chance: 0.5, cd: 20, gap: 4 }); return; }
+    if (kind === 'endless') { jonnyLine('endless', E.endless.start, v, { important: true, replace: true }); return; }
+    if (kind === 'chaos') { jonnyLine('chaos', E.chaos, { rule: e.rule }, { chance: 0.45, cd: 30 }); return; }
+    if (kind === 'idle') { jonnyLine('idle', E.idle, v, { cd: 300, gap: 20 }); return; }
+    if (kind === 'shift') {
+      const n = S.stats.shifts;
+      if (n === 1 && once('shift1')) jonnyLine('shift0', E.shift[0], v, { chance: (meta().track.shifts || 0) <= 3 ? 0.9 : 0.25 });
+      else if (n === 12 && once('shift12')) jonnyLine('shift1', E.shift[1], v, { chance: 0.6 });
+      return;
+    }
+    if (kind === 'reroll') {
+      if (cupJ || bossJ) return;
+      if (e.lucky >= 2) jonnyLine('lucky', E.lucky[e.lucky >= 3 ? 1 : 0], { n: e.lucky }, { chance: e.lucky >= 3 ? 0.8 : 0.4, cd: 25 });
+      else if (S.rerollsHand === 6 || S.rerollsHand === 10) jonnyLine('spree', E.rerollSpree[S.rerollsHand >= 10 ? 1 : 0], { n: S.rerollsHand }, { chance: 0.5, cd: 40 });
+      return;
+    }
+    if (kind === 'lastHand') {
+      if (cupJ || bossJ) return;
+      const left = Math.max(0, S.target - S.score), k = left / Math.max(1, S.target);
+      if (k > 0.5) jonnyLine('desperate', E.desperate[k > 0.8 ? 1 : 0], { n: UI.num(left) }, { chance: k > 0.8 ? 0.7 : 0.45, cd: 40 });
+      return;
+    }
+    if (kind === 'roundWon') {
+      if (!cupJ && !bossJ && e.handsLeft === 0) jonnyLine('clutch', E.clutch, v, { chance: 0.6, gap: 3 });
+      return;
+    }
+    if (kind === 'state') {
+      if (S.phase === 'won') return;
+      const m = S.money;
+      if (m >= 100 && once('m100')) jonnyLine('money2', E.money[2], { money: m }, { chance: 0.9, gap: 6 });
+      else if (m >= 50 && once('m50')) jonnyLine('money1', E.money[1], { money: m }, { chance: 0.8, gap: 6 });
+      else if (m >= 25 && once('m25')) jonnyLine('money0', E.money[0], { money: m }, { chance: 0.6, gap: 6 });
+      const counts = R.tagCounts(S.relics);
+      for (const tg of R.TAG_ORDER) {
+        const lv = R.setLevel(counts, tg);
+        if (lv >= 5 && once('set5:' + tg)) { jonnyLine('set5', E.set[1], { tag: R.TAGS[tg].name }, { chance: 0.9, gap: 4 }); break; }
+        if (lv >= 3 && once('set3:' + tg)) { jonnyLine('set3', E.set[0], { tag: R.TAGS[tg].name }, { chance: 0.7, gap: 4, cd: 10 }); break; }
+      }
+      return;
+    }
+    if (kind === 'hand') {
+      const { res, total, fo, streak } = e, ratio = total / Math.max(1, S.target);
+      if (newRecord) { newRecord = false; if (total >= 1000 && jonnyLine('record', E.record, { score: UI.num(total) }, { important: true, replace: true })) return; }
+      if (cupJ || bossJ) return;   // dort kommentiert Jonny mit seinen eigenen Sprüchen (jonnyHand)
+      const big = ratio >= 10 ? 3 : ratio >= 3 ? 2 : ratio >= 1 ? 1 : ratio >= 0.5 ? 0 : -1, x = fmtX(Math.floor(ratio * 10) / 10);
+      if (res.bust) { const n = Math.max(1, S.ach.busts); jonnyLine('bust', E.bust[Math.min(2, n - 1)], { n }, { chance: n >= 3 ? 0.9 : 0.55, cd: 12, replace: true }); return; }
+      if (res.name === 'Five of a Kind' && jonnyLine('five', E.five, v, { chance: 0.9, replace: true, gap: 2 })) return;
+      if (big >= 2 && jonnyLine('big' + big, E.bigHand[big], { x }, { chance: big === 3 ? 1 : 0.8, replace: true, gap: 3 })) return;
+      if (fo) {
+        if (fo.chain.length >= 4 && once('chain4') && jonnyLine('chain4', E.link[2], { n: fo.chain.length }, { chance: 0.9, gap: 3 })) return;
+        if (fo.chain.length === 3 && once('chain3') && jonnyLine('chain3', E.link[1], v, { chance: 0.6, gap: 4 })) return;
+        if (fo.links && once('link1') && jonnyLine('link1', E.link[0], v, { chance: (meta().track.shifts || 0) < 5 ? 0.85 : 0.3, gap: 4 })) return;
+        if (fo.palindrome && once('palindrome') && jonnyLine('palindrome', E.palindrome, v, { chance: 0.9, gap: 3 })) return;
+      }
+      if ((streak === 3 || streak === 5) && jonnyLine('streak', E.streak[streak >= 5 ? 1 : 0], { hand: res.name, n: streak }, { chance: 0.4, cd: 30 })) return;
+      if (big >= 0 && jonnyLine('big' + big, E.bigHand[big], { x }, { chance: big === 1 ? 0.5 : 0.18, cd: 25 })) return;
+      if (res.name === 'Four of a Kind' && once('four')) jonnyLine('four', E.four, v, { chance: 0.5 });
+    }
+  }
+
+  // ── Codex: alles, was es gibt, mit Freischalt-Stand ─────────────────────────
+  // meta().codex zählt pro Art, wie oft man etwas bekommen hat (gekauft, vom Becher, verwandelt) bzw. getroffen (Bosse).
+  // Zustände: owned (schon einmal gehabt), open (freigeschaltet, aber nie gehabt: ausgegraut), locked ("???" mit Aufgabe).
+  const CODEX_KINDS = ['relic', 'upgrade', 'oracle', 'die', 'boss', 'cup'];
+  function codexData() {
+    const m = meta();
+    if (!m.codex) {
+      m.codex = {};
+      for (const k of CODEX_KINDS) m.codex[k] = {};
+      // Nachtragen aus laufenden Runs der Speicherplätze und besiegten Bossen
+      for (let k = 0; k < Saves.COUNT; k++) {
+        const d = Saves.load(k), r = d && d.run;
+        if (!r) continue;
+        (r.relics || []).forEach((q) => { m.codex.relic[q.id] = (m.codex.relic[q.id] || 0) + 1; });
+        (r.upgrades || []).forEach((id) => { m.codex.upgrade[id] = (m.codex.upgrade[id] || 0) + 1; });
+        (r.bag || []).forEach((q) => { m.codex.die[q.type] = Math.max(1, m.codex.die[q.type] || 0); });
+        if (r.cup) m.codex.cup[r.cup] = (m.codex.cup[r.cup] || 0) + 1;
+      }
+      Object.keys((m.track && m.track.bosses) || {}).forEach((id) => { m.codex.boss[id] = 1; });
+      if (m.stats && m.stats.runs) { m.codex.die.standard = m.codex.die.standard || 1; m.codex.cup.classic = m.codex.cup.classic || 1; }
+    }
+    for (const k of CODEX_KINDS) if (!m.codex[k]) m.codex[k] = {};
+    return m.codex;
+  }
+  function seen(kind, id) {
+    if (!profile || TUT.active || !id) return;
+    const c = codexData()[kind];
+    c[id] = (c[id] || 0) + 1;
+  }
+  const CODEX_TABS = [
+    { id: 'relic', label: 'Relics' }, { id: 'upgrade', label: 'Upgrades' }, { id: 'oracle', label: 'Oracles' },
+    { id: 'die', label: 'Dice' }, { id: 'boss', label: 'Bosses' }, { id: 'cup', label: 'Cups' },
+  ];
+  const CODEX_TAB_BTNS = CODEX_TABS.map((tb, i) => (MOBILE ? btn(640 + (i - 2.5) * 182 - 86, 70, 172, 50, tb.label, P.L_BLACK, { size: 26, codexTab: i })
+    : btn(640 + (i - 2.5) * 156 - 74, 78, 148, 40, tb.label, P.L_BLACK, { size: 20, codexTab: i })));
+  ALL_BUTTONS.push(...CODEX_TAB_BTNS);
+  const CODEX_GRID = MOBILE ? { x: 40, y: 152, cols: 8, size: 74, gap: 12, rows: 5 } : { x: 48, y: 150, cols: 10, size: 64, gap: 10, rows: 6 };
+  const CODEX_PANEL = MOBILE ? { x: 830, y: 146, w: 420, h: 458 } : { x: 812, y: 150, w: 428, h: 444 };
+  let codexTab = 0, codexPage = 0, codexSel = null, codexHits = [];
+  const codexPer = () => CODEX_GRID.cols * CODEX_GRID.rows;
+  function codexEntries(kind) {
+    if (kind === 'relic') return R.RELICS.map((d) => ({ kind, id: d.id, name: d.name }));
+    if (kind === 'upgrade') return R.UPGRADES.map((d) => ({ kind, id: d.id, name: d.name }));
+    if (kind === 'oracle') return R.ORACLES.map((d) => ({ kind, id: d.id, name: d.name }));
+    if (kind === 'die') return Object.keys(R.DIE_TYPES).map((id) => ({ kind, id, name: R.DIE_TYPES[id].name }));
+    if (kind === 'boss') return R.BOSSES.concat([JONNY_BOSS]).map((b) => ({ kind, id: b.id, name: b.name }));
+    return CUPS.map((c) => ({ kind, id: c.id, name: c.name }));
+  }
+  // Wodurch etwas freigeschaltet wird (Achievement), sonst null
+  function codexSource(e) {
+    if (!ACH) return null;
+    if (e.kind === 'relic' && R.RELIC_BY_ID[e.id].hidden) return ACH.SOURCE['relic:hybrid_seed'] || null;
+    const key = (e.kind === 'cup' ? 'cupmode' : e.kind) + ':' + e.id;
+    return ACH.LOCKED.has(key) ? ACH.SOURCE[key] : null;
+  }
+  function codexState(e) {
+    const n = codexData()[e.kind][e.id] || 0;
+    if (n > 0 || (e.kind === 'cup' && e.id === 'classic' && meta().stats.runs > 0)) return { state: 'owned', n: Math.max(1, n) };
+    const src = codexSource(e);
+    if (src && !ACH.earned(meta(), src.id)) return { state: 'locked', n: 0, src };
+    return { state: 'open', n: 0 };
+  }
+  function codexIcon(c, e, x, y, size, state) {
+    if (state === 'locked') { drawReward(c, '?', '?', x, y, size, false); return; }
+    if (e.kind === 'relic' || e.kind === 'upgrade' || e.kind === 'oracle' || e.kind === 'die') drawReward(c, e.kind, e.id, x, y, size, false);
+    else if (e.kind === 'cup') drawReward(c, 'cupmode', e.id, x, y, size, false);
+    else {
+      const b = e.id === 'jonny' ? JONNY_BOSS : R.BOSSES.find((q) => q.id === e.id);
+      UI.box(c, x, y, size, size, { colour: b.colour, radius: 8, shadow: false, outline: lighten(b.colour, 0.35), outlineWidth: 2 });
+      if (e.id === 'jonny' && TUT.head) { c.save(); c.imageSmoothingEnabled = false; c.drawImage(TUT.head('smug', false), x + 2, y + 2, size - 4, size - 4); c.restore(); }
+      else UI.text(c, b.name.replace(/^The /, '')[0], x + size / 2, y + size / 2, { size: size * 0.55 });
+    }
+    if (state === 'open') { c.save(); c.fillStyle = 'rgba(24,30,34,0.62)'; UI.roundRect(c, x, y, size, size, 8); c.fill(); c.restore(); }
+  }
+  function openCodex() { clearMenuSprites(); codexData(); S.phase = 'codex'; codexPage = 0; codexSel = null; sfx('page'); }
+  const codexPages = () => Math.max(1, Math.ceil(codexEntries(CODEX_TABS[codexTab].id).length / codexPer()));
+  function codexInfo(e, st) {
+    const lockedDesc = '???';
+    if (e.kind === 'relic') {
+      const d = R.RELIC_BY_ID[e.id], rar = R.RARITY[d.rarity];
+      return { desc: st === 'locked' ? lockedDesc : d.desc, badge: [rar.name + ' Relic', rar.colour], tags: st === 'locked' ? [] : d.tags, extra: d.hidden ? 'Grows from a Hybrid Seed' : null };
+    }
+    if (e.kind === 'upgrade') { const d = R.UPGRADE_BY_ID[e.id]; return { desc: st === 'locked' ? lockedDesc : d.desc, badge: [R.RARITY[d.rarity].name + ' Upgrade', TYPE_COL.upgrade] }; }
+    if (e.kind === 'oracle') { const d = R.ORACLE_BY_ID[e.id]; return { desc: st === 'locked' ? lockedDesc : d.desc, badge: ['Oracle', TYPE_COL.oracle] }; }
+    if (e.kind === 'die') { const t = R.DIE_TYPES[e.id]; return { desc: st === 'locked' ? lockedDesc : 'Faces of this die:', faces: st === 'locked' ? null : (rewardDie[e.id] || (rewardDie[e.id] = R.makeDie(e.id))), badge: ['Die', TYPE_COL.die], extra: t.weight ? null : 'Only from the High Roller Cup' }; }
+    if (e.kind === 'boss') {
+      const b = e.id === 'jonny' ? JONNY_BOSS : R.BOSSES.find((q) => q.id === e.id);
+      return { desc: e.id === 'jonny' ? 'The final boss of Stage 8. He cheats: every hand he picks a new rule from the other bosses.' : b.desc, badge: [e.id === 'jonny' ? 'Final boss' : 'Showdown boss', b.colour] };
+    }
+    const c = CUP_BY_ID[e.id];
+    return { desc: st === 'locked' ? lockedDesc : c.desc, badge: [CUP_WORD, c.colour], extra: c.id === 'classic' ? 'Always available' : c.jonny ? 'Always available once unlocked' : 'Win it in a Cup Draw (Stage ' + CUP_DRAW_STAGE + ' Showdown)' };
+  }
+  function drawCodex(back, front, t) {
+    const tab = CODEX_TABS[codexTab], list = codexEntries(tab.id), per = codexPer();
+    UI.dynaText(front, 'Codex', 640, 44, { size: 48, time: t, wave: 2.5, colour: P.GOLD });
+    for (const b of CODEX_TAB_BTNS) UI.button(front, b, t);
+    const states = list.map((e) => codexState(e));
+    const own = states.filter((q) => q.state === 'owned').length, opn = states.filter((q) => q.state !== 'locked').length;
+    const G = CODEX_GRID, P0 = CODEX_PANEL;
+    UI.text(front, tab.label + ': ' + own + ' collected  ·  ' + opn + ' unlocked  ·  ' + list.length + ' total  ·  Page ' + (codexPage + 1) + ' / ' + codexPages(), G.x + (G.cols * (G.size + G.gap) - G.gap) / 2, G.y - 16, { size: MOBILE ? 19 : 16, colour: P.TEXT_SOFT });
+    codexHits = [];
+    let hover = null;
+    list.slice(codexPage * per, (codexPage + 1) * per).forEach((e, k) => {
+      const x = G.x + (k % G.cols) * (G.size + G.gap), y = G.y + Math.floor(k / G.cols) * (G.size + G.gap), q = states[codexPage * per + k];
+      const r = { x, y, w: G.size, h: G.size }, on = !MOBILE && UI.inside(r, eng.mouse), sel = codexSel && codexSel.kind === e.kind && codexSel.id === e.id;
+      codexIcon(front, e, x, y, G.size, q.state);
+      if (sel || on) { front.save(); front.lineWidth = 3; front.strokeStyle = sel ? P.GOLD : lighten(P.PANEL, 0.5); UI.roundRect(front, x - 3, y - 3, G.size + 6, G.size + 6, 10); front.stroke(); front.restore(); }
+      if (q.state === 'owned' && q.n > 1 && e.kind !== 'cup') UI.text(front, 'x' + q.n, x + G.size - 4, y + G.size - 8, { size: 13, colour: P.GOLD, align: 'right' });
+      codexHits.push({ r, e });
+      if (on) hover = e;
+    });
+    // Rechts: Details zum gezeigten Eintrag
+    const e = hover || codexSel || list[codexPage * per];
+    UI.box(back, P0.x, P0.y, P0.w, P0.h, { colour: P.OVERLAY_SOLID, radius: 14, emboss: 4, outline: lighten(P.PANEL, 0.2), outlineWidth: 2 });
+    if (e) drawCodexDetail(front, e, P0, t);
+    for (const b of [B.pagePrev, B.pageNext, B.back]) UI.button(front, b, t);
+  }
+  function drawCodexDetail(c, e, P0, t) {
+    const q = codexState(e), inf = codexInfo(e, q.state), cx = P0.x + P0.w / 2, k = MOBILE ? 1.2 : 1;
+    let y = P0.y + 14;
+    codexIcon(c, e, cx - 48, y, 96, q.state);
+    y += 120;
+    UI.text(c, e.name, cx, y, { size: fitText(c, e.name, P0.w - 30, 28 * k), colour: q.state === 'locked' ? P.TEXT_SOFT : P.WHITE });
+    y += 32 * k;
+    c.font = UI.font(17 * k);
+    const bw = c.measureText(inf.badge[0]).width + 28;
+    UI.box(c, cx - bw / 2, y - 12, bw, 24 * k, { colour: inf.badge[1], radius: 12, emboss: 2 });
+    UI.text(c, inf.badge[0], cx, y + (k - 1) * 12, { size: 17 * k });
+    y += 30 * k;
+    if (inf.tags && inf.tags.length) { tagChips(c, inf.tags.map((tg) => ({ tag: tg, label: R.TAGS[tg].name, colour: darken(TAG_COL(tg), 0.1) })), cx, y + 2, 14); y += 30; }
+    // Beschreibung in einem weißen Feld (Zahlen eingefärbt)
+    const lines = wrapText(c, inf.desc, P0.w - 60, 18 * k), boxH = lines.length * 22 * k + 16 + (inf.faces ? 36 : 0);
+    UI.box(c, P0.x + 16, y, P0.w - 32, boxH, { colour: '#FFFFFF', radius: 8, shadow: false });
+    lines.forEach((ln, i) => drawLine(c, ln, cx, y + 18 * k + i * 22 * k, 18 * k, false));
+    if (inf.faces) drawFaces(c, inf.faces, cx, y + lines.length * 22 * k + 26, -1);
+    y += boxH + 22;
+    if (inf.extra) { UI.text(c, inf.extra, cx, y, { size: fitText(c, inf.extra, P0.w - 30, 15 * k), colour: P.TEXT_HINT }); y += 24 * k; }
+    // Stand
+    const status = q.state === 'owned' ? (e.kind === 'boss' ? 'Met ' : e.kind === 'cup' ? 'Played ' : 'Collected ') + q.n + (q.n === 1 ? ' time' : ' times')
+      : q.state === 'open' ? (e.kind === 'boss' ? 'Not met yet' : e.kind === 'cup' ? 'Not played yet' : 'Unlocked. Get it once to fill this page.') : 'Locked';
+    UI.text(c, status, cx, y, { size: 18 * k, colour: q.state === 'owned' ? P.GOLD : q.state === 'open' ? P.TEXT_LABEL : lighten(P.PURPLE, 0.35) });
+    y += 28 * k;
+    if (q.state === 'locked' && q.src) {
+      const a = q.src;
+      UI.text(c, 'Unlock: ' + a.name, cx, y, { size: fitText(c, 'Unlock: ' + a.name, P0.w - 30, 18 * k), colour: P.GOLD });
+      y += 22 * k;
+      wrapPlain(c, a.desc, P0.w - 50, 16 * k).slice(0, 2).forEach((ln, i) => UI.text(c, ln, cx, y + i * 20 * k, { size: 16 * k, colour: P.TEXT_SOFT }));
+      y += 44 * k;
+      const pr = ACH.progress(meta(), a);
+      if (pr && y < P0.y + P0.h - 14) {
+        const bw2 = P0.w - 120, kk = pr.n / pr.goal;
+        UI.box(c, cx - bw2 / 2, y - 6, bw2, 12, { colour: P.PANEL_DARK, radius: 6, shadow: false });
+        if (kk > 0) UI.box(c, cx - bw2 / 2, y - 6, Math.max(12, bw2 * kk), 12, { colour: P.GOLD, radius: 6, shadow: false });
+        UI.text(c, UI.num(pr.n) + ' / ' + UI.num(pr.goal), cx, y + 20, { size: 15, colour: P.TEXT_SOFT });
+      }
+    }
+  }
+  function codexClick(m) {
+    const tab = CODEX_TAB_BTNS.find((b) => UI.inside(b, m));
+    if (tab) return false;
+    const h = codexHits.find((q) => UI.inside(q.r, m));
+    if (!h) return false;
+    codexSel = h.e; sfx('card');
+    return true;
+  }
+  function turnCodexPage(dir) {
+    const n = clamp(codexPage + dir, 0, codexPages() - 1);
+    if (n !== codexPage) { codexPage = n; sfx('page'); }
+  }
+
+  // ── Auswertung am Ende und Laufhistorie ─────────────────────────────────────
+  // Ein Eintrag beschreibt einen ganzen Run (Statistik, Build am Ende, Hände, Achievements). Die Auswertung am Ende
+  // und die Historie im Hauptmenü zeichnen denselben Eintrag. meta().history: neueste zuerst, höchstens HISTORY_MAX.
+  const HISTORY_MAX = 30;
+  let lastRecord = null;
+  const history = () => meta().history || [];
+  function buildRecord(won) {
+    const st = Object.assign({}, S.stats || freshStats());
+    delete st.said;
+    const finished = won && !S.endless;
+    return {
+      v: 1, id: S.runId || Date.now(), date: Date.now(), won: !!won, endless: !!S.endless, cup: S.cup,
+      stage: S.endless ? S.ante : Math.min(S.ante, ANTES), where: finished ? 'All stages cleared' : blindLabel().name,
+      time: Math.round(S.time), score: S.score, target: S.target, stats: st, jobs: S.jonny ? S.jonny.jobs : 0,
+      relics: S.relics.map((r) => r.id), upgrades: S.upgrades.slice(),
+      cons: S.cons.map((c) => ({ type: c.type, id: c.id, hand: c.hand, n: c.n })),
+      bag: S.bag.map((d) => ({ t: d.type, f: d.faces.map((f) => [f.v, f.kind]) })),
+      hands: Object.assign({}, S.handCounts), levels: Object.assign({}, S.levels), tags: R.tagCounts(S.relics), ach: (S.runAch || []).slice(),
+    };
+  }
+  function recordHistory(won) {
+    const rec = buildRecord(won);
+    lastRecord = rec;
+    if (!profile || TUT.active) return rec;
+    const m = meta();
+    if (!m.history) m.history = [];
+    const k = m.history.findIndex((x) => x.id === rec.id);
+    if (k >= 0) m.history.splice(k, 1);
+    m.history.unshift(rec);
+    if (m.history.length > HISTORY_MAX) m.history.length = HISTORY_MAX;
+    return rec;
+  }
+  function openSummary() {
+    if (!['lost', 'runWon'].includes(S.phase) || S.summary) return;
+    S.summary = lastRecord || buildRecord(S.phase === 'runWon');
+    S.summary.t0 = eng.time;
+    S.msg = null;
+    sfx('page');
+  }
+  const recStage = (rec) => (rec.won && !rec.endless ? 'All ' + ANTES + ' stages cleared' : (rec.endless ? 'Endless stage ' + rec.stage : 'Stage ' + rec.stage + ' / ' + ANTES) + '  ·  ' + rec.where);
+  const recTitle = (rec, live) => (rec.endless ? (live ? 'Endless run over' : 'Endless run') : rec.won ? 'Run complete!' : 'Game Over');
+  const recColour = (rec) => (rec.endless ? lighten(P.PURPLE, 0.3) : rec.won ? P.GOLD : P.RED);
+  function recStatRows(rec) {
+    const st = Object.assign(freshStats(), rec.stats || {}), $ = (v) => '$' + UI.num(v || 0);
+    return [
+      ['Rounds won', st.rounds], ['Showdowns won', st.bosses], ['Hands played', st.hands],
+      ['Best hand', st.best ? UI.num(st.best) + (st.bestName ? '  ·  ' + st.bestName : '') : '-'], ['Total score', UI.num(st.total)],
+      ['Rerolls', st.rerolls], ['Lucky Hits', st.lucky], ['Busts', st.busts], ['Links', st.links], ['Longest chain', st.chain || '-'],
+      ['Shifts', st.shifts], ['Peak heat', st.heat ? '+' + st.heat + '%' : '-'], ['Money earned', $(st.earned)], ['Money spent', $(st.spent)], ['Most money at once', $(st.maxMoney)],
+      ["Jonny's jobs done", rec.jobs || 0], ['Items bought', st.bought],
+    ];
+  }
+  // Infos ohne laufenden Run (Auswertung, Historie, Codex)
+  function plainInfo(kind, id, extra) {
+    if (kind === 'relic') {
+      const d = R.RELIC_BY_ID[id], rar = R.RARITY[d.rarity];
+      return { title: d.name, desc: d.desc, badge: [rar.name + ' Relic', rar.colour], tags: d.tags.map((tg) => ({ tag: tg, label: R.TAGS[tg].name, colour: darken(TAG_COL(tg), 0.1) })) };
+    }
+    if (kind === 'upgrade') { const d = R.UPGRADE_BY_ID[id]; return { title: d.name, desc: d.desc, badge: [R.RARITY[d.rarity].name + ' Upgrade', TYPE_COL.upgrade] }; }
+    if (kind === 'oracle') { const d = R.ORACLE_BY_ID[id]; return { title: d.name, desc: d.desc, badge: ['Oracle', TYPE_COL.oracle] }; }
+    if (kind === 'constellation') { const h = R.HANDS[id]; return { title: h.star, desc: 'Level up ' + id + ': +' + h.level[0] + ' Pips and +' + h.level[1] + ' Power', badge: ['Constellation', TYPE_COL.constellation] }; }
+    if (kind === 'tally') return { title: 'Tally of ' + R.NUMBER_NAMES[id], desc: 'Level up ' + id + 's: each scored ' + id + ' gives +4 Pips and +1 Power more', badge: ['Tally', TYPE_COL.tally] };
+    if (kind === 'die') return { title: R.DIE_TYPES[extra.type].name, desc: 'Faces of this die:', faces: extra, badge: ['Die', TYPE_COL.die] };
+    if (kind === 'ach') { const a = ACH.BY_ID[id]; return { title: a.name, desc: a.desc, badge: [a.secret ? 'Secret achievement' : 'Achievement', a.secret ? P.PURPLE : darken(P.GOLD, 0.2)] }; }
+    return null;
+  }
+  let sumHits = [];
+  const SUM = { x: 40, y: 14, w: 1200, h: 548 };
+  // Zeichnet einen Run. live: Auswertung direkt am Ende (sonst aus der Historie)
+  function drawRunCard(back, front, t, rec, live) {
+    const { x, y, w, h } = SUM, accent = recColour(rec), cupD = CUP_BY_ID[rec.cup] || CUPS[0], k = MOBILE ? 1.15 : 1;
+    sumHits = [];
+    if (live) dim(front, 0.4);   // vorne, damit Knöpfe und Texte des Spielfelds nicht durchscheinen
+    const pop = live ? FX.Ease.outCubic(Math.min(1, (eng.time - (rec.t0 || 0)) * 3)) : 1;
+    back.save(); front.save();
+    if (pop < 1) for (const c of [back, front]) { c.translate(640, 290); c.scale(0.92 + 0.08 * pop, 0.92 + 0.08 * pop); c.translate(-640, -290); c.globalAlpha = pop; }
+    UI.box(front, x, y, w, h, { colour: P.OVERLAY_SOLID, radius: 18, emboss: 4, outline: accent, outlineWidth: 3 });
+    UI.dynaText(front, recTitle(rec, live), x + w / 2, y + 38, { size: 44, colour: accent, time: t, wave: 2.5 });
+    const sub = cupD.name + '  ·  ' + recStage(rec) + '  ·  ' + fmtTime(rec.time || 0) + '  ·  ' + fmtDate(rec.date);
+    UI.text(front, sub, x + w / 2, y + 76, { size: fitText(front, sub, w - 60, 17 * k), colour: P.TEXT_SOFT });
+    const col = (cx, title, cw) => { UI.box(front, cx, y + 96, cw, 384, { colour: P.PANEL_DARK, radius: 12, shadow: false }); UI.text(front, title, cx + cw / 2, y + 114, { size: 18 * k, colour: P.TEXT_LABEL }); };
+    // Spalte 1: Zahlen
+    const c1 = x + 16;
+    col(c1, 'Stats', 372);
+    recStatRows(rec).forEach(([a, b], i) => {
+      const ry = y + 140 + i * 21.5;
+      UI.text(front, a, c1 + 14, ry, { size: 15 * k, colour: P.TEXT_LABEL, align: 'left' });
+      const val = String(b);
+      UI.text(front, val, c1 + 358, ry, { size: fitText(front, val, 190, 16 * k), align: 'right', colour: a === 'Best hand' ? P.GOLD : P.WHITE });
+    });
+    // Spalte 2: Build am Ende
+    const c2 = x + 404, cw2 = 392;
+    col(c2, 'Build at the end', cw2);
+    let yy = y + 134;
+    const label = (txt) => { UI.text(front, txt, c2 + 14, yy + 8, { size: 15 * k, colour: P.TEXT_DIM, align: 'left' }); yy += 20; };
+    label('Relics');
+    if (!rec.relics.length) { UI.text(front, 'none', c2 + cw2 / 2, yy + 24, { size: 15, colour: P.TEXT_FAINT }); }
+    rec.relics.slice(0, 7).forEach((id, i) => {
+      if (!R.RELIC_BY_ID[id]) return;
+      const r = { x: c2 + 14 + i * 53, y: yy, w: 48, h: 48 };
+      drawReward(front, 'relic', id, r.x, r.y, r.w, false);
+      sumHits.push({ r, info: plainInfo('relic', id) });
+    });
+    yy += 56;
+    const tl = R.TAG_ORDER.filter((tg) => (rec.tags || {})[tg] > 0).map((tg) => ({ tag: tg, label: String(rec.tags[tg]), colour: rec.tags[tg] >= 3 ? TAG_COL(tg) : P.CHIP_OFF, outline: rec.tags[tg] >= 5 ? P.GOLD : undefined }));
+    if (tl.length) { tagChips(front, tl.slice(0, 7), c2 + cw2 / 2, yy + 8, 13); yy += 24; }
+    label('Upgrades');
+    if (!rec.upgrades.length) UI.text(front, 'none', c2 + cw2 / 2, yy + 12, { size: 15, colour: P.TEXT_FAINT });
+    rec.upgrades.slice(0, 10).forEach((id, i) => {
+      if (!R.UPGRADE_BY_ID[id]) return;
+      const r = { x: c2 + 14 + i * 37, y: yy - 4, w: 34, h: 34 };
+      front.save(); front.imageSmoothingEnabled = false; front.drawImage(upgradeCanvas(id), r.x, r.y, r.w, r.h); front.restore();
+      sumHits.push({ r, info: plainInfo('upgrade', id) });
+    });
+    yy += 38;
+    label('Consumables');
+    if (!rec.cons.length) UI.text(front, 'none', c2 + cw2 / 2, yy + 12, { size: 15, colour: P.TEXT_FAINT });
+    rec.cons.forEach((cn, i) => {
+      const r = { x: c2 + 14 + i * 40, y: yy - 4, w: 34, h: 34 };
+      if (cn.type === 'oracle') { drawReward(front, 'oracle', cn.id, r.x, r.y, r.w, false); sumHits.push({ r, info: plainInfo('oracle', cn.id) }); }
+      else if (cn.type === 'constellation') { UI.box(front, r.x, r.y, r.w, r.h, { colour: TYPE_COL.constellation, radius: 6, shadow: false }); Icons.draw(front, 'star:' + cn.hand, r.x + 17, r.y + 17, 28); sumHits.push({ r, info: plainInfo('constellation', cn.hand) }); }
+      else { UI.box(front, r.x, r.y, r.w, r.h, { colour: TYPE_COL.tally, radius: 6, shadow: false }); front.drawImage(faceEntry({ v: cn.n, kind: 'normal' }, 'standard').canvas, r.x + 5, r.y + 5, 24, 24); sumHits.push({ r, info: plainInfo('tally', cn.n) }); }
+    });
+    yy += 38;
+    label('Bag (' + rec.bag.length + ' dice)');
+    rec.bag.slice(0, 24).forEach((d, i) => {
+      if (!R.DIE_TYPES[d.t]) return;
+      const die = { type: d.t, faces: d.f.map(([v, kind]) => ({ v, kind })) }, f = bagFace(die);
+      const r = { x: c2 + 14 + (i % 12) * 31, y: yy - 2 + Math.floor(i / 12) * 31, w: 28, h: 28 };
+      front.save(); front.imageSmoothingEnabled = false; front.drawImage(faceEntry(f, d.t).canvas, r.x, r.y, r.w, r.h); front.restore();
+      sumHits.push({ r, info: plainInfo('die', null, die) });
+    });
+    // Spalte 3: Hände und Achievements
+    const c3 = x + 812, cw3 = 372;
+    col(c3, 'Hands played', cw3);
+    const counts = rec.hands || {}, maxC = Math.max(1, ...Object.values(counts));
+    R.HAND_ORDER.forEach((n, i) => {
+      const ry = y + 138 + i * 22, cnt = counts[n] || 0, lv = (rec.levels || {})[n] || 1;
+      if (cnt) UI.box(front, c3 + 150, ry - 8, Math.max(6, 150 * (cnt / maxC)), 16, { colour: darken(P.PLANET, 0.15), radius: 5, shadow: false });
+      UI.text(front, n, c3 + 14, ry, { size: 14 * k, colour: cnt ? P.WHITE : P.TEXT_FAINT, align: 'left' });
+      UI.text(front, String(cnt), c3 + 312, ry, { size: 15, colour: cnt ? P.WHITE : P.TEXT_FAINT, align: 'right' });
+      UI.text(front, 'Lv ' + lv, c3 + 358, ry, { size: 13, colour: lv > 1 ? P.PLANET : P.TEXT_FAINT, align: 'right' });
+    });
+    const ay = y + 348;
+    UI.text(front, 'Unlocked this run', c3 + cw3 / 2, ay, { size: 16 * k, colour: P.TEXT_LABEL });
+    const achs = (rec.ach || []).map((id) => ACH && ACH.BY_ID[id]).filter(Boolean);
+    if (!achs.length) UI.text(front, 'No new achievements', c3 + cw3 / 2, ay + 30, { size: 15, colour: P.TEXT_FAINT });
+    achs.slice(0, 4).forEach((a, i) => {
+      const ry = ay + 24 + i * 24, acc = a.secret ? lighten(P.PURPLE, 0.25) : P.GOLD;
+      drawTrophy(front, c3 + 16, ry - 8, 2, acc);
+      UI.text(front, a.name, c3 + 42, ry, { size: fitText(front, a.name, cw3 - 60, 15), colour: acc, align: 'left' });
+      sumHits.push({ r: { x: c3 + 10, y: ry - 11, w: cw3 - 20, h: 22 }, info: plainInfo('ach', a.id) });
+    });
+    if (achs.length > 4) UI.text(front, '+' + (achs.length - 4) + ' more', c3 + cw3 - 14, ay + 24 + 4 * 24 - 4, { size: 14, colour: P.TEXT_SOFT, align: 'right' });
+    back.restore(); front.restore();
+    const btns = live ? summaryButtons() : [B.back, B.share];
+    for (const b of btns) UI.button(front, b, t);
+    if (pop < 1) return;
+    if (!MOBILE) {
+      const hit = sumHits.find((q) => UI.inside(q.r, eng.mouse));
+      if (hit && hit.info) { const sz = panelSize(front, hit.info), pos = placeBelow(hit.r, sz); drawPanel(front, hit.info, sz, pos.x, pos.y, false, -1); }
+    } else drawTipsTouch(front);
+  }
+  // Knöpfe der Auswertung (Reihe unten im Fenster, zentriert)
+  function summaryButtons() {
+    const rec = S.summary;
+    if (!rec) return [];
+    return [B.home, B.share, B.retry].concat(rec.won && !rec.endless && S.phase === 'runWon' && !TUT.active ? [B.endless] : []).filter((b) => b !== B.home || profile);
+  }
+  function placeRow(list, y, h = 50) {
+    const gap = 16, total = list.reduce((a, b) => a + b.w, 0) + gap * (list.length - 1);
+    let x = 640 - total / 2;
+    for (const b of list) { b.x = x; b.y = y; b.h = h; x += b.w + gap; }
+  }
+  const upgradeCanvas = (id) => {
+    const k = 'upc:' + id;
+    if (!upgradeCanvas[k]) {
+      const c = Art.canvas(34, 34)[0], g = c.getContext('2d');
+      Art.pixelRect(g, 0, 0, 34, 34, darken(TYPE_COL.upgrade, 0.35), [3, 1]);
+      Art.pixelRect(g, 1, 1, 32, 31, TYPE_COL.upgrade, [2, 1]);
+      Icons.draw(g, id, 17, 17, 28);
+      upgradeCanvas[k] = c;
+    }
+    return upgradeCanvas[k];
+  };
+
+  // Historie im Hauptmenü: Liste, ein Klick zeigt den ganzen Run
+  let histPage = 0, histSel = -1, histRows = [];
+  const HIST_PER = 6;
+  const histPages = () => Math.max(1, Math.ceil(history().length / HIST_PER));
+  function openHistory() { clearMenuSprites(); S.phase = 'history'; histPage = 0; histSel = -1; tips = []; sfx('page'); }
+  function drawHistory(back, front, t) {
+    const list = history();
+    if (histSel >= 0 && list[histSel]) { drawRunCard(back, front, t, list[histSel], false); return; }
+    histSel = -1;
+    UI.dynaText(front, 'Run History', 640, 52, { size: 50, time: t, wave: 2.5, colour: P.GOLD });
+    const st = meta().stats;
+    const line = 'Runs ' + st.runs + '  ·  Won ' + st.wins + '  ·  Best stage ' + (st.bestStage ? st.bestStage + ' / ' + ANTES : '-') + (st.bestEndless ? '  ·  Best endless stage ' + st.bestEndless : '') + '  ·  Showing the last ' + Math.min(list.length, HISTORY_MAX) + ' runs';
+    UI.text(front, line, 640, 92, { size: fitText(front, line, 1180, 17), colour: P.TEXT_SOFT });
+    histRows = [];
+    if (!list.length) {
+      UI.text(front, 'No runs yet. Finish a run and it shows up here.', 640, 320, { size: 22, colour: P.TEXT_LABEL });
+      if (TUT.portrait) TUT.portrait(front, 640 - 48, 360, 1.5, 'bored', t);
+    }
+    list.slice(histPage * HIST_PER, (histPage + 1) * HIST_PER).forEach((rec, k) => {
+      const i = histPage * HIST_PER + k, x = 60, y = 118 + k * 80, w = 1160, hh = 70, r = { x, y, w, h: hh };
+      const hover = UI.inside(r, eng.mouse) && !MOBILE, accent = recColour(rec), cupD = CUP_BY_ID[rec.cup] || CUPS[0], st2 = rec.stats || {};
+      UI.box(back, x, y, w, hh, { colour: P.OVERLAY_SOLID, radius: 12, emboss: 3, outline: hover ? P.GOLD : lighten(P.PANEL, 0.12), outlineWidth: hover ? 3 : 1 });
+      // Ergebnis
+      UI.box(front, x + 12, y + 12, 112, 46, { colour: darken(accent, 0.45), radius: 10, shadow: false, outline: accent, outlineWidth: 2 });
+      UI.text(front, rec.endless ? 'ENDLESS' : rec.won ? 'WON' : 'LOST', x + 68, y + 28, { size: 18, colour: accent });
+      UI.text(front, rec.endless ? 'Stage ' + rec.stage : rec.won ? '8 / 8' : 'Stage ' + rec.stage, x + 68, y + 47, { size: 14, colour: P.TEXT_SOFT });
+      // Becher, Datum, wo
+      front.save(); front.imageSmoothingEnabled = false; front.drawImage(cupTexCanvas(cupD), x + 140, y + 9, 39, 52); front.restore();
+      UI.text(front, cupD.name, x + 194, y + 24, { size: 19, align: 'left' });
+      UI.text(front, fmtDate(rec.date) + '  ·  ' + fmtTime(rec.time || 0), x + 194, y + 48, { size: 14, colour: P.TEXT_DIM, align: 'left' });
+      const where = rec.won && !rec.endless ? 'All stages cleared' : rec.where;
+      UI.text(front, where, x + 520, y + 24, { size: fitText(front, where, 220, 17), colour: P.TEXT_LABEL });
+      UI.text(front, 'Best hand ' + (st2.best ? UI.num(st2.best) : '-'), x + 520, y + 48, { size: 15, colour: P.GOLD });
+      // Relikte
+      rec.relics.slice(0, 6).forEach((id, j) => { if (R.RELIC_BY_ID[id]) drawReward(front, 'relic', id, x + 660 + j * 46, y + 14, 42, false); });
+      UI.text(front, 'Details >', x + w - 18, y + hh / 2, { size: 16, colour: hover ? P.GOLD : P.TEXT_DIM, align: 'right' });
+      histRows.push({ r, i });
+    });
+    for (const b of [B.pagePrev, B.pageNext, B.back]) UI.button(front, b, t);
+  }
+  const cupTexCanvas = (c) => rewardModeCups[c.id] || (rewardModeCups[c.id] = cupCanvas(c.colour, false, c.id));
+  function historyClick(m) {
+    if (histSel >= 0) {
+      if (MOBILE) { const h = sumHits.find((q) => UI.inside(q.r, m)); if (h && h.info) { openTip({ key: 'sum:' + h.r.x + ':' + h.r.y, anchor: h.r, info: h.info }); return true; } tips = []; }
+      return false;
+    }
+    const row = histRows.find((q) => UI.inside(q.r, m));
+    if (!row) return false;
+    histSel = row.i; tips = []; sfx('page');
+    return true;
+  }
+  function turnHistoryPage(dir) {
+    const n = clamp(histPage + dir, 0, histPages() - 1);
+    if (n !== histPage) { histPage = n; sfx('page'); }
+  }
+
+  // ── Run als Bild teilen (PNG 1200 x 630) ───────────────────────────────────
+  function runImage(rec) {
+    const W = 1200, H = 630, c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d'), accent = recColour(rec), cupD = CUP_BY_ID[rec.cup] || CUPS[0], st = Object.assign(freshStats(), rec.stats || {});
+    g.imageSmoothingEnabled = false;
+    // Filz mit leichtem Karomuster
+    g.fillStyle = darken(P.PANEL_DARK || '#1E2B2D', 0.25); g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,0.025)';
+    for (let yy = 0; yy < H; yy += 24) for (let xx = (yy / 24) % 2 ? 0 : 24; xx < W; xx += 48) g.fillRect(xx, yy, 24, 24);
+    UI.box(g, 24, 24, W - 48, H - 48, { colour: 'rgba(0,0,0,0.25)', radius: 22, shadow: false, outline: accent, outlineWidth: 4 });
+    // Logo
+    const logo = 'WÜRFELGLÜCK', cols = [P.RED, P.BLUE, P.MONEY, P.GREEN];
+    g.font = UI.font(56);
+    let lx = 60;
+    [...logo].forEach((ch, i) => { UI.text(g, ch, lx, 78, { size: 56, colour: cols[i % cols.length], align: 'left' }); g.font = UI.font(56); lx += g.measureText(ch).width; });
+    UI.text(g, 'a dice roguelite', 62, 120, { size: 22, colour: P.TEXT_SOFT, align: 'left' });
+    // Ergebnis
+    UI.text(g, recTitle(rec, false).toUpperCase(), W - 60, 78, { size: 48, colour: accent, align: 'right' });
+    UI.text(g, cupD.name + '  ·  ' + recStage(rec), W - 60, 120, { size: 20, colour: P.TEXT_SOFT, align: 'right' });
+    // Große Zahlen
+    const tiles = [['Stage', rec.endless ? String(rec.stage) : rec.stage + ' / ' + ANTES], ['Best hand', st.best ? UI.num(st.best) : '-'], ['Total score', UI.num(st.total)], ['Run time', fmtTime(rec.time || 0)]];
+    tiles.forEach(([a, b], i) => {
+      const x = 60 + i * 272, y = 150;
+      UI.box(g, x, y, 256, 96, { colour: P.PANEL, radius: 14, emboss: 4 });
+      UI.text(g, a, x + 128, y + 22, { size: 18, colour: P.TEXT_LABEL });
+      UI.text(g, b, x + 128, y + 62, { size: fitText(g, b, 236, 36), colour: i === 1 ? P.GOLD : P.WHITE });
+    });
+    if (st.bestName) UI.text(g, st.bestName, 60 + 272 + 128, 262, { size: 16, colour: P.TEXT_SOFT });
+    // Relikte
+    UI.text(g, 'Relics', 60, 300, { size: 20, colour: P.TEXT_LABEL, align: 'left' });
+    if (!rec.relics.length) UI.text(g, 'None. Pure skill.', 60, 344, { size: 20, colour: P.TEXT_DIM, align: 'left' });
+    rec.relics.slice(0, 7).forEach((id, i) => {
+      const d = R.RELIC_BY_ID[id];
+      if (!d) return;
+      drawReward(g, 'relic', id, 60 + i * 104, 318, 84, false);
+      UI.text(g, d.name, 60 + i * 104 + 42, 418, { size: fitText(g, d.name, 98, 14), colour: P.TEXT_SOFT });
+    });
+    // Upgrades und Zahlen unten links
+    rec.upgrades.slice(0, 10).forEach((id, i) => { if (R.UPGRADE_BY_ID[id]) g.drawImage(upgradeCanvas(id), 60 + i * 46, 446, 40, 40); });
+    const facts = [['Hands', st.hands], ['Rerolls', st.rerolls], ['Lucky Hits', st.lucky], ['Links', st.links], ['Busts', st.busts], ['$ earned', UI.num(st.earned)]];
+    facts.forEach(([a, b], i) => {
+      const x = 60 + i * 124;
+      UI.text(g, String(b), x, 524, { size: 30, align: 'left' });
+      UI.text(g, a, x, 556, { size: 16, colour: P.TEXT_DIM, align: 'left' });
+    });
+    // Jonny mit Urteil
+    const verdict = rec.endless ? 'Stage ' + rec.stage + '?! Go to bed.' : rec.won ? 'You beat me. Fine. FINE.' : rec.stage >= 6 ? 'So close! I was sweating.' : rec.stage >= 3 ? 'Not bad. For a newbie.' : 'We do not talk about this run.';
+    if (TUT.head) g.drawImage(TUT.head(rec.won ? 'shocked' : 'smug', false), W - 230, 412, 160, 160);
+    g.font = UI.font(18);
+    const vw = g.measureText(verdict).width + 34;
+    UI.box(g, W - 250 - vw, 430, vw, 44, { colour: '#FFFFFF', radius: 12 });
+    UI.text(g, verdict, W - 250 - vw / 2, 452, { size: 18, colour: P.BLACK, shadow: false });
+    UI.text(g, fmtDate(rec.date) + '  ·  miwale.com/games/wuerfelglueck', W - 60, 590, { size: 15, colour: P.TEXT_DIM, align: 'right' });
+    return c;
+  }
+  function shareRecord(rec) {
+    if (!rec) return;
+    let c;
+    try { c = runImage(rec); } catch (e) { denied(B.share.x + B.share.w / 2, B.share.y - 20, 'Could not draw the image'); return; }
+    sfx('coin');
+    const name = 'wuerfelglueck-run-' + new Date(rec.date).toISOString().slice(0, 10) + '.png';
+    const note = (text) => eng.popup(B.share.x + B.share.w / 2, B.share.y - 22, text, { colour: P.GOLD, size: 20, life: 1.8 });
+    c.toBlob((blob) => {
+      if (!blob) return;
+      const file = typeof File !== 'undefined' ? new File([blob], name, { type: 'image/png' }) : null;
+      if (MOBILE && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Würfelglück', text: 'My Würfelglück run: ' + recStage(rec) }).catch(() => {});
+        return;
+      }
+      let copied = false;
+      try {
+        if (navigator.clipboard && window.ClipboardItem) navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => { copied = true; note('Image copied and saved!'); }).catch(() => {});
+      } catch (e) { /* kein Zugriff auf die Zwischenablage */ }
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      setTimeout(() => { if (!copied) note('Image saved!'); }, 250);
+    }, 'image/png');
+  }
+
+  // ── Pause (Esc / Settings im Run): Statistik und Regeln des Runs links neben den Einstellungen ──
+  function runPanelData() {
+    const st = S.stats || freshStats(), ii = R.interestInfo(ctx());
+    return {
+      stats: [
+        ['Run time', fmtTime(S.time)], ['Rounds won', st.rounds], ['Hands played', st.hands],
+        ['Best hand', st.best ? UI.num(st.best) : '-'], ['Total score', UI.num(st.total)], ['Rerolls', st.rerolls],
+        ['Lucky Hits', st.lucky], ['Busts', st.busts], ['Links', st.links], ['Shifts', st.shifts],
+        ['Money earned', '$' + st.earned], ['Money spent', '$' + st.spent], ["Jonny's jobs", S.jonny ? S.jonny.jobs : 0],
+      ],
+      rules: [
+        ['Hands per round', handsMax()], ['Rerolls per hand', rerollsMax()], ['Shifts per hand', shiftsMax()],
+        ['Dice per hand', drawCount() + ' of ' + S.bag.length], ['Luck', luck() + '%'], ['Bust at', bustAt() + ' Skulls'],
+        ['Interest cap', '$' + ii.cap], ['Anchors', anchorCap()], ['Relic slots', S.relics.length + ' / ' + relicMax()],
+      ],
+    };
+  }
+  const stageBox = () => (S.endless ? ['Endless', String(S.ante)] : ['Stage', Math.min(S.ante, ANTES) + '/' + ANTES]);
+  function runWhere() {
+    if (S.phase === 'shop') return 'Shop before ' + blindLabel().name;
+    if (['lost', 'runWon'].includes(S.phase)) return S.phase === 'runWon' ? 'Run complete' : 'Run over';
+    return blindLabel().name + '  ·  ' + UI.num(S.score) + ' / ' + UI.num(S.target) + (heatPct() ? '  ·  Heat +' + heatPct() + '%' : '');
+  }
+  function drawRunPanel(c, t) {
+    if (MOBILE || inMenus() || !S.stats || TUT.active) return;
+    const x = 20, y = 84, w = 306, h = 576, d = runPanelData(), sb = stageBox();
+    UI.box(c, x, y, w, h, { colour: P.OVERLAY_SOLID, radius: 18, outline: lighten(P.PANEL, 0.25), outlineWidth: 2 });
+    UI.dynaText(c, 'This Run', x + w / 2, y + 30, { size: 30, colour: P.GOLD, time: t, wave: 1.5 });
+    UI.text(c, cup().name + '  ·  ' + sb[0] + ' ' + sb[1], x + w / 2, y + 60, { size: fitText(c, cup().name + '  ·  ' + sb[0] + ' ' + sb[1], w - 24, 17), colour: lighten(cup().colour, 0.35) });
+    UI.text(c, runWhere(), x + w / 2, y + 82, { size: fitText(c, runWhere(), w - 24, 15), colour: P.TEXT_SOFT });
+    let yy = y + 106;
+    const head = (txt) => { UI.box(c, x + 12, yy - 10, w - 24, 22, { colour: P.PANEL, radius: 6, shadow: false }); UI.text(c, txt, x + w / 2, yy + 1, { size: 15, colour: P.TEXT_LABEL }); yy += 22; };
+    const row = ([a, b]) => { UI.text(c, a, x + 22, yy, { size: 15, colour: P.TEXT_LABEL, align: 'left' }); UI.text(c, String(b), x + w - 22, yy, { size: 15, align: 'right' }); yy += 19; };
+    head('Stats');
+    d.stats.forEach(row);
+    yy += 8;
+    head('Rules right now');
+    d.rules.forEach(row);
+  }
+  // Handy: eigener Reiter "Run" in den Einstellungen
+  function drawRunTabMobile(c) {
+    const g = mSetGeom(), d = runPanelData(), sb = stageBox();
+    const head = cup().name + '  ·  ' + sb[0] + ' ' + sb[1] + '  ·  ' + runWhere();
+    UI.text(c, head, g.vc, 128, { size: fitText(c, head, g.pw - 40, 24), colour: lighten(cup().colour, 0.35) });
+    const colW = Math.min(620, (g.pw - 60) / 2);
+    [[d.stats, g.vc - 10 - colW], [d.rules, g.vc + 10]].forEach(([rows, x0]) => rows.forEach(([a, b], i) => {
+      const y = 166 + i * 31;
+      UI.text(c, a, x0 + 12, y, { size: 21, colour: P.TEXT_LABEL, align: 'left' });
+      UI.text(c, String(b), x0 + colW - 12, y, { size: 21, align: 'right' });
+    }));
+  }
+
   // ── Layouts (ui/layout-*.js) ────────────────────────────────────────────
   // Jedes Layout liefert Positionen (Würfel, Relikte, Beutel, Shop, Knöpfe, Popups) und zeichnet
   // Menü, Rahmen, Spielfeld und Shop. Spiellogik, Karten, Knöpfe und Effekte sind für alle gleich.
@@ -3990,8 +4979,8 @@
     still: new FX.Juice(),
     dice: () => dice, juiced, area, statBox, dim, tutorial: () => TUT.active, tagChips, tagSummary, setTagRects: (r) => { tagRects = tagRects.concat(r); },
     drawLine, wrapText, faceEntry, fmtMult, money: moneyText, blindLabel, isBossBlind, luck: () => luck(), has, upg,
-    anchorCap, bustAt, mostPlayed, relicMax, preview, isBust, bagMax, drawCount, shopLabels, upgradeNote, setOn, fuse: () => fuseView(),
-    drawJob, jobLine, jonnyBoss, drawJonnyHead, wrapPlain, fitText, JONNY_GOLD,
+    anchorCap, bustAt, mostPlayed, relicMax, preview, isBust, fatigueFor, bagMax, drawCount, shopLabels, upgradeNote, setOn, fuse: () => fuseView(),
+    drawJob, jobLine, jonnyBoss, drawJonnyHead, wrapPlain, fitText, JONNY_GOLD, stageBox: () => stageBox(), formParts: () => formParts(), heatPct: () => heatPct(),
   };
   const LAYOUTS = (window.WG_LAYOUTS || []).map((make) => make(K));
   let L = null;
@@ -4054,6 +5043,11 @@
       jonnyHelp, bestHold, jonnyEnd, jonnySay, pickBoss, winBlind, loseRun, JONNY_BOSS, maybeSpecial: (force) => maybeSpecial(force), openCups, beginRun,
       B, layout: () => L && L.id, slotMain: (k) => SLOT_MAIN[k], shopSprites: () => shopSprites, relicSprites: () => relicSprites,
       consSprites: () => consSprites, tagRects: () => tagRects.map((r) => ({ x: r.x, y: r.y, w: r.w, h: r.h, tag: r.tag, term: r.term })),
+      swapDice: (a, b) => { swapDice(a, b, false); layoutDice(); }, blindTarget, baseTarget, heatPct: () => heatPct(), formation: () => formationNow(), formParts, startEndless, openSummary,
+      summary: () => S.summary, runImage: (rec) => runImage(rec || S.summary || lastRecord).toDataURL('image/png'), history, openCodex, openHistory,
+      codexState: (kind, id) => codexState({ kind, id }).state, codexSel: (kind, id) => { codexSel = { kind, id, name: id }; }, setCodexTab: (i) => { codexTab = i; codexPage = 0; },
+      histSel: (i) => { histSel = i; }, settingsOpen: (v) => { settingsOpen = v; }, magnetize: () => magnetize(dice.slice()), slideTogether: (idx) => slideTogether(idx.map((i) => dice[i]), true, 'lodestone'),
+      jonnyEvents, pickLine, stageBase,
     };
   }
 

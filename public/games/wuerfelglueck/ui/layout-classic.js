@@ -21,7 +21,9 @@
     UI.dynaText(ctx, (S.phase === 'shop' ? 'Next: ' : '') + lab.name, 157, 46, { size: S.phase === 'shop' ? 26 : 30, time: t, wave: 1.5 });
     if (K.jonnyBoss && K.jonnyBoss()) K.drawJonnyHead(ctx, 32, 20, 46);   // Endboss: Jonnys Kopf neben seinem Namen
     UI.box(ctx, 40, 66, 234, 46, { colour: darken(lab.colour, 0.5), radius: 9, shadow: false });
-    UI.text(ctx, 'Target', 82, 89, { size: 18, colour: P.TEXT_LABEL });
+    const heat = K.heatPct ? K.heatPct() : 0;   // Heat: Ziel wegen der starken letzten Runde erhöht
+    if (heat) { UI.text(ctx, 'Target', 82, 81, { size: 16, colour: P.TEXT_LABEL }); UI.dynaText(ctx, 'Heat +' + heat + '%', 82, 100, { size: 13, colour: P.ORANGE, time: t, wave: heat >= 100 ? 2 : 0.6 }); }
+    else UI.text(ctx, 'Target', 82, 89, { size: 18, colour: P.TEXT_LABEL });
     UI.text(ctx, UI.num(S.target), 196, 89, { size: 32, colour: P.RED });
     // Punkte dieses Blinds
     UI.box(ctx, 28, 134, 258, 56, { colour: P.PANEL, radius: 10, emboss: 3 });
@@ -52,7 +54,8 @@
     K.juiced(ctx, J.money, mx, 461, t, () => UI.dynaText(ctx, K.money(), mx, 461, { size: 38, colour: S.money < 0 ? P.RED : P.MONEY, time: t, wave: 1 }));
     if (K.upg('vault')) { UI.text(ctx, 'Vault', 232, 452, { size: 14, colour: P.TEXT_DIM }); UI.text(ctx, '$' + S.vault, 232, 471, { size: 22, colour: P.GOLD }); }
     // Ante / Blind
-    K.statBox(ctx, 28, 502, 124, 76, 'Stage', Math.min(S.ante, K.ANTES) + '/' + K.ANTES, P.ORANGE, K.still, t);
+    const sb = K.stageBox();
+    K.statBox(ctx, 28, 502, 124, 76, sb[0], sb[1], P.ORANGE, K.still, t);
     K.statBox(ctx, 162, 502, 124, 76, 'Round', (S.blindIdx + 1) + '/' + K.BLINDS.length, P.ORANGE, K.still, t);
     // Upgrades
     UI.box(ctx, 28, 590, 258, 110, { colour: P.PANEL, radius: 10, emboss: 3 });
@@ -86,14 +89,14 @@
     const pv = S.phase === 'select' ? K.preview() : null;
     if (S.handName) UI.text(ctx, S.handName, 660, 200, { size: 34, colour: P.GOLD });
     else if (pv && K.isBust(pv)) UI.text(ctx, 'BUST!  ' + pv.skulls + ' Skulls', 660, 200, { size: 30, colour: P.RED });
-    else if (pv) UI.text(ctx, pv.name + '   ' + R.handValues(pv.name, S.levels).join(' x ') + (pv.skulls ? '   ' + pv.skulls + ' Skull' + (pv.skulls > 1 ? 's' : '') : ''), 660, 200, { size: 28, colour: P.TEXT_SOFT });
+    else if (pv) { const tired = K.fatigueFor(pv.name); UI.text(ctx, pv.name + '   ' + R.handValues(pv.name, S.levels).join(' x ') + (pv.skulls ? '   ' + pv.skulls + ' Skull' + (pv.skulls > 1 ? 's' : '') : '') + (tired ? '   Tired -' + tired + '%' : ''), 660, 200, { size: tired ? 26 : 28, colour: P.TEXT_SOFT }); }
     if (K.isBossBlind() && S.boss) UI.text(ctx, S.boss.name + ': ' + S.boss.desc, 660, 236, { size: 17, colour: lighten(S.boss.colour, 0.45) });
     // Statuszeile: Luck und Augenzahl-Stufen
     const L = K.luck();
     if (L > 0) UI.text(ctx, 'Luck ' + L + '%', 346, 458, { size: 16, colour: P.GREEN, align: 'left' });
     const nl = [1, 2, 3, 4, 5, 6].filter((v) => (S.numLevels[v] || 1) > 1);
     if (nl.length) UI.text(ctx, 'Numbers  ' + nl.map((v) => v + ': Lv ' + S.numLevels[v]).join('   '), 660, 458, { size: 15, colour: lighten(K.TYPE_COL.tally, 0.4) });
-    else if (!['lost', 'runWon'].includes(S.phase)) UI.text(ctx, 'Click dice to hold them. Oracles work on held dice.', 660, 458, { size: 14, colour: P.TEXT_HINT });
+    else if (!['lost', 'runWon'].includes(S.phase)) UI.text(ctx, K.tutorial() ? 'Click dice to hold them. Oracles work on held dice.' : 'Click dice to hold them. Drag a die onto another to swap them.', 660, 458, { size: 14, colour: P.TEXT_HINT });
     if (K.anchorCap()) UI.text(ctx, 'Anchors ' + K.anchorCap(), 974, 458, { size: 14, colour: P.ANCHOR, align: 'right' });
     // Handarten-Tabelle mit Stufen und Spielzählern
     K.area(ctx, 1004, 168, 256, 312);
@@ -126,7 +129,7 @@
     }
     // Unten: links Jonny hinter der Theke (zeichnet das Spiel), daneben sein Auftrag, rechts der Boss der Stage
     if (K.drawJob) K.drawJob(ctx, { x: 776, y: 460, w: 180, h: 80 });
-    if (S.boss && S.ante <= K.ANTES) {
+    if (S.boss && (S.ante <= K.ANTES || S.endless)) {
       UI.box(ctx, 966, 460, 286, 80, { colour: P.PANEL, radius: 10, emboss: 3 });
       UI.text(ctx, 'Stage boss: ' + S.boss.name, 1109, 476, { size: 16, colour: lighten(S.boss.colour, 0.45) });
       K.wrapPlain(ctx, S.boss.desc, 262, 13).slice(0, 3).forEach((ln, i) => UI.text(ctx, ln, 1109, 497 + i * 15, { size: 13, colour: P.TEXT_SOFT }));
@@ -150,11 +153,13 @@
     buttons: {
       roll: { x: 430, y: 494, w: 220, h: 52 }, play: { x: 670, y: 494, w: 220, h: 52 },
       start: { x: 530, y: 560, w: 220, h: 66, size: 34 }, options: { x: 760, y: 566, w: 150, h: 54, size: 24 },
+      trophies: { x: 370, y: 566, w: 150, h: 54, size: 24 }, codex: { x: 210, y: 566, w: 150, h: 54, size: 24 }, history: { x: 920, y: 566, w: 150, h: 54, size: 24 },
       retry: { x: 715, y: 420, w: 160, h: 54 },
       next: { x: 1024, y: 186, w: 170, h: 52, size: 24 }, shopReroll: { x: 1024, y: 246, w: 170, h: 44, size: 22 },
       deposit: { x: 976, y: 404, w: 128, h: 38 }, withdraw: { x: 1112, y: 404, w: 132, h: 38 },
     },
     msg: { x: 660, y: 300, maxW: 640 },   // Mitte des Würfelfelds (330–990)
+    formLine: { dy: 80, size: 14 },        // Formations-Zeile unter den Würfeln (Links, Shifts)
     scoreBox: { w: 104, h: 62 },
     menuDie: (i) => { const t = i / 4 - 0.5; return { x: 640 + t * 560, y: 400 + t * t * 80, r: t * 0.25, s: 3 }; },
     flames: { chips: { x: 40, y: 254, w: 104, h: 90 }, mult: { x: 170, y: 254, w: 104, h: 90 } },

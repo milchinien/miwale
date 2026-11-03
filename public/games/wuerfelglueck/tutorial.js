@@ -537,8 +537,8 @@
       ] },
       // ── Runde 3: Boss ──
       { anchor: 'r2h0', wait: 'click', say: [
-        L('paranoid', 'This is {g|The Snake}. Scored {g|1s} give {b|nothing}. It eats them. {q|I hate snakes. And bosses. And... outdoors.}', 'target'),
-        L('neutral', 'We have three {g|3s}. Hold them and reroll the {g|1s}. Get rid of those snake snacks.', 'dice3'),
+        L('paranoid', 'This is {g|The Snake}. Every hand it {b|eats} your {g|lowest} scored die: that die gives nothing. {q|I hate snakes. And bosses. And... outdoors.}', 'target'),
+        L('neutral', 'We have three {g|3s}. Hold them and reroll the {g|1s}. Low dice are snake snacks.', 'dice3'),
       ] },
       { wait: (n) => n === 'reroll', task: 'Hold the 3s, then Reroll', point: 'dice3', expectsHold: true,
         ok: (n, d) => (n === 'hold' && d.v === 3) || (n === 'unhold' && d.v !== 3),
@@ -546,7 +546,7 @@
         say: [L('neutral', 'Hold the {g|3s}. Reroll. You can do it. {q|Statistically.}', 'dice3')] },
       { wait: 'handReady', say: [L('nervous', '{s|Please please please}...')] },
       { wait: (n) => n === 'play', task: 'Play the hand', point: 'play', say: () => [
-        isHand('Four of a Kind') || isHand('Five of a Kind') ? L('excited', '{b|Four} 3s! The Snake is {s|crying}. Probably. Do snakes cry? {g|Play it!}', 'play')
+        isHand('Four of a Kind') || isHand('Five of a Kind') ? L('excited', '{b|Four} 3s! The Snake only gets {s|one} of them. {g|Play it!}', 'play')
           : L('neutral', 'Good enough. {g|Play it} and pray. {q|I am already praying.}', 'play'),
       ] },
       { wait: 'scored', say: [L('excited', '{w|GET HIM!}')] },

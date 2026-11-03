@@ -5,12 +5,13 @@
 // die komplizierteren Uncommons, drei Orakel, vier Upgrades und zwei Würfeltypen. Der Rest ist von Anfang an da.
 // Ereignisse aus dem Spiel (record):
 //   hand   {name, total, bust, skulls, streak, gold}      – nach jeder gewerteten Hand
-//   reroll {n, lucky}                                    – n = Neuwürfe in dieser Hand
+//   reroll {n, lucky, luckyRound, round}                 – n = Neuwürfe in dieser Hand, round = in dieser Runde
 //   round  {score, target, handsLeft, rerolls, boss}      – Runde gewonnen (boss = Boss-ID oder null)
 //   run    {won}                                          – Run zu Ende
 //   state  {ante, money, luck, bag, skullFaces, numLevel, tags, maxSet, runBusts}
 //   shop   {noBuy}  – Shop verlassen (noBuy = Shops in Folge ohne Kauf) · oracle · destroy
 //   job (Jonnys Auftrag erledigt) · buy (etwas im Shop gekauft) · special (Jonny's Special gekauft)
+//   shift (Würfel auf dem Tisch getauscht); hand hat dazu chain (längste Kette) und palindrome
 ((global) => {
   'use strict';
   const HAND_TYPES = 9, BOSS_COUNT = 6;
@@ -50,6 +51,9 @@
     { id: 'skull_bag', name: 'Cursed Collection', desc: 'Have 4 Skull faces in your bag', on: 'state', test: (e) => e.skullFaces >= 4, rewards: [r('hex_bag'), o('devils_deal')] },
     { id: 'risk_set', name: 'Thrill Seeker', desc: 'Own 3 Risk relics at once', on: 'state', test: (e) => (e.tags.risk || 0) >= 3, rewards: [r('blood_pact'), r('evil_eye'), o('hex')] },
     // Neuwürfe und Halten
+    { id: 'lucky_round', name: 'Hot Streak', desc: 'Get 8 Lucky Hits in one round', on: 'reroll', test: (e) => (e.luckyRound || 0) >= 8, rewards: [r('horseshoe')] },
+    { id: 'reroll_round', name: 'Spin Cycle', desc: 'Reroll 12 times in one round', on: 'reroll', test: (e) => (e.round || 0) >= 12, rewards: [r('momentum')] },
+    { id: 'bag14', name: 'Zookeeper', desc: 'Have 14 dice in your bag', on: 'state', test: (e) => (e.bag || 0) >= 14, rewards: [r('menagerie')] },
     { id: 'rerolls6', name: "Can't Stop", desc: 'Reroll 6 times in one hand', on: 'reroll', test: (e) => e.n >= 6, rewards: [r('whirlwind')] },
     { id: 'rerolls500', name: 'Dice Addict', desc: 'Reroll 500 times', on: 'reroll', goal: 500, count: (p) => p.track.rerolls || 0, rewards: [r('clockwork'), u('overdrive')] },
     { id: 'no_reroll', name: 'Steady Nerves', desc: 'Win a round without rerolling', on: 'round', test: (e) => e.rerolls === 0, rewards: [r('bedrock'), r('scaffold')] },
@@ -70,6 +74,14 @@
     { id: 'fine_print', name: 'Fine Print', desc: "Buy a Jonny's Special", on: 'special', test: () => true, rewards: [r('off_record')] },
     { id: 'customer', name: 'Loyal Customer', desc: 'Buy 50 things in the shop', on: 'buy', goal: 50, count: (p) => p.track.buys || 0, rewards: [r('mood_ring')] },
     { id: 'final_exam', name: 'Final Exam', desc: 'Beat Jonny in the final Showdown', on: 'round', test: (e) => e.boss === 'jonny', rewards: [r('jonny_autograph')] },
+    // Formation: Lage der Würfel auf dem Tisch
+    { id: 'chain4', name: 'Chain Gang', desc: 'Score a chain of 4 linked dice', on: 'hand', test: (e) => !e.bust && (e.chain || 0) >= 4, rewards: [r('chain_reaction')] },
+    { id: 'palindrome', name: 'Racecar', desc: 'Score a hand that reads the same forwards and backwards', on: 'hand', test: (e) => !e.bust && !!e.palindrome, rewards: [r('palindrome'), r('lodestone')] },
+    { id: 'shifts50', name: 'Interior Design', desc: 'Shift dice 50 times', on: 'shift', goal: 50, count: (p) => p.track.shifts || 0, rewards: [r('keystone'), u('magnetic')] },
+    { id: 'formation_set', name: 'Choreographer', desc: 'Own 3 Formation relics at once', on: 'state', test: (e) => (e.tags.formation || 0) >= 3, rewards: [r('architect')] },
+    // Endless
+    { id: 'endless10', name: 'Beyond the Edge', desc: 'Reach Stage 10 in Endless mode', on: 'state', test: (e) => e.ante >= 10, rewards: [cups(2)] },
+    { id: 'endless12', name: 'No End in Sight', desc: 'Reach Stage 12 in Endless mode', on: 'state', test: (e) => e.ante >= 12, rewards: [cups(3)] },
     // Sammeln
     { id: 'set5', name: 'Full Set', desc: 'Activate a 5-relic set bonus', on: 'state', test: (e) => e.maxSet >= 5, rewards: [cups(2)] },
     { id: 'hunter', name: 'Trophy Hunter', desc: 'Unlock 20 achievements', on: 'meta', goal: 20, count: (p) => cnt(p.ach), rewards: [cups(3)] },
@@ -165,6 +177,7 @@
     else if (ev === 'oracle') t.oracles = (t.oracles || 0) + 1;
     else if (ev === 'job') t.jobs = (t.jobs || 0) + 1;
     else if (ev === 'buy') t.buys = (t.buys || 0) + 1;
+    else if (ev === 'shift') t.shifts = (t.shifts || 0) + 1;
     const got = [];
     const check = (name) => {
       for (const a of LIST) {

@@ -1,0 +1,17 @@
+Würfelglück – sound effects
+
+All sound effects are real recordings released under CC0 1.0 (public domain).
+No attribution is required; credited here anyway with thanks.
+
+Kenney (www.kenney.nl) – CC0
+  Casino Audio      dice shakes and throws, chips, cards
+  Impact Sounds     wood knocks, punches
+  RPG Audio         coins, book pages, leather
+
+Versilian Community Sample Library – VCSL (github.com/sgossner/VCSL) – CC0
+  Marimba, vibraphone, glockenspiel, tubular bells, mark trees, bell tree,
+  triangle, crash and suspended cymbals, gong, claves, sleigh bells,
+  timpani, bass drum, concert harp, tenor saxophone, grand piano (Steinway B)
+
+The files in this folder are trimmed, normalised mono MP3s built by tools/build_sfx.py.
+sfx-data.js holds the same MP3s as Base64 so the game also runs from file://.

@@ -22,6 +22,29 @@
     return [h.base[0] + h.level[0] * (lv - 1), h.base[1] + h.level[1] * (lv - 1)];
   }
 
+  // ── Balance: Ziele, Belohnungen, Startwerte ──────────────────────────────
+  // Spiel (game.js) und Simulator (tools/sim) lesen alle Werte von hier, damit sie nie auseinanderlaufen.
+  const BALANCE = {
+    ANTES: 8, START_MONEY: 4, START_BAG: 6, HANDS_MAX: 4, REROLLS_MAX: 3, VAULT_MAX: 60,
+    ANTE_TARGET: [150, 400, 900, 2100, 5000, 11000, 24000, 50000],   // Grundziel pro Stage (Warm-up). Per Simulation abgestimmt (tools/sim)
+    BLINDS: [
+      { name: 'Warm-up', key: 'ROUND_1', factor: 1, reward: 3 },
+      { name: 'High Stakes', key: 'ROUND_2', factor: 1.5, reward: 4 },
+      { name: 'Showdown', key: 'ROUND_3', factor: 2, reward: 5, boss: true },
+    ],
+    JONNY_FACTOR: 2.5,     // Jonnys Showdown in Stage 8
+    ENDLESS_GROWTH: 2.5,   // Endless: Ziel x2,5 pro Stage nach Stage 8
+    HEAT_PULL: 0.6,        // Heat: Ziel wird so stark zum Score der letzten Runde gezogen, wenn sie in Hand 1 gewonnen wurde.
+                           // Später gewonnen = weniger (heatSpeed), mit der letzten Hand gar nicht
+    HEAT_CAP: 2,           // ... aber höchstens auf das Doppelte
+  };
+
+  // Heat-Gewicht nach Tempo: Sieg mit Hand 1 = 1, danach gleichmäßig weniger, Sieg mit der letzten Hand = 0
+  function heatSpeed(handsUsed, handsMax) {
+    if (handsMax <= 1) return 1;
+    return Math.max(0, Math.min(1, (handsMax - handsUsed) / (handsMax - 1)));
+  }
+
   // ── Würfelseiten ────────────────────────────────────────────────────────
   // kind: normal | wild | gold | mult | bonus | skull | hex (Schädel + Wild) | prism (Gold + Mult + Bonus) | twin (v oder 7-v)
   const FACE_KINDS = {
@@ -62,12 +85,13 @@
     bank: { name: 'Bank', emoji: '🏦', colour: '#C9A13B', s3: '+$3 interest cap', s5: 'Interest is also paid after every hand' },
     number: { name: 'Number', emoji: '🔢', colour: '#3C7BD0', s3: 'Your top number gets +1 level', s5: 'Scored dice of your top number retrigger' },
     pattern: { name: 'Pattern', emoji: '🧩', colour: '#6B4F92', s3: '+1 level to your most played hand every stage', s5: 'Your most played hand gives x2 Power' },
-    luck: { name: 'Luck', emoji: '🍀', colour: '#2E8B57', s3: '+10 Luck', s5: 'Lucky Hits give +5 Power' },
-    risk: { name: 'Risk', emoji: '💀', colour: '#8F2D3B', s3: 'Bust limit +1', s5: 'Busts still score half' },
-    reroll: { name: 'Reroll', emoji: '🎲', colour: '#D9682B', s3: '+1 reroll per hand', s5: 'Every 3rd reroll is free' },
-    hold: { name: 'Hold', emoji: '⚓', colour: '#3A6F8F', s3: 'Anchor 1 extra die', s5: 'Held dice give +10 Pips' },
-    bag: { name: 'Bag', emoji: '🎒', colour: '#7A5A3A', s3: 'Bag limit +2', s5: '+1 Power per die in your bag' },
-    growth: { name: 'Growth', emoji: '🌱', colour: '#56A887', s3: 'Growing relics grow 50% faster', s5: 'Growing relics never reset' },
+    luck: { name: 'Luck', emoji: '🍀', colour: '#2E8B57', s3: '+10 Luck. Dice that landed a Lucky Hit give +4 Power', s5: 'x1.15 Power for every Lucky Hit this hand' },
+    risk: { name: 'Risk', emoji: '💀', colour: '#8F2D3B', s3: 'Bust limit +1. Skulls you play give +15 Pips', s5: 'Skulls give x0.5 more Power. Busts still score half' },
+    reroll: { name: 'Reroll', emoji: '🎲', colour: '#D9682B', s3: '+1 reroll per hand', s5: 'Every 3rd reroll is free. x1.1 Power for every reroll this hand' },
+    hold: { name: 'Hold', emoji: '⚓', colour: '#3A6F8F', s3: 'Anchor 1 extra die', s5: 'Held dice give +10 Pips and +2 Power' },
+    bag: { name: 'Bag', emoji: '🎒', colour: '#7A5A3A', s3: 'Bag limit +2. +1 Power per die in your bag', s5: '+2 Power per die in your bag' },
+    growth: { name: 'Growth', emoji: '🌱', colour: '#56A887', s3: 'Growing relics grow 30% faster', s5: 'Growing relics never reset' },
+    formation: { name: 'Formation', emoji: '🁢', colour: '#C2577E', s3: '+1 Shift per hand. Every Link gives +3 Power', s5: 'Every Link gives x1.4 Power' },
   };
   const TAG_ORDER = Object.keys(TAGS);
   const RARITY = { C: { name: 'Common', colour: '#4D8FD0', weight: 60 }, U: { name: 'Uncommon', colour: '#3E9E58', weight: 32 }, R: { name: 'Rare', colour: '#D04848', weight: 10 }, L: { name: 'Legendary', colour: '#9A5FD0', weight: 1.5 } };
@@ -92,25 +116,26 @@
   // Bestehende Relikte (teilweise umbenannt / überarbeitet)
   relic('snake_eyes', 'Snake Eyes', 'C', ['number'], '🐍', 'Scored 1s are worth 11 Pips instead of 1', { cost: 4,
     perDie: (d) => (d.v === 1 ? { chips: 10 } : null) });
-  relic('evens_club', 'Evens Club', 'C', ['number'], '⚖️', 'Each scored even die gives +4 Power',
-    { perDie: (d) => (d.v % 2 === 0 ? { mult: 4 } : null) });
+  relic('evens_club', 'Evens Club', 'C', ['number'], '⚖️', 'Each scored even die gives +3 Power',
+    { perDie: (d) => (d.v % 2 === 0 ? { mult: 3 } : null) });
   relic('odd_fellow', 'Odd Fellow', 'C', ['number'], '🎩', 'Each scored odd die gives +25 Pips',
     { perDie: (d) => (d.v % 2 === 1 ? { chips: 25 } : null) });
-  relic('big_six', 'Big Six', 'C', ['number'], '6️⃣', 'Each scored 6 gives +6 Power',
-    { perDie: (d) => (d.v === 6 ? { mult: 6 } : null) });
-  relic('clover', 'Four-Leaf Clover', 'U', ['luck'], '🍀', '+10 Luck. Every Lucky Hit this hand gives +3 Power',
-    { luck: () => 10, onHand: (h) => (h.lucky > 0 ? { mult: 3 * h.lucky } : null) });
+  relic('big_six', 'Big Six', 'C', ['number'], '6️⃣', 'Each scored 6 gives +5 Power',
+    { perDie: (d) => (d.v === 6 ? { mult: 5 } : null) });
+  relic('clover', 'Four-Leaf Clover', 'U', ['luck'], '🍀', '+10 Luck. Every Lucky Hit this hand gives x1.2 Power',
+    { luck: () => 10, onHand: (h) => (h.lucky > 0 ? Array.from({ length: h.lucky }, () => ({ xmult: 1.2 })) : null) });
   relic('twin_peaks', 'Twin Peaks', 'C', ['pattern'], '⛰️', '+8 Power if the hand contains a Pair', { cost: 4,
     onHand: (h) => (h.maxCount >= 2 ? { mult: 8 } : null) });
   relic('triple_threat', 'Triple Threat', 'U', ['pattern'], '🔱', 'x2 Power if the hand contains Three of a Kind',
     { onHand: (h) => (h.maxCount >= 3 ? { xmult: 2 } : null) });
   relic('stairway', 'Stairway', 'U', ['pattern'], '📶', 'x2 Power on a Small Straight, x3 Power on a Large Straight', { cost: 7,
     onHand: (h) => (h.name === 'Large Straight' ? { xmult: 3 } : h.name === 'Small Straight' ? { xmult: 2 } : null) });
-  relic('steady_hand', 'Steady Hand', 'U', ['hold'], '✋', 'x2 Power if you did not reroll this hand',
-    { onHand: (h) => (h.rerollsHand === 0 ? { xmult: 2 } : null) });
-  relic('gambler', 'Gambler', 'U', ['reroll'], '🎲', '+1 Power per reroll used this round',
-    { onHand: (h) => (h.rerollsBlind > 0 ? { mult: h.rerollsBlind } : null) });
-  relic('loaded', 'Loaded Dice', 'U', ['reroll'], '🎯', 'The first reroll of each hand is free', { freeReroll: true });
+  relic('steady_hand', 'Steady Hand', 'U', ['hold'], '✋', 'x2.5 Power if you did not reroll this hand',
+    { onHand: (h) => (h.rerollsHand === 0 ? { xmult: 2.5 } : null) });
+  relic('gambler', 'Gambler', 'U', ['reroll'], '🎲', '+2 Power per reroll used this round',
+    { onHand: (h) => (h.rerollsBlind > 0 ? { mult: 2 * h.rerollsBlind } : null) });
+  relic('loaded', 'Loaded Dice', 'U', ['reroll'], '🎯', 'The first reroll of each hand is free. +5 Power if you rerolled this hand',
+    { freeReroll: true, onHand: (h) => (h.rerollsHand > 0 ? { mult: 5 } : null) });
   relic('patience', 'Patience', 'C', ['growth', 'hold'], '⏳', 'Gains +1 Power per hand played, loses 1 Power per reroll', {
     state: () => ({ mult: 0 }), stateText: (s) => 'Currently +' + fmt(s.mult) + ' Power',
     beforeHand: (s, g) => { s.mult += g.grow; }, onReroll: (s, g) => { if (!g.keep && s.mult > 0) { s.mult = Math.max(0, s.mult - 1); return { text: '-1 Power' }; } },
@@ -154,8 +179,8 @@
       for (let k = 0; k < n; k++) if (raiseFace(g.bag, g.rnd)) up++;
       return up ? { text: '+' + up + ' pip' + (up > 1 ? 's' : ''), bagChanged: true } : null;
     } });
-  relic('number_king', 'Number King', 'R', ['number'], '👑', 'xPower equal to half the level of your top number', {
-    onHand: (h) => { const x = h.numLevels[h.top] / 2; return x > 1 ? { xmult: x } : null; } });
+  relic('number_king', 'Number King', 'R', ['number'], '👑', 'x0.3 Power for every level of your top number above 1', {
+    onHand: (h) => { const x = 1 + 0.3 * (h.numLevels[h.top] - 1); return x > 1 ? { xmult: x } : null; } });
 
   // 3. Muster
   relic('signature', 'Signature Move', 'U', ['pattern', 'growth'], '✒️', 'Your most played hand gives x1.5 Power. Gains x0.1 every time you play it', {
@@ -164,11 +189,11 @@
     afterHand: (s, g, res) => { if (res.isMost) s.x += 0.1 * g.grow; } });
   relic('encore', 'Encore', 'R', ['pattern'], '🔁', 'Full House scores every die twice');
   relic('gap_jumper', 'Gap Jumper', 'U', ['pattern'], '🦘', 'Straights may skip one number (1-2-4-5-6 counts as a Large Straight)');
-  relic('variety', 'Variety Pack', 'U', ['pattern', 'growth'], '🌈', 'Gains x0.25 Power for each different hand type played this stage. Resets every stage', {
+  relic('variety', 'Variety Pack', 'U', ['pattern', 'growth'], '🌈', 'Gains x0.2 Power for each different hand type played this stage. Resets every stage', {
     state: () => ({ types: [] }), stateText: (s) => s.types.length + ' types this stage',
     onHand: (h, s, g) => {
       const n = s.types.length + (s.types.includes(h.name) ? 0 : 1);
-      return n > 0 ? { xmult: 1 + 0.25 * n * h.grow } : null;
+      return n > 0 ? { xmult: 1 + 0.2 * n * h.grow } : null;
     },
     afterHand: (s, g, res) => { if (!s.types.includes(res.name)) s.types.push(res.name); },
     anteStart: (s, g) => { if (!g.keep) s.types = []; } });
@@ -183,30 +208,35 @@
   relic('fusion', 'Fusion', 'R', ['pattern'], '🧬', "Two Pair also gets Pair's level bonus. Full House also gets Three of a Kind's");
 
   // 4. Glück
-  relic('magnet', 'Magnet', 'C', ['luck'], '🧲', '+20 Luck', { luck: () => 20 });
+  relic('magnet', 'Magnet', 'C', ['luck'], '🧲', '+20 Luck. Dice that landed a Lucky Hit this hand give +10 Pips and +2 Power when scored',
+    { luck: () => 20, perDie: (d) => (d.ex.lucky ? [{ chips: 10 }, { mult: 2 }] : null) });
   relic('black_cat', 'Black Cat', 'U', ['luck', 'growth'], '🐈‍⬛', '-20 Luck. Every unlucky reroll gives this relic +2 Pips for good', {
     state: () => ({ chips: 0 }), stateText: (s) => 'Currently +' + fmt(s.chips) + ' Pips', luck: () => -20,
     onReroll: (s, g, info) => { if (!info.lucky) { s.chips += 2 * g.grow; return { text: '+' + fmt(2 * g.grow) + ' Pips' }; } },
     onHand: (h, s) => (s.chips > 0 ? { chips: Math.round(s.chips) } : null) });
-  relic('moonstone', 'Moonstone', 'C', ['luck'], '🌙', 'Double Luck during Boss rounds');
+  relic('moonstone', 'Moonstone', 'C', ['luck'], '🌙', '+10 Luck. During Showdowns: double Luck and x1.5 Power',
+    { luck: () => 10, onHand: (h) => (h.isBoss ? { xmult: 1.5 } : null) });
   relic('lucky_star', 'Lucky Star', 'R', ['luck', 'bank'], '⭐', 'Every Lucky Hit has a 1 in 4 chance to turn that face into a Gold face');
 
   // 5. Risiko
-  relic('hellfire', 'Hellfire', 'U', ['risk'], '🔥', 'Playing exactly 2 Skulls gives x3 Power',
-    { onHand: (h) => (h.skulls === 2 ? { xmult: 3 } : null) });
-  relic('grave_digger', 'Grave Digger', 'R', ['risk', 'growth'], '⚰️', 'Every Bust gives this relic x0.5 Power for good', {
+  relic('hellfire', 'Hellfire', 'U', ['risk'], '🔥', 'x1.75 Power for every Skull you play',
+    { onHand: (h) => (h.skulls > 0 ? Array.from({ length: h.skulls }, () => ({ xmult: 1.75 })) : null) });
+  relic('grave_digger', 'Grave Digger', 'R', ['risk', 'growth'], '⚰️', 'Gains x0.1 Power for good for every Skull you play, and x0.5 for every Bust', {
     state: () => ({ x: 1 }), stateText: (s) => 'Currently x' + fmt(s.x) + ' Power',
     onHand: (h, s) => (s.x > 1 ? { xmult: s.x } : null),
-    afterHand: (s, g, res) => { if (res.bust) { s.x += 0.5 * g.grow; return { text: 'x' + fmt(s.x) }; } } });
+    afterHand: (s, g, res) => {
+      const add = res.bust ? 0.5 : 0.1 * (res.skulls || 0);
+      if (add > 0) { s.x += add * g.grow; return { text: 'x' + fmt(s.x) }; }
+    } });
   relic('ritual_candle', 'Ritual Candle', 'U', ['risk', 'bank'], '🕯️', 'A Bust no longer scores 0. Instead it destroys one Skull face and earns $10');
   relic('blood_pact', 'Blood Pact', 'R', ['risk'], '🧛', '-1 hand per round. Skulls give x2 Power instead of x1.5');
   relic('hex_bag', 'Hex Bag', 'U', ['risk', 'pattern'], '👝', 'Skulls also count as Wild');
 
   // 6. Reroll
-  relic('recycler', 'Recycler', 'C', ['reroll'], '♻️', 'Every die you reroll gains +3 Pips for this hand (stacks)',
-    { perDie: (d) => (d.ex.rerolled > 0 ? { chips: 3 * d.ex.rerolled } : null) });
-  relic('whirlwind', 'Whirlwind', 'U', ['reroll'], '🌪️', 'Rerolling all dice at once gives +6 Power for this hand',
-    { onHand: (h) => (h.whirls > 0 ? { mult: 6 * h.whirls } : null) });
+  relic('recycler', 'Recycler', 'C', ['reroll'], '♻️', 'Every die you reroll gains +8 Pips for this hand (stacks)',
+    { perDie: (d) => (d.ex.rerolled > 0 ? { chips: 8 * d.ex.rerolled } : null) });
+  relic('whirlwind', 'Whirlwind', 'U', ['reroll'], '🌪️', 'Scored dice give +2 Power for every time you rerolled them this hand',
+    { perDie: (d) => (d.ex.rerolled > 0 ? { mult: 2 * d.ex.rerolled } : null) });
   relic('roulette', 'Roulette Wheel', 'C', ['reroll', 'bank'], '🎡', 'Every reroll has a 1 in 6 chance to be refunded and earn $2');
   relic('last_call', 'Last Call', 'U', ['reroll', 'pattern'], '⏰', 'Your last reroll of each hand always lands at least a Pair');
   relic('jackpot', 'Jackpot Counter', 'R', ['reroll', 'luck'], '🎰', 'Counts your rerolls. Every 25th reroll lands Five of a Kind', {
@@ -214,8 +244,8 @@
     beforeReroll: (s) => { s.n++; return s.n % 25 === 0 ? { jackpot: true, text: 'JACKPOT!' } : null; } });
 
   // 7. Halten
-  relic('bedrock', 'Bedrock', 'U', ['hold', 'growth'], '🪨', 'Every hand you play with a die held, that die gains +4 Pips for good', {
-    afterHand: (s, g) => { g.heldDice.forEach((d) => { d.chips = (d.chips || 0) + 4 * g.grow; }); return g.heldDice.length ? { text: 'Dice +' + fmt(4 * g.grow) + ' Pips' } : null; } });
+  relic('bedrock', 'Bedrock', 'U', ['hold', 'growth'], '🪨', 'Every hand you play with a die held, that die gains +6 Pips for good', {
+    afterHand: (s, g) => { g.heldDice.forEach((d) => { d.chips = (d.chips || 0) + 6 * g.grow; }); return g.heldDice.length ? { text: 'Dice +' + fmt(6 * g.grow) + ' Pips' } : null; } });
   relic('slow_steady', 'Slow and Steady', 'C', ['hold'], '🐢', 'x1.15 Power for each die held when you play the hand',
     { onHand: (h) => (h.heldCount ? Array.from({ length: h.heldCount }, () => ({ xmult: 1.15 })) : null) });
   relic('lockbox', 'Lockbox', 'C', ['hold'], '🔒', 'Held dice ignore boss effects');
@@ -227,16 +257,17 @@
     { onHand: (h) => (h.bagSize === 5 ? { xmult: 2 } : null) });
   relic('purist', 'Purist', 'C', ['bag'], '💎', '+15 Pips for each die fewer than 8 in your bag',
     { onHand: (h) => (h.bagSize < 8 ? { chips: 15 * (8 - h.bagSize) } : null) });
-  relic('hoarder', 'Hoarder', 'C', ['bag'], '🧺', '+3 Pips for every die in your bag', { onHand: (h) => ({ chips: 3 * h.bagSize }) });
+  relic('hoarder', 'Hoarder', 'C', ['bag'], '🧺', '+6 Pips for every die in your bag', { onHand: (h) => ({ chips: 6 * h.bagSize }) });
   relic('brood', 'Brood', 'U', ['bag', 'growth'], '🐣', 'After each round, adds a copy of the die you scored with most to your bag');
-  relic('collector', "Collector's Set", 'U', ['bag'], '🎨', '+2 Power for each different die type in your bag', { onHand: (h) => ({ mult: 2 * h.bagTypes }) });
+  relic('collector', "Collector's Set", 'U', ['bag'], '🎨', '+4 Power for each different die type in your bag', { onHand: (h) => ({ mult: 4 * h.bagTypes }) });
 
   // 9. Wachstum
-  relic('seedling', 'Seedling', 'C', ['growth'], '🌱', 'Gains +1 Power every hand. At +15 it blooms: x3 Power for one hand, then starts over', {
-    state: () => ({ mult: 0 }), stateText: (s) => 'Currently +' + fmt(s.mult) + ' Power' + (s.mult >= 15 ? ' (blooming!)' : ''),
-    beforeHand: (s, g) => { s.mult += g.grow; },
-    onHand: (h, s) => [s.mult > 0 ? { mult: Math.round(s.mult) } : null, s.mult >= 15 ? { xmult: 3, text: 'Bloom!' } : null].filter(Boolean),
-    afterHand: (s, g) => { if (s.mult >= 15 && !g.keep) s.mult = 0; } });
+  // Seedling: Blüte alle 15 Hände (auch wenn das Growth-Set 5 das Zurücksetzen der Power verhindert)
+  relic('seedling', 'Seedling', 'C', ['growth'], '🌱', 'Gains +1 Power every hand. Every 15th hand it blooms: x3 Power for that hand, then starts over', {
+    state: () => ({ mult: 0, n: 0 }), stateText: (s) => 'Currently +' + fmt(s.mult) + ' Power · bloom in ' + Math.max(0, 15 - Math.floor(s.n || 0)) + ' hands',
+    beforeHand: (s, g) => { s.mult += g.grow; s.n = (s.n || 0) + g.grow; },
+    onHand: (h, s) => [s.mult > 0 ? { mult: Math.round(s.mult) } : null, (s.n || 0) >= 15 ? { xmult: 3, text: 'Bloom!' } : null].filter(Boolean),
+    afterHand: (s, g) => { if ((s.n || 0) >= 15) { s.n = 0; if (!g.keep) s.mult = 0; } } });
   relic('snowball', 'Snowball', 'C', ['growth'], '⛄', 'Gains +1 Pip for every die you score. Never resets', {
     state: () => ({ chips: 0 }), stateText: (s) => 'Currently +' + Math.round(s.chips) + ' Pips',
     onHand: (h, s) => (s.chips > 0 ? { chips: Math.round(s.chips) } : null),
@@ -248,9 +279,9 @@
     state: () => ({ x: 1 }), stateText: (s) => 'Currently x' + fmt(s.x) + ' Power',
     onHand: (h, s) => { const x = s.x + (h.name === 'Five of a Kind' ? 0.5 * h.grow : 0); return x > 1 ? { xmult: x } : null; },
     afterHand: (s, g, res) => { if (res.name === 'Five of a Kind') s.x += 0.5 * g.grow; } });
-  relic('heirloom', 'Heirloom', 'U', ['growth'], '🕰️', '+2 Power for every round you have owned it', {
-    state: () => ({ blinds: 0 }), stateText: (s) => 'Currently +' + fmt(2 * s.blinds) + ' Power',
-    onHand: (h, s) => (s.blinds > 0 ? { mult: Math.round(2 * s.blinds) } : null),
+  relic('heirloom', 'Heirloom', 'U', ['growth'], '🕰️', '+1.5 Power for every round you have owned it', {
+    state: () => ({ blinds: 0 }), stateText: (s) => 'Currently +' + fmt(1.5 * s.blinds) + ' Power',
+    onHand: (h, s) => (s.blinds > 0 ? { mult: Math.round(1.5 * s.blinds) } : null),
     endBlind: (s, g) => { s.blinds += g.grow; } });
   relic('metamorphosis', 'Metamorphosis', 'R', ['growth'], '🐛', 'After 10 hands, turns into a random Rare relic', {
     state: () => ({ hands: 0 }), stateText: (s) => Math.min(10, Math.floor(s.hands)) + '/10 hands',
@@ -287,6 +318,8 @@
     number: relic('number_vine', 'Number Vine', 'R', ['number', 'growth'], '🌿', 'Scored dice of your top number give +3 Power',
       { hidden: true, perDie: (d, h) => (d.v === h.top ? { mult: 3 } : null) }),
     bag: relic('bag_vine', 'Bag Vine', 'R', ['bag', 'growth'], '🌿', '+4 Pips for every die in your bag', { hidden: true, onHand: (h) => ({ chips: 4 * h.bagSize }) }),
+    formation: relic('link_vine', 'Link Vine', 'R', ['formation', 'growth'], '🌿', 'Every Link gives +12 Pips',
+      { hidden: true, onHand: (h) => (h.form.ok && h.form.links ? { chips: 12 * h.form.links } : null) }),
   };
 
   // Wechselnd
@@ -327,6 +360,49 @@
     onReroll: (s, g, info) => { if (info.held > 0) { s.chips += 2 * g.grow; return { text: '+' + fmt(2 * g.grow) + ' Pips' }; } } });
   relic('spiral', 'Spiral of Fate', 'R', ['luck', 'pattern'], '🌀', 'Lucky Hits can also land on the number that continues a Straight');
 
+  // 10. Formation: wie die Würfel auf dem Tisch liegen (Plätze von links nach rechts).
+  // Link = zwei gewertete Nachbarn mit derselben Zahl. Wirkt nicht bei Five of a Kind und Large Straight (h.form.ok).
+  relic('domino', 'Domino', 'C', ['formation'], '🁢', 'Every Link gives +5 Power',
+    { onHand: (h) => (h.form.ok && h.form.links ? { mult: 5 * h.form.links } : null) });
+  relic('centerpiece', 'Centerpiece', 'C', ['formation'], '🏺', '+30 Pips and +4 Power if the die in the middle slot scores',
+    { onHand: (h) => (h.form.ok && h.form.midScores ? [{ chips: 30 }, { mult: 4 }] : null) });
+  relic('flanking', 'Flanking', 'C', ['formation'], '🛡️', 'Scored dice in the two end slots give +4 Power each',
+    { perDie: (d, h) => (h.form.ok && d.end ? { mult: 4 } : null) });
+  relic('stepping', 'Stepping Stones', 'C', ['formation', 'pattern'], '🪨', '+10 Pips and +1 Power for every Step: two scored neighbours one apart, like 3-4',
+    { onHand: (h) => (h.form.ok && h.form.steps ? [{ chips: 10 * h.form.steps }, { mult: h.form.steps }] : null) });
+  relic('bookends', 'Bookends', 'U', ['formation', 'pattern'], '📚', 'x2 Power if the dice in both end slots score and show the same number',
+    { onHand: (h) => (h.form.ok && h.form.bookends ? { xmult: 2 } : null) });
+  relic('shuffleboard', 'Shuffleboard', 'U', ['formation', 'growth'], '🥌', 'Gains +3 Pips for good every time you Shift a die', {
+    state: () => ({ chips: 0 }), stateText: (s) => 'Currently +' + Math.round(s.chips) + ' Pips',
+    onShift: (s, g) => { s.chips += 3 * g.grow; return { text: '+' + fmt(3 * g.grow) + ' Pips' }; },
+    onHand: (h, s) => (s.chips > 0 ? { chips: Math.round(s.chips) } : null) });
+  relic('palindrome', 'Palindrome', 'U', ['formation', 'pattern'], '🔃', 'x2.5 Power if your dice read the same forwards and backwards (like 3-5-1-5-3)',
+    { onHand: (h) => (h.form.ok && h.form.palindrome ? { xmult: 2.5 } : null) });
+  relic('lodestone', 'Lodestone', 'U', ['formation', 'luck'], '🧲', 'A Lucky Hit slides next to the die it matched, for free');
+  relic('chain_reaction', 'Chain Reaction', 'R', ['formation'], '⛓️', 'Every die in your longest chain of Links scores twice (retrigger)');
+  relic('keystone', 'Keystone', 'R', ['formation', 'hold'], '🧱', 'The die in the middle slot counts as Wild if both of its neighbours show the same number');
+  relic('architect', 'The Architect', 'L', ['formation'], '📐', 'Every Link gives x1.5 Power', {
+    onHand: (h) => (h.form.ok && h.form.links ? Array.from({ length: h.form.links }, () => ({ xmult: 1.5 })) : null) });
+
+  // ── Neu in v2: Relikte für Luck, Reroll, Bag, Risk, Hold und Formation ──
+  relic('wishbone', 'Wishbone', 'C', ['luck'], '🦴', '+10 Luck. +4 Power for every Lucky Hit this round',
+    { luck: () => 10, onHand: (h) => (h.luckyRound > 0 ? { mult: 4 * h.luckyRound } : null) });
+  relic('horseshoe', 'Horseshoe', 'R', ['luck'], '🐎', 'x1 Power, +x0.15 for every Lucky Hit this round',
+    { onHand: (h) => (h.luckyRound > 0 ? { xmult: 1 + 0.15 * h.luckyRound } : null) });
+  relic('second_thought', 'Second Thought', 'C', ['reroll'], '🤔', '+15 Pips for every reroll you used this hand',
+    { onHand: (h) => (h.rerollsHand > 0 ? { chips: 15 * h.rerollsHand } : null) });
+  relic('momentum', 'Momentum', 'R', ['reroll'], '🌀', 'x1 Power, +x0.15 for every reroll you used this round',
+    { onHand: (h) => (h.rerollsBlind > 0 ? { xmult: 1 + 0.15 * h.rerollsBlind } : null) });
+  relic('pack_mule', 'Pack Mule', 'C', ['bag'], '🫏', '+2 Power for every die in your bag', { onHand: (h) => ({ mult: 2 * h.bagSize }) });
+  relic('menagerie', 'Menagerie', 'R', ['bag'], '🎪', '+x0.15 Power for every die in your bag above 6',
+    { onHand: (h) => (h.bagSize > 6 ? { xmult: 1 + 0.15 * (h.bagSize - 6) } : null) });
+  relic('ossuary', 'Ossuary', 'C', ['risk'], '⚱️', '+25 Pips and +5 Power for every Skull you play',
+    { onHand: (h) => (h.skulls > 0 ? [{ chips: 25 * h.skulls }, { mult: 5 * h.skulls }] : null) });
+  relic('iron_grip', 'Iron Grip', 'U', ['hold'], '🤜', 'x2 Power if you hold 3 or more dice when you play',
+    { onHand: (h) => (h.heldCount >= 3 ? { xmult: 2 } : null) });
+  relic('conga', 'Conga Line', 'U', ['formation'], '💃', 'Every die in your longest chain of Links gives x1.2 Power',
+    { onHand: (h) => (h.form.ok && h.form.chain.length >= 2 ? Array.from({ length: h.form.chain.length }, () => ({ xmult: 1.2 })) : null) });
+
   // Jonny (freigeschaltet über seine Achievements; der Jonny's Cup startet mit einem davon)
   const MOODS = { happy: 'Happy: earn $3', smug: 'Smug: +12 Power', nervous: 'Nervous: +60 Pips', furious: 'Furious: x2 Power, -30 Pips' };
   relic('jonny_glasses', "Jonny's Glasses", 'U', ['luck'], '👓', '+15 Luck. Dice that will land a Lucky Hit on your next reroll sparkle', { luck: () => 15 });
@@ -360,6 +436,13 @@
     { id: 'pruning', name: 'Pruning Shears', rarity: 'U', emoji: '✂️', desc: 'Once per shop: destroy a die from your bag for free and earn $3' },
     { id: 'backpack', name: 'Backpack', rarity: 'C', emoji: '🎒', desc: 'Bag limit +4' },
     { id: 'spare_die', name: 'Spare Die', rarity: 'L', emoji: '🎲', desc: 'Roll 6 dice. Your best 5 score' },
+    { id: 'turntable', name: 'Turntable', rarity: 'U', emoji: '💿', desc: '+1 Shift per hand' },
+    { id: 'spotlight', name: 'Spotlight', rarity: 'U', emoji: '🔦', desc: 'The middle slot is lit: the die there gives x1.5 Power when it scores' },
+    { id: 'magnetic', name: 'Magnetic Table', rarity: 'R', emoji: '🧲', desc: 'After every roll, dice showing the same number slide next to each other on their own' },
+    { id: 'lucky_charm', name: 'Lucky Charm', rarity: 'U', emoji: '🧿', desc: 'Dice that landed a Lucky Hit this hand give x1.15 Power when scored' },
+    { id: 'quick_hands', name: 'Quick Hands', rarity: 'U', emoji: '🤹', desc: '+1 reroll per hand' },
+    { id: 'saddlebag', name: 'Saddlebag', rarity: 'C', emoji: '👜', desc: 'Bag limit +3. +1 Power for every die in your bag above 8' },
+    { id: 'bone_polish', name: 'Bone Polish', rarity: 'U', emoji: '💀', desc: 'Skulls in your hand give x0.25 more Power' },
   ];
   const UPGRADE_PRICE = { C: 6, U: 8, R: 10, L: 14 };
   UPGRADES.forEach((u) => { u.cost = UPGRADE_PRICE[u.rarity]; });
@@ -378,17 +461,18 @@
     { id: 'devils_deal', name: "Devil's Deal", emoji: '😈', desc: 'Turn the up face of up to 3 held dice into Skull faces. Earn $3 per Skull', min: 1, max: 3, setKind: 'skull' },
     { id: 'refraction', name: 'Refraction', emoji: '🌈', desc: 'Turn the up face of 1 held die into a Prism face (Gold, Power and Bonus at once)', min: 1, max: 1, setKind: 'prism' },
     { id: 'hex', name: 'Hex', emoji: '🃏', desc: 'Turn the up face of 1 held die into a Hex face (Skull and Wild at once)', min: 1, max: 1, setKind: 'hex' },
+    { id: 'sleight', name: 'Sleight of Hand', icon: 'die', desc: '+3 Shifts for this hand. Use it during a hand', min: 0, max: 0, inHand: true },
   ];
   const ORACLE_BY_ID = Object.fromEntries(ORACLES.map((o) => [o.id, o]));
   const NUMBER_NAMES = ['', 'Ones', 'Twos', 'Threes', 'Fours', 'Fives', 'Sixes'];
 
   // ── Bosse ───────────────────────────────────────────────────────────────
   const BOSSES = [
-    { id: 'snake', name: 'The Snake', colour: '#3E7B4F', desc: 'Scored 1s give nothing' },
-    { id: 'clamp', name: 'The Clamp', colour: '#7A4FA0', desc: 'Only 1 reroll per hand' },
+    { id: 'snake', name: 'The Snake', colour: '#3E7B4F', desc: 'Eats your lowest scored die every hand: it gives nothing' },
+    { id: 'clamp', name: 'The Clamp', colour: '#7A4FA0', desc: '-2 rerolls per hand (at least 1)' },
     { id: 'frost', name: 'The Frost', colour: '#3C8DC0', desc: 'Dice showing 6 are frozen and cannot be rerolled' },
     { id: 'chaos', name: 'The Chaos', colour: '#C0562E', desc: 'Held dice may be rerolled anyway (1 in 3)' },
-    { id: 'echo', name: 'The Echo', colour: '#8F3D6B', desc: 'Each hand type scores only once this round' },
+    { id: 'echo', name: 'The Echo', colour: '#8F3D6B', desc: 'A hand type you already played this round gives half Power' },
     { id: 'wall', name: 'The Wall', colour: '#6B5B4B', desc: 'Huge target (4x instead of 2x)', factor: 4 },
   ];
 
@@ -532,9 +616,46 @@
     return { name, scoring, maxCount: g0.c };
   }
 
+  // ── Formation: Lage der Würfel auf dem Tisch ────────────────────────────
+  // Plätze von links (0) nach rechts (n-1). Link: zwei gewertete Nachbarn mit derselben Zahl. Step: zwei gewertete
+  // Nachbarn, die eine Zahl auseinanderliegen. Kette: längste Reihe verbundener Würfel. Mitte: mittlerer Platz
+  // (bei 6 Würfeln die beiden mittleren). Formationen wirken nicht bei Five of a Kind und Large Straight.
+  const NO_FORMATION = ['Five of a Kind', 'Large Straight'];
+  const LINK_PIPS = 4;
+  const midSlots = (n) => (n % 2 ? [(n - 1) / 2] : [n / 2 - 1, n / 2]);
+  function formationOf(vals, scoring, n, name) {
+    const sc = new Set(scoring), v = (i) => vals[i] || 0;
+    const linkPairs = [], stepPairs = [];
+    for (let i = 0; i < n - 1; i++) {
+      if (!sc.has(i) || !sc.has(i + 1) || !v(i) || !v(i + 1)) continue;
+      if (v(i) === v(i + 1)) linkPairs.push([i, i + 1]);
+      else if (Math.abs(v(i) - v(i + 1)) === 1) stepPairs.push([i, i + 1]);
+    }
+    let chain = [], cur = [];
+    for (let i = 0; i < n; i++) {
+      if (cur.length && linkPairs.some(([a]) => a === i - 1)) cur.push(i); else cur = [i];
+      if (cur.length > chain.length) chain = cur.slice();
+    }
+    if (chain.length < 2) chain = [];
+    const mid = midSlots(n);
+    let palindrome = n >= 4;
+    for (let i = 0; i < n / 2; i++) if (!v(i) || v(i) !== v(n - 1 - i)) palindrome = false;
+    return {
+      ok: !NO_FORMATION.includes(name), n, links: linkPairs.length, linkPairs, steps: stepPairs.length, stepPairs, chain,
+      mid, midScores: mid.some((i) => sc.has(i)), ends: [0, n - 1],
+      bookends: n >= 3 && sc.has(0) && sc.has(n - 1) && v(0) > 0 && v(0) === v(n - 1), palindrome,
+    };
+  }
+  // Keystone: der mittlere Würfel wird Wild, wenn seine beiden Nachbarn dieselbe Zahl zeigen
+  function keystoneSlots(faces) {
+    const n = faces.length, plain = (f) => f && !isSkull(f) && f.kind !== 'wild' && f.kind !== 'twin';
+    return midSlots(n).filter((i) => i > 0 && i < n - 1 && plain(faces[i - 1]) && plain(faces[i + 1]) && faces[i - 1].v === faces[i + 1].v && !isSkull(faces[i]));
+  }
+
   // Mögliche Zahlen einer Seite (Wild/Hex: alle, Two-Faced: zwei, Schädel: keine)
-  function faceOptions(f, opts) {
+  function faceOptions(f, opts, i) {
     if (f.kind === 'wild' || f.kind === 'hex') return [1, 2, 3, 4, 5, 6];
+    if (opts.wild && opts.wild.includes(i) && !isSkull(f)) return [1, 2, 3, 4, 5, 6];
     if (f.kind === 'skull') return opts.skullWild ? [1, 2, 3, 4, 5, 6] : [0];
     if (f.kind === 'twin' && f.v !== 7 - f.v) return [f.v, 7 - f.v];
     return [f.v];
@@ -543,7 +664,7 @@
   function evaluateFaces(faces, levels, opts = {}) {
     const n = faces.length, all = faces.map((_, i) => i);
     const subsets = n > 5 ? all.map((skip) => all.filter((i) => i !== skip)) : [all];
-    const options = faces.map((f) => faceOptions(f, opts));
+    const options = faces.map((f, i) => faceOptions(f, opts, i));
     const vals = new Array(n);
     let best = null;
     const consider = (sub) => {
@@ -553,7 +674,10 @@
       const skulls = sub.filter((i) => isSkull(faces[i])).length;
       let est = (c + ev.scoring.reduce((s, j) => s + sv[j], 0)) * m * Math.pow(1.5, skulls);
       if (skulls >= (opts.bustAt || 3)) est *= 0.001;
-      if (!best || est > best.est) best = { name: ev.name, maxCount: ev.maxCount, scoring: ev.scoring.map((j) => sub[j]), used: sub, vals: vals.slice(), est, skulls };
+      // Bei Gleichstand: die Belegung mit mehr Links (Formation) gewinnt
+      const scoring = ev.scoring.map((j) => sub[j]);
+      if (opts.formation && !NO_FORMATION.includes(ev.name)) est += formationOf(vals, scoring, n, ev.name).links * 0.01;
+      if (!best || est > best.est) best = { name: ev.name, maxCount: ev.maxCount, scoring, used: sub, vals: vals.slice(), est, skulls };
     };
     const rec = (k) => {
       if (k === n) { subsets.forEach(consider); return; }
@@ -565,11 +689,12 @@
 
   // ── Wertung ─────────────────────────────────────────────────────────────
   // input: { faces, held, extras:[{chips, rerolled}], relics, upgrades, levels, numLevels, boss, isBoss, played,
-  //          handCounts, rerollsHand, rerollsBlind, rerollsLeft, money, bagSize, bagTypes, lucky, whirls, vault }
+  //          handCounts, rerollsHand, rerollsBlind, rerollsLeft, money, bagSize, bagTypes, lucky, whirls, vault,
+  //          lastHand, handStreak (Ermüdung: zuletzt gespielte Handart und wie oft in Folge) }
   // Gibt die Schritte zurück, die das Spiel nacheinander animiert, plus das Endergebnis.
   function scoreHand(input) {
     const g = Object.assign({ relics: [], upgrades: [], levels: {}, numLevels: {}, played: [], handCounts: {}, held: [], extras: [],
-      rerollsHand: 0, rerollsBlind: 0, rerollsLeft: 0, money: 0, bagSize: 5, bagTypes: 1, lucky: 0, whirls: 0, vault: 0, grow: 1, keep: false }, input);
+      rerollsHand: 0, rerollsBlind: 0, rerollsLeft: 0, money: 0, bagSize: 5, bagTypes: 1, lucky: 0, luckyRound: 0, whirls: 0, vault: 0, grow: 1, keep: false }, input);
     const eff = effective(g.relics), tags = tagCounts(g.relics);
     const has = (id) => eff.some((e) => e.def.id === id);
     const riOf = (id) => eff.find((e) => e.def.id === id).ri;
@@ -577,7 +702,9 @@
     const set = (t, n) => setLevel(tags, t) >= n;
     const boss = g.boss && g.boss.id;
     const bustAt = 3 + (upg('rabbit_foot') ? 1 : 0) + (set('risk', 3) ? 1 : 0);
-    const opts = { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt };
+    // g.formation: Lage auf dem Tisch zählt (im Spiel immer außer im Tutorial; in den Tests nur, wenn gesetzt)
+    const opts = { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt, formation: !!g.formation,
+      wild: g.formation && has('keystone') ? keystoneSlots(g.faces) : [] };
     const steps = [];
     let faces = g.faces;
     let ev = evaluateFaces(faces, g.levels, opts);
@@ -595,13 +722,16 @@
       steps.push({ src: 'relic', r: riOf('evil_eye'), text: 'Skulls become 6s!' });
     }
     const [baseChips, baseMult] = handValues(ev.name, g.levels);
-    const res = { name: ev.name, vals: ev.vals, scoring: ev.scoring, used: ev.used, baseChips, baseMult, steps, factor: 1, prism: [], skulls: ev.skulls };
+    const n = faces.length;
+    const form = g.formation ? formationOf(ev.vals, ev.scoring, n, ev.name)
+      : { ok: false, n, links: 0, linkPairs: [], steps: 0, stepPairs: [], chain: [], mid: [], midScores: false, ends: [], bookends: false, palindrome: false };
+    const res = { name: ev.name, vals: ev.vals, scoring: ev.scoring, used: ev.used, baseChips, baseMult, steps, factor: 1, prism: [], skulls: ev.skulls, form,
+      keystone: opts.wild.filter((i) => ev.used.includes(i)) };
 
-    if (boss === 'echo' && g.played.includes(ev.name)) {
-      res.echo = true; res.baseChips = 0; res.baseMult = 0;
-      steps.push({ src: 'msg', text: 'Already played!' });
-      return finish(res);
-    }
+    // Snake: frisst den niedrigsten gewerteten Würfel (gehaltene Würfel mit Lockbox sind geschützt)
+    const prey = boss === 'snake' ? ev.scoring.filter((i) => ev.vals[i] > 0 && !(g.held[i] && has('lockbox')))
+      .reduce((a, i) => (a === -1 || ev.vals[i] < ev.vals[a] ? i : a), -1) : -1;
+    res.echo = boss === 'echo' && g.played.includes(ev.name);
 
     const hc = Object.assign({}, g.handCounts);
     hc[ev.name] = (hc[ev.name] || 0) + 1;
@@ -612,8 +742,8 @@
       name: ev.name, maxCount: ev.maxCount, sum: ev.used.reduce((a, i) => a + (ev.vals[i] || 0), 0),
       scoringVals: ev.scoring.map((i) => ev.vals[i]), skulls: ev.skulls, heldCount, isMost,
       rerollsHand: g.rerollsHand, rerollsBlind: g.rerollsBlind, rerollsLeft: g.rerollsLeft, money: g.money,
-      bagSize: g.bagSize, bagTypes: g.bagTypes, lucky: g.lucky, whirls: g.whirls, isBoss: !!g.isBoss,
-      interest: interestInfo(g).amount, numLevels: numLv, top, tags, has, grow: g.grow, keep: g.keep,
+      bagSize: g.bagSize, bagTypes: g.bagTypes, lucky: g.lucky, luckyRound: Math.max(g.luckyRound || 0, g.lucky || 0), whirls: g.whirls, isBoss: !!g.isBoss,
+      interest: interestInfo(g).amount, numLevels: numLv, top, tags, has, grow: g.grow, keep: g.keep, form,
     };
     res.h = h; res.isMost = isMost;
     const push = (fx, base) => { if (!fx) return; (Array.isArray(fx) ? fx : [fx]).forEach((x) => steps.push(Object.assign({}, base, x))); };
@@ -628,7 +758,7 @@
     // Pro gewertetem Würfel
     const dieSteps = (i) => {
       const v = ev.vals[i], f = faces[i], held = !!g.held[i], ex = g.extras[i] || {};
-      if (boss === 'snake' && v === 1 && !(held && has('lockbox'))) { steps.push({ src: 'debuff', i }); return false; }
+      if (i === prey) { steps.push({ src: 'debuff', i }); return false; }
       steps.push({ src: 'die', i, chips: v });
       const nl = numLv[v] || 1;
       if (nl > 1) { steps.push({ src: 'die', i, chips: 4 * (nl - 1) }); steps.push({ src: 'die', i, mult: nl - 1 }); }
@@ -636,8 +766,12 @@
       if (f.kind === 'mult' || f.kind === 'prism') steps.push({ src: 'die', i, mult: 4 });
       if (f.kind === 'gold' || f.kind === 'prism') steps.push({ src: 'die', i, money: 2 });
       if (ex.chips >= 1) steps.push({ src: 'die', i, chips: Math.round(ex.chips) });
-      if (held && set('hold', 5)) steps.push({ src: 'set', tag: 'hold', i, chips: 10 });
-      eff.forEach((e) => push(e.def.perDie && e.def.perDie({ i, v, f, held, ex }, h, e.s), { src: 'relic', r: e.ri, i }));
+      if (held && set('hold', 5)) { steps.push({ src: 'set', tag: 'hold', i, chips: 10 }); steps.push({ src: 'set', tag: 'hold', i, mult: 2 }); }
+      if (ex.lucky && set('luck', 3)) steps.push({ src: 'set', tag: 'luck', i, mult: 4 });
+      if (ex.lucky && upg('lucky_charm')) steps.push({ src: 'upg', id: 'lucky_charm', i, xmult: 1.15 });
+      if (form.ok && upg('spotlight') && form.mid.includes(i)) steps.push({ src: 'upg', id: 'spotlight', i, xmult: 1.5 });
+      const end = i === 0 || i === n - 1, mid = form.mid.includes(i);
+      eff.forEach((e) => push(e.def.perDie && e.def.perDie({ i, v, f, held, ex, end, mid }, h, e.s), { src: 'relic', r: e.ri, i }));
       return true;
     };
     for (const i of ev.scoring) {
@@ -646,21 +780,39 @@
       let reps = 0;
       if (has('encore') && ev.name === 'Full House') reps++;
       if (set('number', 5) && ev.vals[i] === top) reps++;
+      if (form.ok && has('chain_reaction') && form.chain.includes(i)) reps++;
       for (let k = 0; k < reps; k++) { steps.push({ src: 'msg', i, text: 'Again!', small: true }); dieSteps(i); }
     }
 
+    // Links: gewertete Nachbarn mit derselben Zahl
+    if (form.ok) form.linkPairs.forEach(([a, b]) => {
+      steps.push({ src: 'link', i: a, j: b, chips: LINK_PIPS });
+      if (set('formation', 3)) steps.push({ src: 'link', i: a, j: b, mult: 3 });
+      if (set('formation', 5)) steps.push({ src: 'link', i: a, j: b, xmult: 1.4 });
+    });
+
     // Schädel in der Hand
-    const skullX = has('blood_pact') ? 2 : has('thorn_vine') ? 1.75 : 1.5;
-    ev.used.forEach((i) => { if (isSkull(faces[i])) steps.push({ src: 'die', i, xmult: skullX }); });
+    const skullX = (has('blood_pact') ? 2 : has('thorn_vine') ? 1.75 : 1.5) + (set('risk', 5) ? 0.5 : 0) + (upg('bone_polish') ? 0.25 : 0);
+    ev.used.forEach((i) => { if (isSkull(faces[i])) { if (set('risk', 3)) steps.push({ src: 'set', tag: 'risk', i, chips: 15 }); steps.push({ src: 'die', i, xmult: skullX }); } });
 
     // Relikte pro Hand (von links nach rechts)
     eff.forEach((e) => push(e.def.onHand && e.def.onHand(h, e.s, g), { src: 'relic', r: e.ri }));
 
     // Set-Boni und Upgrades
     if (set('pattern', 5) && isMost) steps.push({ src: 'set', tag: 'pattern', xmult: 2 });
-    if (set('bag', 5)) steps.push({ src: 'set', tag: 'bag', mult: g.bagSize });
-    if (set('luck', 5) && g.lucky > 0) steps.push({ src: 'set', tag: 'luck', mult: 5 * g.lucky });
+    if (set('reroll', 5)) for (let k = 0; k < g.rerollsHand; k++) steps.push({ src: 'set', tag: 'reroll', xmult: 1.1 });
+    if (set('bag', 3)) steps.push({ src: 'set', tag: 'bag', mult: g.bagSize });
+    if (set('bag', 5)) steps.push({ src: 'set', tag: 'bag', mult: 2 * g.bagSize });
+    if (upg('saddlebag') && g.bagSize > 8) steps.push({ src: 'upg', id: 'saddlebag', mult: g.bagSize - 8 });
+    if (set('luck', 5) && g.lucky > 0) for (let k = 0; k < g.lucky; k++) steps.push({ src: 'set', tag: 'luck', xmult: 1.15 });
     if (upg('overdraft') && g.money < 0) steps.push({ src: 'upg', id: 'overdraft', xmult: 1.5 });
+
+    // Echo: schon gespielte Handart gibt halbe Power
+    if (res.echo) steps.push({ src: 'boss', id: 'echo', xmult: 0.5, text: 'Echo!' });
+    // Ermüdung: dieselbe Handart mehrmals direkt hintereinander. Ab der 4. in Folge -1 %, dann -1 % mehr pro Hand, höchstens -10 %
+    const streak = ev.name === g.lastHand ? (g.handStreak || 0) + 1 : 1;
+    res.fatigue = fatigueOf(streak);
+    if (res.fatigue) steps.push({ src: 'fatigue', xmult: 1 - res.fatigue / 100, text: 'Tired -' + res.fatigue + '%' });
 
     // Bust
     if (bust) {
@@ -675,6 +827,10 @@
     }
     return finish(res);
   }
+
+  // Ermüdung in Prozent für die n-te Hand derselben Art in Folge
+  const FATIGUE_FROM = 4, FATIGUE_MAX = 10;
+  const fatigueOf = (streak) => Math.max(0, Math.min(FATIGUE_MAX, streak - FATIGUE_FROM + 1));
 
   // Wendet alle Schritte an und berechnet das Ergebnis (identisch zur Animation im Spiel).
   function finish(res) {
@@ -710,12 +866,13 @@
   }
 
   const api = {
-    HANDS, HAND_ORDER, handValues, FACE_KINDS, DIE_TYPES, makeDie, copyDie, isSkull,
+    BALANCE, heatSpeed, HANDS, HAND_ORDER, handValues, FACE_KINDS, DIE_TYPES, makeDie, copyDie, isSkull,
     TAGS, TAG_ORDER, RARITY, RELICS, RELIC_BY_ID, VINES, DIAL_MODES, UPGRADES, UPGRADE_BY_ID, ORACLES, ORACLE_BY_ID, NUMBER_NAMES, BOSSES,
     MAX_RELICS, MAX_CONS, MIN_BAG, MAX_BAG, JONNY_RELICS, MOODS,
     effective, tagCounts, relicTags, mostCommonTag, setLevel, topNumber, effNumLevels,
     interestInfo, interest, luckOf, luckTargets, rollFace, raiseFace,
     evaluate, evaluateFaces, scoreHand, pick, pickWeighted, sellValue, strongestOfTag,
+    formationOf, keystoneSlots, midSlots, NO_FORMATION, LINK_PIPS, fatigueOf, FATIGUE_FROM, FATIGUE_MAX,
   };
   global.WG = api;
   if (typeof module !== 'undefined') module.exports = api;
