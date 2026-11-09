@@ -786,7 +786,7 @@
 
     // Links: gewertete Nachbarn mit derselben Zahl
     if (form.ok) form.linkPairs.forEach(([a, b]) => {
-      steps.push({ src: 'link', i: a, j: b, chips: LINK_PIPS });
+      steps.push({ src: 'link', i: a, j: b, chips: input.linkPips || LINK_PIPS });
       if (set('formation', 3)) steps.push({ src: 'link', i: a, j: b, mult: 3 });
       if (set('formation', 5)) steps.push({ src: 'link', i: a, j: b, xmult: 1.4 });
     });

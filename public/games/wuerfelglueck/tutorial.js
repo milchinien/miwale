@@ -20,7 +20,7 @@
     const LT = () => (MOB && K.L() && K.L().tut) || null;
     const tipBox = () => (LT() ? LT().tip : TIP);
     const faceBox = () => (LT() ? LT().face : FACE);
-    const FONT_K = () => (LT() ? LT().font : 1);
+    const FONT_K = () => (LT() ? LT().font : 1) * (K.textScale ? K.textScale() : 1);
     const dim = (ctx, a) => { if (K.dim) K.dim(ctx, a); else { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,' + a + ')'; ctx.fillRect(0, 0, 1280, 720); ctx.restore(); } };
     // Auf dem Handy wird getippt statt geklickt, und Tooltips öffnen sich per langem Druck
     const MOBILE_TEXT = [
@@ -800,6 +800,12 @@
     // ── Sprechblase mit Wort-Effekten ─────────────────────────────────────
     const SPEED = { excited: 75, angry: 80, furious: 95, bored: 26, nervous: 62, paranoid: 60, fourth: 38, disappointed: 34 };
     const VOICE = { nervous: 640, paranoid: 610, excited: 700, happy: 580, neutral: 520, smug: 470, annoyed: 440, angry: 360, furious: 300, disappointed: 380, bored: 330, shocked: 720, fourth: 470 };
+    // Umbruch merken, aber neu rechnen, wenn Schrift oder Textgröße umgestellt wurden
+    function wordsLaid(ctx, c, maxW, k = 1) {
+      const id = UI.FONT + FONT_K();
+      if (!c.layout || c.layoutId !== id) { c.layout = layoutWords(ctx, c.words, maxW, k); c.layoutId = id; }
+      return c.layout;
+    }
     function layoutWords(ctx, words, maxW, k = 1) {
       const out = [];
       let x = 0, row = 0;
@@ -827,7 +833,7 @@
     function drawText(ctx, t, box, c = cur, k = 1) {
       const dark = c.mood === 'fourth';
       const pad = 22 * k, maxW = box.w - pad * 2 - 30 * k;
-      if (!c.layout) c.layout = layoutWords(ctx, c.words, maxW, k);
+      wordsLaid(ctx, c, maxW, k);
       const rows = c.layout.length ? c.layout[c.layout.length - 1].row + 1 : 1;
       const lh = (LT() ? LT().lineH : 28) * k, top = box.y + box.h / 2 - ((rows - 1) * lh) / 2 - (dark ? 4 : 0);
       let budget = Math.floor(c.shown);
@@ -886,7 +892,7 @@
       if (face) drawJonny(ctx, face.x, face.y, face.s, c.mood, c.shown < c.chars, t, !!o.tag);
       if (o.fit) {
         const pad = 22 * k, extra = pad * 2 + 30 * k;
-        if (!c.layout) c.layout = layoutWords(ctx, c.words, box.w - extra, k);
+        wordsLaid(ctx, c, box.w - extra, k);
         const wide = Math.max(0, ...c.layout.map((it) => it.x + it.width));
         box = Object.assign({}, box, { w: Math.min(box.w, Math.max(o.minW || 180, wide + extra)) });
       }
@@ -941,7 +947,7 @@
       // Zeiger auf das, worum es gerade geht
       if (active && cur && !cur.reaction) drawPointers(ctx, (cur.line && cur.line.point) || (st && st.point), t);
       if (!cur) return;
-      if (!cur.layout) cur.layout = layoutWords(ctx, cur.words, bubbleBox().w - 74);   // Größe der Blase hängt am Umbruch
+      wordsLaid(ctx, cur, bubbleBox().w - 74);   // Größe der Blase hängt am Umbruch
       const box = bubbleBox(), dark = cur.mood === 'fourth', fk = FONT_K();
       if (dark && !modal) dim(ctx, 0.35);
       const talking = cur.shown < cur.chars;

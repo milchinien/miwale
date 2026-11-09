@@ -41,6 +41,10 @@
   // Musik einer Runde: Stage 1–3 ruhig, ab Stage 4 mehr Spannung, Showdowns mit Boss-Musik, Stage 8 mit dem großen Boss-Track
   const roundMood = () => (isBossBlind() ? (S.ante >= ANTES ? 'final' : 'boss') : S.ante >= 4 ? 'mid' : 'early');
   const Saves = window.WGSaves;
+  const Enc = window.WGEncounters, Gif = window.WGGif, EncArt = window.WGEncounterArt;
+  const Rng = window.WGRng, Replay = window.WGReplay, Cos = window.WGCosmetics, Col = window.WGColour;
+  // Geseedeter Zufall des Runs (rng.js). Außerhalb eines Runs (Menü) normaler Zufall. Optik nutzt immer Math.random.
+  const rng = (name) => (S.rng ? Rng.stream(S.rng, name) : Math.random);
   // Gemeinsamer Fortschritt aller Speicherplätze: Statistik, Spielzeit, Becher, Achievements (saves.js)
   const meta = () => Saves.meta();
 
@@ -107,17 +111,7 @@
   const CHAOS_BY_ID = Object.fromEntries(CHAOS.map((c) => [c.id, c]));
 
   // ── Texturen ────────────────────────────────────────────────────────────
-  const FACE_STYLE = {
-    normal: { body: '#FFFFFF' },
-    gold: { body: '#F3C969', pip: '#6B4A12', onePip: '#6B4A12' },
-    mult: { body: '#FFD0CC', pip: '#C2312A', onePip: '#C2312A' },
-    bonus: { body: '#CDE8FF', pip: '#1D5FA8', onePip: '#1D5FA8' },
-    wild: { body: '#EBDDFF' },
-    skull: { body: '#2B2230' },
-    hex: { body: '#3A2550' },
-    prism: { body: '#FFFFFF' },
-    twin: { body: '#DDF3EE' },
-  };
+  const FACE_STYLE = Cos.FACE_STYLE;
   const STAR_COLOURS = [P.RED, P.ORANGE, P.GOLD, P.GREEN, P.BLUE, P.PURPLE];
   const SKULL = ['..XXXXXXX..', '.XXXXXXXXX.', 'XXXXXXXXXXX', 'XX..XXX..XX', 'XX..XXX..XX', 'XXXXX.XXXXX', '.XXXX.XXXX.', '..XXXXXXX..', '..X.X.X.X..', '..XXXXXXX..'];
   const MINI_PIPS = { 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]] };
@@ -125,12 +119,28 @@
   function drawSkull(ctx, colourAt) {
     SKULL.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'X') { ctx.fillStyle = colourAt(x, y); ctx.fillRect(10 + x, 8 + y, 1, 1); } }));
   }
+  // Barrierefreiheit: kleines Symbol oben in der Mitte (dort liegt nie ein Auge), damit Sonderseiten nicht nur an der Farbe erkennbar sind
+  const HINT_GLYPH = { gold: ['.XXX.', 'X...X', 'X.X.X', 'X...X', '.XXX.'], mult: ['X...X', '.X.X.', '..X..', '.X.X.', 'X...X'], bonus: ['..X..', '..X..', 'XXXXX', '..X..', '..X..'] };
+  let shapeHintsOn = false, MAT = null;   // aus den Einstellungen (applySettings)
+  // Maske fürs Würfelmaterial: nur Pixel in der Körperfarbe sind Oberfläche. Augen, Symbole, Rand und Schattenkante bleiben geschützt.
+  // Neue Würfeltypen und Seitenarten bekommen sie automatisch.
+  function faceMask(c, body) {
+    const [r, g, b] = Col.toRgb(body), src = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const m = document.createElement('canvas'); m.width = c.width; m.height = c.height;
+    const mx = m.getContext('2d'), out = mx.createImageData(c.width, c.height);
+    for (let k = 0; k < src.length; k += 4) {
+      const on = src[k + 3] === 255 && src[k] === r && src[k + 1] === g && src[k + 2] === b ? 255 : 0;
+      out.data[k] = out.data[k + 1] = out.data[k + 2] = on; out.data[k + 3] = 255;
+    }
+    mx.putImageData(out, 0, 0);
+    return m;
+  }
   const faceCache = {};
   function faceEntry(f, type) {
-    const key = type + '|' + f.v + '|' + f.kind;
+    const key = type + '|' + f.v + '|' + f.kind + '|' + (shapeHintsOn ? 1 : 0);
     if (faceCache[key]) return faceCache[key];
     const opts = Object.assign({ edge: R.DIE_TYPES[type].edge || undefined }, FACE_STYLE[f.kind]);
-    let c;
+    let c, mask = null;
     if (f.kind === 'wild') {
       // Wild: leere Fläche mit buntem Pixel-Stern
       c = blankDie(opts);
@@ -158,7 +168,8 @@
     } else {
       c = Art.die(f.v, opts);
       if (f.kind === 'prism') {
-        // Regenbogen auf allen weißen Flächen
+        // Regenbogen auf allen weißen Flächen (die Maske entsteht vorher, solange die Fläche noch einfarbig ist)
+        mask = faceMask(c, opts.body);
         const ctx = c.getContext('2d'), img = ctx.getImageData(0, 0, 32, 32), d = img.data;
         for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
           const k = (y * 32 + x) * 4;
@@ -169,8 +180,16 @@
         }
         ctx.putImageData(img, 0, 0);
       }
+      const glyph = shapeHintsOn && HINT_GLYPH[f.kind];
+      if (glyph) {
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = opts.pip;
+        glyph.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'X') ctx.fillRect(14 + x, 3 + y, 1, 1); }));
+      }
     }
-    return (faceCache[key] = { canvas: c, tex: eng.texture(c) });
+    const entry = { canvas: c, tex: eng.texture(c) };
+    entry.tex.mask = eng.texture(mask || faceMask(c, opts.body));
+    return (faceCache[key] = entry);
   }
   function hsl(h, s, l) {
     const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
@@ -273,6 +292,7 @@
     history: btn(920, 566, 150, 54, 'History', P.GREEN, { size: 24 }),
     share: btn(0, 0, 190, 50, 'Share Image', P.BLUE, { size: MOBILE ? 26 : 22 }),
     endless: btn(0, 0, 210, 50, 'Keep Going', P.PURPLE, { size: 22 }),
+    gif: btn(0, 0, 150, 50, 'Save GIF', P.PURPLE, { size: MOBILE ? 26 : 22 }),
     pagePrev: btn(470, 622, 70, 52, '<', P.ORANGE, { size: 30 }),
     pageNext: btn(740, 622, 70, 52, '>', P.ORANGE, { size: 30 }),
   };
@@ -290,13 +310,24 @@
       { key: 'sfx', label: 'Sound effects', slider: true }, { key: 'voice', label: "Jonny's voice", slider: true },
       { key: 'songTitles', label: 'Song titles' }, { key: 'muteBg', label: 'Mute when unfocused' }] },
     { id: 'video', label: 'Video', rows: [
-      { key: 'palette', label: 'Colours' }, { key: 'background', label: 'Background' }, { key: 'font', label: 'Font' },
+      { key: 'font', label: 'Font' },
       { key: 'crt', label: 'CRT effect' }, { key: 'shake', label: 'Screen shake' }, { key: 'particles', label: 'Particles' },
       { key: 'fullscreen', label: 'Fullscreen' }] },
+    { id: 'style', label: 'Style', rows: [
+      { key: 'palette', label: 'Colours' }, { key: 'background', label: 'Background' }, { key: 'material', label: 'Dice material' },
+      { key: 'studio', label: 'Colour Studio', action: 'Open', soft: true }] },
     { id: 'game', label: 'Gameplay', rows: [
       { key: 'speed', label: 'Game speed' }, { key: 'tipDelay', label: 'Tooltip delay' }, { key: 'textSpeed', label: 'Jonny text speed' },
       { key: 'jonnyTalk', label: 'Jonny chatter' }, { key: 'reset', label: 'Reset progress', action: 'Reset' }] },
     { id: 'controls', label: 'Controls', rows: [] },
+    { id: 'access', label: 'Access', rows: [
+      { key: 'cvd', label: 'Colour vision' }, { key: 'shapeHints', label: 'Shape hints on dice' }, { key: 'highContrast', label: 'High contrast' },
+      { key: 'textSize', label: 'Text size' }, { key: 'readFont', label: 'Readable font' }, { key: 'bgMotion', label: 'Background motion' },
+      { key: 'accMore', label: 'More options', action: 'More >', soft: true }] },
+    { id: 'access2', label: 'Access', rows: [
+      { key: 'bgBright', label: 'Background light' }, { key: 'noFlash', label: 'Fewer flashes' }, { key: 'reduceMotion', label: 'Less motion' }, { key: 'skipScore', label: 'Skip scoring' },
+      { key: 'clickShift', label: 'Shift by clicking' }, { key: 'photosafe', label: 'Photosensitive safe', action: 'Apply', soft: true },
+      { key: 'accBack', label: 'Back to first page', action: '< Back', soft: true }] },
     { id: 'run', label: 'Run', rows: [] },   // Handy: Statistik des Runs (am PC steht sie links neben den Einstellungen)
   ];
   if (MOBILE) {
@@ -308,24 +339,26 @@
   const SET_Y = (k) => 232 + k * 46;
   const SLIDER = { x: 606, w: 218 };   // Regler-Bahn in den Lautstärke-Zeilen
   const sliderRect = (k) => (MOBILE ? mSlider(k).hit : { x: SLIDER.x - 12, y: SET_Y(k) - 20, w: SLIDER.w + 24, h: 40 });
-  const SET_TAB_BTNS = SET_TABS.map((tb, i) => btn(364 + i * 140, 150, 132, 42, tb.label, P.L_BLACK, { size: 22, setTab: i }));
+  const SET_TAB_BTNS = SET_TABS.map((tb, i) => btn(364 + i * 93, 150, 87, 42, tb.label, P.L_BLACK, { size: 18, setTab: i }));
   const SET_BTNS = [];
   SET_TABS.forEach((tb, ti) => tb.rows.forEach((r, k) => {
     if (r.slider) return;
-    if (r.action) { SET_BTNS.push(btn(730, SET_Y(k) - 18, 160, 36, r.action, P.RED, { size: 20, inTab: ti, setRow: k, action: true })); return; }
+    if (r.action) { SET_BTNS.push(btn(730, SET_Y(k) - 18, 160, 36, r.action, r.soft ? P.BLUE : P.RED, { size: 20, inTab: ti, setRow: k, action: true, soft: !!r.soft })); return; }
     SET_BTNS.push(btn(626, SET_Y(k) - 18, 44, 36, '<', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: -1 }));
     SET_BTNS.push(btn(870, SET_Y(k) - 18, 44, 36, '>', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: 1 }));
   }));
   const setRows = () => SET_TABS[setTab].rows;
   const tabVisible = (i) => SET_TABS[i].id !== 'run' || (MOBILE && !inMenus() && !TUT.active);
-  const visTabBtns = () => SET_TAB_BTNS.filter((b) => tabVisible(b.setTab));
+  const visTabBtns = () => SET_TAB_BTNS.filter((b) => tabVisible(b.setTab) && SET_TABS[b.setTab].id !== 'access2');
   const setBtnsNow = () => SET_BTNS.filter((b) => b.inTab === setTab);
+  B.shift = btn(0, 0, 140, 42, 'Shift', P.PURPLE, { size: 20 });   // Barrierefreiheit: Shift per Klick statt Ziehen
   const ALL_BUTTONS = Object.values(B).concat(BUY, CHOICE, SET_TAB_BTNS, SET_BTNS, SLOT_MAIN, SLOT_DEL);
   const MENU_PHASES = ['menu', 'slots', 'cups', 'trophies', 'codex', 'history'];
   const inMenus = () => MENU_PHASES.includes(S.phase);
   // Speichern und Beenden geht nur in ruhigen Momenten (Würfel liegen, Shop offen) – oder nach Ende des Runs
   const canQuit = () => (['select', 'shop'].includes(S.phase) && !S.choice && !eng.busy) || ['lost', 'runWon'].includes(S.phase);
   function activeButtons() {
+    if (settingsOpen && studioOpen) return studioButtons();
     if (settingsOpen) return [...visTabBtns(), ...setBtnsNow(), B.close, ...(inMenus() ? [] : [B.quit])];
     const tb = TUT.buttons();
     if (TUT.modal || tb.length) return tb;
@@ -333,15 +366,16 @@
     if (S.choice) return CHOICE;
     if (S.phase === 'menu') return [B.start, B.options, ...(ACH ? [B.trophies] : []), B.codex, B.history];
     if (S.phase === 'codex') return [...CODEX_TAB_BTNS, B.pagePrev, B.pageNext, B.back];
-    if (S.phase === 'history') return histSel >= 0 ? [B.back, B.share] : [B.pagePrev, B.pageNext, B.back];
+    if (S.phase === 'history') return histSel >= 0 ? [B.back, B.share, ...(gifOf(history()[histSel]) ? [B.gif] : [])] : [B.pagePrev, B.pageNext, B.back];
     if (S.phase === 'slots') return [...slotButtons(), ...(tutorialSeen() ? [B.tutSlot] : []), B.back];
     if (S.phase === 'cups') return [B.cupPrev, B.cupNext, B.begin, B.back];
     if (S.phase === 'trophies') return [B.achPrev, B.achNext, B.back];
     if (S.phase === 'lost' || S.phase === 'runWon') return S.summary ? summaryButtons() : [B.settings];
+    if (S.phase === 'encounter') return [B.settings, ...encButtons()];
     if (S.phase === 'won') return [B.settings];
     const sel = selButtons();
     if (S.phase === 'shop') return [B.settings, B.next, B.shopReroll, ...BUY.filter((b) => S.shop && S.shop[b.slot]), ...(upg('vault') ? [B.deposit, B.withdraw] : []), ...sel];
-    return [B.settings, B.roll, B.play, ...(helpShown() ? [B.help] : []), ...sel];
+    return [B.settings, B.roll, B.play, ...(helpShown() ? [B.help] : []), ...(shiftBtnOn() ? [B.shift] : []), ...sel];
   }
   function selButtons() {
     if (!selected) return [];
@@ -373,11 +407,13 @@
   const drawCount = () => Math.min(S.bag.length, upg('spare_die') ? 6 : 5);
   // Formation: die Lage auf dem Tisch zählt (außer im Tutorial). Shifts = Tauschzüge pro Hand.
   const formationOn = () => !TUT.active;
-  const shiftsMax = () => (formationOn() ? 1 + (upg('turntable') ? 1 : 0) + (setOn('formation', 3) ? 1 : 0) : 0);
+  const chalkOn = (kind) => !!(S.enc && S.enc.chalk && S.enc.chalk.stage === S.ante && S.enc.chalk.kind === kind);
+  const linkPips = () => (chalkOn('links') ? 8 : R.LINK_PIPS);
+  const shiftsMax = () => (formationOn() ? 1 + (upg('turntable') ? 1 : 0) + (setOn('formation', 3) ? 1 : 0) + (chalkOn('shift') ? 1 : 0) : 0);
   const FORM_COL = () => R.TAGS.formation.colour;
   const handsMax = () => Math.max(1, cup().hands + chaosVal('hands') - (upg('overdrive') ? 1 : 0) - (has('blood_pact') ? 1 : 0));
   const rerollsBase = () => Math.max(0, cup().rerolls + chaosVal('rerolls')) + (upg('overdrive') ? 2 : 0) + (upg('quick_hands') ? 1 : 0) + (setOn('reroll', 3) ? 1 : 0) + eff().reduce((a, e) => a + (e.def.extraRerolls || 0), 0);
-  const rerollsMax = () => (bossActive('clamp') ? Math.max(1, rerollsBase() - 2) : rerollsBase());   // The Clamp: -2, aber nie unter 1
+  const rerollsMax = () => Math.max(0, (bossActive('clamp') ? Math.max(1, rerollsBase() - 2) : rerollsBase()) - (S.enc && S.enc.cool ? 1 : 0));   // The Clamp: -2, aber nie unter 1
   const anchorCap = () => (cup().anchors || 0) + (upg('anchor') ? 1 : 0) + (setOn('hold', 3) ? 1 : 0);
   const bustAt = () => 3 + (upg('rabbit_foot') ? 1 : 0) + (setOn('risk', 3) ? 1 : 0);
   const heldCount = () => dice.filter((d) => d.data.held).length;
@@ -399,8 +435,8 @@
       rerollsHand: S.rerollsHand, rerollsBlind: S.rerollsBlind, rerollsLeft: S.rerolls, money: S.money, vault: S.vault,
       bag: S.bag, bagSize: S.bag.length, bagTypes: new Set(S.bag.map((d) => d.type)).size,
       lucky: S.lucky, luckyRound: S.luckyBlind || 0, whirls: S.whirls, skullsShowing: skullsShowing(), heldCount: heldCount(),
-      grow: setOn('growth', 3) ? 1.3 : 1, keep: setOn('growth', 5), mostPlayed: mostPlayed(), rnd: Math.random,
-      bonusLuck: (cup().luck || 0) + chaosVal('luck'), formation: formationOn(),
+      grow: setOn('growth', 3) ? 1.3 : 1, keep: setOn('growth', 5), mostPlayed: mostPlayed(), rnd: rng('relic'),
+      bonusLuck: (cup().luck || 0) + chaosVal('luck') + (S.enc && S.enc.luck === S.ante ? 5 : 0), formation: formationOn(), linkPips: linkPips(),
       lastHand: S.ach ? S.ach.last : null, handStreak: S.ach ? S.ach.streak : 0,
     }, extra);
   }
@@ -424,7 +460,7 @@
   const heatOn = () => !TUT.active;
   function blindTarget(idx) {
     const base = baseTarget(idx), last = S.lastScore || 0;
-    if (!heatOn() || last <= base) return base;
+    if (!heatOn() || last <= base || (S.enc && S.enc.cool)) return base;
     const speed = S.lastSpeed === undefined ? 1 : S.lastSpeed;
     const pull = base + (last - base) * HEAT_PULL * speed;
     if (pull <= base) return base;
@@ -439,11 +475,11 @@
   function blindLabel(idx = S.blindIdx) {
     return idx === 2 && S.boss ? { name: S.boss.name, colour: S.boss.colour } : { name: BLINDS[idx].name, colour: P[BLINDS[idx].key] };
   }
-  function shuffle(a) {
-    for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; }
+  function shuffle(a, rnd = Math.random) {
+    for (let i = a.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; }
     return a;
   }
-  const fresh = () => [Math.random(), Math.random(), Math.random(), Math.random(), Math.random()];
+  const fresh = () => { const r = rng('dice'); return [r(), r(), r(), r(), r()]; };
   const relicName = (ri) => R.RELIC_BY_ID[S.relics[ri].id].name;
 
   // Löst ein Relikt-Ereignis aus (rules.js) und zeigt die Rückmeldung am Relikt.
@@ -518,6 +554,11 @@
     dice.forEach((d) => d.materialize(0.6, { colours: [P.WHITE, P.ORANGE] }));
   }
 
+  // Replay der aktuellen Hand (replay.js): die beste Hand des Runs wird behalten und später für das GIF neu gezeichnet
+  let handRec = null;
+  const recFrame = (kind) => { if (handRec) Replay.frame(handRec, kind, dice.map(upFace), dice.map((d) => d.data.held)); };
+  function recBegin() { handRec = TUT.active ? null : Replay.begin(dice.map((d) => d.data.die.type)); }
+
   // Zieht Würfel aus dem Beutel (verankerte bleiben liegen) und würfelt sie.
   function newHand() {
     const n = drawCount();
@@ -525,12 +566,13 @@
     const keep = S.anchored.filter((a) => a.i < dice.length && S.bag.includes(a.die));
     S.anchored = [];
     const kept = new Set(keep.map((a) => a.die));
-    const pool = shuffle(S.bag.filter((d) => !kept.has(d)));
+    const pool = shuffle(S.bag.filter((d) => !kept.has(d)), rng('bag'));
     dice.forEach((sp, i) => {
       const a = keep.find((x) => x.i === i);
       Object.assign(sp.data, { held: !!a, anchored: !!a, rerolled: 0, luckyHit: false, rnd: fresh() });
       if (a) { sp.data.die = a.die; sp.data.up = a.up; refreshDieTex(sp); } else { sp.data.die = pool.pop(); sp.data.up = 0; }
     });
+    recBegin();
     if (isBossBlind() && S.boss === JONNY_BOSS && !TUT.active) jonnyNewRule();
     S.rerolls = rerollsMax(); S.rerollsHand = 0; S.freeReroll = has('loaded'); S.lucky = 0; S.whirls = 0; S.coldHand = 0;
     S.shifts = shiftsMax();
@@ -557,7 +599,7 @@
     const idx = Object.keys(out).map(Number);
     const rolled = idx.map((i) => dice[i]);
     let pending = idx.length;
-    const finishRoll = () => { magnetize(rolled); layoutDice(); S.phase = 'select'; if (done) done(); autosave(); TUT.event('handReady'); };
+    const finishRoll = () => { magnetize(rolled); recFrame('roll'); layoutDice(); S.phase = 'select'; if (done) done(); autosave(); TUT.event('handReady'); };
     if (!pending) { eng.after(0.2, finishRoll); return; }
     sfx('rattle', { n: idx.length, dur: 0.55 + 0.1 * (idx.length - 1) });
     idx.forEach((i, k) => {
@@ -568,7 +610,7 @@
         if (n < 10) {
           d.tex = faceTex(die.faces[(Math.random() * die.faces.length) | 0], die.type);
           d.juiceUp(0.12);
-          d.moveTo(x + rand(-8, 8), dieY() - Math.sin((n / 10) * Math.PI) * 60, rand(-0.8, 0.8));
+          if (SETTINGS.reduceMotion) d.moveTo(x, dieY(), 0); else d.moveTo(x + rand(-8, 8), dieY() - Math.sin((n / 10) * Math.PI) * 60, rand(-0.8, 0.8));
           eng.after(0.06, tick);
           return;
         }
@@ -588,6 +630,7 @@
 
   function toggleHold(die) {
     if (S.phase !== 'select' || !die.data.die) return;
+    if (shiftMode) return pickShift(die);
     die.data.held = !die.data.held;
     if (!die.data.held) die.data.anchored = false;
     die.juiceUp(0.25);
@@ -606,7 +649,7 @@
     if (!free && S.rerolls <= 0) return;
     let idx = rerollTargets();
     if (bossActive('chaos')) {
-      const extra = allIdx().filter((i) => dice[i].data.held && !frozen(dice[i]) && !has('lockbox') && Math.random() < 1 / 3);
+      const extra = allIdx().filter((i) => dice[i].data.held && !frozen(dice[i]) && !has('lockbox') && rng('boss')() < 1 / 3);
       extra.forEach((i) => { dice[i].data.held = false; dice[i].data.anchored = false; eng.popup(dice[i].x, dice[i].y - 70, 'Chaos!', { colour: S.boss.colour, size: 22 }); });
       idx = idx.concat(extra).sort((a, b) => a - b);
     }
@@ -627,7 +670,7 @@
       const m = Math.min(held, 3 - S.coldHand), rs = relicSprite('cold_storage');
       if (m > 0) { S.coldHand += m; addMoney(m, rs.x, fxY(rs)); }
     }
-    if (has('roulette') && Math.random() < 1 / 6) {
+    if (has('roulette') && rng('relic')() < 1 / 6) {
       const rs = relicSprite('roulette');
       if (!free) { S.rerolls++; J.rerolls.up(0.4); }
       rs.juiceUp(0.5); eng.popup(rs.x, fxY(rs, 1), 'Refund!', { colour: P.GREEN, size: 20 }); addMoney(2, rs.x, fxY(rs));
@@ -664,6 +707,7 @@
     [dice[a], dice[b]] = [dice[b], dice[a]];
     const col = FORM_COL();
     for (const d of [dice[a], dice[b]]) { d.juiceUp(0.35); eng.emit(d.x, d.y, { count: 10, colours: [col, P.WHITE], speed: 200, size: 7, life: 0.45 }); }
+    recFrame('shift');
     if (free) return;
     S.shifts--; S.stats.shifts++;
     sfx('card');
@@ -713,7 +757,7 @@
 
   function luckyHit(i, o) {
     const f = dice[i].data.die.faces[o.up];
-    if (has('lucky_star') && f.kind === 'normal' && Math.random() < 0.25) {
+    if (has('lucky_star') && f.kind === 'normal' && rng('relic')() < 0.25) {
       f.kind = 'gold';
       const rs = relicSprite('lucky_star'); rs.juiceUp(0.4); eng.popup(rs.x, fxY(rs), 'Gold!', { colour: P.GOLD, size: 18 });
     }
@@ -749,6 +793,7 @@
   function playHand() {
     if (S.phase !== 'select') return;
     TUT.event('play');
+    if (!handRec && !TUT.active) { recBegin(); recFrame('roll'); }   // Hand kam aus einem Speicherstand
     S.phase = 'scoring';
     S.scoreStep = 0;
     selected = null;
@@ -758,6 +803,11 @@
       faces: dice.map(upFace), held: dice.map((d) => d.data.held),
       extras: dice.map((d) => ({ chips: d.data.die.chips || 0, rerolled: d.data.rerolled || 0, lucky: !!d.data.luckyHit })),
     }));
+    const prophecy = S.enc && S.enc.prophecy;
+    if (prophecy && !res.bust && prophecy.hand === res.name && !TUT.active) {
+      res.steps.unshift({ src: 'enc', text: 'Prophecy!', mult: prophecy.power });
+      if (--prophecy.left <= 0) S.enc.prophecy = null;
+    }
     S.played.push(res.name);
     S.handName = res.name; S.handNameT = eng.time; J.name.up(0.3);
     S.chips = res.baseChips; S.mult = res.baseMult; J.chips.up(0.3); J.mult.up(0.3);
@@ -770,7 +820,7 @@
     });
 
     eng.queue(() => res.scoring.forEach((i) => dice[i].moveTo(dieX(i), dieY() - 30, 0)), 0.5);
-    for (const step of res.steps) eng.queue(() => applyStep(step), 0.38);
+    for (const step of res.steps) eng.queue(() => { applyStep(step); if (handRec) Replay.step(handRec, step, S.chips, S.mult); }, 0.38);
     eng.queue(() => startFuse(Math.round(S.chips * S.mult * res.factor)), 0.6);
     eng.queue(() => {
       if (fuse && !fuse.landed) { S.score += fuse.total; S.dispScore = S.score; }   // falls nicht gezeichnet wurde
@@ -792,6 +842,11 @@
       jobEvent('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, rerolls: S.rerollsHand, held: heldCount(), vals: res.scoring.map((i) => res.vals[i]) });
       S.jonny.best = Math.max(S.jonny.best, total);
       jonnyHand(res, total);
+      if (handRec) {
+        const hd = Replay.finish(handRec, { name: res.name, total, chips: S.chips, mult: S.mult, bust: !!res.bust, relics: S.relics.map((r) => r.id), stage: S.ante, cup: S.cup });
+        if (Replay.better(hd, S.bestReplay)) S.bestReplay = hd;
+        handRec = null;
+      }
       S.chips = 0; S.mult = 0; S.handName = ''; afterHand(res);
     }, FUSE.end + 0.25);
     eng.queue(() => {
@@ -929,6 +984,7 @@
     if (s.src === 'upg') [x, y] = spot('upgrade');
     if (s.src === 'upg' && s.i !== undefined && d) { x = d.x; y = d.y - 70; }
     if (s.src === 'link') { linkFlash(s); return; }
+    if (s.src === 'enc') eng.popup(L.msg.x, dieY() - 112, s.text, { colour: lighten(P.PURPLE, 0.35), size: 26, life: 1.1 });
     if (s.src === 'debuff') { d.juiceUp(0.2); eng.popup(x, y, curBoss() && curBoss().id === 'snake' ? 'Eaten!' : 'Debuffed', { colour: P.GREY, size: 20 }); return; }
     if (s.src === 'fatigue' || s.src === 'boss') {
       const col = s.src === 'boss' && S.boss ? lighten(S.boss.colour, 0.35) : P.GREY;
@@ -980,12 +1036,12 @@
     if (S.ante === ANTES && !TUT.active) { S.boss = JONNY_BOSS; return; }
     let pool = R.BOSSES.filter((b) => !S.usedBosses.includes(b.id));
     if (!pool.length) { S.usedBosses = []; pool = R.BOSSES.slice(); }
-    S.boss = R.pick(pool);
+    S.boss = R.pick(pool, rng('boss'));
     S.usedBosses.push(S.boss.id);
   }
   function rollUpgrade() {
     const pool = R.UPGRADES.filter((u) => !S.upgrades.includes(u.id) && open('upgrade', u.id));
-    return pool.length ? R.pickWeighted(pool.map((u) => [u.id, R.RARITY[u.rarity].weight])) : null;
+    return pool.length ? R.pickWeighted(pool.map((u) => [u.id, R.RARITY[u.rarity].weight]), rng('shop')) : null;
   }
 
   function startRun(cupId = 'classic') {
@@ -996,6 +1052,7 @@
     S.relics = []; S.cons = []; S.upgrades = c.upgrades.slice(); S.levels = {}; S.numLevels = Object.assign({}, c.numLevels); S.handCounts = {}; S.usedBosses = [];
     S.rerollTotal = 0; S.anchored = []; S.msg = null; S.choice = null; S.ach = freshAch();
     S.job = null; S.jonny = freshJonny(); S.jonnyRule = null;
+    S.rng = Rng.create(window.__WG_SEED); S.bestReplay = null; handRec = null; S.enc = freshEnc(); encNow = null;
     S.endless = false; S.runId = Date.now(); S.stats = freshStats(); S.runAch = []; S.summary = null; S.shifts = 0; S.lastScore = 0; S.lastSpeed = 1;
     S.bag = c.bag.map((type) => R.makeDie(type));
     seen('cup', cupId); [...new Set(c.bag)].forEach((type) => seen('die', type)); c.upgrades.forEach((id) => seen('upgrade', id));
@@ -1004,7 +1061,7 @@
     refreshBag(); refreshUpgrades();
     c.relics.forEach((id) => addRelic(id));
     if (c.randomRelics) for (let k = 0; k < c.randomRelics.n; k++) { const id = randomRelic(c.randomRelics.rarity, true); if (id) addRelic(id); }
-    if (c.jonny) addRelic(R.pick(R.JONNY_RELICS));
+    if (c.jonny) addRelic(R.pick(R.JONNY_RELICS, rng('reward')));
     if (c.chaos) rollChaos();
     if (profile) { meta().lastCup = cupId; lastSaved = ''; }
     const hour = new Date().getHours();
@@ -1042,6 +1099,7 @@
 
   function winBlind() {
     S.phase = 'won';
+    if (S.enc) S.enc.cool = false;   // Cooling Spring gilt nur eine Runde
     TUT.event('roundWon');
     achieve('round', { score: S.score, target: S.target, handsLeft: S.hands, handsUsed: S.played.length, rerolls: S.rerollsBlind, boss: isBossBlind() && S.boss ? S.boss.id : null, relics: S.relics.map((r) => r.id) });
     const ii = R.interestInfo(ctx());
@@ -1081,7 +1139,7 @@
       const go = () => {
         S.blindIdx++;
         if (S.blindIdx >= BLINDS.length) { S.blindIdx = 0; S.ante++; if (S.ante <= ANTES || S.endless) { pickBoss(); anteStart(); } }
-        if (S.ante > ANTES && !S.endless) runWon(); else enterShop();
+        if (S.ante > ANTES && !S.endless) runWon(); else maybeEncounter(enterShop);
       };
       if (TUT.active && isBossBlind()) return;   // Tutorial endet nach dem ersten Showdown
       if (profile && !S.cupDrawn && S.ante === CUP_DRAW_STAGE && isBossBlind()) startCupDraw(go); else go();
@@ -1201,7 +1259,7 @@
   const RUN_KEYS = ['cup', 'ante', 'blindIdx', 'target', 'score', 'hands', 'rerolls', 'money', 'vault', 'bag', 'relics', 'cons', 'upgrades',
     'levels', 'numLevels', 'handCounts', 'usedBosses', 'played', 'rerollsHand', 'rerollsBlind', 'rerollTotal', 'freeReroll', 'lucky', 'whirls',
     'coldHand', 'shop', 'shopRerollCost', 'upgradeOffer', 'bought', 'pruneUsed', 'chaos', 'cupDrawn', 'ach', 'job', 'jonny', 'jonnyRule',
-    'shifts', 'endless', 'runId', 'stats', 'runAch', 'lastScore', 'lastSpeed', 'luckyBlind'];
+    'shifts', 'endless', 'runId', 'stats', 'runAch', 'lastScore', 'lastSpeed', 'luckyBlind', 'rng', 'bestReplay', 'enc'];
 
   function snapshot() {
     const bi = (d) => S.bag.indexOf(d);
@@ -1302,8 +1360,10 @@
   function loadRun(snap) {
     clearMenuSprites();
     S.chaos = null; S.cupDrawn = false; S.cupDraw = null; S.ach = freshAch(); S.job = null; S.jonny = freshJonny(); S.jonnyRule = null;
-    S.endless = false; S.stats = null; S.runAch = []; S.runId = 0; S.shifts = undefined; S.lastScore = 0;
+    S.endless = false; S.stats = null; S.runAch = []; S.runId = 0; S.shifts = undefined; S.lastScore = 0; S.rng = null; S.bestReplay = null; handRec = null; S.enc = null; encNow = null;
     for (const k of RUN_KEYS) if (snap[k] !== undefined) S[k] = snap[k];
+    if (!S.rng) S.rng = Rng.create();   // ältere Speicherstände
+    S.enc = Object.assign(freshEnc(), S.enc || {});
     S.jonny = Object.assign(freshJonny(), S.jonny);
     S.boss = R.BOSSES.find((b) => b.id === snap.boss) || (snap.boss === 'jonny' ? JONNY_BOSS : null);
     if (!S.boss) pickBoss();
@@ -1378,6 +1438,7 @@
   }
   // Belohnungen: Name, Bildchen, Tooltip
   const rewardDie = {};
+  const COSMETIC_KINDS = ['background', 'material', 'swatch', 'feature'];
   function rewardName(kind, id) {
     if (kind === 'relic') return R.RELIC_BY_ID[id].name;
     if (kind === 'oracle') return R.ORACLE_BY_ID[id].name;
@@ -1385,6 +1446,10 @@
     if (kind === 'die') return R.DIE_TYPES[id].name;
     if (kind === 'palette') return (PALETTES.find((x) => x.id === id) || { name: id }).name + ' colours';
     if (kind === 'cupmode') return (CUP_BY_ID[id] || { name: id }).name;
+    if (kind === 'background') return (BG_STYLES.find((x) => x.id === id) || { name: id }).name + ' background';
+    if (kind === 'material') return Cos.MATERIAL_BY_ID[id].name + ' dice';
+    if (kind === 'swatch') return Cos.SWATCH_BY_ID[id].name + ' colour';
+    if (kind === 'feature') return 'Colour Studio';
     return id + ' random ' + CUP_WORD + (id === 1 ? '' : 's');
   }
   let rewardCup = null;
@@ -1407,6 +1472,11 @@
       const c = (PALETTES.find((q) => q.id === id) || PALETTES[0]).colours, h = size / 2;
       UI.box(ctx, x, y, size, size, { colour: c.PANEL_DARK, radius: 6, shadow: false, outline: '#FFFFFF', outlineWidth: 1 });
       [[c.BLUE, 0, 0], [c.GOLD, 1, 0], [c.PURPLE, 0, 1], [c.RED, 1, 1]].forEach(([col, i, j]) => { ctx.fillStyle = col; ctx.fillRect(x + 4 + i * (h - 4), y + 4 + j * (h - 4), h - 6, h - 6); });
+    } else if (COSMETIC_KINDS.includes(kind)) {
+      const col = kind === 'swatch' ? Cos.SWATCH_BY_ID[id].hex : kind === 'background' ? P.BLUE : kind === 'material' ? '#E8E8E8' : P.GOLD;
+      UI.box(ctx, x, y, size, size, { colour: col, radius: 6, shadow: false, outline: '#FFFFFF', outlineWidth: 1 });
+      const letter = { background: 'Bg', material: 'M', feature: 'CS' }[kind];
+      if (letter) UI.text(ctx, letter, x + size / 2, y + size / 2, { size: size * 0.45, colour: kind === 'material' ? P.BLACK : P.WHITE, shadow: false });
     } else if (kind === 'cupmode') {
       const c = CUP_BY_ID[id] || CUPS[0];
       if (!rewardModeCups[id]) rewardModeCups[id] = cupCanvas(c.colour, false, id);
@@ -1424,7 +1494,11 @@
   function rewardInfo(kind, id) {
     if (kind === 'cup') return { title: id + ' ' + CUP_WORD + (id === 1 ? '' : 's'), desc: 'Adds ' + (id === 1 ? 'a random cup' : id + ' random cups') + ' to your stock. Each one is good for one run.', badge: [CUP_WORD + 's', P.ORANGE] };
     if (kind === 'die') return itemInfo({ type: 'die', dieType: id, die: rewardDie[id] || (rewardDie[id] = R.makeDie(id)) });
-    if (kind === 'palette') return { title: rewardName(kind, id), desc: 'A secret colour palette. Pick it under Settings > Video > Colours.', badge: ['Palette', P.PURPLE] };
+    if (kind === 'palette') return { title: rewardName(kind, id), desc: 'A colour palette. Pick it under Settings > Style.', badge: ['Palette', P.PURPLE] };
+    if (kind === 'background') return { title: rewardName(kind, id), desc: 'A background style. Pick it under Settings > Style.', badge: ['Cosmetic', P.PURPLE] };
+    if (kind === 'material') return { title: rewardName(kind, id), desc: Cos.MATERIAL_BY_ID[id].desc + ' Pick it under Settings > Style.', badge: ['Cosmetic', P.PURPLE] };
+    if (kind === 'swatch') return { title: rewardName(kind, id), desc: 'A special colour for the Colour Studio.', badge: ['Cosmetic', P.PURPLE] };
+    if (kind === 'feature') return { title: 'Colour Studio', desc: 'Mix your own background and UI colours. Open it under Settings > Style.', badge: ['Feature', P.PURPLE] };
     if (kind === 'cupmode') { const c = CUP_BY_ID[id]; return { title: c.name, desc: c.desc + ' Always available once unlocked.', badge: [CUP_WORD, c.colour] }; }
     return itemInfo({ type: kind, id });
   }
@@ -1612,7 +1686,7 @@
   let cupDrawSprites = [], hiddenForDraw = [];
   function startCupDraw(then) {
     const pool = drawableCups();
-    const ids = [0, 1, 2].map(() => R.pick(pool).id);
+    const ids = [0, 1, 2].map(() => R.pick(pool, rng('reward')).id);
     S.cupDrawn = true;
     S.cupDraw = { ids, then, t0: eng.time };
     // Karten und Würfel kurz ausblenden, damit die Becher frei stehen
@@ -1678,15 +1752,15 @@
     const owned = new Set(S.relics.map((r) => r.id)), ladder = ['L', 'R', 'U', 'C'];
     for (const rar of ladder.slice(ladder.indexOf(rarity))) {
       const pool = R.RELICS.filter((d) => !d.hidden && d.rarity === rar && !owned.has(d.id) && d.id !== 'crossroads' && (anyLocked || open('relic', d.id)));
-      if (pool.length) return R.pick(pool).id;
+      if (pool.length) return R.pick(pool, rng('reward')).id;
     }
     return null;
   }
   function rollChaos() {
-    const c = R.pick(CHAOS.filter((x) => x.id !== S.chaos));
+    const c = R.pick(CHAOS.filter((x) => x.id !== S.chaos), rng('chaos'));
     S.chaos = c.id;
     if (c.money) addMoney(c.money, ...spot('money'));
-    if (c.level) { const h = R.pick(R.HAND_ORDER); S.levels[h] = (S.levels[h] || 1) + 1; }
+    if (c.level) { const h = R.pick(R.HAND_ORDER, rng('chaos')); S.levels[h] = (S.levels[h] || 1) + 1; }
     if (c.gift && S.relics.length < relicMax()) { const id = randomRelic(c.gift); if (id) addRelic(id); }
     if (S.ante > 1) eng.after(0.3, () => { showMsg('Chaos: ' + c.name, P.PURPLE, c.desc, 2.4); sfx('magic'); jonnyEvents('chaos', { rule: c.name }); });
   }
@@ -1757,12 +1831,12 @@
     let id;
     if (kind === 'rare') {
       const pool = R.RELICS.filter((d) => !d.hidden && d.rarity === 'R' && d.id !== 'metamorphosis' && !S.relics.some((r) => r.id === d.id) && open('relic', d.id));
-      id = (pool.length ? R.pick(pool) : R.RELIC_BY_ID.golden_vine).id;
+      id = (pool.length ? R.pick(pool, rng('reward')) : R.RELIC_BY_ID.golden_vine).id;
     } else {
       const counts = R.tagCounts(S.relics.filter((_, k) => k !== ri));
       let best = null;
       for (const t of Object.keys(R.VINES)) if ((counts[t] || 0) > 0 && (!best || counts[t] > counts[best])) best = t;
-      id = R.VINES[best || R.pick(Object.keys(R.VINES))].id;
+      id = R.VINES[best || R.pick(Object.keys(R.VINES), rng('reward'))].id;
     }
     const def = R.RELIC_BY_ID[id], item = newRelicItem(id);
     S.relics[ri] = item;
@@ -1829,7 +1903,7 @@
       const sp = held[0], die = sp.data.die;
       S.bag = S.bag.filter((x) => x !== die);
       const inHand = new Set(dice.map((x) => x.data.die));
-      sp.data.die = R.pick(S.bag.filter((x) => !inHand.has(x))) || R.pick(S.bag);
+      sp.data.die = R.pick(S.bag.filter((x) => !inHand.has(x)), rng('bag')) || R.pick(S.bag, rng('bag'));
       sp.data.held = false; sp.data.anchored = false; sp.data.rnd = fresh();
       eng.emit(sp.x, sp.y, { count: 40, colours: [P.RED, P.ORANGE, '#FFFFFF'], speed: 480, size: 10, life: 0.8 });
       eng.shake(6);
@@ -1894,18 +1968,18 @@
   // ── Shop ────────────────────────────────────────────────────────────────
   const constPrice = (hand) => (upg('telescope') ? 2 : 3) + Math.max(0, ((hand && S.levels[hand]) || 1) - 1);   // +$1 pro Stufe der Hand
   function genItem(existing) {
-    const r = Math.random();
+    const shopRnd = rng('shop'), r = shopRnd();
     if (r < 0.52) {
       const taken = new Set(S.relics.map((x) => x.id).concat(existing.filter((x) => x.type === 'relic').map((x) => x.id)));
       const pool = R.RELICS.filter((d) => !d.hidden && !taken.has(d.id) && open('relic', d.id));
-      if (pool.length) { const id = R.pickWeighted(pool.map((d) => [d.id, R.RARITY[d.rarity].weight])); return { type: 'relic', id, price: R.RELIC_BY_ID[id].cost }; }
+      if (pool.length) { const id = R.pickWeighted(pool.map((d) => [d.id, R.RARITY[d.rarity].weight]), rng('shop')); return { type: 'relic', id, price: R.RELIC_BY_ID[id].cost }; }
     }
-    if (r < 0.74) { const hand = R.pick(R.HAND_ORDER); return { type: 'constellation', hand, price: constPrice(hand) }; }
-    if (r < 0.88) return { type: 'oracle', id: R.pick(R.ORACLES.filter((q) => open('oracle', q.id))).id, price: 3 };
-    return { type: 'tally', n: 1 + ((Math.random() * 6) | 0), price: 3 };
+    if (r < 0.74) { const hand = R.pick(R.HAND_ORDER, rng('shop')); return { type: 'constellation', hand, price: constPrice(hand) }; }
+    if (r < 0.88) return { type: 'oracle', id: R.pick(R.ORACLES.filter((q) => open('oracle', q.id)), rng('shop')).id, price: 3 };
+    return { type: 'tally', n: 1 + ((shopRnd() * 6) | 0), price: 3 };
   }
   function genDie() {
-    const type = R.pickWeighted(Object.entries(R.DIE_TYPES).filter(([k, d]) => d.weight > 0 && open('die', k)).map(([k, d]) => [k, d.weight]));
+    const type = R.pickWeighted(Object.entries(R.DIE_TYPES).filter(([k, d]) => d.weight > 0 && open('die', k)).map(([k, d]) => [k, d.weight]), rng('shop'));
     return { type: 'die', dieType: type, die: R.makeDie(type), price: Math.max(1, R.DIE_TYPES[type].cost - (cup().dieDiscount || 0)) };
   }
   function shopSprite(item, k) {
@@ -2016,8 +2090,8 @@
   // Crossroads: drei zufällige Tags, jeweils mit dem stärksten Relikt, das man noch nicht hat
   function crossroadsOptions() {
     const owned = S.relics.map((r) => r.id), seen = new Set();
-    return shuffle(R.TAG_ORDER.slice())
-      .map((tag) => ({ tag, def: R.strongestOfTag(tag, owned, Math.random, (d) => open('relic', d.id)) }))
+    return shuffle(R.TAG_ORDER.slice(), rng('shop'))
+      .map((tag) => ({ tag, def: R.strongestOfTag(tag, owned, rng('shop'), (d) => open('relic', d.id)) }))
       .filter((o) => o.def && !seen.has(o.def.id) && seen.add(o.def.id))
       .slice(0, 3);
   }
@@ -2057,6 +2131,8 @@
   // ── Eingabe ─────────────────────────────────────────────────────────────
   let press = null;
   eng.on('down', (m) => {
+    focusBtn = null;
+    if (S.phase === 'scoring' && SETTINGS.skipScore === 'tap' && !settingsOpen && !TUT.active) scoreFast = true;
     if (settingsOpen) { const k = sliderAt(m); if (k >= 0) { sliderDrag = k; setSlider(k, m); return; } }
     if (!settingsOpen && songRect() && UI.inside(songRect(), m)) { skipSong(); return; }
     if (MOBILE) { if (touchTipDown(m)) return; }   // Handy: Tippen in einen Tooltip öffnet Begriffe, daneben schließt ihn
@@ -2144,6 +2220,10 @@
     dragSlot = nearestSlot(m.x);
   }
   function onButton(b) {
+    if (studioButton(b)) return;
+    if (b === B.shift) return toggleShiftMode();
+    if (b.encRow !== undefined) return encPress(b.encRow);
+    if (b === B.gif) return saveGif(S.phase === 'history' ? history()[histSel] : S.summary);
     if (b === B.play) playHand();
     else if (b === B.roll) reroll();
     else if (b === B.start) pressPlay();
@@ -2153,9 +2233,9 @@
     else if (b === B.tutSlot) startTutorial();
     else if (b === B.tutX) TUT.closeX();
     else if (b === B.options || b === B.settings) { settingsOpen = true; sfx('panel'); }
-    else if (b === B.close) { settingsOpen = false; sfx('panel', { close: true }); }
+    else if (b === B.close) { settingsOpen = false; clearLockView(); sfx('panel', { close: true }); }
     else if (b === B.quit) saveAndQuit();
-    else if (b.setTab !== undefined) { if (setTab !== b.setTab) { setTab = b.setTab; sfx('page'); } }
+    else if (b.setTab !== undefined) { if (setTab !== b.setTab) { setTab = b.setTab; clearLockView(); sfx('page'); } }
     else if (b.setRow !== undefined) { const key = SET_TABS[b.inTab].rows[b.setRow].key; if (b.action) settingAction(key, b); else changeSetting(key, b.dir); }
     else if (b === B.trophies) openTrophies();
     else if (b === B.codex) openCodex();
@@ -2189,6 +2269,8 @@
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
     lastInput = nowSec();
+    if (e.key === 'Tab') { e.preventDefault(); moveFocus(e.shiftKey ? -1 : 1); return; }
+    if ((e.key === 'Enter' || k === ' ') && focusBtn && activeButtons().includes(focusBtn) && !focusBtn.disabled) { e.preventDefault(); sfx('click'); onButton(focusBtn); return; }
     if (S.phase === 'menu' && !settingsOpen && konamiKey(k)) return;
     const name = typedName(k);
     if (name === 5) { callJonny(); return; }
@@ -2199,7 +2281,9 @@
     if (k === ' ' && !settingsOpen && JS.cur) { e.preventDefault(); advanceJonny(); return; }
     if (k === 'h') return toggleDevPanel();
     if (k === 'escape') {
-      if (settingsOpen) { settingsOpen = false; sfx('panel', { close: true }); } else if (S.phase === 'cups') openSlots();
+      focusBtn = null;
+      if (settingsOpen && studioOpen) { studioOpen = false; sfx('panel', { close: true }); }
+      else if (settingsOpen) { settingsOpen = false; clearLockView(); sfx('panel', { close: true }); } else if (S.phase === 'cups') openSlots();
       else if (S.phase === 'history' && histSel >= 0) { histSel = -1; tips = []; sfx('page'); }
       else if (['slots', 'trophies', 'codex', 'history'].includes(S.phase)) setupMenu();
       else if (selected) selected = null;
@@ -2208,6 +2292,9 @@
     }
     if (k === 'o') { settingsOpen = !settingsOpen; sfx('panel', { close: !settingsOpen }); return; }
     if (S.choice || settingsOpen) return;
+    if (k === ' ' && S.phase === 'scoring' && SETTINGS.skipScore === 'tap' && !TUT.active) { e.preventDefault(); scoreFast = true; return; }
+    if ((k === '[' || k === ']') && !inMenus()) return cycleSelected(k === ']' ? 1 : -1);
+    if (k === 's' && shiftBtnOn()) return toggleShiftMode();
     if (S.cupDraw) { if (e.key === 'Enter') collectCups(); return; }
     if (S.phase === 'menu' && e.key === 'Enter') return onButton(B.start);
     if (S.phase === 'slots' && /^[1-3]$/.test(e.key)) return pickSlot(+e.key - 1);
@@ -2231,6 +2318,7 @@
       if (e.key === 'ArrowRight') return selectCup(cupSel + 1);
     }
     if (S.phase === 'shop' && e.key === 'Enter') return leaveShop();
+    if (S.phase === 'encounter' && /^[1-6]$/.test(e.key)) { const b = encButtons()[+e.key - 1]; if (b && !b.disabled) { sfx('click'); onButton(b); } return; }
     if (S.phase === 'select') {
       if (e.key === 'Enter') playHand();
       else if (k === 'r') reroll();
@@ -2256,8 +2344,14 @@
     if (!MOBILE) { B.back.x = S.phase === 'cups' ? 420 : 560; B.begin.x = 610; }
     B.cupPrev.disabled = cupSel <= 0; B.cupNext.disabled = cupSel >= cupList.length - 1;
     B.achPrev.disabled = achPage <= 0; B.achNext.disabled = achPage >= achPages() - 1;
-    SET_TAB_BTNS.forEach((b, i) => { b.colour = i === setTab ? P.BLUE : darken(P.PANEL, 0.1); });
-    for (const b of SET_BTNS) if (b.action) { const sure = confirmBtn && confirmBtn.b === b; b.label = sure ? 'Sure?' : SET_TABS[b.inTab].rows[b.setRow].action; }
+    SET_TAB_BTNS.forEach((b, i) => { b.colour = i === setTab || (SET_TABS[i].id === 'access' && SET_TABS[setTab].id === 'access2') ? P.BLUE : darken(P.PANEL, 0.1); });
+    for (const b of SET_BTNS) if (b.action) {
+      const sure = confirmBtn && confirmBtn.b === b, row = SET_TABS[b.inTab].rows[b.setRow];
+      b.label = sure ? 'Sure?' : row.key === 'studio' && !studioOwned() ? 'Locked' : row.action;
+    }
+    updateAccess();
+    if (S.phase === 'encounter') placeEncounter();
+    B.gif.disabled = gifBusy; B.gif.label = gifBusy ? 'Saving...' : 'Save GIF';
     trackSong();
     updateHead();
     if (TUT.active && TUT.everGaveUp) secret('breaking_point');
@@ -2278,7 +2372,7 @@
     if (S.phase === 'codex') { B.pagePrev.disabled = codexPage <= 0; B.pageNext.disabled = codexPage >= codexPages() - 1; CODEX_TAB_BTNS.forEach((b, i) => { b.colour = i === codexTab ? P.BLUE : darken(P.PANEL, 0.1); }); }
     if (S.phase === 'history') {
       B.pagePrev.disabled = histPage <= 0; B.pageNext.disabled = histPage >= histPages() - 1;
-      if (histSel >= 0) { B.back.w = 170; B.share.w = 190; placeRow([B.back, B.share], SUM.y + SUM.h - 60, MOBILE ? 54 : 48); B.back.label = 'Back'; }
+      if (histSel >= 0) { B.back.w = 170; B.share.w = 190; placeRow([B.back, B.share, ...(gifOf(history()[histSel]) ? [B.gif] : [])], SUM.y + SUM.h - 60, MOBILE ? 54 : 48); B.back.label = 'Back'; }
     }
     if (S.summary) {
       Object.assign(B.home, { w: 170, label: 'Main Menu' }); B.retry.w = 170; B.share.w = 190; B.endless.w = 210;
@@ -2548,12 +2642,13 @@
     return { title: g.title, desc, w: 260, badge: ['Keyword', P.PURPLE] };
   }
 
+  const tipK = () => +SETTINGS.textSize || 1;
   function panelSize(ctx, inf) {
-    const w = inf.w || 280;
-    const lines = wrapText(ctx, inf.desc, w - 32, 19);
+    const tk = tipK(), w = (inf.w || 280) * tk;
+    const lines = wrapText(ctx, inf.desc, w - 32, 19 * tk);
     const facesH = inf.faces ? 36 : 0, subH = inf.sub ? 26 : 0, badgeH = inf.badge ? 32 : 0;
     const tagsH = inf.tags && inf.tags.length ? 28 : inf.tagNote ? 24 : 0;
-    const boxH = lines.length * 22 + 14 + facesH;
+    const boxH = lines.length * 22 * tk + 14 + facesH;
     return { w, h: 44 + boxH + subH + tagsH + badgeH + 6, lines, boxH, subH, tagsH };
   }
   // Ring unten rechts: füllt sich, bis der Tooltip feststeht
@@ -2573,8 +2668,9 @@
     UI.box(ctx, x, y, w, h, { colour: P.L_BLACK, radius: 12, emboss: 4, outline: links ? P.GOLD : lighten(P.L_BLACK, 0.25), outlineWidth: links ? 2 : 1 });
     UI.text(ctx, inf.title, x + w / 2, y + 22, { size: 24 });
     UI.box(ctx, x + 8, y + 40, w - 16, boxH, { colour: '#FFFFFF', radius: 8, shadow: false });
-    lines.forEach((ln, i) => terms.push(...drawLine(ctx, ln, x + w / 2, y + 58 + i * 22, 19, links, self)));
-    if (inf.faces) terms.push(...drawFaces(ctx, inf.faces, x + w / 2, y + 40 + lines.length * 22 + 28, inf.upIdx));
+    const tk = tipK();
+    lines.forEach((ln, i) => terms.push(...drawLine(ctx, ln, x + w / 2, y + 58 + i * 22 * tk, 19 * tk, links, self)));
+    if (inf.faces) terms.push(...drawFaces(ctx, inf.faces, x + w / 2, y + 40 + lines.length * 22 * tk + 28, inf.upIdx));
     let yy = y + 40 + boxH + 4;
     if (inf.sub) { UI.text(ctx, inf.sub, x + w / 2, yy + 12, { size: 18, colour: P.GOLD }); yy += subH; }
     if (inf.tags && inf.tags.length) { tagChips(ctx, inf.tags, x + w / 2, yy + 14, 14).forEach((r) => terms.push(Object.assign(r, { term: 'tag_' + r.tag }))); yy += tagsH; }
@@ -2784,7 +2880,7 @@
       else if (S.phase === 'codex') drawCodex(back, front, t);
       else if (S.phase === 'history') drawHistory(back, front, t);
       else drawCups(back, front, t);
-      TUT.draw(front, t);
+      readable(() => TUT.draw(front, t));
       drawToasts(front);
       drawSong(front);
       drawPeek(front, t);
@@ -2793,7 +2889,9 @@
     }
     tagRects = [];
     L.drawFrame(back, front, t);
-    if (S.phase === 'shop') {
+    if (S.phase === 'encounter') {
+      /* nur Rahmen, das Fenster kommt weiter unten */
+    } else if (S.phase === 'shop') {
       L.drawShop(back, front, t);
       for (const b of BUY) if (S.shop && S.shop[b.slot]) UI.button(front, b, t);
       UI.button(front, B.next, t);
@@ -2808,22 +2906,24 @@
       drawFuse(front);
       if (!S.cupDraw) for (const b of [B.roll, B.play]) UI.button(front, b, t);
       if (!S.cupDraw && helpShown()) UI.button(front, B.help, t);
+      if (!S.cupDraw && shiftBtnOn()) UI.button(front, B.shift, t);
     }
     if (selected) for (const b of selButtons()) UI.button(front, b, t);
     drawMsg(front, t);
     if (S.summary && ['lost', 'runWon'].includes(S.phase)) drawRunCard(back, front, t, S.summary, true);
-    drawJonnyTalk(front, t);
+    readable(() => drawJonnyTalk(front, t));
     drawChoice(front, t);
+    readable(() => drawEncounter(front, t));
     drawCupDraw(back, front, t);
     drawChaos(front);
-    TUT.draw(front, t);
+    readable(() => TUT.draw(front, t));
     drawToasts(front);
     drawSong(front);
     drawPeek(front, t);
     if (S.phase !== 'menu' && !S.summary) UI.button(front, B.settings, t);
     drawSettings(front, t);
-    if (S.choice || settingsOpen || S.cupDraw || S.summary) { if (!S.summary || settingsOpen) tips = []; return; }
-    if (MOBILE) drawTipsTouch(front); else drawTips(front);
+    if (S.choice || settingsOpen || S.cupDraw || S.summary || S.phase === 'encounter') { if (!S.summary || settingsOpen) tips = []; return; }
+    readable(() => { if (MOBILE) drawTipsTouch(front); else drawTips(front); });
   }
 
   // ── Einstellungen: Palette, Hintergrund, Schrift, CRT ──────────────────
@@ -2839,10 +2939,28 @@
   const SETTINGS_VERSION = 2;
   // Lautstärken in Prozent (0–100); volScale markiert das neue Format (früher 0–10)
   const SETTINGS = { v: SETTINGS_VERSION, palette: 'felt', background: 'lava', font: 'pixelify', crt: true, master: 100, music: 70, sfx: 90, volScale: 100,
-    voice: 100, songTitles: true, muteBg: false, shake: 'full', particles: 'full', speed: 1, tipDelay: 1, textSpeed: 1, jonnyTalk: 'normal' };
+    voice: 100, songTitles: true, muteBg: false, shake: 'full', particles: 'full', speed: 1, tipDelay: 1, textSpeed: 1, jonnyTalk: 'normal',
+    material: 'matte', lookV: 0, cvd: 'off', shapeHints: false, highContrast: false, textSize: 1, readFont: false, bgMotion: 1, bgBright: 1,
+    noFlash: false, reduceMotion: false, skipScore: 'off', clickShift: false, studio: null, studioSaves: [null, null, null] };
+  // Die Looks wurden auf Freischaltungen umgestellt: einmalig alle auf die freien Looks zurücksetzen (Lautstärken usw. bleiben)
+  const LOOK_VERSION = 1;
+  // Nur für die Entwicklung: ?devlooks zeigt alles, auch Original und Swirl, und erlaubt ?palette= / ?background=
+  const devLooks = /[?&]devlooks\b/.test(location.search);
   const CHOICES = {
-    palette: () => PALETTES.filter((x) => !x.secret || open('palette', x.id)).map((x) => [x.id, x.name]),
-    background: () => BG_STYLES.map((x) => [x.id, x.name]),
+    palette: () => PALETTES.filter((x) => (!x.devOnly || devLooks) && (!x.secret || lookOwned('palette', x.id))).map((x) => [x.id, x.name]),
+    background: () => BG_STYLES.filter((x) => !x.devOnly || devLooks).map((x) => [x.id, x.name]),
+    material: () => Cos.MATERIALS.map((m) => [m.id, m.name]),
+    cvd: () => [['off', 'Off'], ['deuteranopia', 'Deuteranopia'], ['protanopia', 'Protanopia'], ['tritanopia', 'Tritanopia']],
+    shapeHints: () => [[false, 'Off'], [true, 'On']],
+    highContrast: () => [[false, 'Off'], [true, 'On']],
+    textSize: () => [[1, 'Normal'], [1.2, 'Large'], [1.4, 'XL']],
+    readFont: () => [[false, 'Off'], [true, 'On']],
+    bgMotion: () => [[1, 'Full'], [0.35, 'Slow'], [0, 'Still']],
+    bgBright: () => [[1, '100%'], [0.8, '80%'], [0.6, '60%'], [0.4, '40%']],
+    noFlash: () => [[false, 'Off'], [true, 'On']],
+    reduceMotion: () => [[false, 'Off'], [true, 'On']],
+    skipScore: () => [['off', 'Off'], ['tap', 'Tap to skip'], ['always', 'Always fast']],
+    clickShift: () => [[false, 'Off'], [true, 'On']],
     font: () => FONTS.map((x) => [x.id, x.name]),
     crt: () => [[true, 'On'], [false, 'Off']],
     songTitles: () => [[true, 'On'], [false, 'Off']],
@@ -2858,7 +2976,7 @@
   const BTN_KEYS = { roll: 'ORANGE', play: 'BLUE', start: 'BLUE', options: 'ORANGE', retry: 'RED', next: 'RED', shopReroll: 'GREEN',
     deposit: 'DEPOSIT', withdraw: 'ORANGE', use: 'GREEN', sell: 'SELL', act: 'PURPLE', settings: 'L_BLACK', close: 'RED',
     quit: 'ORANGE', home: 'L_BLACK', back: 'RED', begin: 'BLUE', cupPrev: 'ORANGE', cupNext: 'ORANGE', tutSlot: 'PURPLE', tutX: 'RED',
-    codex: 'PURPLE', history: 'GREEN', share: 'BLUE', endless: 'PURPLE', pagePrev: 'ORANGE', pageNext: 'ORANGE' };
+    codex: 'PURPLE', history: 'GREEN', share: 'BLUE', endless: 'PURPLE', gif: 'PURPLE', pagePrev: 'ORANGE', pageNext: 'ORANGE' };
   let settingsOpen = false;
   let PAL = PALETTES[0];
 
@@ -2870,31 +2988,72 @@
         Object.assign(SETTINGS, saved);
       }
     } catch (e) { /* Standardwerte */ }
+    if (SETTINGS.lookV !== LOOK_VERSION) { SETTINGS.palette = 'felt'; SETTINGS.background = 'lava'; SETTINGS.material = 'matte'; SETTINGS.lookV = LOOK_VERSION; }
+    if (!SETTINGS.studio) SETTINGS.studio = studioDefault();
     const q = location.search;
-    for (const k of ['palette', 'background', 'font']) { const m = q.match(new RegExp('[?&]' + k + '=([\\w-]+)')); if (m) SETTINGS[k] = m[1]; }
+    if (devLooks) for (const k of ['palette', 'background', 'font']) { const m = q.match(new RegExp('[?&]' + k + '=([\\w-]+)')); if (m) SETTINGS[k] = m[1]; }
   }
   function saveSettings() { try { localStorage.setItem('wg_settings', JSON.stringify(SETTINGS)); } catch (e) { /* ohne Speicher weiter */ } }
   const isFullscreen = () => !!document.fullscreenElement;
   const settingValue = (key) => (key === 'fullscreen' ? isFullscreen() : SETTINGS[key]);
-  const settingName = (key) => { const c = CHOICES[key]().find((x) => x[0] === settingValue(key)); return c ? c[1] : '?'; };
+  // Gesperrte Looks lassen sich durchblättern und zeigen ihre Bedingung, werden aber nicht übernommen
+  const LOOK_KEYS = ['palette', 'background', 'material'];
+  const lookOwned = (kind, id) => devLooks || Cos.isOwned(meta(), ACH, kind, id);
+  const lockView = {};
+  const clearLockView = () => { for (const k of LOOK_KEYS) delete lockView[k]; };
+  const unlockText = (kind, id) => { const a = ACH && ACH.SOURCE[Cos.key(kind, id)]; return !a ? 'Locked' : a.secret ? 'Locked: find a secret' : 'Unlock: ' + a.name + ' - ' + a.desc; };
+  function lockHint() {
+    for (const k of LOOK_KEYS) if (lockView[k] !== undefined) return unlockText(k, lockView[k]);
+    return SET_TABS[setTab].id === 'style' && !studioOwned() ? 'Win a run to open the Colour Studio' : null;
+  }
+  const settingName = (key) => {
+    const v = lockView[key] !== undefined ? lockView[key] : settingValue(key), c = CHOICES[key]().find((x) => x[0] === v);
+    return !c ? '?' : lockView[key] !== undefined ? c[1] + ' (locked)' : c[1];
+  };
   function changeSetting(key, dir) {
     if (key === 'fullscreen') {   // nicht gespeichert: Browser erlauben Vollbild nur nach einem Klick
       const req = isFullscreen() ? document.exitFullscreen() : document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
       if (req && req.catch) req.catch(() => {});
       return;
     }
-    const list = CHOICES[key](), i = list.findIndex((x) => x[0] === SETTINGS[key]);
-    SETTINGS[key] = list[(i + dir + list.length) % list.length][0];
+    const look = LOOK_KEYS.includes(key), list = CHOICES[key]();
+    const cur = look && lockView[key] !== undefined ? lockView[key] : SETTINGS[key], i = list.findIndex((x) => x[0] === cur);
+    const v = list[(i + dir + list.length) % list.length][0];
+    if (look && !lookOwned(key, v)) { lockView[key] = v; return; }
+    if (look) delete lockView[key];
+    SETTINGS[key] = v;
     saveSettings(); applySettings();
+    if (key === 'shapeHints') refreshAllFaces();
+    if (key === 'background' && studioOpen) placeStudio();
+  }
+  // Würfel neu zeichnen, wenn sich die Form-Hinweise ändern
+  function refreshAllFaces() {
+    dice.forEach((d) => { if (d.data.die) refreshDieTex(d); });
+    if (bagSprites.length) refreshBag();
   }
 
   function applySettings() {
     // Palette: Grundfarben zurücksetzen, dann die gewählte Palette darüberlegen
-    PAL = PALETTES.find((x) => x.id === SETTINGS.palette && (!x.secret || open('palette', x.id))) || PALETTES[0];
+    PAL = PALETTES.find((x) => x.id === SETTINGS.palette && lookOwned('palette', x.id)) || PALETTES[0];
+    SETTINGS.palette = PAL.id;
+    if (!lookOwned('background', SETTINGS.background) || !BG_STYLES.some((x) => x.id === SETTINGS.background)) SETTINGS.background = 'lava';
+    if (!lookOwned('material', SETTINGS.material)) SETTINGS.material = 'matte';
     Object.assign(P, BASE_PALETTE, PAL.colours);
+    // Reihenfolge: Palette < eigene Farben < Hoher Kontrast < Farbsehen (Barrierefreiheit hat immer das letzte Wort)
+    if (studioActive()) Object.assign(P, Col.deriveUi(SETTINGS.studio.ui1, SETTINGS.studio.ui2));
+    if (SETTINGS.highContrast) Object.assign(P, Col.HIGH_CONTRAST);
+    if (Col.CVD[SETTINGS.cvd]) Object.assign(P, Col.CVD[SETTINGS.cvd]);
+    UI.textOutline = !!SETTINGS.highContrast;
+    UI.motionK = SETTINGS.reduceMotion ? 0 : 1;
+    eng.bgMotion = +SETTINGS.bgMotion; eng.bgBright = +SETTINGS.bgBright * (SETTINGS.highContrast ? 0.6 : 1);
+    eng.noFlash = !!SETTINGS.noFlash; eng.motionK = SETTINGS.reduceMotion ? 0 : 1; eng.juiceK = SETTINGS.reduceMotion ? 0.25 : 1;
+    eng.crt.noise = SETTINGS.reduceMotion ? 0 : CRT_NOISE;
+    shapeHintsOn = !!SETTINGS.shapeHints;
+    const mt = Cos.MATERIAL_BY_ID[SETTINGS.material];
+    MAT = mt && mt.id !== 'matte' ? mt : null;
     for (const [k, key] of Object.entries(BTN_KEYS)) B[k].colour = P[key];
     BUY.forEach((b) => { b.colour = P.BLUE; });
-    SET_BTNS.forEach((b) => { b.colour = b.action ? P.RED : P.BLUE; });
+    SET_BTNS.forEach((b) => { b.colour = b.action && !b.soft ? P.RED : P.BLUE; });
     B.trophies.colour = darken(P.GOLD, 0.2);
     Object.assign(TYPE_COL, { constellation: P.PLANET, oracle: P.TAROT, die: P.GREEN });
     // Hintergrund-Stil, Schrift, CRT
@@ -2936,9 +3095,22 @@
       Saves.reloadMeta();
       if (ACH) ACH.ensure(meta());
       Saves.saveMeta();
+      applySettings();
       toasts = [];
       sfx('bust');
       eng.popup(640, 600, 'Progress reset', { colour: P.RED, size: 24, life: 1.6 });
+      return;
+    }
+    if (key === 'studio') {
+      if (studioOwned()) { studioOpen = true; studioMsg = null; placeStudio(); sfx('panel'); }
+      else denied(640, 560, 'Win a run first');
+      return;
+    }
+    if (key === 'accMore' || key === 'accBack') { setTab = SET_TABS.findIndex((x) => x.id === (key === 'accMore' ? 'access2' : 'access')); sfx('page'); return; }
+    if (key === 'photosafe') {
+      Object.assign(SETTINGS, { noFlash: true, reduceMotion: true, bgMotion: 0.35, shake: 'off', particles: 'reduced', crt: false });
+      saveSettings(); applySettings();
+      eng.popup(640, 560, 'Photosensitive safe on', { colour: P.GOLD, size: 22, life: 1.4 });
     }
   }
   // Regler ziehen
@@ -2956,7 +3128,7 @@
   let bgName = 'menu';
   function setBg(name, opts = {}) {
     bgName = name;
-    const d = PAL.bg[name];
+    const d = (studioActive() ? studioBg() : PAL.bg)[name];
     if (d.c1) eng.setBackground(d, opts);
     else eng.setBackgroundColour(d.base, Object.assign({ special: d.special, contrast: d.contrast }, opts));
   }
@@ -2964,6 +3136,475 @@
     if (!PAL) return;
     if (bgName === 'table' && isBossBlind() && S.boss && ['rolling', 'select', 'scoring'].includes(S.phase)) eng.setBackgroundColour(S.boss.colour, { contrast: 2 });
     else setBg(bgName, { spin: 0.6 });
+  }
+
+
+  // ── Barrierefreiheit: Tastatur-Fokus, Shift per Klick, Wertung überspringen, lesbare Schrift ──
+  const READ_FONT = "Verdana, 'Trebuchet MS', Arial, sans-serif";
+  const CRT_NOISE = eng.crt.noise;
+  function readable(fn) {
+    if (!SETTINGS.readFont) return fn();
+    const f = UI.FONT;
+    UI.FONT = READ_FONT;
+    try { return fn(); } finally { UI.FONT = f; }
+  }
+  let focusBtn = null;
+  function moveFocus(dir) {
+    const list = activeButtons().filter((b) => !b.disabled);
+    if (!list.length) return;
+    const i = list.indexOf(focusBtn);
+    focusBtn = list[i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length];
+    sfx('card');
+  }
+  function drawFocus(ctx) {
+    if (!focusBtn || !activeButtons().includes(focusBtn)) return;
+    const b = focusBtn;
+    ctx.save(); ctx.lineWidth = 4; ctx.strokeStyle = '#FFFFFF'; ctx.strokeRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+    ctx.lineWidth = 2; ctx.strokeStyle = '#000000'; ctx.strokeRect(b.x - 7, b.y - 7, b.w + 14, b.h + 14); ctx.restore();
+  }
+  function cycleSelected(dir) {
+    const list = relicSprites.concat(consSprites);
+    if (!list.length) return;
+    const i = list.indexOf(selected);
+    selected = list[i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length];
+    selected.juiceUp(0.25); sfx('card');
+  }
+  let shiftMode = false, shiftFrom = null, scoreFast = false;
+  const shiftBtnOn = () => SETTINGS.clickShift && S.phase === 'select' && formationOn() && !TUT.active;
+  function endShiftMode() { shiftMode = false; shiftFrom = null; }
+  function toggleShiftMode() {
+    if (!shiftMode && !canShift()) { denied(L.msg.x, dieY() - 112, 'No Shifts left'); return; }
+    shiftMode = !shiftMode; shiftFrom = null;
+    layoutDice(); sfx('card');
+  }
+  function pickShift(die) {
+    if (!shiftFrom) { shiftFrom = die; die.juiceUp(0.3); die.tint = [P.GREEN, 0.4]; sfx('card'); return; }
+    const a = dice.indexOf(shiftFrom), b = dice.indexOf(die);
+    endShiftMode();
+    if (a !== b && a >= 0 && b >= 0 && canShift()) swapDice(a, b, false);
+    layoutDice();
+  }
+  function updateAccess() {
+    if (S.phase !== 'select') endShiftMode();
+    if (S.phase !== 'scoring') scoreFast = false;
+    eng.timeScale = S.phase === 'scoring' && !TUT.active && (scoreFast || SETTINGS.skipScore === 'always') ? 6 : +SETTINGS.speed || 1;
+    const sb = MOBILE ? { w: 190, h: 66, size: 26 } : { w: 140, h: 42, size: 20 };
+    Object.assign(B.shift, sb, { x: L.msg.x - sb.w / 2, y: dieY() - (MOBILE ? 146 : 128), label: shiftMode ? (shiftFrom ? 'Pick target' : 'Pick a die') : 'Shift (' + (S.shifts || 0) + ')' });
+    // Würfelmaterial gilt für alle eigenen Würfel (und die Menü-Würfel als Vorschau)
+    for (const list of [dice, bagSprites, menuDice]) for (const sp of list) sp.material = MAT;
+    animateStudioBg();
+  }
+
+  // Würfelmaterial außen: neutraler Schein und Glitzerpixel, nur um die Würfelform (Pixel-Raster, nie auf der Fläche)
+  function drawMaterialFx(ctx, t) {
+    if (!MAT || (!MAT.halo && !MAT.sparkle)) return;
+    const list = inMenus() ? (S.phase === 'menu' ? menuDice : []) : S.phase === 'shop' ? [] : dice;
+    const px = 3;
+    for (const sp of list) {
+      if (sp._dead || sp.dissolve > 0 || !sp.visible) continue;
+      const h = (sp.w * (sp.vs || sp.s)) / 2, snap = (v) => Math.round(v / px) * px, x = snap(sp.x), y = snap(sp.y);
+      if (MAT.halo) {
+        const pulse = SETTINGS.reduceMotion ? 1 : S.phase === 'scoring' ? 0.75 + 0.45 * Math.sin(t * 7 + sp.seed * 6) : 0.85 + 0.15 * Math.sin(t * 1.6 + sp.seed * 6);
+        ctx.fillStyle = MAT.halo[0];
+        [[9, 0.32], [6, 0.55], [3, 1]].forEach(([d, a]) => {
+          ctx.globalAlpha = Math.min(1, MAT.halo[1] * a * pulse);
+          const s = snap(h + d);
+          ctx.fillRect(x - s + px * 2, y - s, (s - px * 2) * 2, s * 2);
+          ctx.fillRect(x - s, y - s + px * 2, s * 2, (s - px * 2) * 2);
+        });
+        ctx.globalAlpha = 1;
+      }
+      for (let k = 0; k < (MAT.sparkle || 0); k++) {
+        const r = sp.seed * 97 + k * 13.7, a = (r * 2.3) % (Math.PI * 2), life = SETTINGS.reduceMotion ? 0.5 : (t * 0.45 + r * 0.61) % 1;
+        if (!SETTINGS.reduceMotion && life > 0.3) continue;
+        const d = h * 1.32 + ((r * 7) % 16), sx = snap(x + Math.cos(a) * d), sy = snap(y + Math.sin(a) * d);
+        ctx.fillStyle = '#FFFFFF'; ctx.globalAlpha = SETTINGS.reduceMotion ? 0.7 : 1 - life / 0.3;
+        ctx.fillRect(sx, sy, px, px);
+        ctx.fillRect(sx - px, sy, px * 3, px); ctx.fillRect(sx, sy - px, px, px * 3);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  // ── Colour Studio: eigene Hintergrund- und UI-Farben, freigeschaltet nach dem ersten Sieg ──
+  function studioDefault() { return { on: false, c1: '#2F6B52', c2: '#1F7A62', c3: null, c4: null, ui1: '#3B4A3E', ui2: '#E3BE62' }; }
+  const studioOwned = () => lookOwned('feature', 'studio');
+  const studioActive = () => !!(SETTINGS.studio && SETTINGS.studio.on && studioOwned());
+  const styleCount = () => Cos.STYLE_COLOURS[SETTINGS.background] || 3;
+  function studioBg() {
+    const st = SETTINGS.studio, n = styleCount();
+    return Col.deriveBg({ c1: st.c1, c2: st.c2, c3: n >= 3 ? st.c3 : null, c4: n >= 4 ? st.c4 : null });
+  }
+  function studioTargets() {
+    const n = styleCount(), out = [['c1', 'Background 1'], ['c2', 'Background 2']];
+    if (n >= 3) out.push(['c3', 'Depth']);
+    if (n >= 4) out.push(['c4', Cos.STYLE_FOURTH[SETTINGS.background] || 'Extra']);
+    return out.concat([['ui1', 'Panels'], ['ui2', 'Accents']]);
+  }
+  let studioOpen = false, studioTarget = 'c1', studioMsg = null;
+  const ALL_SWATCHES = Cos.SWATCHES.map((hex) => ({ hex })).concat(Cos.SPECIAL_SWATCHES);
+  const STU = {
+    tgt: ['c1', 'c2', 'c3', 'c4', 'ui1', 'ui2'].map((k) => btn(0, 0, 200, 44, '', P.L_BLACK, { size: 20, stuTarget: k, align: 'left' })),
+    sw: ALL_SWATCHES.map((s, i) => btn(0, 0, 44, 44, '', s.hex, { size: 22, stuSwatch: i })),
+    auto: btn(0, 0, 90, 44, 'Auto', P.L_BLACK, { size: 18, stuAuto: true }),
+    save: [0, 1, 2].map((k) => btn(0, 0, 80, 44, 'Save ' + (k + 1), P.GREEN, { size: 18, stuSave: k })),
+    load: [0, 1, 2].map((k) => btn(0, 0, 80, 44, 'Load ' + (k + 1), P.BLUE, { size: 18, stuLoad: k })),
+    reset: btn(0, 0, 156, 44, 'Reset to preset', P.ORANGE, { size: 17, stuReset: true }),
+    back: btn(0, 0, 90, 44, 'Back', P.RED, { size: 20, stuBack: true }),
+  };
+  ALL_BUTTONS.push(...STU.tgt, ...STU.sw, STU.auto, ...STU.save, ...STU.load, STU.reset, STU.back);
+  const swatchLocked = (s) => !!s.id && !lookOwned('swatch', s.id);
+  const canAuto = () => studioTarget === 'c3' || studioTarget === 'c4';
+  function studioGeom() {
+    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, k = MOBILE ? 1.3 : 1, pw = Math.min(v.r - v.l - 24, MOBILE ? 1400 : 960), ph = MOBILE ? 704 : 620;
+    return { k, pw, ph, px: (v.l + v.r) / 2 - pw / 2, py: (720 - ph) / 2 };
+  }
+  function placeStudio() {
+    const { k, pw, ph, px, py } = studioGeom(), targets = studioTargets();
+    if (!targets.some((x) => x[0] === studioTarget)) studioTarget = 'c1';
+    const rowH = 46 * k, gap = 8;
+    STU.tgt.forEach((b) => { b.hidden = true; });
+    targets.forEach(([key, label], i) => {
+      const b = STU.tgt.find((q) => q.stuTarget === key);
+      Object.assign(b, { hidden: false, label, x: px + 20, y: py + 66 * k + i * (rowH + gap), w: 262 * k, h: rowH, size: 20 * k, colour: key === studioTarget ? P.BLUE : darken(P.PANEL, 0.1) });
+    });
+    const cell = 48 * k, step = cell + 8, x0 = px + 306 * k, y0 = py + 66 * k;
+    STU.sw.forEach((b, i) => {
+      const special = i >= Cos.SWATCHES.length, idx = special ? i - Cos.SWATCHES.length : i, per = special ? 6 : 8;
+      const col = idx % per, row = Math.floor(idx / per) + (special ? 2 : 0);
+      Object.assign(b, { x: x0 + col * step, y: y0 + row * step + (special ? 34 * k : 0), w: cell, h: cell, size: 24 * k });
+      const locked = swatchLocked(ALL_SWATCHES[i]);
+      b.colour = locked ? P.PANEL_DARK : ALL_SWATCHES[i].hex; b.label = locked ? '?' : '';
+    });
+    Object.assign(STU.auto, { x: x0 + 6 * step, y: y0 + 2 * step + 34 * k, w: step * 2 - 8, h: cell, size: 18 * k, disabled: !canAuto(), colour: darken(P.PANEL, 0.1) });
+    // Untere Leiste: drei Plätze, Zurücksetzen, Zurück
+    const total = 6 * 80 + 156 + 90 + 7 * 8, f = Math.min(k, (pw - 40) / total), by = py + ph - 44 * f - 18;
+    let x = px + (pw - total * f) / 2;
+    const place = (b, w) => { Object.assign(b, { x, y: by, w: w * f, h: 44 * f, size: (b.stuReset ? 17 : b.stuBack ? 20 : 18) * f }); x += (w + 8) * f; };
+    [0, 1, 2].forEach((i) => { place(STU.save[i], 80); place(STU.load[i], 80); STU.load[i].disabled = !SETTINGS.studioSaves[i]; });
+    place(STU.reset, 156); place(STU.back, 90);
+  }
+  const studioButtons = () => [...STU.tgt.filter((b) => !b.hidden), ...STU.sw, STU.auto, ...STU.save, ...STU.load, STU.reset, STU.back];
+  function setStudioColour(hex) {
+    SETTINGS.studio[studioTarget] = hex; SETTINGS.studio.on = true;
+    saveSettings(); applySettings(); placeStudio();
+  }
+  function studioButton(b) {
+    if (b.stuTarget) { studioTarget = b.stuTarget; studioMsg = null; placeStudio(); sfx('card'); return true; }
+    if (b.stuSwatch !== undefined) {
+      const s = ALL_SWATCHES[b.stuSwatch];
+      if (swatchLocked(s)) { studioMsg = s.name + '  ·  ' + unlockText('swatch', s.id); sfx('deny'); return true; }
+      studioMsg = null; setStudioColour(s.hex); return true;
+    }
+    if (b.stuAuto) { setStudioColour(null); return true; }
+    if (b.stuSave !== undefined) { SETTINGS.studioSaves[b.stuSave] = Object.assign({}, SETTINGS.studio); saveSettings(); placeStudio(); studioMsg = 'Saved to slot ' + (b.stuSave + 1); return true; }
+    if (b.stuLoad !== undefined) { SETTINGS.studio = Object.assign({}, SETTINGS.studioSaves[b.stuLoad], { on: true }); saveSettings(); applySettings(); placeStudio(); return true; }
+    if (b.stuReset) { SETTINGS.studio = studioDefault(); saveSettings(); applySettings(); placeStudio(); studioMsg = 'Back to the ' + PAL.name + ' preset'; return true; }
+    if (b.stuBack) { studioOpen = false; sfx('panel', { close: true }); return true; }
+    return false;
+  }
+  function drawStudio(ctx, t) {
+    placeStudio();
+    dim(ctx, 0.25);
+    const { k, pw, ph, px, py } = studioGeom(), st = SETTINGS.studio, cx = px + pw / 2;
+    UI.box(ctx, px, py, pw, ph, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
+    UI.dynaText(ctx, 'Colour Studio', cx, py + 32 * k, { size: 34 * k, colour: P.GOLD, time: t, wave: 2 });
+    for (const b of studioButtons()) UI.button(ctx, b, t);
+    // Farbproben neben den Zielen
+    for (const [key] of studioTargets()) {
+      const b = STU.tgt.find((q) => q.stuTarget === key), hex = st[key], s = b.h - 16;
+      if (hex) UI.box(ctx, b.x + b.w - s - 8, b.y + 8, s, s, { colour: hex, radius: 6, shadow: false, outline: '#FFFFFF', outlineWidth: 2 });
+      else UI.text(ctx, 'Auto', b.x + b.w - s / 2 - 8, b.y + b.h / 2, { size: 15 * k, colour: P.TEXT_SOFT });
+    }
+    // Gewählte Farbe markieren
+    STU.sw.forEach((b, i) => { if (st[studioTarget] === ALL_SWATCHES[i].hex && b.label === '') { ctx.lineWidth = 3; ctx.strokeStyle = '#FFFFFF'; ctx.strokeRect(b.x - 3, b.y - 3, b.w + 6, b.h + 6); } });
+    drawStudioPreview(ctx, px, pw, k);
+    const first = STU.sw[Cos.SWATCHES.length];
+    UI.text(ctx, 'Special colours', first.x, first.y - 18 * k, { size: 18 * k, colour: P.TEXT_LABEL, align: 'left' });
+    const hover = !MOBILE && STU.sw.find((b) => UI.inside(b, eng.mouse)), hs = hover && ALL_SWATCHES[STU.sw.indexOf(hover)];
+    const line = hs && hs.id ? hs.name + (swatchLocked(hs) ? '  ·  ' + unlockText('swatch', hs.id) : hs.anim ? '  ·  animated in the background' : '')
+      : studioMsg || (st.on ? 'Your colours are live. Boss rounds keep their boss colour.' : 'Pick a colour to start. Text contrast adjusts itself.');
+    UI.text(ctx, line, cx, STU.back.y - 16 * k, { size: fitText(ctx, line, pw - 40, 17 * k), colour: P.TEXT_DIM });
+  }
+  // Kleine Vorschau: Hintergrundfarben, ein Panel mit Akzent und Text, ein Würfel
+  function drawStudioPreview(ctx, px, pw, k) {
+    const last = STU.tgt.filter((b) => !b.hidden).pop(), top = Math.max(last.y + last.h, STU.sw[STU.sw.length - 1].y + STU.sw[0].h) + 14, bottom = STU.back.y - 34 * k, h = bottom - top;
+    if (h < 56) return;
+    const x = px + 20, w = pw - 40, st = SETTINGS.studio, n = styleCount();
+    const cols = [st.c1, st.c2].concat(n >= 3 ? [st.c3 || Col.autoDepth(st.c1)] : [], n >= 4 && st.c4 ? [st.c4] : []);
+    ctx.save(); ctx.beginPath(); ctx.roundRect(x, top, w, h, 10); ctx.clip();
+    cols.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x + (i * w) / cols.length, top, w / cols.length + 1, h); });
+    ctx.restore();
+    const pw2 = Math.min(380 * k, w - 40), ph2 = h - 22, bx = x + w / 2 - pw2 / 2, by = top + 11;
+    UI.box(ctx, bx, by, pw2, ph2, { colour: P.PANEL, radius: 10, emboss: 3, outline: P.GOLD, outlineWidth: 2 });
+    const die = Math.min(ph2 - 14, 64 * k);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(faceEntry({ v: 5, kind: 'normal' }, 'standard').canvas, bx + 12, by + (ph2 - die) / 2, die, die);
+    const tx = bx + die + 26, mid = by + ph2 / 2;
+    UI.text(ctx, 'Preview', tx, mid - 14 * k, { size: 24 * k, colour: P.GOLD, align: 'left' });
+    UI.text(ctx, 'Text on your panels', tx, mid + 14 * k, { size: 17 * k, colour: P.TEXT_SOFT, align: 'left' });
+  }
+  // Animierte Sonderfarben: nur im Hintergrund von Menü und Tisch, nie in Boss-Runden
+  function animateStudioBg() {
+    if (!studioActive() || SETTINGS.reduceMotion || SETTINGS.noFlash || !['menu', 'table'].includes(bgName)) return;
+    if (bgName === 'table' && isBossBlind() && S.boss && !inMenus()) return;
+    const time = nowSec();
+    for (const key of ['c1', 'c2']) {
+      const sw = SETTINGS.studio[key] && Cos.swatchByHex(SETTINGS.studio[key]);
+      if (!sw || !sw.anim) continue;
+      const hex = sw.anim === 'prism' ? Col.shiftHue(sw.hex, time * 40) : Col.mix(sw.hex, '#FFF3C4', 0.22 + 0.22 * Math.sin(time * 2.2));
+      eng.bgTarget[key] = Col.toRgb(hex).map((v) => v / 255);
+    }
+  }
+
+
+  // ── Begegnungen zwischen den Runden (Regeln: encounters.js) ─────────────
+  function freshEnc() { return { seen: [], stage: 0, luck: 0, chalk: null, cool: false, prophecy: null }; }
+  let encNow = null;
+  const ENC_BTNS = [0, 1, 2, 3, 4, 5].map((k) => btn(0, 0, 220, 44, '', P.BLUE, { size: 20, encRow: k }));
+  ALL_BUTTONS.push(...ENC_BTNS);
+  const encButtons = () => (encNow && encNow.rows ? ENC_BTNS.slice(0, encNow.rows.length) : []);
+  const encHeat = () => blindTarget(S.blindIdx) > baseTarget(S.blindIdx);
+  function encCan(e) {
+    if (e.id === 'pawnshop') return S.relics.some((r) => !r.noRefund);
+    if (e.id === 'spring') return encHeat();
+    if (e.id === 'chalk') return formationOn();
+    return true;
+  }
+  function maybeEncounter(then) {
+    if (TUT.active || !S.enc || !S.blindIdx) return then();
+    if (!Enc.shouldOffer({ ante: S.ante, finishedBlind: S.blindIdx - 1, seen: S.enc.seen.length, lastStage: S.enc.stage }, rng('encounter'))) return then();
+    const def = Enc.pick(R.tagCounts(S.relics), S.enc.seen, rng('encounter'), encCan);
+    if (!def) return then();
+    startEncounter(def.id, then);
+  }
+  function startEncounter(id, then) {
+    const def = Enc.BY_ID[id];
+    S.enc.seen.push(id); S.enc.stage = S.ante;
+    S.phase = 'encounter'; S.score = 0; S.dispScore = 0; S.target = blindTarget(S.blindIdx); selected = null; tips = [];
+    encNow = { id, def, step: 'main', text: def.intro, then };
+    seen('encounter', id);
+    achieve('encounter', { id });
+    setBg('shop', { spin: 1.2 });
+    musicMood('shop');
+    sfx('page');
+    placeEncounter();
+  }
+  function encEnd() {
+    const then = encNow.then;
+    encNow = null;
+    sfx('panel', { close: true });
+    then();
+  }
+  function encDone(text) { encNow.step = 'done'; encNow.text = text; placeEncounter(); }
+  function encStep(step, text) { encNow.step = step; if (text) encNow.text = text; placeEncounter(); sfx('page'); }
+  function encPress(k) { const row = encNow && encNow.rows[k]; if (row && !row.off) { row.act(); if (encNow) placeEncounter(); } }
+  const encPay = (v) => { S.money -= v; S.stats.spent += v; J.money.up(0.4); sfx('coin'); };
+  const encGain = (v) => { S.money += v; S.stats.earned += v; J.money.up(0.5); sfx('coin'); };
+  function encRemoveRelic(item) {
+    const sp = relicSprites.find((q) => q.data.item === item);
+    S.relics = S.relics.filter((q) => q !== item);
+    relicSprites = relicSprites.filter((q) => q !== sp);
+    if (sp) sp.dissolveOut(0.6, { colours: [P.MONEY, P.GOLD] });
+  }
+  const WALK = () => ({ label: 'Walk away', desc: 'Nothing happens. On to the shop.', walk: true, act: encEnd });
+  const bagSpare = () => S.bag.length > 5;
+  function encTradePool(item) {
+    const d = R.RELIC_BY_ID[item.id], rar = Enc.NEXT_RARITY[d.rarity];
+    if (!rar) return [];
+    return R.RELICS.filter((q) => !q.hidden && q.rarity === rar && q.id !== 'crossroads' && open('relic', q.id) && !S.relics.some((r) => r.id === q.id) && q.tags.some((t) => d.tags.includes(t)));
+  }
+  function encMystery() {
+    const vals = Enc.mysteryRoll(rng('encounter')), out = Enc.mysteryOutcome(vals), hasRoom = S.relics.length < relicMax();
+    encNow.dice = vals;
+    sfx('rattle', { n: 5, dur: 0.6 });
+    if (out === 'cursed') {
+      if (S.bag.length < bagMax()) { S.bag.push(R.makeDie('cursed')); refreshBag(); seen('die', 'cursed'); return encDone('Three Skulls grin at you. A Cursed Die crawls into your bag.'); }
+      return encDone('Three Skulls grin at you, but your bag is full. Lucky.');
+    }
+    if (out === 'legendary') {
+      secret('mystery_five');
+      const id = hasRoom && randomRelic('L', true);
+      if (id) { addRelic(id).juiceUp(0.8); jingle('fanfare', 2.5); return encDone('Five alike! ' + R.RELIC_BY_ID[id].name + ' was hiding at the bottom of the cup.'); }
+      encGain(10); return encDone('Five alike, but no room for a relic. You take $10 instead.');
+    }
+    if (out === 'upgrade') {
+      const id = rollUpgrade();
+      if (id) { S.upgrades.push(id); refreshUpgrades(); seen('upgrade', id); sfx('magic'); return encDone('Five in a row! You get ' + R.UPGRADE_BY_ID[id].name + ' for free.'); }
+      encGain(5); return encDone('Five in a row! The cup pays $5.');
+    }
+    if (out === 'relic') {
+      const id = hasRoom && randomRelic('U');
+      if (id) { addRelic(id).juiceUp(0.8); sfx('magic'); return encDone('Three alike! You find ' + R.RELIC_BY_ID[id].name + ' in the cup.'); }
+      encGain(4); return encDone('Three alike, but no room for a relic. You take $4 instead.');
+    }
+    if (out === 'money') { encGain(3); return encDone('A Pair. There is $3 under the cup.'); }
+    return encDone('Nothing matches. The cup is just a cup.');
+  }
+  function encDuel(stake) {
+    const res = Enc.duel(rng('encounter'), (R.tagCounts(S.relics).risk || 0) > 0);
+    sfx('rattle', { n: 2, dur: 0.5 });
+    const line = res.rounds.map((q) => q.me + ':' + q.them).join('   ');
+    if (res.won) { encGain(stake); if (stake === 10) secret('eddie_big'); return encDone('You ' + line + ' Eddie. "Beginner\'s luck." You win $' + stake + '.'); }
+    encPay(stake);
+    encDone('You ' + line + ' Eddie. "Pleasure doing business." You lose $' + stake + '.');
+  }
+  function encRows() {
+    const e = encNow, id = e.id, step = e.step;
+    if (step === 'done') return [{ label: 'Continue', desc: '', act: encEnd }];
+    const groupRows = (desc, act) => Enc.groupBag(S.bag).slice(0, 5).map((g) => ({ label: R.DIE_TYPES[g.type].name, desc: desc(g), off: !bagSpare(), act: () => act(g) }));
+    if (id === 'mystery') return [{ label: 'Roll the cup', gamble: true, desc: 'Pair: $3. Three or more alike: a relic. Five in a row: free upgrade. Five alike: Legendary relic. 3 Skulls: a Cursed Die.', act: encMystery }, WALK()];
+    if (id === 'fortune') {
+      if (step === 'hand') return e.hands.map((hand) => ({ label: hand, desc: 'Your next 3 ' + hand + ' hands give +' + Enc.prophecyPower(S.ante) + ' Power.', act: () => { S.enc.prophecy = { hand, left: 3, power: Enc.prophecyPower(S.ante) }; encDone('The smoke agrees. Three times, ' + hand + ' will be strong.'); } })).concat([{ label: 'Back', desc: '', walk: true, act: () => encStep('main', e.def.intro) }]);
+      return [{ label: 'Change fate ($3)', desc: S.boss === JONNY_BOSS ? 'Not even fate can move Jonny.' : 'This Showdown: ' + S.boss.name + '. ' + S.boss.desc + '. Swap it for another boss.', off: S.boss === JONNY_BOSS || !canPay(3), act: () => { encPay(3); pickBoss(); encDone('The smoke shifts. Your Showdown is now ' + S.boss.name + ': ' + S.boss.desc + '.'); } },
+        { label: 'Prophecy', desc: 'Choose one of three hand types. It gives +' + Enc.prophecyPower(S.ante) + ' Power the next 3 times you play it.', act: () => { e.hands = e.hands || shuffle(R.HAND_ORDER.filter((n) => n !== 'Chance'), rng('encounter')).slice(0, 3); encStep('hand', 'Which hand shall I bless?'); } }, WALK()];
+    }
+    if (id === 'backroom') return [2, 5, 10].map((v) => ({ label: 'Stake $' + v, gamble: true, desc: 'Best of 3, one die each, higher die wins. Win +$' + v + ', lose -$' + v + '.' + ((R.tagCounts(S.relics).risk || 0) > 0 ? ' Your Risk relic wins every tie.' : ''), off: S.money < v, act: () => encDuel(v) })).concat([WALK()]);
+    if (id === 'pawnshop') {
+      if (step === 'relic') {
+        const item = e.item, d = R.RELIC_BY_ID[item.id], fee = Enc.TRADE_FEE[d.rarity], pool = encTradePool(item);
+        return [{ label: 'Sell for $' + d.cost, desc: 'Full price, no haggling. The relic is gone.', act: () => { encRemoveRelic(item); encGain(d.cost); S.stats.sold++; encDone('Mr. Baum counts out $' + d.cost + ' and polishes your ' + d.name + '.'); } },
+          { label: fee ? 'Trade up ($' + fee + ')' : 'Trade up', desc: !fee ? 'Nothing is rarer than Legendary.' : pool.length ? 'Random ' + R.RARITY[Enc.NEXT_RARITY[d.rarity]].name + ' relic with a matching tag.' : 'Nothing matching on the shelf.', off: !fee || !pool.length || !canPay(fee), act: () => { const nw = R.pick(pool, rng('encounter')); encPay(fee); encRemoveRelic(item); addRelic(nw.id).juiceUp(0.8); sfx('magic'); encDone('A fair trade. You leave with ' + nw.name + '.'); } },
+          { label: 'Back', desc: '', walk: true, act: () => encStep('main', e.def.intro) }];
+      }
+      return S.relics.filter((r) => !r.noRefund).slice(0, 5).map((item) => { const d = R.RELIC_BY_ID[item.id]; return { label: d.name, desc: R.RARITY[d.rarity].name + ' relic. Worth $' + d.cost + ' here.', act: () => { e.item = item; encStep('relic', 'Ah, ' + d.name + '. What will it be?'); } }; }).concat([WALK()]);
+    }
+    if (id === 'lost') {
+      if (step === 'give') return groupRows((g) => g.n + ' in your bag. Hand one in for $2.', (g) => { S.bag = S.bag.filter((q) => q !== g.die); refreshBag(); encGain(2); e.given = (e.given || 0) + 1; if (e.given >= 2 || !bagSpare()) encDone('The box takes your dice without a word. +$' + e.given * 2 + '.'); else encStep('give', 'One more, if you like.'); }).concat([{ label: e.given ? 'Done' : 'Back', desc: '', walk: true, act: () => { if (e.given) encDone('The box takes your die without a word. +$2.'); else encStep('main', e.def.intro); } }]);
+      if (!e.offer) { e.offer = []; for (let tries = 0; tries < 40 && e.offer.length < 3; tries++) { const it = genDie(); if (!e.offer.some((q) => q.dieType === it.dieType)) e.offer.push(it); } }
+      return e.offer.map((it) => ({ label: R.DIE_TYPES[it.dieType].name, faces: it.die, off: S.bag.length >= bagMax(), act: () => { S.bag.push(it.die); refreshBag(); seen('die', it.dieType); sfx('magic'); encDone('It fits your hand. ' + R.DIE_TYPES[it.dieType].name + ' joins your bag.'); } }))
+        .concat([{ label: 'Hand in dice', desc: 'Give away up to 2 dice for $2 each. A thinner bag.', off: !bagSpare(), act: () => encStep('give', 'What will you leave behind?') }, WALK()]);
+    }
+    if (id === 'well') {
+      if (step === 'die') return groupRows((g) => { const v = Enc.topFace(g.die); return g.n + ' in your bag. ' + (v ? 'Raises your ' + v + 's to Lv ' + ((S.numLevels[v] || 1) + 1) + '.' : 'Nothing to raise.'); }, (g) => { const v = Enc.topFace(g.die); if (!v) return; S.bag = S.bag.filter((q) => q !== g.die); refreshBag(); S.numLevels[v] = (S.numLevels[v] || 1) + 1; sfx('magic'); encDone('The water closes over it. Your ' + v + 's reach Lv ' + S.numLevels[v] + '.'); }).concat([{ label: 'Back', desc: '', walk: true, act: () => encStep('main', e.def.intro) }]);
+      return [{ label: 'Sacrifice a die', desc: 'Remove a die from your bag. Its most common number gains 1 level.', off: !bagSpare(), act: () => encStep('die', 'Which one will you give up?') },
+        { label: 'Throw in $3', desc: '+5 Luck for the rest of this stage.', off: !canPay(3), act: () => { encPay(3); S.enc.luck = S.ante; encDone('A small splash. You feel slightly luckier.'); } }, WALK()];
+    }
+    if (id === 'spring') return [{ label: 'Drink', desc: 'Next round: target ' + UI.num(blindTarget(S.blindIdx)) + ' drops to ' + UI.num(baseTarget(S.blindIdx)) + ', but 1 reroll less per hand in that round.', act: () => { S.enc.cool = true; S.target = baseTarget(S.blindIdx); sfx('magic'); encDone('Ice cold. The next round has no Heat.'); } }, WALK()];
+    return [{ label: 'Extra Shift', desc: 'This stage: +1 Shift per hand.', act: () => { S.enc.chalk = { stage: S.ante, kind: 'shift' }; sfx('magic'); encDone('You memorise the moves. +1 Shift per hand this stage.'); } },
+      { label: 'Strong Links', desc: 'This stage: Links give +8 Pips instead of +4.', act: () => { S.enc.chalk = { stage: S.ante, kind: 'links' }; sfx('magic'); encDone('The lines glow. Links give +8 Pips this stage.'); } }, WALK()];
+  }
+  function encGeom() {
+    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, k = MOBILE ? 1.3 : 1, w = Math.min(v.r - v.l - 24, MOBILE ? 1120 : 800), h = MOBILE ? 704 : 540;
+    return { k, x: (v.l + v.r) / 2 - w / 2, y: (720 - h) / 2, w, h, y0: (720 - h) / 2 + 150 * k, rowH: (MOBILE ? 68 : 56) };
+  }
+  function placeEncounter() {
+    if (!encNow) return;
+    encNow.rows = encRows();
+    const g = encGeom();
+    encNow.rows.forEach((row, i) => {
+      const bw = 216 * g.k, bh = g.rowH - 10;
+      Object.assign(ENC_BTNS[i], { x: g.x + 20, y: g.y0 + i * g.rowH, w: bw, h: bh, label: row.label, disabled: !!row.off, colour: row.walk ? P.L_BLACK : row.gamble ? P.ORANGE : P.BLUE });
+    });
+  }
+  function drawEncounter(ctx, t) {
+    if (!encNow || S.phase !== 'encounter') return;
+    const g = encGeom(), k = g.k, def = encNow.def, face = 104 * k;
+    dim(ctx, 0.5);
+    UI.box(ctx, g.x, g.y, g.w, g.h, { colour: P.OVERLAY_SOLID, radius: 18, outline: def.colour, outlineWidth: 3 });
+    ctx.save(); ctx.imageSmoothingEnabled = false;
+    UI.box(ctx, g.x + 18, g.y + 16, face + 8, face + 8, { colour: def.colour, radius: 8, shadow: false });
+    ctx.drawImage(EncArt.portrait(def.id), g.x + 22, g.y + 20, face, face);
+    ctx.restore();
+    const tx = g.x + face + 46, tw = g.x + g.w - 22 - tx;
+    UI.dynaText(ctx, def.name, tx, g.y + 34 * k, { size: fitText(ctx, def.name, tw, 34 * k), colour: lighten(def.colour, 0.45), time: t, wave: 1.5, align: 'left' });
+    const size = 18 * k * Math.min(tipK(), 1.15), lines = wrapPlain(ctx, encNow.text, tw - 28, size).slice(0, 3), bubH = Math.max(56 * k, lines.length * size * 1.25 + 20), by = g.y + 62 * k;
+    UI.box(ctx, tx, by, tw, bubH, { colour: '#FFFFFF', radius: 12, shadow: false });
+    lines.forEach((ln, i) => UI.text(ctx, ln, tx + 14, by + 10 + size * 0.62 + i * size * 1.25, { size, colour: P.BLACK, shadow: false, align: 'left' }));
+    if (encNow.rows) encNow.rows.forEach((row, i) => {
+      const b = ENC_BTNS[i], dx = b.x + b.w + 16, dw = g.x + g.w - 20 - dx;
+      b.size = fitText(ctx, b.label, b.w - 14, 21 * k);
+      UI.button(ctx, b, t);
+      if (row.faces) { drawFaces(ctx, row.faces, dx + dw / 2, b.y + b.h / 2, -1); return; }
+      const ds = 15 * k * Math.min(tipK(), 1.1), dl = wrapPlain(ctx, row.desc || '', dw, ds).slice(0, 2), cy = b.y + b.h / 2 - ((dl.length - 1) * ds * 1.2) / 2;
+      dl.forEach((ln, j) => UI.text(ctx, ln, dx, cy + j * ds * 1.2, { size: ds, colour: row.off ? P.TEXT_FAINT : P.TEXT_SOFT, align: 'left' }));
+      if (row.gamble) { const tag = 'GAMBLE', ts = 12 * k; ctx.font = UI.font(ts); const w = ctx.measureText(tag).width + 12; UI.box(ctx, b.x + b.w - w - 4, b.y - 7, w, 16 * k, { colour: P.RED, radius: 6, shadow: false }); UI.text(ctx, tag, b.x + b.w - w / 2 - 4, b.y - 7 + 8 * k, { size: ts, shadow: false }); }
+    });
+    if (encNow.dice) {
+      const s = 52 * k, gap = 10, total = 5 * s + 4 * gap, b0 = ENC_BTNS[0], x0 = b0.x + b0.w + 24;
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      encNow.dice.forEach((v, i) => ctx.drawImage(faceEntry(v ? { v, kind: 'normal' } : { v: 1, kind: 'skull' }, 'standard').canvas, x0 + i * (s + gap), b0.y + b0.h / 2 - s / 2, s, s));
+      ctx.restore();
+    }
+    const hint = encNow.step === 'done' ? '' : def.who + (MOBILE ? '' : '   ·   [1-6] choose');
+    if (hint) UI.text(ctx, hint, g.x + g.w / 2, g.y + g.h - 16, { size: 14 * k, colour: P.TEXT_DIM });
+  }
+
+  // ── GIF der besten Hand (Daten: replay.js, Encoder: gif.js) ─────────────
+  const GIF_W = 480, GIF_H = 270, GIF_N = 100;
+  const gifOf = (rec) => !!(rec && rec.replay && rec.replay.frames && rec.replay.frames.length);
+  let gifBusy = false;
+  function gifFrame(g, rec, f) {
+    const rp = rec.replay, base = studioActive() ? SETTINGS.studio.c1 : PAL.bg.table.base;
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = darken(base, 0.35); g.fillRect(0, 0, GIF_W, GIF_H);
+    g.fillStyle = darken(base, 0.27);
+    for (let y = 0; y < GIF_H; y += 18) for (let x = (y / 18) % 2 ? 0 : 18; x < GIF_W; x += 36) g.fillRect(x, y, 18, 18);
+    const rolls = rp.frames.slice(-3), rollEnd = rolls.length * 12, stepEnd = 78, n = rp.steps.length;
+    const inRoll = f < rollEnd, idx = Math.min(rolls.length - 1, Math.floor(f / 12)), local = f - idx * 12, fr = inRoll ? rolls[idx] : rolls[rolls.length - 1];
+    const stepK = inRoll || !n ? -1 : Math.min(n - 1, Math.floor(((f - rollEnd) / Math.max(1, stepEnd - rollEnd)) * n)), step = stepK >= 0 && f < stepEnd ? rp.steps[stepK] : null;
+    const count = fr.f.length, size = count > 5 ? 54 : 64, gap = count > 5 ? 10 : 14, x0 = GIF_W / 2 - (count * size + (count - 1) * gap) / 2;
+    // Titel und Relikte
+    UI.text(g, inRoll ? 'Rolling...' : rp.name, GIF_W / 2, 22, { size: 22, colour: P.GOLD });
+    const rel = (rp.relics || []).filter((id) => R.RELIC_BY_ID[id]).slice(0, 8), rs = 26, rx = GIF_W / 2 - (rel.length * (rs + 4) - 4) / 2;
+    rel.forEach((id, i) => { const pop = step && step.r === i ? 4 : 0; drawReward(g, 'relic', id, rx + i * (rs + 4) - pop / 2, 42 - pop / 2, rs + pop, false); });
+    // Würfel
+    const mt = MAT;
+    fr.f.forEach(([v, kind], i) => {
+      const type = rp.types[i] || 'standard', tumbling = inRoll && local < 7 && !(idx > 0 && rolls[idx - 1].h[i] && rolls[idx - 1].f[i][0] === v);
+      const shown = tumbling ? { v: 1 + ((f * 7 + i * 13) % 6), kind: 'normal' } : { v, kind };
+      const hop = tumbling ? Math.round(Math.abs(Math.sin(f * 1.3 + i)) * 14) : 0, held = !inRoll || fr.h[i] ? (inRoll ? 8 : 0) : 0, hit = step && (step.i === i || step.j === i) ? 6 : 0;
+      const s = size + hit, x = Math.round(x0 + i * (size + gap) - hit / 2), y = 112 - hop - held - hit / 2;
+      const entry = faceEntry(shown, type);
+      if (mt && mt.halo) { g.fillStyle = mt.halo[0]; g.globalAlpha = mt.halo[1]; g.fillRect(x - 4, y - 4, s + 8, s + 8); g.globalAlpha = 1; }
+      g.drawImage(entry.canvas, x, y, s, s);
+      if (mt && (mt.shine || mt.shimmer) && entry.tex.mask && entry.tex.mask.source) {
+        // Glanz nur auf der Körperfläche: Maske wird als Muster genutzt, gezeichnet wird ein wandernder Lichtstreifen
+        const px = s / 32, band = Math.floor(((f + i * 9) * 0.9) % 44) - 6, src = entry.tex.mask.source.getContext('2d').getImageData(0, 0, 32, 32).data;
+        g.fillStyle = 'rgba(255,255,255,' + (mt.shine || mt.shimmer) + ')';
+        for (let py = 0; py < 32; py++) for (let qx = band - py / 2; qx < band - py / 2 + 5; qx++) { const xi = Math.floor(qx); if (xi >= 0 && xi < 32 && src[(py * 32 + xi) * 4] > 127) g.fillRect(x + xi * px, y + py * px, Math.ceil(px), Math.ceil(px)); }
+      }
+    });
+    // Zähler
+    const show = step || (!inRoll && n ? rp.steps[n - 1] : null), chips = inRoll ? 0 : f >= stepEnd ? rp.chips : show ? show.c : rp.chips, mult = inRoll ? 0 : f >= stepEnd ? rp.mult : show ? show.m : rp.mult;
+    if (f < stepEnd) {
+      UI.box(g, 130, 196, 100, 34, { colour: P.CHIPS, radius: 7, emboss: 3 }); UI.text(g, UI.num(Math.round(chips)), 180, 212, { size: 22 });
+      UI.text(g, 'x', 240, 212, { size: 18, colour: P.MULT });
+      UI.box(g, 250, 196, 100, 34, { colour: P.MULT, radius: 7, emboss: 3 }); UI.text(g, fmtMult(mult), 300, 212, { size: 22 });
+    } else {
+      const age = Math.min(1, (f - stepEnd) / 7), sz = 20 + FX.Ease.outBack(age) * 26;
+      UI.text(g, UI.num(rp.total), GIF_W / 2, 214, { size: sz, colour: P.GOLD });
+    }
+    const foot = (rec.endless ? 'Endless ' : 'Stage ') + (rp.stage || rec.stage) + '  ·  ' + (CUP_BY_ID[rp.cup || rec.cup] || CUPS[0]).name + '  ·  Würfelglück';
+    UI.text(g, foot, GIF_W / 2, 256, { size: 13, colour: P.TEXT_SOFT });
+  }
+  async function makeHandGif(rec) {
+    const c = document.createElement('canvas'); c.width = GIF_W; c.height = GIF_H;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    const hexes = [...new Set(Object.values(P).filter((v) => typeof v === 'string' && v[0] === '#' && v.length === 7).concat(['#FFFFFF', '#000000']))];
+    const pal = Gif.buildPalette(hexes), map = Gif.mapper(pal), wr = new Gif.Writer(GIF_W, GIF_H, pal, 5, 2);
+    for (let f = 0; f < GIF_N; f++) {
+      gifFrame(g, rec, f);
+      wr.add(Gif.indexFrame(g.getImageData(0, 0, GIF_W, GIF_H).data, map), f === GIF_N - 1 ? 150 : 5);
+      if (f % 4 === 3) await new Promise((res) => setTimeout(res, 0));   // Spiel bleibt flüssig
+    }
+    return wr.finish();
+  }
+  async function saveGif(rec) {
+    if (!gifOf(rec) || gifBusy) return;
+    gifBusy = true;
+    const note = (text) => eng.popup(B.gif.x + B.gif.w / 2, B.gif.y - 22, text, { colour: P.GOLD, size: 20, life: 1.8 });
+    try {
+      const bytes = await makeHandGif(rec), blob = new Blob([bytes], { type: 'image/gif' });
+      const name = 'wuerfelglueck-best-hand-' + new Date(rec.date || Date.now()).toISOString().slice(0, 10) + '.gif';
+      const file = typeof File !== 'undefined' ? new File([blob], name, { type: 'image/gif' }) : null;
+      sfx('coin');
+      if (MOBILE && file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Würfelglück', text: 'My best hand: ' + rec.replay.name }).catch(() => {}); return; }
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      note('GIF saved!');
+    } catch (e) { denied(B.gif.x + B.gif.w / 2, B.gif.y - 20, 'Could not make the GIF'); } finally { gifBusy = false; }
   }
 
   // ── Bildschirm: Speicherplätze ──────────────────────────────────────────
@@ -3081,9 +3722,11 @@
     ['Enter', 'Play hand  ·  start  ·  continue'], ['R', 'Reroll the dice you are not holding'], ['1 - 6', 'Hold or release a die'],
     ['Mouse', 'Click dice to hold, drag relics to reorder'], ['Hover', 'Keep still to pin a tooltip and read more'],
     ['Space', 'Next line while Jonny talks'], ['N', 'Skip the current song'], ['O', 'Open or close the settings'], ['Esc', 'Close  ·  go back'],
+    ['Tab', 'Move between buttons, Enter presses'], ['[  ]', 'Select a relic or consumable'], ['S', 'Shift mode (Settings > Access)'],
   ];
   function drawSettings(ctx, t) {
     if (!settingsOpen) return;
+    if (studioOpen) return drawStudio(ctx, t);
     if (MOBILE) return drawSettingsMobile(ctx, t);
     dim(ctx, 0.5);
     drawRunPanel(ctx, t);
@@ -3115,9 +3758,9 @@
     for (const b of setBtnsNow()) UI.button(ctx, b, t);
     UI.button(ctx, B.close, t);
     if (!inMenus()) UI.button(ctx, B.quit, t);
-    const hint = !inMenus() && B.quit.disabled ? 'Saving is possible once the dice have settled'
+    const hint = lockHint() || (!inMenus() && B.quit.disabled ? 'Saving is possible once the dice have settled'
       : tab.id === 'game' ? 'Jonny chatter: his comments in the shop and during runs. Reset clears trophies and unlocks.'
-        : '[O] Settings   [Esc] Close   [N] Skip song   [H] advanced FX sliders';
+        : '[O] Settings   [Esc] Close   [N] Skip song   [H] advanced FX sliders');
     UI.text(ctx, hint, 640, 634, { size: 14, colour: P.TEXT_DIM });
   }
 
@@ -3268,14 +3911,14 @@
   const JOB_HANDS = [['Two Pair', 0], ['Three of a Kind', 1], ['Small Straight', 1], ['Full House', 2], ['Four of a Kind', 3], ['Large Straight', 3]];
   const skullFacesInBag = () => S.bag.reduce((a, d) => a + d.faces.filter(R.isSkull).length, 0);
   const JOBS = [
-    { id: 'hand', make: () => { const [h, d] = R.pick(JOB_HANDS); return { text: 'Play a ' + h, hand: h, goal: 1, d }; }, hand: (j, e) => !e.bust && e.name === j.hand },
-    { id: 'twice', need: (n) => n >= 3, make: () => { const [h, d] = R.pick([['Pair', 0], ['Two Pair', 1], ['Three of a Kind', 2]]); return { text: 'Play ' + (h === 'Pair' ? 'a Pair' : h) + ' twice', hand: h, goal: 2, d }; },
+    { id: 'hand', make: () => { const [h, d] = R.pick(JOB_HANDS, rng('job')); return { text: 'Play a ' + h, hand: h, goal: 1, d }; }, hand: (j, e) => !e.bust && e.name === j.hand },
+    { id: 'twice', need: (n) => n >= 3, make: () => { const [h, d] = R.pick([['Pair', 0], ['Two Pair', 1], ['Three of a Kind', 2]], rng('job')); return { text: 'Play ' + (h === 'Pair' ? 'a Pair' : h) + ' twice', hand: h, goal: 2, d }; },
       hand: (j, e) => !e.bust && e.name === j.hand },
     { id: 'big', make: () => { const x = Math.max(10, Math.round((S.target * 0.4) / 10) * 10); return { text: 'Score ' + UI.num(x) + ' with one hand', x, goal: 1, d: 1 }; },
       hand: (j, e) => e.total >= j.x },
     { id: 'calm', make: () => ({ text: 'Play a hand without rerolling', goal: 1, d: 0 }), hand: (j, e) => e.rerolls === 0 && !e.bust },
     { id: 'hold3', make: () => ({ text: 'Play a hand while holding 3 or more dice', goal: 1, d: 0 }), hand: (j, e) => e.held >= 3 },
-    { id: 'pair', make: () => { const v = 4 + Math.floor(Math.random() * 3); return { text: 'Score two ' + v + 's in one hand', v, goal: 1, d: 1 }; },
+    { id: 'pair', make: () => { const v = 4 + Math.floor(rng('job')() * 3); return { text: 'Score two ' + v + 's in one hand', v, goal: 1, d: 1 }; },
       hand: (j, e) => !e.bust && e.vals.filter((x) => x === j.v).length >= 2 },
     { id: 'variety', need: (n) => n >= 3, make: () => ({ text: 'Play 3 different hand types', goal: 3, d: 1, seen: [] }),
       hand: (j, e) => { if (e.bust || j.seen.includes(e.name)) return 0; j.seen.push(e.name); return 1; } },
@@ -3294,7 +3937,7 @@
     if (TUT.active || (isBossBlind() && S.boss === JONNY_BOSS)) return null;
     const n = handsMax(), lk = luck(), sk = skullFacesInBag(), last = S.jonny.lastJob;
     const pool = JOBS.filter((d) => d.id !== last && (!d.need || d.need(n, lk, sk)));
-    const def = R.pick(pool), j = def.make();
+    const def = R.pick(pool, rng('job')), j = def.make();
     S.jonny.lastJob = def.id;
     return Object.assign(j, { id: def.id, kind: def.kind || 'count', n: 0, status: 'open', reward: jobReward(j.d) });
   }
@@ -3373,15 +4016,15 @@
   // Ab und zu ein Relikt zum halben Preis, mit verstecktem Haken (erst nach dem Kauf sichtbar)
   const CATCHES = ['none', 'cursed', 'cursed', 'tax', 'tax', 'nosell', 'nosell'];
   function maybeSpecial(force) {
-    if (TUT.active || !S.shop || (!force && Math.random() >= (cup().jonny ? 0.6 : 0.3))) return null;
-    const k = R.pick([0, 1, 2]);
+    if (TUT.active || !S.shop || (!force && rng('shop')() >= (cup().jonny ? 0.6 : 0.3))) return null;
+    const k = R.pick([0, 1, 2], rng('shop'));
     const taken = new Set(S.relics.map((r) => r.id).concat(S.shop.filter((x, j) => x && j !== k && x.type === 'relic').map((x) => x.id)));
     const pool = R.RELICS.filter((d) => !d.hidden && !taken.has(d.id) && d.id !== 'crossroads' && open('relic', d.id));
     if (!pool.length) return null;
     const w = { C: 0.3, U: 1, R: 1.2, L: 0.4 };
-    const id = R.pickWeighted(pool.map((d) => [d.id, w[d.rarity]]));
+    const id = R.pickWeighted(pool.map((d) => [d.id, w[d.rarity]]), rng('shop'));
     const cost = R.RELIC_BY_ID[id].cost;
-    S.shop[k] = { type: 'relic', id, price: Math.max(2, Math.ceil(cost / 2)), was: cost, special: R.pick(CATCHES) };
+    S.shop[k] = { type: 'relic', id, price: Math.max(2, Math.ceil(cost / 2)), was: cost, special: R.pick(CATCHES, rng('shop')) };
     if (shopSprites[k]) shopSprites[k].dissolveOut(0.3);
     shopSprites[k] = shopSprite(S.shop[k], k);
     return k;
@@ -3535,7 +4178,7 @@
   const jonnyBoss = () => S.boss === JONNY_BOSS && isBossBlind() && S.ante <= ANTES;
   function jonnyNewRule() {
     const pool = R.BOSSES.filter((b) => !b.factor && b.id !== S.jonnyRule);
-    const b = R.pick(pool);
+    const b = R.pick(pool, rng('boss'));
     S.jonnyRule = b.id;
     if (S.played.length) {
       eng.popup(L.msg.x, dieY() - 130, 'New rule: ' + b.name, { colour: lighten(b.colour, 0.35), size: 26, life: 1.8 });
@@ -4032,8 +4675,8 @@
     for (const b of setBtnsNow()) UI.button(ctx, b, t);
     UI.button(ctx, B.close, t);
     if (!inMenus()) UI.button(ctx, B.quit, t);
-    const hint = !inMenus() && B.quit.disabled ? 'Saving is possible once the dice have settled'
-      : tab.id === 'game' ? 'Jonny chatter: his comments in the shop and during runs. Reset clears trophies and unlocks.' : '';
+    const hint = lockHint() || (!inMenus() && B.quit.disabled ? 'Saving is possible once the dice have settled'
+      : tab.id === 'game' ? 'Jonny chatter: his comments in the shop and during runs. Reset clears trophies and unlocks.' : '');
     if (hint) UI.text(ctx, hint, g.vc, 574, { size: fitText(ctx, hint, g.pw - 40, 22), colour: P.TEXT_DIM });
   }
 
@@ -4298,7 +4941,7 @@
     if (!formationOn() || S.phase !== 'select' || !dice.length) return [];
     const fo = formationNow(), out = [], col = lighten(FORM_COL(), 0.4);
     if (fo && fo.ok) {
-      if (fo.links) out.push([fo.links + (fo.links === 1 ? ' Link' : ' Links') + ' +' + fo.links * R.LINK_PIPS + ' Pips', col]);
+      if (fo.links) out.push([fo.links + (fo.links === 1 ? ' Link' : ' Links') + ' +' + fo.links * linkPips() + ' Pips', col]);
       if (has('chain_reaction') && fo.chain.length >= 2) out.push(['Chain of ' + fo.chain.length, col]);
       if (has('bookends') && fo.bookends) out.push(['Bookends x2', P.GOLD]);
       if (has('palindrome') && fo.palindrome) out.push(['Palindrome x2.5', P.GOLD]);
@@ -4429,7 +5072,7 @@
   // ── Codex: alles, was es gibt, mit Freischalt-Stand ─────────────────────────
   // meta().codex zählt pro Art, wie oft man etwas bekommen hat (gekauft, vom Becher, verwandelt) bzw. getroffen (Bosse).
   // Zustände: owned (schon einmal gehabt), open (freigeschaltet, aber nie gehabt: ausgegraut), locked ("???" mit Aufgabe).
-  const CODEX_KINDS = ['relic', 'upgrade', 'oracle', 'die', 'boss', 'cup'];
+  const CODEX_KINDS = ['relic', 'upgrade', 'oracle', 'die', 'boss', 'cup', 'encounter'];
   function codexData() {
     const m = meta();
     if (!m.codex) {
@@ -4457,10 +5100,10 @@
   }
   const CODEX_TABS = [
     { id: 'relic', label: 'Relics' }, { id: 'upgrade', label: 'Upgrades' }, { id: 'oracle', label: 'Oracles' },
-    { id: 'die', label: 'Dice' }, { id: 'boss', label: 'Bosses' }, { id: 'cup', label: 'Cups' },
+    { id: 'die', label: 'Dice' }, { id: 'boss', label: 'Bosses' }, { id: 'cup', label: 'Cups' }, { id: 'encounter', label: 'Encounters' },
   ];
-  const CODEX_TAB_BTNS = CODEX_TABS.map((tb, i) => (MOBILE ? btn(640 + (i - 2.5) * 182 - 86, 70, 172, 50, tb.label, P.L_BLACK, { size: 26, codexTab: i })
-    : btn(640 + (i - 2.5) * 156 - 74, 78, 148, 40, tb.label, P.L_BLACK, { size: 20, codexTab: i })));
+  const CODEX_TAB_BTNS = CODEX_TABS.map((tb, i) => (MOBILE ? btn(640 + (i - 3) * 164 - 78, 70, 156, 50, tb.label, P.L_BLACK, { size: 24, codexTab: i })
+    : btn(640 + (i - 3) * 134 - 64, 78, 128, 40, tb.label, P.L_BLACK, { size: 18, codexTab: i })));
   ALL_BUTTONS.push(...CODEX_TAB_BTNS);
   const CODEX_GRID = MOBILE ? { x: 40, y: 152, cols: 8, size: 74, gap: 12, rows: 5 } : { x: 48, y: 150, cols: 10, size: 64, gap: 10, rows: 6 };
   const CODEX_PANEL = MOBILE ? { x: 830, y: 146, w: 420, h: 458 } : { x: 812, y: 150, w: 428, h: 444 };
@@ -4472,6 +5115,7 @@
     if (kind === 'oracle') return R.ORACLES.map((d) => ({ kind, id: d.id, name: d.name }));
     if (kind === 'die') return Object.keys(R.DIE_TYPES).map((id) => ({ kind, id, name: R.DIE_TYPES[id].name }));
     if (kind === 'boss') return R.BOSSES.concat([JONNY_BOSS]).map((b) => ({ kind, id: b.id, name: b.name }));
+    if (kind === 'encounter') return Enc.LIST.map((d) => ({ kind, id: d.id, name: d.name }));
     return CUPS.map((c) => ({ kind, id: c.id, name: c.name }));
   }
   // Wodurch etwas freigeschaltet wird (Achievement), sonst null
@@ -4492,6 +5136,7 @@
     if (state === 'locked') { drawReward(c, '?', '?', x, y, size, false); return; }
     if (e.kind === 'relic' || e.kind === 'upgrade' || e.kind === 'oracle' || e.kind === 'die') drawReward(c, e.kind, e.id, x, y, size, false);
     else if (e.kind === 'cup') drawReward(c, 'cupmode', e.id, x, y, size, false);
+    else if (e.kind === 'encounter') { c.save(); c.imageSmoothingEnabled = false; c.drawImage(EncArt.portrait(e.id), x, y, size, size); c.restore(); }
     else {
       const b = e.id === 'jonny' ? JONNY_BOSS : R.BOSSES.find((q) => q.id === e.id);
       UI.box(c, x, y, size, size, { colour: b.colour, radius: 8, shadow: false, outline: lighten(b.colour, 0.35), outlineWidth: 2 });
@@ -4515,6 +5160,7 @@
       const b = e.id === 'jonny' ? JONNY_BOSS : R.BOSSES.find((q) => q.id === e.id);
       return { desc: e.id === 'jonny' ? 'The final boss of Stage 8. He cheats: every hand he picks a new rule from the other bosses.' : b.desc, badge: [e.id === 'jonny' ? 'Final boss' : 'Showdown boss', b.colour] };
     }
+    if (e.kind === 'encounter') { const d = Enc.BY_ID[e.id]; return { desc: d.desc, badge: ['Encounter', d.colour], extra: d.who }; }
     const c = CUP_BY_ID[e.id];
     return { desc: st === 'locked' ? lockedDesc : c.desc, badge: [CUP_WORD, c.colour], extra: c.id === 'classic' ? 'Always available' : c.jonny ? 'Always available once unlocked' : 'Win it in a Cup Draw (Stage ' + CUP_DRAW_STAGE + ' Showdown)' };
   }
@@ -4564,8 +5210,8 @@
     y += boxH + 22;
     if (inf.extra) { UI.text(c, inf.extra, cx, y, { size: fitText(c, inf.extra, P0.w - 30, 15 * k), colour: P.TEXT_HINT }); y += 24 * k; }
     // Stand
-    const status = q.state === 'owned' ? (e.kind === 'boss' ? 'Met ' : e.kind === 'cup' ? 'Played ' : 'Collected ') + q.n + (q.n === 1 ? ' time' : ' times')
-      : q.state === 'open' ? (e.kind === 'boss' ? 'Not met yet' : e.kind === 'cup' ? 'Not played yet' : 'Unlocked. Get it once to fill this page.') : 'Locked';
+    const status = q.state === 'owned' ? (e.kind === 'boss' || e.kind === 'encounter' ? 'Met ' : e.kind === 'cup' ? 'Played ' : 'Collected ') + q.n + (q.n === 1 ? ' time' : ' times')
+      : q.state === 'open' ? (e.kind === 'boss' || e.kind === 'encounter' ? 'Not met yet' : e.kind === 'cup' ? 'Not played yet' : 'Unlocked. Get it once to fill this page.') : 'Locked';
     UI.text(c, status, cx, y, { size: 18 * k, colour: q.state === 'owned' ? P.GOLD : q.state === 'open' ? P.TEXT_LABEL : lighten(P.PURPLE, 0.35) });
     y += 28 * k;
     if (q.state === 'locked' && q.src) {
@@ -4614,6 +5260,7 @@
       cons: S.cons.map((c) => ({ type: c.type, id: c.id, hand: c.hand, n: c.n })),
       bag: S.bag.map((d) => ({ t: d.type, f: d.faces.map((f) => [f.v, f.kind]) })),
       hands: Object.assign({}, S.handCounts), levels: Object.assign({}, S.levels), tags: R.tagCounts(S.relics), ach: (S.runAch || []).slice(),
+      replay: S.bestReplay || null,
     };
   }
   function recordHistory(won) {
@@ -4751,7 +5398,7 @@
     });
     if (achs.length > 4) UI.text(front, '+' + (achs.length - 4) + ' more', c3 + cw3 - 14, ay + 24 + 4 * 24 - 4, { size: 14, colour: P.TEXT_SOFT, align: 'right' });
     back.restore(); front.restore();
-    const btns = live ? summaryButtons() : [B.back, B.share];
+    const btns = live ? summaryButtons() : [B.back, B.share, ...(gifOf(rec) ? [B.gif] : [])];
     for (const b of btns) UI.button(front, b, t);
     if (pop < 1) return;
     if (!MOBILE) {
@@ -4763,7 +5410,7 @@
   function summaryButtons() {
     const rec = S.summary;
     if (!rec) return [];
-    return [B.home, B.share, B.retry].concat(rec.won && !rec.endless && S.phase === 'runWon' && !TUT.active ? [B.endless] : []).filter((b) => b !== B.home || profile);
+    return [B.home, B.share, ...(gifOf(rec) ? [B.gif] : []), B.retry].concat(rec.won && !rec.endless && S.phase === 'runWon' && !TUT.active ? [B.endless] : []).filter((b) => b !== B.home || profile);
   }
   function placeRow(list, y, h = 50) {
     const gap = 16, total = list.reduce((a, b) => a + b.w, 0) + gap * (list.length - 1);
@@ -4930,7 +5577,7 @@
         ['Money earned', '$' + st.earned], ['Money spent', '$' + st.spent], ["Jonny's jobs", S.jonny ? S.jonny.jobs : 0],
       ],
       rules: [
-        ['Hands per round', handsMax()], ['Rerolls per hand', rerollsMax()], ['Shifts per hand', shiftsMax()],
+        ['Hands per round', handsMax()], ['Rerolls per hand', rerollsMax()], ['Shifts per hand', shiftsMax()], ...(S.enc && S.enc.prophecy ? [['Prophecy', S.enc.prophecy.hand + ' x' + S.enc.prophecy.left]] : []),
         ['Dice per hand', drawCount() + ' of ' + S.bag.length], ['Luck', luck() + '%'], ['Bust at', bustAt() + ' Skulls'],
         ['Interest cap', '$' + ii.cap], ['Anchors', anchorCap()], ['Relic slots', S.relics.length + ' / ' + relicMax()],
       ],
@@ -5030,7 +5677,7 @@
   // Test-Zugang für automatisierte Browser-Tests (?test in der URL)
   if (/[?&]test\b/.test(location.search)) {
     window.__WG = {
-      S, dice: () => dice, R, enterShop, tut: () => TUT,
+      S, P, eng, dice: () => dice, R, enterShop, tut: () => TUT,
       setFaces: (vals) => dice.forEach((d, i) => { const k = d.data.die.faces.findIndex((f) => f.v === vals[i]); if (k >= 0) { d.data.up = k; refreshDieTex(d); } }), leaveShop, useCons: () => { selected = consSprites[0]; useSelected(); }, sellRelic: (k) => { selected = relicSprites[k]; sellSelected(); }, music: () => Music.playing, settings: SETTINGS, startCupDraw: () => startCupDraw(() => enterShop()), CUPS, cupList: () => cupList, slot: () => slot, profile: () => profile, saveNow: () => autosave(true), cupSel: () => cupSel, buy, startBlind, addRelic, refreshBag, stockShop, fuse: () => fuse && { t0: fuse.t0, total: fuse.total }, tips: () => tips.map((q) => ({ term: q.term, pinned: q.pinned, rect: q.rect && { x: q.rect.x, y: q.rect.y, w: q.rect.w, h: q.rect.h }, terms: q.rect ? q.rect.terms.map((r) => ({ x: r.x, y: r.y, w: r.w, h: r.h, term: r.term })) : [] })), 
       addUpgrade: (id) => { S.upgrades.push(id); refreshUpgrades(); },
       achieve, toasts: () => toasts.map((q) => q.a.id), openTrophies, genItem, genDie, rollUpgrade, open, meta,
@@ -5047,7 +5694,8 @@
       summary: () => S.summary, runImage: (rec) => runImage(rec || S.summary || lastRecord).toDataURL('image/png'), history, openCodex, openHistory,
       codexState: (kind, id) => codexState({ kind, id }).state, codexSel: (kind, id) => { codexSel = { kind, id, name: id }; }, setCodexTab: (i) => { codexTab = i; codexPage = 0; },
       histSel: (i) => { histSel = i; }, settingsOpen: (v) => { settingsOpen = v; }, magnetize: () => magnetize(dice.slice()), slideTogether: (idx) => slideTogether(idx.map((i) => dice[i]), true, 'lodestone'),
-      jonnyEvents, pickLine, stageBase,
+      Enc, startEncounter, encNow: () => encNow, encPress, encEnd, makeHandGif, gifFrame, buildRecord, saveGif, relicMax, applySettings, saveSettings, lookOwned, Cos, Col, studio: (v) => { studioOpen = v; if (v) placeStudio(); }, studioButton, STU, setSettingsTab: (id) => { setTab = SET_TABS.findIndex((x) => x.id === id); }, changeSetting, activeButtons, MAT: () => MAT, faceEntry, onButton, focus: () => focusBtn, moveFocus,
+      jonnyEvents, pickLine, stageBase, rngState: () => S.rng, bestReplay: () => S.bestReplay, Rng, playHand, reroll,
     };
   }
 
@@ -5056,7 +5704,7 @@
   // Beim ersten Klick auf PLAY fragt Jonny, ob man ein Tutorial möchte. Es lässt sich nur einmal spielen.
   const TUT = window.WGTutorial ? window.WGTutorial({
     S, eng, UI, P, R, B, sfx, dice: () => dice, L: () => L, preview, mobile: MOBILE, dim: (ctx, a) => dim(ctx, a), upValue: (sp) => upFace(sp).v, textSpeed: () => +SETTINGS.textSpeed || 1,
-    relicSprites: () => relicSprites, consSprites: () => consSprites, addRelic,
+    relicSprites: () => relicSprites, consSprites: () => consSprites, addRelic, textScale: () => +SETTINGS.textSize || 1,
   }) : { active: false, modal: false, event() {}, buttons: () => [], update() {}, draw() {}, click: () => false, stop() {}, extraHand: () => false };
   const tutorialSeen = () => { try { return !!localStorage.getItem('wg_tutorial'); } catch (e) { return true; } };
   function pressPlay() {
@@ -5098,7 +5746,7 @@
   loadSettings();
   applySettings();
   setupDevPanel();
-  const begin = () => { setupMenu(); eng.start(update, draw); };
+  const begin = () => { setupMenu(); eng.start(update, (b, f, t) => { drawMaterialFx(b, t); draw(b, f, t); drawFocus(f); }); };
   if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('20px "Wuerfel Pixel"'), document.fonts.load('20px "Pixelify Sans"')]).catch(() => {}).then(begin);
   else begin();
 })();

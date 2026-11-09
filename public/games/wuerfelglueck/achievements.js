@@ -14,41 +14,41 @@
 //   shift (Würfel auf dem Tisch getauscht); hand hat dazu chain (längste Kette) und palindrome
 ((global) => {
   'use strict';
-  const HAND_TYPES = 9, BOSS_COUNT = 6;
+  const HAND_TYPES = 9, BOSS_COUNT = 6, ENCOUNTER_COUNT = 8;
   const r = (id) => ['relic', id], o = (id) => ['oracle', id], u = (id) => ['upgrade', id], d = (id) => ['die', id], cups = (n) => ['cup', n];
   const cupMode = (id) => ['cupmode', id];   // Becher, der dauerhaft frei wird (wie der Classic Cup)
   const cnt = (obj) => Object.keys(obj || {}).length;
 
   const LIST = [
     // Fortschritt
-    { id: 'first_round', name: 'Warm Hands', desc: 'Win your first round', on: 'round', test: () => true, rewards: [r('dial'), r('coin')] },
-    { id: 'first_boss', name: 'Giant Slayer', desc: 'Beat a Showdown boss', on: 'round', test: (e) => !!e.boss, rewards: [r('day_night'), r('chameleon')] },
-    { id: 'stage4', name: 'Halfway There', desc: 'Reach Stage 4', on: 'state', test: (e) => e.ante >= 4, rewards: [r('mirror'), r('compass')] },
-    { id: 'stage7', name: 'Deep Waters', desc: 'Reach Stage 7', on: 'state', test: (e) => e.ante >= 7, rewards: [r('crossroads')] },
-    { id: 'run_win', name: 'Würfelglück', desc: 'Win a run', on: 'run', test: (e) => e.won, rewards: [r('monument'), u('spare_die')] },
+    { id: 'first_round', name: 'Warm Hands', desc: 'Win your first round', on: 'round', test: () => true, rewards: [r('dial'), r('coin'), ['background', 'tide']] },
+    { id: 'first_boss', name: 'Giant Slayer', desc: 'Beat a Showdown boss', on: 'round', test: (e) => !!e.boss, rewards: [r('day_night'), r('chameleon'), ['palette', 'neon']] },
+    { id: 'stage4', name: 'Halfway There', desc: 'Reach Stage 4', on: 'state', test: (e) => e.ante >= 4, rewards: [r('mirror'), r('compass'), ['palette', 'sunset']] },
+    { id: 'stage7', name: 'Deep Waters', desc: 'Reach Stage 7', on: 'state', test: (e) => e.ante >= 7, rewards: [r('crossroads'), ['background', 'starfield'], ['swatch', 'midnight']] },
+    { id: 'run_win', name: 'Würfelglück', desc: 'Win a run', on: 'run', test: (e) => e.won, rewards: [r('monument'), u('spare_die'), ['feature', 'studio']] },
     { id: 'runs5', name: 'Regular', desc: 'Play 5 runs', on: ['run', 'state'], goal: 5, count: (p) => p.stats.runs, rewards: [r('hybrid_seed'), r('metamorphosis')] },
     { id: 'boss_all', name: 'Bossbuster', desc: 'Beat every Showdown boss once', on: 'round', goal: BOSS_COUNT, count: (p) => Object.keys(p.track.bosses || {}).filter((b) => b !== 'jonny').length, rewards: [r('tycoon')] },
     // Punkte
-    { id: 'score1k', name: 'Four Digits', desc: 'Score 1,000 with one hand', on: 'hand', test: (e) => e.total >= 1000, rewards: [r('signature')] },
+    { id: 'score1k', name: 'Four Digits', desc: 'Score 1,000 with one hand', on: 'hand', test: (e) => e.total >= 1000, rewards: [r('signature'), ['material', 'polished']] },
     { id: 'score10k', name: 'Big Numbers', desc: 'Score 10,000 with one hand', on: 'hand', test: (e) => e.total >= 10000, rewards: [r('trophy_case')] },
     { id: 'score100k', name: 'Astronomical', desc: 'Score 100,000 with one hand', on: 'hand', test: (e) => e.total >= 100000, rewards: [r('fusion')] },
     { id: 'overkill', name: 'Overkill', desc: 'Finish a round at 3x its target', on: 'round', test: (e) => e.score >= 3 * e.target, rewards: [r('number_king')] },
     { id: 'clutch', name: 'Clutch', desc: 'Win a round with your last hand', on: 'round', test: (e) => e.handsLeft === 0, rewards: [r('last_call')] },
     // Hände
-    { id: 'five_kind', name: 'Five Alike', desc: 'Score a Five of a Kind', on: 'hand', test: (e) => !e.bust && e.name === 'Five of a Kind', rewards: [r('jackpot'), d('twofaced')] },
+    { id: 'five_kind', name: 'Five Alike', desc: 'Score a Five of a Kind', on: 'hand', test: (e) => !e.bust && e.name === 'Five of a Kind', rewards: [r('jackpot'), d('twofaced'), ['background', 'pips']] },
     { id: 'full_house', name: 'Full House', desc: 'Score a Full House', on: 'hand', test: (e) => !e.bust && e.name === 'Full House', rewards: [r('encore')] },
     { id: 'straight', name: 'Straight Shooter', desc: 'Score a Large Straight', on: 'hand', test: (e) => !e.bust && e.name === 'Large Straight', rewards: [r('gap_jumper'), r('spiral')] },
-    { id: 'all_hands', name: 'Variety Show', desc: 'Score every hand type once', on: 'hand', goal: HAND_TYPES, count: (p) => cnt(p.track.hands), rewards: [r('variety')] },
+    { id: 'all_hands', name: 'Variety Show', desc: 'Score every hand type once', on: 'hand', goal: HAND_TYPES, count: (p) => cnt(p.track.hands), rewards: [r('variety'), ['background', 'kaleido']] },
     { id: 'combo5', name: 'On a Roll', desc: 'Play one hand type 5 times in a row', on: 'hand', test: (e) => e.streak >= 5, rewards: [r('iron_focus')] },
     // Glück
-    { id: 'lucky25', name: 'Charmed', desc: 'Get 25 Lucky Hits', on: 'reroll', goal: 25, count: (p) => p.track.lucky || 0, rewards: [r('lucky_dividend'), r('loaded_clover')] },
-    { id: 'luck50', name: 'Rabbit Hole', desc: 'Have 50 Luck or more', on: 'state', test: (e) => e.luck >= 50, rewards: [r('lucky_star')] },
-    { id: 'bad_day', name: 'Bad Day', desc: 'Bust 3 times in one run', on: 'state', test: (e) => e.runBusts >= 3, rewards: [r('black_cat')] },
+    { id: 'lucky25', name: 'Charmed', desc: 'Get 25 Lucky Hits', on: 'reroll', goal: 25, count: (p) => p.track.lucky || 0, rewards: [r('lucky_dividend'), r('loaded_clover'), ['material', 'starlit']] },
+    { id: 'luck50', name: 'Rabbit Hole', desc: 'Have 50 Luck or more', on: 'state', test: (e) => e.luck >= 50, rewards: [r('lucky_star'), ['swatch', 'emerald']] },
+    { id: 'bad_day', name: 'Bad Day', desc: 'Bust 3 times in one run', on: 'state', test: (e) => e.runBusts >= 3, rewards: [r('black_cat'), ['swatch', 'blood_moon']] },
     // Risiko
     { id: 'first_bust', name: 'Skull and Bones', desc: 'Bust for the first time', on: 'hand', test: (e) => e.bust, rewards: [r('ritual_candle'), r('loaded_skulls')] },
-    { id: 'two_skulls', name: 'Living Dangerously', desc: 'Score a hand with exactly 2 Skulls', on: 'hand', test: (e) => !e.bust && e.skulls === 2, rewards: [r('hellfire')] },
-    { id: 'busts10', name: 'Graveyard Shift', desc: 'Bust 10 times', on: 'hand', goal: 10, count: (p) => p.track.busts || 0, rewards: [r('grave_digger')] },
-    { id: 'skull_bag', name: 'Cursed Collection', desc: 'Have 4 Skull faces in your bag', on: 'state', test: (e) => e.skullFaces >= 4, rewards: [r('hex_bag'), o('devils_deal')] },
+    { id: 'two_skulls', name: 'Living Dangerously', desc: 'Score a hand with exactly 2 Skulls', on: 'hand', test: (e) => !e.bust && e.skulls === 2, rewards: [r('hellfire'), ['material', 'ember']] },
+    { id: 'busts10', name: 'Graveyard Shift', desc: 'Bust 10 times', on: 'hand', goal: 10, count: (p) => p.track.busts || 0, rewards: [r('grave_digger'), ['background', 'embers']] },
+    { id: 'skull_bag', name: 'Cursed Collection', desc: 'Have 4 Skull faces in your bag', on: 'state', test: (e) => e.skullFaces >= 4, rewards: [r('hex_bag'), o('devils_deal'), ['swatch', 'bone']] },
     { id: 'risk_set', name: 'Thrill Seeker', desc: 'Own 3 Risk relics at once', on: 'state', test: (e) => (e.tags.risk || 0) >= 3, rewards: [r('blood_pact'), r('evil_eye'), o('hex')] },
     // Neuwürfe und Halten
     { id: 'lucky_round', name: 'Hot Streak', desc: 'Get 8 Lucky Hits in one round', on: 'reroll', test: (e) => (e.luckyRound || 0) >= 8, rewards: [r('horseshoe')] },
@@ -56,36 +56,39 @@
     { id: 'bag14', name: 'Zookeeper', desc: 'Have 14 dice in your bag', on: 'state', test: (e) => (e.bag || 0) >= 14, rewards: [r('menagerie')] },
     { id: 'rerolls6', name: "Can't Stop", desc: 'Reroll 6 times in one hand', on: 'reroll', test: (e) => e.n >= 6, rewards: [r('whirlwind')] },
     { id: 'rerolls500', name: 'Dice Addict', desc: 'Reroll 500 times', on: 'reroll', goal: 500, count: (p) => p.track.rerolls || 0, rewards: [r('clockwork'), u('overdrive')] },
-    { id: 'no_reroll', name: 'Steady Nerves', desc: 'Win a round without rerolling', on: 'round', test: (e) => e.rerolls === 0, rewards: [r('bedrock'), r('scaffold')] },
+    { id: 'no_reroll', name: 'Steady Nerves', desc: 'Win a round without rerolling', on: 'round', test: (e) => e.rerolls === 0, rewards: [r('bedrock'), r('scaffold'), ['material', 'frost'], ['swatch', 'ice']] },
     // Geld
-    { id: 'money25', name: 'Savings', desc: 'Have $25 at once', on: 'state', test: (e) => e.money >= 25, rewards: [r('compound'), r('suitcase')] },
+    { id: 'money25', name: 'Savings', desc: 'Have $25 at once', on: 'state', test: (e) => e.money >= 25, rewards: [r('compound'), r('suitcase'), ['background', 'felt']] },
     { id: 'window', name: 'Window Shopper', desc: 'Leave 3 shops in a row empty-handed', on: 'shop', test: (e) => e.noBuy >= 3, rewards: [r('miser')] },
-    { id: 'money50', name: 'Moneybags', desc: 'Have $50 at once', on: 'state', test: (e) => e.money >= 50, rewards: [r('dragons_hoard'), u('overdraft')] },
-    { id: 'golden', name: 'Golden Touch', desc: 'Score 5 Gold faces', on: 'hand', goal: 5, count: (p) => p.track.gold || 0, rewards: [r('golden_rule'), d('gilded')] },
+    { id: 'money50', name: 'Moneybags', desc: 'Have $50 at once', on: 'state', test: (e) => e.money >= 50, rewards: [r('dragons_hoard'), u('overdraft'), ['swatch', 'copper']] },
+    { id: 'golden', name: 'Golden Touch', desc: 'Score 5 Gold faces', on: 'hand', goal: 5, count: (p) => p.track.gold || 0, rewards: [r('golden_rule'), d('gilded'), ['swatch', 'gold_leaf']] },
     // Beutel, Zahlen, Orakel
-    { id: 'bag10', name: 'Packrat', desc: 'Have 10 dice in your bag', on: 'state', test: (e) => e.bag >= 10, rewards: [r('brood'), r('collector')] },
+    { id: 'bag10', name: 'Packrat', desc: 'Have 10 dice in your bag', on: 'state', test: (e) => e.bag >= 10, rewards: [r('brood'), r('collector'), ['swatch', 'rose']] },
     { id: 'destroy', name: 'Less Is More', desc: 'Destroy a die from your bag', on: 'destroy', test: () => true, rewards: [r('ash_urn')] },
-    { id: 'level3', name: 'Specialist', desc: 'Raise a number to level 3', on: 'state', test: (e) => e.numLevel >= 3, rewards: [r('abacus'), r('opposites')] },
+    { id: 'level3', name: 'Specialist', desc: 'Raise a number to level 3', on: 'state', test: (e) => e.numLevel >= 3, rewards: [r('abacus'), r('opposites'), ['material', 'pearl']] },
     { id: 'level5', name: 'Number Cruncher', desc: 'Raise a number to level 5', on: 'state', test: (e) => e.numLevel >= 5, rewards: [r('jacobs_ladder')] },
     { id: 'oracles10', name: 'Seer', desc: 'Use 10 Oracles', on: 'oracle', goal: 10, count: (p) => p.track.oracles || 0, rewards: [o('refraction'), u('crystal_ball')] },
     // Jonny: Aufträge, Shop, Endboss
-    { id: 'jobs5', name: 'Helping Hand', desc: "Complete 5 of Jonny's jobs", on: 'job', goal: 5, count: (p) => p.track.jobs || 0, rewards: [cupMode('jonny')] },
+    { id: 'jobs5', name: 'Helping Hand', desc: "Complete 5 of Jonny's jobs", on: 'job', goal: 5, count: (p) => p.track.jobs || 0, rewards: [cupMode('jonny'), ['swatch', 'mustard']] },
     { id: 'jobs20', name: "Jonny's Favourite", desc: "Complete 20 of Jonny's jobs", on: 'job', goal: 20, count: (p) => p.track.jobs || 0, rewards: [r('jonny_glasses')] },
     { id: 'fine_print', name: 'Fine Print', desc: "Buy a Jonny's Special", on: 'special', test: () => true, rewards: [r('off_record')] },
     { id: 'customer', name: 'Loyal Customer', desc: 'Buy 50 things in the shop', on: 'buy', goal: 50, count: (p) => p.track.buys || 0, rewards: [r('mood_ring')] },
-    { id: 'final_exam', name: 'Final Exam', desc: 'Beat Jonny in the final Showdown', on: 'round', test: (e) => e.boss === 'jonny', rewards: [r('jonny_autograph')] },
+    { id: 'final_exam', name: 'Final Exam', desc: 'Beat Jonny in the final Showdown', on: 'round', test: (e) => e.boss === 'jonny', rewards: [r('jonny_autograph'), ['material', 'royal']] },
     // Formation: Lage der Würfel auf dem Tisch
     { id: 'chain4', name: 'Chain Gang', desc: 'Score a chain of 4 linked dice', on: 'hand', test: (e) => !e.bust && (e.chain || 0) >= 4, rewards: [r('chain_reaction')] },
     { id: 'palindrome', name: 'Racecar', desc: 'Score a hand that reads the same forwards and backwards', on: 'hand', test: (e) => !e.bust && !!e.palindrome, rewards: [r('palindrome'), r('lodestone')] },
-    { id: 'shifts50', name: 'Interior Design', desc: 'Shift dice 50 times', on: 'shift', goal: 50, count: (p) => p.track.shifts || 0, rewards: [r('keystone'), u('magnetic')] },
+    { id: 'shifts50', name: 'Interior Design', desc: 'Shift dice 50 times', on: 'shift', goal: 50, count: (p) => p.track.shifts || 0, rewards: [r('keystone'), u('magnetic'), ['background', 'checker']] },
     { id: 'formation_set', name: 'Choreographer', desc: 'Own 3 Formation relics at once', on: 'state', test: (e) => (e.tags.formation || 0) >= 3, rewards: [r('architect')] },
     // Endless
-    { id: 'endless10', name: 'Beyond the Edge', desc: 'Reach Stage 10 in Endless mode', on: 'state', test: (e) => e.ante >= 10, rewards: [cups(2)] },
+    { id: 'endless10', name: 'Beyond the Edge', desc: 'Reach Stage 10 in Endless mode', on: 'state', test: (e) => e.ante >= 10, rewards: [cups(2), ['swatch', 'abyss']] },
     { id: 'endless12', name: 'No End in Sight', desc: 'Reach Stage 12 in Endless mode', on: 'state', test: (e) => e.ante >= 12, rewards: [cups(3)] },
+    // Begegnungen zwischen den Runden
+    { id: 'enc_first', name: 'Small Talk', desc: 'Meet someone between rounds', on: 'encounter', test: () => true, rewards: [cups(1)] },
+    { id: 'enc_all', name: 'Well Travelled', desc: 'See every encounter once', on: 'encounter', goal: ENCOUNTER_COUNT, count: (p) => cnt(p.track.enc), rewards: [cups(2)] },
     // Sammeln
     { id: 'set5', name: 'Full Set', desc: 'Activate a 5-relic set bonus', on: 'state', test: (e) => e.maxSet >= 5, rewards: [cups(2)] },
     { id: 'hunter', name: 'Trophy Hunter', desc: 'Unlock 20 achievements', on: 'meta', goal: 20, count: (p) => cnt(p.ach), rewards: [cups(3)] },
-    { id: 'complete', name: 'Completionist', desc: 'Unlock every other achievement', on: 'meta', goal: 0, count: (p) => LIST.filter((a) => !a.secret && a.id !== 'complete' && p.ach[a.id]).length, rewards: [cups(5)] },
+    { id: 'complete', name: 'Completionist', desc: 'Unlock every other achievement', on: 'meta', goal: 0, count: (p) => LIST.filter((a) => !a.secret && a.id !== 'complete' && p.ach[a.id]).length, rewards: [cups(5), ['swatch', 'prism']] },
 
     // ── Secrets: bis zum Freischalten als "???" versteckt. "secret"-Ereignisse kommen direkt aus dem Spiel ({id}). ──
     S('jonny_seen', 'Did You See That?', 'Spot Jonny floating through the background', [['palette', 'basement']]),
@@ -106,6 +109,8 @@
     S('bare_hands', 'Bare Hands', 'Beat a Showdown without owning a single relic', [cups(1)], 'round', (e) => !!e.boss && (e.relics || []).length === 0),
     S('spent', 'Spent It All', 'Buy something and leave the shop with exactly $0', [], 'shop', (e) => e.bought && e.money === 0),
     S('jonny_flawless', 'Jonny Who?', "Beat Jonny's Showdown with your first hand", [cups(1)], 'round', (e) => e.boss === 'jonny' && e.handsUsed === 1),
+    S('mystery_five', 'Finders Keepers', 'Roll Five Alike with the Mystery Cup', [cups(1)]),
+    S('eddie_big', 'Slick Enough', 'Win the $10 duel against Slick Eddie', [cups(1)]),
     S('buyers_remorse', "Buyer's Remorse", "Sell a Jonny's Special in the same shop you bought it", []),
   ];
   function S(id, name, desc, rewards, on = 'secret', test = (e) => e.id === id) { return { id, name, desc, rewards, on, test, secret: true }; }
@@ -122,7 +127,7 @@
     if (!p) return p;
     if (!p.ach) p.ach = {};
     if (!p.track) p.track = {};
-    for (const k of ['hands', 'bosses']) if (!p.track[k]) p.track[k] = {};
+    for (const k of ['hands', 'bosses', 'enc']) if (!p.track[k]) p.track[k] = {};
     if (!p.cups) p.cups = {};
     if (!p.achRetro) {
       p.achRetro = true;
@@ -178,6 +183,7 @@
     else if (ev === 'job') t.jobs = (t.jobs || 0) + 1;
     else if (ev === 'buy') t.buys = (t.buys || 0) + 1;
     else if (ev === 'shift') t.shifts = (t.shifts || 0) + 1;
+    else if (ev === 'encounter') t.enc[e.id] = 1;
     const got = [];
     const check = (name) => {
       for (const a of LIST) {

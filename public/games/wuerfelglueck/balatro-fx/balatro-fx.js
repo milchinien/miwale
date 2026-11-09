@@ -118,6 +118,9 @@ uniform vec3 uC1, uC2, uC3;
 uniform float uContrast, uLighting, uSpinAmount, uPixel;
 uniform vec2 uOffset;
 uniform int uStyle;
+uniform vec3 uC4;           // 4. Farbe (Colour Studio): Extra-Ebene von Stilen wie Pips oder Kaleido
+uniform float uC4On, uBright;
+float gAcc = 0.;            // Anteil der Extra-Ebene am aktuellen Pixel (von den Stil-Funktionen gesetzt)
 uniform float uFragScale;   // 1 = volle Auflösung; >1: Hintergrund wird verkleinert gerendert (ein Texel pro Hintergrund-Pixel)
 out vec4 o;
 ${GLSL_NOISE}
@@ -156,6 +159,7 @@ float stylePips(vec2 uv, float t, float spin){
   float wave = 0.5 + 0.5 * sin(cell.x * 0.45 - cell.y * 0.3 + t * 0.12 + 3. * fbm(cell * 0.15 + t * 0.01));
   float rad = 0.08 + 0.3 * wave;
   float dotm = 1. - smoothstep(rad - 0.04, rad, length(fp));
+  gAcc = dotm;
   float field = smoothstep(0.35, 0.65, fbm(uv * 2.5 + vec2(t * 0.01, -t * 0.008)));
   return mix(field * 2., 1., dotm);
 }
@@ -164,10 +168,44 @@ float styleKaleido(vec2 uv, float t, float spin){
   float seg = 6.2831853 / 6.;
   float a = mod(atan(uv.y, uv.x) + spin * 0.5 + t * 0.006, seg);
   a = abs(a - seg * 0.5);
+  gAcc = 1. - smoothstep(0.02, 0.07, a);
   vec2 k = vec2(cos(a), sin(a)) * length(uv) * 6.;
   float tt = t * 0.03;
   vec2 q = vec2(fbm(k + vec2(tt, 0.)), fbm(k + vec2(3.1, -tt)));
   return smoothstep(0.2, 0.8, fbm(k * 1.2 + 2. * q - vec2(0., tt))) * 2.;
+}
+// Felt: ruhiges Tuch aus feinem Gewebe und langsam ziehenden Flecken
+float styleFelt(vec2 uv, float t, float spin){
+  vec2 p = uv * 90.;
+  float weave = sin(p.x) * sin(p.y) * 0.5 + 0.5;
+  float cloud = smoothstep(0.3, 0.7, fbm(uv * 3. + vec2(t * 0.008, -t * 0.006)));
+  return clamp(mix(0.16, 0.42, cloud) + (weave - 0.5) * 0.012, 0., 2.);
+}
+// Embers: Glut von unten, einzelne Funken steigen auf
+float styleEmbers(vec2 uv, float t, float spin){
+  vec2 p = uv * vec2(14., 10.) + vec2(0., -t * 0.12);
+  vec2 cell = floor(p), fp = fract(p) - 0.5;
+  float h = fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+  float spark = (1. - smoothstep(0.05, 0.13, length(fp + (h - 0.5) * 0.6))) * step(0.74, h);
+  float heat = smoothstep(0.5, -0.45, uv.y + (fbm(vec2(uv.x * 4., t * 0.04)) - 0.5) * 0.5);
+  gAcc = spark;
+  return mix(mix(0.5, 0.96, heat), 0., spark);
+}
+// Starfield: ruhiger Nebel mit funkelnden Sternen
+float styleStarfield(vec2 uv, float t, float spin){
+  vec2 p = uv * 22. + vec2(t * 0.012, t * 0.005);
+  vec2 cell = floor(p), fp = fract(p) - 0.5;
+  float h = fract(sin(dot(cell, vec2(41.3, 289.1))) * 43758.5453);
+  float tw = 0.5 + 0.5 * sin(t * 0.25 + h * 40.);
+  float star = (1. - smoothstep(0.03, 0.09 + 0.05 * tw, length(fp + (h - 0.5) * 0.5))) * step(0.82, h);
+  gAcc = star;
+  float cloud = smoothstep(0.35, 0.75, fbm(uv * 2.2 + vec2(-t * 0.006, t * 0.004)));
+  return mix(0.5 - cloud * 0.2, 1., star);
+}
+// Checker: langsam wanderndes Schachbrett
+float styleChecker(vec2 uv, float t, float spin){
+  vec2 p = rot(0.3 + spin * 0.4) * uv * 9. + vec2(t * 0.02, t * 0.012);
+  return mix(0.2, 1.75, mod(floor(p.x) + floor(p.y), 2.));
 }
 void main(){
   vec2 res = uRes;
@@ -175,8 +213,12 @@ void main(){
   vec2 uv = (floor(gl_FragCoord.xy * uFragScale / px) * px - 0.5 * res) / length(res) - uOffset;
   if (uStyle > 0) {
     float paint = uStyle == 1 ? styleLava(uv, uFlow, uSpin) : uStyle == 2 ? styleTide(uv, uFlow, uSpin)
-                : uStyle == 3 ? stylePips(uv, uFlow, uSpin) : styleKaleido(uv, uFlow, uSpin);
-    o = vec4(paintCol(paint), 1.);
+                : uStyle == 3 ? stylePips(uv, uFlow, uSpin) : uStyle == 4 ? styleKaleido(uv, uFlow, uSpin)
+                : uStyle == 5 ? styleFelt(uv, uFlow, uSpin) : uStyle == 6 ? styleEmbers(uv, uFlow, uSpin)
+                : uStyle == 7 ? styleStarfield(uv, uFlow, uSpin) : styleChecker(uv, uFlow, uSpin);
+    vec3 styled = paintCol(paint);
+    if (uC4On > 0.5) styled = mix(styled, uC4, clamp(gAcc, 0., 1.));
+    o = vec4(styled * uBright, 1.);
     return;
   }
   float uvLen = length(uv);
@@ -199,7 +241,7 @@ void main(){
   float c3p = 1. - min(1., c1p + c2p);
   float light = (uLighting - 0.2) * max(c1p * 5. - 4., 0.) + uLighting * max(c2p * 5. - 4., 0.);
   vec3 col = (0.3 / uContrast) * uC1 + (1. - 0.3 / uContrast) * (uC1 * c1p + uC2 * c2p + uC3 * c3p) + light;
-  o = vec4(col, 1.);
+  o = vec4(col * uBright, 1.);
 }`;
 
   // Sprites (Karten, Würfel …): 3D-Tilt mit perspektivisch korrekter Interpolation.
@@ -235,6 +277,9 @@ uniform float uTime, uSeed, uDissolve, uShadow, uHover, uAlpha, uFlash;
 uniform int uEdition;
 uniform vec3 uBurn1, uBurn2;
 uniform vec4 uTint;
+uniform sampler2D uMask;     // Würfelmaterial: nur Pixel der Körperfarbe (Augen, Symbole, Rand sind geschützt)
+uniform int uMaterial;
+uniform float uMatDim, uMatShine, uMatShimmer;
 out vec4 o;
 ${GLSL_NOISE}
 void main(){
@@ -284,6 +329,21 @@ void main(){
       c = (1. - c) * vec3(0.82, 0.8, 1.) + vec3(0.04, 0.02, 0.1);
       float s = sin((puv.x - puv.y) * 10. + t * 1.2 + uTilt.x * 4.);
       c += vec3(0.25, 0.2, 0.45) * pow(max(s, 0.), 6.) * 0.4;
+    }
+    // Würfelmaterial: neutrales Licht auf der Körperfläche, im Pixelraster. Verändert nie den Farbton.
+    if (uMaterial > 0 && texture(uMask, puv).r > 0.5) {
+      float lum = max(c.r, max(c.g, c.b));
+      float k = mix(0.35, 1., smoothstep(0.15, 0.5, lum));   // dunkle Seiten (Schädel, Hex): schwächer
+      c *= 1. - uMatDim * k;
+      vec2 q = puv - 0.5;
+      float light;
+      if (uMaterial == 1) {
+        float s = (q.x - q.y * 0.6) - (uTilt.x * 1.6 - uTilt.y * 0.9 + 0.35 * sin(t * 0.5));
+        light = smoothstep(0.12, 0., abs(s)) * uMatShine;
+      } else {
+        light = smoothstep(0.45, 0.75, fbm(puv * 5. + vec2(t * 0.12, -t * 0.09))) * uMatShimmer;
+      }
+      c = min(c + light * k, vec3(1.));
     }
     // Hover-Glanzstreifen
     float sl = (puv.x - puv.y * 0.6) - (0.15 + uTilt.x * 1.1 - uTilt.y * 0.6);
@@ -428,8 +488,9 @@ void main(){
 
   /** Hintergrund-Stile (gleiche Farben/Parameter, andere Bewegung). 0 = Original-Swirl. */
   const BG_STYLES = [
-    { id: 'swirl', name: 'Swirl (Original)' }, { id: 'lava', name: 'Lava' }, { id: 'tide', name: 'Tide' },
+    { id: 'swirl', name: 'Swirl (Original)', devOnly: true }, { id: 'lava', name: 'Lava' }, { id: 'tide', name: 'Tide' },
     { id: 'pips', name: 'Pips' }, { id: 'kaleido', name: 'Kaleido' },
+    { id: 'felt', name: 'Felt' }, { id: 'embers', name: 'Embers' }, { id: 'starfield', name: 'Starfield' }, { id: 'checker', name: 'Checker' },
   ];
 
   const BG_PRESETS = {
@@ -457,6 +518,7 @@ void main(){
   function normaliseBg(src) {
     const o = {};
     for (const k of ['c1', 'c2', 'c3']) if (src[k] !== undefined) o[k] = hexToRgb(src[k]);
+    o.c4 = src.c4 ? hexToRgb(src.c4) : null;
     for (const k of ['contrast', 'lighting', 'spinAmount', 'pixelFilter', 'spinSpeed', 'rotation']) if (src[k] !== undefined) o[k] = src[k];
     return o;
   }
@@ -497,7 +559,7 @@ void main(){
     }
     moveTo(x, y, r, s) { this.T.x = x; this.T.y = y; if (r !== undefined) this.T.r = r; if (s !== undefined) this.T.s = s; return this; }
     snap() { this.x = this.T.x; this.y = this.T.y; this.r = this.T.r; this.s = this.T.s; this.vx = this.vy = 0; return this; }
-    juiceUp(scale = 0.4, rot) { this.juice.up(scale, rot); return this; }
+    juiceUp(scale = 0.4, rot) { this.juice.up(scale * this.engine.juiceK, rot); return this; }
     flashWhite(amount = 0.8) { this.flash = amount; return this; }
     remove() { this._dead = true; }
 
@@ -544,8 +606,8 @@ void main(){
         tx = clamp((m.x - this.x) / (this.w * 0.5), -1.2, 1.2) * 0.42;
         ty = clamp((m.y - this.y) / (this.h * 0.5), -1.2, 1.2) * 0.42;
       } else {
-        tx = Math.sin(t * 0.9 + this.seed * 6.28) * 0.09 * this.ambient;
-        ty = Math.cos(t * 0.73 + this.seed * 9.1) * 0.07 * this.ambient;
+        tx = Math.sin(t * 0.9 + this.seed * 6.28) * 0.09 * this.ambient * this.engine.motionK;
+        ty = Math.cos(t * 0.73 + this.seed * 9.1) * 0.07 * this.ambient * this.engine.motionK;
       }
       tx += clamp(this.vx * 0.0009, -0.4, 0.4);
       ty += clamp(-this.vy * 0.0006, -0.3, 0.3);
@@ -554,9 +616,9 @@ void main(){
 
       this.vr = this.r + this.juice.r
         + clamp(this.vx * 0.00035, -0.3, 0.3)
-        + Math.sin(t * 1.3 + this.seed * 12) * 0.012 * this.ambient * (1 - this.hoverAmt);
+        + Math.sin(t * 1.3 + this.seed * 12) * 0.012 * this.ambient * this.engine.motionK * (1 - this.hoverAmt);
       this.vs = this.s * (1 + this.juice.s) * (1 + 0.05 * this.hoverAmt);
-      this.bob = Math.sin(t * 1.1 + this.seed * 20) * 1.2 * this.ambient * (1 - this.hoverAmt);
+      this.bob = Math.sin(t * 1.1 + this.seed * 20) * 1.2 * this.ambient * this.engine.motionK * (1 - this.hoverAmt);
 
       if (this._dissolveDir) {
         this.dissolve = clamp(this.dissolve + (this._dissolveDir * dt) / this._dissolveDur, 0, 1);
@@ -603,6 +665,7 @@ void main(){
       this.bg = JSON.parse(JSON.stringify(start));
       this.bgTarget = JSON.parse(JSON.stringify(start));
       this.bgRate = 2.2;
+      this.bgMotion = 1; this.bgBright = 1; this.noFlash = false; this.motionK = 1; this.juiceK = 1;   // Barrierefreiheit
       this.bgFlow = Math.random() * 100; this.bgSpin = 0; this.spinPulse = 0; this.flowBoost = 0;
 
       this.crt = Object.assign({ enabled: true, amount: 0.75, curvature: 0.6, scanlines: 0.55, bloom: 0.55, chroma: 0.55, noise: 0.35, vignette: 0.6 }, opts.crt);
@@ -812,7 +875,7 @@ void main(){
       this.spinPulse += 0.8;
     }
     /** Kurzer Energie-Schub im Hintergrund (schneller fließen/drehen). */
-    pulseBackground(spin = 0.8, flow = 4) { this.spinPulse += spin; this.flowBoost += flow; }
+    pulseBackground(spin = 0.8, flow = 4) { if (this.noFlash) return; this.spinPulse += spin; this.flowBoost += flow; }
 
     after(delay, fn) { this.timers.push({ t: delay, fn }); }
     /** Sequenzielle Event-Queue (wie Balatros Event-Manager): jedes Event wartet `delay` Sekunden nach dem vorigen. */
@@ -833,11 +896,12 @@ void main(){
       // Hintergrund
       const b = this.bg, bt = this.bgTarget, r = this.bgRate;
       for (const k of ['c1', 'c2', 'c3']) for (let i = 0; i < 3; i++) b[k][i] = damp(b[k][i], bt[k][i], r, dt);
+      if (bt.c4) { if (!b.c4) b.c4 = bt.c4.slice(); for (let i = 0; i < 3; i++) b.c4[i] = damp(b.c4[i], bt.c4[i], r, dt); } else b.c4 = null;
       for (const k of ['contrast', 'lighting', 'spinAmount', 'pixelFilter', 'spinSpeed', 'rotation']) b[k] = damp(b[k], bt[k], r, dt);
       this.spinPulse = damp(this.spinPulse, 0, 1.8, dt);
       this.flowBoost = damp(this.flowBoost, 0, 1.5, dt);
-      this.bgFlow += dt * (b.spinSpeed + this.flowBoost);
-      this.bgSpin += dt * (b.rotation * 0.2 + this.spinPulse * 0.35);
+      this.bgFlow += dt * (b.spinSpeed + this.flowBoost) * this.bgMotion;
+      this.bgSpin += dt * (b.rotation * 0.2 + this.spinPulse * 0.35) * this.bgMotion;
 
       // Timer, Events, Tweens
       for (let i = this.timers.length - 1; i >= 0; i--) { const tm = this.timers[i]; tm.t -= dt; if (tm.t <= 0) { this.timers.splice(i, 1); tm.fn(); } }
@@ -958,12 +1022,19 @@ void main(){
       gl.uniform1f(P.u.uDissolve, s.dissolve);
       gl.uniform1f(P.u.uHover, s.hoverAmt);
       gl.uniform1f(P.u.uAlpha, s.alpha);
-      gl.uniform1f(P.u.uFlash, s.flash);
+      gl.uniform1f(P.u.uFlash, this.noFlash ? 0 : s.flash);
       gl.uniform1i(P.u.uEdition, EDITIONS[s.edition] || 0);
       gl.uniform3fv(P.u.uBurn1, s.burn1);
       gl.uniform3fv(P.u.uBurn2, s.burn2);
       if (s.tint) { const c = hexToRgb(s.tint[0]); gl.uniform4f(P.u.uTint, c[0], c[1], c[2], s.tint[1]); }
       else gl.uniform4f(P.u.uTint, 0, 0, 0, 0);
+      const mat = !shadow && s.material && s.material.code && s.tex.mask ? s.material : null;
+      gl.uniform1i(P.u.uMaterial, mat ? mat.code : 0);
+      if (mat) {
+        gl.uniform1f(P.u.uMatDim, mat.dim); gl.uniform1f(P.u.uMatShine, mat.shine); gl.uniform1f(P.u.uMatShimmer, mat.shimmer);
+        gl.uniform1i(P.u.uMask, 1);
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, s.tex.mask.tex); gl.activeTexture(gl.TEXTURE0);
+      }
       gl.bindTexture(gl.TEXTURE_2D, s.tex.tex);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
@@ -1009,6 +1080,9 @@ void main(){
       gl.uniform1f(B.u.uPixel, b.pixelFilter);
       gl.uniform2f(B.u.uOffset, 0, 0);
       gl.uniform1i(B.u.uStyle, this.bgStyle || 0);
+      gl.uniform1f(B.u.uC4On, b.c4 ? 1 : 0);
+      if (b.c4) gl.uniform3fv(B.u.uC4, b.c4);
+      gl.uniform1f(B.u.uBright, this.bgBright);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       if (low) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
@@ -1133,6 +1207,7 @@ void main(){
 
   const UI = {
     FONT: "'m6x11', 'Pixelify Sans', 'Courier New', monospace",
+    textOutline: false, motionK: 1,   // Barrierefreiheit
     font(size) { return `${Math.round(size)}px ${UI.FONT}`; },
 
     roundRect(ctx, x, y, w, h, r) {
@@ -1164,7 +1239,8 @@ void main(){
       ctx.font = UI.font(size);
       ctx.textAlign = o.align || 'center';
       ctx.textBaseline = o.baseline || 'middle';
-      if (o.shadow !== false) { ctx.fillStyle = o.shadowColour || 'rgba(0,0,0,0.35)'; ctx.fillText(str, x - size * 0.06, y + size * 0.09); }
+      if (UI.textOutline && o.shadow !== false) { ctx.lineWidth = Math.max(2, size * 0.16); ctx.lineJoin = 'round'; ctx.strokeStyle = '#000000'; ctx.strokeText(str, x, y); }
+      else if (o.shadow !== false) { ctx.fillStyle = o.shadowColour || 'rgba(0,0,0,0.35)'; ctx.fillText(str, x - size * 0.06, y + size * 0.09); }
       ctx.fillStyle = o.colour || PALETTE.WHITE;
       ctx.fillText(str, x, y);
     },
@@ -1174,7 +1250,7 @@ void main(){
      */
     dynaText(ctx, str, x, y, o = {}) {
       str = String(str);
-      const size = o.size || 32, t = o.time || 0, wave = o.wave !== undefined ? o.wave : 2.5, rw = o.rotWave !== undefined ? o.rotWave : 0.06;
+      const size = o.size || 32, t = o.time || 0, wave = (o.wave !== undefined ? o.wave : 2.5) * UI.motionK, rw = (o.rotWave !== undefined ? o.rotWave : 0.06) * UI.motionK;
       const pop = o.pop !== undefined ? o.pop : 1, sc = o.scale || 1;
       ctx.save();
       ctx.translate(x, y);

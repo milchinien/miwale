@@ -28,7 +28,7 @@
   function blankMeta() {
     return { v: META_VERSION, playTime: 0, lastCup: null, cups: {},
       stats: { runs: 0, wins: 0, bestStage: 0, bestHand: 0, hands: 0 },
-      ach: {}, track: { hands: {}, bosses: {} }, achRetro: false };
+      ach: {}, track: { hands: {}, bosses: {} }, achRetro: false, cosmetics: {} };
   }
   // Ältere Stände hatten Statistik, Becher und Achievements pro Platz: einmalig zusammenführen
   function migrate(meta) {

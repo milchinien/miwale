@@ -65,7 +65,7 @@
       },
     },
     {
-      id: 'original', name: 'Original',
+      id: 'original', name: 'Original', devOnly: true,
       colours: {
         // BalatroFX.PALETTE bleibt wie geliefert; hier nur die Würfelglück-Schlüssel
         TEXT_SOFT: '#E0E8EA', TEXT_LABEL: '#D5E0E2', TEXT_DIM: '#9FB0B4', TEXT_HINT: '#B9C7CA', TEXT_FAINT: '#7F9296',
