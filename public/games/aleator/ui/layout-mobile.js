@@ -1,4 +1,4 @@
-// Würfelglück – Layout "Mobile": Handy im Querformat (wird nur auf Touch-Geräten benutzt, siehe index.html).
+// Aleator – Layout "Mobile": Handy im Querformat (wird nur auf Touch-Geräten benutzt, siehe index.html).
 // Große Knöpfe und Schrift. Nutzt die ganze Breite des Bildschirms: links die Werte, in der Mitte Relikte,
 // Würfel und Beutel, rechts Verbrauchsgüter und Handarten (im Shop: Weiter, Neu würfeln, Tresor).
 // Die Positionen hängen vom sichtbaren Bereich ab und werden bei jeder Größenänderung neu berechnet (relayout).
@@ -214,7 +214,7 @@
   }
 
   function drawMenu(back, front, t) {
-    UI.dynaText(front, 'WÜRFELGLÜCK', 640, 150, { size: 112, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
+    UI.dynaText(front, 'ALEATOR', 640, 150, { size: 112, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
     UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 232, { size: 34, time: t, wave: 1.5, colour: '#FFFFFF' });
     UI.text(front, 'Hold dice, reroll, play your hand. 8 stages. Good luck.', 640, 686, { size: 24, colour: P.TEXT_SOFT });
   }

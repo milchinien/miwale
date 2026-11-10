@@ -1,4 +1,4 @@
-// Würfelglück – Farbpaletten. Jede Palette setzt die UI-Farben (BalatroFX.PALETTE + eigene Schlüssel)
+// Aleator – Farbpaletten. Jede Palette setzt die UI-Farben (BalatroFX.PALETTE + eigene Schlüssel)
 // und die Hintergrundfarben je Spielsituation. "Original" entspricht dem ersten Look.
 // bg: menu = volle Swirl-Farben; die anderen = Grundfarbe (+ special) wie setBackgroundColour.
 (function (global) {
@@ -67,7 +67,7 @@
     {
       id: 'original', name: 'Original', devOnly: true,
       colours: {
-        // BalatroFX.PALETTE bleibt wie geliefert; hier nur die Würfelglück-Schlüssel
+        // BalatroFX.PALETTE bleibt wie geliefert; hier nur die Aleator-Schlüssel
         TEXT_SOFT: '#E0E8EA', TEXT_LABEL: '#D5E0E2', TEXT_DIM: '#9FB0B4', TEXT_HINT: '#B9C7CA', TEXT_FAINT: '#7F9296',
         ANCHOR: '#8FC8FF', SIDEBAR: 'rgba(28,40,44,0.86)', HIGHLIGHT: 'rgba(253,162,0,0.35)', CHIP_OFF: 'rgba(60,72,76,0.95)',
         OVERLAY_SOLID: 'rgba(30,40,44,0.97)', OVERLAY: 'rgba(30,40,44,0.94)', AREA: 'rgba(0,0,0,0.2)',

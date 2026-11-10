@@ -1,4 +1,4 @@
-// Würfelglück – Jonnys Sprüche außerhalb des Tutorials (Shop und Situationen im Run). window.WG_JONNY
+// Aleator – Jonnys Sprüche außerhalb des Tutorials (Shop und Situationen im Run). window.WG_JONNY
 // Jeder Spruch: [Stimmung, Text]. Textauszeichnung wie im Tutorial: {flags|Text} mit s = zittern, w = wellen,
 // d = durchhängen, b = groß, r = rot, q = leise, g = Begriff (gold), c = Pips, m = Power, p = pulsieren.
 // Platzhalter #name# setzt das Spiel ein (#boss#, #tag#, #n#, #hand#, #money#, #score#, #stage#, #rule#, #x#).

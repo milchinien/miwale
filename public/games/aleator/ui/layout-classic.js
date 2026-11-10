@@ -1,4 +1,4 @@
-// Würfelglück – Layout "Classic": das ursprüngliche Layout (Seitenleiste links, Relikte oben, Beutel unten).
+// Aleator – Layout "Classic": das ursprüngliche Layout (Seitenleiste links, Relikte oben, Beutel unten).
 // Bleibt unverändert erhalten, damit man jederzeit zurückschalten kann.
 (window.WG_LAYOUTS = window.WG_LAYOUTS || []).push((K) => {
   const { S, R, UI, P, eng, J, B } = K;
@@ -137,7 +137,7 @@
   }
 
   function drawMenu(back, front, t) {
-    UI.dynaText(front, 'WÜRFELGLÜCK', 640, 170, { size: 96, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
+    UI.dynaText(front, 'ALEATOR', 640, 170, { size: 96, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
     UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 240, { size: 28, time: t, wave: 1.5, colour: '#FFFFFF' });
     UI.text(front, 'Hold dice, reroll, play your hand. 8 stages. Good luck.', 640, 672, { size: 18, colour: P.TEXT_SOFT });
   }

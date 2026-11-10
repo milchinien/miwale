@@ -20,9 +20,9 @@
     "commit": "f979818f7ba60d3d22e3231e331e5c302767066f",
     "handy": true
   },
-  "wuerfelglueck": {
-    "path": "games/wuerfelglueck/",
-    "sha256": "6104ab6fb60ed2ad3b624368f8822d958d238ab06f775f9c912acde6d61e0d11",
+  "aleator": {
+    "path": "games/aleator/",
+    "sha256": "95da11e82614bb7a6df75a7e240e70d1eae126a85c48fa181cda58c3dac90b04",
     "repo": null,
     "commit": null,
     "handy": true

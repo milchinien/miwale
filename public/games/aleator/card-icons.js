@@ -1,4 +1,4 @@
-// Würfelglück: original, font-independent pixel emblems on a 32 × 32 grid.
+// Aleator: original, font-independent pixel emblems on a 32 × 32 grid.
 // Render once, then share the same silhouette between cards and small UI slots.
 (function (global) {
   'use strict';

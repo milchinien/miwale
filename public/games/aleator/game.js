@@ -1,4 +1,4 @@
-// Würfelglück – Spiel (Ablauf, Darstellung, Eingabe) auf Basis von BalatroFX. Regeln und Daten: rules.js
+// Aleator – Spiel (Ablauf, Darstellung, Eingabe) auf Basis von BalatroFX. Regeln und Daten: rules.js
 (() => {
   'use strict';
   const FX = BalatroFX, P = FX.PALETTE, UI = FX.UI, Art = FX.Art, R = WG;
@@ -2932,7 +2932,7 @@
   const PALETTES = window.WG_PALETTES || [];
   const BG_STYLES = FX.BG_STYLES || [{ id: 'swirl', name: 'Swirl (Original)' }];
   const FONTS = [
-    { id: 'wuerfel', name: 'Wuerfel Pixel', css: "'Wuerfel Pixel', 'Pixelify Sans', monospace" },
+    { id: 'aleator', name: 'Aleator Pixel', css: "'Aleator Pixel', 'Pixelify Sans', monospace" },
     { id: 'pixelify', name: 'Pixelify Sans', css: "'Pixelify Sans', 'Courier New', monospace" },
   ];
   // Gewählter Look: Felt & Brass, Lava, Pixelify Sans. SETTINGS_VERSION erhöhen, um gespeicherte Werte einmalig zu verwerfen.
@@ -3058,6 +3058,7 @@
     Object.assign(TYPE_COL, { constellation: P.PLANET, oracle: P.TAROT, die: P.GREEN });
     // Hintergrund-Stil, Schrift, CRT
     if (eng.setBackgroundStyle) eng.setBackgroundStyle(SETTINGS.background);
+    if (SETTINGS.font === 'wuerfel') SETTINGS.font = 'aleator'; // alter Schrift-Name
     UI.FONT = (FONTS.find((x) => x.id === SETTINGS.font) || FONTS[0]).css;
     eng.crt.enabled = !!SETTINGS.crt;
     eng.timeScale = +SETTINGS.speed || 1;
@@ -3575,7 +3576,7 @@
       const age = Math.min(1, (f - stepEnd) / 7), sz = 20 + FX.Ease.outBack(age) * 26;
       UI.text(g, UI.num(rp.total), GIF_W / 2, 214, { size: sz, colour: P.GOLD });
     }
-    const foot = (rec.endless ? 'Endless ' : 'Stage ') + (rp.stage || rec.stage) + '  ·  ' + (CUP_BY_ID[rp.cup || rec.cup] || CUPS[0]).name + '  ·  Würfelglück';
+    const foot = (rec.endless ? 'Endless ' : 'Stage ') + (rp.stage || rec.stage) + '  ·  ' + (CUP_BY_ID[rp.cup || rec.cup] || CUPS[0]).name + '  ·  Aleator';
     UI.text(g, foot, GIF_W / 2, 256, { size: 13, colour: P.TEXT_SOFT });
   }
   async function makeHandGif(rec) {
@@ -3596,10 +3597,10 @@
     const note = (text) => eng.popup(B.gif.x + B.gif.w / 2, B.gif.y - 22, text, { colour: P.GOLD, size: 20, life: 1.8 });
     try {
       const bytes = await makeHandGif(rec), blob = new Blob([bytes], { type: 'image/gif' });
-      const name = 'wuerfelglueck-best-hand-' + new Date(rec.date || Date.now()).toISOString().slice(0, 10) + '.gif';
+      const name = 'aleator-best-hand-' + new Date(rec.date || Date.now()).toISOString().slice(0, 10) + '.gif';
       const file = typeof File !== 'undefined' ? new File([blob], name, { type: 'image/gif' }) : null;
       sfx('coin');
-      if (MOBILE && file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Würfelglück', text: 'My best hand: ' + rec.replay.name }).catch(() => {}); return; }
+      if (MOBILE && file && navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file], title: 'Aleator', text: 'My best hand: ' + rec.replay.name }).catch(() => {}); return; }
       const url = URL.createObjectURL(blob), a = document.createElement('a');
       a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
@@ -3808,7 +3809,7 @@
     UI.text(ctx, 'Now playing', x + 58, y + 16, { size: 13, colour: P.TEXT_DIM, align: 'left' });
     UI.text(ctx, '[N] Skip', x + w - 14, y + 16, { size: 13, colour: P.TEXT_DIM, align: 'right' });
     UI.text(ctx, songInfo.title, x + 58, y + 38, { size: fitText(ctx, songInfo.title, w - 72, 21), align: 'left' });
-    const sub = songInfo.album || 'Würfelglück soundtrack';
+    const sub = songInfo.album || 'Aleator soundtrack';
     UI.text(ctx, sub, x + 58, y + 58, { size: fitText(ctx, sub, w - 72, 13), colour: P.TEXT_SOFT, align: 'left' });
   }
 
@@ -4876,7 +4877,7 @@
     UI.text(ctx, 'Now playing', 58, 16, { size: 13, colour: P.TEXT_DIM, align: 'left' });
     UI.text(ctx, 'Tap to skip', w - 14, 16, { size: 13, colour: P.TEXT_DIM, align: 'right' });
     UI.text(ctx, songInfo.title, 58, 38, { size: fitText(ctx, songInfo.title, w - 72, 21), align: 'left' });
-    const sub = songInfo.album || 'Würfelglück soundtrack';
+    const sub = songInfo.album || 'Aleator soundtrack';
     UI.text(ctx, sub, 58, 58, { size: fitText(ctx, sub, w - 72, 13), colour: P.TEXT_SOFT, align: 'left' });
     ctx.restore();
   }
@@ -5497,7 +5498,7 @@
     for (let yy = 0; yy < H; yy += 24) for (let xx = (yy / 24) % 2 ? 0 : 24; xx < W; xx += 48) g.fillRect(xx, yy, 24, 24);
     UI.box(g, 24, 24, W - 48, H - 48, { colour: 'rgba(0,0,0,0.25)', radius: 22, shadow: false, outline: accent, outlineWidth: 4 });
     // Logo
-    const logo = 'WÜRFELGLÜCK', cols = [P.RED, P.BLUE, P.MONEY, P.GREEN];
+    const logo = 'ALEATOR', cols = [P.RED, P.BLUE, P.MONEY, P.GREEN];
     g.font = UI.font(56);
     let lx = 60;
     [...logo].forEach((ch, i) => { UI.text(g, ch, lx, 78, { size: 56, colour: cols[i % cols.length], align: 'left' }); g.font = UI.font(56); lx += g.measureText(ch).width; });
@@ -5538,7 +5539,7 @@
     const vw = g.measureText(verdict).width + 34;
     UI.box(g, W - 250 - vw, 430, vw, 44, { colour: '#FFFFFF', radius: 12 });
     UI.text(g, verdict, W - 250 - vw / 2, 452, { size: 18, colour: P.BLACK, shadow: false });
-    UI.text(g, fmtDate(rec.date) + '  ·  miwale.com/games/wuerfelglueck', W - 60, 590, { size: 15, colour: P.TEXT_DIM, align: 'right' });
+    UI.text(g, fmtDate(rec.date) + '  ·  miwale.com/games/aleator', W - 60, 590, { size: 15, colour: P.TEXT_DIM, align: 'right' });
     return c;
   }
   function shareRecord(rec) {
@@ -5546,13 +5547,13 @@
     let c;
     try { c = runImage(rec); } catch (e) { denied(B.share.x + B.share.w / 2, B.share.y - 20, 'Could not draw the image'); return; }
     sfx('coin');
-    const name = 'wuerfelglueck-run-' + new Date(rec.date).toISOString().slice(0, 10) + '.png';
+    const name = 'aleator-run-' + new Date(rec.date).toISOString().slice(0, 10) + '.png';
     const note = (text) => eng.popup(B.share.x + B.share.w / 2, B.share.y - 22, text, { colour: P.GOLD, size: 20, life: 1.8 });
     c.toBlob((blob) => {
       if (!blob) return;
       const file = typeof File !== 'undefined' ? new File([blob], name, { type: 'image/png' }) : null;
       if (MOBILE && file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: 'Würfelglück', text: 'My Würfelglück run: ' + recStage(rec) }).catch(() => {});
+        navigator.share({ files: [file], title: 'Aleator', text: 'My Aleator run: ' + recStage(rec) }).catch(() => {});
         return;
       }
       let copied = false;
@@ -5747,6 +5748,6 @@
   applySettings();
   setupDevPanel();
   const begin = () => { setupMenu(); eng.start(update, (b, f, t) => { drawMaterialFx(b, t); draw(b, f, t); drawFocus(f); }); };
-  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('20px "Wuerfel Pixel"'), document.fonts.load('20px "Pixelify Sans"')]).catch(() => {}).then(begin);
+  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('20px "Aleator Pixel"'), document.fonts.load('20px "Pixelify Sans"')]).catch(() => {}).then(begin);
   else begin();
 })();

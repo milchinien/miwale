@@ -1,4 +1,4 @@
-// Würfelglück – Replay-Rekorder. window.WGReplay
+// Aleator – Replay-Rekorder. window.WGReplay
 // Schreibt jede gewertete Hand als kleines Skript mit: Würfe, gehaltene Würfel, Shifts, Wertungsschritte, Ergebnis.
 // Behalten wird nur die beste Hand eines Runs. Der spätere GIF-Export zeichnet die Hand aus diesem Skript neu.
 ((global) => {

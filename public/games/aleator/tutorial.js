@@ -1,4 +1,4 @@
-// Würfelglück – Tutorial mit Jonny, dem Würfel-Tutor.
+// Aleator – Tutorial mit Jonny, dem Würfel-Tutor.
 // Ein vollständig geskripteter Run (Stage 1: Warm-up, High Stakes, Showdown), der nur einmal gespielt werden kann.
 // Jonny ist ein Nerd mit Brille: ängstlich, paranoid, schnell beleidigt und passiv-aggressiv. Alles, was der Spieler tut,
 // ohne dass Jonny es gesagt hat, zählt als Fehler und macht ihn wütender. Nach MAX_MISTAKES gibt er auf und macht gelangweilt

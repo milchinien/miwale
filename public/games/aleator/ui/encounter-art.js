@@ -1,4 +1,4 @@
-// Würfelglück – Pixel-Porträts der Begegnungen (32×32). window.WGEncounterArt.portrait(id) liefert ein Canvas.
+// Aleator – Pixel-Porträts der Begegnungen (32×32). window.WGEncounterArt.portrait(id) liefert ein Canvas.
 ((global) => {
   'use strict';
   const cache = {};

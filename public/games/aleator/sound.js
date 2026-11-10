@@ -1,4 +1,4 @@
-// Würfelglück – Sound. Die Effekte und Jingles sind echte Aufnahmen (sounds/sfx-data.js, CC0: Kenney und VCSL),
+// Aleator – Sound. Die Effekte und Jingles sind echte Aufnahmen (sounds/sfx-data.js, CC0: Kenney und VCSL),
 // die hier gemischt, umgestimmt und zu kleinen Melodien zusammengesetzt werden. window.WGSound: unlock(), play(name, opts), mood(name), setVolume(...)
 // Die Musik kommt normalerweise aus Dateien (music.js); die erzeugte Musik hier unten ist nur der Ersatz, falls keine da sind.
 (() => {

@@ -1,4 +1,4 @@
-// Würfelglück – Begegnungen zwischen den Runden (Regeln ohne Grafik). window.WGEncounters
+// Aleator – Begegnungen zwischen den Runden (Regeln ohne Grafik). window.WGEncounters
 // Eine Begegnung kommt nach Warm-up oder High Stakes und danach geht es normal in den Shop. Das Spiel (game.js) zeigt sie an
 // und setzt die Wahl um; hier stehen Häufigkeit, Auswahl und alle Zufallsergebnisse, damit Tests und Simulator sie nutzen können.
 ((global) => {

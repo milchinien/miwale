@@ -1,4 +1,4 @@
-// Würfelglück – geseedete Zufallsströme. window.WGRng
+// Aleator – geseedete Zufallsströme. window.WGRng
 // Ein Run hat einen Zustand { seed, s: { strom: zähler } }, der als einfaches Objekt mitgespeichert wird.
 // Jeder Strom (Würfe, Beutel, Shop, Bosse, ...) läuft für sich: Ein Shop-Reroll verschiebt also nie die Würfe.
 // Reine Optik (Animationen, Partikel, Sprüche) nutzt weiter Math.random und berührt die Ströme nicht.

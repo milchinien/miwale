@@ -1,4 +1,4 @@
-// Würfelglück – kleiner GIF-Encoder (GIF89a, LZW, feste Palette, ohne Dithering). window.WGGif
+// Aleator – kleiner GIF-Encoder (GIF89a, LZW, feste Palette, ohne Dithering). window.WGGif
 // Bilder kommen als Palette-Indizes. Pro Bild wird nur der Bereich gespeichert, der sich geändert hat (kleine Dateien).
 ((global) => {
   'use strict';

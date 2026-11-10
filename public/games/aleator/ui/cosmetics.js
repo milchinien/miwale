@@ -1,4 +1,4 @@
-// Würfelglück – Register aller Kosmetik: Würfelmaterialien, Farbfelder, Stil-Farbanzahl, Freischalt-Prüfung. window.WGCosmetics
+// Aleator – Register aller Kosmetik: Würfelmaterialien, Farbfelder, Stil-Farbanzahl, Freischalt-Prüfung. window.WGCosmetics
 // Frei ab Start sind nur FREE. Alles andere kommt aus Achievement-Belohnungen (achievements.js) oder wird mit grant()
 // direkt vergeben (z. B. später durch Challenges). Gespeichert in meta().cosmetics, gemeinsam für alle Speicherplätze.
 ((global) => {

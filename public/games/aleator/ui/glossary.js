@@ -1,4 +1,4 @@
-// Würfelglück – Lexikon für die Erklär-Tooltips. Begriffe in Beschreibungen werden erkannt (PHRASES),
+// Aleator – Lexikon für die Erklär-Tooltips. Begriffe in Beschreibungen werden erkannt (PHRASES),
 // nach dem Festhalten eines Tooltips kann man über sie fahren und bekommt diese Erklärung.
 // Texte dürfen selbst Begriffe enthalten – so lässt sich beliebig tief nachschlagen.
 (function (global) {

@@ -1,4 +1,4 @@
-// Würfelglück – Farbrechnung für Colour Studio und Barrierefreiheit. window.WGColour
+// Aleator – Farbrechnung für Colour Studio und Barrierefreiheit. window.WGColour
 // Rein rechnerisch (keine Grafik), damit Node-Tests die Kontrastregeln prüfen können.
 ((global) => {
   'use strict';

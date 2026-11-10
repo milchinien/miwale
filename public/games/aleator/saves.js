@@ -1,4 +1,4 @@
-// Würfelglück – Speicherstände in localStorage. window.WGSaves
+// Aleator – Speicherstände in localStorage. window.WGSaves
 // Die 3 Plätze enthalten nur einen laufenden Run (wg_save_1..3). Alles, was über Runs hinaus bleibt, liegt einmal für
 // alle Plätze im gemeinsamen Fortschritt (wg_meta): Statistik, Spielzeit, Becher-Vorrat, Achievements und ihre Zähler.
 (() => {

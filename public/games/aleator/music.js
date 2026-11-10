@@ -1,4 +1,4 @@
-// Würfelglück – Musik aus Dateien (Ordner musics/, gemessen in musics/manifest.js).
+// Aleator – Musik aus Dateien (Ordner musics/, gemessen in musics/manifest.js).
 // Gleicht alle Tracks auf dieselbe Lautheit an, blendet weich zwischen Situationen über, spielt pro Situation
 // eine Wiedergabeliste und merkt sich die Stelle, an der ein Track unterbrochen wurde (z. B. Runde -> Shop -> Runde).
 // Nutzt <audio>-Elemente, damit es auch direkt aus dem Dateisystem (file://) läuft.

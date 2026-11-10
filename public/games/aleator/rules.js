@@ -1,4 +1,4 @@
-// Würfelglück – Spielregeln und Daten (ohne Grafik, auch in Node testbar)
+// Aleator – Spielregeln und Daten (ohne Grafik, auch in Node testbar)
 (function (global) {
   'use strict';
 

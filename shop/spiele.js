@@ -324,8 +324,8 @@ window.MIWALE_SPIELE = [
     }
   },
   {
-    "id": "wuerfelglueck",
-    "name": "Würfelglück",
+    "id": "aleator",
+    "name": "Aleator",
     "neu": true,
     "veroeffentlicht": "2026-11-01",
     "geraete": [
@@ -335,18 +335,18 @@ window.MIWALE_SPIELE = [
       "en": "Early prototype",
       "de": "Früher Prototyp"
     },
-    "spielen": "/games/wuerfelglueck/",
-    "bild": "assets/games/shop/wuerfelglueck-preview.webp",
+    "spielen": "/games/aleator/",
+    "bild": "assets/games/shop/aleator-preview.webp",
     "bilder": [
-      "assets/games/shop/wuerfelglueck-1.webp",
-      "assets/games/shop/wuerfelglueck-2.webp"
+      "assets/games/shop/aleator-1.webp",
+      "assets/games/shop/aleator-2.webp"
     ],
     "medien": {
       "screens": [
-        "assets/games/shop/wuerfelglueck-1.webp",
-        "assets/games/shop/wuerfelglueck-2.webp",
-        "assets/games/shop/wuerfelglueck-3.webp",
-        "assets/games/shop/wuerfelglueck-4.webp"
+        "assets/games/shop/aleator-1.webp",
+        "assets/games/shop/aleator-2.webp",
+        "assets/games/shop/aleator-3.webp",
+        "assets/games/shop/aleator-4.webp"
       ]
     },
     "texte": {

@@ -1,4 +1,4 @@
-// Würfelglück – Achievements und Freischaltungen. window.WGAchievements
+// Aleator – Achievements und Freischaltungen. window.WGAchievements
 // Achievements gelten für das ganze Spiel, über alle Speicherplätze und Runs hinweg: sie liegen im gemeinsamen
 // Fortschritt (WGSaves.meta(): ach, track, stats, cups), der hier als p übergeben wird.
 // Alles, was als Belohnung eines Achievements genannt ist, ist anfangs gesperrt: alle Rare- und Legendary-Relikte,
@@ -25,7 +25,7 @@
     { id: 'first_boss', name: 'Giant Slayer', desc: 'Beat a Showdown boss', on: 'round', test: (e) => !!e.boss, rewards: [r('day_night'), r('chameleon'), ['palette', 'neon']] },
     { id: 'stage4', name: 'Halfway There', desc: 'Reach Stage 4', on: 'state', test: (e) => e.ante >= 4, rewards: [r('mirror'), r('compass'), ['palette', 'sunset']] },
     { id: 'stage7', name: 'Deep Waters', desc: 'Reach Stage 7', on: 'state', test: (e) => e.ante >= 7, rewards: [r('crossroads'), ['background', 'starfield'], ['swatch', 'midnight']] },
-    { id: 'run_win', name: 'Würfelglück', desc: 'Win a run', on: 'run', test: (e) => e.won, rewards: [r('monument'), u('spare_die'), ['feature', 'studio']] },
+    { id: 'run_win', name: 'Aleator', desc: 'Win a run', on: 'run', test: (e) => e.won, rewards: [r('monument'), u('spare_die'), ['feature', 'studio']] },
     { id: 'runs5', name: 'Regular', desc: 'Play 5 runs', on: ['run', 'state'], goal: 5, count: (p) => p.stats.runs, rewards: [r('hybrid_seed'), r('metamorphosis')] },
     { id: 'boss_all', name: 'Bossbuster', desc: 'Beat every Showdown boss once', on: 'round', goal: BOSS_COUNT, count: (p) => Object.keys(p.track.bosses || {}).filter((b) => b !== 'jonny').length, rewards: [r('tycoon')] },
     // Punkte
