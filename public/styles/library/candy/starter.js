@@ -247,17 +247,21 @@
   function bakeGround(w, h, s) {
     const cv = mkCanvas(w, h), c = cv.getContext('2d'), W = w / s;
     c.scale(s, s); c.fillStyle = PALETTE.chocolate; c.fillRect(0, 0, W, 360);
-    const S = 34; // milk-chocolate bar grid: dark 0.9u groove, lit top/left bevel, shaded bottom/right bevel
-    for (let y = -S; y < 360 + S; y += S) for (let x = -S; x < W + S; x += S) {
+    // milk chocolate moulded into ROWS of bars: rows 34/26/34/30 high, each shifted by its own offset like brickwork,
+    // each bar with its own tone -> no repeating square grid. Dark 0.9u groove, lit top/left bevel, shaded bottom/right.
+    const RH = [34, 26, 34, 30], BW = 34;
+    for (let y = -34, ri = 0; y < 360 + 34; y += RH[ri & 3], ri++) for (let x = -BW - ((ri * 13.7) % BW), S = RH[ri & 3], ci = 0; x < W + BW; x += BW, ci++) {
+      c.fillStyle = 'rgba(' + (((ri * 7 + ci * 3) % 5) < 2 ? '255,225,190,0.035' : '40,12,8,0.04') + ')'; c.fillRect(x, y, BW, S);
       c.fillStyle = lg(c, x, 0, x + 3.2, 0, [[0, 'rgba(255,225,190,0.11)'], [1, 'rgba(255,225,190,0)']]); c.fillRect(x, y, 3.2, S);
-      c.fillStyle = lg(c, 0, y, 0, y + 3.2, [[0, 'rgba(255,225,190,0.11)'], [1, 'rgba(255,225,190,0)']]); c.fillRect(x, y, S, 3.2);
-      c.fillStyle = lg(c, x + S, 0, x + S - 3.2, 0, [[0, 'rgba(40,12,8,0.12)'], [1, 'rgba(40,12,8,0)']]); c.fillRect(x + S - 3.2, y, 3.2, S);
-      c.fillStyle = lg(c, 0, y + S, 0, y + S - 3.2, [[0, 'rgba(40,12,8,0.12)'], [1, 'rgba(40,12,8,0)']]); c.fillRect(x, y + S - 3.2, S, 3.2);
-      c.fillStyle = PALETTE.chocGroove; c.fillRect(x - 0.45, y - 0.45, S, 0.9); c.fillRect(x - 0.45, y - 0.45, 0.9, S);
+      c.fillStyle = lg(c, 0, y, 0, y + 3.2, [[0, 'rgba(255,225,190,0.11)'], [1, 'rgba(255,225,190,0)']]); c.fillRect(x, y, BW, 3.2);
+      c.fillStyle = lg(c, x + BW, 0, x + BW - 3.2, 0, [[0, 'rgba(40,12,8,0.12)'], [1, 'rgba(40,12,8,0)']]); c.fillRect(x + BW - 3.2, y, 3.2, S);
+      c.fillStyle = lg(c, 0, y + S, 0, y + S - 3.2, [[0, 'rgba(40,12,8,0.12)'], [1, 'rgba(40,12,8,0)']]); c.fillRect(x, y + S - 3.2, BW, 3.2);
+      c.fillStyle = PALETTE.chocGroove; c.fillRect(x - 0.45, y - 0.45, BW, 0.9); c.fillRect(x - 0.45, y - 0.45, 0.9, S);
     }
-    // decals on the chocolate (drawn before the pools so the pools cover them): sprinkles, chocolate chips, mini marshmallows
-    const D = rng(99), sp = sprites(s);
-    for (let i = 0; i < 70; i++) { const x = D() * W, y = D() * 360, r = D(); c.fillStyle = 'rgba(50,15,20,0.25)';
+    // decals on the chocolate as two SPILLS (as if a bag burst there), calm bars everywhere else:
+    // sprinkles, chocolate chips, mini marshmallows clustered around a centre, thinning out
+    const D = rng(99), sp = sprites(s), spills = [[W * 0.36, 70, 34], [W * 0.82, 300, 26]];
+    for (let i = 0; i < 46; i++) { const sc = spills[i & 1], a = D() * TAU, d = Math.pow(D(), 1.6) * sc[2], x = sc[0] + Math.cos(a) * d * 1.4, y = sc[1] + Math.sin(a) * d * 0.8, r = D(); c.fillStyle = 'rgba(50,15,20,0.25)';
       if (r < 0.6) blit(c, sp.sprink[(D() * 7) | 0], x, y, 1, 1, D() * 6);
       else if (r < 0.8) { c.beginPath(); c.ellipse(x + 0.3, y + 0.4, 1.8, 0.7, 0, 0, TAU); c.fill(); gloss(c, (k) => { k.moveTo(x, y - 2.4); k.bezierCurveTo(x + 0.5, y - 1.2, x + 1.7, y - 0.6, x + 1.7, y + 0.1); k.quadraticCurveTo(x, y + 0.9, x - 1.7, y + 0.1); k.bezierCurveTo(x - 1.7, y - 0.6, x - 0.5, y - 1.2, x, y - 2.4); }, x, y - 0.6, 2, '#8a5236', '#43200f', '#1e0a05'); spec(c, x - 0.5, y - 0.9, 0.35, 0.6, 0.3, 0.75); }
       else { c.fillStyle = lg(c, x - 2, 0, x + 2, 0, [[0, '#fff8fc'], [0.45, '#ffffff'], [1, '#e6d2e2']]); c.fillRect(x - 2, y - 2.5, 4, 2.6); c.fillStyle = '#fff'; c.beginPath(); c.ellipse(x, y - 2.5, 2, 0.8, 0, 0, TAU); c.fill(); } }
@@ -303,12 +307,14 @@
   /* ----------------------------------------------------- public drawers */
   /** Shadow: cocoa-plum radial ellipse rgba(45,12,22,.42 -> .3 @55% -> 0). */
   function shadow(ctx, x, y, rx, ry, a) { ctx.save(); ctx.globalAlpha = a || 1; ctx.translate(x, y); ctx.scale(1, ry / rx); ctx.fillStyle = rg(ctx, 0, 0, 0, 0, 0, rx, [[0, 'rgba(45,12,22,0.42)'], [0.55, 'rgba(45,12,22,0.3)'], [1, 'rgba(45,12,22,0)']]); ctx.beginPath(); ctx.arc(0, 0, rx, 0, TAU); ctx.fill(); ctx.restore(); }
-  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Hop-walk with squash on contact. */
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. A jelly hop: the landing squash rings on
+      as a damped wobble, a crouch anticipates the take-off, the body stretches while airborne. */
   function drawHero(ctx, x, y, t, facing) {
-    const sp = SPR || sprites(3), ph = t * 2.2, f = ph - Math.floor(ph), hop = Math.floor(ph), air = Math.sin(f * PI);
-    const contact = Math.max(0, 1 - Math.min(f, 1 - f) * 6), JS = 1.06;
-    const sy = (1 + 0.07 * air - 0.13 * contact) * JS, sx = (1 - 0.04 * air + 0.12 * contact) * JS, lift = air * 3.2 * JS;
-    const frame = contact > 0.25 ? (hop & 1 ? 1 : 3) : 2;
+    const sp = SPR || sprites(3), ph = t * 2.2, f = ph - Math.floor(ph), hop = Math.floor(ph), JS = 1.06;
+    const air = f > 0.38 ? Math.sin(PI * (f - 0.38) / 0.62) : 0, jig = Math.exp(-14 * f) * Math.cos(f * 28);
+    const crouch = f > 0.25 && f < 0.38 ? Math.sin(PI * (f - 0.25) / 0.13) : 0, vel = f > 0.38 ? Math.abs(Math.cos(PI * (f - 0.38) / 0.62)) : 0;
+    const sy = (1 - 0.15 * jig - 0.09 * crouch + 0.12 * vel * air) * JS, sx = (1 + 0.13 * jig + 0.07 * crouch - 0.08 * vel * air) * JS, lift = air * 3.4 * JS;
+    const frame = air > 0.05 ? 2 : (hop & 1 ? 1 : 3);
     shadow(ctx, x, y, (9 - air * 1.4) * JS, (3.2 - air * 0.45) * JS);
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.32 + 0.06 * Math.sin(t * 7); // warm caramel glow behind the head
     ctx.fillStyle = rg(ctx, x + facing * 1.5, y - lift - 21, 0, x + facing * 1.5, y - lift - 21, 20, [[0, 'rgba(255,200,90,0.8)'], [0.35, 'rgba(255,160,60,0.32)'], [1, 'rgba(255,140,40,0)']]);
@@ -317,9 +323,11 @@
   }
   /** Draws a typical creature (two-layer gummy root bulb, variant 0-2) with feet at (x, y): jelly wobble. */
   function drawEnemy(ctx, x, y, t, variant, facing) {
-    const sp = SPR || sprites(3), ph = t * 0.85 * 1.6 + (variant || 0) * 0.37, fr = Math.floor(ph * 4) & 3, sn = Math.sin(ph * TAU), up = Math.abs(sn);
+    const sp = SPR || sprites(3), ph = t * 0.85 * 1.6 + (variant || 0) * 0.37 + x * 0.01, fr = Math.floor(ph * 4) & 3, sn = Math.sin(ph * TAU), up = Math.abs(sn);
+    // gummy jelly: every contact sets off a damped jiggle that rings on after the step (follow-through)
+    const fc = ph * 2 - Math.floor(ph * 2), jig = Math.exp(-9 * fc) * Math.cos(fc * 24);
     shadow(ctx, x, y, 9, 3.2);
-    blit(ctx, sp.creep[(variant || 0) % 3][fr], x, y - up * 1.3, (1 + (1 - up) * 0.07) * 0.92, (1 - (1 - up) * 0.08 + up * 0.04) * 0.92, sn * 0.1, facing < 0);
+    blit(ctx, sp.creep[(variant || 0) % 3][fr], x, y - up * 1.6, (1 + 0.1 * jig + up * 0.02) * 0.92, (1 - 0.11 * jig + up * 0.04) * 0.92, sn * 0.09, facing < 0);
   }
   function drawGhost(ctx, x, y, t, seed) {
     const sp = SPR || sprites(3), b = Math.sin(t * 4.2 + seed * 7);

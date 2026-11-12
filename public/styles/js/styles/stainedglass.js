@@ -301,51 +301,79 @@
   /** normal + lit (flash) copy */
   function pair(box, fn, seed) { return { n: build(box, fn, 'fill', seed), f: build(box, fn, 'flash', seed) }; }
 
-  /* ============================================================ characters */
-  function jackParts(P, fr) {
-    const lo = [0, 2.2, 0, -2.2][fr];
-    const lift = [0, 0.8, 0, 0.8][fr];
-    // legs / boots (back one first)
-    P.piece(CAP(3.2, -8, 3.4 - lo, -1.2, 2.1, 2.2), PAL.boot[1], 3.2 - lo * 0.5, -4.5, 3.2);
-    P.piece(CAP(-3.2, -8, -3.4 + lo, -1.2 - lift, 2.1, 2.2), PAL.boot[0], -3.2 + lo * 0.5, -4.5, 3.2);
-    // cloak
-    const cloak = [[-4.6, -17.2], [4.6, -17.2], [8.8, -4.6], [5.4, -2.6], [0.4, -3.6], [-5, -2.6], [-8.8, -4.6]];
-    const cc = mosaic('jackCloak', cloak, 38, 7, (x, y, i) => PAL.cloak[i % PAL.cloak.length]);
-    P.part(PP(cloak), cc);
-    // golden hem
-    const hem = [[-8.8, -4.6], [-5, -2.6], [0.4, -3.6], [5.4, -2.6], [8.8, -4.6], [8.2, -6.6], [5, -4.9], [0.4, -5.9], [-5, -4.9], [-8.2, -6.6]];
-    P.part(PP(hem), [
-      { poly: [[-10, -8], [-2.2, -8], [-2.2, -1], [-10, -1]], col: '#f2c040', cx: -5, cy: -4, r: 3 },
-      { poly: [[-2.2, -8], [3, -8], [3, -1], [-2.2, -1]], col: '#e0a830', cx: 0.4, cy: -4.6, r: 3 },
-      { poly: [[3, -8], [10, -8], [10, -1], [3, -1]], col: '#f2c040', cx: 5.5, cy: -4, r: 3 },
-    ], { ol: 0.5 });
-    // clasp jewel
-    P.piece(ELL(0, -15.6, 1.5, 1.5), '#f2c040', 0, -15.6, 1.5, { glow: true });
-    // scarf (tail behind, band in front)
-    P.part(PP([[-6.2, -17.5], [-3.6, -17.8], [-4.4, -11.5], [-7.4, -12.4]]), [{ poly: [[-6.2, -17.5], [-3.6, -17.8], [-4.4, -11.5], [-7.4, -12.4]], cx: -5.4, cy: -14.8, r: 2.6, col: PAL.scarf[1] }]);
-    const band = [[-6.4, -19.4], [6.4, -19.4], [6.8, -16.4], [-6.8, -16.4]];
+  /* ============================================================ characters
+     The main character is a leaded-glass puppet in layers so the parts can move against each other:
+     body frames (legs + cloak: 8 walk poses, stand, dash), two arms, a head with three faces and a
+     scarf tail on a spring. Creatures are built from designed pieces (no random mosaic across faces). */
+  const JW = 8, CF = 6, GF = 6, OF = 6;
+  function jackPose(i) {
+    if (i === 'stand') return { nf: 1.9, ff: -1.9, nl: 0, fl: 0, hem: 0 };
+    if (i === 'dash') return { nf: 4.4, ff: -4.4, nl: 1.6, fl: 0.4, hem: -2.2 };
+    const ph = i / JW, s = Math.cos(ph * TAU), sn = Math.sin(ph * TAU);
+    return { nf: 3.5 * s, ff: -3.5 * s, nl: Math.max(0, -sn) * 2.2, fl: Math.max(0, sn) * 2.2, hem: 1.2 * Math.sin(ph * TAU - 1.2) };
+  }
+  function jackLeg(P, hx, fx, lift, col, boot) {
+    const ay = -2.4 - lift;
+    P.piece(CAP(hx, -8.6, fx, ay, 1.8, 1.5), col, (hx + fx) / 2, -5.6, 3);
+    P.piece((c) => {
+      c.moveTo(fx - 2.1, ay + 0.1); c.quadraticCurveTo(fx - 2.3, ay + 2.5, fx - 0.5, ay + 2.5);
+      c.lineTo(fx + 2.5, ay + 2.5); c.quadraticCurveTo(fx + 3.5, ay + 2.4, fx + 2.7, ay + 0.7);
+      c.quadraticCurveTo(fx + 1.1, ay - 1.4, fx - 2.1, ay + 0.1); c.closePath();
+    }, boot, fx + 0.3, ay + 1, 2.6);
+  }
+  const CLOAK = [[-4.9, -17.6], [4.9, -17.6], [7.1, -11.4], [8.8, -6.6], [5.6, -5.2], [2.2, -6.1], [-1.4, -5.1], [-5, -6], [-8.8, -6.6], [-7.1, -11.4]];
+  const HEM = [[-8.8, -6.6], [-5, -6], [-1.4, -5.1], [2.2, -6.1], [5.6, -5.2], [8.8, -6.6], [8.3, -8.5], [5.4, -7.2], [2.2, -8.1], [-1.4, -7.1], [-5, -8], [-8.3, -8.5]];
+  function jackBodyParts(P, pose) {
+    jackLeg(P, -2.2, pose.ff - 0.5, pose.fl, '#3a2a50', PAL.boot[0]);
+    jackLeg(P, 2.2, pose.nf + 0.5, pose.nl, '#4b3868', PAL.boot[1]);
+    const c = P.ctx, k = pose.hem / 12.4;
+    c.save();
+    c.transform(1, 0, k, 1, 17.6 * k, 0); // shear: shoulders fixed, hem swings
+    P.part(PP(CLOAK), mosaic('jCloak', [[-12, -19], [12, -19], [12, -3], [-12, -3]], 24, 7, (x, y, i) => PAL.cloak[i % PAL.cloak.length]));
+    P.detail((d) => { d.strokeStyle = LEAD; d.lineWidth = 0.55; d.beginPath(); d.moveTo(0, -14.6); d.quadraticCurveTo(0.6, -10, -0.4, -6.4); d.stroke(); });
+    const xs = [-10, -6.6, -3.2, 0.4, 3.8, 7, 10];
+    P.part(PP(HEM), xs.slice(0, -1).map((x0, i) => ({ poly: rectPoly(x0, -9.5, xs[i + 1], -4), col: i & 1 ? '#d99e2c' : '#f2c445', cx: (x0 + xs[i + 1]) / 2 - 0.4, cy: -7.4, r: 2.4 })), { ol: 0.5, noGlint: true });
+    c.restore();
+    P.piece(ELL(0, -16, 1.5, 1.5), '#f2c040', 0, -16, 1.5, { glow: true });
+    const band = [[-6.4, -19.8], [6.4, -19.8], [6.8, -16.7], [-6.8, -16.7]];
     P.part(PP(band), [
-      { poly: [[-7, -20], [-1.2, -20], [-0.4, -16], [-7, -16]], cx: -3.6, cy: -18, r: 3, col: PAL.scarf[0] },
-      { poly: [[-1.2, -20], [7, -20], [7, -16], [-0.4, -16]], cx: 3.2, cy: -18, r: 3.4, col: PAL.scarf[2] },
+      { poly: [[-7, -20.4], [-1.2, -20.4], [-0.4, -16.2], [-7, -16.2]], cx: -3.6, cy: -18.4, r: 3, col: PAL.scarf[0] },
+      { poly: [[-1.2, -20.4], [7, -20.4], [7, -16.2], [-0.4, -16.2]], cx: 3.2, cy: -18.4, r: 3.4, col: PAL.scarf[2] },
     ]);
-    // stem + leaf
-    P.piece((c) => { c.moveTo(-1.6, -31.2); c.quadraticCurveTo(-1.2, -34.5, 0.2, -36.2); c.lineTo(2.6, -35.4); c.quadraticCurveTo(1.4, -33.6, 1.7, -31.2); c.closePath(); }, PAL.stem, 0.4, -33.5, 2.4);
-    const L = leafPts(1.2, -33.4, -0.35, 6, 1.7);
+  }
+  /** Arm hanging from the shoulder pivot (0,0): sleeve, gold cuff, mitten. */
+  function jackArmParts(P, back) {
+    P.piece(CAP(0, 0, 0.3, 5.5, 1.95, 1.6), back ? '#1f5634' : '#2c7244', 0, 2.4, 2.6);
+    P.piece(RR(-1.9, 4.7, 4.2, 1.5, 0.6), '#e0a830', 0.2, 5.4, 1.6, { ol: 0.5, noGlint: true });
+    P.piece(ELL(0.35, 7.5, 1.85, 1.7), back ? '#6a4026' : '#835434', 0.3, 7.2, 1.8);
+  }
+  /** Head around the neck pivot (0,0). v: 0 looking ahead, 1 looking at the viewer, 2 squint (blink / hurt). */
+  function jackHeadParts(P, v) {
+    const hy = -7.6, rx = 10.4, ry = 8.2;
+    P.piece((c) => { c.moveTo(-1.6, hy - ry + 1.2); c.quadraticCurveTo(-1.2, hy - ry - 2.2, 0.2, hy - ry - 3.8); c.lineTo(2.6, hy - ry - 3); c.quadraticCurveTo(1.4, hy - ry - 1.2, 1.7, hy - ry + 1.2); c.closePath(); }, PAL.stem, 0.4, hy - ry - 1, 2.4);
+    const L = leafPts(1.2, hy - ry - 0.9, -0.35, 6, 1.7);
     P.part(leafShape(L), leafCells(L, PAL.leaf[0], PAL.leaf[1]));
-    // head (pumpkin ribs)
-    const hx = 0, hy = -24.6, rx = 10.6, ry = 8.4;
-    P.part(ELL(hx, hy, rx, ry), ribCells(hx, hy, rx, ry, [-1.05, -0.64, -0.22, 0.22, 0.64, 1.05], PAL.jackRib));
-    // carved glowing face (facing right)
-    const fx = 1.5;
-    const eyeL = [[-5.9 + fx, -24.2], [-1.7 + fx, -24.2], [-3.9 + fx, -28.4]];
-    const eyeR = [[1.5 + fx, -24.2], [5.7 + fx, -24.2], [3.5 + fx, -28.4]];
-    const nose = [[-0.9 + fx, -22.2], [0.9 + fx, -22.2], [0 + fx, -23.9]];
-    const mouth = [[-6.4 + fx, -21.2], [-4.6 + fx, -20.4], [-3.6 + fx, -21.6], [-2.2 + fx, -20.4], [-0.6 + fx, -21.7], [0.9 + fx, -20.4], [2.4 + fx, -21.6], [3.6 + fx, -20.4], [5.4 + fx, -21.2],
-      [4.6 + fx, -18.6], [3.2 + fx, -17.6], [2.2 + fx, -18.8], [0.6 + fx, -17.2], [-1 + fx, -18.6], [-2.4 + fx, -17.4], [-3.6 + fx, -18.8], [-5.2 + fx, -18.4]];
+    P.part(ELL(0, hy, rx, ry), ribCells(0, hy, rx, ry, [-1.05, -0.64, -0.22, 0.22, 0.64, 1.05], PAL.jackRib));
+    const fx = v === 1 ? 0 : 1.6;
+    const eyeL = v === 2 ? [[-6.1 + fx, -7.6], [-1.5 + fx, -7.8], [-3.9 + fx, -9.4]] : [[-5.9 + fx, -7.2], [-1.7 + fx, -7.2], [-3.9 + fx, -11.4]];
+    const eyeR = v === 2 ? [[1.3 + fx, -7.8], [5.9 + fx, -7.6], [3.5 + fx, -9.4]] : [[1.5 + fx, -7.2], [5.7 + fx, -7.2], [3.5 + fx, -11.4]];
+    const nose = [[-0.9 + fx, -5.2], [0.9 + fx, -5.2], [fx, -6.9]];
+    const mo = v === 1 ? 0.6 : 0;
+    const mouth = [[-6.4 + fx, -4.2], [-4.6 + fx, -3.4], [-3.6 + fx, -4.6], [-2.2 + fx, -3.4], [-0.6 + fx, -4.7], [0.9 + fx, -3.4], [2.4 + fx, -4.6], [3.6 + fx, -3.4], [5.4 + fx, -4.2],
+      [4.6 + fx, -1.6 + mo], [3.2 + fx, -0.6 + mo], [2.2 + fx, -1.8 + mo], [0.6 + fx, -0.2 + mo], [-1 + fx, -1.6 + mo], [-2.4 + fx, -0.4 + mo], [-3.6 + fx, -1.8 + mo], [-5.2 + fx, -1.4 + mo]];
     for (const f of [eyeL, eyeR, nose, mouth]) {
       const inf = polyInfo(f);
       P.piece(PP(f), PAL.face, inf.cx, inf.cy, inf.r * 1.2, { glow: true, ol: 0.5 });
     }
+  }
+  /** Scarf tail in two segments so it can bend: upper strip around the knot pivot (0,0), lower strip + gold fringe around its own pivot. */
+  function jackTailUpParts(P) {
+    const up = [[-1.3, -0.8], [1.4, -0.6], [1.1, 4.8], [-1.2, 5]];
+    P.piece(PP(up), PAL.scarf[1], 0, 1.8, 2.6);
+  }
+  function jackTailLoParts(P) {
+    P.piece(PP([[-1.2, 0], [1.1, -0.2], [1.9, 4], [-0.5, 4.6]]), PAL.scarf[0], 0.3, 2, 2.6);
+    P.piece(PP([[-0.5, 4.6], [1.9, 4], [2.3, 5.8], [-0.2, 6.3]]), '#f2c040', 0.9, 5.2, 1.4, { ol: 0.45, noGlint: true });
   }
 
   function turnipPath(c, cx, top, bot, w) {
@@ -357,19 +385,20 @@
     c.bezierCurveTo(cx - w * 1.18, top + h * 0.72, cx - w * 1.3, top + h * 0.02, cx, top);
     c.closePath();
   }
-  function creeperParts(P, fr, v) {
-    const lo = [-1.6, 0, 1.6, 0][fr];
-    const sw = [0, 0.12, 0, -0.12][fr];
-    // root legs
-    P.piece(CAP(-3.2, -4, -4.2 + lo, 0, 1.25, 0.8), PAL.root[1], -3.6, -2, 2);
-    P.piece(CAP(3.2, -4, 4.2 - lo, 0, 1.25, 0.8), PAL.root[0], 3.6, -2, 2);
-    // leaves (behind bulb top)
-    const lv = [[-0.6, -19, -2.1 + sw, 9, 2.4], [0.6, -19, -1.05 + sw, 9, 2.4], [0, -19.5, -1.6 + sw * 0.6, 11, 2.6]];
+  /** Leaf crown of the small creature around its pivot (0,0) = top of the bulb. */
+  function creeperCrownParts(P) {
+    const lv = [[-0.6, 0.4, -2.15, 9, 2.4], [0.6, 0.4, -1.0, 9, 2.4], [0, 0, -1.6, 11, 2.6]];
     lv.forEach((d, i) => {
       const L = leafPts(d[0], d[1], d[2], d[3], d[4]);
       P.part(leafShape(L), leafCells(L, PAL.leaf[(i + 2) % 3], PAL.leaf[(i + 1) % 3]));
     });
-    // bulb
+  }
+  function creeperParts(P, fr, v, crown) {
+    const ph = (fr / CF) * TAU;
+    const lo = Math.sin(ph) * 1.9, lift = Math.max(0, Math.cos(ph)) * 0.9, lift2 = Math.max(0, -Math.cos(ph)) * 0.9;
+    P.piece(CAP(-3.2, -4, -4.2 + lo, -lift, 1.25, 0.8), PAL.root[1], -3.6, -2, 2);
+    P.piece(CAP(3.2, -4, 4.2 - lo, -lift2, 1.25, 0.8), PAL.root[0], 3.6, -2, 2);
+    if (crown) { P.ctx.save(); P.ctx.translate(0, -19.4); creeperCrownParts(P); P.ctx.restore(); }
     const T = PAL.creepTop[v], C = PAL.cream;
     const cells = [
       { poly: [[-13, -25], [-2, -25], [-4, -12.2], [-6, -11.2], [-13, -12.6]], col: T[0] },
@@ -379,73 +408,94 @@
       { poly: [[0, -13.2], [3, -12.4], [6, -11.2], [13, -12.6], [13, 3], [-1.5, 3], [1.2, -7]], col: C[1] },
     ].map((cl) => {
       const inf = polyInfo(cl.poly);
-      // clip info to the bulb
       return { poly: cl.poly, col: cl.col, cx: U.clamp(inf.cx, -6, 6), cy: U.clamp(inf.cy, -18, -5), r: 6.5 };
     });
     P.part((c) => turnipPath(c, 0, -21, -2.4, 9), cells);
-    // angry glowing eyes
     const eL = [[-6.2, -11], [-1.6, -9.6], [-2.2, -7.6], [-5.6, -8.2]];
     const eR = [[1.6, -9.6], [6.2, -11], [5.6, -8.2], [2.2, -7.6]];
     for (const e of [eL, eR]) { const inf = polyInfo(e); P.piece(PP(e), '#ff5a26', inf.cx, inf.cy, inf.r * 1.3, { glow: true, ol: 0.5 }); }
-    // little frown
     P.detail((c) => { c.strokeStyle = LEAD; c.lineWidth = 0.75; c.beginPath(); c.moveTo(-2, -4.9); c.quadraticCurveTo(0, -6.2, 2, -4.9); c.stroke(); });
   }
+  /** Closed lids over the small creature's eyes (same box as the body frames). */
+  function creeperLidParts(P, v) {
+    const lid = PAL.creepTop[v][2];
+    for (const e of [[[-6.6, -11.4], [-1.2, -9.9], [-1.8, -7.2], [-6, -7.8]], [[1.2, -9.9], [6.6, -11.4], [6, -7.8], [1.8, -7.2]]]) {
+      const inf = polyInfo(e);
+      P.piece(PP(e), lid, inf.cx, inf.cy, inf.r * 1.2, { ol: 0.5, noGlint: true });
+    }
+    P.detail((c) => { c.strokeStyle = LEAD; c.lineWidth = 0.7; c.beginPath(); c.moveTo(-5.8, -8.6); c.lineTo(-2, -8.2); c.moveTo(2, -8.2); c.lineTo(5.8, -8.6); c.stroke(); });
+  }
 
-  function ghostShape(fr) {
-    const ph = (fr / 4) * TAU;
+  /** Fast creature: a hooded sheet of opal glass, drapery strips and a three-point tail that ripples. */
+  function ghostEdge(ph) {
+    const pts = [];
+    for (let i = 0; i <= 6; i++) {
+      const t = i / 6, x = 6.2 - t * 12.4;
+      const tip = (i & 1) === 0;
+      pts.push([x + Math.sin(ph + t * 2.4) * 0.9, (tip ? 1.6 : -2.6) + Math.sin(ph + i * 1.3) * (tip ? 1.4 : 0.6)]);
+    }
+    return pts;
+  }
+  function ghostShape(ph) {
+    const e = ghostEdge(ph);
     return (c) => {
-      c.moveTo(-7.6, -16.5);
-      c.arc(0, -16.5, 7.6, PI, 0);
-      c.bezierCurveTo(8.2, -11, 7.4, -7, 5.8 + Math.sin(ph) * 0.8, -2.6);
-      const n = 4;
-      for (let i = 0; i < n; i++) {
-        const x0 = 5.8 - (i / n) * 11.6, x1 = 5.8 - ((i + 1) / n) * 11.6;
-        const yy = -1.2 + Math.sin(ph + i * 1.7) * 1.2;
-        c.quadraticCurveTo((x0 + x1) / 2, yy + 2.2, x1, -3.4 + Math.sin(ph + (i + 1) * 1.7) * 0.9);
+      c.moveTo(-7.4, -16.5);
+      c.arc(0, -16.5, 7.4, PI, 0);
+      c.bezierCurveTo(8.3, -11, 7.6, -6.5, e[0][0], e[0][1]);
+      for (let i = 1; i < e.length; i++) {
+        const a = e[i - 1], b = e[i];
+        c.quadraticCurveTo((a[0] + b[0]) / 2 + 0.4, Math.max(a[1], b[1]) + 0.6, b[0], b[1]);
       }
-      c.bezierCurveTo(-7.4, -7, -8.2, -11, -7.6, -16.5);
+      c.bezierCurveTo(-7.6, -6.5, -8.3, -11, -7.4, -16.5);
       c.closePath();
     };
   }
   function ghostParts(P, fr) {
-    const ph = (fr / 4) * TAU;
-    // hungry reaching arm (back)
-    P.piece(CAP(4, -12, 10.5, -13.5 + Math.sin(ph) * 0.8, 1.7, 1.1), PAL.opal[1], 7.5, -13, 3);
-    const cells = mosaic('ghost', rectPoly(-9, -25, 9, 1), 70, 31, (x, y, i) => PAL.opal[i % PAL.opal.length]);
-    P.part(ghostShape(fr), cells, { jitter: 0.06 });
-    // hollow eyes + gaping mouth
-    P.piece(ELL(-2.6, -17.4, 1.7, 2.3, -0.2), PAL.hollow, -2.6, -17.6, 2.2, { noGlint: true, ol: 0.5 });
-    P.piece(ELL(3.2, -17.4, 1.7, 2.3, 0.2), PAL.hollow, 3.2, -17.6, 2.2, { noGlint: true, ol: 0.5 });
-    P.piece(ELL(0.6, -11.6, 2.1, 3.0 + Math.sin(ph) * 0.3), PAL.hollow, 0.6, -11.8, 2.6, { noGlint: true, ol: 0.5 });
+    const ph = (fr / GF) * TAU;
+    const sw = Math.sin(ph) * 0.9;
+    P.piece(CAP(4.2, -11.4, 10.2, -13.2 + Math.sin(ph + 0.8) * 1.1, 1.7, 1.1), PAL.opal[1], 7.4, -12.6, 3);
+    const O = PAL.opal;
+    const strip = (x0, x1, b0, b1) => [[x0, -14.2], [x1, -14.2], [x1 + b1, 4], [x0 + b0, 4]];
+    const cells = [
+      { poly: [[-9, -26], [-2.4, -26], [-2.6, -14.2], [-9, -14.2]], col: O[3], cx: -4.6, cy: -19, r: 5 },
+      { poly: [[-2.4, -26], [2.6, -26], [2.4, -14.2], [-2.6, -14.2]], col: O[0], cx: 0, cy: -21, r: 5, glow: true },
+      { poly: [[2.6, -26], [9, -26], [9, -14.2], [2.4, -14.2]], col: O[4], cx: 4.6, cy: -19, r: 5 },
+      { poly: strip(-9, -4.4, -0.6, sw - 0.4), col: O[2], cx: -6, cy: -6, r: 6 },
+      { poly: strip(-4.4, 0.2, sw - 0.4, sw), col: O[1], cx: -2, cy: -6, r: 6 },
+      { poly: strip(0.2, 4.6, sw, sw + 0.4), col: O[5], cx: 2.4, cy: -6, r: 6 },
+      { poly: strip(4.6, 9, sw + 0.4, 0.6), col: O[3], cx: 6, cy: -6, r: 6 },
+    ];
+    P.part(ghostShape(ph), cells, { jitter: 0.05 });
+    P.detail((c) => { c.strokeStyle = LEAD; c.lineWidth = 0.6; c.beginPath(); c.moveTo(-6.8, -14.2); c.quadraticCurveTo(0, -12.6, 6.8, -14.2); c.stroke(); });
+    P.piece(ELL(-2.6, -18.6, 1.7, 2.3, -0.2), PAL.hollow, -2.6, -18.8, 2.2, { noGlint: true, ol: 0.5 });
+    P.piece(ELL(3.2, -18.6, 1.7, 2.3, 0.2), PAL.hollow, 3.2, -18.8, 2.2, { noGlint: true, ol: 0.5 });
+    P.piece(ELL(0.6, -12.6, 2.1, 2.8 + Math.sin(ph) * 0.4), PAL.hollow, 0.6, -12.8, 2.6, { noGlint: true, ol: 0.5 });
     P.detail((c) => {
-      // cold pupils glimmer
-      c.fillStyle = 'rgba(160,220,255,0.9)';
-      c.beginPath(); c.arc(-2.3, -16.6, 0.55, 0, TAU); c.arc(3.5, -16.6, 0.55, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(170,226,255,0.95)';
+      c.beginPath(); c.arc(-2.2, -17.8, 0.6, 0, TAU); c.arc(3.6, -17.8, 0.6, 0, TAU); c.fill();
     });
   }
   function ghostFade(s, box) {
     const c = s.c.getContext('2d');
     c.save();
     c.globalCompositeOperation = 'destination-out';
-    const y0 = (-8 - box[1]) * K, y1 = (1 - box[1]) * K;
+    const y0 = (-7 - box[1]) * K, y1 = (3 - box[1]) * K;
     const g = c.createLinearGradient(0, y0, 0, y1);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.85)');
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.8)');
     c.fillStyle = g; c.fillRect(0, y0, s.c.width, y1 - y0 + 4);
     c.restore();
   }
 
   function colossusParts(P, fr) {
-    const lift = [[0, 0], [3.2, 0], [0, 0], [0, 3.2]][fr];
-    const swing = [0, 2.5, 0, -2.5][fr];
-    // legs
-    P.part(CAP(-8, -14, -8.5, -2.6 - lift[0], 4.4, 4), mosaic('cLegL', rectPoly(-14, -20, -2, 2), 30, 5, (x, y, i) => PAL.brown[i % 5]));
-    P.part(CAP(8, -14, 8.5, -2.6 - lift[1], 4.4, 4), mosaic('cLegR', rectPoly(2, -20, 14, 2), 30, 6, (x, y, i) => PAL.brown[(i + 2) % 5]));
-    // back arm
-    P.part(CAP(-15, -34, -22 - swing * 0.4, -17 + swing, 4.6, 4), mosaic('cArmL', rectPoly(-28, -40, -9, -10), 34, 8, (x, y, i) => PAL.violet[i % 4]));
-    // leaf crown
+    const ph = (fr / OF) * TAU;
+    const lift = [Math.max(0, Math.sin(ph)) * 3.4, Math.max(0, -Math.sin(ph)) * 3.4];
+    const swing = Math.cos(ph) * 2.8;
+    P.part(CAP(-8, -14, -8.5 - swing * 0.3, -2.6 - lift[0], 4.4, 4), mosaic('cLegL', rectPoly(-14, -20, -2, 2), 30, 5, (x, y, i) => PAL.brown[i % 5]));
+    P.part(CAP(8, -14, 8.5 + swing * 0.3, -2.6 - lift[1], 4.4, 4), mosaic('cLegR', rectPoly(2, -20, 14, 2), 30, 6, (x, y, i) => PAL.brown[(i + 2) % 5]));
+    P.part(CAP(-15, -34, -22 - swing * 0.5, -17 + swing, 4.6, 4), mosaic('cArmL', rectPoly(-28, -40, -9, -10), 34, 8, (x, y, i) => PAL.violet[i % 4]));
     const lv = [[-2, -46, -2.3, 12, 3], [2, -46, -0.85, 12, 3], [0, -47, -1.57, 14, 3.2], [-4, -45, -2.8, 9, 2.4], [4, -45, -0.35, 9, 2.4]];
-    lv.forEach((d, i) => { const L = leafPts(d[0], d[1], d[2], d[3], d[4]); P.part(leafShape(L), leafCells(L, ['#2f6a34', '#3f7f3a', '#275a2c'][i % 3], ['#4a8a3c', '#2a5c30', '#5a9a44'][i % 3])); });
-    // body mosaic
+    const lean = Math.sin(ph - 0.9) * 0.08;
+    lv.forEach((d, i) => { const L = leafPts(d[0], d[1], d[2] + lean, d[3], d[4]); P.part(leafShape(L), leafCells(L, ['#2f6a34', '#3f7f3a', '#275a2c'][i % 3], ['#4a8a3c', '#2a5c30', '#5a9a44'][i % 3])); });
     const body = (c) => {
       c.moveTo(0, -49);
       c.bezierCurveTo(16, -48, 23, -38, 21, -26);
@@ -456,7 +506,6 @@
     };
     const cells = mosaic('cBody', ellPoly(0, -29, 23, 21, 18, 1.08), 78, 13, (x, y, i, r) => (y + (r() - 0.5) * 6 < -31 ? PAL.violet : PAL.brown)[Math.floor(r() * 4)]);
     P.part(body, cells);
-    // ruby core (faceted)
     const cx = 0, cy = -24;
     const core = [[cx, cy - 6], [cx + 5, cy], [cx, cy + 6], [cx - 5, cy]];
     P.part(PP(core), [
@@ -465,15 +514,70 @@
       { poly: [[cx, cy], [cx, cy + 6], [cx - 5, cy]], col: PAL.ruby[2], cx: cx - 1.6, cy: cy + 2, r: 3, glow: true },
       { poly: [[cx, cy], [cx - 5, cy], [cx, cy - 6]], col: PAL.ruby[3], cx: cx - 1.6, cy: cy - 2, r: 3, glow: true },
     ]);
-    // eyes
     const eL = [[-9.5, -38.4], [-3.2, -36], [-4, -33.6], [-8.8, -35]];
     const eR = [[3.2, -36], [9.5, -38.4], [8.8, -35], [4, -33.6]];
     for (const e of [eL, eR]) { const inf = polyInfo(e); P.piece(PP(e), '#ffb21e', inf.cx, inf.cy, inf.r * 1.3, { glow: true, ol: 0.6 }); }
-    // jagged maw
     const m = [[-7, -16.2], [-5, -15], [-3.6, -16.6], [-1.6, -15], [0, -16.8], [1.6, -15], [3.6, -16.6], [5, -15], [7, -16.2], [5.6, -13.4], [0, -12.4], [-5.6, -13.4]];
     P.piece(PP(m), '#3a1a2a', 0, -14.6, 5, { noGlint: true, ol: 0.5 });
-    // front arm
-    P.part(CAP(15, -34, 22 + swing * 0.4, -17 - swing, 4.6, 4), mosaic('cArmR', rectPoly(9, -40, 28, -10), 34, 9, (x, y, i) => PAL.violet[(i + 1) % 4]));
+    P.part(CAP(15, -34, 22 + swing * 0.5, -17 - swing, 4.6, 4), mosaic('cArmR', rectPoly(9, -40, 28, -10), 34, 9, (x, y, i) => PAL.violet[(i + 1) % 4]));
+  }
+
+  /* ---------------------------------------------------------- shatter
+     A figure breaks along real lead lines: its sprite is cut into convex pieces (BSP), each piece keeps
+     the painted glass and gets a lead edge where it broke. Death plays it outward, spawn plays it inward. */
+  function shatter(spr, n, seed, cy0) {
+    const W = spr.c.width, H = spr.c.height;
+    const rnd = U.mulberry32(seed);
+    const polys = [];
+    bsp(rectPoly(0, 0, W, H), (W * H) / n, rnd, polys, 0);
+    const out = [];
+    const lw = 0.62 * K;
+    for (const poly of polys) {
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, mx = 0, my = 0;
+      for (const q of poly) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); mx += q[0]; my += q[1]; }
+      mx /= poly.length; my /= poly.length;
+      x0 = Math.floor(x0 - lw); y0 = Math.floor(y0 - lw); x1 = Math.ceil(x1 + lw); y1 = Math.ceil(y1 + lw);
+      const { c, ctx } = U.canvas(x1 - x0, y1 - y0);
+      ctx.translate(-x0, -y0);
+      ctx.save(); ctx.beginPath(); polyPath(ctx, poly); ctx.clip(); ctx.drawImage(spr.c, 0, 0); ctx.restore();
+      ctx.lineJoin = 'round'; ctx.strokeStyle = LEAD; ctx.lineWidth = lw;
+      ctx.beginPath(); polyPath(ctx, poly); ctx.stroke();
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(spr.c, 0, 0);
+      const d = ctx.getImageData(0, 0, c.width, c.height).data;
+      let cnt = 0;
+      for (let i = 3; i < d.length; i += 16) if (d[i] > 120) cnt++;
+      if (cnt * 4 < K * K * 2.5) continue;
+      const lx = (mx - spr.ox) / K, ly = (my - spr.oy) / K;
+      let dx = lx + (rnd() - 0.5) * 3, dy = ly - cy0 + (rnd() - 0.5) * 3;
+      const l = Math.hypot(dx, dy) || 1;
+      out.push({ s: { c, ox: mx - x0, oy: my - y0 }, lx, ly, dx: dx / l, dy: dy / l, d: 0.7 + rnd() * 0.6, vr: (rnd() - 0.5) * 9, up: 0.6 + rnd() * 0.8 });
+    }
+    return out;
+  }
+  /** Draws shatter pieces. mode 'out' (death, q 0..1) or 'in' (spawn, q 0..1). */
+  function drawPieces(ctx, V, pieces, x, y, sx, sy, fx, rot, q, reach, mode, alpha) {
+    const co = Math.cos(rot), si = Math.sin(rot);
+    for (const p of pieces) {
+      const X = p.lx * sx * fx, Y = p.ly * sy;
+      let px = x + X * co - Y * si, py = y + X * si + Y * co, r = rot;
+      if (mode === 'out') {
+        const u = U.clamp((q - 0.14) / 0.86, 0, 1);
+        const crack = Math.min(1, q / 0.14) * 0.5;
+        const e = 1 - Math.pow(1 - u, 3);
+        const D = (crack + e * reach * p.d);
+        px += p.dx * D * fx; py += p.dy * D * 0.75 - reach * p.up * 0.55 * Math.sin(u * PI * 0.85) + reach * 0.5 * u * u;
+        r += p.vr * u * fx;
+      } else {
+        const u = 1 - Math.pow(1 - q, 3);
+        const D = (1 - u) * reach * p.d * 1.5;
+        px += p.dx * D * fx; py += p.dy * D * 0.7 - (1 - u) * reach * 0.4;
+        r += p.vr * (1 - u) * 0.6 * fx;
+      }
+      ctx.globalAlpha = alpha;
+      blit(ctx, V, p.s, px, py, sx * fx, sy, r);
+    }
+    ctx.globalAlpha = 1;
   }
 
   function lanternParts(P) {
@@ -516,6 +620,15 @@
     violet: '#8a4ac0', magenta: '#b8409a', indigo: '#6656c6', cream: '#f2deb0', green: '#58a83c',
     opal: '#e8f0ff', brown: '#7e5a3c', ruby: '#e3203c', orange: '#ff8a22', gold: '#f2c040', aqua: '#6fe8e0', dkviolet: '#5e3a7a',
   };
+  /** Impact starburst: eight leaded lens rays, gold and pale, around a white-hot boss. */
+  function burstParts(P) {
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU + 0.2, L = i & 1 ? 5 : 7.6, w = i & 1 ? 1.1 : 1.6, ca = Math.cos(a), sa = Math.sin(a);
+      const sh = (c) => { c.moveTo(ca * 1.4, sa * 1.4); c.quadraticCurveTo(ca * L * 0.5 - sa * w, sa * L * 0.5 + ca * w, ca * L, sa * L); c.quadraticCurveTo(ca * L * 0.5 + sa * w, sa * L * 0.5 - ca * w, ca * 1.4, sa * 1.4); c.closePath(); };
+      P.piece(sh, i & 1 ? '#fff2c0' : '#f2c040', ca * L * 0.5, sa * L * 0.5, 2, { glow: true, ol: 0.3, noGlint: true });
+    }
+    P.piece(ELL(0, 0, 2, 2), '#fffbe8', 0, 0, 2, { glow: true, ol: 0.3 });
+  }
   function shardParts(P, shape, col) {
     const inf = polyInfo(shape);
     P.part(PP(shape), [{ poly: shape, col, cx: inf.cx, cy: inf.cy, r: inf.r * 1.2 }], { ol: 0.4 });
@@ -657,10 +770,11 @@
   const PATH_HALF = 21, LANE = 7;
   const LW = 0.78, LWR = 1.2;           // lead half widths (pieces / region borders)
   const DQ = 17;                         // diamond quarry spacing
-  const MAT_MEADOW = 0, MAT_LEAF = 1, MAT_NIGHT = 2, MAT_PATH = 3, MAT_PLAZA = 4;
+  const MAT_MEADOW = 0, MAT_LEAF = 1, MAT_NIGHT = 2, MAT_PATH = 3, MAT_PLAZA = 4, MAT_BAND = 9;
+  const BAND = 6.5;                      // width of the border strip of small pieces inside leaf / night / plaza regions
   function fieldsAt(x, y, out) {
-    out[0] = U.warped(x / 640 + 3.1, y / 640 - 7.7, 23, 1.1, 3) - 0.565;
-    out[1] = U.warped(x / 860 - 11.3, y / 860 + 4.2, 37, 1.2, 3) - 0.585;
+    out[0] = U.warped(x / 760 + 3.1, y / 760 - 7.7, 23, 0.95, 2) - 0.565;
+    out[1] = U.warped(x / 980 - 11.3, y / 980 + 4.2, 37, 1.05, 2) - 0.585;
     const w = U.fbm(x / 1000, y / 1000, 61, 2) - 0.5;
     out[2] = U.fbm(x / 1150 + w * 1.1 + 0.37, y / 1150 - w * 0.9 + 0.11, 11, 2) - 0.5;
     out[3] = U.fbm(x / 520 + 21.7, y / 520 + 5.3, 51, 2) - 0.66;
@@ -711,11 +825,14 @@
     { lanes: [hexs(['#a8742e', '#b07c33', '#9c6a2a', '#b5813a']), hexs(['#c28a38', '#cf9a44', '#b98034', '#d4a24c']), hexs(['#a8742e', '#b07c33', '#9c6a2a', '#b5813a'])] },
     { pal: hexs(['#5c6884', '#646e8a', '#6c7088', '#58647e', '#6a6486', '#62727e']) },
   ];
+  // border strips ("fillets"): gold round the leaf carpet, pearl round the night glass, ruby/blue jewels round the plaza
+  const BANDP = [hexs(['#c99030', '#b57a26', '#d8a845', '#a86c22']), hexs(['#7f92c0', '#93a5cf', '#7183b4', '#a0b0d8']), hexs(['#9e2a42', '#2c4aa8', '#a8323e', '#c0902e'])];
   const TESS = [
-    { C: 20, seed: 101, mat: 0 },
-    { C: 15, seed: 202, mat: 1 },
-    { C: 23, seed: 303, mat: 2 },
+    { C: 24, seed: 101, mat: 0 },
+    { C: 19, seed: 202, mat: 1 },
+    { C: 27, seed: 303, mat: 2 },
     { C: 30, seed: 404, mat: 3 },
+    { C: 8, seed: 606, mat: MAT_BAND },
   ];
   function* buildSites(info, T) {
     const C = T.C;
@@ -741,11 +858,12 @@
         for (let lane = 0; lane < 3; lane++) {
           let c;
           if (T.mat === MAT_PATH) { const pal = GP[3].lanes[lane]; c = pal[(h2 >>> (lane * 5)) % pal.length]; }
+          else if (T.mat === MAT_BAND) { const pal = BANDP[lane]; c = pal[(h2 >>> (lane * 5)) % pal.length]; }
           else if (T.mat === MAT_MEADOW && alt[k]) c = GP[0].alt[h2 % GP[0].alt.length];
           else { const pal = GP[T.mat].pal; c = pal[h2 % pal.length]; }
           const o = k * 9 + lane * 3;
           col[o] = c[0] * br[k]; col[o + 1] = c[1] * br[k]; col[o + 2] = c[2] * br[k];
-          if (T.mat !== MAT_PATH) break;
+          if (T.mat !== MAT_PATH && T.mat !== MAT_BAND) break;
         }
         ph[k] = (h2 & 63);
       }
@@ -773,7 +891,7 @@
   }
   /** Classify grid cells: 0..4 = whole cell is that material and far from any region border, 255 = per pixel. */
   function classifyCells(F, nn, nc, flags) {
-    const M = GSTEP * 1.6 + LWR + 1.5;
+    const M = GSTEP * 1.6 + LWR + 1.5 + BAND;
     const d = new Float32Array(4);
     const st = new Int8Array(4);
     for (let gy = 0; gy < nc; gy++) {
@@ -813,7 +931,7 @@
       const gxf = (px + 0.5) / cpx, gx0 = gxf | 0, u = gxf - gx0;
       const o00 = (gy0 * nn + gx0) * NF, o10 = o00 + NF, o01 = o00 + nn * NF, o11 = o01 + NF;
       const fl = flags[gy0 * nc + gx0];
-      let mat, re = 99, across = 0;
+      let mat, re = 99, across = 0, od = 99;
       if (fl !== 255) {
         mat = fl;
         if (mat === MAT_PATH) across = layerD(F, o00, o10, o01, o11, 2, u, v);
@@ -828,13 +946,15 @@
         else if (dN > 0) { mat = MAT_NIGHT; re = Math.min(dN, -dPa, -dPl); }
         else if (dL > 0) { mat = MAT_LEAF; re = Math.min(dL, -dN, -dPa, -dPl); }
         else { mat = MAT_MEADOW; re = Math.min(-dL, -dN, -dPa, -dPl); }
+        od = mat === MAT_PLAZA ? dPl : mat === MAT_NIGHT ? dN : mat === MAT_LEAF ? dL : 99;
       }
+      const band = od < BAND;
       const m0 = F[o00 + 4] + (F[o10 + 4] - F[o00 + 4]) * u;
       const m1 = F[o01 + 4] + (F[o11 + 4] - F[o01 + 4]) * u;
       const mt = m0 + (m1 - m0) * v;
 
       let eP, cr, cg, cb, R, streak;
-      if (mat === MAT_PLAZA) {
+      if (mat === MAT_PLAZA && !band) {
         const qu = (x + y) / DQ, qv = (x - y) / DQ;
         const iu = Math.floor(qu), iv = Math.floor(qv);
         const fu = qu - iu, fv = qv - iv;
@@ -847,7 +967,7 @@
         streak = 1 + 0.045 * SIN[(((x * 1.3 + w1 * 2) * SINK) | 0) & 1023] * SIN[(((y * 1.1 + w2 * 2) * SINK) | 0) & 1023];
         R = 4.2;
       } else {
-        const T = sites[mat], gw = T.gw, sx = T.sx, sy = T.sy;
+        const T = band ? sites[4] : sites[mat], gw = T.gw, sx = T.sx, sy = T.sy;
         const ix = Math.floor(x * T.iC) - T.gx0, iy = Math.floor(y * T.iC) - T.gy0;
         let b1 = 1e18, b2 = 1e18, b3 = 1e18, k1 = 0, k2 = 0, k3 = 0;
         for (let j = -1; j <= 1; j++) {
@@ -867,7 +987,11 @@
         const e2 = (b3 - b1) / (2 * Math.sqrt(nx * nx + ny * ny));
         eP = smin(e1, e2, 1.6);
         let o = k1 * 9;
-        if (mat === MAT_PATH) {
+        if (band) {
+          o += (mat === MAT_LEAF ? 0 : mat === MAT_NIGHT ? 1 : 2) * 3;
+          const eb = Math.abs(od - BAND) - 0.25;
+          if (eb < eP) eP = eb;
+        } else if (mat === MAT_PATH) {
           const lane = across < -LANE ? 0 : across > LANE ? 2 : 1;
           const el = Math.min(Math.abs(across - LANE), Math.abs(across + LANE));
           if (el < eP) eP = el;
@@ -880,7 +1004,7 @@
       }
       const e = eP < re ? eP : re;
       let t = e / R; t = t < 0 ? 0 : t > 1 ? 1 : t;
-      const lum = (0.6 + 0.38 * t * t * (3 - 2 * t)) * streak * (0.86 + (mt - 0.3) * 0.5);
+      const lum = (0.52 + 0.36 * t * t * (3 - 2 * t)) * streak * (0.82 + (mt - 0.3) * 0.5);
       let r = cr * lum, g = cg * lum, b = cb * lum;
       const cov = Math.max(LW - eP, LWR - re) * res + 0.5;
       if (cov > 0) {
@@ -972,34 +1096,88 @@
     glassBlob(c, ELL(x, y, 3.4 * s, 3.4 * s * 0.85), [214, 160, 70], x, y, 3.4 * s, 0.65);
     glassBlob(c, ELL(x, y, 1.6 * s, 1.6 * s * 0.85), [250, 214, 120], x, y, 1.6 * s, 0.5);
   }
+  /** Rose-window medallion inlaid in the floor: dark disc, 8 pointed petals, a ring of 16 small pieces, a jewel boss. */
+  const ROSE_PAL = {
+    [MAT_MEADOW]: { base: [24, 66, 70], pet: [[232, 182, 70], [196, 52, 74]], ring: [[58, 92, 184], [226, 190, 96]], boss: [227, 32, 60] },
+    [MAT_LEAF]: { base: [92, 26, 40], pet: [[240, 192, 80], [244, 140, 56]], ring: [[52, 84, 170], [226, 182, 80]], boss: [70, 200, 190] },
+    [MAT_PLAZA]: { base: [54, 60, 96], pet: [[64, 96, 196], [200, 58, 82]], ring: [[226, 190, 96], [182, 196, 236]], boss: [242, 196, 64] },
+  };
+  function dRosette(c, x, y, R, pal) {
+    c.save(); c.translate(x, y); c.lineJoin = 'round';
+    glassBlob(c, ELL(0, 0, R, R), pal.base, 0, 0, R * 0.8, 0.9);
+    const n2 = 16;
+    for (let i = 0; i < n2; i++) {
+      const a0 = (i / n2) * TAU, a1 = ((i + 1) / n2) * TAU, am = (a0 + a1) / 2;
+      const sec = (q) => { q.moveTo(Math.cos(a0) * R * 0.8, Math.sin(a0) * R * 0.8); q.arc(0, 0, R, a0, a1); q.arc(0, 0, R * 0.8, a1, a0, true); q.closePath(); };
+      glassBlob(c, sec, pal.ring[i & 1], Math.cos(am) * R * 0.9, Math.sin(am) * R * 0.9, R * 0.12, 0.55);
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU + PI / 8, ca = Math.cos(a), sa = Math.sin(a), w = R * 0.2;
+      const r0 = R * 0.24, r1 = R * 0.76, rm = (r0 + r1) / 2;
+      const pet = (q) => {
+        q.moveTo(ca * r0, sa * r0);
+        q.quadraticCurveTo(ca * rm - sa * w, sa * rm + ca * w, ca * r1, sa * r1);
+        q.quadraticCurveTo(ca * rm + sa * w, sa * rm - ca * w, ca * r0, sa * r0);
+        q.closePath();
+      };
+      glassBlob(c, pet, pal.pet[i & 1], ca * rm, sa * rm, R * 0.18, 0.6);
+    }
+    glassBlob(c, ELL(0, 0, R * 0.24, R * 0.24), [236, 214, 160], 0, 0, R * 0.22, 0.7);
+    glassBlob(c, ELL(0, 0, R * 0.12, R * 0.12), pal.boss, 0, 0, R * 0.12, 0.55);
+    c.strokeStyle = LEAD;
+    c.lineWidth = 1.5; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.stroke();
+    c.lineWidth = 1.05; c.beginPath(); c.arc(0, 0, R * 0.8, 0, TAU); c.stroke();
+    c.restore();
+  }
+  function nearEdge(x, y, m, d) {
+    return matAt(x + d, y) !== m || matAt(x - d, y) !== m || matAt(x, y + d) !== m || matAt(x, y - d) !== m;
+  }
   function* decals(ctx, info) {
     let n = 0;
     const c = ctx;
-    // meadow flowers
-    G.scatter(info, 44, 9001, 10, (x, y, rng) => {
-      if (rng.next() > 0.42) return;
-      if (matSafe(x, y, 8) !== MAT_MEADOW) return;
-      dFlower(c, x, y, 0.8 + rng.next() * 0.35, rng);
+    // rose-window medallions: rare focal features in calm areas
+    G.scatter(info, 430, 9010, 34, (x, y, rng) => {
+      if (rng.next() > 0.6) return;
+      const m = matSafe(x, y, 34);
+      if (!ROSE_PAL[m] || G.nearSpawn(x, y, 60)) return;
+      dRosette(c, x, y, 22 + rng.next() * 5, ROSE_PAL[m]);
     });
     yield;
-    // leaf carpet leaves
-    G.scatter(info, 36, 9002, 8, (x, y, rng) => {
-      if (rng.next() > 0.5) return;
-      if (matSafe(x, y, 6) !== MAT_LEAF) return;
-      dLeaf(c, x, y, 0.8 + rng.next() * 0.4, rng);
+    // meadow flower sprays: clusters of 3-6 blossoms, mostly along region edges (not an even sprinkle)
+    G.scatter(info, 92, 9001, 30, (x, y, rng) => {
+      if (rng.next() > 0.6) return;
+      if (matSafe(x, y, 14) !== MAT_MEADOW) return;
+      if (!nearEdge(x, y, MAT_MEADOW, 48) && rng.next() > 0.2) return;
+      const k = 3 + ((rng.next() * 4) | 0), pts = [];
+      for (let i = 0; i < k; i++) { const a = rng.next() * TAU, r = i === 0 ? 0 : 5 + rng.next() * 8; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7, i === 0 ? 1.15 : 0.6 + rng.next() * 0.3]); }
+      pts.sort((a, b) => a[1] - b[1]);
+      for (const p of pts) dFlower(c, p[0], p[1], p[2], rng);
     });
     yield;
-    // night stars
-    G.scatter(info, 40, 9003, 6, (x, y, rng) => {
-      if (rng.next() > 0.5) return;
-      if (matSafe(x, y, 5) !== MAT_NIGHT) return;
-      dStar(c, x, y, 0.7 + rng.next() * 0.45, rng);
+    // leaf carpet: drifts of 3-5 overlapping leaves
+    G.scatter(info, 64, 9002, 22, (x, y, rng) => {
+      if (rng.next() > 0.55) return;
+      if (matSafe(x, y, 10) !== MAT_LEAF) return;
+      const k = 3 + ((rng.next() * 3) | 0), a = rng.next() * PI;
+      for (let i = 0; i < k; i++) { const t = (i - (k - 1) / 2) * 4.2; dLeaf(c, x + Math.cos(a) * t + (rng.next() - 0.5) * 3, y + Math.sin(a) * t * 0.7 + (rng.next() - 0.5) * 3, 0.75 + rng.next() * 0.4, rng); }
     });
     yield;
-    // path roundels
-    G.scatter(info, 54, 9004, 6, (x, y, rng) => {
-      if (rng.next() > 0.35) return;
-      if (matSafe(x, y, 5) !== MAT_PATH) return;
+    // night glass: small constellations, stars joined by thin gold lines
+    G.scatter(info, 118, 9003, 34, (x, y, rng) => {
+      if (rng.next() > 0.65) return;
+      if (matSafe(x, y, 26) !== MAT_NIGHT) return;
+      const k = 3 + ((rng.next() * 3) | 0), pts = [];
+      let px = x, py = y, a = rng.next() * TAU;
+      for (let i = 0; i < k; i++) { pts.push([px, py]); a += (rng.next() - 0.5) * 2; const l = 8 + rng.next() * 9; px += Math.cos(a) * l; py += Math.sin(a) * l * 0.7; }
+      c.strokeStyle = 'rgba(240,206,120,0.42)'; c.lineWidth = 0.5;
+      c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.stroke();
+      pts.forEach((p, i) => dStar(c, p[0], p[1], i === 0 ? 1.15 : 0.55 + rng.next() * 0.3, rng));
+    });
+    yield;
+    // path roundels: sparse amber bosses
+    G.scatter(info, 70, 9004, 6, (x, y, rng) => {
+      if (rng.next() > 0.3) return;
+      if (matSafe(x, y, 7) !== MAT_PATH) return;
       dRoundel(c, x, y, 0.8 + rng.next() * 0.3);
     });
     yield;
@@ -1014,16 +1192,6 @@
       c.beginPath(); c.arc(x + 0.2, y + 0.2, r, 0, TAU); c.fill();
       c.fillStyle = 'rgba(255,255,255,0.4)';
       c.beginPath(); c.arc(x - r * 0.3, y - r * 0.3, r * 0.45, 0, TAU); c.fill();
-    });
-    yield;
-    // glints (reflections) everywhere
-    c.lineCap = 'round';
-    G.scatter(info, 24, 9006, 4, (x, y, rng) => {
-      if (rng.next() > 0.32) return;
-      const l = 1.6 + rng.next() * 2.4;
-      c.strokeStyle = 'rgba(255,255,255,0.2)'; c.lineWidth = 0.55;
-      c.beginPath(); c.moveTo(x - l * 0.7, y + l * 0.7); c.lineTo(x + l * 0.7, y - l * 0.7); c.stroke();
-      if (rng.next() < 0.4) { c.beginPath(); c.moveTo(x - l * 0.3 + 1.2, y + l * 0.3 + 1.2); c.lineTo(x + l * 0.3 + 1.2, y - l * 0.3 + 1.2); c.stroke(); }
     });
     yield;
     // prop light pools + contact shadows (same placement as propsForChunk)
@@ -1056,15 +1224,20 @@
     const r = rng.next(), vr = rng.next(), f = rng.next() < 0.5;
     const m = matAt(x, y);
     let t = null, v = 0;
+    const edge = m !== MAT_PLAZA && nearEdge(x, y, m, 36);
     if (m === MAT_MEADOW) {
-      if (r < 0.1) { t = 'tree'; v = vr < 0.6 ? 1 : 2; }
-      else if (r < 0.2) { t = 'bush'; v = vr < 0.7 ? 0 : 1; }
-      else if (r < 0.26) { t = 'pump'; v = vr < 0.4 ? 0 : vr < 0.7 ? 2 : 1; }
-      else if (r < 0.28) { t = 'candle'; v = vr < 0.5 ? 0 : 1; }
+      // trees and bushes gather along the region edges, the open meadow stays calm
+      if (edge) {
+        if (r < 0.2) { t = 'tree'; v = vr < 0.6 ? 1 : 2; }
+        else if (r < 0.38) { t = 'bush'; v = vr < 0.7 ? 0 : 1; }
+        else if (r < 0.44) { t = 'pump'; v = vr < 0.4 ? 0 : vr < 0.7 ? 2 : 1; }
+      } else if (r < 0.04) { t = 'tree'; v = 1; }
+      else if (r < 0.08) { t = 'pump'; v = vr < 0.5 ? 0 : 2; }
+      else if (r < 0.1) { t = 'candle'; v = vr < 0.5 ? 0 : 1; }
     } else if (m === MAT_LEAF) {
-      if (r < 0.15) { t = 'tree'; v = 0; }
-      else if (r < 0.26) { t = 'pump'; v = vr < 0.35 ? 1 : vr < 0.7 ? 2 : 0; }
-      else if (r < 0.3) { t = 'bush'; v = 1; }
+      if (r < (edge ? 0.24 : 0.1)) { t = 'tree'; v = 0; }
+      else if (r < (edge ? 0.34 : 0.22)) { t = 'pump'; v = vr < 0.35 ? 1 : vr < 0.7 ? 2 : 0; }
+      else if (r < (edge ? 0.4 : 0.24)) { t = 'bush'; v = 1; }
     } else if (m === MAT_NIGHT) {
       if (r < 0.12) { t = 'grave'; v = (vr * 3) | 0; }
       else if (r < 0.18) { t = 'candle'; v = vr < 0.5 ? 0 : 1; }
@@ -1102,6 +1275,27 @@
     blit(ctx, V, s, x, y, sc, sc, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+  }
+  /** Creature body + optional leaf crown (pivot at the bulb top, lags the hop) + blink lids + lit overlay. */
+  function drawBody(ctx, V, set, crown, lid, x, y, sx, sy, fx, rot, alpha, lit) {
+    if (crown) {
+      const Y = -19.4 * sy, cx = x - Y * Math.sin(rot), cy = y + Y * Math.cos(rot), r = rot + fx * crown.r;
+      ctx.globalAlpha = alpha; blit(ctx, V, crown.s.n, cx, cy, sx * fx, sy, r);
+      if (lit > 0) { ctx.globalAlpha = alpha * lit; blit(ctx, V, crown.s.f, cx, cy, sx * fx, sy, r); }
+    }
+    ctx.globalAlpha = alpha;
+    blit(ctx, V, set.n, x, y, sx * fx, sy, rot);
+    if (lid) blit(ctx, V, lid, x, y, sx * fx, sy, rot);
+    if (lit > 0) { ctx.globalAlpha = alpha * lit; blit(ctx, V, set.f, x, y, sx * fx, sy, rot); }
+    ctx.globalAlpha = 1;
+  }
+  /** Per-actor animation state (spring for loose parts, phase offset), kept outside the simulation. */
+  const ACT = new WeakMap();
+  function actorState(o, rt) {
+    let A = ACT.get(o);
+    if (!A) { A = { t: rt, dt: 0, tail: 0.3, tv: 0, tail2: 0, tv2: 0, ph: (o.seed !== undefined ? o.seed : Math.random()) * TAU }; ACT.set(o, A); }
+    A.dt = U.clamp(rt - A.t, 0, 0.05); A.t = rt;
+    return A;
   }
   function glowSprite(rgb, r) {
     return plain([-r, -r, r, r], (c) => {
@@ -1165,6 +1359,8 @@
 
   /* ============================================================== overlay */
   let OV = null;
+  const MOTES = [];
+  for (let i = 0; i < 26; i++) MOTES.push(U.hash2(i, 1, 77), U.hash2(i, 2, 77), U.hash2(i, 3, 77));
   function buildOverlay(W, H) {
     const a = U.canvas(W, H), c = a.ctx;
     // vignette like the deep window embrasure
@@ -1385,7 +1581,7 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
     id: 'stainedglass',
     name: 'Kirchenfenster',
     family: 'Bleiglas',
-    description: 'Ein lebendiges Kathedralenfenster: Juwelenfarbenes Glas in Bleiruten, durch das warmes Licht fällt.',
+    description: 'A living cathedral window: jewel-tone glass pieces in dark lead came, lit from behind by warm light and coloured rays.',
     groundColor: '#2a5a3e',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1397,26 +1593,48 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
       const cssH = window.__forceH || window.innerHeight || 900;
       const S = (cssH * dpr) / 360;
       K = Math.max(3, Math.min(5, Math.round(S * 1.5)));
-      SPR.jack = [0, 1, 2, 3].map((f) => pair([-14, -38, 14, 3], (P) => jackParts(P, f), 11 + f));
-      SPR.creep = [0, 1, 2].map((v) => [0, 1, 2, 3].map((f) => pair([-14, -34, 14, 4], (P) => creeperParts(P, f, v), 30 + v * 7 + f)));
-      SPR.ghost = [0, 1, 2, 3].map((f) => {
-        const box = [-11, -27, 14, 3];
-        const p = pair(box, (P) => ghostParts(P, f), 60 + f);
-        ghostFade(p.n, box); ghostFade(p.f, box);
+      const JB = [-13, -22, 14, 3];
+      SPR.jack = {
+        walk: Array.from({ length: JW }, (_, f) => pair(JB, (P) => jackBodyParts(P, jackPose(f)), 11)),
+        stand: pair(JB, (P) => jackBodyParts(P, jackPose('stand')), 11),
+        dash: pair(JB, (P) => jackBodyParts(P, jackPose('dash')), 11),
+        arm: [pair([-4, -3, 4.5, 10], (P) => jackArmParts(P, true), 23), pair([-4, -3, 4.5, 10], (P) => jackArmParts(P, false), 24)],
+        head: [0, 1, 2].map((v) => pair([-12, -23, 13, 2.5], (P) => jackHeadParts(P, v), 25)),
+        tail: [pair([-3.5, -2, 3.5, 6.5], jackTailUpParts, 28), pair([-3, -1.5, 4, 8], jackTailLoParts, 29)],
+      };
+      const CB = [-14, -24, 14, 4], CW = [-14, -34, 14, 4];
+      SPR.creep = [0, 1, 2].map((v) => {
+        const whole = pair(CW, (P) => creeperParts(P, 0, v, true), 30 + v * 7);
+        return {
+          fr: Array.from({ length: CF }, (_, f) => pair(CB, (P) => creeperParts(P, f, v, false), 30 + v * 7)),
+          crown: pair([-10, -14, 10, 2], creeperCrownParts, 50),
+          lid: build(CB, (P) => creeperLidParts(P, v), 'fill', 51),
+          sh: { n: shatter(whole.n, 9, 70 + v, -11), f: shatter(whole.f, 9, 70 + v, -11), inn: shatter(whole.f, 5, 74 + v, -11) },
+        };
+      });
+      const GB = [-11, -27, 14, 5];
+      SPR.ghost = Array.from({ length: GF }, (_, f) => {
+        const p = pair(GB, (P) => ghostParts(P, f), 60);
+        ghostFade(p.n, GB); ghostFade(p.f, GB);
         return p;
       });
-      SPR.colo = [0, 1, 2, 3].map((f) => pair([-31, -64, 31, 3], (P) => colossusParts(P, f), 80 + f));
+      SPR.ghostSh = { n: shatter(SPR.ghost[0].n, 8, 77, -14), f: shatter(SPR.ghost[0].f, 8, 77, -14), inn: shatter(SPR.ghost[0].f, 5, 78, -14) };
+      SPR.colo = Array.from({ length: OF }, (_, f) => pair([-32, -64, 32, 3], (P) => colossusParts(P, f), 80));
+      SPR.coloSh = { n: shatter(SPR.colo[0].n, 16, 88, -28), f: shatter(SPR.colo[0].f, 16, 88, -28), inn: shatter(SPR.colo[0].f, 8, 89, -28) };
       SPR.lantern = build([-9, -21, 9, 4], lanternParts, 'fill', 3);
       SPR.seed = build([-5.5, -4.5, 6, 4.5], seedParts, 'fill', 4);
       SPR.gemS = build([-5.5, -7.5, 5.5, 4.5], (P) => gemParts(P, false), 'fill', 5);
       SPR.gemB = build([-7.5, -10.5, 7.5, 6.5], (P) => gemParts(P, true), 'fill', 6);
       SPR.shard = {};
       for (const k in SHARD_COLS) SPR.shard[k] = SHARD_SHAPES.map((sh, i) => build([-4, -4, 4, 4], (P) => shardParts(P, sh, SHARD_COLS[k]), 'fill', 90 + i, 0.5, 0.4));
+      SPR.burst = build([-9, -9, 9, 9], burstParts, 'fill', 7);
+      SPR.rose = plain([-25, -25, 25, 25], (c) => dRosette(c, 0, 0, 23, ROSE_PAL[MAT_PLAZA]));
       SPR.glowWarm = glowSprite([255, 190, 80], 16);
       SPR.glowCold = glowSprite([150, 200, 255], 14);
       SPR.glowRuby = glowSprite([255, 60, 80], 14);
       SPR.glowAqua = glowSprite([110, 240, 220], 10);
       SPR.glowGold = glowSprite([255, 210, 90], 10);
+      SPR.flare = { creeper: glowSprite([200, 120, 255], 14), ghost: glowSprite([170, 220, 255], 14), colossus: glowSprite([255, 80, 90], 18) };
       SPR.pool = plain([-20, -8, 20, 8], (c) => {
         c.save(); c.scale(1, 0.4);
         const g = c.createRadialGradient(0, 0, 0, 0, 0, 20);
@@ -1535,135 +1753,168 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
     },
 
     drawEnemy(ctx, e, view) {
-      const V = tf(view);
-      let set, y = e.y, rot = 0, sx = 1, sy = 1, alpha = 1, h = 12, gl = null;
+      const V = tf(view), rt = view.rt;
+      const fx = e.facing < 0 ? -1 : 1;
       const scl = 0.95 + e.seed * 0.1;
-      if (e.type === 'creeper') {
-        const ph = e.anim * 0.85 + e.seed;
-        const f = Math.floor(ph * 4) & 3;
-        set = SPR.creep[Math.floor(e.seed * 3) % 3][f];
-        const sn = Math.sin(ph * TAU);
-        rot = sn * 0.09;
-        y -= Math.abs(sn) * 1.2;
-        sx = scl * 0.92; sy = scl * 0.92;
-      } else if (e.type === 'ghost') {
-        const f = Math.floor(view.rt * 6 + e.seed * 4) & 3;
-        set = SPR.ghost[f];
-        y -= 4 + Math.sin(view.rt * 2.4 + e.seed * 12) * 1.5;
-        rot = U.clamp(e.vx / 70, -1, 1) * 0.14;
-        alpha = 0.86;
-        h = 16; gl = SPR.glowCold;
-        sx = scl; sy = scl;
+      const T = e.type;
+      let set, y = e.y, rot = 0, sx = scl, sy = scl, alpha = 1, h, sh, reach, gl = null, crown = null, lid = null;
+      if (T === 'creeper') {
+        const C = SPR.creep[Math.floor(e.seed * 3) % 3];
+        const ph = e.anim * 0.55 + e.seed * 3;
+        set = C.fr[Math.floor(U.fract(ph) * CF) % CF];
+        const s2 = Math.sin(ph * TAU);
+        const up = Math.abs(s2);
+        y -= up * 1.4;
+        const contact = Math.pow(1 - up, 3);
+        sx *= 0.92 * (1 + contact * 0.07); sy *= 0.92 * (1 - contact * 0.07);
+        rot = s2 * 0.08;
+        crown = { s: C.crown, r: 0.16 * Math.sin(ph * TAU - 1.5) - 0.06 * contact };
+        if (U.fract(rt / 2.7 + e.seed * 5.3) < 0.05) lid = C.lid;
+        h = 11; sh = C.sh; reach = 15;
+      } else if (T === 'ghost') {
+        set = SPR.ghost[Math.floor(U.fract(rt * 1.35 + e.seed * 3) * GF) % GF];
+        const w = rt * 2.3 + e.seed * 12;
+        y -= 4.6 + 1.5 * (Math.sin(w) + 0.32 * Math.sin(2 * w + 1.1));
+        const spd = U.clamp(Math.hypot(e.vx, e.vy) / 64, 0, 1.2);
+        rot = U.clamp(e.vx / 70, -1, 1) * 0.16;
+        sx *= 1 + 0.05 * spd; sy *= 1 - 0.03 * spd;
+        alpha = 0.88; h = 15; gl = SPR.glowCold; sh = SPR.ghostSh; reach = 14;
       } else {
-        const ph = e.anim * 0.32 + e.seed;
-        const f = Math.floor(ph * 4) & 3;
-        set = SPR.colo[f];
+        const ph = e.anim * 0.3 + e.seed;
+        set = SPR.colo[Math.floor(U.fract(ph) * OF) % OF];
         const up = Math.abs(Math.sin(ph * TAU));
         y -= up * 1.8;
         const contact = Math.pow(1 - up, 4);
-        sx = scl * (1 + contact * 0.05); sy = scl * (1 - contact * 0.05);
-        h = 28;
+        sx *= 1 + contact * 0.05; sy *= 1 - contact * 0.05;
+        rot = 0.025 * Math.sin(ph * TAU);
+        h = 27; sh = SPR.coloSh; reach = 26;
       }
-      const fx = e.facing < 0 ? -1 : 1;
-      // spawn: shards fly in and assemble
+      // spawn: the figure's own pieces fly in along curved paths, lock together, flash, then settle
       if (e.spawnT < 1) {
         const q = e.spawnT;
-        const cols = shardCols(e);
-        const n = e.type === 'colossus' ? 10 : 6;
-        const big = e.type === 'colossus' ? 1.6 : 1;
-        const ease = U.ease.outQuad(U.clamp(q / 0.85, 0, 1));
-        const sa = U.clamp(q * 4, 0, 1) * (1 - U.smoothstep(0.78, 0.95, q));
-        if (sa > 0.01) {
-          ctx.globalAlpha = sa;
-          for (let i = 0; i < n; i++) {
-            const a = e.seed * 40 + (i / n) * TAU;
-            const r = (1 - ease) * (e.type === 'colossus' ? 50 : 30) + 2;
-            const px = e.x + Math.cos(a) * r, py = e.y - h + Math.sin(a) * r * 0.6 - (1 - ease) * 10;
-            blit(ctx, V, SPR.shard[cols[i % cols.length]][i % 3], px, py, big, big, a + (1 - ease) * 9);
-          }
-          ctx.globalAlpha = 1;
+        if (q < 0.7) {
+          const u = q / 0.7;
+          glow(ctx, V, SPR.glowWarm, e.x, e.y - h, (reach / 14) * (0.5 + u * 0.5), u * 0.55);
+          drawPieces(ctx, V, sh.inn, e.x, e.y, sx, sy, fx, 0, u, reach, 'in', Math.min(1, u * 3) * alpha);
+          return;
         }
-        const ba = U.smoothstep(0.6, 0.92, q);
-        if (ba <= 0.01) return;
-        alpha *= ba;
-        ctx.globalAlpha = alpha;
-        blit(ctx, V, set.n, e.x, y, sx * fx, sy, rot);
-        const fa = 1 - U.smoothstep(0.85, 1, q);
-        if (fa > 0.01) { ctx.globalAlpha = alpha * fa * 0.8; blit(ctx, V, set.f, e.x, y, sx * fx, sy, rot); }
-        ctx.globalAlpha = 1;
-        glow(ctx, V, SPR.glowWarm, e.x, e.y - h, big * 0.9, Math.sin(U.clamp((q - 0.6) / 0.4, 0, 1) * PI) * 0.6);
+        const u = (q - 0.7) / 0.3;
+        const wob = Math.sin(u * PI * 2) * (1 - u);
+        sy *= 1 - 0.12 * wob; sx *= 1 + 0.09 * wob;
+        glow(ctx, V, SPR.glowWarm, e.x, e.y - h, reach / 14, 0.6 * (1 - u));
+        crown = crown && { s: crown.s, r: crown.r - 0.25 * wob };
+        drawBody(ctx, V, set, crown, null, e.x, y, sx, sy, fx, rot, alpha, 1 - u);
         return;
       }
+      // death: white-hot crack along the lead lines, then the pieces burst out, arc and drop
       if (e.dying) {
         const q = e.deathT;
-        if (q >= 0.22) return;
-        const k = 1 + q * 0.8;
-        ctx.globalAlpha = 1 - q / 0.22;
-        blit(ctx, V, set.f, e.x, y, sx * fx * k, sy * k, rot);
-        ctx.globalAlpha = 1;
+        if (q < 0.4) glow(ctx, V, T === 'colossus' ? SPR.glowRuby : SPR.glowWarm, e.x, e.y - h, reach / 12, 0.9 * (1 - q / 0.4));
+        drawPieces(ctx, V, q < 0.28 ? sh.f : sh.n, e.x, e.y, sx, sy, fx, 0, q, reach, 'out', (1 - U.smoothstep(0.68, 1, q)) * (q < 0.28 ? 1 : alpha));
         return;
       }
       if (gl) glow(ctx, V, gl, e.x, y - h, 0.75, 0.22);
-      ctx.globalAlpha = alpha;
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.12 * fl; sy *= 1 - 0.08 * fl; }
-      blit(ctx, V, set.n, e.x, y, sx * fx, sy, rot);
-      if (fl > 0.02) {
-        ctx.globalAlpha = Math.min(0.62, fl * 0.9) * alpha;
-        blit(ctx, V, set.f, e.x, y, sx * fx, sy, rot);
+      if (fl > 0) {
+        sx *= 1 + 0.14 * fl; sy *= 1 - 0.1 * fl;
+        rot -= 0.24 * fl * (e.kx > 0 ? 1 : e.kx < 0 ? -1 : fx);
       }
-      ctx.globalAlpha = 1;
-      if (e.type === 'colossus') {
-        const pulse = 0.45 + 0.25 * Math.sin(view.rt * 4 + e.seed * 9);
+      drawBody(ctx, V, set, crown, lid, e.x, y, sx, sy, fx, rot, alpha, fl > 0.02 ? Math.min(0.75, fl * 1.1) : 0);
+      if (fl > 0.5) glow(ctx, V, SPR.glint[0], e.x - 3 * fx, y - h * 1.3, 0.3 + 0.25 * fl, fl);
+      if (T === 'colossus') {
+        const pulse = 0.45 + 0.25 * Math.sin(rt * 4 + e.seed * 9);
         glow(ctx, V, SPR.glowRuby, e.x, y - 24 * sy, 0.8, pulse);
-      } else if (e.type === 'creeper' && ((view.rt * 0.7 + e.seed * 7) % 4) < 0.12) {
-        glow(ctx, V, SPR.glint[0], e.x - 4 * fx, y - 17, 0.3, 0.8);
       }
     },
 
     drawPlayer(ctx, p, view) {
-      const V = tf(view);
-      let frame = 0, lift = 0, sx = 1, sy = 1, rot = 0;
-      if (p.moving) {
-        const ph = p.anim * 0.42;
-        frame = Math.floor(ph * 4) & 3;
-        const s = Math.sin(ph * TAU * 2);
-        lift = Math.abs(Math.sin(ph * TAU)) * 2.2;
-        rot = 0.05 * p.facing * Math.sin(ph * TAU);
-        sy = 1 + 0.02 * s;
-      } else {
-        const b = Math.sin(view.rt * 3);
-        sy = 1 + 0.025 * b; sx = 1 - 0.015 * b;
-      }
-      if (p.shootT > 0) { sy *= 1 - 0.04 * p.shootT; sx *= 1 + 0.03 * p.shootT; }
-      if (p.levelT > 0) { const w = Math.sin(p.levelT * PI * 4) * p.levelT; sy *= 1 + 0.12 * w; sx *= 1 - 0.08 * w; }
-      sx *= JACK_SCALE; sy *= JACK_SCALE;
+      const V = tf(view), J = SPR.jack, rt = view.rt;
+      const A = actorState(p, rt);
       const fx = p.facing < 0 ? -1 : 1;
-      const set = SPR.jack[frame];
+      let body = J.stand, lift = 0, sx = 1, sy = 1, rot = 0, armF = 0, armB = 0, hdx = 0, hdy = 0, hrot = 0, head = 0;
+      if (p.dashT > 0) {
+        // anticipation crouch for the first fifth, then a long forward lean with the arms swept back
+        const u = 1 - U.clamp(p.dashT / 0.2, 0, 1);
+        if (u < 0.2) {
+          const k = Math.sin((u / 0.2) * PI * 0.5);
+          sy = 1 - 0.14 * k; sx = 1 + 0.1 * k; armF = 0.5 * k; armB = 0.3 * k; hdy = 1.2 * k;
+        } else {
+          const k = 1 - U.smoothstep(0.7, 1, u);
+          body = J.dash; rot = 0.2 * k; sx = 1 + 0.1 * k; sy = 1 - 0.04 * k; armF = 1.05 * k; armB = 0.85 * k; hrot = -0.1 * k; hdx = 0.6 * k; lift = 1.3 * k;
+        }
+      } else if (p.moving) {
+        const ph = U.fract(p.anim * 0.3);
+        body = J.walk[Math.floor(ph * JW + 0.5) % JW];
+        const s = Math.cos(ph * TAU);
+        lift = 0.55 * (1 + Math.cos(4 * PI * (ph - 0.375)));
+        const hl = 0.55 * (1 + Math.cos(4 * PI * (ph - 0.445)));
+        hdy = -(hl - lift) * 0.9;
+        sy = 1 + 0.03 * (lift / 1.1 - 0.5); sx = 1 - 0.02 * (lift / 1.1 - 0.5);
+        rot = 0.035 * Math.sin(ph * TAU);
+        armF = 0.55 * s; armB = -0.5 * s;
+        hrot = 0.05 * Math.sin(ph * TAU - 0.7);
+      } else {
+        const b = Math.sin(rt * 1.9 + A.ph);
+        sy = 1 + 0.018 * b; sx = 1 - 0.01 * b;
+        hdy = -0.4 * Math.sin(rt * 1.9 + A.ph - 0.7);
+        armF = 0.05 * Math.sin(rt * 1.9 + A.ph + 0.5); armB = -armF;
+        hrot = 0.03 * Math.sin(rt * 0.7 + A.ph);
+        if (U.fract(rt / 5.3 + A.ph * 0.1) > 0.82) head = 1;
+      }
+      if (U.fract(rt / 3.3 + A.ph * 0.37) < 0.035) head = 2;
+      if (p.shootT > 0) { const k = p.shootT; armF = U.lerp(armF, -1.45, k); sy *= 1 - 0.03 * k; }
+      if (p.hurtT > 0) {
+        const k = p.hurtT;
+        head = 2; rot -= 0.2 * k; sx *= 1 + 0.05 * k; sy *= 1 - 0.05 * k; hdx -= 0.8 * k; armF = U.lerp(armF, -0.7, k); armB = U.lerp(armB, 0.7, k);
+      }
+      if (p.levelT > 0) { const w = Math.sin(p.levelT * PI * 4) * p.levelT; sy *= 1 + 0.12 * w; sx *= 1 - 0.08 * w; }
+      // scarf tail: damped spring towards a speed-dependent trailing angle (follow-through + overshoot)
+      let sp = Math.hypot(p.vx || 0, p.vy || 0);
+      if (p.moving && sp < 10) sp = 80;
+      const target = 0.2 + Math.min(0.95, sp * 0.0105) + (p.dashT > 0 ? 0.3 : 0) + 0.09 * Math.sin(rt * 6.5 + A.ph) * (0.4 + sp / 90);
+      for (let i = 0; i < 2; i++) {
+        const d = A.dt / 2;
+        A.tv += (150 * (target - A.tail) - 10 * A.tv) * d;
+        A.tail += A.tv * d;
+        // lower segment: softer spring that follows the upper one with lag -> the scarf bends and whips
+        const t2 = A.tail * 0.6 + 0.16 * Math.sin(rt * 7.3 + A.ph + 1.2) * (0.3 + sp / 90);
+        A.tv2 += (70 * (t2 - A.tail2) - 7 * A.tv2) * d;
+        A.tail2 += A.tv2 * d;
+      }
+      sx *= JACK_SCALE; sy *= JACK_SCALE;
+      const bx = p.x, by = p.y - lift;
+      const co = Math.cos(rot), si = Math.sin(rot);
+      const at = (lx, ly) => { const X = lx * sx * fx, Y = ly * sy; return [bx + X * co - Y * si, by + X * si + Y * co]; };
+      const hp = at(hdx, -17.6 + hdy), tp = at(-5.6, -18.2), ab = at(-6, -15.6), af = at(5.4, -15.6);
       if (p.dashT > 0) {
         const k = U.clamp(p.dashT / 0.2, 0, 1);
         ctx.globalCompositeOperation = 'lighter';
         for (let i = 3; i >= 1; i--) {
-          ctx.globalAlpha = (0.32 / i) * k;
-          blit(ctx, V, set.f, p.x - p.dashX * i * 7, p.y - p.dashY * i * 7 - lift, sx * fx, sy, rot);
+          ctx.globalAlpha = (0.3 / i) * k;
+          const ox = -p.dashX * i * 7, oy = -p.dashY * i * 7;
+          blit(ctx, V, J.dash.f, bx + ox, by + oy, sx * fx, sy, rot);
+          blit(ctx, V, J.head[0].f, hp[0] + ox, hp[1] + oy, sx * fx, sy, rot);
         }
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
       let a = 1;
-      const hurt = p.hurtT > 0;
-      if (p.iframes > 0 && !hurt && p.dashT <= 0 && (Math.floor(view.rt * 14) & 1)) a = 0.55;
-      // halo of the glowing face
-      glow(ctx, V, SPR.glowWarm, p.x + fx * 1.2, p.y - 24 * sy - lift, 1.25, 0.32 + 0.08 * Math.sin(view.rt * 6.5) + (p.levelT > 0 ? p.levelT * 0.5 : 0));
-      ctx.globalAlpha = a;
-      blit(ctx, V, set.n, p.x, p.y - lift, sx * fx, sy, rot);
-      if (hurt) {
-        ctx.globalAlpha = Math.min(0.65, p.hurtT * 0.9) * a;
-        blit(ctx, V, set.f, p.x, p.y - lift, sx * fx, sy, rot);
-      }
+      const lit = p.hurtT > 0 ? Math.min(0.65, p.hurtT * 0.9) : 0;
+      if (p.iframes > 0 && p.hurtT <= 0 && p.dashT <= 0 && (Math.floor(rt * 14) & 1)) a = 0.55;
+      glow(ctx, V, SPR.glowWarm, hp[0] + fx * 1.2, hp[1] - 7 * sy, 1.25, 0.32 + 0.08 * Math.sin(rt * 6.5) + (p.levelT > 0 ? p.levelT * 0.5 : 0));
+      const part = (s, x, y, r) => {
+        ctx.globalAlpha = a; blit(ctx, V, s.n, x, y, sx * fx, sy, r);
+        if (lit > 0) { ctx.globalAlpha = a * lit; blit(ctx, V, s.f, x, y, sx * fx, sy, r); }
+      };
+      const tr = rot + fx * A.tail, k2 = 4.8 * sy;
+      part(J.tail[1], tp[0] - Math.sin(tr) * k2, tp[1] + Math.cos(tr) * k2, tr + fx * A.tail2);
+      part(J.tail[0], tp[0], tp[1], tr);
+      part(J.arm[0], ab[0], ab[1], rot + fx * armB);
+      part(body, bx, by, rot);
+      part(J.arm[1], af[0], af[1], rot + fx * armF);
+      part(J.head[head], hp[0], hp[1], rot + fx * hrot);
       ctx.globalAlpha = 1;
-      // the carved face shines through
-      glow(ctx, V, SPR.glowGold, p.x + fx * 2, p.y - 23 * sy - lift, 0.55, 0.28 + 0.12 * Math.sin(view.rt * 9) * Math.sin(view.rt * 5.3));
+      glow(ctx, V, SPR.glowGold, hp[0] + fx * 2, hp[1] - 6 * sy, 0.55, (head === 2 ? 0.12 : 0.28) + 0.12 * Math.sin(rt * 9) * Math.sin(rt * 5.3));
     },
 
     drawOrbital(ctx, o, view) {
@@ -1720,15 +1971,44 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
           ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
           return;
         }
+        case 'burst': {
+          const e = 1 - (1 - t) * (1 - t);
+          const sc = pt.size * (0.35 + 0.8 * e);
+          const a = t < 0.45 ? 1 : Math.max(0, 1 - (t - 0.45) / 0.55);
+          glow(ctx, V, SPR.glowWarm, pt.x, pt.y - pt.z, sc * 0.75, a * 0.8);
+          ctx.globalAlpha = a;
+          blit(ctx, V, SPR.burst, pt.x, pt.y - pt.z, sc, sc, pt.rot + t * 0.7);
+          ctx.globalAlpha = 1;
+          return;
+        }
+        case 'flare': {
+          const a = (1 - t) * (1 - t);
+          glow(ctx, V, SPR.flare[pt.tint] || SPR.glowWarm, pt.x, pt.y - pt.z, pt.size * (0.8 + t * 0.6), a);
+          return;
+        }
+        case 'rose': {
+          // light falling through a rose window onto the floor: unfolds, turns slowly, fades
+          const g = t < 0.28 ? U.ease.outBack(t / 0.28) : 1;
+          const a = t < 0.65 ? 1 : 1 - (t - 0.65) / 0.35;
+          if (a <= 0.01 || g <= 0.01) return;
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = a * 0.62;
+          blit(ctx, V, SPR.rose, pt.x, pt.y, pt.size * g, pt.size * g * 0.48, 0);
+          ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+          return;
+        }
         case 'ring': {
           const r = pt.size * (5 + 30 * U.ease.outQuad(t));
           const w = 2.6 * (1 - t);
           if (w <= 0.05) return;
+          // a ring of short glass pieces with lead joints, not a plain stroke
           ctx.beginPath(); ctx.ellipse(pt.x, pt.y, r, r * 0.45, 0, 0, TAU);
-          ctx.strokeStyle = LEAD; ctx.lineWidth = w + 1.4; ctx.stroke();
+          ctx.strokeStyle = LEAD; ctx.lineWidth = w + 1.2; ctx.stroke();
+          ctx.setLineDash([3.6, 1.1]);
           ctx.globalCompositeOperation = 'lighter';
           ctx.strokeStyle = pt.color || '#ffd86a'; ctx.lineWidth = w; ctx.stroke();
           ctx.globalCompositeOperation = 'source-over';
+          ctx.setLineDash([]);
           return;
         }
         default: {
@@ -1757,6 +2037,17 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
       ctx.globalCompositeOperation = 'lighter';
       const dx = Math.sin(view.rt * 0.12) * view.W * 0.025;
       ctx.drawImage(OV.light, dx - view.W * 0.05, 0, view.W * 1.1, view.H);
+      const W = view.W, H = view.H, s = H / 900, rt = view.rt;
+      ctx.fillStyle = '#ffecbe';
+      for (let i = 0; i < MOTES.length; i += 3) {
+        const h1 = MOTES[i], h2 = MOTES[i + 1], h3 = MOTES[i + 2];
+        const x = U.fract(h1 + rt * (0.004 + h3 * 0.006) + Math.sin(rt * 0.3 + i) * 0.01) * W;
+        const y = U.fract(h2 + rt * (0.008 + h1 * 0.01)) * H;
+        ctx.globalAlpha = 0.1 + 0.16 * (0.5 + 0.5 * Math.sin(rt * (0.8 + h3) + i * 0.7));
+        const d = (1.4 + h3 * 1.8) * s;
+        ctx.fillRect(x, y, d, d);
+      }
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     },
 
@@ -1773,8 +2064,10 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
     /* --------------------------------------------------------------- hooks */
     onHit(game, e, src) {
       const h = e.type === 'colossus' ? 26 : e.type === 'ghost' ? 16 : 12;
-      glint(game, e.x + (Math.random() - 0.5) * 6, e.y, h + (Math.random() - 0.5) * 6, e.type === 'ghost' ? 1 : 0, 0.55, 0.22);
-      if (Math.random() < 0.45) shard(game, e.x, e.y, h, shardCols(e)[(Math.random() * 3) | 0], 50, 50, 0.6);
+      const ox = (Math.random() - 0.5) * 6;
+      game.addParticle({ kind: 'burst', x: e.x + ox, y: e.y + 0.5, z: h, life: 0.17, size: e.type === 'colossus' ? 1.15 : 0.85, rot: Math.random() * TAU, drag: 0 });
+      glint(game, e.x + ox, e.y, h + (Math.random() - 0.5) * 6, e.type === 'ghost' ? 1 : 0, 0.5, 0.3);
+      if (Math.random() < 0.55) shard(game, e.x, e.y, h, shardCols(e)[(Math.random() * 3) | 0], 50, 50, 0.6);
     },
     onKill(game, e) {
       const T = e.type, big = T === 'colossus';
@@ -1784,6 +2077,7 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
       for (let i = 0; i < n; i++) shard(game, e.x + (Math.random() - 0.5) * (big ? 20 : 8), e.y + 0.5, h + (Math.random() - 0.5) * (big ? 24 : 10), cols[i % cols.length], big ? 75 : 55, 70, big ? 1.4 : 1);
       const ng = big ? 5 : 2;
       for (let i = 0; i < ng; i++) glint(game, e.x + (Math.random() - 0.5) * 14, e.y, h + (Math.random() - 0.5) * 12, T === 'ghost' ? 1 : big ? 2 : 0, big ? 1.1 : 0.75, 0.4 + Math.random() * 0.2);
+      game.addParticle({ kind: 'flare', tint: T, x: e.x, y: e.y + 0.5, z: h, life: big ? 0.3 : 0.18, size: big ? 1.4 : 0.9, drag: 0 });
       if (big) game.addParticle({ kind: 'ring', x: e.x, y: e.y, life: 0.5, size: 1.5, drag: 0, color: '#ff6a7a' });
     },
     onHurt(game, p) {
@@ -1792,6 +2086,7 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
     },
     onPickup(game, g) {
       const p = game.player;
+      if (g.big) game.addParticle({ kind: 'ring', x: p.x, y: p.y, life: 0.3, size: 0.55, drag: 0, color: '#ffd86a' });
       glint(game, p.x + (Math.random() - 0.5) * 10, p.y + 0.5, 8 + Math.random() * 14, g.big ? 0 : 3, g.big ? 0.8 : 0.45, 0.28);
     },
     onShoot(game, pr) {
@@ -1801,6 +2096,7 @@ body.style-stainedglass #pausebox { font-family: 'Cinzel Decorative', serif; fon
       for (let i = 0; i < 4; i++) glint(game, p.x - p.dashX * i * 4 + (Math.random() - 0.5) * 6, p.y - p.dashY * i * 4, 6 + Math.random() * 14, 0, 0.5, 0.35);
     },
     onLevelUp(game, p) {
+      game.addParticle({ kind: 'rose', x: p.x, y: p.y + 1, life: 1.1, size: 1.25, drag: 0 });
       game.addParticle({ kind: 'ring', x: p.x, y: p.y, life: 0.7, size: 1.7, drag: 0, color: '#ffd86a' });
       for (let i = 0; i < 12; i++) {
         const a = (i / 12) * TAU, r = 10 + Math.random() * 16;

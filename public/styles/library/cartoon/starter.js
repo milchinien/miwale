@@ -22,7 +22,6 @@
     { top: '#bd5aa6', topSh: '#8f3c82', bot: '#f9e7d2', botSh: '#e4c4a0' },
     { top: '#7d66d8', topSh: '#5947ad', bot: '#f3ecc2', botSh: '#dacd92' },
   ];
-
   /* ---- Painter: part(shape, fill, {shade, sh:[dx,dy], inner, detail, hi:[x,y,rx,ry,rot], hi2:[x,y,r], ol}) */
   function Painter(ctx, mode, ol) { this.ctx = ctx; this.mode = mode; this.ol = ol; }
   Painter.prototype.part = function (shape, fill, o) {
@@ -59,7 +58,6 @@
     this.ctx.save(); fn(this.ctx); this.ctx.restore();
   };
   function gloss(ctx, h, a) { ctx.globalAlpha = a || 0.92; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(h[0], h[1], h[2], h[3], h[4] || 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
-
   /* ---- shape helpers (world units) */
   const E = (x, y, rx, ry, rot) => (c) => { rot = rot || 0; c.moveTo(x + rx * Math.cos(rot), y + rx * Math.sin(rot)); c.ellipse(x, y, rx, ry, rot, 0, TAU); };
   const CAP = (x1, y1, x2, y2, r) => (c) => { // capsule = limbs
@@ -119,7 +117,6 @@
     c.save(); c.beginPath(); pathFn(c); c.fillStyle = C.carve; c.fill(); c.clip();
     c.translate(dx, dy); c.beginPath(); pathFn(c); c.fillStyle = C.glow; c.fill(); c.restore();
   }
-
   /* ---- sprite baking: K canvas px per world unit, outline pass then fill/flash pass */
   let K = 3;
   function build(box, fn, mode, post) {
@@ -132,7 +129,6 @@
     if (post) post(s, box);
     return s;
   }
-
   /* ---- main character: pumpkin-head kid on a tiny teal body, 4 hop frames [backFoot x,y | frontFoot x,y | backArm, frontArm | scarf phase] */
   const JACK_FR = [[-2.3, 0, 2.3, 0, 0.25, -0.25, 0], [-3.7, -0.2, 3.9, -0.5, 0.9, -0.8, 1.6], [-2.0, -1.5, 2.9, -2.1, 0.35, -0.15, 3.2], [2.7, -0.6, -1.3, -0.2, -0.75, 0.85, 4.8]];
   function jackParts(P, fr) {
@@ -173,7 +169,6 @@
     P.part((c) => leafPath(c, -0.4, -28.4, -1.2, 5.4, 2), C.leaf, { shade: C.leafSh, sh: [-0.3, -0.5], detail: midrib(-0.4, -28.4, -1.2, 5.4, C.leafSh) });
     P.detail((c) => { c.strokeStyle = OUT; c.lineWidth = 0.6; c.beginPath(); c.arc(3.3, -29.4, 1.25, PI * 0.9, PI * 2.6); c.stroke(); });
   }
-
   /* ---- small creature: grumpy purple-and-cream root bulb with a leafy top, 4 waddle frames */
   function creeperParts(P, fr, v) {
     const col = CREEP[v], st = [0, 1, 0, -1][fr], sw = [0, 0.1, 0, -0.1][fr];
@@ -194,7 +189,6 @@
       c.lineWidth = 0.9; c.beginPath(); c.arc(4, -6.2, 2.1, PI * 1.18, PI * 1.82); c.stroke();
     });
   }
-
   /* ---- fast creature: floating white ghost with a wavy hem, faded bottom */
   function ghostParts(P, fr) {
     const ph = fr / 4 * TAU;
@@ -223,7 +217,6 @@
     g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0.42)');
     ctx.globalCompositeOperation = 'destination-in'; ctx.fillStyle = g; ctx.fillRect(0, 0, s.c.width, s.c.height);
   }
-
   /* ---- props & collectibles */
   function bushParts(P, v) {
     const col = [['#73c257', '#4e9a40'], ['#8acb5a', '#61a444']][v];
@@ -252,7 +245,6 @@
   const hitParts = (P) => P.part((c) => roundPoly(c, starPts(8, 5.6, 2.6, 0, 0, 0.2), 0.4), '#ffffff', { ol: 0.75, shade: '#fff3b5', sh: [-0.7, -0.7] });
   const starParts = (P) => P.part((c) => roundPoly(c, starPts(5, 4.4, 2.1, 0, 0.3, -PI / 2), 0.55), '#ffd43f', { ol: 0.85, shade: '#f39a1e', sh: [-0.8, -0.8], hi2: [-1, -1.4, 0.55] });
   const puffParts = (P) => P.part((c) => { E(0, 0.4, 4.6, 4.3)(c); E(-3.6, 1.4, 3.1, 2.9)(c); E(3.6, 1.2, 3.2, 3)(c); E(-1.6, -2.6, 3, 2.9)(c); E(2.1, -2.3, 2.8, 2.7)(c); }, '#ffffff', { ol: 0.9, shade: '#dcd6ea', sh: [-1.3, -1.3], hi: [-2.4, -3, 1.2, 0.6, -0.6] });
-
   let SPR = null;
   function sprites(k) {
     if (SPR && SPR.k === k) return SPR;
@@ -273,7 +265,6 @@
     ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.scale(sx * (facing || 1), sy);
     ctx.drawImage(s.c, -s.ox / K, -s.oy / K, s.c.width / K, s.c.height / K); ctx.restore();
   }
-
   /* ---- ground: flat play-mat regions with crisp AA edges and an inner rim band (signed distance = value / |gradient|) */
   function hashInt(x, y, s) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; }
   function perlin(x, y, s) {
@@ -321,46 +312,64 @@
       }
     }
     g.putImageData(img, 0, 0);
-    // flat vector decals, baked: grass tufts, 5-petal flowers, pebbles; colour depends on the region below
+    // composed decals, baked: tuft clumps gather in DRIFTS (density ramps with a noise field), flower posies sit
+    // in the calm low-noise areas, lilac meadows flower in clusters, pebbles on sand - large calm areas stay calm
     g.setTransform(s, 0, 0, s, w / 2 - camX * s, h / 2 - camY * s); g.lineCap = 'round';
-    for (let cy = Math.floor(wy0 / 12); cy <= (wy0 + h / s) / 12; cy++) for (let cx = Math.floor(wx0 / 12); cx <= (wx0 + w / s) / 12; cx++) {
+    const sm = (a, b, v) => { const q = Math.max(0, Math.min(1, (v - a) / (b - a))); return q * q * (3 - 2 * q); };
+    const tuft = (x, y, k, col) => { g.strokeStyle = col; g.lineWidth = 0.8; g.beginPath();
+      g.moveTo(x - 0.5 * k, y); g.quadraticCurveTo(x - k, y - 1.4 * k, x - 2.1 * k, y - 2.3 * k); g.moveTo(x, y); g.quadraticCurveTo(x + 0.15 * k, y - 1.8 * k, x - 0.2 * k, y - 3.3 * k);
+      g.moveTo(x + 0.5 * k, y); g.quadraticCurveTo(x + 1.1 * k, y - 1.3 * k, x + 2.1 * k, y - 2.1 * k); g.stroke(); };
+    const flower = (x, y, k, col, mid) => { g.fillStyle = col; g.beginPath();
+      for (let i = 0; i < 5; i++) { const a = i / 5 * TAU - PI / 2, fx = x + Math.cos(a) * 0.9 * k, fy = y + Math.sin(a) * 0.9 * k; g.moveTo(fx + 0.68 * k, fy); g.arc(fx, fy, 0.68 * k, 0, TAU); }
+      g.fill(); g.fillStyle = mid; g.beginPath(); g.arc(x, y, 0.52 * k, 0, TAU); g.fill(); };
+    const CELL = 23;
+    for (let cy = Math.floor(wy0 / CELL); cy <= (wy0 + h / s) / CELL; cy++) for (let cx = Math.floor(wx0 / CELL); cx <= (wx0 + w / s) / CELL; cx++) {
       const hh = hashInt(cx, cy, 9001), r0 = (hh & 1023) / 1023, r1 = ((hh >>> 10) & 1023) / 1023, r2 = ((hh >>> 20) & 1023) / 1023;
-      const x = (cx + r1) * 12, y = (cy + r2) * 12; fields(x, y, tmp);
+      const x = (cx + r1) * CELL, y = (cy + r2) * CELL; fields(x, y, tmp);
       const m = tmp[2] > 0 ? 3 : tmp[1] > 0 ? 2 : tmp[0] > 0 ? 1 : 0;
-      if (m === 3) { if (r0 < 0.12) { g.fillStyle = '#b9a588'; g.beginPath(); g.ellipse(x, y + 0.35, 2.2, 1.5, 0, 0, TAU); g.fill(); g.fillStyle = '#cdbfae'; g.beginPath(); g.ellipse(x, y, 1.9, 1.2, 0, 0, TAU); g.fill(); } continue; }
-      if (r0 < 0.34) { // tuft: 3 curved blades, 0.8 wide
-        const k = 0.9 + r1 * 0.4; g.strokeStyle = ['rgb(130,175,94)', 'rgb(98,150,74)', 'rgb(170,150,192)'][m]; g.lineWidth = 0.8; g.beginPath();
-        g.moveTo(x - 0.5 * k, y); g.quadraticCurveTo(x - k, y - 1.4 * k, x - 2.1 * k, y - 2.3 * k); g.moveTo(x, y); g.quadraticCurveTo(x + 0.15 * k, y - 1.8 * k, x - 0.2 * k, y - 3.3 * k);
-        g.moveTo(x + 0.5 * k, y); g.quadraticCurveTo(x + 1.1 * k, y - 1.3 * k, x + 2.1 * k, y - 2.1 * k); g.stroke();
-      } else if (r0 < (m === 2 ? 0.7 : 0.4)) {
-        g.fillStyle = (m === 2 ? ['#f3e9fb', '#a98bd4', '#f6bad3', '#a98bd4'] : ['#fbf6e8', '#fbf6e8', '#f8de6c', '#f4b3c8'])[(r2 * 4) | 0]; g.beginPath();
-        for (let i = 0; i < 5; i++) { const a = i / 5 * TAU - PI / 2, fx = x + Math.cos(a) * 0.9, fy = y + Math.sin(a) * 0.9; g.moveTo(fx + 0.68, fy); g.arc(fx, fy, 0.68, 0, TAU); }
-        g.fill(); g.fillStyle = m === 2 ? '#f6d36a' : '#f2a23a'; g.beginPath(); g.arc(x, y, 0.52, 0, TAU); g.fill();
-      }
+      let seed = hh;
+      const rnd = () => ((seed = Math.imul(seed ^ (seed >>> 15), 2246822519) >>> 0) & 65535) / 65535;
+      if (m === 3) { if (r0 < 0.16) { g.fillStyle = '#b9a588'; g.beginPath(); g.ellipse(x, y + 0.35, 2.2, 1.5, 0, 0, TAU); g.fill(); g.fillStyle = '#cdbfae'; g.beginPath(); g.ellipse(x, y, 1.9, 1.2, 0, 0, TAU); g.fill(); } continue; }
+      if (m === 2) { if (r0 < 0.75) for (let i = 0; i < 4 + (r1 * 4 | 0); i++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * 4.4; flower(x + Math.cos(a) * d * 1.35, y + Math.sin(a) * d * 0.75, 0.8 + rnd() * 0.4, ['#f3e9fb', '#a98bd4', '#f6bad3'][(rnd() * 3) | 0], '#f6d36a'); } continue; }
+      const n = perlin(x / 80, y / 80, 611) * 0.5 + 0.5, k = sm(0.55, 0.76, n);
+      if (r0 < k * 0.72) { // a clump: one big tuft and smaller ones around it
+        const col = m ? 'rgb(98,150,74)' : 'rgb(126,172,90)', cnt = 2 + (k * 3 | 0) + (r1 * 2 | 0);
+        for (let i = 0; i < cnt; i++) { const a = rnd() * TAU, d = i ? 1.6 + rnd() * 2.6 : 0; tuft(x + Math.cos(a) * d * 1.3, y + Math.sin(a) * d * 0.7, (i ? 0.65 + rnd() * 0.35 : 1.25) * (0.85 + k * 0.3), col); }
+      } else if (n < 0.34 && r0 < 0.3) for (let i = 0; i < 3 + (r1 * 3 | 0); i++) { const a = rnd() * TAU, d = Math.sqrt(rnd()) * 4.4; flower(x + Math.cos(a) * d * 1.35, y + Math.sin(a) * d * 0.75, 0.8 + rnd() * 0.4, ['#fbf6e8', '#fbf6e8', '#f8de6c', '#f4b3c8'][(rnd() * 4) | 0], '#f2a23a'); }
     }
     GROUND = { key, c: cv };
     return cv;
   }
-
   /* ---- public drawers (world units; ctx already scaled so 1 unit = h/360 px) */
   const easeOutBack = (t) => 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2);
-  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. Hop cycle with squash on contact. */
+  const sstep = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+  /** Body height over one step: contact 0 -> down +1 -> passing/up -1.6 -> contact (+ = lower). */
+  function stepBob(st) {
+    st -= Math.floor(st);
+    if (st < 0.14) return sstep(st / 0.14);
+    if (st < 0.62) return 1 - 2.6 * sstep((st - 0.14) / 0.48);
+    return -1.6 + 1.6 * sstep((st - 0.62) / 0.38);
+  }
+  /** Draws the main character with feet at (x, y). t = seconds, facing = 1 | -1. A trot: two steps per cycle,
+      contact -> down (squash) -> passing/up (stretch); the stride frames swap legs every step. */
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) sprites(3);
-    const ph = t * 2.3, f = ph - Math.floor(ph), hop = Math.floor(ph), air = Math.sin(f * PI);
-    const contact = Math.max(0, 1 - Math.min(f, 1 - f) * 6);
-    const sy = (1 + 0.07 * air - 0.13 * contact) * 1.1, sx = (1 - 0.04 * air + 0.12 * contact) * 1.1;
-    const frame = contact > 0.25 ? (hop & 1 ? 1 : 3) : 2;
-    blit(ctx, SPR.jack[frame], x, y - air * 3.4 * 1.1, sx, sy, 0.07 * facing * air, facing);
+    const step = t * 3.86, st = step - Math.floor(step), b = stepBob(step);
+    const by = b > 0 ? b * 0.75 : b * 1.35;
+    const sx = (b > 0 ? 1 + 0.075 * b : 1 + 0.02 * b) * 1.1, sy = (b > 0 ? 1 - 0.085 * b : 1 - 0.03 * b) * 1.1;
+    const frame = st < 0.14 || st > 0.82 ? (Math.floor(step) & 1 ? 1 : 3) : st < 0.42 ? 0 : 2;
+    blit(ctx, SPR.jack[frame], x, y + by * 1.1, sx, sy, 0.045 * facing * Math.sin(TAU * (step - 0.2)), facing);
   }
-  /** Draws a typical creature (waddling root bulb) with feet at (x, y); flash 0..1 = white flash overlay. */
+  /** Draws a typical creature (waddling root bulb) with feet at (x, y); flash 0..1 = white flash overlay.
+      Each variant has its own phase, so a crowd never moves in lock-step. */
   function drawEnemy(ctx, x, y, t, variant, facing, flash) {
     if (!SPR) sprites(3);
-    const ph = t * 1.1 + (variant || 0) * 0.37, fr = Math.floor(ph * 4) & 3, sn = Math.sin(ph * TAU), up = Math.abs(sn);
-    let sx = (1 + (1 - up) * 0.05) * 0.9, sy = (1 - (1 - up) * 0.06 + up * 0.03) * 0.9;
-    if (flash) { sx *= 1 + 0.22 * flash; sy *= 1 - 0.18 * flash; }
-    blit(ctx, SPR.creep[fr][(variant || 0) % 3], x, y - up * 1.3, sx, sy, sn * 0.1, facing || 1);
-    if (flash) { ctx.globalAlpha = Math.min(0.85, flash * 1.3); blit(ctx, SPR.creepFlash, x, y - up * 1.3, sx, sy, sn * 0.1, facing || 1); ctx.globalAlpha = 1; }
+    const v = variant || 0, ph = t * 1.1 + v * 0.37 + x * 0.013, fr = Math.floor(ph * 4) & 3, b = stepBob(ph * 2);
+    let sx = (1 + (b > 0 ? 0.08 * b : 0.02 * b)) * 0.9, sy = (1 - (b > 0 ? 0.09 * b : 0.035 * b)) * 0.9, rot = 0.08 * Math.sin(ph * TAU);
+    if (flash) { sx *= 1 + 0.22 * flash; sy *= 1 - 0.18 * flash; rot = 0.26 * flash * (facing || 1); }  // squash + tilt away from the blow
+    const yy = y + (b > 0 ? b * 0.6 : b * 1.1);
+    blit(ctx, SPR.creep[fr][v % 3], x, yy, sx, sy, rot, facing || 1);
+    if (flash) { ctx.globalAlpha = Math.min(1, flash * 1.7); blit(ctx, SPR.creepFlash, x, yy, sx, sy, rot, facing || 1); ctx.globalAlpha = 1; }
   }
   function drawGhost(ctx, x, y, t, seed) {
     const b = Math.sin(t * 5.2 + seed * 7);
@@ -377,7 +386,6 @@
     ctx.fillStyle = OUT; ctx.beginPath(); roundPoly(ctx, [[x - 4, y - 4], [x + w + 4, y - 4], [x + w + 4, y + h + 9], [x - 4, y + h + 9]], r + 4); ctx.fill();
     ctx.fillStyle = fill; ctx.beginPath(); roundPoly(ctx, [[x, y], [x + w, y], [x + w, y + h], [x, y + h]], r); ctx.fill();
   }
-
   /** Paints a complete preview scene into a w×h canvas at time t (seconds): ground, main character, creatures, effects. */
   function draw(ctx, w, h, t) {
     const s = h / 360, camX = 260, camY = 40;
@@ -434,7 +442,6 @@
     ctx.font = '600 8px "Fredoka", sans-serif'; ctx.fillStyle = '#8a6280'; ctx.fillText('TITLE TEXT', W / 2, 78);
     ctx.restore();
   }
-
   const Starter = { id: 'cartoon', name: 'Bouncy Cartoon', palette: PALETTE, fonts: ['Lilita One', 'Fredoka:wght@400;500;600;700'], drawHero, drawEnemy, draw };
   root.StyleStarters = root.StyleStarters || {};
   root.StyleStarters['cartoon'] = Starter;

@@ -92,7 +92,7 @@ One glyph per cell, chosen by material in this priority order:
 - **Roads** – cells within 8 units of two noise curves: centre `·` and `:`, edges `. , '`, all amber dark `#7a4a0e` / `#3d2405` on `#0e0d05`.
 - **Hills** – fbm > 0.665, drawn as a density ramp from the rim inward: `░` (`#1a6331`) → `▒` → `▓` (`#113d20`, 12 % `▲` peaks in `#2a994b`) → solid `█` in `#0a2613`.
 - **Forest** – warped noise > 0.54; density rises over 0.11 of noise. 8–48 % of cells are `♣ ♠ ^` (`#1a6331`, 18 % `#2a994b`), the rest `.` `,` in `#113d20` on `#04170c` once dense.
-- **Grass** – 8–44 % of cells (by meadow noise) get `. , ' \` "` in `#113d20` / `#1a6331`; meadow patches use `" , ; '` one step brighter. 0.6 % amber `*` flowers and 0.25 % red `♦` add rare sparks of colour.
+- **Grass** – 4–44 % of cells (by meadow noise, so open grass stays calm) get `. , ' \` "` in `#113d20` / `#1a6331`; meadow patches use `" , ; '` one step brighter. Flowers grow only in small beds inside meadows (4 × 2-cell patches, 12 % of them): 30 % of the cells in a bed show amber `*` or, in some beds, red `♦` – colour in clusters, never sprinkled.
 - A slow macro noise shifts grass and forest glyphs one brightness step up or down in large areas, so the field breathes like an unevenly worn tube.
 - **Animated water:** every frame, water cells where `sin(0.42·col + 1.1·row − 1.9·t + 1.4·sin(0.7·row + 0.6·t)) > 0.9` get a crest: plate in the water background, `~` in `#1fb0b9`; the top 2.5 % become a glowing `≈` in `#5cefff`.
 - **Light pools:** campfires put an additive amber radial (50 % alpha, radius 46 units, flickering ±3) on the ground.
@@ -106,16 +106,26 @@ Every figure is a text grid: glyph rows + colour-key rows (`.` = no cell, ground
 **Main character – the `@` adventurer, 3 × 3 cells (18 × 30 units)**
 
 ```text
- @        H  = #fff3da  white-amber head
+~@        a H .  scarf #c97f19 trailing behind, white-amber head #fff3da
 /█\       A a A  arms #ffb238, torso #c97f19
 / \       a K a  legs #c97f19 (gap = plate only)
 ```
 
-- Walk: 4 frames at `anim × 0.45` – arms `/█\ -█\ /█\ /█-`, legs `/ \ ·|\ / \ /|·`.
+- **16 held poses** (glyph rows, facing right):
+
+```text
+walk 0-7   ~@  ~@  -@  -@  ~@  ~@  -@  -@     scarf lags the legs by one pose
+           /█\ -█\ |█| /█- /█\ /█- |█| -█\    arms counter-swing, hang at passing
+           / \ /|  ·|  ·|\ / \ ·|\ ·|  /|     legs: stride, push, pass, reach
+idle 8-11  ,@  ,@  `@  ,@  / /█\ /█\ |█| |█|   breathing: arms relax on the exhale, scarf hangs and sways
+blink 12   ,o          crouch 13  ~@ <█  /_\   lunge 14  =@ -█= / >   hurt 15  ~X \█/ / \
+```
+
+- Walk at `anim × 0.9` (8 poses per stride); idle poses held 0.5 s each; blink for 0.16 s every 3.6 s; the crouch shows for the first 45 ms of a dash (anticipation), then the lunge.
 - While firing, the arm on the facing side becomes `- / \ |` by aim angle.
-- Dash: arms `-█=`, legs `/ >`, all glyphs white-amber, and three afterimages one step apart down the ramp `▓ ▒ ░` in amber.
+- Dash: lunge pose in white-amber with a streaming `=` scarf, and three afterimages one step apart down the ramp `▓ ▒ ░` in amber.
 - It stands on a blinking amber `▁` cursor in the cell below its feet (1.06 s period) and carries a faint amber lamp glow (16 %, 52 units).
-- Hit: 55 % of its cells scramble to red noise glyphs (`#%&$@?!*+=/\<>{}[]~^:;░▒▓`) every 1/24 s. Glow-up: all glyphs swap to cyan at 12 Hz. Invulnerable: dim and unglowing every other 1/16 s.
+- Hit: the hurt pose, with 55 % of its cells scrambling to red noise glyphs (`#%&$@?!*+=/\<>{}[]~^:;░▒▓`) every 1/24 s. Glow-up: all glyphs swap to cyan at 12 Hz. Invulnerable: dim and unglowing every other 1/16 s.
 
 **Small creature – a glyph critter, 3 × 2 cells**
 
@@ -124,7 +134,7 @@ Every figure is a text grid: glyph rows + colour-key rows (`.` = no cell, ground
 /"\   d g d    legs #2a994b / underside #4ddb76  / \   d K d
 ```
 
-Two variants (55 % / 45 %), two leg frames (`/"\ ↔ \"/`, `/ \ ↔ | |`) at `anim × 0.8`.
+Two designed variants (55 % / 45 %), 4 scuttle poses at `anim × 1.6 + seed` (`/"\ |"| \"/ |"|`, `/ \ | | \ / | |`), a blink pose (`(-)`, `{-}`) for 5 % of each actor's own 3 s cycle, and a hit pose (`(×)` over `\"/`, `{#}` over `/ \`).
 
 **Fast creature – a flickering spirit, 3 × 1 cells**
 
@@ -139,13 +149,14 @@ Two variants (55 % / 45 %), two leg frames (`/"\ ↔ \"/`, `/ \ ↔ | |`) at `an
 ▀ █ █ ▀    feet #86131f   (frame 2:  █ ▀ █ )
 ```
 
-Two frames of alternating feet at `anim × 0.5`.
+4 stomp poses at `anim × 1.0`: the horns pump (`▀▄   ▄▀` ↔ `▄▀   ▀▄`), the jaw chomps (`vvv` ↔ `VVV`), the feet swap; it blinks (`O` → `-`) on its own timer; hit pose: eyes `×`, mouth `###`.
 
 **States shared by all creatures**
 
 - **Appear (0 → 1):** cells type in one by one between 25 % and 90 % of the appear time in reading order; before that each cell shows a dim scrambling noise glyph (from 12 % on).
-- **Flash:** while flash > 0.45 the sprite turns into inverse video – every plate lit in the family's brightest colour with glow, glyphs in plate black.
-- **Dissolve (0 → 1):** each cell drifts 1.5–4 cells in its own direction (and up), shows its own glyph for the first 18 %, then decays `▓ ▒ ░ · .` while stepping down its colour ramp; cells vanish between 45 % and 100 %.
+- **Hit:** while flash > 0.25 the creature shows its hit pose and is knocked one whole cell in the push direction (flash > 0.55); while flash > 0.45 the sprite turns into inverse video – every plate lit in the family's brightest colour with glow, glyphs in plate black. A one-frame `█` block marks the impact cell.
+- **Per-actor timing:** walk poses come from each actor's own counter plus its seed, blinks run on seed-shifted timers – a crowd never moves in lock-step.
+- **Dissolve (0 → 1):** starting from the hit pose, each cell drifts 1.5–4 cells in its own direction (and up), shows its own glyph for the first 18 %, then decays `▓ ▒ ░ · .` while stepping down its colour ramp; cells vanish between 45 % and 100 %.
 
 ## Props
 
@@ -173,6 +184,8 @@ Same text-grid sprites with plates, snapped to cells and y-sorted with the figur
 Every particle is one glyph on the cell grid – no shapes, no sprites.
 
 - **Glyph burst:** impacts throw 2 glyphs from `* + ' \`` in the struck figure's colour family; bursts throw 6 (16 for the large creature) of the figure's *own* glyphs plus 3–8 `* + x`. Glyphs decay to `·` then `.` (shade glyphs to `▒` then `░`) in their last 45 % and step down the colour ramp; glow turns soft below 30 % of life.
+- **Ash residue:** 4 (large: 9) cells of shade glyphs stay where a figure dissolved and decay `▒ → ░ → · → .` over 1.1–1.6 s in the figure's darkest colours, each cell vanishing at its own moment.
+- **Layering:** impact = one-frame `█` → 2 burst glyphs; burst = the figure's own glyphs + `* + x` → glyph ring → ash residue.
 - **Glyph ring:** a ring of `*` (large creature: `#`, plus an amber `▓` ring) on the grid, radius 4 → 22 units (46 for large) with ease-out over 0.32–0.55 s, squashed to 0.6 vertically, one glyph per cell, turning to `·` after 60 %.
 - **Collect:** a cyan `+` rises from the main character; large collectibles add a small `◇` ring.
 - **Glow-up:** a cyan box-drawing frame `┌─┐ │ └─┘` grows from 1 to 6 cells half-height around the main character over 0.7 s, `[ OK ]` types itself above, and ten `↑ ▲` glyphs rise in cyan and amber.
@@ -213,7 +226,8 @@ The HUD is a set of terminal windows.
 ## Motion and animation
 
 - Everything moves in whole cells (6 units across, 10 down); only the camera scrolls smoothly. Movement reads as discrete terminal steps – embrace it.
-- Main character: 4 walk frames at `anim × 0.45`; creatures 2 frames (`anim × 0.8`, large `× 0.5`); spirits flicker at 11 fps.
+- Held poses, never tweens: main character 8 walk poses at `anim × 0.9`, 4 idle poses (0.5 s each) + blink, crouch → lunge, hurt; critters 4 poses at `anim × 1.6`, brutes 4 at `anim × 1.0`, both with a hit pose and own blink timers; spirits flicker at 11 fps.
+- Secondary motion is a glyph that changes one pose late: the scarf cell (`~ ~ - -`), the brute's jaw.
 - Blinks are hard steps: cursors 1.06 s period, collectibles one frame in five, invulnerability 16 Hz, glow-up 12 Hz.
 - Spinner 12 fps, campfire 7 fps, monolith LED 1.4 Hz (2 on / 1 off), water crests 1.9 rad/s.
 - Decay is a ramp, never a fade: `* → + → · → .` and `█ → ▓ → ▒ → ░`, with one colour step darker per band.

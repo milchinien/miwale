@@ -133,141 +133,122 @@ Shared by every element (characters, props, effects, icons):
 
 ## World and ground
 
-The ground is a **flat-colour play-mat with no outlines** – it stays visually behind every
-outlined figure and prop.
+The ground is a **flat-colour play-mat with no outlines**, so it stays visually behind every outlined figure and prop. It is **composed** like a level map: calm open meadow, groves with a darker forest floor, winding sand paths, ponds with a shore and deep centre, lilac flower meadows and autumn clay fields. Detail clusters where features meet.
 
 - **Base** `#9ec671` (meadow).
-- **Regions** are 2-octave fbm noise fields with a gentle domain warp (perlin at 1/900, ±90 u),
-  each thresholded so `value > 0` means inside: dark grass `#79ae5a` (`fbm(X/520) - 0.6`), lilac
-  meadows `#c8b6da` (`fbm(X/800) - 0.635`), clay fields `#daa070` (`fbm(X/1150) - 0.615`), sand
-  clearings `#ebd3a0` (`fbm(X/700) - 0.66`) and **sand paths of even width** =
-  `(0.0175 - |perlin(x/1700)|) * 3` (the zero contour of a noise field, so it winds and branches).
-  Layers stack bottom → top in that order. Regions are big and calm – 100–400 units across.
-- **Crisp edges with a rim:** fields are sampled on a coarse 4-unit grid. Per pixel, the value
-  `s` and its gradient are bilinearly interpolated; `dist = s / |grad|` (in pixels) is an analytic
-  signed distance. Coverage `clamp(dist + 0.5, 0, 1)` gives a 1-px anti-aliased edge; a rim
-  factor `clamp(rimPx - dist + 0.5, 0, 1)` blends in the rim colour for a darker band just inside
-  the edge: dark grass rim `#6a9e50` 1.7 u, lilac `#b4a0cc` 2.0 u, clay `#c78a60` 2.3 u, sand
-  `#d8ba85` 2.5 u. Grid cells fully inside/outside are flat-filled (fast path).
-- **Brightness tint** ±3.5% from noise at 1/1500.
-- **Decals** on a 12-unit jittered grid, only where the material is the same within 4.5 u. They
-  are flat (no outline, no crescent):
-  - meadow: 30% grass tufts (3 curved blades, stroke 0.8 u, `rgb(130,175,94)`), 6% flowers
-    (5 petals radius 0.72·s at distance 0.95·s, white/cream/yellow `#f8de6c`/pink `#f4b3c8`,
-    centre `#f2a23a`), 4% dot clusters;
-  - dark grass: 38% tufts `rgb(98,150,74)`; lilac: 50% flowers (`#f3e9fb`, `#a98bd4`,
-    `#f6bad3`, centre `#f6d36a`) + 12% tufts `rgb(170,150,192)`;
-  - clay: fallen leaves (`#c9773f`, `#e3ad5c`, `#bf5f3e`) with a 0.35 u vein;
-  - sand: 10% pebbles (3 stacked ellipses `#b9a588`, `#cdbfae`, `#ddd2c4`), 16% dots.
-- **Dirt holes** (ground decal from which ground creatures emerge): a dirt ellipse `#b07a4c` with
-  a 0.8 u plum rim and a dark centre `#43283f` grows with outBack; dirt crumbs (circles r 1.3
-  `#9c6a42`, plum 0.5 u rim) fly out.
-- Chunks are 256 units, rendered at up to 3 px/unit, generated incrementally (generator with
-  `yield` every few rows).
+- **Regions** are 2-octave fbm noise fields with a gentle domain warp (perlin at 1/900, ±90 u), each thresholded so `value > 0` means inside. Bottom → top:
+
+  | Layer | Fill | Rim (inside the edge) | Field |
+  | --- | --- | --- | --- |
+  | Dark grass (forest floor) | `#79ae5a` | `#6a9e50`, 1.7 u | `fbm(X/520) − 0.6` |
+  | Lilac flower meadow | `#c8b6da` | `#b4a0cc`, 2.0 u | `fbm(X/800) − 0.635` |
+  | Autumn clay field | `#daa070` | `#c78a60`, 2.3 u | `fbm(X/1150) − 0.615` |
+  | Sand clearings + paths | `#ebd3a0` | `#d8ba85`, 2.5 u | clearings `fbm(X/700) − 0.66`; paths of even width `(0.0175 − |perlin(x/1700)|)·3` |
+  | Pond shore (damp sand) | `#e0cb96` | `#cdb37a`, 1.6 u | pond field + 0.014 |
+  | Pond water | `#80cde2` | foam line `#e2f7f5`, 1.4 u | `fbm(X/560) − 0.675`, pushed away from the start point |
+  | Deep water | `#60b2d7` | `#6fbede`, 3.0 u | pond field − 0.03 |
+
+- **Crisp edges with a rim:** fields are sampled on a coarse 4-unit grid. Per pixel, the value `s` and its gradient are bilinearly interpolated, and `dist = s / |grad|` (in pixels) is an analytic signed distance.
+  - Coverage `clamp(dist + 0.5, 0, 1)` gives a 1-px anti-aliased edge.
+  - A rim factor `clamp(rimPx − dist + 0.5, 0, 1)` blends in the rim colour (a darker band, or the white foam line on water).
+  - Grid cells fully inside or outside are flat-filled (fast path).
+- **Brightness tint** ±3.5 % from noise at 1/1500.
+- **Decals are composed, not sprinkled.** They are flat (no outline, no crescent):
+  1. *Furrow rows* across the autumn fields: world-aligned rows 8.5 u apart, gently waving, dark stroke `rgb(196,136,94)` 1.15 u with a light lip `rgb(230,180,132)` 0.55 u.
+  2. *Ground around props:* tuft clumps at the feet of trees, stumps, fences and signs; fallen leaves (`#c9773f`, `#e3ad5c`, `#bf5f3e`) under autumn trees; pebbles beside rocks; shore pebbles at reeds.
+  3. *Drifts on a coarse 23-unit grid:* grass tuft clumps (one big three-blade tuft + 2–5 smaller ones around it). Their density ramps with a noise field (`smoothstep(0.55, 0.76, noise(x/80))`), so tufts gather in drifts and leave large calm meadow between. Flower posies (5-petal flowers `#fbf6e8 #f8de6c #f4b3c8`, centre `#f2a23a`) sit in the low-noise areas. Lilac meadows get posies of `#f3e9fb #a98bd4 #f6bad3`. Water gets rafts of 1–3 lily pads (`#86c95a`, plum rim, light veins, sometimes a pink flower) and resting white highlight arcs.
+  4. *Edge fringes:* single tufts along the dark-grass rim and the path edges; flowers where the meadow meets lilac; pebbles lining sand paths and shores.
+- **Ambient water:** slow white rings spread on open pond water (two per cell, 3.2 s cycle), stroked in 4 fade buckets per frame.
+- **Dirt holes** (the decal ground creatures emerge from): a dirt ellipse `#b07a4c` with a 0.8 u plum rim and a dark centre `#43283f` grows with outBack, and dirt crumbs (r 1.3 `#9c6a42`, 0.5 u plum rim) fly out. Ghosts instead get a cold swirl, two lilac arcs `rgba(214,204,240)` turning on the ground.
+- Chunks are 256 units, rendered at up to 3 px/unit and generated incrementally (a generator with `yield` every few rows).
 
 ## Characters
 
-All figures use the shared two-pass painter: one plum outline (1.15 u outer, 0.55 u inner lines),
-one cel crescent at the lower-right, one white gloss at the upper-left, 4 baked frames plus a
-white flash copy. Heads are big (~60% of the height), bodies and limbs tiny and stubby, and every
-figure type has its own unmistakable silhouette.
+All figures use the shared outline language: one plum outline (1.15 u outer, 0.55 u inner lines), one cel crescent at the lower-right and one white gloss at the upper-left. Heads are big (~60 % of the height), bodies and limbs small and stubby, and every figure type has its own unmistakable silhouette. Every actor has its own phase (from its seed), its own scale (0.94–1.06) and its own blink timing (a ~110 ms blink every 2.7–5 s, some double-blink), so a crowd never moves in lock-step.
 
-**Main character (pumpkin-head kid)** – box `[-15,-34] .. [15,2.5]`, drawn at scale 1.1 (≈ 25 u
-wide, 37 u tall incl. stem), feet at y = 0.
+**Main character (pumpkin-head kid)**: about 25 u wide and 37 u tall incl. the stem, drawn at scale 1.1, feet at y = 0. A **live rig**: the body is drawn each frame in the same outline language (plum stroke pass, then shade + offset lit fill); head, stem and leaf are baked sprites.
+- **Head:** squircle pumpkin (`|cos|^0.85·rx`, `|sin|^0.92·ry`, gaussian dents top and bottom), `rx 11.2`, `ry 9.1`. Fill `#ff952b`, shade `#ea681c`, four rib curves `#ec7a22`, gloss ellipse + dot.
+- **Faces:** 5 baked expressions plus a flash copy:
+  - carved triangle eyes and grin (hole `#8a3214`, glowing `#ffd43f` fill shifted down for carve depth, hot cores `#fff3b0`, rounded teeth);
+  - blink (closed arcs);
+  - hurt (`> <` eyes and an O mouth);
+  - dash effort (narrowed, slanted eyes and a gritted grin);
+  - joy (carved eyes squeezed into happy arches, a wide grin).
+- **Stem and leaf** are separate sprites on springs. The leaf flips with the head's vertical speed and settles (stiffness 110, damping 8); the stem follows at half the angle.
+- **Body:** teal `#2f9c95` torso ellipse 4.5 × 4.4 with two cream buttons and a gloss. The green scarf `#8ad04c` is a collar of two blobs plus a **spring-driven tail** (two segments, stiffness 75 and 55), with three knitted stripe bands `#c3ec8c` and a fringe. The tail swings out when running and flaps on landings.
+- **Limbs:** capsules (arms r 1.15, 3.4 long, cream ball hands r 1.5; legs `#41703f` r 1.35) and shoes `#6b3d2c` (ellipse 2.1 × 1.35 with a gloss).
+- **Walk (trot):** `phase = anim·0.21 + seed`, two steps per cycle.
+  - Body height per step: contact 0 → down +1 → passing/up −1.6 → contact (`stepBob`, smoothstep segments).
+  - Down is squashed (sx +7.5 %, sy −8.5 %), up is stretched.
+  - Feet follow a cycle that lifts them on an arc (forward swing with `sin(π·w^0.8)` height, toe tilt).
+  - Arms counter-swing ±0.9 rad.
+  - The head lags the body by 0.14 of a step and tilts ±0.045.
+  - A dust puff on every step.
+- **Idle:** breathing at 2.6 s (sy ±3 %), a delayed head bob, and every ~6.5 s a glance over the shoulder (head turns −0.15, back foot steps out).
+- **Throw:** the front arm whips forward (outQuad in 30 % of the time) and eases back, with a small body squash.
+- **Dash:** anticipation squash (15 % of the time), then a long stretch (sx +22 %) with a 0.32 lean, both legs turning into a running wheel with a white smear arc, speed lines and three white after-images; a landing squash at the end.
+- **Turn:** a quick 32 % squash of the width when the facing changes (0.14 s).
+- **Hurt:** white flash for ~120 ms, the body leans away (−0.24) and squashes 16 %, the arms fly up and the scarf whips.
+- **Celebrate:** crouch → jump 9 u with both arms up → land squash.
 
-- **Head:** squircle pumpkin path (`|cos|^0.85 * rx`, `|sin|^0.92 * ry`, gaussian dents at top
-  and bottom) centred at (0.4, -19.6), `rx 11.2`, `ry 9.1`. Fill `#ff952b`, shade `#ea681c`,
-  crescent offset `[-1.9, -1.6]`, inner line 0.55, four rib curves (`quadraticCurveTo`, 0.6 u,
-  `#ec7a22`). Gloss ellipse at (cx-6.3, cy-4.3) radii 2.5×1.3 rot -0.6 and a 0.6 u dot.
-- **Face (carved):** offset +2.2 u toward the facing side. Triangle eyes (rounded 0.8) and a
-  crescent grin: fill the hole `#8a3214`, clip, translate (0.25, 0.85) and fill the same shape
-  `#ffd43f` → visible carve depth on top. Hot cores `#fff3b0` in the eyes, 3 rounded pumpkin
-  teeth clipped into the mouth. Pained-face variant: chevron `> <` eyes and an O mouth.
-- **Stem** capsule (0.1,-27)→(1.2,-30.9) r 1.3 `#7f9b3b`; one leaf (len 5.4, width 2) with midrib;
-  a 0.6 u plum curly tendril.
-- **Body:** teal `#2f9c95` ellipse 4.5×4.4 at (0,-8.3) with two cream buttons; green scarf
-  ellipse 5.7×2.3 at y -11 plus a blob scarf tail hanging back with two light stripes `#c3ec8c`
-  and fringe strokes.
-- **Limbs:** capsules r 1.15 (arms, length 3.4) with cream ball hands r 1.5; legs `#41703f` r 1.35
-  from y -5.6 to the feet, shoes `#6b3d2c` = ellipse 2.1×1.35 with a tiny gloss.
-- **4 frames** `[backFootX, backFootY, frontFootX, frontFootY, backArm, frontArm, scarfPhase]`:
-  `[-2.3,0, 2.3,0, .25,-.25, 0]`, `[-3.7,-.2, 3.9,-.5, .9,-.8, 1.6]`,
-  `[-2,-1.5, 2.9,-2.1, .35,-.15, 3.2]`, `[2.7,-.6, -1.3,-.2, -.75,.85, 4.8]`.
-- Facing = horizontal mirror of the baked canvas.
+**Small creatures (root vegetables)**: scale 0.9, about 19 × 31 u, 3 designed variants. Each is baked as 8 walk frames + 8 blink frames + hurt + removal pose, all with flash copies:
+- **Round bulb grump:** a round bulb, cream `#f8eacb` bottom / purple `#9b5cd0` top split by a sine wave, a three-leaf crown, googly eyes (white, plum rim, pupils + catchlights), angry brows and a frown.
+- **Radish sneak:** a tall teardrop in `#e0567c` / `#fdf1e6`, one big curly sprout and a small one, a rat-tail root that whips, and sly lidded eyes.
+- **Beet brute:** squat and wide in `#6f5bd0` / `#f3ecc2`, two floppy ear-leaves that flap opposite each other, a unibrow and an underbite.
+- **Gait:** each variant has its own feet (hip x, stride 1.8–2.4 u, lift 1.4–2.0 u) and its own walk rate. Leaves lag the gait (overlapping action, `0.13·sin(2π(f/8 − 0.18 − 0.07i))`) and bounce in length ±6 %. Pupils glance in the walking direction.
+- **Faces by pose:** walk, blink, hurt (squint + O mouth, leaves flung back) and removal (X eyes, tongue out).
 
-**Small creature (grumpy root bulb)** – scale 0.9, box `[-14,-32]..[14,2.5]`.
+**Fast creature (floating ghost)**: about 29 × 32 u, 2 body variants (a classic dome with a 3-scallop hem, or a soft-serve swirl tip leaning back with a 4-scallop hem).
+- **Body:** `#f6f8ff` (shade `#c3d0ef`) with an animated hem and a wispy tail curling back, plus stub arms that sway on their own phases. Eyes are plum ovals with blue `#9fd8ff` catchlights over a gaping mouth with a pink tongue `#ff7f9e` and fangs.
+- **Fade:** the bottom 9 u fade to 42 % alpha after baking, so it looks like it hovers.
+- **Hover:** 4.8 u up on two summed sines (a slow rise and a quicker dip). It stretches with vertical speed and leans into travel (up to 0.18 rad).
 
-- Bulb body (bezier onion shape, top -21.6, bottom -2.6, half-width 10.4) with a **two-tone
-  fill**: cream `#f8eacb` bottom, purple `#9b5cd0` top separated by a sine wave
-  (`y = -10.8 + 0.8 sin(0.9x + 0.6)`), both with their own shades (`#e0c595`, `#7241aa`).
-  Crescent `[-1.8,-1.5]`.
-- Three leaves (lengths 8.2, 8, 10.2) on top, swaying ±0.1 rad per frame. Two beige root capsule
-  legs r 1.45.
-- Face: googly eyes (white ellipses 2.5×2.8 and 2.3×2.7 with 0.7 u plum rim, pupils r 1.25
-  looking toward the front, white catchlights r 0.38), angry brows 1.35 u, small frown arc 0.9 u.
-- Three colour variants for the top: purple `#9b5cd0`, magenta `#bd5aa6`, indigo `#7d66d8`.
+**Large creature (root giant)**: about 57 × 71 u (about 2.5× the small creature).
+- **Body:** purple `#7b3f99` top over an ochre `#efc96f` bottom, five big leaves, stubby root legs, thick arms, a bandage cross `#f6e6c4` and a bandaged forearm, crack lines.
+- **Face:** glowing `#ffd43f` eyes under heavy brows and a wide grimace with two rows of cream teeth.
+- **Stomp:** 8 frames at `anim·0.32`. The contact squash reaches 9 %, the rock is 0.04 rad, and the down phase sinks 0.9 u.
 
-**Fast creature (floating ghost)** – box `[-15,-28]..[14,2.5]`.
-
-- Body: `#f6f8ff` bezier dome (shade `#c3d0ef`) with a 3-scallop hem animated by phase and a wispy
-  tail curling back; little stub arms as ellipses.
-- Eyes: plum ovals with `#9fd8ff` catchlights; gaping plum mouth with pink tongue `#ff7f9e` and
-  two white fangs.
-- After baking, the bottom 9 u fade to 42% alpha (`destination-in` linear gradient), so it looks
-  like it hovers.
-
-**Large creature (root giant)** – box `[-28,-68]..[29,3]`, about 2.5× the small creature.
-
-- Body 39 u wide, 41 u tall, purple `#7b3f99` top / ochre `#efc96f` bottom (shades `#58297a` /
-  `#cf9f4c`), crescent `[-2.8,-2.3]`.
-- Five big leaves in two greens, stubby root legs r 3.5 with ellipse feet, thick capsule arms
-  r 3.1.
-- A bandage cross (`#f6e6c4`, rounded rects 11.5×3.4 at ±0.68 rad) and a bandaged forearm,
-  zig-zag crack lines 0.75 u.
-- Glowing `#ffd43f` eyes, heavy plum brow wedges and a wide plum grimace with two rows of cream
-  triangle teeth (`#fff6e2`).
-
-**Creating new figures:** start from a distinctive silhouette (blob, capsule tower, bean, star),
-give it a big readable face (googly eyes + brows, or a carved glowing face), a fill/shade pair,
-4 frames, a flash copy and its own shadow size. Large figures are 2–2.5× the small ones; a giant
-centrepiece can be 4×.
+**States (all creatures)**
+- **Hit (~140 ms):** the baked hurt pose with its white flash copy on top (`min(1, flash·1.7)`). The body squashes (sx +22 %, sy −18 %) and tilts 0.26 rad away from the blow, then an elastic wobble follows (`sin(30t)·e^(−8t)·0.12`, 0.5 s).
+- **Removal (deathT 0 → 1, 0.35 s in motion):**
+  - Root creatures squash in white (0–0.12). They spring up 6 u with X eyes and a twist (outBack, 0.12–0.42), then inflate and shiver (0.42–0.55).
+  - They then **pop into an outlined cel cloud**: 7 discs, plum rim, lilac-grey under white, popping in with outBack, with three sparkles flying out and the cloud shrinking away.
+  - Ghosts squash, then stretch upward, twisting and thinning (0.12–0.6), and leave a little soul curl that rises 14 u and thins out.
+- **Spawn (spawnT 0 → 1, 0.45 s):**
+  - Root creatures peek out of the dirt hole, clipped at ground level, with the leaf tips shivering (0–0.22).
+  - They pop out stretched (sy 1.3, 0.22–0.48) and fall back with a 5 u hop, land in a squash (sx +28 %), then settle with a damped wobble.
+  - Ghosts swirl up out of the ground: they untwist (0.9 rad), unroll from 20 % height with outBack and fade in.
 
 ## Props
 
-Scenery is painted with exactly the same two-pass painter as the characters, so it carries the
-same plum outline, crescent and gloss. Each prop is baked once (1–5 variants, plus mirrored
-copies) and stands on its own flat plum shadow.
+Scenery is painted with exactly the same two-pass painter as the characters, so it carries the same plum outline, crescent and gloss. Each prop is baked once (1–5 designed variants, plus mirrored copies) and stands on its own flat plum shadow.
 
-- **Round tree** – box `[-20,-64]..[20,2]`. Tapered bark trunk `#a56f48` / shade `#7c4e33` with a
-  small knot circle. Canopy = 6 overlapping circles (radius 7–11.5 u) merged as **one** part,
-  crescent `[-2.8,-2.6]`, six small 0.75 u shade arcs, gloss ellipse 3.3×1.7 plus a dot. Canopy
-  pairs: green `#7fca5c`/`#57a243`, orange `#f2a64c`/`#d57c36`, lime `#a9d65a`/`#7fb343`, gold
-  `#efc54e`/`#d09d36`. The green tree carries three red apples (r 1.4, `#ef5a52`, 0.5 u plum rim,
-  white catchlight).
-- **Tiered pine** – three rounded triangles (corner radius 2.6 u, half-widths 14 / 11.5 / 9,
-  heights 18 / 16 / 14) in `#4fa564` / shade `#36804b` over a short bark trunk, gloss on the top
-  tier.
-- **Bush** – box `[-15,-20]..[15,2]`, 4 ellipses as one part, crescent `[-2.1,-2.0]`, three shade
-  arcs. Greens `#73c257`/`#4e9a40`, `#8acb5a`/`#61a444`, `#9ad16a`/`#6daa4c`. Variants: red berries
-  (r 1.15 with plum rim and catchlight) or pink 5-petal flowers `#f7b5d0` with `#ffd43f` centres.
-- **Rock** – 7-point Catmull-Rom blob `#bdb5cd` / shade `#918aa9` with a small zig-zag crack line,
-  in three sizes (×0.66, ×1, ×1.2); the large one wears a mossy cap `#8cc65a` / `#66a443`.
-- **Pumpkin** – squircle pumpkin `#f59a3a` / shade `#d96f26` with rib lines, a short stem, a leaf
-  with midrib and a curly tendril; single (rx 8.8, ry 6.6) or a pair with a smaller one (rx 6.0).
-- **Mushrooms** – a pair of different sizes: cream stalks `#f6ead2` / `#d9c6a4`, caps red
-  `#ec5b52` / `#c03f45` or brown `#c98a52` / `#a4683a` with cream dots `#fff6e6`.
-- **Fence** – two rounded rails 35×2.7 u and three pointed posts with nail dots, wood `#d4a066` /
-  shade `#a9743f`.
-- **Signpost** – wooden post plus an arrow-shaped board `#e4b77b` / `#c38f56` with a small painted
-  pumpkin and an arrow.
-- **Hay stack** – domed bezier mound `#f3cf62` / shade `#d6a33c` with 16 straw strokes `#c99434`,
-  6 light strokes `#fbe9a4` and a few straws sticking out of the top.
-- **Placement by region:** meadow = round trees, bushes, rocks, mushrooms, fences, signs; dark
-  grass = pines, berry bushes, mushrooms, mossy rocks; lilac = flower bushes, lime trees, small
-  rocks; clay = pumpkins, orange/gold trees, hay, fences, brown mushrooms; sand = rocks, hay,
-  signs, fences.
-- **Sway:** trees and bushes skew around their base (`sin(1.3t + seed)` × 0.025 for trees, 0.035
-  for bushes); everything else is static.
+| Prop | Variants | Look |
+| --- | --- | --- |
+| Round tree | 4 canopies | Tapered bark trunk `#a56f48` / `#7c4e33` with a knot. The canopy is 6 overlapping circles merged as **one** part, with 0.75 u shade arcs and a gloss. Canopy pairs: green `#7fca5c`/`#57a243` (with three red apples `#ef5a52`), orange `#f2a64c`/`#d57c36`, lime `#a9d65a`/`#7fb343`, gold `#efc54e`/`#d09d36` |
+| Tiered pine | 1 | Three rounded triangles (corner radius 2.6) in `#4fa564` / `#36804b` over a short trunk |
+| Bush | 3 | 4 ellipses as one part in greens `#73c257`/`#4e9a40`, `#8acb5a`/`#61a444`, `#9ad16a`/`#6daa4c`; plain, red berries, or pink 5-petal flowers `#f7b5d0` |
+| Rock | 3 | 7-point Catmull-Rom blob `#bdb5cd` / `#918aa9` with a zig-zag crack, ×0.66 / ×1 / ×1.2; the large one wears a mossy cap `#8cc65a` |
+| Tree stump | 1 | Bark stump with two root capsules, a pale cut top with rings, a sprout |
+| Cattails | 2 | 3–4 leaf blades in two greens (`#7cc35e`, `#5fae55`) with midribs and brown cattail heads |
+| Pumpkin | 2 | Squircle pumpkin `#f59a3a` / `#d96f26` with ribs, stem, leaf and a curly tendril; single or a pair |
+| Mushrooms | 2 | A pair of cream stalks with red `#ec5b52` or brown `#c98a52` caps with cream dots |
+| Fence | 1 | Two rounded rails and three pointed posts, wood `#d4a066` / `#a9743f` |
+| Signpost | 1 | Post + arrow board `#e4b77b` with a painted pumpkin |
+| Hay stack | 1 | Domed mound `#f3cf62` / `#d6a33c` with straw strokes |
+
+**Placement is composed, not sprinkled** (a 30-unit jittered grid, decisions per region):
+- **Groves:** a woodland noise field (`fbm(x/430)`) marks groves.
+  - Inside (> 0.615): trees (pines on dark grass), stumps and mushrooms underneath.
+  - On the grove rim (0.565–0.615): bushes and the odd tree, so every wood has a soft edge.
+- **Open meadow:** nearly empty. Only 1.6 % trees, 1.5 % rocks and 1.5 % bushes, so it reads as calm space.
+- **Along sand paths** (within 13 u of a path): rocks, signposts and bushes.
+- **Pond shores:** reed beds (55 % of the shore cells) and a few rocks. Open water carries no props; lily pads are ground decals.
+- **Autumn fields:** pumpkin patches where a patch noise is high, hay stacks, orange/gold trees, and fences only along the field edges.
+- **Lilac meadows:** flowering bushes and lime trees in their own little groves.
+- A clear area of 95 units is kept around the starting point.
+
+**Breeze:** trees, bushes and reeds skew around their base with two slow sways per prop (`sin(1.3t + seed)·0.55 + sin(2.9t + 1.7·seed)·0.18`) plus a **gust band** that rolls across the world (`sin(0.0045x + 0.002y − 0.8t)` above 0.6, squared). Amplitude: trees 0.025, bushes 0.035, reeds 0.075. Everything else is static.
 
 ## Effects and particles
 
@@ -277,17 +258,16 @@ All particles are baked sprites from the same painter (outlined, crescented):
   `0.55 + 0.45|cos(spin)|` to fake spin, with a white speed streak: three round-cap lines (1.0 u
   centre, 0.75 u sides at ±2 u) with a linear gradient alpha 0.95 → 0 over 14 units behind it.
   Small cream puff when it is launched.
-- **Impact star:** 8-point white star (r 5.6 / 2.6, rounded 0.4, shade `#fff3b5`), life 0.14 s,
-  scale 0.5 → 1.2 → 0.3; 60% chance of a 4-point white spark (shade `#fff0a0`) flying off with
-  gravity 220.
-- **White flash:** overlay the white flash copy at `min(0.85, flash*1.3)` alpha and squash
-  (`sx *= 1 + 0.22f`, `sy *= 1 - 0.18f`).
-- **Pop-out burst:** inflate the white flash sprite to 1.28× in 0.22 s with a ±10% wobble
-  (`sin(q*40)`), then shrink to 0 by 0.5 s. Spawn 6 (large creature: 9) cloud puffs radially
-  (5 merged ellipses, white/blue-white/orange variants, scale outBack in the first 20% then
-  quadratic shrink, rising 7 u), 2–6 yellow stars (`#ffd43f`/`#f39a1e`) with gravity 180, and
-  4–10 colour chunks (6-point blobs in the figure's colours, outline 0.75 u) bouncing away.
-  Large creatures add a shockwave ring.
+- **Impact (layered):** a white 8-point core star (r 5.6 / 2.6, shade `#fff3b5`, 0.16 s, pop 0.5 → 1.2 → 0.3),
+  four comic **action lines** bursting out of the impact (0.15 s), a 4-point spark flying off with gravity 220 (60 %)
+  and a small dust scuff behind the creature, opposite the blow.
+- **White flash:** the baked hurt pose plus its white flash copy at `min(1, flash·1.7)`, squash `sx·(1 + .22f)`,
+  `sy·(1 − .18f)`, tilt 0.26 rad away from the blow, then a 0.5 s elastic wobble.
+- **Removal burst (layered, 0.35 s + residue):** core star and 7 action lines at once; the creature squashes, springs
+  up with X eyes and inflates (its own sprite); at 55 % it pops into an **outlined cel cloud** (7 discs: plum rim,
+  lilac-grey under white, three sparkles flying out). 0.12 s after the removal starts a ring of 6 cloud puffs (9 for the large
+  creature, tinted per creature) opens, 2–6 stars and 4–10 colour chunks in the creature's own colours bounce away,
+  and a dust ring plus a few slow puffs linger. Ghosts leave a rising soul curl instead of chunks.
 - **Shockwave ring:** flat ellipse (ry = 0.45·r), r = size·(4 + 26·outQuad(t)), stroked plum at
   width `w + 1.4`, then white/yellow at `w`, `w = 2.4·(1 - t)`.
 - **Dash smear:** 3 white after-images at alpha `0.42/i`, 7 u apart, figure stretched 1.2 × 0.88,
@@ -363,23 +343,27 @@ When the red bar drops, its panel shakes for 0.22 s (±3 px, ±1°).
 
 ## Motion and animation
 
-- **Main character hops** rather than walks: `phase = anim*0.42`, `f = fract(phase)`,
-  `air = sin(f*PI)`, lift `3.4·air` u. Contact factor `max(0, 1 - min(f, 1-f)*6)`:
-  `sy = 1 + .07air - .13contact`, `sx = 1 - .04air + .12contact`. Frame 2 in the air, frames 1/3
-  alternate on landings, tilt `0.07·facing·air` rad, a dust puff behind on every landing.
-- **Idle:** breathing `sy = 1 + .03 sin(3.2t)`, `sx = 1 - .022 sin(3.2t)`. A launch squashes 5%,
-  a celebration wobbles ±18%, a flinch squashes 16% with the pained face.
-- **Small creature:** 4 frames at `anim*0.85`, rock `±0.1` rad, bob 1.3 u, 5–6% squash on
-  contact, per-instance random scale 0.94–1.06.
-- **Ghost:** floats 4.5 u up, bob ±1.6 u at `2.6t`, hem frames at 7 fps, 4% wobble at `5.2t`,
-  lean up to 0.16 rad into its velocity.
-- **Large creature:** `anim*0.32`, lift 2 u, cubic contact squash 8%, rock 0.035 rad.
-- **Appearing:** ground creatures stretch out of the dirt hole with `outElastic`; ghosts fade in +
-  outBack.
-- **Collectibles** bob 1.1 u at `5t` with 4–5% squash; collected gems arc up 10 u with outBack.
-- **Props:** trees and bushes sway by skewing around the base (0.025 / 0.035 at `1.3t`).
-- **Floating numbers:** scale 0.3 → 1.35 (first 10%) → 1.0, shrink 70% and fade in the last 28%.
-- Overshoot easing everywhere: `outBack`, `outElastic`, CSS `cubic-bezier(.3,1.7,.5,1)`.
+Smooth vector cartoon: poses are interpolated every frame. Baked creatures step through 8 frames, everything else is continuous. Every pop uses overshoot easing (`outBack`, `outElastic`, CSS `cubic-bezier(.3,1.7,.5,1)`), and nothing moves linearly.
+
+- **Per-actor variation:** phase offset from the seed, scale 0.94–1.06, own blink timing (110 ms every 2.7–5 s, some double-blink), own idle-glance timing.
+- **Main character walk (trot):** `phase = anim·0.21`, two steps per cycle.
+  - Step body height `stepBob(s)`: contact 0 → down +1 (14 % of the step) → up −1.6 (passing, 62 %) → contact. Down is lowered ×0.75, up raised ×1.35.
+  - Squash on the way down (sx +7.5 %, sy −8.5 % per unit), a slight stretch going up.
+  - Feet on a lifted arc; arms counter-swing ±0.9 rad, phase-shifted 0.07.
+  - The head lags the body by 0.14 of a step and tilts ±0.045. A dust puff on every step.
+- **Secondary motion (springs, per frame):** the scarf tail is two chained springs (stiffness 75 / 55, damping 10 / 8) driven by the body's vertical speed. The stem leaf is a spring (110 / 8) driven by the head's vertical speed. Both overshoot on landings and stream back when running.
+- **Idle:** breathing at a 2.6 s period (sy +3 %, sx −2.2 %), a delayed head bob, and a glance over the shoulder every ~6.5 s (1.4 s, smoothstepped).
+- **Dash:** anticipation squash (first 15 %), stretch + lean 0.32 + leg wheel (10–80 %), landing squash (last 20 %). Three white after-images trail at alpha `0.38/i`.
+- **Turn:** 0.14 s width squash (32 %) on every facing change.
+- **Small creatures:** 8-frame waddle at `anim·0.85 + seed`, `stepBob` per step (down ×0.6, up ×1.1), squash 8–9 % on contact, rock ±0.08 rad, leaves lagging the gait.
+- **Ghosts:** hover on two summed sines (`sin(th) + 0.28·sin(2th + 0.7)`, th = 2.5t), stretch ±3.5 % with vertical speed, lean up to 0.18 rad, hem frames at ~7.6 fps.
+- **Large creature:** 8-frame stomp at `anim·0.32`, contact squash 9 %, rock 0.04 rad.
+- **Hit:** hurt pose + white flash (~140 ms), 22 % squash + 0.26 rad tilt away from the blow, then a 0.5 s elastic wobble.
+- **Removal:** squash → spring up with X eyes (outBack) → inflate and shiver → pop into a cel cloud with sparkles. Ghosts stretch up, twist and thin out into a rising soul curl.
+- **Spawn:** peek out of the dirt hole (clipped, leaves shivering) → pop out stretched → hop → squash landing → damped wobble. Ghosts swirl up, untwisting, with outBack.
+- **Collectibles** bob 1.1 u at `5t` with 4–5 % squash; collected gems arc up 10 u with outBack.
+- **Ambient:** prop breeze with a rolling gust band; pond rings spreading every 3.2 s; butterflies drifting on two-partial paths over the meadow. All slower than the actors.
+- **Floating numbers:** scale 0.3 → 1.35 (first 10 %) → 1.0, then shrink 70 % and fade in the last 28 %.
 
 ## Do and don't
 
@@ -415,15 +399,22 @@ When the red bar drops, its panel shakes for 0.22 s (±3 px, ±1°).
    runs `fn` with an outline painter and then with a fill (or flash) painter.
 5. Write each figure and prop as a part list, back to front: tail/back limbs → body → front
    limbs → head → face details → top decorations. Give every big part `shade`, `sh` and `hi`.
-6. Make 4 frames per figure by varying limb endpoints and small offsets (feet, arm angles, leaf
-   sway, hem phase); bake normal + flash for each.
-7. Generate the ground: noise fields → per-pixel signed distance → coverage + rim blend → flat
-   decals. Cache it in chunks.
-8. Per frame: ground, one batched shadow path, y-sort figures and props, blit with
+6. Bake 8 walk frames + 8 blink frames + a hurt pose + a removal pose per creature (each with a
+   flash copy) from a foot cycle and a step-bob curve; leaves and arms lag the gait. Give every
+   actor a seed for phase, scale and blink timing.
+7. Rig the main character live: limbs, torso, collar and a two-segment spring scarf in the same
+   outline language, a baked head with 5 expressions, a spring leaf; drive it with the trot,
+   idle-glance, throw, dash, turn, hurt and celebrate rules from the Motion section.
+8. Generate the ground: noise fields → per-pixel signed distance → coverage + rim blend → composed
+   decals (furrow rows, ground around props, noise-ramped tuft drifts, posies, lily pads, edge
+   fringes). Place props by feature: groves with soft rims, path furniture, reed beds, pumpkin
+   patches. Cache it in chunks.
+9. Per frame: ground, one batched shadow path, y-sort figures and props, blit with
    `translate · rotate · scale(sx·facing, sy)` around the feet, then particles and numbers.
-9. Add the motion rules (hop, waddle, float, stomp, overshoot pops) and the effects (impact star,
-   flash, puff burst, stars, chunks, ring).
-10. Build the HUD in HTML/CSS with the panel/bar/card styles above; draw icons with the same
+10. Add the designed states (hit flash + tilt + wobble, removal squash → spring → cloud pop, spawn
+    peek → pop → land) and the layered effects (core star, action lines, delayed puff ring, stars,
+    chunks, dust ring).
+11. Build the HUD in HTML/CSS with the panel/bar/card styles above; draw icons with the same
     painter on a 48 px grid and a 2.6 px outline.
 
 ## Code
@@ -468,7 +459,7 @@ Painter.prototype.part = function (shape, fill, o = {}) {
 };
 ```
 
-**2. Baking a sprite and blitting it with squash & stretch**
+**2. Baking a sprite, squash & stretch, the trot and spring follow-through**
 
 ```js
 let K = 3; // canvas px per world unit
@@ -492,6 +483,21 @@ const E = (x, y, rx, ry) => (c) => { c.moveTo(x + rx, y); c.ellipse(x, y, rx, ry
 const bush = build([-15, -20, 15, 2], (P) => P.part(
   (c) => { E(-6.4, -6, 6.4, 6)(c); E(6, -5.8, 6, 5.6)(c); E(0, -9.6, 7.6, 7.2)(c); E(-0.5, -4.6, 7, 4.8)(c); },
   '#73c257', { shade: '#4e9a40', sh: [-2.1, -2.0], hi: [-4.8, -13, 2.2, 1.1, -0.6] }));
+
+// the trot: body height per step (contact 0 -> down +1 -> passing/up -1.6 -> contact; + = lower)
+const sstep = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+function stepBob(s) {
+  s -= Math.floor(s);
+  if (s < 0.14) return sstep(s / 0.14);
+  if (s < 0.62) return 1 - 2.6 * sstep((s - 0.14) / 0.48);
+  return -1.6 + 1.6 * sstep((s - 0.62) / 0.38);
+}
+// follow-through: a damped spring driven by the body's vertical speed (scarf tail, leaf, ears)
+function spring(st, target, drive, dt, k = 75, damp = 10) {
+  st.v += ((target - st.a) * k - st.v * damp + drive) * dt;
+  st.a += st.v * dt;
+  return st.a;
+}
 ```
 
 **3. Carved glowing face and two-tone body fill**
@@ -578,9 +584,14 @@ function damageNumber(ctx, x, y, txt, crit) {
 
 ## Performance notes
 
-- Everything is baked once at init: 4 frames × (normal + flash) × 2 facings per figure, ~60
-  canvases in total; per frame only `drawImage` with transforms. 300+ figures stay well under
-  budget.
+- Creatures are baked once at init: 8 walk + 8 blink + hurt + removal poses, each with a flash copy
+  (20 canvases per variant, mirrored at draw time); props, effects and the main character's head
+  sprites too. Per frame creatures cost one or two `drawImage` calls each.
+- The main character is the one live rig (~45 path operations per frame, ~0.25 ms in software
+  rendering). Only one is ever on screen; do not rig crowds this way.
+- Props carry a tight cull pad (their own half-width + 8 units), so off-screen trees and bushes are
+  neither drawn nor shadowed. Pond rings cache the visible water cells per 40-unit camera cell and
+  stroke in 4 fade buckets.
 - Ground: 256-unit chunks generated incrementally; noise is sampled on a 4-unit grid and the
   per-pixel distance work runs only in grid cells that touch an edge (others are flat-filled with
   `Uint32Array.fill`). Decals are baked into the chunk. Cap ground resolution at 3 px/unit.
@@ -603,12 +614,17 @@ Use the Bouncy Cartoon art style for my project (Canvas 2D, procedural, no image
   googly eyes with plum pupils and white catchlights, thick angry brows.
 - Colours come in fill/shade pairs (shade ~20% darker). Main character warm (orange #ff952b + teal
   #2f9c95), creatures cool (purple #9b5cd0 / cream, ghost white #f6f8ff), glow #ffd43f for light.
-- Ground: flat pastel play-mat (meadow #9ec671, dark grass #79ae5a, lilac #c8b6da, sand paths #ebd3a0)
-  with crisp anti-aliased region edges and a slightly darker inner rim; tiny tufts and 5-petal flowers.
-- Props (round trees, bushes, rocks, fences) use the same outline + crescent + gloss painter.
+- Ground: flat pastel play-mat (meadow #9ec671, dark grass #79ae5a, lilac #c8b6da, sand paths #ebd3a0,
+  ponds #80cde2 with a white foam rim and a deep #60b2d7 centre) with crisp anti-aliased region edges;
+  decals in drifts and clusters (tuft clumps, posies, lily pads, furrows), calm open meadow between.
+- Props (round trees, pines, bushes, rocks, stumps, reeds, fences) use the same painter and are
+  placed by feature: groves with bushy rims, rocks and signs by paths, reeds on pond shores.
 - Shadows: flat plum ellipses rgba(50,30,72,0.2), all batched into one fill.
-- Bake 4 frames + a white flash copy per figure; animate only by transforms: hop/waddle squash &
-  stretch, tilt, bob, overshoot (outBack/outElastic) pops.
+- Bake 8 walk + 8 blink frames + hurt + removal poses (with flash copies) per creature; per-actor
+  phase, scale and blink. Main character: a live rig with a trot (contact-down-passing-up), arms
+  counter-swinging, head lag, spring scarf and leaf, dash anticipation + stretch + landing.
+- Hit: hurt pose + white flash + tilt away + elastic wobble. Removal: squash, spring up with X eyes,
+  pop into an outlined cel cloud. Spawn: peek out of a dirt hole, pop out stretched, land squashed.
 - Effects: white 8-point impact stars, outlined cloud puffs, yellow stars and colour chunks in bursts.
 - Numbers in Lilita One with a plum outline + plum drop; UI in cream #fff4de pills with 4px plum
   borders and a solid 5px plum drop shadow; labels in Fredoka 600.

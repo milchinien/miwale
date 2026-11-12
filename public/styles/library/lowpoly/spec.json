@@ -14,7 +14,7 @@
     "cozy"
   ],
   "summary": "A toy-like autumn miniature world of flat-shaded triangle facets in soft afternoon light, with tilt-shift blur at the screen edges.",
-  "description": "Every character, prop, collectible and ground tile is a real triangle mesh, projected with a fixed 44° three-quarter orthographic camera and flat-shaded by one warm sun plus a cool-sky / warm-ground ambient. Meshes are pre-rendered into sprite canvases (16 yaw angles x a few animation frames), so it reads as 3D but costs like 2D. The ground is a jittered triangle lattice lit from a tiny height field, giving the signature faceted meadow. Soft indigo cast shadows, glowing carved faces and a tilt-shift band at the top and bottom make it feel like a photographed tabletop diorama.",
+  "description": "Every character, prop, collectible and ground tile is a real triangle mesh, projected with a fixed 44° three-quarter orthographic camera and flat-shaded by one warm sun plus a cool-sky / warm-ground ambient. Characters are rigged meshes (thigh + shin with a knee, upper + fore arm, cape, scarf, neck) re-posed for every frame and baked at 16 yaw angles, so walks, breathing, blinks, lunges, hit reactions and facet break-ups all stay in the medium. The ground is a jittered triangle lattice lit from a tiny height field, composed into meadows, single-species groves, ponds with reed shores and winding trodden paths. Soft indigo cast shadows, glowing carved faces and a tilt-shift band make it feel like a photographed tabletop diorama.",
   "mood": [
     "cozy",
     "toy-like",
@@ -45,9 +45,9 @@
     "resolution": "Native resolution. Sprites are baked at K = clamp(round(screenHeight/360 * 4)/4, 2, 4) px per world unit (2.5 px/unit at a 900 px tall screen); the ground is baked in 256-unit chunks at up to 3 px/unit (groundResMax 3).",
     "summary": "Real triangle meshes built from lathes, boxes, icospheres and folded leaf blades, flat-shaded per face with a fixed sun and pre-rendered into sprite sheets at 16 yaw angles; the ground is a lit, jittered triangle lattice.",
     "linework": "No outlines. Each facet is filled and then stroked in its own colour (lineWidth 0.85 sprite px, 0.6 for decals, 0.5 for gems, round joins) only to hide anti-aliasing seams. Silhouettes read through value contrast against the ground, never through ink lines.",
-    "shading": "Flat per-face Lambert: colour * (SKY*h + GND*(1-h) + SUN*max(0, n.L)) with h = 0.5 + 0.5*nz, SKY [0.47,0.52,0.67], GND [0.52,0.44,0.38], SUN [0.7,0.62,0.45]. Volume comes from facet orientation plus alternating rib colours and ±3-7 % per-face colour jitter. Emissive faces (carved eyes, windows, cracks) skip lighting.",
+    "shading": "Flat per-face Lambert: colour * (SKY*h + GND*(1-h) + SUN*max(0, n.L)) with h = 0.5 + 0.5*nz, SKY [0.47,0.52,0.67], GND [0.52,0.44,0.38], SUN [0.7,0.62,0.45]. Volume comes from facet orientation plus colour by role: tree crowns pick their dark / mid / light tone from the face normal (nz < -0.12 / middle / nz > 0.42), pine tiers go dark skirt -> mid -> light cap, pumpkins alternate rib colours; only ±3 % per-face jitter on top. Emissive faces (carved eyes, windows, cracks) skip lighting.",
     "lighting": "One warm sun from upper-left-front, L = normalize(-0.58, 0.3, 0.76) (x right, y towards camera, z up). Additive warm radial glows ('lighter') around glowing faces, lanterns and gems. Cast shadows are the mesh projected along the sun, blurred and tinted indigo #2c3263 (props: #7d86c4, multiplied at 62 %).",
-    "texture": "None on surfaces. Texture comes from geometry: 24-unit jittered ground triangles with 4 colour variants per biome, low-amplitude macro tint, and baked micro-props (grass tufts, flowers, pebbles, fallen leaves)."
+    "texture": "None on surfaces. Texture comes from geometry: 24-unit jittered ground triangles whose tone (4 variants per biome) is chosen by a 64-unit noise field so facets cluster into calm patches, plus baked micro-props placed with intent (leaf litter under crowns, tufts on region edges, reeds on shores)."
   },
   "palette": [
     {
@@ -61,9 +61,19 @@
       "role": "Autumn forest floor (variants #bf824f #cf9c5d #c08a55)"
     },
     {
-      "name": "Sand Path",
+      "name": "Sand",
       "hex": "#e2cb9c",
-      "role": "Sand / yard ground (variants #dbc392 #e6d2a6 #dfc797)"
+      "role": "Sand, pond shores and farm yards (variants #dbc392 #e6d2a6 #dfc797)"
+    },
+    {
+      "name": "Pond Water",
+      "hex": "#6fb4c8",
+      "role": "Pond facets, deepening to #4b8fb4 in the middle; rim facets mixed with foam #cdeae6"
+    },
+    {
+      "name": "Trodden Earth",
+      "hex": "#c49a6c",
+      "role": "Winding paths (variants #bc9164 #c9a274 #c09667), darker than sand so paths read"
     },
     {
       "name": "Pumpkin",
@@ -156,8 +166,9 @@
     "The ground stays in a narrow value band (grass #95b16f-#a3bd7d) so characters pop through hue: orange main character, lilac root creatures, white ghosts.",
     "Shadows and vignettes are cool indigo/violet (#2c3263, rgba(60,55,100,.22), rgba(70,62,110,.26)), never pure black or grey.",
     "Each material has exactly 2-4 base colours (e.g. pumpkin #f48a2c / #e27526) – the lighting creates the rest of the ramp.",
-    "Autumn tree crowns come from 4 warm triads: oranges #ee8b3a/#e47a31/#f2a046, reds #dc5d43/#cf4d3c/#e6714b, yellows #ecb544/#e3a23c/#f2c35a, rusts #d07a3f/#e09447/#c4653a.",
-    "No pure white surfaces except impact flashes and sparkle stars; no pure black anywhere (darkest is #161b33 inside ghost eyes)."
+    "Autumn tree crowns use 4 warm triads, each ordered by role [mid, shadow side, sunlit top]: maple reds #dc5d43/#cf4d3c/#e6714b, oak oranges #ee8b3a/#e47a31/#f2a046, birch yellows #ecb544/#e3a23c/#f2c35a, poplar rusts #d07a3f/#c4653a/#e09447. The litter under a tree uses its own triad.",
+    "No pure white surfaces except impact flashes and sparkle stars; no pure black anywhere (darkest is #161b33 inside ghost eyes).",
+    "Water is the only cool large area; keep it mid-value (#6fb4c8 -> #4b8fb4) so it never out-shouts the orange main character."
   ],
   "typography": [
     {
@@ -187,79 +198,74 @@
     }
   ],
   "world": {
-    "summary": "An endless faceted tabletop: a jittered equilateral triangle lattice (cell 24 world units) whose vertices carry a biome id and a tiny height; each triangle is flat-shaded from its height-field normal with the same sun as the models. Biomes (grass #9cb876, autumn forest floor #c98e57, sand #e2cb9c, rock #c2b49c, ploughed field #ab805d, farm yard) blend with jagged triangle borders; decals and prop shadows are baked into 256-unit chunks.",
+    "summary": "An endless faceted tabletop: a jittered triangle lattice (cell 24 world units) whose vertices carry a biome id and a tiny height; each triangle is flat-shaded from its height-field normal with the same sun as the models. Regions are composed, not sprinkled: meadows with flower patches, autumn forests made of single-species groves, rock outcrops, ploughed fields, farm yards, ponds with sand shores, reeds and lily pads, and thin trodden-earth paths that wind through meadows and woods. Decals and prop shadows are baked into 256-unit chunks.",
     "layers": [
       "Fill #a1b97e (groundColor) behind everything",
       "Triangle lattice: CS = 24, row height 24*0.866, vertex jitter ±26 % x / ±23 % y, odd rows offset half a cell",
-      "Per-vertex biome from warped fbm masks and height = biome base + roughness * (hash noise * 1.3 + perlin(x/75) * 1.6) + 6 * perlin(x/280); base/roughness grass 0/1.2, forest 0.9/1.5, sand -1.6/0.7, rock 3.6/1.9, field -0.6/0.5, yard -1.0/0.5",
-      "Per-facet colour: one of 4 biome variants by hash, 40 % of mixed-biome border facets mixed 50 % with the neighbour; accents 18 % mossy rock #98aa78, 4.5 % dry grass, 8 % darker forest; macro tint from fbm at 1/520 scale (±6 %)",
-      "Per-facet flat shading from the height-field normal through the same shadeRGB as the models",
-      "Field biome: furrow ridges every 14 units (3.2-unit darker north band, 3.4-unit lighter south band) with tiny two-tone vine triangles",
-      "Decals on an 11-unit jittered grid: grass tufts (#a4c27a/#87a865), ten-point flowers (#fff4e0 #c9a5ea #ff9c84 #ffd45e #f2b6d6), pebbles, mushrooms #d9583f, mini pumpkins and two-tone fallen leaf triangles on 34 % of forest cells",
-      "Prop shadows baked into the chunk with 'multiply' at alpha 0.62, colour #7d86c4"
+      "Per-vertex biome, in priority order: rock (fbm/330 > 0.675), field rectangles, pond (fbm/300 > 0.70) with a sand shore band (> 0.684), path (|perlin/560| < 0.042), forest (warped fbm/780 > 0.578), sand, grass; the start area is kept dry",
+      "Height = biome base + roughness * (hash * 1.3 + perlin(x/75) * 1.6) + 6 * perlin(x/280); water is flat at -3.0 (roughness 0.14) so the shore facets tilt into a lit bank",
+      "Per-facet tone: one of 4 biome variants picked by a 64-unit noise field (+30 % hash), so tones form soft patches; accents 18 % mossy rock #98aa78, 3.5 % dry grass, 6 % darker forest; water deepens towards #4b8fb4 with distance into the pond, rim facets mix 42 % foam #cdeae6",
+      "Field biome: furrow ridges every 14 units (3.2-unit darker north band, 3.4-unit lighter south band) with two-tone vine triangles",
+      "Decals with intent: 14 crown-coloured leaf triangles in an ellipse under every deciduous tree (shifted to its shadow side), mushrooms at the foot of some pines, tufts and pebbles around boulders and along region edges, flower clusters only inside meadow patches (fbm/110 > 0.6, one colour per patch), reeds on shores, lily pads in pond interiors, pebbles along path edges; a sparse base (about 1 %) everywhere else",
+      "Prop shadows baked into the chunk with multiply at alpha 0.62, colour #7d86c4"
     ]
   },
   "characters": {
-    "summary": "Chunky toy figures built from lathes (5-16 segments), boxes, 20-face icospheres and folded leaf blades, pre-rendered at 16 yaw angles. The main character (~17 x 31 units, scaled 1.1x) is a big ribbed pumpkin head (radius 7.8, ~60 % of the height) with a carved glowing face on a small body with linen shirt #f3e6c8, red scarf #d65d42, blue half-cape #4b68a3, brown pants #6c4e3f and boots #46332c; 6 walk frames + 1 idle. Creatures: a lilac-and-cream root creature with a leafy top (~16 x 20 units), a pale blue trailing ghost sheet drawn at alpha 0.8, and a purple rock colossus with glowing orange cracks at 3x the main character's size.",
+    "summary": "Chunky toy figures built from lathes (5-16 segments), boxes, 20-face icospheres and folded leaf blades. The main character (~17 x 31 units, scaled 1.1x) is a real rig: ribbed pumpkin head (radius 7.8, ~60 % of the height) with a carved glowing face on a neck pivot, linen shirt #f3e6c8 with a belt buckle, red scarf #d65d42 whose tail hangs from a pivot, a three-ring blue half-cape #4b68a3 whose hem flares, lifts and sways, arms with elbows and legs with knees. 16 baked poses: 8 walk, 4 breathing idle, 1 blink, dash crouch, dash lunge, hurt. Creatures: lilac-and-cream root creatures in two designed variants (round with a four-leaf crown and grin, or tall with a fanned three-blade crest, lopsided fanged grin and a long root tail), a pale teardrop spirit with mitten hands, a trailing wisp and a whipping tail (alpha 0.84), and a purple rock colossus with glowing orange cracks at ~3x the main character.",
     "rules": [
       "Head-to-body ratio about 1:1 on the main character – the head is the silhouette; keep it the largest and most saturated shape.",
       "Every character has a glowing or high-contrast face on the +x (front) side so facing reads at 16 directions; faces are flat polygons projected onto the head and stacked rim / fill / hot core.",
-      "Use 5-9 lathe segments for bodies, 16 for the main character's head; never smooth – faceting is the style.",
-      "Colour each ring/segment explicitly (rib alternation, cream/lilac top-bottom split with a zig-zag border) instead of texturing.",
-      "Animate by rebuilding the mesh per frame (leg swing ±0.62 rad, arm swing ±0.7 rad, head bob 0.35, leaf sway, cape flare) and baking; never squash the sprite except for the 0.22 s vanish.",
-      "Creatures must differ by hue and silhouette: lilac/cream root creature (round + leaf crown), pale blue ghost (tapered trailing sheet, ramp #a6b5ec -> #eaf5ff), purple rock colossus (3x size, bands #c19c64 -> #9c7c90 -> #7f5c95, orange cracks #ffa63a).",
-      "Never use ground hues on characters; small creatures stay 14-20 units tall."
+      "Build characters as rigs: parts are separate meshes on pivots (hip, knee, shoulder, elbow, neck, cape rings, scarf knot) and every frame is a re-posed mesh baked at 16 yaws – never squash a sprite to fake a pose.",
+      "The hip height comes from the stance leg (max over legs of 3.8 cos a + 3.9 cos(a + knee)), so a foot always touches the ground and the bob falls out of the leg pose.",
+      "Each creature type has 6 walk poses + 1 hit pose; the small creature comes in 2 designed variants chosen by its seed, not random scale/hue jitter.",
+      "Creatures must differ by hue and silhouette: lilac/cream root creatures (round crown or tall crest), pale spirit (teardrop + tail + wisp, ramp #a6b5ec -> #eaf5ff), purple rock colossus (3x size, bands #c19c64 -> #9c7c90 -> #7f5c95, cracks #ffa63a).",
+      "Never use ground hues on characters; small creatures stay 16-21 units tall."
     ]
   },
   "props": {
-    "summary": "Scenery is baked once at a single yaw with the same camera, sun and flat shading as the characters: faceted pines, autumn trees with icosphere crowns, mossy boulders, ribbed pumpkins, carved glowing pumpkins, gable-roofed houses and barns with emissive windows, haystacks, hay bales, fences and stumps.",
+    "summary": "Scenery is baked once at a single yaw with the same camera, sun and flat shading as the characters: four deciduous species (broad maple, flat-canopy oak, white-barked birch with hanging clumps, columnar poplar) whose crown facets are coloured by normal, three faceted pines, mossy boulders, ribbed and carved pumpkins, houses and barns with emissive windows, haystacks, hay bales, fences, stumps, plus shore reeds with cattails and lily pads as ground decals.",
     "rules": [
-      "Pines: 4 stacked jittered cones cycling #3f775c / #4e8d6e / #5c9c79 on a trunk #8c5c3e, heights 58-82.",
-      "Autumn trees: tapered trunk + 1 big and 1-2 small icospheres (sub 1, jitter 0.1) with per-face colours from a warm triad (#ee8b3a/#e47a31/#f2a046, #dc5d43/#cf4d3c/#e6714b, #ecb544/#e3a23c/#f2c35a, #d07a3f/#e09447/#c4653a), heights 54-69.",
-      "Boulders: flattened icosphere (sx 1.25, sz 0.72, radius 5-10) in #b4ab9e / #9a9288 with moss #95ad6c on upward faces (nz > 0.62).",
-      "Pumpkins: ribbed 14-segment lathes radius 5.4-8.4 with stem and leaf; carved pumpkins add two triangle eyes and a jagged grin in the stacked glow #6e2e10 / #ffc43a / #fff1a6.",
-      "Houses (25 x 18 x 15, walls #f5ecd8, roof #cf6644, chimney) and barns (30 x 21 x 17, walls #bf5540, slate roof #7d7f96) from boxes + two double-sided roof planes + gables, scaled 1.5x, emissive windows #ffd77a in light wood frames #cfa475.",
-      "Haystacks (striped #ecc766 / #d4ab4f lathe with a pole), stacked hay bales with wood straps, 30-unit fences (3 posts #8a5e3d, rails #ad7a50) and stumps (#8c5c3e with light top #cfa475).",
-      "Tall props (trees, pines, houses, the largest boulder) fade to alpha 0.42 when the main character is behind them; tall props stay in forest/rock biomes, away from the open scene centre.",
-      "Every prop casts a sun-projected shadow multiplied into the ground at 0.62 in #7d86c4."
+      "Trees come in designed species, not jittered copies: maple (h 56, one flattened crown + 4 side lobes), oak (h 62, 4-lobe flat canopy + one higher lobe, two branch forks), birch (h 64, white bark #ece6da with dark marks #4a4540, 4 clumps on alternate sides), poplar (h 78, one tall column crown).",
+      "Crown colour by facet normal: dark underside, mid body, light sunlit top from the species triad – the crown reads as one lit volume, never as confetti.",
+      "Forests grow in groves: a 210-unit noise field picks the dominant species (pines below 0.4, then maple, oak, birch, poplar), 85 % of trees follow it; density rises from 22 % at the forest edge to 54 % inside.",
+      "Pines: 4 stacked jittered cones, dark skirt #3f775c -> #4e8d6e -> light top tier #5c9c79, trunk #8c5c3e, heights 58-82.",
+      "Boulders: flattened icosphere (sx 1.25, sz 0.72, radius 5-10) in #b4ab9e / #9a9288 with moss #95ad6c on upward faces, ringed by pebbles and tufts.",
+      "Pumpkins, houses (walls #f5ecd8, roof #cf6644), barns (walls #bf5540, roof #7d7f96), haystacks, bales, fences and stumps as before: boxes, lathes and double-sided planes scaled 1.25-1.5x, emissive windows #ffd77a.",
+      "Tall props fade to alpha 0.42 when the main character is behind them; every prop casts a sun-projected shadow multiplied into the ground at 0.62 in #7d86c4."
     ]
   },
   "effects": [
     {
+      "name": "Core flash",
+      "how": "A faceted star burst (5-8 points, inner radius 36 %) in a warm or cold rim colour with a white inner star rotated half a point, growing r0 -> r1 with outQuad over 0.12-0.22 s and fading with k^2 – the first layer of every hit, vanish, pickup and celebration."
+    },
+    {
       "name": "Faceted shards",
-      "how": "Impact bursts spray tiny flat triangles (2-3 of size 1.7 for a light hit, 12 of size 2.6 when a creature vanishes, 26 of size 4.2 for the large creature) with gravity 260 and drag 1.6; colour comes from an 8-step brightness palette of the source's colours, chosen per frame by |cos(rotation)| so shards flicker like spinning facets."
+      "how": "Flat triangles and 4-sided plates (32 %) with gravity 260 and drag 1.6, colour from an 8-step brightness palette of the source chosen by |cos(rotation)| so they flicker like spinning facets; they bounce, land, rest and shrink in the last 35 % of their life. Leaf-green chips and gold emissive chips (with a small additive glow) are mixed in where the source has them."
     },
     {
-      "name": "Low-poly puffs",
-      "how": "Dash, appear and vanish dust are baked jittered icospheres (r 3, sub 1) in cream #f6eedf, pale blue #e0ecfb, sand #d8c09a or #fff3c9, scaled up 0.7->1.4 while fading."
+      "name": "Faceted ground ring",
+      "how": "A 12-gon on the ground plane (y squash 0.5) expanding r0 -> r1 with outCubic, stroke width lw * (1 - t); larger bursts stagger a second ring by 0.08-0.12 s."
     },
     {
-      "name": "Appear ring",
-      "how": "A dark ground ellipse (alpha 0.5) plus a cream ellipse stroke (#f6ecd6) expanding to 2x radius with 6 puffs around it; the creature sprite is revealed bottom-up by clipping its height with outQuad."
+      "name": "Residue patch",
+      "how": "A flat 7-vertex faceted patch (radius 8-20, jitter 28 %) tinted with the source (#5a4060, #9fb6e8, #4a3a4a) fading in over 0.12 s and out over the last 45 % of 0.9-2 s – what is left where something vanished."
     },
     {
-      "name": "Impact flash",
-      "how": "A white silhouette copy of the current sprite (source-in fill #ffffff) drawn on top at alpha = flash * 1.1."
+      "name": "Facet break-up",
+      "how": "A vanishing creature swells (1.16 x / 0.92 y) and whites out for the first 14 % of the sequence, then its hit pose is cut by 9 clip polygons (an inner core of 3 + an outer ring of 6) that fly out and up, spin, land on the ground and fade; spirits drift up and shrink instead, the colossus crumbles heavily. Capped at 6 per frame (the rest sink and fade)."
     },
     {
-      "name": "Carved glow",
-      "how": "An additive ('lighter') radial sprite (rgba 255,225,140,.9 -> 255,150,50,0, r 10 units) drawn over the face, alpha 0.22 ± 0.06 flicker at 9 rad/s, only when the face points toward the camera."
+      "name": "Ground-opening appear",
+      "how": "A dark faceted hole opens (outQuad), 5 cracks run out, 6 soil chunks (#8a6448, #a47a57, #6b4e3c) are pushed up and thrown aside; the creature rises out of the clipped hole with outBack (overshoots, stretches 1.13 on the way up, squashes 0.9 on landing). Spirits materialise: fade in with a 28 Hz flicker, drop 14 units and un-stretch from 1.5 to 1 inside a faceted frost ring."
     },
     {
       "name": "Seed projectile",
       "how": "A flattened lathe seed (#f8ebc6 / rim #dfc58c) pre-rendered in 8 roll frames, rotated to its direction, with a tapered cream trail triangle (#fff6dc, alpha .45, up to 16 units) and a dark ground dot."
     },
     {
-      "name": "Gem collectible",
-      "how": "8-face octahedron (small: mint #4fe3b0 r 2.1, large: sky #5cbdf6 r 3.1) spinning through 8 frames over a quarter turn, with a soft radial halo, bobbing 2.2 ± 0.8 units above a small shadow dot."
-    },
-    {
-      "name": "Orbiting lantern",
-      "how": "A small lilac-and-cream lantern mesh with three leaves and a carved glowing face (x1.3) hovering 9 ± 1.2 units with an additive warm glow (r 18, alpha 0.5 ± 0.12)."
-    },
-    {
-      "name": "Celebration ring",
-      "how": "A gold ellipse ring #ffd666 expanding 8->52 units, a warm additive glow and 14 rising 4-point star motes alternating #ffe27a and #bdf5df."
+      "name": "Gem and orbiting lantern",
+      "how": "8-face octahedron (mint #4fe3b0 r 2.1 / sky #5cbdf6 r 3.1) spinning 8 frames over a quarter turn with a soft halo and an eased bob that holds at top and bottom; every ~2.6 s a 4-point white glint catches the sun. Lanterns are small lilac-and-cream carved meshes hovering 9 ± 1.2 units in an additive warm glow."
     }
   ],
   "atmosphere": {
@@ -271,7 +277,8 @@
       "Tilt-shift: the top 20 % and bottom 17 % of the frame are copied into 1/8-size canvases, tinted with a light haze rgba(232,238,250,.34 -> 0) on top and violet rgba(70,62,110,0 -> .26) at the bottom, and drawn back in 7 slices with alpha (1 - e)^1.6.",
       "Side vignette: 9 %-wide gradients rgba(60,55,100,.22) -> 0 on the left and right.",
       "Modal overlay: radial-gradient(ellipse at 50% 46%, rgba(255,246,232,.30), rgba(66,56,104,.66)) with a 3 px backdrop blur.",
-      "No bloom and no colour grading beyond tilt-shift and vignette; shadows and vignettes are always indigo/violet, never black or grey."
+      "No bloom and no colour grading beyond tilt-shift and vignette; shadows and vignettes are always indigo/violet, never black or grey.",
+      "Ambient motion, always slower than the actors: leaves in the grove colours tumble down over the woods (one per other 64-unit cell, 5-8 s fall, flip with cos(3.4 t)), and faceted glints blink slowly on pond facets."
     ]
   },
   "ui": {
@@ -279,30 +286,32 @@
     "css": ".hud-panel { background: #fffaf2; padding: 3px 26px 7px; border-radius: 22px; box-shadow: 0 6px 16px rgba(58,48,96,.24), inset 0 -4px 0 rgba(150,130,180,.13); font: 800 32px/1.1 'Baloo 2', 'Nunito', system-ui, sans-serif; color: #3e3a58; }\n.hud-label { font: 800 10px/1 'Nunito', sans-serif; color: #8f87ab; letter-spacing: 2.2px; }\n.bar { position: relative; width: 230px; height: 28px; background: #f2e6e2; border: 4px solid #fffaf2; border-radius: 999px; box-shadow: 0 6px 16px rgba(58,48,96,.24), inset 0 2px 3px rgba(110,50,50,.16); overflow: hidden; }\n.bar-fill { position: relative; height: 100%; background: linear-gradient(180deg, #ffa58a 0%, #f46d5d 55%, #dd5449 100%); border-radius: 999px; box-shadow: inset 0 -3px 0 rgba(120,20,20,.14); }\n.bar-fill::after { content: ''; position: absolute; left: 14px; right: 8px; top: 3px; height: 5px; border-radius: 99px; background: rgba(255,255,255,.45); }\n.bar-alt { height: 24px; background: #e9e3f1; border: 4px solid #fffaf2; border-radius: 999px; }\n.bar-alt-fill { background: linear-gradient(90deg, #62dcb4, #6fd1d8 55%, #74c3f4); border-radius: 999px; }\n.card { width: 226px; border-radius: 28px; background: linear-gradient(180deg, #fffefb, #fbf3e9); color: #3e3a58; box-shadow: 0 18px 36px rgba(40,30,80,.34), inset 0 -6px 0 rgba(150,130,190,.16); }"
   },
   "motion": [
-    "Main character: 6 walk frames per stride cycle (frame = floor(anim*0.5*6) % 6) plus 1 idle frame; vertical hop |sin(2π*anim*0.5)| * 1.1 units; idle breathing bob 0.35 ± 0.35 at 2.4 rad/s.",
-    "Small creature: 4 frames, cycle rate anim*0.55, hop 1.4 units; large creature: 4 frames at anim*0.42, hop 0.6; ghost: 4 frames at 1.4 cycles/s, hovering 2.5 ± 1.6 units, alpha 0.8.",
-    "Facing is a smoothed yaw (angleLerp, rate 0.22 main character, 0.16 small creatures, 0.08 large creature) quantised to 16 baked angles.",
-    "Vanish: 0.22 s – sprite stretches 1.3x wide, 0.45x tall while fading, white flash overlay at 55 %.",
-    "Gems spin 1.5 quarter-turns per second; lanterns hover 9 ± 1.2 units at 4 rad/s; floating numbers pop 0.55 -> 1.15 scale in the first 14 % of their life.",
-    "Blinking state alternates alpha 0.5 and 1 at 18 Hz; carved-face glow flickers 0.22 ± 0.06 at 9 rad/s."
+    "Main character walk: 8 rig poses per stride (frame = floor(anim * 0.5 * 8) % 8); legs swing ±0.58 rad with the knee folding up to 1.15 rad in the swing phase, arms counter-swing ±0.62 rad with elbows bending forward, torso leans 0.11, twists ±0.12 and rolls over the stance leg; cape hem, scarf tail and head leaf peak about 1.3 rad after the bob (follow-through).",
+    "Idle: 4 breathing poses over 2 s (chest +0.14, arms out, head lagging the chest), a blink pose for 0.14 s every 3.6 s (eyes become slits, face glow drops to 40 %).",
+    "Dash: crouch pose for the first 45 ms (anticipation: knees fold, body drops 1.2, arms back), then the airborne lunge (lean 0.42, cape 5 units back and lifted 3.4, scarf streaming) with two cool after-images 7 units apart and three cream speed facets.",
+    "Hurt: hurt pose while hurtT > 0.62 (~130 ms: thrown back, arms up, squeezed eyes, open mouth), tilted away 0.16 rad with a white flash; then blink at 18 Hz during invulnerability.",
+    "Creatures: 6 walk poses + hit pose. Small creature waddles (roll ±0.13, squash 0.935 at contact / stretch 1.065 at passing, body up 1.1 at passing, leaves lag 1.3 rad); colossus drops 1.5 units on every footfall; spirit hovers with an eased triangle wave (holds at the extremes, 2.2 s period, own phase per actor) and swims with alternating mitten strokes. Per-actor phase comes from anim / seed, so crowds never move in lock-step.",
+    "Hit reaction (~140 ms, driven by flash 1 -> 0): hit pose + white flash while flash > 0.25, sprite rotated up to 0.26 rad in the push direction, squash 1.09 / 0.92, pushed 1.5 units; colossus tilts only 0.12.",
+    "Facing is a smoothed yaw (angleLerp: 0.22 main character, 0.5 while dashing, 0.16 small creatures, 0.08 colossus) quantised to 16 baked angles; without velocity, actors turn to a 3/4 view of their facing side.",
+    "Gems spin 1.5 quarter-turns per second; lanterns hover at 4 rad/s; floating numbers pop 0.55 -> 1.15 scale in the first 14 % of their life."
   ],
   "do": [
     "Build every visible thing as a real triangle mesh and flat-shade it with the same sun vector and ambient constants.",
-    "Pre-render meshes into sprites at 16 yaw angles and a handful of animation frames; draw sprites, not meshes, per frame.",
-    "Keep facets large and visible – 5-9 segment lathes, icospheres with subdivision 0 or 1, ±10-15 % vertex jitter on organic shapes.",
-    "Use emissive (unlit) polygons for faces, windows and cracks, stacked dark-rim / fill / hot-core with negative depth bias.",
+    "Rig characters from separate part meshes on pivots and bake each pose at 16 yaws; derive the hip height from the stance leg.",
+    "Give every action its sequence: crouch before the lunge, hit pose before the flash fades, swell before the break-up, a ground opening before the rise.",
+    "Colour crowns and tiers by face normal (dark / mid / light) and let the sun do the rest; keep facets large (5-9 segment lathes, icospheres sub 0-1).",
+    "Compose the ground: groves of one species, litter under crowns in their own colours, reeds on shores, flowers in patches, pebbles along paths.",
     "Ground every object with a sun-projected, blurred indigo shadow plus an AO blob.",
-    "Finish with the tilt-shift bands (top 20 % hazy-light, bottom 17 % violet) and a soft side vignette.",
-    "Pick colours as 2-4 base tones per material and let the lighting make the ramp."
+    "Finish with the tilt-shift bands (top 20 % hazy-light, bottom 17 % violet) and a soft side vignette."
   ],
   "dont": [
     "Don't add black outlines or cel ink – the look depends on outline-free facets.",
     "Don't use smooth gradients or Gouraud/Phong shading on models; one colour per triangle.",
-    "Don't use textures, photos or noise grain on surfaces.",
-    "Don't render meshes live every frame for crowds – it will not hold 60 fps with hundreds of characters on screen.",
-    "Don't make shadows grey or black, and don't drop them – floating sprites break the diorama illusion.",
-    "Don't mix camera pitches or light directions between assets; every sprite must share pitch 44° and the same sun.",
-    "Don't saturate the ground; bright grass destroys the contrast with orange/lilac characters."
+    "Don't pick facet colours at random per face – random tones read as confetti; pick by normal (models) or by a low-frequency noise field (ground).",
+    "Don't scatter decals evenly over a biome; place them where something causes them (a crown above, a shore, an edge, a path).",
+    "Don't render meshes live every frame for crowds – bake poses and blit sprites.",
+    "Don't fake animation by squashing sprites; squash only accents a real pose (contact, landing, hit).",
+    "Don't make shadows grey or black, and don't mix camera pitches or light directions between assets."
   ],
-  "performance": "All meshes are baked once at init (about 16 yaws x 7 main-character frames, 16 x 4 per creature type, props, decals, icons) – that is the main load cost (a few hundred ms). Per frame only drawImage blits, a few additive glows and particles are drawn, so hundreds of characters are cheap. Ground chunks (256 units) are built incrementally with a generator over several frames; prop shadows are baked into them. The tilt-shift costs two 1/8-scale band copies per frame. Shadow blur uses ctx.filter at bake time only."
+  "performance": "All meshes are baked once at init: 16 yaws x 16 main-character poses, 16 x 7 per creature set (two small-creature variants), props, decals and icons, plus the white flash tints of the hit/hurt/lunge poses (pre-baked so no canvas is created during play). Per frame only drawImage blits, a few transforms (hit tilt, spawn rise), additive glows and particles are drawn. Break-ups clip 9 pieces per creature and are capped at 6 per frame. Ground chunks (256 units) are built incrementally with a generator; litter, decals and prop shadows are baked into them. Ambient leaves use a memoised per-cell lookup. The tilt-shift costs two 1/8-scale band copies per frame and is the largest per-frame cost."
 }

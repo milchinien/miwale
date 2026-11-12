@@ -131,19 +131,24 @@
       const ny = (y + 0.5 - cy) / ry; if (Math.abs(ny) >= 0.92) continue;
       for (const c of creases) { const x = Math.floor(cx + c * rx * Math.sqrt(1 - ny * ny)), k = idx.get(x + ',' + y); if (k !== undefined) p.set(x, y, ramp[Math.max(0, k - 1)]); } }
   }
-  function makeHero(f, glow) { // main character: 22x30 grid (+1 px outline), faces right, 4 walk frames
+  // 8-pose walk: contact, down, passing, up per leg (bob + = down); the near arm swings against the near leg,
+  // the cape/scarf lag (flap) and the head uses the previous pose's body offset (hb), so it lands one frame late
+  const HW8 = [[0, 2, -2, 0, 0, -1, 0], [1, 2, -2, 0, 0, -1, 0], [0, 0, 0, 0, -2, 0, 1], [-1, -1, 1, 0, -1, 1, 2],
+    [0, -2, 2, 0, 0, 1, 1], [1, -2, 2, 0, 0, 1, 0], [0, 0, 0, -2, 0, 0, 1], [-1, 1, -1, -1, 0, -1, 2]]
+    .map(([bob, a, b, la, lb, hand, flap]) => ({ bob, a, b, la, lb, hand, flap }));
+  HW8.forEach((w, i) => { w.hb = HW8[(i + 7) & 7].bob - w.bob; });
+  function makeHero(f, glow) { // main character: 22x30 grid (+1 px outline), faces right, 8 walk poses
     const p = new Pix(22, 30);
-    const s = [{ bob: 0, a: 2, b: -2, la: 0, lb: 0, hand: 1, flap: 0 }, { bob: -1, a: 0, b: 0, la: 0, lb: -1, hand: 0, flap: 1 },
-      { bob: 0, a: -2, b: 2, la: 0, lb: 0, hand: -1, flap: 0 }, { bob: -1, a: 0, b: 0, la: -1, lb: 0, hand: 0, flap: 1 }][f];
+    const s = HW8[f];
     const leg = (x, lift, far) => {
       const fb = 29 + lift;
-      for (let y = 22; y <= fb - 3; y++) p.rect(x, y, 2, 1, far ? R.pants[0] : R.pants[1]);
+      for (let y = 22 - (s.bob < 0 ? 1 : 0); y <= fb - 3; y++) p.rect(x, y, 2, 1, far ? R.pants[0] : R.pants[1]);
       p.rect(x, fb - 2, 2, 1, R.boot[far ? 2 : 3]); p.rect(x, fb - 1, 3, 1, R.boot[far ? 1 : 2]); p.rect(x, fb, 3, 1, R.boot[far ? 0 : 1]);
       if (!far) p.set(x, fb - 1, R.boot[3]); };
     leg(8 + s.b, s.lb, true); leg(11 + s.a, s.la, false);
     const top = 17 + s.bob;
     for (let r = 0; r < 7; r++) { // short cape, back edge flares left
-      const xl = Math.round(11 - 3.6 - r * 0.6) - (r >= 4 ? s.flap : 0), xr = Math.round(11 + 3.4 + r * 0.2);
+      const xl = Math.round(11 - 3.6 - r * 0.6) - (r >= 3 ? s.flap : 0), xr = Math.round(11 + 3.4 + r * 0.2);
       for (let x = xl; x < xr; x++) {
         if (r === 6 && (x === xl || x === xr - 1)) continue;
         const u = (x - xl) / Math.max(1, xr - xl - 1);
@@ -156,7 +161,7 @@
     for (let x = 6; x <= 15; x++) { p.set(x, top - 1, R.scarf[x < 11 ? 2 : 1]); p.set(x, top, R.scarf[x < 9 ? 1 : 0]); }
     p.set(6, top + 1, R.scarf[2]); p.set(5, top + 1, R.scarf[1]);
     p.set(5 - s.flap, top + 2, R.scarf[2]); p.set(4 - s.flap, top + 2, R.scarf[1]); p.set(4 - s.flap, top + 3, R.scarf[0]);
-    const hy = 9.2 + s.bob;
+    const hy = 9.2 + s.bob + s.hb;                  // the head arrives one frame after the body
     pumpkinBody(p, 11, hy, 8.6, 6.7, R.pk, [-0.5, 0.05, 0.58]);
     const ht = Math.floor(hy - 6.7);
     p.set(10, ht, R.pk[1]); p.set(11, ht, R.pk[1]); p.set(12, ht, R.pk[2]);
@@ -365,7 +370,7 @@
   let S = null, scene = null;
   function sprites() {
     if (S) return S;
-    S = { hero: [0, 1].map((g) => [0, 1, 2, 3].map((f) => pair(makeHero(f, g)))), creeper: [0, 1].map((v) => [0, 1, 2, 3].map((f) => pair(makeCreeper(f, v)))),
+    S = { hero: [0, 1].map((g) => HW8.map((_, f) => pair(makeHero(f, g)))), creeper: [0, 1].map((v) => [0, 1, 2, 3].map((f) => pair(makeCreeper(f, v)))),
       ghost: [0, 1, 2, 3].map((f) => pair(makeGhost(f))), shadow: {}, glowS: disc(3, '#ff9030', 0.26, 0.06), glowJ: disc(9, '#ffb040', 0.18, 0.05),
       trees: [[TREE_RAMPS[0], true, 200], [TREE_RAMPS[1], true, 201], [TREE_RAMPS[2], false, 102], [TREE_RAMPS[3], true, 203]].map((a) => makeTree(...a)),
       gem: rowsSprite(['.a.', 'aya', 'yao', 'aoo', '.o.'], { y: hx('#fff4b0'), a: hx('#ffc23e'), o: hx('#f08a2a') }, true, hx('#6a2a1a')),
@@ -380,7 +385,7 @@
   /** Draws the main character (pumpkin-headed figure) with feet at (x, y). t = seconds, facing = 1 | -1. */
   function drawHero(ctx, x, y, t, facing) {
     sprites();
-    const flick = noise(t * 9, 0.5, 3) > 0.62 ? 1 : 0, fr = Math.floor(t * 9.2) & 3; // 92 u/s, 1 frame per 10 u
+    const flick = noise(t * 9, 0.5, 3) > 0.62 ? 1 : 0, fr = Math.floor(t * 12) & 7; // 8 poses at ~12 fps
     blit(ctx, S.hero[flick][fr][facing < 0 ? 'l' : 'r'], x, y);
   }
   /** Draws a typical creature (small root creature) with feet at (x, y). */

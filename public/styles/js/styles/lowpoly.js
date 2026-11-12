@@ -26,12 +26,14 @@
     mint: hex('#4fe3b0'), sky: hex('#5cbdf6'),
     seed: hex('#f8ebc6'), seedRim: hex('#dfc58c'),
     win: hex('#ffd77a'), door: hex('#7a5038'), mush: hex('#d9583f'), white: hex('#ffffff'),
+    water: hex('#6fb4c8'), waterDeep: hex('#4b8fb4'), foam: hex('#cdeae6'), reed: hex('#8aa457'), cattail: hex('#7a5038'), lily: hex('#6fa452'), path: hex('#c49a6c'),
   };
+  // crown palettes, by role: [mid, shadow side, sunlit top]
   const CROWNS = [
     [hex('#ee8b3a'), hex('#e47a31'), hex('#f2a046')],
     [hex('#dc5d43'), hex('#cf4d3c'), hex('#e6714b')],
     [hex('#ecb544'), hex('#e3a23c'), hex('#f2c35a')],
-    [hex('#d07a3f'), hex('#e09447'), hex('#c4653a')],
+    [hex('#d07a3f'), hex('#c4653a'), hex('#e09447')],
   ];
   const rgbs = (c) => 'rgb(' + (clamp(c[0], 0, 255) | 0) + ',' + (clamp(c[1], 0, 255) | 0) + ',' + (clamp(c[2], 0, 255) | 0) + ')';
   const mulc = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
@@ -447,62 +449,127 @@
     m.add(lathe([[R * 0.17, 0], [R * 0.13, R * 0.32], [R * 0.16, R * 0.42]], 5, { col: P.stem, capB: 1, capT: 1, twist: 0.5 }), chain(T(0.2, 0, hz + Rv * 0.78), RY(-0.32)));
   }
 
-  function mJack(ph, walk) {
+  /* ---------------- main character rig ----------------
+     Every pose is a real mesh: legs = thigh + shin with a knee, arms = upper + fore arm, torso, cape (3 rings whose hem
+     flares, lifts and sways), scarf tail on a pivot, head on a neck pivot. The hip height is taken from the stance leg,
+     so one foot always touches the ground and the body bob (down at contact, up at passing) falls out of the leg pose. */
+  const JL1 = 3.8, JL2 = 3.9;
+  function mJack(q) {
     const m = new Mesh();
-    const sw = Math.sin(ph) * walk;
-    for (const s of [-1, 1]) {
-      const a = -sw * 0.62 * s;
-      const lift = Math.max(0, Math.sin(ph) * s) * 1.1 * walk;
-      const leg = lathe([[1.5, 0], [1.62, 1.7], [1.42, 2.3], [1.5, 7.6]], 6, { col: (i) => (i <= 0 ? P.boot : P.pants), capB: 1, capT: 1 });
-      leg.add(box(2.7, 2.8, 1.8, P.boot), T(1.1, 0, 0.9));
-      m.add(leg, chain(T(0, s * 2.05, 7.6 + lift), RY(a), T(0, 0, -7.6)));
-    }
+    let hip = 0;
+    for (const [a, kn] of q.legs) hip = Math.max(hip, JL1 * Math.cos(a) + JL2 * Math.cos(a + kn));
+    hip += q.bob || 0;
+    q.legs.forEach(([a, kn], k) => {
+      const s = k ? 1 : -1;
+      const leg = new Mesh();
+      leg.add(lathe([[1.58, 0], [1.5, JL1 + 0.25]], 6, { col: P.pants, capT: 1, capB: 1 }), T(0, 0, -JL1));
+      const shin = lathe([[1.5, 0], [1.62, 1.7], [1.42, 2.3], [1.47, JL2]], 6, { col: (i) => (i <= 0 ? P.boot : P.pants), capB: 1, capT: 1 });
+      shin.add(box(2.7, 2.8, 1.8, P.boot), T(1.1, 0, 0.9));
+      leg.add(shin, chain(T(0, 0, -JL1), RY(kn), T(0, 0, -JL2)));
+      m.add(leg, chain(T(0, s * 2.05, hip), RY(a)));
+    });
     const up = new Mesh();
-    up.add(lathe([[4.15, 6.3], [4.5, 7.2], [3.95, 10.2], [3.35, 12.9], [2.1, 14.5], [0, 14.8]], 8, { col: (i) => (i <= 0 ? P.shirtDk : P.shirt), capB: 1 }));
+    const br = q.breathe || 0;
+    up.add(lathe([[4.15, 6.3], [4.5, 7.2], [3.95 + br * 0.14, 10.2], [3.35 + br * 0.12, 12.9], [2.1, 14.5], [0, 14.8]], 8, { col: (i) => (i <= 0 ? P.shirtDk : P.shirt), capB: 1 }));
     up.add(lathe([[4.18, 9.0], [4.05, 10.1]], 8, { col: P.pants }));
+    up.add(box(1.2, 1.7, 1.3, P.woodLt), T(4.0, 0, 9.55)); // belt buckle: small focal detail on the front
     up.add(lathe([[3.1, 13.0], [3.8, 13.6], [3.65, 14.6], [2.5, 15.25]], 8, { col: P.scarf }));
-    up.add(box(1.3, 2.2, 4.8, P.scarf), chain(T(-3.1, 1.6, 12.0), RY(0.35 + 0.2 * Math.abs(sw))));
-    const fl = 1.0 + Math.abs(sw) * 1.2;
-    up.add(lathe([[5.6, 6.0, -fl, 0], [4.7, 10.2, -0.5, 0], [3.35, 14.0, -0.1, 0]], 7, { a0: Math.PI * 0.6, a1: Math.PI * 1.4, ds: 1, col: (i) => (i === 0 ? mulc(P.cape, 0.92) : P.cape) }));
-    for (const s of [-1, 1]) {
-      const a = sw * 0.7 * s;
-      const arm = lathe([[1.0, -5.2], [1.22, -2.5], [1.2, 0]], 5, { col: P.shirt, capB: 1, capT: 1 });
-      arm.add(ico(0, { r: 1.4, col: P.glove }), T(0, 0, -5.9));
-      up.add(arm, chain(T(0, s * 4.0, 13.1), RY(a), RX(s * 0.2)));
-    }
+    const tail = box(1.3, 2.2, 4.8, P.scarf);
+    tail.add(box(1.38, 2.28, 0.8, mulc(P.scarf, 0.78)), T(0, 0, -1.7));
+    up.add(tail, chain(T(-3.0, 1.6, 14.4), RY(q.scarf !== undefined ? q.scarf : 0.35), T(0, 0, -2.3)));
+    const fl = q.cape || 1.2, cl = q.capeLift || 0, cs = q.capeSway || 0;
+    up.add(lathe([[5.6, 6.0 + cl, -fl, cs], [5.1, 8.1 + cl * 0.45, -fl * 0.5 - 0.25, cs * 0.45], [4.7, 10.2, -0.5, 0], [3.35, 14.0, -0.1, 0]], 7, {
+      a0: Math.PI * 0.6, a1: Math.PI * 1.4, ds: 1, col: (i) => (i === 0 ? mulc(P.cape, 0.88) : P.cape),
+    }));
+    q.arms.forEach(([a, el], k) => {
+      const s = k ? 1 : -1;
+      const arm = lathe([[1.2, -2.7], [1.25, -1.2], [1.2, 0]], 5, { col: P.shirt, capB: 1, capT: 1 });
+      const fore = lathe([[1.02, -2.5], [1.14, 0]], 5, { col: P.shirt, capB: 1 });
+      fore.add(ico(0, { r: 1.4, col: P.glove }), T(0, 0, -3.2));
+      arm.add(fore, chain(T(0, 0, -2.6), RY(-el)));
+      up.add(arm, chain(T(0, s * 4.0, 13.1), RY(a), RX(s * (q.armOut !== undefined ? q.armOut : 0.2))));
+    });
     const head = new Mesh();
     const hz = 21.6, R = 7.8, Rv = 6.5;
     pumpkinHead(head, hz, R, Rv, 16);
-    head.add(leaf(4.8, 2.6, { c1: P.leaf, c2: P.leafDk, fold: 0.45, bend: -0.6 }), chain(T(0.1, 0.5, hz + Rv * 0.92), RZ(1.9), RY(-0.35)));
-    const eye = [[-4.1, hz + 1.3], [-0.85, hz + 1.3], [-2.45, hz + 4.6]];
-    carved(head, eye, R, Rv, hz);
-    carved(head, eye.map(([u, v]) => [-u, v]), R, Rv, hz);
+    head.add(leaf(4.8, 2.6, { c1: P.leaf, c2: P.leafDk, fold: 0.45, bend: -0.6 }), chain(T(0.1, 0.5, hz + Rv * 0.92), RZ(1.9), RY(-0.35 + (q.leafLag || 0))));
+    const eye = q.blink ? [[-4.2, hz + 2.0], [-0.8, hz + 2.0], [-2.5, hz + 2.95]] : [[-4.1, hz + 1.3], [-0.85, hz + 1.3], [-2.45, hz + 4.6]];
+    const eo = q.blink ? { hs: 0.01 } : undefined;
+    carved(head, eye, R, Rv, hz, eo);
+    carved(head, eye.map(([u, v]) => [-u, v]), R, Rv, hz, eo);
     carved(head, [[-0.75, hz + 0.1], [0.75, hz + 0.1], [0, hz + 1.25]], R, Rv, hz, { rs: 1.35, hs: 0.01 });
-    const mouth = [[-5.0, hz - 0.2], [-3.0, hz - 0.75], [-3.0, hz - 1.95], [-1.6, hz - 1.95], [-1.6, hz - 1.0], [1.6, hz - 1.0], [1.6, hz - 1.95], [3.0, hz - 1.95], [3.0, hz - 0.75], [5.0, hz - 0.2], [3.7, hz - 2.9], [0, hz - 3.8], [-3.7, hz - 2.9]];
+    const mouth = q.hurt
+      ? [[-2.4, hz - 0.9], [0, hz - 0.4], [2.4, hz - 0.9], [2.7, hz - 2.7], [0, hz - 4.0], [-2.7, hz - 2.7]]
+      : [[-5.0, hz - 0.2], [-3.0, hz - 0.75], [-3.0, hz - 1.95], [-1.6, hz - 1.95], [-1.6, hz - 1.0], [1.6, hz - 1.0], [1.6, hz - 1.95], [3.0, hz - 1.95], [3.0, hz - 0.75], [5.0, hz - 0.2], [3.7, hz - 2.9], [0, hz - 3.8], [-3.7, hz - 2.9]];
     carved(head, mouth, R, Rv, hz, { rs: 1.16, hs: 0.45 });
-    up.add(head, T(0, 0, Math.abs(Math.cos(ph)) * 0.35 * walk));
-    m.add(up, chain(T(0, 0, 6.5), RX(sw * 0.07), RY(0.05 * walk), T(0, 0, -6.5)));
+    up.add(head, chain(T(0, 0, 15 + (q.head || 0)), RX(q.headTilt || 0), RY(q.headNod || 0), T(0, 0, -15)));
+    m.add(up, chain(T(0, 0, 6.5 + hip - 7.7), RX(q.roll || 0), RY(q.lean || 0), RZ(q.twist || 0), T(0, 0, -6.5)));
     return m;
   }
+  /** Poses of the main character (angles in radians; legs/arms: [hip or shoulder pitch, knee or elbow bend], [-y side, +y side]). */
+  const JP = {
+    walk(ph) {
+      const legs = [], arms = [];
+      for (let k = 0; k < 2; k++) {
+        const f = ph + (k ? 0 : Math.PI);
+        // swing phase (cos f > 0): the knee folds, the foot clears the ground; stance phase: leg almost straight
+        legs.push([-0.58 * Math.sin(f), 0.1 + 1.05 * Math.pow(Math.max(0, Math.cos(f)), 1.4)]);
+        arms.push([0.62 * Math.sin(f), 0.35 + 0.4 * Math.max(0, -Math.sin(f))]);
+      }
+      const w2 = 0.5 + 0.5 * Math.sin(2 * ph - 1.4); // follow-through: cape + scarf peak a little after the bob
+      return {
+        legs, arms, lean: 0.11, twist: 0.12 * Math.sin(ph), roll: 0.045 * Math.cos(ph), head: 0.35 * Math.sin(2 * ph - 0.9), headTilt: 0.04 * Math.sin(ph - 0.6),
+        cape: 1.5 + 0.9 * w2, capeLift: 0.4 + 0.9 * w2, capeSway: 0.7 * Math.sin(ph - 1.1), scarf: 0.5 + 0.3 * (0.5 + 0.5 * Math.sin(2 * ph - 1.1)), leafLag: 0.22 * Math.sin(2 * ph - 1.2),
+      };
+    },
+    idle(i, blink) {
+      const b = Math.sin((i / 4) * TAU), b2 = Math.sin((i / 4) * TAU - 0.9);
+      return {
+        legs: [[0.06, 0.12], [-0.05, 0.12]], arms: [[0.05 + 0.04 * b, 0.32], [-0.02 + 0.04 * b, 0.3]], armOut: 0.23 + 0.03 * b,
+        breathe: b, bob: 0.12 * b, head: 0.22 * b2, lean: 0.02, cape: 1.0 + 0.12 * b2, capeSway: 0.25 * b2, scarf: 0.32 + 0.06 * b2, leafLag: 0.08 * b2, blink,
+      };
+    },
+    // dash anticipation: knees fold, body drops and leans, arms pull back
+    crouch() { return { legs: [[-0.6, 1.2], [0.3, 0.45]], arms: [[0.95, 0.6], [0.95, 0.6]], lean: 0.36, head: -0.5, cape: 2.2, capeLift: 0.6, scarf: 0.8, leafLag: -0.2 }; },
+    // dash: airborne lunge, cape and scarf streaming
+    stretch() { return { legs: [[-0.95, 0.28], [0.85, 0.95]], arms: [[1.3, 0.15], [1.25, 0.2]], armOut: 0.36, bob: 1.0, lean: 0.42, head: 0.25, cape: 5.0, capeLift: 3.4, capeSway: 0.4, scarf: 1.35, leafLag: -0.6 }; },
+    // hit reaction: thrown back, arms up, eyes squeezed, mouth open
+    hurt() { return { legs: [[0.28, 0.5], [-0.18, 0.55]], arms: [[-1.0, 0.9], [-0.75, 1.0]], armOut: 0.75, lean: -0.32, headNod: -0.26, headTilt: 0.1, cape: 0.5, capeLift: 0.6, scarf: 0.05, leafLag: 0.4, blink: true, hurt: true }; },
+  };
+  const J_IDLE = 8, J_BLINK = 12, J_CROUCH = 13, J_STRETCH = 14, J_HURT = 15;
 
-  function creeperFace(m, cz) {
-    const R = 8.1, Rv = 7.2;
-    const eyeL = [[-3.7, 11.9], [-1.0, 10.9], [-1.3, 9.7], [-3.4, 10.2]];
+  /* ---------------- small creature (two designed variants) ---------------- */
+  function creeperFace(m, o = {}) {
+    const R = o.R || 8.1, Rv = o.Rv || 7.2, cz = o.cz || 9.8, d = cz - 9.8;
+    const sh = (pts) => pts.map(([u, v]) => [u, v + d]);
+    if (o.hurt) {
+      const eyeL = sh([[-3.9, 11.9], [-1.0, 10.9], [-3.9, 9.9], [-2.9, 10.9]]);
+      for (const e of [eyeL, eyeL.map(([u, v]) => [-u, v]).reverse()]) feature(m, e, R, Rv, cz, hex('#3d2552'), { bias: -0.9, off: 0.38 });
+      feature(m, sh([[-1.6, 8.4], [0, 8.9], [1.6, 8.4], [1.3, 6.6], [0, 6.0], [-1.3, 6.6]]), R, Rv, cz, hex('#3d2552'), { bias: -0.8, off: 0.32 });
+      return;
+    }
+    const eyeL = sh(o.v ? [[-3.5, 11.6], [-1.0, 11.0], [-1.2, 9.9], [-3.3, 10.3]] : [[-3.7, 11.9], [-1.0, 10.9], [-1.3, 9.7], [-3.4, 10.2]]);
     for (const e of [eyeL, eyeL.map(([u, v]) => [-u, v]).reverse()]) {
       feature(m, e, R, Rv, cz, hex('#4a2a5e'), { scale: 1.35, bias: -0.5, off: 0.3 });
       feature(m, e, R, Rv, cz, hex('#ffd43c'), { bias: -0.9, off: 0.38 });
       feature(m, e, R, Rv, cz, hex('#fff6c0'), { scale: 0.42, bias: -1.2, off: 0.44 });
     }
-    const brow = [[-4.4, 12.5], [-0.5, 11.3], [-0.6, 12.3], [-4.2, 13.7]];
+    const brow = sh(o.v ? [[-4.2, 12.0], [-0.4, 11.6], [-0.5, 12.6], [-4.0, 13.4]] : [[-4.4, 12.5], [-0.5, 11.3], [-0.6, 12.3], [-4.2, 13.7]]);
     for (const b of [brow, brow.map(([u, v]) => [-u, v]).reverse()]) feature(m, b, R, Rv, cz, hex('#5a3a78'), { bias: -1.0, off: 0.5 });
-    feature(m, [[-2.1, 7.7], [-1.0, 8.15], [0, 7.75], [1.0, 8.15], [2.1, 7.7], [1.5, 6.9], [0, 7.25], [-1.5, 6.9]], R, Rv, cz, hex('#3d2552'), { bias: -0.8, off: 0.32 });
+    const mouth = o.v
+      ? [[-2.3, 7.9], [2.3, 7.9], [1.7, 7.0], [0.9, 7.4], [0.5, 6.6], [0, 7.3], [-1.6, 7.0]] // lopsided grin with a fang
+      : [[-2.1, 7.7], [-1.0, 8.15], [0, 7.75], [1.0, 8.15], [2.1, 7.7], [1.5, 6.9], [0, 7.25], [-1.5, 6.9]];
+    feature(m, sh(mouth), R, Rv, cz, hex('#3d2552'), { bias: -0.8, off: 0.32 });
   }
   function creeperBody(ph, o = {}) {
     const body = new Mesh();
-    const prof = [[0, 2.4], [2.8, 3.0], [5.7, 4.7], [7.7, 7.4], [8.1, 10.1], [7.1, 12.8], [4.9, 15.0], [1.8, 16.3], [0, 16.5]];
-    const rng = U.rng(91);
+    const v = o.v || 0, hurt = !!o.hurt;
+    const prof = v
+      ? [[0, 2.4], [2.6, 3.0], [5.2, 4.8], [7.0, 7.6], [7.4, 10.3], [6.6, 13.2], [4.6, 15.7], [2.1, 17.5], [0.7, 18.5], [0, 18.7]]
+      : [[0, 2.4], [2.8, 3.0], [5.7, 4.7], [7.7, 7.4], [8.1, 10.1], [7.1, 12.8], [4.9, 15.0], [1.8, 16.3], [0, 16.5]];
+    const rng = U.rng(91 + v);
     body.add(lathe(prof, 9, {
-      jitter: 0.32, twist: 0.2, seed: 11,
+      jitter: 0.32, twist: 0.2, seed: 11 + v,
       col: (i, j, h) => {
         if (i <= 0) return P.creamDk;
         if (i <= 2) return jcol(P.cream, rng, 0.03);
@@ -512,59 +579,84 @@
       },
     }));
     body.add(lathe([[0, -3.2], [0.75, 0]], 4, { col: P.root }), chain(T(-1.2, 0, 3.1), RY(0.6)));
-    for (let k = 0; k < 4; k++) {
-      const az = (k / 4) * TAU + 0.4;
-      body.add(leaf(8.8, 3.3, { c1: P.leaf, c2: P.leafDk, fold: 0.45, bend: -1.4 }), chain(T(0, 0, 15.8), RZ(az), RY(-0.95 + 0.13 * Math.sin(ph + k * 1.7))));
+    const lag = o.lag || 0, top = v ? 18.3 : 15.8;
+    if (!v) {
+      for (let k = 0; k < 4; k++) {
+        const az = (k / 4) * TAU + 0.4;
+        body.add(leaf(8.8, 3.3, { c1: P.leaf, c2: P.leafDk, fold: 0.45, bend: -1.4 }), chain(T(0, 0, top), RZ(az), RY(hurt ? -0.4 : -0.95 + lag + 0.06 * Math.sin(k * 1.7))));
+      }
+      body.add(leaf(6.5, 2.6, { c1: P.leaf, c2: P.leafDk, fold: 0.5, bend: -0.6 }), chain(T(0, 0, 16.1), RZ(-0.3), RY(hurt ? -0.9 : -1.35 + lag * 0.6)));
+    } else {
+      // tall variant: three upright blades fanned like a crest + a curled sprout, and a long root tail
+      for (let k = 0; k < 3; k++) {
+        body.add(leaf(11.5, 2.9, { c1: k === 1 ? P.leafDk : P.leaf, c2: P.leafDk, fold: 0.5, bend: -1.0 }), chain(T(0, 0, top), RZ(Math.PI + (k - 1) * 0.55), RY(hurt ? -0.55 : -1.3 + lag * 0.7 + (k === 1 ? -0.1 : 0.08))));
+      }
+      body.add(leaf(4.6, 1.8, { c1: P.olive, c2: P.oliveDk, fold: 0.5, bend: -2.4 }), chain(T(0.4, 0, top + 0.1), RY(-0.9 + lag)));
+      body.add(lathe([[1.0, 0], [0.7, 2.4], [0.35, 4.6], [0, 6.2]], 4, { col: P.root, capB: 1 }), chain(T(-4.6, 0, 3.6), RY(-2.05 + lag * 0.5)));
     }
-    body.add(leaf(6.5, 2.6, { c1: P.leaf, c2: P.leafDk, fold: 0.5, bend: -0.6 }), chain(T(0, 0, 16.1), RZ(-0.3), RY(-1.35 + 0.1 * Math.sin(ph))));
-    if (!o.noFace) creeperFace(body, 9.8);
+    if (!o.noFace) creeperFace(body, v ? { v, R: 7.4, Rv: 7.8, cz: 10.3, hurt } : { hurt });
     return body;
   }
-  function mCreeper(ph) {
+  /** Small creature: waddling root legs, squash at contact / stretch at passing, side-to-side roll, leaves that lag behind. */
+  function mCreeper(ph, o = {}) {
     const m = new Mesh();
-    const sw = Math.sin(ph);
+    const hurt = !!o.hurt;
+    const sw = Math.sin(ph), c2 = Math.cos(2 * ph);
     for (const s of [-1, 1]) {
-      const a = sw * 0.6 * s;
+      const a = hurt ? s * 0.3 : sw * 0.65 * s;
+      const lift = hurt ? 0.6 : Math.max(0, sw * s) * 1.5;
       const leg = lathe([[0.7, 0], [1.0, 1.6], [1.45, 6.4]], 5, { col: P.root, capB: 1, capT: 1 });
       leg.add(ico(0, { r: 1.05, sx: 1.5, sz: 0.7, col: P.creamDk }), T(0.6, 0, 0.4));
-      m.add(leg, chain(T(0.2, s * 3.0, 6.4 + Math.max(0, sw * s) * 1.2), RY(a), RX(s * 0.16), T(0, 0, -6.4)));
+      m.add(leg, chain(T(0.2, s * 3.0, 6.4 + lift), RY(a), RX(s * 0.16), T(0, 0, -6.4)));
     }
-    m.add(creeperBody(ph), chain(T(0, 0, 2.6), RX(sw * 0.1), RY(0.06), T(0, 0, 0)));
+    const sq = hurt ? 0.82 : 1 + 0.065 * c2, sxy = hurt ? 1.12 : 1 / Math.sqrt(sq);
+    const up = hurt ? 0.4 : 1.1 * Math.max(0, c2);
+    const body = creeperBody(ph, { v: o.v, hurt, lag: 0.2 * Math.sin(2 * ph - 1.3) });
+    m.add(body, chain(T(0, 0, 2.6 + up), RX(hurt ? 0 : 0.13 * sw), RY(hurt ? -0.34 : 0.06 + 0.04 * c2), SC(sxy, sxy, sq)));
     return m;
   }
 
-  function mGhost(ph) {
+  /* ---------------- fast creature: a teardrop spirit with a whipping tail ---------------- */
+  function mGhost(ph, o = {}) {
     const m = new Mesh();
+    const hurt = !!o.hurt;
     const zs = [2.6, 3.8, 5.4, 7.6, 10.2, 13.2, 16.2, 18.8, 20.8, 22.0, 22.5];
     const rs = [0, 0.8, 1.7, 2.9, 4.2, 5.5, 6.1, 5.8, 4.5, 2.5, 0];
     const prof = zs.map((z, i) => {
       const t = clamp((14.5 - z) / 12, 0, 1);
-      return [rs[i], z + 2.5, -t * t * 6.5, Math.sin(ph + z * 0.33) * t * 2.0];
+      return [rs[i], z + 2.5, -t * t * (hurt ? 9 : 6.5) - (hurt ? Math.max(0, z - 12) * 0.16 : 0), Math.sin(ph + z * 0.33) * t * 2.2];
     });
     m.add(lathe(prof, 9, { twist: 0.17, jitter: 0.1, seed: 3, col: (i) => U.ramp([P.ghostLow, P.ghost, P.ghost, P.ghostTop, P.ghostTop], i / 9) }));
     for (const s of [-1, 1]) {
-      const arm = lathe([[0, -5.6], [1.05, -2.6], [1.3, 0]], 5, { col: P.ghost, capT: 1 });
-      m.add(arm, chain(T(1.4, s * 5.0, 17.4), RZ(s * 0.25), RY(-1.15 + 0.25 * Math.sin(ph + s)), RX(s * 0.2)));
+      const arm = lathe([[0, -5.0], [0.95, -4.6], [1.3, -3.3], [1.15, -1.2], [1.25, 0]], 5, { col: P.ghost, capT: 1 }); // soft mitten, not a spike
+      const swim = Math.sin(ph + (s > 0 ? 0 : Math.PI)); // alternating reach, like a slow swim stroke
+      m.add(arm, chain(T(1.4, s * 5.0, 17.4), RZ(s * (hurt ? 0.6 : 0.12)), RY(hurt ? -2.3 : -0.75 + 0.42 * swim), RX(s * 0.2)));
     }
+    // cowlick: a curled wisp on top that trails behind (silhouette feature + follow-through)
+    m.add(leaf(5.6, 3.0, { c1: P.ghostTop, c2: P.ghost, fold: 0.22, bend: -1.1 }), chain(T(-1.2, 0, 24.2), RZ(Math.PI), RY(hurt ? -1.2 : -0.5 + 0.22 * Math.sin(ph - 1.2))));
     const R = 6.1, Rv = 6.6, cz = 18.2;
-    const eye = (u) => { const pts = []; for (let k = 0; k < 6; k++) { const a = (k / 6) * TAU; pts.push([u + Math.cos(a) * 1.25, 21.3 + Math.sin(a) * 1.75]); } return pts; };
+    const er = hurt ? 1.3 : 1;
+    const eye = (u) => { const pts = []; for (let k = 0; k < 6; k++) { const a = (k / 6) * TAU; pts.push([u + Math.cos(a) * 1.25 * er, 21.3 + Math.sin(a) * 1.75 * er]); } return pts; };
     for (const u of [-2.3, 2.3]) {
       feature(m, eye(u), R, Rv, cz, P.hole, { bias: -0.8, off: 0.3 });
       feature(m, eye(u), R, Rv, cz, P.holeDeep, { scale: 0.55, bias: -1.0, off: 0.35 });
     }
     const mouth = [];
-    for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU; mouth.push([Math.cos(a) * 1.6, 16.8 + Math.sin(a) * 2.4]); }
+    const mr = hurt ? 1.35 : 1;
+    for (let k = 0; k < 8; k++) { const a = (k / 8) * TAU; mouth.push([Math.cos(a) * 1.6 * mr, 16.8 + Math.sin(a) * 2.4 * mr]); }
     feature(m, mouth, R, Rv, cz, P.hole, { bias: -0.8, off: 0.3 });
     feature(m, mouth, R, Rv, cz, P.holeDeep, { scale: 0.6, bias: -1.0, off: 0.35 });
     return m;
   }
 
-  function mColossus(ph) {
+  /* ---------------- large creature: a heavy cracked golem with a glowing core ---------------- */
+  function mColossus(ph, o = {}) {
     const m = new Mesh();
-    const sw = Math.sin(ph);
+    const hurt = !!o.hurt;
+    const sw = Math.sin(ph), c2 = Math.cos(2 * ph);
     for (const s of [-1, 1]) {
-      const lift = Math.max(0, sw * s) * 3.2;
-      m.add(lathe([[4.8, 0], [5.3, 3.4], [4.5, 9]], 6, { col: P.golemLow, capB: 1, capT: 1, jitter: 0.45, seed: 21 + s }), T(sw * s * 1.8, s * 7.6, lift));
+      const lift = hurt ? 0.8 : Math.max(0, sw * s) * 3.8;
+      m.add(lathe([[4.8, 0], [5.3, 3.4], [4.5, 9]], 6, { col: P.golemLow, capB: 1, capT: 1, jitter: 0.45, seed: 21 + s }), T(hurt ? 0 : sw * s * 2.2, s * 7.6, lift));
     }
     const body = new Mesh();
     const rng = U.rng(5);
@@ -592,35 +684,36 @@
     feature(body, hexp(4.4, 0, 22.5), R, Rv, cz, hex('#5e3a2a'), { bias: -0.6, off: 0.35 });
     feature(body, hexp(3.3, 0, 22.5), R, Rv, cz, P.crack, { bias: -0.9, off: 0.45 });
     feature(body, hexp(1.9, 0, 22.5), R, Rv, cz, P.core, { bias: -1.2, off: 0.55 });
-    const slit = [[-6.6, 32.4], [-2.2, 31.3], [-2.5, 30.2], [-6.3, 30.8]];
+    const slit = hurt ? [[-6.6, 32.9], [-2.2, 31.0], [-2.5, 30.4], [-6.3, 31.8]] : [[-6.6, 32.4], [-2.2, 31.3], [-2.5, 30.2], [-6.3, 30.8]];
     for (const e of [slit, slit.map(([u, v]) => [-u, v]).reverse()]) {
       feature(body, e, R, Rv, cz, hex('#3e2648'), { scale: 1.4, bias: -0.5, off: 0.3 });
       feature(body, e, R, Rv, cz, P.core, { bias: -0.9, off: 0.45 });
     }
     body.add(box(4.2, 16, 2.6, P.golemTop), chain(T(13.6, 0, 34.6), RY(0.4)));
-    // back cracks
     const back = new Mesh();
     strip(back, [[-4, 30], [-1.5, 25], [-4.5, 20], [-2, 15]], 1.0, R, Rv, cz, P.crack);
     strip(back, [[6, 27], [3.5, 22], [6.5, 17]], 1.0, R, Rv, cz, P.crack);
     body.add(back, RZ(Math.PI));
     for (const s of [-1, 1]) {
-      const a = -sw * 0.42 * s;
+      const a = hurt ? -1.05 : -sw * 0.5 * s;
       const arm = new Mesh();
       arm.add(ico(0, { r: 6.4, col: (nx, ny, nz, r) => jcol(P.golemTop, r, 0.07), jitter: 0.12, seed: 31 + s }));
       arm.add(lathe([[4.0, -15], [4.8, -8.5], [3.8, -1]], 6, { col: P.golemMid, capB: 1, capT: 1, jitter: 0.55, seed: 41 + s }));
       arm.add(ico(0, { r: 5.6, col: (nx, ny, nz, r) => jcol(P.golemLow, r, 0.07), jitter: 0.15, seed: 51 + s }), T(0.5, 0, -17));
       strip(arm, [[-1.5, -4], [1.0, -8], [-0.5, -12]], 0.8, 4.6, 8, -8, P.crack, 0.5);
-      body.add(arm, chain(T(1, s * 17.8, 28.5), RY(a), RX(s * 0.24)));
+      body.add(arm, chain(T(1, s * 17.8, 28.5), RY(a), RX(s * (hurt ? 0.5 : 0.24))));
     }
     for (let k = 0; k < 5; k++) {
       const az = (k / 5) * TAU + 0.6;
-      body.add(leaf(17, 6.8, { c1: k & 1 ? P.olive : P.leafDk, c2: k & 1 ? P.oliveDk : mulc(P.leafDk, 0.85), fold: 0.45, bend: -3.5 }), chain(T(0, 0, 38.2), RZ(az), RY(-0.75 + 0.1 * Math.sin(ph + k))));
+      body.add(leaf(17, 6.8, { c1: k & 1 ? P.olive : P.leafDk, c2: k & 1 ? P.oliveDk : mulc(P.leafDk, 0.85), fold: 0.45, bend: -3.5 }), chain(T(0, 0, 38.2), RZ(az), RY(hurt ? -0.4 : -0.75 + 0.15 * Math.sin(2 * ph - 1.4 + k))));
     }
     for (let k = 0; k < 4; k++) {
       const az = (k / 4) * TAU + 0.9;
       body.add(lathe([[0, -6], [0.9, 0]], 4, { col: P.root }), chain(T(Math.cos(az) * 10, Math.sin(az) * 10, 8), RZ(az), RY(0.9)));
     }
-    m.add(body, chain(T(0, 0, 6), RX(sw * 0.05), T(0, 0, -6)));
+    // heavy gait: the body drops on every footfall and rolls over the stance leg
+    const drop = hurt ? -0.6 : -1.5 * (1 - c2) * 0.5;
+    m.add(body, chain(T(0, 0, 6 + drop), RX(hurt ? 0 : 0.06 * sw), RY(hurt ? -0.22 : 0.05), T(0, 0, -6)));
     return m;
   }
 
@@ -681,26 +774,57 @@
     const tiers = 4;
     for (let t = 0; t < tiers; t++) {
       const zb = h * (0.16 + t * 0.19), r = h * (0.27 - t * 0.052), zt = zb + h * (0.34 - t * 0.02);
-      const cols = [P.pineDk, P.pine, P.pineLt];
+      // tier colour by role: dark skirt underneath, mid body, a lighter sunlit cap on the top tier
       m.add(lathe([[r * 0.55, zb + r * 0.12], [r, zb], [0, zt]], 7, {
-        col: (i) => (i === 0 ? mulc(P.pineDk, 0.85) : jcol(cols[(t + 1) % 3], rng, 0.04)), jitter: r * 0.07, twist: rng.range(0, 1), seed: seed + t, capB: 1,
+        col: (i) => (i === 0 ? mulc(P.pineDk, 0.85) : jcol(t === tiers - 1 ? P.pineLt : t === 0 ? P.pineDk : P.pine, rng, 0.03)), jitter: r * 0.07, twist: rng.range(0, 1), seed: seed + t, capB: 1,
       }), RZ(rng.range(0, TAU)));
     }
     return m;
   }
 
-  function mTree(h, crown, seed) {
+  /** Crown facets are coloured by their normal – dark underside, mid body, light sunlit top – so a crown reads as one lit volume. */
+  const crownCol = (crown) => (nx, ny, nz, r) => jcol(nz > 0.42 ? crown[2] : nz < -0.12 ? crown[1] : crown[0], r, 0.03);
+  const TREE_CROWN = [1, 0, 2, 3]; // maple: red, oak: orange, birch: yellow, poplar: rust
+  /** Deciduous trees, four designed species: 0 maple (broad round), 1 oak (two-tier lobes), 2 birch (white trunk, clumps), 3 poplar (column). */
+  function mTree(kind, seed) {
     const m = new Mesh();
     const rng = U.rng(seed);
-    m.add(lathe([[2.0, 0], [1.6, h * 0.35], [1.15, h * 0.62]], 6, { col: P.trunk, capT: 1, twist: 0.3 }));
-    m.add(lathe([[0.8, 0], [0.45, h * 0.18]], 4, { col: P.trunk, capT: 1 }), chain(T(0, 0, h * 0.4), RZ(rng.range(0, TAU)), RY(0.8)));
-    const cc = (nx, ny, nz, r) => jcol(pick(crown, r.next()), r, 0.05);
-    const R = h * 0.3;
-    m.add(ico(1, { r: R, sz: 0.92, jitter: 0.1, seed, col: cc }), T(0, 0, h * 0.68));
-    const n = 1 + Math.floor(rng.next() * 2);
-    for (let i = 0; i < n; i++) {
-      const a = rng.range(0, TAU), rr = R * rng.range(0.55, 0.7);
-      m.add(ico(1, { r: rr, jitter: 0.12, seed: seed + 10 + i, col: cc }), T(Math.cos(a) * R * 0.75, Math.sin(a) * R * 0.75, h * 0.6 + rng.range(-2, 4)));
+    const cc = crownCol(CROWNS[TREE_CROWN[kind]]);
+    const fork = (z, a, tilt, len, r) => m.add(lathe([[r, 0], [r * 0.55, len]], 4, { col: P.trunk, capT: 1 }), chain(T(0, 0, z), RZ(a), RY(tilt)));
+    if (kind === 0) {
+      const h = 56, R = h * 0.3;
+      m.add(lathe([[2.4, 0], [1.9, h * 0.3], [1.35, h * 0.56]], 7, { col: P.trunk, capT: 1, twist: 0.3 }));
+      fork(h * 0.36, rng.range(0, TAU), 0.85, h * 0.2, 0.85);
+      m.add(ico(1, { r: R, sz: 0.8, jitter: 0.09, seed, col: cc }), T(0, 0, h * 0.7));
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * TAU + rng.range(-0.35, 0.35);
+        m.add(ico(1, { r: R * rng.range(0.5, 0.6), sz: 0.82, jitter: 0.1, seed: seed + 3 + i, col: cc }), T(Math.cos(a) * R * 0.8, Math.sin(a) * R * 0.74, h * 0.6 + rng.range(-1, 2.5)));
+      }
+    } else if (kind === 1) {
+      const h = 62, R = h * 0.26;
+      m.add(lathe([[2.6, 0], [2.0, h * 0.22], [1.6, h * 0.5], [1.0, h * 0.72]], 7, { col: P.trunk, capT: 1, twist: 0.5 }));
+      fork(h * 0.3, rng.range(0, TAU), 1.0, h * 0.24, 0.9);
+      fork(h * 0.42, rng.range(0, TAU), -0.9, h * 0.2, 0.75);
+      // a broad flat canopy of overlapping lobes with one higher crown lobe off-centre
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * TAU + 0.5;
+        m.add(ico(1, { r: R * 0.82, sz: 0.6, jitter: 0.1, seed: seed + i, col: cc }), T(Math.cos(a) * R * 0.85, Math.sin(a) * R * 0.75, h * 0.6 + (i & 1) * 2));
+      }
+      m.add(ico(1, { r: R * 0.9, sz: 0.7, jitter: 0.1, seed: seed + 7, col: cc }), T(R * 0.25, -R * 0.15, h * 0.72));
+    } else if (kind === 2) {
+      const h = 64;
+      const bark = hex('#ece6da'), mark = hex('#4a4540');
+      m.add(lathe([[1.5, 0], [1.4, h * 0.2], [1.3, h * 0.4], [1.1, h * 0.6], [0.75, h * 0.86]], 6, { col: (i, j) => ((i * 5 + j * 3) % 7 === 0 ? mark : bark), capT: 1, twist: 0.2 }));
+      fork(h * 0.5, 0.6, 0.9, h * 0.16, 0.55);
+      // loose clumps hung off alternate sides of the trunk, largest lowest
+      [[0.52, 0.2, 5.4, 0.3], [0.64, 0.17, 5.0, 3.3], [0.78, 0.15, 3.6, 1.6], [0.9, 0.11, 1.2, 4.6]].forEach(([z, r, ox, a], i) => {
+        m.add(ico(1, { r: h * r, sz: 0.85, jitter: 0.11, seed: seed + i, col: cc }), T(Math.cos(a) * ox, Math.sin(a) * ox, h * z));
+      });
+    } else {
+      const h = 78, R = h * 0.16;
+      m.add(lathe([[1.9, 0], [1.4, h * 0.3], [0.9, h * 0.7]], 6, { col: P.trunk, capT: 1 }));
+      m.add(ico(1, { r: R, sx: 0.95, sy: 0.95, sz: 2.25, jitter: 0.08, seed, col: cc }), T(0, 0, h * 0.58));
+      m.add(ico(1, { r: R * 0.7, sz: 1.6, jitter: 0.1, seed: seed + 5, col: cc }), T(R * 0.45, R * 0.2, h * 0.42));
     }
     return m;
   }
@@ -823,6 +947,32 @@
     m.add(lathe([[1.9, 1.8], [1.6, 2.6], [0.8, 3.3], [0, 3.5]], 6, { col: (i, j) => (i === 1 && j % 3 === 0 ? P.cream : P.mush), capB: 1 }));
     return m;
   }
+  /** Shore reeds: a fan of upright blades with two cattail heads. */
+  function mReeds(seed) {
+    const m = new Mesh();
+    const rng = U.rng(seed);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU + rng.range(-0.4, 0.4);
+      m.add(leaf(rng.range(6, 9.5), 1.1, { c1: P.reed, c2: mulc(P.reed, 0.8), fold: 0.6, bend: -0.5 }), chain(T(Math.cos(a) * 0.8, Math.sin(a) * 0.8, 0), RZ(a), RY(-1.32 - rng.range(0, 0.18))));
+    }
+    for (let i = 0; i < 2; i++) {
+      const x = i ? 1.1 : -0.9, h = i ? 10.5 : 8.6;
+      m.add(lathe([[0.18, 0], [0.16, h]], 3, { col: mulc(P.reed, 0.85) }), T(x, 0.3, 0));
+      m.add(lathe([[0, -1.6], [0.62, -1.1], [0.66, 1.1], [0, 1.6]], 5, { col: P.cattail }), T(x, 0.3, h - 1.2));
+    }
+    return m;
+  }
+  /** Lily pad: a flat notched disc, optionally with a small flower. */
+  function mLily(seed, flower) {
+    const m = new Mesh();
+    const rng = U.rng(seed);
+    const c = m.vert(0, 0, 0.12), ring = [];
+    const n = 9, r = rng.range(2.4, 3.2);
+    for (let k = 0; k <= n; k++) { const a = 0.35 + (k / n) * (TAU - 0.7); ring.push(m.vert(Math.cos(a) * r, Math.sin(a) * r * 0.95, 0.05)); }
+    for (let k = 0; k < n; k++) m.tri(c, ring[k], ring[k + 1], k & 1 ? mulc(P.lily, 0.9) : P.lily, { ds: 1 });
+    if (flower) m.add(mFlower(seed + 1, hex('#f6c2d6')), chain(T(0.6, -0.4, -3.6), SC(0.8)));
+    return m;
+  }
 
   /* ================================ caches ================================ */
   const SET = {}; // character / pickup sprite sets
@@ -878,21 +1028,28 @@
 
   function buildAll() {
     const t0 = performance.now();
-    // characters
-    const jackFrames = [];
-    for (let i = 0; i < 6; i++) jackFrames.push(new Mesh().add(mJack((i / 6) * TAU, 1), SC(1.1)));
-    jackFrames.push(new Mesh().add(mJack(0, 0), SC(1.1))); // idle
-    SET.jack = spriteSet(jackFrames, NYAW);
-    SH.jack = makeShadow(mJack(0, 0), Math.PI / 2, { ao: 6.2, aoA: 0.9, dirA: 0.55, blur: 1.4 });
-    const cf = [], gf = [], kf = [];
-    for (let i = 0; i < 4; i++) {
-      cf.push(mCreeper((i / 4) * TAU));
-      gf.push(mGhost((i / 4) * TAU));
-      kf.push(mColossus((i / 4) * TAU));
+    // characters: every pose is its own mesh, pre-rendered at NYAW yaw angles
+    const jq = [];
+    for (let i = 0; i < 8; i++) jq.push(JP.walk((i / 8) * TAU));
+    for (let i = 0; i < 4; i++) jq.push(JP.idle(i, false));
+    jq.push(JP.idle(0, true), JP.crouch(), JP.stretch(), JP.hurt());
+    SET.jack = spriteSet(jq.map((q) => new Mesh().add(mJack(q), SC(1.1))), NYAW);
+    SH.jack = makeShadow(mJack(JP.idle(0)), Math.PI / 2, { ao: 6.2, aoA: 0.9, dirA: 0.55, blur: 1.4 });
+    const cf = [], cf2 = [], gf = [], kf = [];
+    for (let i = 0; i < 6; i++) {
+      const ph = (i / 6) * TAU;
+      cf.push(mCreeper(ph)); cf2.push(mCreeper(ph, { v: 1 })); gf.push(mGhost(ph)); kf.push(mColossus(ph));
     }
+    cf.push(mCreeper(0, { hurt: 1 })); cf2.push(mCreeper(0, { v: 1, hurt: 1 })); gf.push(mGhost(0, { hurt: 1 })); kf.push(mColossus(0, { hurt: 1 }));
     SET.creeper = spriteSet(cf, NYAW);
+    SET.creeper2 = spriteSet(cf2, NYAW);
     SET.ghost = spriteSet(gf, NYAW, { lift: 0.3 });
     SET.colossus = spriteSet(kf, NYAW);
+    for (const k of ['jack', 'creeper', 'creeper2', 'ghost', 'colossus']) {
+      const st = SET[k];
+      st.pieces = shatterPieces(st, 9 + k.length);
+      for (let yi = 0; yi < st.n; yi++) for (const fi of k === 'jack' ? [J_STRETCH, J_HURT] : [st.nf - 1]) flashOf(st, yi, fi);
+    }
     SH.creeper = makeShadow(cf[0], Math.PI / 2, { ao: 6.6, aoA: 0.9, dirA: 0.5, blur: 1.4 });
     SH.ghost = makeShadow(gf[0], Math.PI / 2, { ao: 5.2, aoA: 0.7, dirA: 0.0, blur: 1.6 });
     SH.colossus = makeShadow(kf[0], Math.PI / 2, { ao: 14, aoA: 0.9, dirA: 0.5, blur: 2.2 });
@@ -944,9 +1101,14 @@
     SHARD.jack = shardPal([P.pumpkin, P.pumpkinDk, P.glow]);
     SHARD.seed = shardPal([P.seed, P.seedRim]);
     SHARD.gold = shardPal([P.glow, P.glowHot, P.mint]);
+    SOIL = [hex('#8a6448'), hex('#a47a57'), hex('#6b4e3c'), hex('#4a3a3a')].map((c) => rgbs(shadeRGB(c, -0.2, 0.2, 0.96, 0)));
+    LITTER = CROWNS.map((c) => c.map((col) => [rgbs(shadeRGB(col, -0.2, 0.15, 0.97, 0)), rgbs(shadeRGB(col, 0.35, -0.1, 0.93, 0))]));
+    SHARD.leaf = shardPal([P.leaf, P.leafDk, P.olive]);
+    SHARD.soil = shardPal([P.woodDk, P.trunk, P.wood]);
+    SHARD.frost = shardPal([P.ghostTop, P.white, P.ghostLow]);
     // props
     PI_.pine = [addProp(mPine(58, 3), 0.3, { ao: 5, hw: 13 }), addProp(mPine(70, 5), 1.1, { ao: 5.5, hw: 15 }), addProp(mPine(82, 8), 2.0, { ao: 6, hw: 17 })];
-    PI_.tree = CROWNS.map((c, i) => addProp(mTree(54 + i * 5, c, 20 + i * 7), i * 0.9, { ao: 6, hw: 16 }));
+    PI_.tree = [0, 1, 2, 3].map((k) => addProp(mTree(k, 20 + k * 7), k * 0.9, { ao: k === 3 ? 4.5 : 6, hw: k === 3 ? 11 : k === 2 ? 13 : 16 }));
     PI_.rock = [addProp(mBoulder(5, 31), 0.4, { ao: 6, occl: false }), addProp(mBoulder(7.5, 33), 1.2, { ao: 8.5, occl: false }), addProp(mBoulder(10, 35), 2.2, { ao: 11, hw: 10 })];
     PI_.pump = [
       addProp(mPumpkin(6.4, 5.2, 41), 0.4, { ao: 6.5, occl: false }),
@@ -968,13 +1130,15 @@
     DEC.pebble = [0, 1, 2].map((i) => decalSprite(ico(0, { r: 1.3 + i * 0.5, sx: 1.3, sz: 0.65, jitter: 0.2, seed: 100 + i, col: (nx, ny, nz, g) => jcol(P.rock, g, 0.05) }), i));
     DEC.pebbleSand = [0, 1].map((i) => decalSprite(ico(0, { r: 1.2 + i * 0.5, sx: 1.3, sz: 0.6, jitter: 0.2, seed: 110 + i, col: (nx, ny, nz, g) => jcol(hex('#c9b38c'), g, 0.05) }), i));
     DEC.mush = [0, 1].map((i) => decalSprite(mMushroom(120 + i), i * 2));
+    DEC.reeds = [0, 1, 2].map((i) => decalSprite(mReeds(140 + i), i * 1.7, 0.22));
+    DEC.lily = [0, 1, 2, 3].map((i) => decalSprite(mLily(150 + i, i === 3), i * 1.4, 0));
     DEC.minipump = [0, 1, 2].map((i) => decalSprite(mPumpkin(2.4 + i * 0.35, 1.9 + i * 0.25, 130 + i, { segs: 10, leaf: false, c1: i === 2 ? hex('#f3b04c') : P.pumpkin, c2: i === 2 ? hex('#e39b3d') : P.pumpkinDk }), i * 1.3, 0.3));
     buildAll.ms = performance.now() - t0;
   }
 
   /* ============================== ground / biomes ============================== */
   const CS = 24, RH = CS * 0.8660254;
-  const B_GRASS = 0, B_FOREST = 1, B_SAND = 2, B_ROCK = 3, B_FIELD = 4, B_YARD = 5;
+  const B_GRASS = 0, B_FOREST = 1, B_SAND = 2, B_ROCK = 3, B_FIELD = 4, B_YARD = 5, B_WATER = 6, B_PATH = 7;
   const BIO = [
     { cols: ['#9cb876', '#95b16f', '#a3bd7d', '#99b572'], h: 0, rough: 1.2 },
     { cols: ['#c98e57', '#bf824f', '#cf9c5d', '#c08a55'], h: 0.9, rough: 1.5 },
@@ -982,6 +1146,8 @@
     { cols: ['#c2b49c', '#b8aa92', '#c9bca5', '#bcae97'], h: 3.6, rough: 1.9 },
     { cols: ['#ab805d', '#a47a59', '#b08662', '#a87d5b'], h: -0.6, rough: 0.5 },
     { cols: ['#dbc293', '#d4ba8a', '#dfc79a', '#d8bf8f'], h: -1.0, rough: 0.5 },
+    { cols: ['#6fb4c8', '#69aec4', '#76b9cc', '#6cb1c6'], h: -3.0, rough: 0.14 },
+    { cols: ['#c49a6c', '#bc9164', '#c9a274', '#c09667'], h: -0.5, rough: 0.35 }, // trodden earth, darker than sand
   ].map((b) => ({ ...b, cols: b.cols.map(hex) }));
   const MOSS_FACET = hex('#98aa78'), DRY_FACET = hex('#b5b672');
 
@@ -1003,11 +1169,22 @@
     fieldMemo.set(k, f);
     return f;
   }
+  // ponds: low-frequency blobs with a sand shore band; paths: thin ridge lines of noise that wind through grass and woods
+  const pondAt = (x, y) => U.fbm(x / 300 + 5.7, y / 300 - 3.3, 404, 3);
+  const pathAt = (x, y) => Math.abs(U.perlin(x / 560 + 3.3, y / 560 - 8.1, 606));
+  const POND = 0.7, SHORE = 0.684, PATH_W = 0.042;
+  let lastPond = 0;
   function baseBiome(x, y, jit) {
+    lastPond = 0;
     const r = U.fbm(x / 330 + 11.3, y / 330 - 7.1, 303, 3);
     if (r + jit > 0.675) return B_ROCK;
     const fr = fieldRect(Math.floor(x / FIELD_CELL), Math.floor(y / FIELD_CELL));
     if (fr && x > fr.x0 && x < fr.x1 && y > fr.y0 && y < fr.y1) return B_FIELD;
+    const pd = pondAt(x, y) + jit - Math.max(0, 1 - (x * x + y * y) / 52000) * 0.12; // keep the start area dry
+    lastPond = pd;
+    if (pd > POND) return B_WATER;
+    if (pd > SHORE) return B_SAND;
+    if (pathAt(x, y) < PATH_W + jit * 0.5) return B_PATH;
     const f = U.warped(x / 780, y / 780, 101, 1.1, 3);
     if (f + jit > 0.578) return B_FOREST;
     const s = U.warped(x / 560 + 40, y / 560, 202, 1.0, 3);
@@ -1025,7 +1202,7 @@
     f = null;
     if (rng.next() < 0.6 && x * x + y * y > 240 * 240) {
       const b = baseBiome(x, y, 0);
-      if (b === B_GRASS || b === B_SAND) f = { x, y, barn: rng.next() < 0.45, flip: rng.next() < 0.5 ? -1 : 1, seed: U.hashInt(fx, fy, 778) };
+      if ((b === B_GRASS || b === B_SAND) && pondAt(x, y) < SHORE - 0.03) f = { x, y, barn: rng.next() < 0.45, flip: rng.next() < 0.5 ? -1 : 1, seed: U.hashInt(fx, fy, 778) };
     }
     if (farmMemo.size > 4000) farmMemo.clear();
     farmMemo.set(k, f);
@@ -1045,12 +1222,12 @@
     const f = nearFarm(x, y, 120);
     if (f) {
       const dx = (x - f.x) / 96, dy = (y - f.y - 10) / 72;
-      if (dx * dx + dy * dy < 1 + jit * 9) return B_YARD;
+      if (dx * dx + dy * dy < 1 + jit * 9) { lastPond = 0; return B_YARD; }
     }
     return baseBiome(x, y, jit);
   }
 
-  /* -------- props (deterministic per chunk; also used to bake their shadows into the ground) -------- */
+  /* -------- props (deterministic per chunk; also used to bake their shadows + leaf litter into the ground) -------- */
   const propMemo = new Map();
   function genProps(cx, cy) {
     const key = cx * 100003 + cy;
@@ -1076,14 +1253,21 @@
         push(f.x + 14 * s, f.y + 30, PI_.jackolantern);
       }
     }
+    const tree = (x, y, kind) => arr.push({ x, y, t: PI_.tree[kind], crown: TREE_CROWN[kind], pad: 90 });
     G.scatterOwned(info, 46, 501, (x, y, rng) => {
       if (G.nearSpawn(x, y, 90) || nearFarm(x, y, 135)) return;
       const b = baseBiome(x, y, 0);
       const r = rng.next(), q = rng.next();
       if (b === B_FOREST) {
-        if (r < 0.44) arr.push({ x, y, t: q < 0.56 ? pick(PI_.tree, rng.next()) : q < 0.9 ? pick(PI_.pine, rng.next()) : PI_.stump, pad: 90 });
+        // groves: one species dominates a region (noise), denser towards the forest interior
+        const f = U.warped(x / 780, y / 780, 101, 1.1, 3);
+        if (r > 0.22 + clamp((f - 0.578) * 5, 0, 0.32)) return;
+        const sp = U.noise(x / 210, y / 210, 919);
+        if (q < 0.06) arr.push({ x, y, t: PI_.stump, pad: 60 });
+        else if (sp < 0.4 ? q < 0.85 : q < 0.14) arr.push({ x, y, t: pick(PI_.pine, rng.next()), pad: 90 });
+        else tree(x, y, rng.next() < 0.85 ? clamp(Math.floor(((sp - 0.4) / 0.36) * 4), 0, 3) : Math.floor(rng.next() * 4));
       } else if (b === B_GRASS) {
-        if (r < 0.035) arr.push({ x, y, t: q < 0.5 ? pick(PI_.tree, rng.next()) : q < 0.75 ? pick(PI_.pine, rng.next()) : pick(PI_.rock, rng.next()), pad: 90 });
+        if (r < 0.03) { if (q < 0.55) tree(x, y, Math.floor(rng.next() * 4)); else if (q < 0.75) arr.push({ x, y, t: pick(PI_.pine, rng.next()), pad: 90 }); else arr.push({ x, y, t: pick(PI_.rock, rng.next()), pad: 90 }); }
       } else if (b === B_ROCK) {
         if (r < 0.2) arr.push({ x, y, t: q < 0.62 ? pick(PI_.rock, rng.next()) : pick(PI_.pine, rng.next()), pad: 90 });
       } else if (b === B_SAND) {
@@ -1107,13 +1291,27 @@
   }
 
   const RES_ROW = 14;
+  const GLINT = new Map(); // water glints per chunk (animated in drawGroundOverlay)
+  let LITTER = null;
+  const LEAF_CELL = 64, leafMemo = new Map();
+  /** Falling-leaf cells: 1 + crown palette index over woods (every other cell), 0 elsewhere. */
+  function leafCell(i, j) {
+    const k = i * 100003 + j;
+    let v = leafMemo.get(k);
+    if (v !== undefined) return v;
+    const hsh = U.hashInt(i, j, 4040);
+    v = (hsh & 1) && baseBiome((i + 0.5) * LEAF_CELL, (j + 0.5) * LEAF_CELL, 0) === B_FOREST ? 1 + ((hsh >>> 3) % 4) : 0;
+    if (leafMemo.size > 6000) leafMemo.clear();
+    leafMemo.set(k, v);
+    return v;
+  }
   function* groundChunk(ctx, info) {
     const { wx, wy, res } = info;
     const size = info.size;
     const i0 = Math.floor(wx / CS) - 3, i1 = Math.ceil((wx + size) / CS) + 3;
     const j0 = Math.floor(wy / RH) - 3, j1 = Math.ceil((wy + size) / RH) + 3;
     const NI = i1 - i0 + 1, NJ = j1 - j0 + 1;
-    const VX = new Float32Array(NI * NJ), VY = new Float32Array(NI * NJ), VH = new Float32Array(NI * NJ);
+    const VX = new Float32Array(NI * NJ), VY = new Float32Array(NI * NJ), VH = new Float32Array(NI * NJ), VA = new Float32Array(NI * NJ);
     const VB = new Uint8Array(NI * NJ);
     for (let j = j0; j <= j1; j++) {
       for (let i = i0; i <= i1; i++) {
@@ -1123,8 +1321,8 @@
         const y = (j + (U.hash2(i, j, 23) - 0.5) * 0.46) * RH;
         VX[k] = x; VY[k] = y;
         const b = biomeAt(x, y, (U.hash2(i, j, 31) - 0.5) * 0.014);
-        VB[k] = b;
-        VH[k] = BIO[b].h + BIO[b].rough * ((U.hash2(i, j, 29) - 0.5) * 1.3 + U.perlin(x / 75, y / 75, 57) * 1.6) + U.perlin(x / 280, y / 280, 55) * 6;
+        VB[k] = b; VA[k] = lastPond;
+        VH[k] = BIO[b].h + BIO[b].rough * ((U.hash2(i, j, 29) - 0.5) * 1.3 + U.perlin(x / 75, y / 75, 57) * 1.6) + (b === B_WATER ? 0 : U.perlin(x / 280, y / 280, 55) * 6);
       }
       if (((j - j0) & 3) === 3) yield;
     }
@@ -1139,7 +1337,7 @@
           const nb = [k - 1, k + 1, k - NI + sh - 1, k - NI + sh, k + NI + sh - 1, k + NI + sh];
           let same = 0;
           for (const q of nb) { const b = src[q]; cnt[b]++; if (b === own) same++; }
-          if (same <= 1) {
+          if (same <= 1 && own !== B_PATH) {
             let best = own, bc = 0;
             for (let b = 0; b < cnt.length; b++) if (cnt[b] > bc) { bc = cnt[b]; best = b; }
             if (bc >= 3) { VB[k] = best; VH[k] += BIO[best].h - BIO[own].h; }
@@ -1151,6 +1349,7 @@
     ctx.lineJoin = 'round';
     ctx.lineWidth = lw;
     const x0 = wx - 2, x1 = wx + size + 2, y0 = wy - 2, y1 = wy + size + 2;
+    const glints = [];
     const facet = (ka, kb, kc, hid) => {
       const ax = VX[ka], ay = VY[ka], bx = VX[kb], by = VY[kb], cx = VX[kc], cy = VY[kc];
       if (Math.max(ax, bx, cx) < x0 || Math.min(ax, bx, cx) > x1 || Math.max(ay, by, cy) < y0 || Math.min(ay, by, cy) > y1) return;
@@ -1158,16 +1357,23 @@
       let b = ba === bb || ba === bc ? ba : bb === bc ? bb : Math.max(ba, bb, bc);
       const h = U.hashInt(hid, 0, 71);
       const r1 = (h & 1023) / 1023, r2 = ((h >>> 10) & 1023) / 1023, r3 = ((h >>> 20) & 1023) / 1023;
-      const cols = BIO[b].cols;
-      let col = cols[Math.floor(r1 * cols.length) % cols.length];
-      if (b === B_ROCK && r2 < 0.18) col = U.mix(col, MOSS_FACET, 0.75);
-      else if (b === B_GRASS && r2 < 0.045) col = U.mix(col, DRY_FACET, 0.4);
-      else if (b === B_FOREST && r2 < 0.08) col = mulc(col, 0.92);
-      if (!(ba === bb && bb === bc)) {
-        const other = ba !== b ? ba : bb !== b ? bb : bc;
-        if (r3 < 0.4) col = U.mix(col, BIO[other].cols[0], 0.5);
-      }
       const mx = (ax + bx + cx) / 3, my = (ay + by + cy) / 3;
+      const cols = BIO[b].cols;
+      // facet tones cluster in soft patches (noise) instead of a random pick per facet -> calm large areas
+      let col = cols[Math.floor(clamp(U.noise(mx / 64, my / 64, 88) * 0.85 + r1 * 0.3 - 0.12, 0, 0.999) * cols.length)];
+      if (b === B_ROCK && r2 < 0.18) col = U.mix(col, MOSS_FACET, 0.75);
+      else if (b === B_GRASS && r2 < 0.035) col = U.mix(col, DRY_FACET, 0.4);
+      else if (b === B_FOREST && r2 < 0.06) col = mulc(col, 0.93);
+      const mixed = !(ba === bb && bb === bc);
+      if (b === B_WATER) {
+        const depth = clamp(((VA[ka] + VA[kb] + VA[kc]) / 3 - POND) / 0.055, 0, 1);
+        col = U.mix(col, P.waterDeep, depth * 0.85);
+        if (mixed) col = U.mix(col, P.foam, 0.42); // shallow rim
+        else if (r2 < 0.2 && mx > wx && mx < wx + size && my > wy && my < wy + size) glints.push(mx, my, r3 * TAU);
+      } else if (mixed) {
+        const other = ba !== b ? ba : bb !== b ? bb : bc;
+        if (r3 < 0.4 && other !== B_WATER) col = U.mix(col, BIO[other].cols[0], 0.5);
+      }
       const mt = U.fbm(mx / 520, my / 520, 66, 2) - 0.5;
       col = [col[0] * (1 + mt * 0.12 + 0.012), col[1] * (1 + mt * 0.1), col[2] * (1 + mt * 0.05 - 0.01)];
       // facet normal from the height field
@@ -1190,13 +1396,17 @@
       }
       if (((j - j0) & 3) === 3) yield;
     }
+    GLINT.set(info.cx + ',' + info.cy, new Float32Array(glints));
+    if (GLINT.size > 160) GLINT.delete(GLINT.keys().next().value);
     // biome lookup (nearest lattice vertex)
     const look = (x, y) => {
       const j = clamp(Math.round(y / RH), j0, j1);
       const i = clamp(Math.round(x / CS - (j & 1) * 0.5), i0, i1);
       return VB[(j - j0) * NI + (i - i0)];
     };
-    // pumpkin-field furrows
+    const edgeOf = (x, y, b, d) => look(x + d, y) !== b || look(x - d, y) !== b || look(x, y + d) !== b || look(x, y - d) !== b;
+    const nearB = (x, y, b, d) => look(x + d, y) === b || look(x - d, y) === b || look(x, y + d) === b || look(x, y - d) === b;
+    // field furrows
     const soil = BIO[B_FIELD].cols[0];
     const furN = rgbs(shadeRGB(mulc(soil, 0.98), 0, -0.55, 0.835, 0));
     const furS = rgbs(shadeRGB(mulc(soil, 1.05), 0, 0.5, 0.866, 0));
@@ -1228,7 +1438,6 @@
         run.push([xa, yr + (U.hash2(sx, ry, 61) - 0.5) * 1.4]);
       }
       flush();
-      // vines along the ridge
       for (let sx = Math.floor((wx - 8) / 5); sx <= Math.ceil((wx + size + 8) / 5); sx++) {
         const hv = U.hash2(sx, ry, 67);
         if (hv > 0.55) continue;
@@ -1244,45 +1453,65 @@
       }
     }
     yield;
-    // decals
+    /* decals – placed with intent, not sprinkled:
+       leaf litter under each deciduous crown (in that crown's colours), tufts along region edges and around rocks,
+       flowers in meadow patches, mushrooms at the foot of pines, reeds on shores, lily pads in pond interiors,
+       pebbles along path edges */
     const snap = (v) => Math.round(v * res) / res;
     const dimg = (d, x, y) => ctx.drawImage(d.c, snap(x - d.ax / K), snap(y - d.ay / K), d.c.width / K, d.c.height / K);
-    const leafCols = [hex('#e0893f'), hex('#d4613f'), hex('#e9b347'), hex('#b8693f'), hex('#c9a04a')].map((c) => [rgbs(shadeRGB(c, -0.2, 0.15, 0.97, 0)), rgbs(shadeRGB(c, 0.35, -0.1, 0.93, 0))]);
     const mossCol = [rgbs(shadeRGB(P.moss, -0.1, 0.1, 0.99, 0)), rgbs(shadeRGB(mulc(P.moss, 0.9), 0.3, 0, 0.95, 0))];
-    let cnt = 0;
     const list = [];
+    const ccx = Math.floor(wx / size), ccy = Math.floor(wy / size);
+    const near = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) for (const p of genProps(ccx + dx, ccy + dy)) near.push(p);
+    for (const p of near) {
+      if (p.x < wx - 40 || p.x > wx + size + 40 || p.y < wy - 30 || p.y > wy + size + 30) continue;
+      const rng = U.rng(U.hashInt(Math.round(p.x), Math.round(p.y), 9));
+      if (p.crown !== undefined) {
+        for (let k = 0; k < 14; k++) {
+          const a = rng.next() * TAU, rr = Math.sqrt(rng.next());
+          list.push(['leaf', p.x + 4 + Math.cos(a) * rr * 24, p.y + 2 + Math.sin(a) * rr * 13, rng.next(), rng.next(), p.crown]);
+        }
+      } else if (PI_.pine.includes(p.t) && rng.next() < 0.35) {
+        for (let k = 0; k < 3; k++) list.push([pick(DEC.mush, rng.next()), p.x + 6 + rng.range(-3, 5), p.y + rng.range(1, 5)]);
+      } else if (PI_.rock.includes(p.t)) {
+        for (let k = 0; k < 4; k++) { const a = rng.next() * TAU; list.push([k & 1 ? pick(DEC.pebble, rng.next()) : pick(DEC.tuft, rng.next()), p.x + Math.cos(a) * 12, p.y + 2 + Math.sin(a) * 6]); }
+      }
+    }
     G.scatter(info, 11, 4242, 10, (x, y, rng) => {
       const b = look(x, y);
       const r = rng.next();
       if (b === B_GRASS) {
-        if (r < 0.042) list.push([pick(DEC.tuft, rng.next()), x, y]);
-        else if (r < 0.054) {
-          const n = 2 + Math.floor(rng.next() * 3), fl = pick(DEC.flower, rng.next());
+        const meadow = U.fbm(x / 110 + 4, y / 110 - 2, 808, 2);
+        if (meadow > 0.6 && r < 0.34) {
+          const n = 2 + Math.floor(rng.next() * 3), fl = DEC.flower[Math.floor(U.noise(x / 150, y / 150, 812) * 5) % 5];
           for (let k = 0; k < n; k++) list.push([fl, x + rng.range(-4, 4), y + rng.range(-3, 3)]);
-        } else if (r < 0.06) list.push([pick(DEC.pebble, rng.next()), x, y]);
+        } else if (r < 0.3 && edgeOf(x, y, b, 13)) list.push([pick(DEC.tuft, rng.next()), x, y]);
+        else if (r < 0.012) list.push([pick(DEC.tuft, rng.next()), x, y]);
       } else if (b === B_FOREST) {
-        if (r < 0.34) {
-          const n = 1 + Math.floor(rng.next() * 3);
-          for (let k = 0; k < n; k++) list.push(['leaf', x + rng.range(-3, 3), y + rng.range(-3, 3), rng.next(), rng.next()]);
-        } else if (r < 0.38) list.push([pick(DEC.tuftDry, rng.next()), x, y]);
-        else if (r < 0.40) list.push([pick(DEC.mush, rng.next()), x, y]);
-        else if (r < 0.415) list.push([pick(DEC.pebble, rng.next()), x, y]);
+        if (r < 0.05) list.push(['leaf', x, y, rng.next(), rng.next(), Math.floor(rng.next() * 4)]);
+        else if (r < 0.3 && edgeOf(x, y, b, 13)) list.push([pick(DEC.tuftDry, rng.next()), x, y]);
       } else if (b === B_SAND || b === B_YARD) {
-        if (r < 0.03) list.push([pick(DEC.pebbleSand, rng.next()), x, y]);
-        else if (r < 0.055) list.push([pick(DEC.tuftSand, rng.next()), x, y]);
+        if (nearB(x, y, B_WATER, 12)) { if (r < 0.5) list.push([pick(DEC.reeds, rng.next()), x, y]); else if (r < 0.62) list.push([pick(DEC.pebbleSand, rng.next()), x, y]); }
+        else if (r < 0.2 && edgeOf(x, y, b, 12)) list.push([pick(DEC.tuftSand, rng.next()), x, y]);
+        else if (r < 0.012) list.push([pick(DEC.pebbleSand, rng.next()), x, y]);
+      } else if (b === B_WATER) {
+        if (!nearB(x, y, B_SAND, 16) && U.noise(x / 60, y / 60, 818) > 0.55 && r < 0.45) list.push([pick(DEC.lily, rng.next()), x, y]);
+      } else if (b === B_PATH) {
+        if (edgeOf(x, y, b, 10)) { if (r < 0.22) list.push([pick(DEC.pebble, rng.next()), x, y]); else if (r < 0.34) list.push([pick(DEC.tuft, rng.next()), x, y]); }
       } else if (b === B_ROCK) {
-        if (r < 0.06) list.push([pick(DEC.pebble, rng.next()), x, y]);
-        else if (r < 0.12) list.push(['moss', x, y, rng.next(), rng.next()]);
-        else if (r < 0.14) list.push([pick(DEC.tuft, rng.next()), x, y]);
+        if (r < 0.05) list.push([pick(DEC.pebble, rng.next()), x, y]);
+        else if (r < 0.1) list.push(['moss', x, y, rng.next(), rng.next()]);
       } else if (b === B_FIELD) {
         if (r < 0.025) list.push([pick(DEC.minipump, rng.next()), x, Math.round(y / RES_ROW) * RES_ROW + 0.5]);
       }
     });
     list.sort((a, b) => a[2] - b[2]);
+    let cnt = 0;
     for (const it of list) {
       const d = it[0], x = it[1], y = it[2];
       if (d === 'leaf') {
-        const a = it[3] * TAU, s = 1.5 + it[4] * 1.1, c = leafCols[Math.floor(it[4] * 5) % 5];
+        const a = it[3] * TAU, s = 1.5 + it[4] * 1.1, c = LITTER[it[5]][Math.floor(it[4] * 3) % 3];
         const ca = Math.cos(a), sa = Math.sin(a);
         const px = -sa * s * 0.55, py = ca * s * 0.55;
         ctx.fillStyle = c[0];
@@ -1307,16 +1536,11 @@
     // baked prop shadows (props of this and neighbouring chunks)
     ctx.globalCompositeOperation = 'multiply';
     ctx.globalAlpha = 0.62;
-    const cx = Math.floor(wx / size), cy = Math.floor(wy / size);
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
-        for (const p of genProps(cx + dx, cy + dy)) {
-          const s = PROPS[p.t].sh;
-          const sx = p.x - s.ax / K, sy = p.y - s.ay / K, sw = s.c.width / K, shh = s.c.height / K;
-          if (sx > wx + size || sy > wy + size || sx + sw < wx || sy + shh < wy) continue;
-          ctx.drawImage(s.c, snap(sx), snap(sy), sw, shh);
-        }
-      }
+    for (const p of near) {
+      const s = PROPS[p.t].sh;
+      const sx = p.x - s.ax / K, sy = p.y - s.ay / K, sw = s.c.width / K, shh = s.c.height / K;
+      if (sx > wx + size || sy > wy + size || sx + sw < wx || sy + shh < wy) continue;
+      ctx.drawImage(s.c, snap(sx), snap(sy), sw, shh);
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
@@ -1331,28 +1555,162 @@
     return s.y;
   }
   const yawIdx = (yaw, n) => { let i = Math.round((yaw / TAU) * n) % n; if (i < 0) i += n; return i; };
-  const FR = { rt: 0 };
+  const FR = { rt: 0, shatter: 0 };
 
-  function spawnFx(ctx, e, t) {
-    const r = e.r * 1.15;
-    const a = 1 - t;
-    const ghost = e.type === 'ghost';
-    ctx.globalAlpha = a * (ghost ? 0.3 : 0.5);
-    ctx.fillStyle = ghost ? '#8fa3d6' : '#6b5550';
-    ctx.beginPath(); ctx.ellipse(e.x, e.y, r * (0.75 + 0.25 * t), r * 0.4, 0, 0, TAU); ctx.fill();
-    const rr = r * (0.8 + 1.2 * U.ease.outQuad(t));
-    ctx.globalAlpha = a * 0.8;
-    ctx.strokeStyle = ghost ? '#e6f1ff' : '#f6ecd6';
-    ctx.lineWidth = 1.8 * a + 0.4;
-    ctx.beginPath(); ctx.ellipse(e.x, e.y, rr, rr * 0.48, 0, 0, TAU); ctx.stroke();
-    const pf = FX.puff[ghost ? 1 : 2];
-    for (let i = 0; i < 6; i++) {
-      const ang = (i / 6) * TAU + e.seed * 6;
-      const px = e.x + Math.cos(ang) * rr, py = e.y + Math.sin(ang) * rr * 0.48 - t * 5;
-      const s = (0.55 + (i % 2) * 0.25) * (1 - t * 0.5) * (e.type === 'colossus' ? 1.6 : 1);
-      ctx.globalAlpha = a;
-      ctx.drawImage(pf.c, px - (pf.cx / K) * s, py - (pf.cy / K) * s, (pf.c.width / K) * s, (pf.c.height / K) * s);
+  /** Sprite blit with a transform around the feet (hit tilt, squash & stretch). */
+  function blitT(ctx, img, ax, ay, x, y, rot, sx, sy) {
+    const k = 1 / K;
+    ctx.save();
+    ctx.translate(x, y);
+    if (rot) ctx.rotate(rot);
+    if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+    ctx.drawImage(img, -ax * k, -ay * k, img.width * k, img.height * k);
+    ctx.restore();
+  }
+  /** Faceted polygon around (x, y): n vertices, ground-plane squash q, deterministic radial jitter. */
+  function facetPoly(ctx, x, y, r, q, n, seed, jit) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + seed, rr = r * (1 + (U.hash2(i, (seed * 997) | 0, 5) - 0.5) * 2 * jit);
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * q);
     }
+    ctx.closePath();
+  }
+  function starPath(ctx, x, y, r, ri, n, a0) {
+    ctx.beginPath();
+    for (let i = 0; i < n * 2; i++) { const a = a0 + (i / (n * 2)) * TAU, rr = i & 1 ? ri : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.86); }
+    ctx.closePath();
+  }
+
+  /** Death = the model breaks along facet lines: an inner core (3 pieces) + an outer ring of quads (n pieces).
+      Pieces are clip polygons over the current frame (world units relative to the feet). */
+  function shatterPieces(set, seed) {
+    const H = (set.ay - 4) / K, R = (set.w / 2 - 2) / K;
+    const cx = 0, cy = -H * 0.5, n = 6;
+    const big = Math.max(R, H) * 1.25, rin = Math.min(R, H * 0.5) * 0.5;
+    const rng = U.rng(seed);
+    const O = [], I = [];
+    for (let k = 0; k < n; k++) {
+      const a = ((k + rng.range(-0.25, 0.25)) / n) * TAU, b = ((k + rng.range(-0.3, 0.3)) / n) * TAU;
+      O.push([cx + Math.cos(a) * big, cy + Math.sin(a) * big]);
+      I.push([cx + Math.cos(b) * rin * rng.range(0.7, 1.3), cy + Math.sin(b) * rin * rng.range(0.7, 1.3)]);
+    }
+    const polys = [];
+    for (let k = 0; k < n; k++) polys.push([I[k], O[k], O[(k + 1) % n], I[(k + 1) % n]]);
+    polys.push([[cx, cy], I[0], I[1], I[2]], [[cx, cy], I[2], I[3], I[4]], [[cx, cy], I[4], I[5], I[0]]);
+    return polys.map((pts, i) => {
+      let gx = 0, gy = 0;
+      for (const p of pts) { gx += p[0]; gy += p[1]; }
+      gx /= pts.length; gy /= pts.length;
+      const dx = gx - cx, dy = gy - cy, l = Math.hypot(dx, dy) || 1;
+      return { p: pts.flat(), gx, gy, dx: dx / l, dy: dy / l, sp: (i < n ? 15 : 6) * rng.range(0.75, 1.25), up: rng.range(0.6, 1.3), spin: rng.range(1.2, 3.6) * (rng.next() < 0.5 ? -1 : 1) };
+    });
+  }
+  function drawShatter(ctx, set, img, fl, x, y, u, kind, base) {
+    const k = 1 / K, w = img.width * k, h = img.height * k, ax = set.ax * k, ay = set.ay * k;
+    const ease = 1 - (1 - u) * (1 - u);
+    const fade = 1 - U.smoothstep(0.55, 1, u);
+    const heavy = kind === 'colossus', ghost = kind === 'ghost';
+    for (const pc of set.pieces) {
+      let ox, oy, oz, sc = 1;
+      if (ghost) {
+        // spirit: the pieces drift up and shrink away
+        ox = pc.dx * pc.sp * 0.7 * ease; oy = pc.dy * pc.sp * 0.3 * ease; oz = (8 + pc.up * 12) * ease; sc = 1 - 0.6 * u;
+      } else {
+        // solid: thrown out and up, gravity pulls them down, they land and rest (clamped to the ground) before fading
+        const f = heavy ? 0.45 : 1;
+        ox = pc.dx * pc.sp * f * ease; oy = pc.dy * pc.sp * 0.5 * f * ease;
+        oz = Math.max(pc.gy + 1.2, pc.up * (heavy ? 8 : 17) * u - (heavy ? 34 : 44) * u * u);
+      }
+      ctx.save();
+      ctx.globalAlpha = base * fade;
+      ctx.translate(x + pc.gx + ox, y + pc.gy + oy - oz);
+      ctx.rotate(pc.spin * ease * (heavy ? 0.5 : 1));
+      if (sc !== 1) ctx.scale(sc, sc);
+      ctx.beginPath();
+      const p = pc.p;
+      for (let i = 0; i < p.length; i += 2) ctx.lineTo(p[i] - pc.gx, p[i + 1] - pc.gy);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, -ax - pc.gx, -ay - pc.gy, w, h);
+      const fa = 1 - u * 2.6;
+      if (fa > 0.05 && fl) { ctx.globalAlpha = base * fade * fa; ctx.drawImage(fl, -ax - pc.gx, -ay - pc.gy, w, h); }
+      ctx.restore();
+    }
+  }
+
+  /** Spawn: the ground opens (dark faceted hole, cracks, soil chunks pushed up), the creature rises out of it with an
+      overshoot, stretches on the way up and squashes when it lands. Spirits materialise instead (fade, drop, un-stretch). */
+  let SOIL = null;
+  function spawnFx(ctx, e, t) {
+    const ghost = e.type === 'ghost', big = e.type === 'colossus' ? 1.7 : 1;
+    const r = e.r * 1.25, sd = e.seed * 9;
+    const fade = 1 - U.smoothstep(0.55, 1, t);
+    if (ghost) {
+      ctx.globalAlpha = fade * 0.32;
+      ctx.fillStyle = '#9fb3e6';
+      facetPoly(ctx, e.x, e.y, r * (0.5 + 0.6 * t), 0.46, 8, sd, 0.15); ctx.fill();
+      ctx.globalAlpha = fade * 0.85;
+      ctx.strokeStyle = '#eef6ff';
+      ctx.lineWidth = 0.4 + 1.6 * fade;
+      facetPoly(ctx, e.x, e.y, r * (0.8 + 1.5 * U.ease.outQuad(t)), 0.46, 10, sd, 0.06); ctx.stroke();
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const open = U.ease.outQuad(Math.min(1, t * 2.2));
+    ctx.globalAlpha = fade * 0.8;
+    ctx.fillStyle = SOIL[3];
+    facetPoly(ctx, e.x, e.y, r * (0.3 + 0.7 * open) * big * 0.75, 0.48, 7, sd, 0.22); ctx.fill();
+    if (t < 0.6) {
+      ctx.strokeStyle = SOIL[3];
+      ctx.lineWidth = 0.9 * big;
+      ctx.globalAlpha = (1 - t / 0.6) * 0.8;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * TAU + sd, l = r * big * (0.6 + 0.9 * U.ease.outQuad(Math.min(1, t * 3)));
+        ctx.moveTo(e.x + Math.cos(a) * r * 0.4, e.y + Math.sin(a) * r * 0.2);
+        ctx.lineTo(e.x + Math.cos(a + 0.25) * l * 0.6, e.y + Math.sin(a + 0.25) * l * 0.3);
+        ctx.lineTo(e.x + Math.cos(a) * l, e.y + Math.sin(a) * l * 0.5);
+      }
+      ctx.stroke();
+    }
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU + sd, d = r * big * (0.55 + 0.75 * U.ease.outQuad(t));
+      const z = Math.max(0, Math.sin(Math.min(1, t * 1.3) * Math.PI) * (5 + (i % 3) * 2.5) * big);
+      const s = (1.5 + (i % 3) * 0.55) * big * (1 - 0.45 * t), rot = a + t * 7;
+      const px = e.x + Math.cos(a) * d, py = e.y + Math.sin(a) * d * 0.5 - z;
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = SOIL[i % 3];
+      ctx.beginPath();
+      ctx.moveTo(px + Math.cos(rot) * s, py + Math.sin(rot) * s * 0.8);
+      ctx.lineTo(px + Math.cos(rot + 2.3) * s * 0.8, py + Math.sin(rot + 2.3) * s * 0.7);
+      ctx.lineTo(px + Math.cos(rot + 4.2) * s * 0.9, py + Math.sin(rot + 4.2) * s * 0.75);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawSpawn(ctx, e, set, img, lift, base) {
+    const t = e.spawnT, k = 1 / K;
+    spawnFx(ctx, e, t);
+    if (e.type === 'ghost') {
+      const u = U.smoothstep(0.05, 1, t);
+      const flick = u < 0.85 && Math.floor(FR.rt * 28 + e.seed * 9) & 1 ? 0.6 : 1;
+      ctx.globalAlpha = base * u * flick;
+      blitT(ctx, img, set.ax, set.ay, e.x, e.y - lift - (1 - u) * 14, 0, 1 - 0.35 * (1 - u), 1 + 0.5 * (1 - u));
+      ctx.globalAlpha = 1;
+      return;
+    }
+    const u = clamp((t - 0.2) / 0.8, 0, 1);
+    if (u <= 0) return;
+    const rise = U.ease.outBack(u);
+    const st = u < 0.7 ? 1 + 0.13 * Math.sin((u / 0.7) * Math.PI) : 1 - 0.1 * Math.sin(((u - 0.7) / 0.3) * Math.PI);
+    const w = img.width * k, h = img.height * k;
+    const dy = (1 - rise) * set.ay * k * 0.92;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(e.x - w, e.y - h - 24, w * 2, h + 24 + 1.2); ctx.clip();
+    ctx.globalAlpha = base;
+    blitT(ctx, img, set.ax, set.ay, e.x, e.y - lift + dy, 0, 1 / Math.sqrt(st), st);
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
@@ -1363,7 +1721,7 @@
         x: x + (Math.random() - 0.5) * (o.spread || 6), y: y + (Math.random() - 0.5) * (o.spread || 6) * 0.5,
         z: z + Math.random() * (o.zr || 8), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.7, vz: (o.vz || 70) * (0.5 + Math.random() * 0.8),
         grav: o.grav || 260, life: (o.life || 0.8) * (0.7 + Math.random() * 0.6), size: (o.size || 2.4) * (0.6 + Math.random() * 0.8),
-        kind: 'shard', drag: 1.6, vr: (Math.random() - 0.5) * 18,
+        kind: 'shard', drag: o.drag || 1.6, vr: (Math.random() - 0.5) * 18,
       });
       if (p) { p.pal = pals[(Math.random() * pals.length) | 0]; p.shp = Math.random(); p.em = o.em && Math.random() < o.em; }
     }
@@ -1384,9 +1742,20 @@
       game.addParticle({ x, y, z, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.7, vz: (o.vz || 20) * Math.random(), life: (o.life || 0.28) * (0.7 + Math.random() * 0.6), size: (o.size || 2.2) * (0.6 + Math.random() * 0.6), kind: 'spark', color: col, drag: 5, grav: o.grav || 0 });
     }
   }
-  function addRing(game, x, y, r0, r1, col, life, lw) {
-    const p = game.addParticle({ x, y, z: 0, life, size: 1, kind: 'ring', drag: 0, color: col });
-    if (p) { p.r0 = r0; p.r1 = r1; p.lw = lw || 2; }
+  /** Faceted ground ring (a 12-gon on the ground plane); delay staggers several rings. */
+  function addRing(game, x, y, r0, r1, col, life, lw, delay) {
+    const p = game.addParticle({ x, y, z: 0, life: life + (delay || 0), size: 1, kind: 'ring', drag: 0, color: col });
+    if (p) { p.r0 = r0; p.r1 = r1; p.lw = lw || 2; p.delay = delay || 0; }
+  }
+  /** Core flash: a faceted star burst (coloured rim + white core), very short. */
+  function addFlash(game, x, y, z, r0, r1, col, life, n) {
+    const p = game.addParticle({ x, y, z, life, size: 1, kind: 'flash', drag: 0, color: col });
+    if (p) { p.r0 = r0; p.r1 = r1; p.n = n || 6; }
+  }
+  /** Residue: a flat faceted patch left on the ground that fades out. */
+  function addScorch(game, x, y, r, col, life) {
+    const p = game.addParticle({ x, y, z: 0, life, size: 1, kind: 'scorch', drag: 0, color: col });
+    if (p) p.r = r;
   }
 
   /* ================================ numbers ================================ */
@@ -1688,7 +2057,7 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
     id: 'lowpoly',
     name: 'Low-Poly-Diorama',
     family: '3D-Look · Low Poly',
-    description: 'Eine Miniatur-Herbstwelt aus facettierten Low-Poly-Formen im weichen Nachmittagslicht – wie ein Spielzeug-Diorama.',
+    description: 'A toy-like autumn miniature world of flat-shaded triangle facets in soft afternoon light, with tilt-shift blur at the screen edges.',
     groundColor: '#a1b97e',
     groundResMax: 3,
     chunkSize: 256,
@@ -1721,6 +2090,27 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
     drawGroundOverlay(ctx, view) {
       VS = view.S;
       FR.rt = view.rt;
+      FR.shatter = 0;
+      // water glints: small faceted sparkles that blink slowly on pond facets
+      const s = 256;
+      const cx0 = Math.floor(view.x0 / s), cx1 = Math.floor(view.x1 / s), cy0 = Math.floor(view.y0 / s), cy1 = Math.floor(view.y1 / s);
+      ctx.fillStyle = '#effcff';
+      for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+        const arr = GLINT.get(cx + ',' + cy);
+        if (!arr || !arr.length) continue;
+        for (let i = 0; i < arr.length; i += 3) {
+          const x = arr[i], y = arr[i + 1];
+          if (x < view.x0 - 4 || x > view.x1 + 4 || y < view.y0 - 4 || y > view.y1 + 4) continue;
+          const v = Math.sin(view.rt * 1.1 + arr[i + 2]);
+          if (v < 0.5) continue;
+          const g = (v - 0.5) * 2, r = 1.2 + g * 1.6;
+          ctx.globalAlpha = g * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(x - r * 1.8, y); ctx.lineTo(x, y - r * 0.4); ctx.lineTo(x + r * 1.8, y); ctx.lineTo(x, y + r * 0.4);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
     },
 
     drawShadow(ctx, o) {
@@ -1732,7 +2122,7 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
         if (!sh) return;
         if (o.type === 'ghost') a = 0.3;
         if (o.dying) a *= Math.max(0, 1 - o.deathT / 0.3);
-        if (o.spawnT < 1) a *= o.spawnT;
+        if (o.spawnT < 1) a *= U.smoothstep(0.15, 0.8, o.spawnT);
       }
       if (a <= 0.01) return;
       ctx.globalAlpha = a;
@@ -1744,63 +2134,84 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
       const s = g.big ? SET.gemBig : SET.gem;
       const fi = Math.floor((view.rt * 1.5 + g.seed * 7) * s.n) % s.n;
       const hop = g.pop > 0 ? Math.sin(g.pop * Math.PI) * 9 : 0;
-      const z = 2.2 + Math.sin(view.rt * 3 + g.seed * 10) * 0.8 + hop;
+      const w = U.fract(view.rt * 0.55 + g.seed * 3), tri = w < 0.5 ? w * 2 : 2 - w * 2;
+      const z = 1.6 + U.smoothstep(0, 1, tri) * 1.8 + hop;
       const sc = g.big ? 7 : 4.6;
       ctx.globalAlpha = 0.32;
       ctx.drawImage(FX.dot, g.x - sc / 2 + 0.6, g.y - sc * 0.22, sc, sc * 0.44);
       ctx.globalAlpha = 1;
       blit(ctx, s.frames[fi], s.ax, s.ay, g.x, g.y - z);
+      // a facet catches the sun every few seconds
+      const tw = U.fract(view.rt * 0.38 + g.seed * 5);
+      if (tw < 0.1) {
+        const a = Math.sin((tw / 0.1) * Math.PI), r = (g.big ? 4.2 : 3) * a;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#ffffff';
+        starPath(ctx, g.x + (g.big ? 1.6 : 1.1), g.y - z - (g.big ? 7 : 4.8), r, r * 0.2, 4, 0); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     },
 
     drawEnemy(ctx, e) {
-      const set = SET[e.type];
+      const set = e.type === 'creeper' && e.seed > 0.5 ? SET.creeper2 : SET[e.type];
       if (!set) return;
-      const yaw = yawOf(e, e.vx, e.vy, e.type === 'colossus' ? 0.08 : 0.16);
-      const yi = yawIdx(yaw, set.n);
+      const ghost = e.type === 'ghost';
+      const mv = e.vx * e.vx + e.vy * e.vy > 9;
+      const yaw = yawOf(e, mv ? e.vx : e.facing * 8, mv ? e.vy : 7, e.type === 'colossus' ? 0.08 : 0.16);
+      const yi = yawIdx(yaw, set.n), NW = set.nf - 1;
       let fi, lift = 0;
-      if (e.type === 'ghost') { fi = Math.floor((FR.rt * 1.4 + e.seed * 5) * set.nf) % set.nf; lift = 2.5 + Math.sin(FR.rt * 2.6 + e.seed * 20) * 1.6; }
-      else if (e.type === 'creeper') { fi = Math.floor(e.anim * 0.55 * set.nf) % set.nf; lift = Math.abs(Math.sin(e.anim * 0.55 * Math.PI * 2)) * 1.4; }
-      else { fi = Math.floor(e.anim * 0.42 * set.nf) % set.nf; lift = Math.abs(Math.sin(e.anim * 0.42 * Math.PI * 2)) * 0.6; }
-      const img = set.frames[yi][fi];
-      const base = e.type === 'ghost' ? 0.8 : 1;
+      if (ghost) {
+        fi = Math.floor((FR.rt * 1.5 + e.seed * 5) * NW) % NW;
+        // eased hover: holds at the top and bottom of each bob (not a plain sine), own phase per actor
+        const w = U.fract(FR.rt * 0.45 + e.seed * 3.7), tri = w < 0.5 ? w * 2 : 2 - w * 2;
+        lift = 1.6 + U.smoothstep(0, 1, tri) * 3.0;
+      } else fi = Math.floor(e.anim * (e.type === 'creeper' ? 0.55 : 0.42) * NW) % NW;
+      if (fi < 0) fi += NW;
+      const base = ghost ? 0.84 : 1;
       if (e.dying) {
-        const t = e.deathT / 0.22;
-        if (t >= 1) return;
-        const sx = 1 + t * 0.3, sy = 1 - t * 0.55, w = (set.w / K) * sx, h = (set.h / K) * sy;
-        const x = e.x - (set.ax / K) * sx, y = e.y - lift - (set.ay / K) * sy;
-        ctx.globalAlpha = base * (1 - t);
-        ctx.drawImage(img, x, y, w, h);
-        ctx.globalAlpha = base * (1 - t) * 0.55;
-        ctx.drawImage(flashOf(set, yi, fi), x, y, w, h);
-        ctx.globalAlpha = 1;
-        return;
-      }
-      if (e.spawnT < 1) {
-        const t = e.spawnT;
-        spawnFx(ctx, e, t);
-        const vis = Math.floor(set.ay * U.ease.outQuad(t));
-        if (vis > 1) {
-          ctx.globalAlpha = base * Math.min(1, t * 2.5);
-          const px = Math.round(e.x * VS - (set.ax * VS) / K) / VS;
-          ctx.drawImage(img, 0, 0, set.w, vis, px, e.y - vis / K, set.w / K, vis / K);
+        const t = e.deathT;
+        fi = NW;
+        const img = set.frames[yi][fi];
+        if (t < 0.14) {
+          // anticipation of the break: a quick swell + white-out
+          const u = t / 0.14;
+          ctx.globalAlpha = base;
+          blitT(ctx, img, set.ax, set.ay, e.x, e.y - lift, 0, 1 + 0.16 * u, 1 - 0.08 * u);
+          ctx.globalAlpha = base * u;
+          blitT(ctx, flashOf(set, yi, fi), set.ax, set.ay, e.x, e.y - lift, 0, 1 + 0.16 * u, 1 - 0.08 * u);
+        } else if (FR.shatter++ < 6) drawShatter(ctx, set, img, flashOf(set, yi, fi), e.x, e.y - lift, Math.min(1, (t - 0.14) / 0.86), e.type, base);
+        else {
+          // crowd fallback (more than 6 break-ups in one frame): sink into the ground and fade
+          const u = (t - 0.14) / 0.86;
+          ctx.globalAlpha = base * (1 - u);
+          blitT(ctx, img, set.ax, set.ay, e.x, e.y - lift + u * 6, 0, 1 + 0.2 * u, 1 - 0.5 * u);
         }
         ctx.globalAlpha = 1;
         return;
       }
+      if (e.spawnT < 1) { drawSpawn(ctx, e, set, set.frames[yi][fi], lift, base); return; }
+      // hit: ~140 ms reaction pose, thrown back in the push direction, squashed, white flash
+      const hk = e.flash;
+      if (hk > 0.25) fi = NW;
+      const img = set.frames[yi][fi];
       ctx.globalAlpha = base;
-      blit(ctx, img, set.ax, set.ay, e.x, e.y - lift);
-      if (e.flash > 0.04) {
-        ctx.globalAlpha = Math.min(1, e.flash * 1.1) * base;
-        blit(ctx, flashOf(set, yi, fi), set.ax, set.ay, e.x, e.y - lift);
-      }
+      if (hk > 0.02) {
+        const dir = Math.abs(e.kx) > 2 ? Math.sign(e.kx) : -e.facing;
+        const ek = hk * hk * (3 - 2 * hk);
+        const rot = dir * (e.type === 'colossus' ? 0.12 : 0.26) * ek, sx = 1 + 0.09 * ek, sy = 1 - 0.08 * ek;
+        blitT(ctx, img, set.ax, set.ay, e.x + dir * 1.5 * ek, e.y - lift, rot, sx, sy);
+        if (fi === NW) {
+          ctx.globalAlpha = Math.min(1, hk * 1.15) * base;
+          blitT(ctx, flashOf(set, yi, fi), set.ax, set.ay, e.x + dir * 1.5 * ek, e.y - lift, rot, sx, sy);
+        }
+      } else blit(ctx, img, set.ax, set.ay, e.x, e.y - lift);
       if (e.type === 'colossus') {
         const fwd = Math.sin(yaw);
         if (fwd > -0.3) {
           ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = (0.35 + 0.15 * Math.sin(FR.rt * 5 + e.seed * 9)) * Math.min(1, fwd + 0.6);
           const gx = e.x + Math.cos(yaw) * 15, gy = e.y - lift - 25 * CP + Math.sin(yaw) * 15 * SP;
-          const r = 16;
-          ctx.drawImage(FX.glowSmall, gx - r, gy - r, r * 2, r * 2);
+          ctx.drawImage(FX.glowSmall, gx - 16, gy - 16, 32, 32);
           ctx.globalCompositeOperation = 'source-over';
         }
       }
@@ -1809,48 +2220,87 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
 
     drawPlayer(ctx, p, view) {
       const set = SET.jack;
-      const yaw = yawOf(p, p.moving ? p.vx : 0, p.moving ? p.vy : 0, 0.22);
+      let tx = 0, ty = 0;
+      if (p.dashT > 0) { tx = p.dashX * 10; ty = p.dashY * 10; }
+      else if (p.moving) { if (p.vx * p.vx + p.vy * p.vy > 9) { tx = p.vx; ty = p.vy; } else { tx = p.facing * 8; ty = 7; } }
+      const yaw = yawOf(p, tx, ty, p.dashT > 0 ? 0.5 : 0.22);
       const yi = yawIdx(yaw, set.n);
-      const fi = p.moving ? Math.floor(p.anim * 0.5 * 6) % 6 : 6;
-      const lift = p.moving ? Math.abs(Math.sin(p.anim * 0.5 * Math.PI * 2)) * 1.1 : Math.sin(view.rt * 2.4) * 0.35 + 0.35;
+      let fi;
+      if (p.hurtT > 0.62) fi = J_HURT;
+      else if (p.dashT > 0) fi = 0.2 - p.dashT < 0.045 ? J_CROUCH : J_STRETCH;
+      else if (p.moving) fi = ((Math.floor(p.anim * 0.5 * 8) % 8) + 8) % 8;
+      else fi = (view.rt + 0.6) % 3.6 < 0.14 ? J_BLINK : J_IDLE + (Math.floor((view.rt / 2.0) * 4) % 4);
       const img = set.frames[yi][fi];
-      // level-up ring
+      // glow-up: faceted ground rings + warm light
       if (p.levelT > 0) {
         const t = 1 - p.levelT;
         ctx.globalAlpha = p.levelT * 0.9;
         ctx.strokeStyle = '#ffd666';
         ctx.lineWidth = 2.4 * p.levelT + 0.5;
-        const r = 10 + t * 34;
-        ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * 0.5, 0, 0, TAU); ctx.stroke();
+        facetPoly(ctx, p.x, p.y, 10 + t * 34, 0.5, 12, t * 0.6, 0); ctx.stroke();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = p.levelT * 0.6;
         ctx.drawImage(FX.glowWarm, p.x - 30, p.y - 44, 60, 60);
         ctx.globalCompositeOperation = 'source-over';
       }
-      // dash smear
-      if (p.dashT > 0) {
-        const fl = flashOf(set, yi, fi);
-        for (let i = 3; i >= 1; i--) {
-          ctx.globalAlpha = 0.16 * (4 - i) * Math.min(1, p.dashT * 6);
-          blit(ctx, fl, set.ax, set.ay, p.x - p.dashX * i * 6, p.y - p.dashY * i * 6 - lift);
+      // dash: cool after-images of the lunge pose + three speed facets
+      if (p.dashT > 0 && fi === J_STRETCH) {
+        const fl = flashOf(set, yi, fi), k = Math.min(1, p.dashT * 7);
+        for (let i = 2; i >= 1; i--) {
+          ctx.globalAlpha = 0.2 * (3 - i) * k;
+          blit(ctx, fl, set.ax, set.ay, p.x - p.dashX * i * 7, p.y - p.dashY * i * 7);
+        }
+        ctx.fillStyle = '#f6ecd6';
+        for (let i = 0; i < 3; i++) {
+          const ox = -p.dashX * (10 + i * 3), oy = -p.dashY * (10 + i * 3) - 6 - i * 6, l = 10 + i * 4;
+          ctx.globalAlpha = 0.5 * k * (1 - i * 0.25);
+          ctx.beginPath();
+          ctx.moveTo(p.x + ox, p.y + oy - 0.8); ctx.lineTo(p.x + ox - p.dashX * l, p.y + oy - p.dashY * l); ctx.lineTo(p.x + ox, p.y + oy + 0.8);
+          ctx.fill();
         }
       }
       let a = 1;
       if (p.iframes > 0 && p.hurtT <= 0 && p.dashT <= 0) a = Math.floor(view.rt * 18) % 2 ? 0.5 : 1;
       ctx.globalAlpha = a;
-      blit(ctx, img, set.ax, set.ay, p.x, p.y - lift);
       if (p.hurtT > 0) {
-        ctx.globalAlpha = p.hurtT;
-        blit(ctx, flashOf(set, yi, fi), set.ax, set.ay, p.x, p.y - lift);
-      }
+        const hk = p.hurtT * p.hurtT, rot = -Math.cos(yaw) * 0.16 * hk;
+        blitT(ctx, img, set.ax, set.ay, p.x, p.y, rot, 1 + 0.05 * hk, 1 - 0.05 * hk);
+        ctx.globalAlpha = fi === J_HURT ? (p.hurtT > 0.75 ? 0.9 : p.hurtT * 0.8) : 0;
+        if (fi === J_HURT) blitT(ctx, flashOf(set, yi, fi), set.ax, set.ay, p.x, p.y, rot, 1 + 0.05 * hk, 1 - 0.05 * hk);
+      } else blit(ctx, img, set.ax, set.ay, p.x, p.y);
       // warm glow from the carved face
       const fwd = Math.sin(yaw);
       if (fwd > -0.35) {
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = (0.22 + 0.06 * Math.sin(view.rt * 9)) * Math.min(1, fwd + 0.5);
-        const gx = p.x + Math.cos(yaw) * 7, gy = p.y - lift - 21 * CP + Math.sin(yaw) * 7 * SP;
+        ctx.globalAlpha = (0.22 + 0.06 * Math.sin(view.rt * 9)) * Math.min(1, fwd + 0.5) * (fi === J_BLINK ? 0.4 : 1);
+        const gx = p.x + Math.cos(yaw) * 7, gy = p.y - 21 * CP + Math.sin(yaw) * 7 * SP;
         ctx.drawImage(FX.glowSmall, gx - 9, gy - 9, 18, 18);
         ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.globalAlpha = 1;
+    },
+
+    /** Ambient: a few leaves tumble down over the woods (slow, never more than one per 64-unit cell). */
+    drawWorldOverlay(ctx, view) {
+      const C = LEAF_CELL;
+      const i0 = Math.floor(view.x0 / C) - 1, i1 = Math.floor(view.x1 / C), j0 = Math.floor(view.y0 / C), j1 = Math.floor(view.y1 / C) + 1;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        const v = leafCell(i, j);
+        if (!v) continue;
+        const h = U.hash2(i, j, 41), per = 5 + h * 3;
+        const ph = U.fract(view.rt / per + h * 7);
+        const z = 50 * (1 - ph) * (1 - ph * 0.2);
+        const x = (i + h) * C + Math.sin(ph * TAU * 1.2 + h * 9) * 9 + ph * 18, y = (j + U.hash2(i, j, 42)) * C;
+        if (x < view.x0 - 8 || x > view.x1 + 8 || y - z < view.y0 - 8 || y > view.y1 + 60) continue;
+        const flip = Math.cos(view.rt * 3.4 + h * 20), s = 2.1;
+        const c = LITTER[v - 1][Math.floor(h * 30) % 3];
+        ctx.globalAlpha = Math.min(1, ph * 6, (1 - ph) * 8) * 0.95;
+        const a = h * TAU + ph * 2, ca = Math.cos(a) * s, sa = Math.sin(a) * s * Math.abs(flip);
+        const px = -Math.sin(a) * s * 0.55, py = Math.cos(a) * s * 0.55 * flip;
+        ctx.fillStyle = c[flip > 0 ? 0 : 1];
+        ctx.beginPath(); ctx.moveTo(x - ca, y - z - sa); ctx.lineTo(x + px, y - z + py); ctx.lineTo(x + ca, y - z + sa); ctx.fill();
+        ctx.fillStyle = c[flip > 0 ? 1 : 0];
+        ctx.beginPath(); ctx.moveTo(x - ca, y - z - sa); ctx.lineTo(x - px, y - z - py); ctx.lineTo(x + ca, y - z + sa); ctx.fill();
       }
       ctx.globalAlpha = 1;
     },
@@ -1901,7 +2351,7 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
       switch (pt.kind) {
         case 'shard': {
           const a = k < 0.35 ? k / 0.35 : 1;
-          const r = pt.rot, s = pt.size;
+          const r = pt.rot, s = pt.size * (pt.z <= 0.01 ? 0.5 + 0.5 * Math.min(1, k / 0.35) : 1);
           const bi = Math.min(7, Math.floor(Math.abs(Math.cos(r * 1.1 + pt.seed * 6)) * 8));
           ctx.globalAlpha = a;
           ctx.fillStyle = pt.pal ? pt.pal[bi] : pt.color || '#fff';
@@ -1909,8 +2359,10 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
           ctx.beginPath();
           ctx.moveTo(x + c * s, y + sn * s * 0.8);
           ctx.lineTo(x + Math.cos(r + 2.2) * s * q, y + Math.sin(r + 2.2) * s * q * 0.8);
+          if (pt.shp > 0.68) ctx.lineTo(x + Math.cos(r + 3.3) * s * 0.9, y + Math.sin(r + 3.3) * s * 0.7); // some chips are 4-sided plates
           ctx.lineTo(x + Math.cos(r + 4.0) * s * 0.75, y + Math.sin(r + 4.0) * s * 0.6);
           ctx.fill();
+          if (pt.em) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = a * 0.5; ctx.drawImage(FX.glowSmall, x - s * 2, y - s * 2, s * 4, s * 4); ctx.globalCompositeOperation = 'source-over'; }
           break;
         }
         case 'puff': {
@@ -1921,12 +2373,35 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
           break;
         }
         case 'ring': {
-          const t = 1 - k;
-          const r = pt.r0 + (pt.r1 - pt.r0) * U.ease.outQuad(t);
-          ctx.globalAlpha = k * 0.9;
+          const age = pt.max - pt.life, d = pt.delay || 0;
+          if (age < d) break;
+          const t = (age - d) / (pt.max - d), kk = 1 - t;
+          const r = pt.r0 + (pt.r1 - pt.r0) * (1 - (1 - t) * (1 - t) * (1 - t));
+          ctx.globalAlpha = kk * 0.9;
           ctx.strokeStyle = pt.color;
-          ctx.lineWidth = pt.lw * k + 0.3;
-          ctx.beginPath(); ctx.ellipse(pt.x, pt.y, r, r * 0.5, 0, 0, TAU); ctx.stroke();
+          ctx.lineWidth = pt.lw * kk + 0.3;
+          ctx.lineJoin = 'miter';
+          facetPoly(ctx, pt.x, pt.y, r, 0.5, 12, pt.seed * TAU, 0);
+          ctx.stroke();
+          break;
+        }
+        case 'flash': {
+          const t = 1 - k, r = pt.r0 + (pt.r1 - pt.r0) * (1 - (1 - t) * (1 - t));
+          const a0 = pt.seed * TAU, n = pt.n || 6;
+          ctx.globalAlpha = k * k;
+          ctx.fillStyle = pt.color;
+          starPath(ctx, x, y, r, r * 0.36, n, a0); ctx.fill();
+          ctx.globalAlpha = Math.min(1, k * 1.6);
+          ctx.fillStyle = '#ffffff';
+          starPath(ctx, x, y, r * 0.5, r * 0.2, n, a0 + Math.PI / n); ctx.fill();
+          break;
+        }
+        case 'scorch': {
+          const age = pt.max - pt.life;
+          ctx.globalAlpha = 0.3 * Math.min(1, age * 8) * Math.min(1, k * 2.2);
+          ctx.fillStyle = pt.color;
+          facetPoly(ctx, pt.x, pt.y + 1, pt.r * (0.85 + 0.15 * Math.min(1, age * 6)), 0.5, 7, pt.seed * TAU, 0.28);
+          ctx.fill();
           break;
         }
         case 'spark':
@@ -2006,47 +2481,73 @@ body.style-lowpoly #pausebox { font: 800 48px ${F_HEAD}; color: #fff; text-shado
     onHit(game, e, src) {
       const pal = SHARD[e.type] || SHARD.creeper;
       const z = e.type === 'colossus' ? 22 : e.type === 'ghost' ? 14 : 10;
-      addShards(game, e.x, e.y, z, pal, e.type === 'colossus' ? 3 : 2, { speed: 55, life: 0.45, size: 1.7, vz: 50 });
-      addSparks(game, e.x, e.y, z, 2, src === 'lantern' ? '#ffd27a' : '#ffffff', { speed: 80 });
+      const hot = src === 'lantern' ? '#ffcf6a' : '#fff1c9';
+      // core flash -> a few facet chips -> quick sparks
+      addFlash(game, e.x, e.y, z, 2.5, e.type === 'colossus' ? 13 : 9, hot, 0.12, 5);
+      addShards(game, e.x, e.y, z, pal, e.type === 'colossus' ? 4 : 3, { speed: 60, life: 0.5, size: 1.8, vz: 55 });
+      addSparks(game, e.x, e.y, z, 3, src === 'lantern' ? '#ffd27a' : '#ffffff', { speed: 95, life: 0.22 });
     },
     onKill(game, e) {
       const pal = SHARD[e.type] || SHARD.creeper;
       if (e.type === 'colossus') {
-        addShards(game, e.x, e.y, 6, pal, 26, { speed: 95, life: 1.1, size: 4.2, vz: 110, zr: 30, spread: 20 });
+        addFlash(game, e.x, e.y, 24, 6, 34, '#ffd27a', 0.2, 7);
+        addShards(game, e.x, e.y, 6, pal, 24, { speed: 95, life: 1.2, size: 4.2, vz: 110, zr: 30, spread: 20 });
+        addShards(game, e.x, e.y, 26, SHARD.gold, 6, { speed: 70, life: 0.9, size: 2.4, vz: 120, em: 1 });
+        addShards(game, e.x, e.y, 36, SHARD.leaf, 5, { speed: 60, life: 1.1, size: 3.2, vz: 90, grav: 150 });
         addPuffs(game, e.x, e.y, 9, 2, { speed: 50, r: 14, size: 2.2, life: 0.8 });
-        addRing(game, e.x, e.y, 10, 46, '#f6ecd6', 0.55, 3);
+        addRing(game, e.x, e.y, 10, 46, '#f6ecd6', 0.5, 3.2);
+        addRing(game, e.x, e.y, 6, 30, '#ffcf6a', 0.4, 2, 0.08);
         addSparks(game, e.x, e.y, 24, 8, '#ffcf6a', { speed: 120, life: 0.45, size: 3 });
+        addScorch(game, e.x, e.y, 20, '#4a3a4a', 1.6);
       } else if (e.type === 'ghost') {
-        addShards(game, e.x, e.y, 10, pal, 8, { speed: 55, life: 0.7, size: 2.4, vz: 70, grav: 120 });
+        addFlash(game, e.x, e.y, 14, 3, 16, '#dcebff', 0.16, 6);
+        addShards(game, e.x, e.y, 12, SHARD.frost, 9, { speed: 50, life: 0.75, size: 2.3, vz: 50, grav: -40, drag: 2.4 });
         addPuffs(game, e.x, e.y, 4, 1, { speed: 22, size: 1.1, vz: 18, z: 10, life: 0.6 });
+        addRing(game, e.x, e.y, 5, 22, '#e6f1ff', 0.35, 1.8);
+        addScorch(game, e.x, e.y, 8, '#9fb6e8', 0.9);
       } else {
-        addShards(game, e.x, e.y, 4, pal, 12, { speed: 70, life: 0.9, size: 2.6, vz: 90, zr: 12 });
+        addFlash(game, e.x, e.y, 10, 4, 18, '#e9d6ff', 0.16, 6);
+        addShards(game, e.x, e.y, 6, pal, 12, { speed: 72, life: 0.95, size: 2.7, vz: 95, zr: 12 });
+        addShards(game, e.x, e.y, 16, SHARD.leaf, 3, { speed: 45, life: 1.0, size: 2.6, vz: 80, grav: 140 });
         addPuffs(game, e.x, e.y, 3, 0, { speed: 26, size: 0.9 });
+        addRing(game, e.x, e.y, 6, 26, '#f6ecd6', 0.36, 2);
+        addScorch(game, e.x, e.y, 10, '#5a4060', 1.2);
       }
     },
     onHurt(game, p) {
+      addFlash(game, p.x, p.y, 16, 3, 14, '#ffb35c', 0.14, 6);
       addShards(game, p.x, p.y, 16, SHARD.jack, 7, { speed: 70, life: 0.6, size: 2.2, vz: 70 });
       addSparks(game, p.x, p.y, 16, 4, '#ffd27a', { speed: 90 });
     },
     onPickup(game, g) {
-      addSparks(game, g.x, g.y, 6, g.big ? 4 : 2, g.big ? '#bfe6ff' : '#c6ffe9', { speed: 40, vz: 30, life: 0.3, size: g.big ? 3 : 2.2 });
+      addFlash(game, g.x, g.y, 5, 1.5, g.big ? 9 : 6, g.big ? '#bfe6ff' : '#c6ffe9', 0.14, 4);
+      addRing(game, g.x, g.y, 2, g.big ? 12 : 8, g.big ? '#bfe6ff' : '#9ff5d6', 0.3, 1.4);
+      for (let i = 0; i < (g.big ? 5 : 3); i++) {
+        game.addParticle({ x: g.x + (Math.random() - 0.5) * 6, y: g.y, z: 4 + Math.random() * 4, vx: (Math.random() - 0.5) * 12, vy: 0, vz: 34 + Math.random() * 24, life: 0.45 + Math.random() * 0.2, size: g.big ? 2.6 : 2, kind: 'mote', color: g.big ? '#d9f1ff' : '#d6fff0', drag: 2 });
+      }
     },
     onShoot(game, pr) {
       if (Math.random() < 0.5) addPuffs(game, pr.x, pr.y + 4, 1, 3, { speed: 12, size: 0.45, life: 0.3, z: 6, r: 1 });
     },
     onDash(game, p) {
-      addPuffs(game, p.x, p.y, 5, 0, { speed: 30, r: 4, size: 0.85, life: 0.5 });
+      addPuffs(game, p.x - p.dashX * 4, p.y, 5, 0, { speed: 30, r: 4, size: 0.85, life: 0.5 });
+      addRing(game, p.x, p.y, 3, 14, '#f6ecd6', 0.28, 1.6);
     },
     onLevelUp(game, p) {
+      addFlash(game, p.x, p.y, 18, 6, 26, '#ffe27a', 0.22, 8);
       addRing(game, p.x, p.y, 8, 52, '#ffd666', 0.7, 3);
+      addRing(game, p.x, p.y, 6, 34, '#bdf5df', 0.55, 2, 0.12);
+      addShards(game, p.x, p.y, 4, SHARD.gold, 10, { speed: 30, life: 1.2, size: 2.2, vz: 120, grav: 90, em: 1 });
       for (let i = 0; i < 14; i++) {
         const a = Math.random() * TAU;
         game.addParticle({ x: p.x + Math.cos(a) * 12, y: p.y + Math.sin(a) * 6, z: 4 + Math.random() * 16, vx: Math.cos(a) * 10, vy: Math.sin(a) * 6, vz: 30 + Math.random() * 30, life: 0.9 + Math.random() * 0.5, size: 2 + Math.random() * 1.6, kind: 'mote', color: i & 1 ? '#ffe27a' : '#bdf5df', drag: 1 });
       }
     },
     onDeath(game, p) {
+      addFlash(game, p.x, p.y, 16, 6, 28, '#ffb35c', 0.22, 7);
       addShards(game, p.x, p.y, 14, SHARD.jack, 24, { speed: 90, life: 1.3, size: 3, vz: 110, zr: 16 });
       addPuffs(game, p.x, p.y, 6, 0, { speed: 40, size: 1.4 });
+      addScorch(game, p.x, p.y, 12, '#5a4038', 2);
     },
   });
 })();

@@ -3,109 +3,294 @@
   "name": "Crayon Kids",
   "originalName": "Crayon Kids",
   "family": "Hand-drawn · Wax crayon",
-  "tags": ["crayon", "child's drawing", "hand-drawn", "scribble", "boiling lines", "paper texture", "bright", "naive art"],
-  "summary": "A child's wax-crayon drawing brought to life: toothy white paper, zigzag scribble fills that go outside the lines, wobbly boiling outlines.",
-  "description": "Everything looks drawn by a six-year-old with a box of wax crayons on bright white drawing paper. Fills are zigzag scribbles that overshoot the outline or stop short of it, the colour skips on the paper tooth so tiny white specks show through, and every outline is a wobbly black crayon loop that overshoots its own start. Each drawing exists in three slightly different hand-drawn versions that swap seven times a second, so the whole picture boils like animation on paper. Naive proportions (big round heads, stick limbs), lollipop trees, triangle-roof houses, a scribbled blue pond, a brown dirt path and a smiling sun in the corner, with lots of white paper left over.",
-  "mood": ["cheerful", "innocent", "playful", "handmade", "sunny"],
-  "bestFor": ["children's and family games", "cozy or comedic top-down action", "educational and storybook projects", "doodle-themed menus, tutorials and level select screens", "party and casual mobile games"],
-  "avoidFor": ["horror, grit or realism", "dark, moody or neon looks", "precise technical or tactical readouts", "pixel-perfect retro projects"],
+  "tags": [
+    "crayon",
+    "child's drawing",
+    "hand-drawn",
+    "scribble",
+    "boiling lines",
+    "paper texture",
+    "bright",
+    "naive art"
+  ],
+  "summary": "A child's wax-crayon drawing brought to life: toothy paper, layered scribble fills that miss the lines, shade crayons, boiling outlines.",
+  "description": "Everything looks drawn by a six-year-old with a box of wax crayons on bright white drawing paper. Every coloured shape is built up in wax layers: a light wash, a zigzag scribble printed a little off its outline (colouring that misses the lines), a cooler partner crayon hatched along the lower contour as the shade, a light-crayon gloss on top, and a tapered black outline that overshoots its own start – all speckled where the wax skips the paper tooth. Each drawing exists in three redrawn versions that boil at 8 fps with a per-actor phase while poses are held on twos. The world is composed like a picture on the fridge: grassy hills with a zigzag grass fringe, ponds with reeds, villages and striped crop fields along dirt roads, long blue streams crossed on plank bridges, a smiling sun in the corner – and lots of calm white paper.",
+  "mood": [
+    "cheerful",
+    "innocent",
+    "playful",
+    "handmade",
+    "sunny"
+  ],
+  "bestFor": [
+    "children's and family games",
+    "cozy or comedic top-down action",
+    "educational and storybook projects",
+    "doodle-themed menus, tutorials and level select screens",
+    "party and casual mobile games"
+  ],
+  "avoidFor": [
+    "horror, grit or realism",
+    "dark, moody or neon looks",
+    "precise technical or tactical readouts",
+    "pixel-perfect retro projects"
+  ],
   "difficulty": {
-    "stars": 4,
-    "why": "New assets are simple polygons plus three helpers (wax line, zigzag scribble, wobbly closed outline) – naive shapes forgive imprecision and look better when slightly off. The extra work is baking three boil variants per pose and keeping strong black outlines and a white margin so busy scribbles stay readable in crowds."
+    "stars": 5,
+    "why": "New assets are simple polygons fed through one helper ('shape': wash + misregistered zigzag scribble + shade crayon band + optional gloss + wobbly outline) – naive shapes forgive imprecision and look better slightly off. The extra work is posing: walk cycles are computed from a pose table (8 drawings), every drawing is baked in three boil variants, and the ground needs composition rules (what sits next to what) so it reads as a drawn picture rather than scattered stickers."
   },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets): crayon strokes and zigzag scribbles drawn into offscreen canvases, paper tooth punched out with destination-out, baked into sprites and cached ground chunks",
     "pixelArt": false,
     "resolution": "Native resolution. Sprites are baked at K = clamp(round(screenHeight/360 * 1.5 * 4)/4, 2.5, 5) px per world unit (3.75 px/unit at 900 px); the ground is baked in 256-unit chunks at up to 2.5 px/unit (groundResMax 2.5).",
-    "summary": "Every shape is a polygon that gets a light wax layer (flat fill at alpha 0.4), a zigzag scribble whose sweep ends overshoot or fall short of the outline, and a wobbly crayon outline that overshoots its start. A tileable 'tooth' alpha map is then erased out of the wax (destination-out) so the paper shows through, and a paper-white margin is dilated around each sprite. Three variants with different random seeds per pose swap at 7 fps to make the lines boil.",
-    "linework": "Black crayon #2b2a30 outlines on all characters and buildings, 0.9-1.25 units (limbs 1.0-1.25, faces 0.45-0.6); scenery uses a darker shade of its own colour (tree crowns #217a38, trunks brown mixed 40 % toward ink). Lines are resampled every 0.7 units, pushed along the normal by a low-frequency wobble (amplitude 0.2 units, two sines plus 15 % jitter), drawn in pressure runs of 4-9 points with width 0.86-1.08x and alpha 0.8-1, plus a second pass offset by up to 0.32 widths at 0.55x width and alpha 0.5. Closed loops start at a random point, go round once and overshoot by 7-20 % while drifting outwards. Round caps and joins.",
-    "shading": "None in the lighting sense – colour is applied the way a child colours in: a flat wax layer at alpha 0.4 plus zigzag sweeps (spacing 0.85-1.1 units on characters, 2.3-3.2 on the ground) at alpha 0.75-1 with slightly bowed curves. A second scribble in a neighbouring colour (light green over green, blue over sky blue, orange over yellow) gives some areas a two-crayon look. Overlapping strokes get darker naturally.",
-    "lighting": "Flat daylight. No light direction, no glow, no gradients. The only 'light' is a smiling sun drawn in the top right corner of the screen.",
+    "summary": "Every shape is a polygon coloured in wax layers – flat wash (alpha 0.4), zigzag scribble whose sweep ends overshoot or fall short of the edge and which is printed 0.35 units off the outline in a per-sprite direction, a shade band in the colour's cooler partner along the lower contour, an optional light gloss along the top, and a tapered, overshooting black outline. A tileable tooth alpha map is then erased out of the wax (destination-out) and a 0.9-unit paper-white margin is dilated around the sprite. Three variants per drawing boil at 8 fps, each actor on its own phase.",
+    "linework": "Black crayon #2b2a30 outlines on everything that moves and on buildings, 0.9–1.25 units (stick limbs 1.0–1.25, faces 0.35–0.6); scenery is outlined in a darker crayon of its own colour (crowns #217a38, ponds and streams #2a5ec8, roads #94582c, crop fields orange / sepia / dark green). Lines are resampled every 0.7 units, pushed along the normal by a low-frequency wobble (0.2 units, two sines + 15 % jitter), drawn in pressure runs of 4–9 points whose width tapers to 55 % at both ends of the line (the crayon lands, presses, lifts), alpha 0.8–1, plus a lighter second pass offset by up to 0.32 widths. Closed loops start at a random point and overshoot by 7–20 % while drifting outwards.",
+    "shading": "Hue-shifted shade crayons, never a darker copy: each colour has a cooler partner (green→pine #166856, red→crimson #b01c4a, blue and purple→indigo #3a3096, brown→sepia #68382c, grey→slate #606284, skin→salmon #ee8070, pink→magenta #ce3e94, yellow→orange, sky→blue) that is zigzag-hatched in a crescent band along the lower contour – thickest in the middle (34 % of the shape height by default), thinning to the sides. A light partner (yellow over green, sky over blue, white over yellow) adds a single gloss stroke along the top. Big areas (hills, fields) use a second crayon on the upper part and a 13–22-unit up-and-down shade band along their lowest edge.",
+    "lighting": "One light from above for the whole world: shade crayon along every lower contour, gloss on top, shade under roof eaves and tree crowns, the east bank of every stream hatched in indigo, a shadow under every bridge deck. No glow, no gradients; the only light source drawn is the smiling sun in the top-right corner of the screen.",
     "texture": "Paper tooth: a 160 px tileable alpha map built from three periodic Perlin octaves (stretched 1.6:1 horizontally) plus per-pixel noise, thresholded so ~25 % of the wax is erased in clustered specks; applied to every sprite at full strength, to the ground at 0.92, to icons at 0.75 and to numbers at 0.55. The paper itself is a 256 px tile of #fbf8ef with faint mottling (±3 levels), fine grain, rare dark specks and 26 short brown fibres at alpha 0.13."
   },
   "palette": [
-    { "name": "Drawing Paper", "hex": "#fbf8ef", "role": "Ground and the white margin around every drawing (~55 % of the screen)" },
-    { "name": "Black Crayon", "hex": "#2b2a30", "role": "Outlines, stick limbs, eyes, motion lines, HUD ink" },
-    { "name": "Crayon Red", "hex": "#e2362c", "role": "Cape, shoes, roofs, apples, projectile scribble ball, bar fill" },
-    { "name": "Orange", "hex": "#f78b1f", "role": "Sun rays, dragon spikes, star outlines, fish" },
-    { "name": "Sunny Yellow", "hex": "#fdce28", "role": "Sun, stars, dragon belly, house walls, sticky note" },
-    { "name": "Grass Green", "hex": "#42ae3a", "role": "Grass patches, tree crowns, dragon body" },
-    { "name": "Dark Green", "hex": "#217a38", "role": "Grass blade ticks, pine trees, outlines of green scenery" },
-    { "name": "Light Green", "hex": "#9ece3a", "role": "Second grass crayon, sunlit crown scribble" },
-    { "name": "Sky Blue", "hex": "#42a8ea", "role": "Pond scribble, windows, small collectible, clouds, ruler fill" },
-    { "name": "Blue", "hex": "#2a5ec8", "role": "Shirt, pond outline and waves, clock digits" },
-    { "name": "Purple", "hex": "#8c4cc4", "role": "Small scribble monster, dragon wing, counter digits" },
-    { "name": "Dark Purple", "hex": "#5c2c8c", "role": "Tangle lines inside the scribble monster" },
-    { "name": "Pink", "hex": "#f67eb4", "role": "Rosy cheeks, hearts, blossoms, flowers" },
-    { "name": "Brown", "hex": "#94582c", "role": "Hair, trunks, doors, path edges, fence outlines" },
-    { "name": "Tan", "hex": "#d8a262", "role": "Dirt path fill, fence pickets" },
-    { "name": "Peach", "hex": "#fcc698", "role": "Skin: head and hands of the main character" },
-    { "name": "Grey", "hex": "#929098", "role": "Scribbled shadows (alpha 0.1-0.3), rocks, pebbles, smoke, motion trails" },
-    { "name": "Ghost Blue", "hex": "#a8d6f6", "role": "Fast creature (ghost), pond base layer, cloud scribble" }
+    {
+      "name": "Drawing Paper",
+      "hex": "#fbf8ef",
+      "role": "Ground and the white margin around every drawing (~45 % of the screen)"
+    },
+    {
+      "name": "Black Crayon",
+      "hex": "#2b2a30",
+      "role": "Outlines, stick limbs, eyes, crossing-out scribble, HUD ink"
+    },
+    {
+      "name": "Crayon Red",
+      "hex": "#e2362c",
+      "role": "Cape, shoes, roofs, apples, the scribble-ball projectile, bar fill, tulips"
+    },
+    {
+      "name": "Orange",
+      "hex": "#f78b1f",
+      "role": "Sun rays, back spikes, wheat rows and outline, the yellow shade crayon"
+    },
+    {
+      "name": "Sunny Yellow",
+      "hex": "#fdce28",
+      "role": "Sun, stars, belly, house walls, wheat fields, horns"
+    },
+    {
+      "name": "Grass Green",
+      "hex": "#42ae3a",
+      "role": "Hills, tree crowns, the large creature body, tulip-field rows"
+    },
+    {
+      "name": "Dark Green",
+      "hex": "#217a38",
+      "role": "Grass fringe and tufts, pines, outlines of green scenery, sprouts"
+    },
+    {
+      "name": "Light Green",
+      "hex": "#9ece3a",
+      "role": "Second hill crayon, sunlit crowns, tulip-field base"
+    },
+    {
+      "name": "Sky Blue",
+      "hex": "#42a8ea",
+      "role": "Pond and stream strokes, windows, small collectible, clouds, ruler fill"
+    },
+    {
+      "name": "Blue",
+      "hex": "#2a5ec8",
+      "role": "Shirt, deep water, pond and stream banks, clock digits"
+    },
+    {
+      "name": "Purple",
+      "hex": "#8c4cc4",
+      "role": "Small scribble creature, the large creature's back plates, counter digits"
+    },
+    {
+      "name": "Pink",
+      "hex": "#f67eb4",
+      "role": "Rosy cheeks, hearts, blossoms, tulips, lily flowers"
+    },
+    {
+      "name": "Brown",
+      "hex": "#94582c",
+      "role": "Hair, trunks, doors, road edges and ruts, bridge rails, scarecrow pole"
+    },
+    {
+      "name": "Tan",
+      "hex": "#d8a262",
+      "role": "Road fill, bridge deck, ploughed fields, fence pickets, scarecrow head"
+    },
+    {
+      "name": "Peach",
+      "hex": "#fcc698",
+      "role": "Skin: head and hands of the main character"
+    },
+    {
+      "name": "Grey",
+      "hex": "#929098",
+      "role": "Rocks, pebbles, stepping stones, chimney smoke"
+    },
+    {
+      "name": "Ghost Blue",
+      "hex": "#a8d6f6",
+      "role": "Fast creature (sheet ghost), water wash, cloud scribble"
+    },
+    {
+      "name": "Pine",
+      "hex": "#166856",
+      "role": "Shade crayon of all greens: lower hill band, crown shade, hill lower edge"
+    },
+    {
+      "name": "Crimson",
+      "hex": "#b01c4a",
+      "role": "Shade crayon of red: cape folds, roof shade, shoes, bar shade"
+    },
+    {
+      "name": "Indigo",
+      "hex": "#3a3096",
+      "role": "Shade crayon of blue and purple: shirt, deep water, stream east bank, bridge shadow"
+    },
+    {
+      "name": "Sepia",
+      "hex": "#68382c",
+      "role": "Shade crayon of brown and tan: trunks, plank seams, furrows, dirt ticks"
+    },
+    {
+      "name": "Slate",
+      "hex": "#606284",
+      "role": "Contact shadows, construction sketch of the drawn-in entrance, rock shade, motion lines"
+    }
   ],
   "paletteRules": [
-    "Only straight-from-the-box crayon colours: fully saturated, no pastels except ghost blue, no mixing beyond two crayons scribbled on top of each other.",
-    "White paper stays the dominant colour – roughly half the screen is uncoloured paper with only sparse doodles.",
-    "Characters and buildings get black crayon outlines; plants, ponds and paths are outlined in a darker crayon of their own colour.",
-    "Every sprite has a 0.9-unit paper-white margin, like a child colouring the background around a figure – the figure never touches coloured ground directly.",
-    "No gradients, no glow, no transparency effects except fading particles – colour intensity comes only from scribble density and the paper tooth."
+    "Only straight-from-the-box crayon colours: fully saturated, no pastels except ghost blue and the paper.",
+    "Every colour is shaded with its cooler partner crayon (pine, crimson, indigo, sepia, slate, salmon, magenta) and lit with a lighter partner – never with black, grey or a darker copy of itself.",
+    "White paper stays the dominant colour – roughly 40–50 % of the screen is uncoloured paper; colour sits in composed regions (hills, fields, water, roads), not sprinkled everywhere.",
+    "Characters and buildings get black crayon outlines; plants, water, roads and fields are outlined in a darker crayon of their own colour.",
+    "Every sprite has a 0.9-unit paper-white margin, like a child colouring the background around a figure.",
+    "No gradients, no glow, no soft transparency except fading particles – intensity comes from scribble density, layer count and the paper tooth."
   ],
   "typography": [
-    { "family": "Gochi Hand", "weights": [400], "role": "Counters, card titles, bar labels, caption names, floating numbers", "source": "Google Fonts", "sample": "12:30", "css": "font: 400 40px/1 'Gochi Hand', cursive; letter-spacing: 1px; color: #2a5ec8;" },
-    { "family": "Patrick Hand", "weights": [400], "role": "Body copy, card descriptions, hints, HUD labels", "source": "Google Fonts", "sample": "Short card text", "css": "font: 400 19px/1.25 'Patrick Hand', cursive; color: #57545e;" },
-    { "family": "Caveat Brush", "weights": [400], "role": "Big panel titles, written in rainbow crayon", "source": "Google Fonts", "sample": "Panel title", "css": "font: 400 88px/1 'Caveat Brush', cursive; background: linear-gradient(90deg, #e2362c 0 17%, #f78b1f 17% 33%, #e0b400 33% 50%, #42ae3a 50% 67%, #2a5ec8 67% 83%, #8c4cc4 83%); -webkit-background-clip: text; background-clip: text; color: transparent; transform: rotate(-2.5deg);" },
-    { "family": "Schoolbell", "weights": [400], "role": "Small handwritten family / category labels", "source": "Google Fonts", "sample": "Hand-drawn", "css": "font: 400 14px/1.2 'Schoolbell', cursive; color: #217a38;" }
+    {
+      "family": "Gochi Hand",
+      "weights": [
+        400
+      ],
+      "role": "Counters, card titles, bar labels, caption names, floating numbers",
+      "source": "Google Fonts",
+      "sample": "12:30",
+      "css": "font: 400 40px/1 'Gochi Hand', cursive; letter-spacing: 1px; color: #2a5ec8;"
+    },
+    {
+      "family": "Patrick Hand",
+      "weights": [
+        400
+      ],
+      "role": "Body copy, card descriptions, hints, HUD labels",
+      "source": "Google Fonts",
+      "sample": "Short card text",
+      "css": "font: 400 19px/1.25 'Patrick Hand', cursive; color: #57545e;"
+    },
+    {
+      "family": "Caveat Brush",
+      "weights": [
+        400
+      ],
+      "role": "Big panel titles, written in rainbow crayon",
+      "source": "Google Fonts",
+      "sample": "Panel title",
+      "css": "font: 400 88px/1 'Caveat Brush', cursive; background: linear-gradient(90deg, #e2362c 0 17%, #f78b1f 17% 33%, #e0b400 33% 50%, #42ae3a 50% 67%, #2a5ec8 67% 83%, #8c4cc4 83%); -webkit-background-clip: text; background-clip: text; color: transparent; transform: rotate(-2.5deg);"
+    },
+    {
+      "family": "Schoolbell",
+      "weights": [
+        400
+      ],
+      "role": "Small handwritten family / category labels",
+      "source": "Google Fonts",
+      "sample": "Hand-drawn",
+      "css": "font: 400 14px/1.2 'Schoolbell', cursive; color: #217a38;"
+    }
   ],
   "world": {
-    "summary": "One endless sheet of bright, slightly toothy drawing paper with a few things coloured in: big scribbled grass patches, small blue scribble ponds with an outline, winding brown dirt paths and sparse tiny doodles. Lots of white paper is left.",
+    "summary": "One endless sheet of toothy drawing paper composed like a child's picture: lumpy grassy hills (often with an orchard, a pine grove or a flower bed, ponds at their edges), a network of long wavy dirt roads with villages above them and striped crop fields beside them, long blue streams far apart that the roads cross on plank bridges, and big calm areas of white paper with rare doodles.",
     "layers": [
       "Paper: 256 px tile of #fbf8ef with faint mottling, grain, specks and fibres, drawn underneath everything last with destination-over.",
-      "Grass patches (one per 270-unit cell at 70 % chance, radius 55-118 units, lumpy ellipses from 3rd + 5th harmonics): light green wax layer at alpha 0.12, then short zigzag patches (30-unit cells, sweep spacing 2.5, width 2.7, angle -0.95..-0.25 ±0.4 per cell) whose ends overshoot the edge by up to 3.4 units – the edge looks spiky like grass. A second crayon on a sub-area, dark green tick tufts (~1 per 360 sq units) and blades sticking out along the edge.",
-      "Ponds (one per 560-unit cell at 66 %, radius 42-78, kept away from paths): a white margin is erased into the grass first, then a ghost-blue wax layer, sky-blue zigzag cells, a darker blue scribble in the lower middle, a blue 1.5-unit outline that overshoots, 3-5 little wave arcs, sometimes a lily pad with a pink flower or an orange fish.",
-      "Dirt paths (horizontal every 760 units, vertical every 1100, sine-wobbled, 21 units wide): a band is erased, tan wax at alpha 0.24, lengthwise tan strokes 2.6-3.4 units wide, short brown dirt dashes, two wobbly brown 1.3-unit edges, grey outlined pebbles. Drawn in 36-unit segments seeded by segment index so chunks join seamlessly.",
-      "Doodles on the paper (40-unit jittered grid): grass tufts, five-dot flowers, pebble pairs, butterflies, and rare stars, hearts and spirals.",
+      "Hills (one per 430-unit cell at 84 %, main lobe radius 66–114 plus 1–3 overlapping lobes; never within the hill's half-width + 26 of a stream): green or light-green wash at alpha 0.1, 30-unit scribble cells (spacing 2.5, width 2.7, one hand direction per hill, overshoot 3.2), a second crayon on the upper 55 %, an up-and-down shade band 13–22 units tall in pine along the lowest contour of the whole hill, a dark-green 'WWW' grass fringe along every upper edge, a firm pine line along the lower edges, 2–4 tuft clusters near the upper rim and sometimes one tight flower bed.",
+      "Ponds (45 % of hills, radius 30–50, sitting on the hill edge): a white margin is erased into the grass, pale wash, sky-blue scribble cells, a deeper blue scribble in the lower middle, an indigo shade band, a paper-white glint near the top, a 1.5-unit blue outline, grey stones on the lower bank, a lily-pad cluster with a pink flower or an orange fish.",
+      "Crop fields (one per 380-unit road stretch at 64 %, 118–176 × 58–86 units, 13–22 units off the road, above or below it, never touching hills, ponds, houses or streams): the edge along the road follows its curve, the far edge is freehand. Three kinds: wheat (yellow base, orange rows every 6.4 units with small V ears), ploughed earth (tan base, sepia furrows every 6 units with a lighter ridge and green sprouts), tulip rows (light-green base, green rows every 8.6 units, cup-shaped tulips in red, pink, yellow or purple per row). Shade band along the lower edge and an outline in the field's dark crayon.",
+      "Streams (one every 2300 units, meandering ±220 units, half width 9): white margin erased, ghost-blue wash, lengthwise sky-blue strokes in 36-unit segments with deeper blue in the middle third, indigo shade along the east bank, a white glint near the west bank, grass tuft clusters and stones on the banks, 1.35-unit blue banks. Side roads never run within 110 units of a stream.",
+      "Dirt roads (horizontal every 760 units, side roads every 1100 units that only link some pairs of roads, 21 units wide): band erased, tan wax at 0.24, lengthwise tan strokes, brown ruts along the lower edge, sepia dirt ticks, wobbly brown 1.3-unit edges, grey pebble groups; grass tufts lean in where a road crosses a hill. Segments are seeded by index so chunks join seamlessly.",
+      "Plank bridges where a road crosses a stream: an indigo shadow scribbled on the water below, an opaque tan deck 2 × 7 units wider than the stream, sepia plank seams across the road every 2.5–3.1 units, two 1.7-unit brown rails with five sepia posts each.",
+      "Stepping stones from each front door down to the road; paper doodles (rare clusters of stars, hearts, spirals and a butterfly on a 330-unit grid at 32 %) only in open paper away from roads, water, hills and fields.",
       "Paper tooth erased over the whole chunk (world-aligned pattern, alpha 0.92) so every crayon mark is speckled."
     ]
   },
   "characters": {
-    "summary": "Naive child-drawn figures with black crayon outlines and scribbled colour: a kid in a red cape (big round peach head, spiky brown hair, dot eyes, smile, pink cheeks, blue shirt with a yellow star, stick limbs, red shoes), a purple scribble monster with googly eyes and a toothy mouth, a pale-blue ghost with a zigzag tail and mitten arms, and a big green scribble dragon with a yellow belly, orange back spikes, a purple wing and a smoking nose.",
+    "summary": "Naive child-drawn figures in wax layers with black outlines: a kid in a red cape holding a big orange crayon (round peach head, spiky brown hair with a springy curl, dot eyes, smile, pink cheeks, blue shirt with a yellow star, stick limbs, red shoes), a purple scribble creature with yellow horns, googly eyes and a toothy mouth, a pale-blue sheet ghost with a long zigzag tail and mitten arms, and a big green scribble dragon with a yellow belly, purple back plates, orange spikes and a smoking nose.",
     "rules": [
-      "Main character ~30 units tall and ~20 wide (cape included); the head is about 14 units – almost half the height. Small creature ~20x20, fast creature ~22x20, large creature ~58x48.",
-      "Every figure: polygon parts filled with wax layer + zigzag scribble, then a black wobbly outline 0.9-1.25 units. Limbs are single black crayon lines 1.0-1.25 units with round blobs for hands and feet.",
-      "Faces: solid black dot or oval eyes with a tiny white highlight (or white googly eyes with black pupils), a thin smile or open mouth, pink scribbled cheeks. Faces are shifted toward the facing side.",
-      "Three boil variants per pose (different random seeds, same geometry) swap at 7 fps for everything at once. Walk cycles have 4 frames, idle 2, dash 1; facing left is a mirrored copy.",
-      "A 0.9-unit paper-white margin is dilated around each sprite so figures read on green grass and blue water.",
-      "Hit: the sprite is overlaid with a white tint (alpha up to 0.85) and jitters sideways by ±1.2 units. Hurt main character: red tint overlay. Spawn: the sprite is revealed from top to bottom with a crayon tip moving along the edge. Removal: a black scribble crosses it out in three steps, then it shrinks and fades."
+      "Main character ~30 units tall and ~18 wide (22 with the cape tip); the head is about 14 units – almost half the height. Small creature ~20 × 22, fast creature ~22 × 22, large creature ~60 × 48.",
+      "Every part goes through the same wax layers as the scenery (wash, misregistered scribble, shade crayon, gloss) and gets a black wobbly outline 0.9–1.25 units. Limbs are single black crayon lines with round blobs for hands and feet.",
+      "Faces: black oval eyes with a tiny white highlight (or white googly eyes with lagging black pupils), a thin smile or open mouth, pink scribbled cheeks; the face sits toward the facing side.",
+      "Poses are computed from a pose table (body bob, lean, foot positions and lift, hand positions, hair-curl angle, cape hem wave) and baked: main character walk 8 drawings (contact – down – passing – up per side, arms counter-swing, head and hair curl lag the body, cape hem a quarter cycle late), idle 4 drawings played in a held sequence (neutral, breathe in, crayon lifted, blink), dash 2, hurt 1 (knocked back, arms flung up, eyes squeezed shut). Creatures have 6 drawings each.",
+      "Three boil variants per drawing (different seeds, same pose). Each actor reads boil index floor(t × 8 + phase × 5.3) mod 3 with its own phase, so a crowd never flickers in lock-step; poses advance on twos.",
+      "Hit (~110 ms): two held drawings – a hard squash 1.2 × 0.84 leaning away from the blow with a paper-white flash at 88 %, then half of it. Hurt main character: the hurt drawing for 0.12 s with a red tint, then a 12 Hz blink.",
+      "Removal (0.35 s): struck (squash + flash), then scribbled out in three levels of black zigzag while it shivers ±0.7 units, then it melts flat (x 1.35, y down to 0.12) while the scribble knot drops to the ground; a colour smudge stays on the paper for 2.6 s.",
+      "Entrance (0.45 s): a grey construction sketch is drawn left to right with a crayon tip running ahead (0–30 %), colour is filled in from the top with the crayon zigzagging along the fill edge (30–88 %), then the finished drawing pops with a squash & stretch."
     ]
   },
   "props": {
-    "summary": "Kid-drawing scenery standing on the paper: lollipop trees (plain, apple, blossom), a star-topped pine made of three triangles, houses with triangle roofs, chimney puffs, cross windows and a round attic window, flower clusters and sunflowers, berry bushes, grey rocks, a picket fence and a rainbow on two clouds.",
+    "summary": "Kid-drawing scenery in designed variants: trees (round apple tree, tall poplar with sun dapples, wide blossom tree), pines (three tiers, or two tiers with cones), houses (yellow classic, tall pink two-storey, wide sky-blue cottage with a flower box) with chimney puffs, flower bunches and a sunflower, berry bushes, rocks, a picket fence, a rainbow on two clouds, cattail and grass reeds, and scarecrows (straw hat + red shirt, or floppy hat + blue shirt with a crow on the arm).",
     "rules": [
-      "Same pipeline as characters: wax layer + scribble + wobbly outline, paper tooth, white margin, three boil variants.",
-      "Houses and roofs use black outlines; plants and rocks use a darker crayon of their own colour.",
-      "Sizes: lollipop tree ~32x48 units, pine ~24x42, house ~43x58 (walls 34x25, roof apex 43 up), fence ~40x16, bush ~24x16, flowers ~16x14, sunflower ~14x30, rainbow ~45x24.",
-      "Each prop stands on a few green tick tufts (a child's ground line) and a light grey scribbled shadow.",
-      "Houses line the horizontal paths (one per 300-unit segment at 38 %); trees, pines, bushes and flowers gather on grass patches; open paper gets only sparse rocks, flowers, bushes and the rare rainbow."
+      "Same pipeline as characters: wax layers, black outline on houses and scarecrows, own-colour outline on plants and rocks, paper tooth, white margin, three boil variants.",
+      "Sizes: apple tree ~32 × 48 units, poplar ~20 × 55, pine ~26 × 40, house 35–51 wide (roof) and 34–56 tall, fence ~40 × 16, bush ~24 × 16, flowers ~16 × 14, sunflower ~14 × 30, rainbow ~45 × 24, reeds ~12 × 18, scarecrow ~28 × 46.",
+      "Every prop stands on a few green tick tufts (the child's ground line) and a light slate scribble shadow.",
+      "Composition, not scatter: houses sit above the roads in villages with a fence, a flower bunch and sometimes a tree; orchards fill hill centres, pine groves line the upper rim, bushes sit on hill edges; reeds and rocks gather on pond and stream banks; scarecrows stand in wheat and ploughed fields, fences run along the field edges, a bush or flowers at a field corner; open paper gets only roadside stones, rare flowers and the very rare rainbow.",
+      "Wind: trees, pines, flowers, bushes, reeds and scarecrows shear sideways by 1.4–7.5 % on held drawings (twos); the gust phase follows x so a gust travels across the picture."
     ]
   },
   "effects": [
-    { "name": "Projectile", "how": "A tight red scribble ball (lumpy circle r 3.6, red wax at 0.6 plus a random looping red line and a dark red outline) spinning, with three short grey/red motion lines trailing behind." },
-    { "name": "Collectibles", "how": "Small: a sky-blue kid diamond (flat top, V bottom) with a blue outline, facet lines and a white dot. Large: a yellow five-point star with an orange outline and a tiny smiling face, rocking gently. Both bob and boil." },
-    { "name": "Orbiting objects", "how": "Wax crayons (16x4.4 units: coloured body, lighter paper wrapper with a black zigzag, pointed tip) flying tangentially around the main character, with two short grey motion lines behind." },
-    { "name": "Impact", "how": "A small zigzag lightning stroke in yellow, orange or sky blue at the hit point plus two short wax crumbs in the creature's colours that hop and fall." },
-    { "name": "Burst", "how": "A spiky yellow 'pow' star (9 spikes, red outline, orange scribble centre) that pops to 1.1x and fades, stars and hearts flying out, 4-12 wax crumbs, and a fading scribble mark left on the paper for 2.6 s." },
-    { "name": "Collect", "how": "A small yellow star or a pink scribbled heart floats up from the collectible and fades." },
-    { "name": "Glow-up", "how": "A double yellow/orange scribbled ring expands around the main character while eight stars and hearts fly outwards; stars circle the character while the effect lasts." },
-    { "name": "Dash", "how": "Three black motion lines behind the character, a faint after-image and little grey-outlined cloud puffs left on the ground." }
+    {
+      "name": "Projectile",
+      "how": "A tight red scribble ball (lumpy circle r 3.7, red wax 0.6, a random looping red line, crimson outline) tumbling in held 45° steps, with a grey/red motion-line trail that grows in over the first 0.12 s and an occasional slate puff where it leaves."
+    },
+    {
+      "name": "Collectibles",
+      "how": "Small: a sky-blue diamond (flat top, V bottom) with a blue shade band, facet lines and a white dot. Large: a yellow five-point star with an orange shade band and outline and a tiny smiling face, rocking. Both bob on twos and get a four-point twinkle for two drawings every ~1.7 s."
+    },
+    {
+      "name": "Orbiting objects",
+      "how": "Wax crayons (17 × 5 units: coloured body, lighter paper wrapper with a black zigzag, pointed tip) flying tangentially around the main character in turning colours, wobbling ±0.35 rad on twos, with two short slate motion lines behind."
+    },
+    {
+      "name": "Impact",
+      "how": "Layered: black impact dashes for 0.13 s (two drawings) → a coloured zigzag bolt for 0.3 s → three wax crumbs in the creature's colours that hop with gravity and bounce."
+    },
+    {
+      "name": "Burst",
+      "how": "Layered: a spiky yellow 'pow' star (9 spikes, red outline, orange scribble centre) that pops 0.6 → 1.22 → 1.05 in two drawings, holds and shrinks, plus black impact dashes → stars and swirls flying out → crayon shavings and crumbs falling with gravity → a colour smudge scribbled on the paper for 2.6 s."
+    },
+    {
+      "name": "Collect",
+      "how": "A four-point twinkle (0.22 s) → three to five crayon shavings flicked outward in yellow and sky blue (0.26 s, heavy drag) → a small star or a pink heart floats up and fades."
+    },
+    {
+      "name": "Glow-up",
+      "how": "Sun rays and a rainbow loop (red, orange, yellow, green, sky, purple) turn around the main character in held drawings and grow, five stars and hearts circle outward, the whole thing fades over 0.67 s."
+    },
+    {
+      "name": "Dash",
+      "how": "Speed lines behind the character, a 25 % after-image 11 units back, the two dash drawings alternating at 12 fps with a slight stretch, and three slate-outlined cloud puffs left on the ground."
+    }
   ],
   "atmosphere": {
-    "summary": "Flat daylight on a sheet of paper: a smiling crayon sun in the top-right corner, two outlined clouds drifting along the top edge, strips of masking tape in two corners and a very soft brownish edge darkening, as if the drawing were taped to a table.",
+    "summary": "Daylight on a sheet of paper with one light from above: shade crayons along every lower contour, a smiling crayon sun in the top-right corner, two outlined clouds drifting along the top edge, masking tape in two corners and a very soft brownish edge darkening, as if the drawing were taped to a table. White ripple marks come and go on ponds and drift down the streams.",
     "rules": [
-      "Shadows are light grey zigzag scribbles (wax layer alpha 0.1 plus scribble alpha 0.3) in flattened ellipses under every figure and prop – never dark, never blurred.",
-      "The sun (radius 23 units, 12 rays alternating yellow and orange, black dot eyes, big smile, pink cheeks) sits 34 units in from the top-right corner, sways ±0.06 rad and boils with everything else.",
-      "Clouds: scalloped white shapes with a pale-blue scribble and a sky-blue outline, ~64x24 units, drifting 5-8 units per second along the top 40 units.",
-      "Masking tape: 62x15-unit beige strips rgba(238,226,186,.82) with zigzag torn ends and a soft drop shadow, laid diagonally into the top-left and bottom-right corners.",
-      "Edge darkening: 7 % of the screen height on every side, rgba(150,120,70,0.13) fading to 0. No vignette in the centre, no colour grading."
+      "Contact shadows are light slate zigzag scribbles (wash 0.07 + scribble 0.28) in flattened ellipses under every figure and prop – never dark, never blurred; the ghost's shadow shrinks as it bobs up, a dying creature's shadow fades.",
+      "The sun (radius 23 units, 12 rays alternating yellow and orange, orange shade band, white gloss, black eyes that blink, big smile, pink cheeks) sits 34 units in from the top-right corner, sways and boils with everything else.",
+      "Clouds: scalloped white shapes with a pale-blue scribble, a sky-blue shade band and outline, ~64 × 24 units, drifting along the top 40 units.",
+      "Masking tape: 62 × 15-unit beige strips rgba(238,226,186,.82) with zigzag torn ends and a soft drop shadow, diagonal in the top-left and bottom-right corners.",
+      "Edge darkening: 7 % of the screen height on every side, rgba(150,120,70,0.13) fading to 0. No vignette, no colour grading.",
+      "Ambient water: up to 4 white ripple marks per pond and one every ~41 units of stream fade in and out on their own beats (held on twos); stream marks drift 26 units downstream per cycle."
     ]
   },
   "ui": {
@@ -113,29 +298,30 @@
     "css": ".scrap { position: relative; padding: 7px 16px 7px 9px; background: #fffdf6; box-shadow: 1px 2px 0 rgba(60,50,30,.10), 3px 5px 10px rgba(60,50,30,.12); transform: rotate(-1.4deg); }\n.scrap::before { content: ''; position: absolute; left: 44%; top: -10px; width: 58px; height: 18px; transform: rotate(-5deg); background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 40%), rgba(238,226,186,.85); box-shadow: 0 1px 2px rgba(80,60,30,.18); clip-path: polygon(0 8%, 6% 0, 12% 10%, 88% 0, 94% 8%, 100% 0, 100% 92%, 94% 100%, 88% 90%, 12% 100%, 6% 92%, 0 100%); }\n.bar { position: relative; width: 232px; height: 22px; overflow: hidden; background: #fff; border: 2.5px solid #2b2a30; border-radius: 12px 5px 10px 4px / 5px 10px 4px 12px; }\n.bar-fill { height: 100%; background: repeating-linear-gradient(-58deg, rgba(226,54,44,.95) 0 3.5px, rgba(226,54,44,.6) 3.5px 6px); clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 25%, calc(100% - 5px) 50%, 100% 75%, calc(100% - 6px) 100%, 0 100%); }\n.ruler { position: relative; height: 26px; overflow: hidden; border: 2px solid #8a6326; border-radius: 3px; background: repeating-linear-gradient(90deg, rgba(110,70,25,.8) 0 1.5px, transparent 1.5px 12px) 6px 0 / 100% 7px no-repeat, repeating-linear-gradient(90deg, rgba(110,70,25,.8) 0 2px, transparent 2px 60px) 6px 0 / 100% 12px no-repeat, linear-gradient(180deg, #fbe08a, #f1c75a); }\n.ruler-fill { position: absolute; left: 0; top: 12px; bottom: 3px; background: repeating-linear-gradient(-62deg, rgba(66,168,234,.95) 0 3px, rgba(66,168,234,.55) 3px 5px); }\n.sticky { padding: 8px 26px 6px; background: linear-gradient(180deg, #fff6a8, #ffec7e); transform: rotate(1.6deg); border-radius: 2px 3px 14px 2px; box-shadow: 2px 4px 0 rgba(60,50,30,.12); font: 400 40px/1 'Gochi Hand', cursive; color: #2a5ec8; }\n.card { position: relative; width: 232px; min-height: 304px; padding: 42px 18px 22px; background: #fffdf6; border: 3px solid #e2362c; border-radius: 18px 6px 22px 5px / 6px 20px 6px 18px; transform: rotate(-2deg); box-shadow: 0 0 0 1.5px rgba(226,54,44,.35), 3px 6px 0 rgba(60,50,30,.12); }\n.card-key { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font: 400 21px 'Gochi Hand', cursive; color: #e2362c; border: 2.5px solid currentColor; border-radius: 52% 46% 55% 44% / 48% 55% 45% 52%; }"
   },
   "motion": [
-    "Boil: every drawing has three variants that all swap together 7 times a second – the whole picture is redrawn like animation on paper. The ground does not boil.",
-    "Walk cycles: 4 frames with a 1.3-unit bounce, legs swinging ±3 units, the cape tip fluttering; idle: 2 frames with a 0.6-unit breath; dash: 1 pose leaning into a superhero punch with the cape streaming flat.",
-    "Small creatures bounce 1.4 units per step with arms up; the ghost floats 2.4 units high, bobbing ±1.4 at 3.4 rad/s while its zigzag tail waves; the dragon stomps with a 1.6-unit bob and flaps its wing ±2.2 units.",
-    "Spawn: revealed top to bottom over 0.45 s with a crayon tip scribbling along the edge. Removal: crossed out in three steps of black scribble (0-0.36 of the time), then shrinks to 50 % and fades.",
-    "Particles pop in fast (pow scales 0.5 to 1.1 in 15 % of its life) and fade in the last 35-40 %; crumbs hop with gravity and bounce; floating numbers are handwritten, tilt ±10° and overshoot to 1.1x."
+    "Two clocks: poses advance on twos (12 fps, held drawings) and the line boil swaps three variants at 8 fps with a per-actor phase (floor(t × 8 + phase × 5.3) mod 3). The ground never boils; props boil at 70 % speed.",
+    "Main character walk: 8 drawings with a 1.35-unit dip at contact, 2.5-unit foot lift on the passing pose, arms counter-swinging ±3.4 units, head trailing the body by 0.75 rad of the cycle, hair curl swinging ±0.5 rad two beats late, cape hem wave a quarter cycle late. Idle: 4 drawings in a 12-step held sequence (blink and crayon fidget on irregular beats). Dash: 2 drawings at 12 fps.",
+    "Small creature: 6-drawing waddle, squash 1.07 × 0.92 on contact and stretch on the passing pose, arms and googly pupils lag. Ghost: 6 drawings at 9 fps, a wave travels down the zigzag tail, bob on its own phase. Dragon: 6 heavy drawings, the body dips 2.4 units on each stomp, head, wing and tail follow late.",
+    "Hit 80–150 ms (two held drawings), removal 0.35 s (struck – scribbled out – melted), entrance 0.45 s (sketched – coloured in – pop) – see characters.",
+    "Particles pop in fast and fade in the last 30–40 % of their life; crumbs and shavings hop with gravity and bounce; rotations are held in 0.4-rad steps; floating numbers are handwritten, tilt ±10° and overshoot to 1.1×.",
+    "Ambient: props shear in a travelling wind gust on twos; pond and stream ripples fade in and out on their own beats; clouds drift slowly along the top; everything ambient is slower than the actors."
   ],
   "do": [
-    "Let scribbles overshoot and fall short of the outline – colouring outside the lines is the point.",
+    "Colour every shape in layers: wash, zigzag scribble printed slightly off the outline, cooler shade crayon along the bottom, light gloss on top, wobbly overshooting outline.",
+    "Shade with the partner crayon (green → pine, red → crimson, blue → indigo, brown → sepia) – one light from above for the whole picture.",
     "Keep a black wobbly outline on everything that moves and on buildings, so busy scribbles still read.",
-    "Leave lots of white paper; colour only patches, ponds and paths.",
-    "Bake three variants of every drawing with different seeds and swap them in sync at about 7 fps.",
-    "Erase a paper-tooth texture out of every crayon mark so white specks show through the wax.",
-    "Use naive kid shapes: big round heads, stick limbs, lollipop trees, triangle roofs, a sun with a face.",
-    "Leave a paper-white margin around figures and props when they stand on coloured ground."
+    "Compose the ground: ponds at hill edges, reeds on banks, villages above roads, fields beside them, bridges where roads meet streams – and leave big calm areas of paper.",
+    "Bake three variants of every drawing and give each actor its own boil phase; hold poses on twos.",
+    "Design the entrance and removal in the medium: being drawn in, being scribbled out.",
+    "Erase a paper-tooth texture out of every crayon mark so white specks show through the wax."
   ],
   "dont": [
     "No smooth vector fills, gradients, glows or soft airbrush shading.",
-    "No perfectly closed or perfectly straight lines – a ruler-straight edge breaks the illusion (except the UI ruler).",
+    "No perfectly closed or ruler-straight lines (except the UI ruler).",
     "Don't fill large areas with one long continuous hatch; colour them in short back-and-forth patches with varying angles.",
-    "Don't use muted, pastel or desaturated palettes – it must look like a fresh crayon box.",
-    "Don't add realistic perspective, anatomy or lighting.",
-    "Don't boil the ground or let variants swap per object at random times – the boil is one global beat.",
+    "Don't shade with black, grey or a darker version of the same colour – always the cooler partner crayon.",
+    "Don't sprinkle tiny doodles evenly over the paper; cluster details where something is (banks, yards, field edges).",
+    "Don't let a crowd boil in sync or animate smoothly at 60 fps – it stops looking hand-drawn.",
     "Don't drop the outlines on characters to make them 'softer'; they disappear into the scribbles."
   ],
-  "performance": "All characters, creatures, props, particles, shadows and icons are baked once in init into canvases (variant 0 of every pose eagerly, variants 1-2 lazily inside the ground-chunk generator and in a 1.5 ms per-frame budget) – about 580 ms of init. Per frame everything is a drawImage blit (rotated blits for particles, projectiles and orbiting crayons), around 1-2 ms for a dense scene with 60+ actors. Ground chunks (256 units, up to 640x640 px) are built in a generator that yields after every patch, pond and path: 10-20 ms each, spread over frames. The screen overlay (sun, clouds, tape, edge darkening) is baked per screen size."
+  "performance": "All characters, creatures, props, particles, shadows and icons are baked into canvases: variant 0 of every drawing eagerly in init, variants 1–2 lazily (inside the ground-chunk generator and a 1.5 ms per-frame budget). Per frame everything is a drawImage blit (rotated / sheared blits for particles, projectiles, orbiting crayons and swaying props) plus a few ripple marks – about 1.6–2 ms for a dense stage scene with 60+ actors. Ground chunks (256 units, up to 640 × 640 px) are built in a generator that yields after every hill, field, stream, pond and road: ~12–25 ms each (median ~18 ms), spread over frames. Hill, field, side-road and stream lookups are cached per cell. The screen overlay (sun, clouds, tape, edge darkening) is baked per screen size."
 }

@@ -3,12 +3,36 @@
   "name": "Toy Bricks",
   "originalName": "Toy Bricks",
   "family": "3D Look · Toy Bricks",
-  "tags": ["toy bricks", "studs", "glossy plastic", "3d look", "toy box", "primary colours", "diorama"],
+  "tags": [
+    "toy bricks",
+    "studs",
+    "glossy plastic",
+    "3d look",
+    "toy box",
+    "primary colours",
+    "diorama"
+  ],
   "summary": "A toy-box world of glossy plastic bricks: stud-covered baseplates, tiled roads, transparent-blue water plates and a little toy figure.",
-  "description": "Everything is built from interlocking plastic parts seen from a steep 3/4 front view: bricks, plates, smooth tiles and round bricks, each baked to sprites at startup by a small cell renderer that gives every part a glossy front gradient, a sheen band, lit rims, dark gaps to its neighbours and a round stud with a highlight crescent on every open top. The ground is a green baseplate covered in studs, with raised lime and grey plates, smooth grey road tiles with white lane dashes and transparent-blue water plates. The main character is a molded toy figure with a yellow cylinder head, printed face and claw hands; creatures are a brick beetle with eye studs, a translucent ghost piece and a brick-built robot. Saturated toy-box primaries, crisp and cheerful.",
-  "mood": ["playful", "cheerful", "tactile", "bright", "nostalgic"],
-  "bestFor": ["family and kids games", "top-down action and arena games", "builder and sandbox games", "puzzle and party games", "casual mobile games"],
-  "avoidFor": ["horror or grim drama", "realistic or painterly worlds", "organic, soft-bodied character animation"],
+  "description": "Everything is built from interlocking plastic parts seen from a steep 3/4 front view: bricks, plates, smooth tiles and round bricks, each baked to sprites at startup by a small cell renderer that gives every part a glossy front gradient, a sheen band, lit rims, dark gaps to its neighbours and a round stud with a highlight crescent on every open top. The ground is a green baseplate covered in studs, with raised lime and grey plates, smooth grey road tiles with white lane dashes and transparent-blue water plates. The main character is a molded toy figure with a yellow cylinder head, printed face and claw hands, posed like a played-with toy: rigid legs swing on the hip pin, arms on the shoulder pins, the head looks around, the helmet pops up when it is hit. Creatures are brick beetles in two designs, a translucent ghost piece and a brick-built robot; they click together from the baseplate and pop apart into bricks. Saturated toy-box primaries, crisp and cheerful.",
+  "mood": [
+    "playful",
+    "cheerful",
+    "tactile",
+    "bright",
+    "nostalgic"
+  ],
+  "bestFor": [
+    "family and kids games",
+    "top-down action and arena games",
+    "builder and sandbox games",
+    "puzzle and party games",
+    "casual mobile games"
+  ],
+  "avoidFor": [
+    "horror or grim drama",
+    "realistic or painterly worlds",
+    "organic, soft-bodied character animation"
+  ],
   "difficulty": {
     "stars": 4,
     "why": "Props and creatures are cell grids described with a few part() calls, and the renderer adds gloss, gaps, studs and shadows automatically. The molded figures are hand-written canvas paths with several gradients, prints and per-frame poses, and round parts need their own cylinder slices, so new characters take more care than new props."
@@ -24,28 +48,116 @@
     "texture": "None. The texture is the studs themselves: a stud on every open top cell of every part and on every baseplate cell, each a baked sprite with a cylinder gradient, a lighter top, an 0.34-unit white highlight crescent on its upper left and a soft contact shadow to the lower right."
   },
   "palette": [
-    { "name": "Baseplate Green", "hex": "#47a347", "role": "Main ground plate with studs (~55% of the screen)" },
-    { "name": "Dark Baseplate", "hex": "#2f8540", "role": "Darker green baseplate patches (woods)" },
-    { "name": "Lime Plate", "hex": "#8cc63f", "role": "Raised plates one plate above the baseplate, front edge visible" },
-    { "name": "Sand Tan", "hex": "#e2cb96", "role": "Tan baseplate around water" },
-    { "name": "Road Tile", "hex": "#666d73", "role": "Smooth 2×2 road tiles without studs; lane dashes #eeeee8" },
-    { "name": "Curb Tile", "hex": "#c6cbce", "role": "One-stud-wide light grey tile border of roads" },
-    { "name": "Plaza Grey", "hex": "#a7acb0", "role": "Raised light grey plates (squares), also light grey parts" },
-    { "name": "Water Blue", "hex": "#3d92e8", "role": "Transparent-blue water plates one plate below the baseplate (deep #2b70d2, studs #8fcaff at 0.75 alpha)" },
-    { "name": "Toy Red", "hex": "#d4231c", "role": "Small creature body, fruit, house walls, impact bricks" },
-    { "name": "Toy Yellow", "hex": "#f7c81e", "role": "Fruit, robot shoulders, projectiles, large collectibles, bars" },
-    { "name": "Toy Blue", "hex": "#1c5fc6", "role": "Large creature torso, counter panel" },
-    { "name": "Leaf Green", "hex": "#21883f", "role": "Tree crowns (with bright green #4caf48 and dark green #1d6b34)" },
-    { "name": "Toy White", "hex": "#f2f2ec", "role": "Fences, eye studs, windows, white HUD panel" },
-    { "name": "Toy Black", "hex": "#2a2c31", "role": "Feet, lamp posts, hips of the robot" },
-    { "name": "Reddish Brown", "hex": "#7b4527", "role": "Trunks, sign posts, backpack" },
-    { "name": "Dark Grey", "hex": "#5f666c", "role": "Robot legs, rocks, roofs" },
-    { "name": "Toy Orange", "hex": "#f07e1f", "role": "Main character shirt, cones, orbiting beacons (transparent #ff9a26)" },
-    { "name": "Figure Yellow", "hex": "#f7c51e", "role": "Main character head and claw hands" },
-    { "name": "Figure Blue", "hex": "#1f4f9a", "role": "Main character legs" },
-    { "name": "Ghost Clear", "hex": "#cde8ff", "role": "Translucent fast creature (fill 0.5–0.78 alpha, white rim)" },
-    { "name": "Collectible Azure", "hex": "#2f9bff", "role": "Small stud coins (large coins are #ffc81e)" },
-    { "name": "Print Black", "hex": "#1b1d22", "role": "Printed faces, card borders, title outlines" }
+    {
+      "name": "Baseplate Green",
+      "hex": "#47a347",
+      "role": "Main ground plate with studs (~55% of the screen)"
+    },
+    {
+      "name": "Dark Baseplate",
+      "hex": "#2f8540",
+      "role": "Darker green baseplate patches (woods)"
+    },
+    {
+      "name": "Lime Plate",
+      "hex": "#8cc63f",
+      "role": "Raised plates one plate above the baseplate, front edge visible"
+    },
+    {
+      "name": "Sand Tan",
+      "hex": "#e2cb96",
+      "role": "Tan baseplate around water"
+    },
+    {
+      "name": "Road Tile",
+      "hex": "#666d73",
+      "role": "Smooth 2×2 road tiles without studs; lane dashes #eeeee8"
+    },
+    {
+      "name": "Curb Tile",
+      "hex": "#c6cbce",
+      "role": "One-stud-wide light grey tile border of roads"
+    },
+    {
+      "name": "Plaza Grey",
+      "hex": "#a7acb0",
+      "role": "Raised light grey plates (squares), also light grey parts"
+    },
+    {
+      "name": "Water Blue",
+      "hex": "#3d92e8",
+      "role": "Transparent-blue water plates one plate below the baseplate (deep #2b70d2, studs #8fcaff at 0.75 alpha)"
+    },
+    {
+      "name": "Toy Red",
+      "hex": "#d4231c",
+      "role": "Small creature body, fruit, house walls, impact bricks"
+    },
+    {
+      "name": "Toy Yellow",
+      "hex": "#f7c81e",
+      "role": "Fruit, robot shoulders, projectiles, large collectibles, bars"
+    },
+    {
+      "name": "Toy Blue",
+      "hex": "#1c5fc6",
+      "role": "Large creature torso, counter panel"
+    },
+    {
+      "name": "Leaf Green",
+      "hex": "#21883f",
+      "role": "Tree crowns (with bright green #4caf48 and dark green #1d6b34)"
+    },
+    {
+      "name": "Toy White",
+      "hex": "#f2f2ec",
+      "role": "Fences, eye studs, windows, white HUD panel"
+    },
+    {
+      "name": "Toy Black",
+      "hex": "#2a2c31",
+      "role": "Feet, lamp posts, hips of the robot"
+    },
+    {
+      "name": "Reddish Brown",
+      "hex": "#7b4527",
+      "role": "Trunks, sign posts, backpack"
+    },
+    {
+      "name": "Dark Grey",
+      "hex": "#5f666c",
+      "role": "Robot legs, rocks, roofs"
+    },
+    {
+      "name": "Toy Orange",
+      "hex": "#f07e1f",
+      "role": "Main character shirt, cones, orbiting beacons (transparent #ff9a26)"
+    },
+    {
+      "name": "Figure Yellow",
+      "hex": "#f7c51e",
+      "role": "Main character head and claw hands"
+    },
+    {
+      "name": "Figure Blue",
+      "hex": "#1f4f9a",
+      "role": "Main character legs"
+    },
+    {
+      "name": "Ghost Clear",
+      "hex": "#cde8ff",
+      "role": "Translucent fast creature (fill 0.5–0.78 alpha, white rim)"
+    },
+    {
+      "name": "Collectible Azure",
+      "hex": "#2f9bff",
+      "role": "Small stud coins (large coins are #ffc81e)"
+    },
+    {
+      "name": "Print Black",
+      "hex": "#1b1d22",
+      "role": "Printed faces, card borders, title outlines"
+    }
   ],
   "paletteRules": [
     "Only saturated toy-box primaries plus white, black, tan and two greys; every colour is a flat plastic colour, never a texture or a noise mix.",
@@ -56,10 +168,29 @@
     "UI uses the same part colours (white, yellow, blue bricks, black tiles) with #1b1d22 as the booklet line colour."
   ],
   "typography": [
-    { "family": "Titan One", "weights": [400], "role": "Titles, big counters, floating numbers, step numbers", "source": "Google Fonts", "sample": "STEP 12",
-      "css": "font: 400 66px/1 'Titan One', 'Fredoka', system-ui, sans-serif; color: #f7c81e; -webkit-text-stroke: 3px #1b1d22; paint-order: stroke fill; text-shadow: 0 5px 0 #1b1d22, 0 9px 0 #d4231c, 0 12px 0 #1b1d22;" },
-    { "family": "Fredoka", "weights": [400, 500, 600, 700], "role": "Card titles, body copy, labels, hints", "source": "Google Fonts", "sample": "Build the tower",
-      "css": "font: 700 20px/1.15 'Fredoka', system-ui, sans-serif; color: #1b1d22;" }
+    {
+      "family": "Titan One",
+      "weights": [
+        400
+      ],
+      "role": "Titles, big counters, floating numbers, step numbers",
+      "source": "Google Fonts",
+      "sample": "STEP 12",
+      "css": "font: 400 66px/1 'Titan One', 'Fredoka', system-ui, sans-serif; color: #f7c81e; -webkit-text-stroke: 3px #1b1d22; paint-order: stroke fill; text-shadow: 0 5px 0 #1b1d22, 0 9px 0 #d4231c, 0 12px 0 #1b1d22;"
+    },
+    {
+      "family": "Fredoka",
+      "weights": [
+        400,
+        500,
+        600,
+        700
+      ],
+      "role": "Card titles, body copy, labels, hints",
+      "source": "Google Fonts",
+      "sample": "Build the tower",
+      "css": "font: 700 20px/1.15 'Fredoka', system-ui, sans-serif; color: #1b1d22;"
+    }
   ],
   "world": {
     "summary": "An endless stud-covered baseplate drawn row by row into cached 256-unit chunks. One cell = one stud (6 units across, 4.2 units deep). Every cell has a material and a level (-1 water, 0 baseplate, +1 raised plates); a raised cell is drawn 2.1 units higher and shows its glossy front edge when the cell in front of it is lower, so the ground reads as real plates stacked on a baseplate.",
@@ -69,19 +200,19 @@
       "Edges: white rim on the back and left edge of raised cells, 2.2-unit contact-shadow gradient below and 2.4-unit shadow right of higher neighbours, a glossy 2.1-unit front face (×1.16+10 → ×0.84 → ×0.64) on cells above a lower neighbour",
       "Roads: winding constant-width bands from |noise| / |gradient| < 11.5 units, curb tiles where a road cell touches a non-road cell, white lane-dash tiles on the centre line in a 2-on / 2-off pattern",
       "Studs: one baked stud sprite per cell centre (transparent pale-blue studs on water); none on roads and curbs",
-      "Toy parts instead of a stud: flower plates (5 petals in red, yellow, white, pink, azure or violet around a yellow centre, ~1.6% of green cells), leaf plants (3 glossy pointed leaves, ~2.4%), loose 1×1 round plates (~0.3%), lily pads on open water (2%)",
+      "Toy parts instead of a stud, grown in beds: flower plates (5 petals around a yellow centre) only inside flower beds (noise/70 > 0.68, 30 % of the cells there), one colour per bed from a 160-unit noise field with rare accents; leaf plants in clumps (noise/48 > 0.64, 14 %), 0.4 % elsewhere; loose round plates 0.08 %; lily pads on open water (2 %)",
       "Per frame: white cross-shaped glints blinking on 12% of the water cells"
     ]
   },
   "characters": {
     "summary": "Two construction methods share one light. The main character and the translucent ghost are molded toy figures painted with canvas paths (gradients, rims, prints) and baked per frame and facing; the brick beetle and the robot are cell grids built from bricks, plates and round bricks with printed faces, baked per frame and mirrored per facing by mirroring the grid (so the light stays on the left).",
     "rules": [
-      "Main character: a toy figure ~31 units tall and ~15 wide — blue legs on a hip piece, an orange trapezoid torso with printed strap, belt and red bandana, sloping arms ending in yellow C-shaped claw hands, a yellow cylinder head with a printed face (two black oval eyes with white glints, short brows, smile), a tan pith helmet with a brown band and a brown backpack peeking out on the side away from the facing direction.",
-      "The face print shifts 0.85 units toward the facing direction; frames: idle, 4 walk poses (stiff legs swinging ±1.5 units, arms counter-swinging, 0.5-unit bob) and a dash pose leaning 0.17 rad.",
-      "Small creature: a red brick beetle (4×3×6 cells, ~24 units wide) — a 2×3 red brick body with a printed black grin and white fangs, a dark red 2×2 plate shell, two white 1×1 round-brick eyes with black pupils looking toward the facing direction, black side feet scuttling forward and back by one stud.",
-      "Fast creature: a translucent ghost piece (~20 units wide): a sheet with raised arms and a wavy hem, cool clear fill (0.5 → 0.78 alpha toward the edge), a white rim, an inner blue rim, a white gloss arc on the head and printed black oval eyes and O-mouth; it hovers 4 ± 1.6 units with a faint blue glow.",
-      "Large creature: a brick robot (7×3×18 cells, ~42 units wide): dark grey legs on wide feet, a black hip plate, a blue 5×3 torso of two bricks with a printed yellow chest panel and red core, light grey arms with yellow shoulder plates and red hands, a light grey head with two glowing red printed eyes and a black antenna with a transparent red tip.",
-      "No outlines and no outline strokes; parts are separated by the renderer's rims and gaps. Every figure casts a soft shadow to the lower right."
+      "Main character: a toy figure ~31 units tall and ~15 wide — blue legs on a hip piece, an orange trapezoid torso with printed strap, belt and red bandana, sloping arms ending in yellow C-shaped claw hands, a yellow cylinder head with a printed face, a tan pith helmet with a brown band and a brown backpack on the side away from the facing direction.",
+      "It is posed like a real toy: legs are rigid pieces rotating on the hip pin (±0.42 rad), arms rotate on the shoulder pins, hands turn on the wrist pin, the head print looks around (face offset −0.3 … 1.6 units), the helmet is a separate piece that lags the hop and pops up 2.2 units on a hit. 16 poses per facing: 8 walk, 4 idle fidgets, blink, dash crouch, dash lunge, hurt (eyes wide, O-mouth).",
+      "Small creature, two designed variants picked by the actor's seed: a red brick beetle (2×3 red brick with a printed grin, dark red shell plate, two white round eye bricks) or a yellow striped beetle (black stripe print, black shell, one tall and one short eye, a black round antenna with a red tip). 6 scuttle poses — feet jump one stud, the body hops one plate, the eyes lag the hop — plus a hit pose (jumps a plate, feet splayed, X-printed eyes).",
+      "Fast creature: a translucent ghost piece (~20 units wide): a sheet with raised arms and a wavy hem, cool clear fill, a white rim, a white gloss arc and printed eyes and O-mouth; 6 poses (arms alternate, hem ripples) + a hit pose (flared, arms high, eyes 1.35× wider); hovers on an eased 2.4 s bob with a faint blue glow.",
+      "Large creature: a brick robot (7×3×22 cells, ~42 units wide): grey feet, black hip plate, blue torso with a printed grille and chest panel, grey arms with yellow shoulder plates and red hands, a grey head with glowing red eyes, a black antenna with a transparent red tip. 6 stomp poses (one foot lifts a plate, arms swing a stud, head and antenna lag one pose) + a hit pose (arms raised five plates, antenna glow larger).",
+      "No outlines; parts are separated by the renderer's rims and gaps. Every figure casts a soft shadow to the lower right."
     ]
   },
   "props": {
@@ -96,14 +227,38 @@
     ]
   },
   "effects": [
-    { "name": "Flying single bricks", "how": "Impacts and bursts throw baked loose parts (1×1 brick, 1×2 brick, 2×2 plate, 1×1 round plate, 1×1 plate) in the colours of the object that bursts. They tumble with 2D rotation (vr ±7 rad/s), fly with vz 50–150, gravity 330, drag 1.3, leave a soft shadow near the ground and fade in the last 25% of their life. Ghost pieces float upward (gravity −40)." },
-    { "name": "Sparkles", "how": "Four-point white stars (#fff6c8, cool #d8f1ff for clear pieces) with a white centre dot, 3–6 units, growing and shrinking with sin(life·π)." },
-    { "name": "Stud ring", "how": "An ellipse (r × 0.8 r) easing out from 8–10 to 52–56 units, white stroke 1.6·k+0.4 at 0.8·k alpha, with 12–16 yellow studs riding on it and turning slowly." },
-    { "name": "Build-up appearance", "how": "Brick creatures are revealed from the bottom in whole plate rows (2.1 units each) while two loose bricks drop into place; the ghost fades and scales in from 0.6." },
-    { "name": "Coming apart", "how": "A dissolving creature splits into three horizontal sections that slide apart sideways and hop while fading, over a short white flash, while the burst throws its bricks." },
-    { "name": "Stud coins", "how": "Collectibles are round stud coins standing upright and spinning (10 baked frames over half a turn): azure #2f9bff small (3.1 units), gold #ffc81e large (4.3 units) with a gold glow; face with a raised ring and highlight crescent, a darker edge band when turned, hovering 4.4–6 units with a twinkle star." },
-    { "name": "Projectile", "how": "A yellow 1×1 round plate with two smaller fading copies behind it and a 10-unit pale yellow speed line." },
-    { "name": "Orbiting beacon", "how": "A transparent orange 1×1 round brick on a black round plate with a yellow cap, hovering 10 ± 1.4 units over a soft shadow with a warm additive glow." }
+    {
+      "name": "Plastic pop",
+      "how": "The core flash of every hit, burst, pickup and celebration: a white 4-point star (cool blue for clear pieces) that snaps open from 45 % to full size with outQuad and a thin white ring around it, 0.12–0.22 s."
+    },
+    {
+      "name": "Flying single bricks",
+      "how": "Bursts throw baked loose parts (1×1 brick, 1×2 brick, 2×2 plate, 1×1 round plate, 1×1 plate) in the colours of what burst; they tumble (±7 rad/s), fly with vz 50–150, gravity 330, drag 1.3, bounce, leave a soft shadow near the ground and fade in the last 25 %. Ghost pieces float upward."
+    },
+    {
+      "name": "Loose studs (residue)",
+      "how": "Each burst also drops 3–5 round 1×1 plates that barely jump (vz 25–30) and lie on the baseplate for 1.8–2.2 s before fading – what is left of the creature."
+    },
+    {
+      "name": "Stud ring",
+      "how": "An ellipse (r × 0.8 r) easing out to 22–56 units, white stroke at 0.8·k alpha, with 4–16 yellow studs riding on it; the celebration ring's studs advance in quarter steps."
+    },
+    {
+      "name": "Click-together appearance",
+      "how": "Brick creatures are built up from the baseplate in whole plate rows (outQuad over 75 % of 0.45 s) while two loose bricks drop in, then they press down (squash 0.92) and spring back (1.04) with a white pop on top – the click. The ghost fades in, drops 10 units onto its peg and un-stretches."
+    },
+    {
+      "name": "Pop apart",
+      "how": "A vanishing creature swells (1.08 × 1.05) and whites out for 14 %, then its hit pose splits into brick-sized blocks (2×3, robot 3×5) that jump out and up, land on the baseplate and fade; positions advance on twos and rotations snap to 30° steps (stop-motion). The ghost piece floats apart and shrinks. At most 8 per frame."
+    },
+    {
+      "name": "Stud coins",
+      "how": "Collectibles are round stud coins spinning through 10 baked frames: azure #2f9bff small, gold #ffc81e large with a gold glow; raised ring, highlight crescent, edge band, hovering 4.4–6 units with a twinkle star."
+    },
+    {
+      "name": "Projectile and orbiting beacon",
+      "how": "A yellow 1×1 round plate with two fading copies and a pale yellow speed line; a transparent orange round brick on a black plate with a yellow cap hovering 10 ± 1.4 units in a warm glow."
+    }
   ],
   "atmosphere": {
     "summary": "Clean toy photography: one bright studio light from the upper left baked into every gradient, rim and stud crescent, cool soft shadows, almost no colour grading. Only transparent warm parts glow.",
@@ -122,12 +277,13 @@
     "css": ".brick { position: relative; padding: 8px 14px 9px; border-radius: 5px; color: #1b1d22; font: 400 16px/1 'Titan One', sans-serif;\n  background: linear-gradient(180deg, #ffffff 0 3px, #f2f2ec 3px 45%, #d6d6cf 100%);\n  box-shadow: inset 0 2px 0 rgba(255,255,255,.55), inset 2px 0 0 rgba(255,255,255,.28), inset -2px 0 0 rgba(0,0,0,.14), inset 0 -3px 0 rgba(0,0,0,.2), 0 4px 0 #a9aaa3, 0 9px 16px rgba(20,30,60,.32); }\n.brick::before { content: ''; position: absolute; left: 7px; right: 7px; top: -8px; height: 9px;\n  background: radial-gradient(ellipse 2.6px 1.1px at 8.5px 2px, rgba(255,255,255,.9) 0 90%, transparent 100%) 0 0 / 22px 9px repeat-x,\n              radial-gradient(ellipse 6px 2.6px at 11px 2.7px, #ffffff 0 92%, transparent 100%) 0 0 / 22px 9px repeat-x,\n              linear-gradient(90deg, transparent 0 5px, #e6e6df 5px 8px, #ffffff 8px 10px, #e6e6df 10px 14px, #b9bab3 14px 17px, transparent 17px) 0 2.7px / 22px 6.3px repeat-x; }\n.bar { width: 210px; height: 22px; border-radius: 4px; background: #2b2e33; box-shadow: inset 0 3px 4px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.7); overflow: hidden; }\n.bar > .fill { height: 100%; border-radius: 3px; box-shadow: inset 0 2px 0 rgba(255,255,255,.45);\n  background: radial-gradient(circle at 42% 38%, rgba(255,255,255,.85) 0 1.4px, transparent 2.2px), radial-gradient(circle, #ff8c7a 0 3.2px, #d4231c 3.6px 4.4px, #8e1410 4.8px 5.4px, transparent 5.9px) 0 1px / 18px 20px, linear-gradient(180deg, #f2554a, #d4231c 45%, #a8180f); }\n.card { border: 3px solid #1b1d22; border-radius: 14px; background: linear-gradient(180deg, #ffffff 0 62%, #e8f3fb 62%); box-shadow: 0 6px 0 #1b1d22, 0 14px 24px rgba(20,40,80,.3); }\n.card .step { font: 400 40px/1 'Titan One', sans-serif; color: #1b1d22; }"
   },
   "motion": [
-    "Main character: idle + 4 walk frames at frame = 1 + floor(anim·1.4) mod 4 (stiff toy legs swing, arms counter-swing, 0.5-unit bob), a dash pose leaning 0.17 rad with three white tinted trail copies 6 units apart; idle hops up to 0.5 units with max(0, sin(t·2.4)).",
-    "Brick beetle: 4 frames at anim·1.8 (feet jump one stud forward/back); robot: 4 frames at anim·1.2 (one leg lifts a plate, arms swing a stud); ghost: 4 frames at 5 fps, hovering 4 ± 1.6 units at sin(t·2.6).",
-    "All brick motion is in whole cells (studs and plates) — parts move in clicks, never smoothly; only debris, coins and the ghost move smoothly.",
-    "Coins spin through 10 baked frames (1.4 sets per second) and bob ±0.9 units at 3 rad/s; a twinkle star appears when sin(t·4 + seed) > 0.7.",
-    "Floating numbers pop from 0.6 to 1.15 scale in the first 14% of their life, then settle; Titan One with a 1.7-unit (emphasised 2.2) #1b1d22 stroke, white fill (emphasised yellow).",
-    "Glows flicker gently (±0.08–0.12 alpha at 3–9 rad/s); water glints blink when sin(t·1.6 + phase) > 0.4."
+    "The toy is animated like a brickfilm: poses are held and stepped, not tweened. Main character walk: 8 poses at frame = floor(anim·1.3) mod 8 (~12 fps at walking speed): legs ±0.42 / ±0.28 / 0 rad on the hip pins, arms counter-swing at 1.25× the leg angle, the figure hops 1.2 units at passing, the helmet lags the hop.",
+    "Idle: 4 fidget poses held 0.75 s each (look further toward the facing side, look away while turning a hand on its wrist pin, small breath), and a blink pose for 0.16 s every 3.8 s.",
+    "Dash: crouch pose for the first 50 ms (body 1.4 lower, leaning back, arms back = anticipation), then the lunge (leaning 0.22 rad, legs ±0.7, arms back) with two white copies two units apart; hurt pose while hurtT > 0.62 with a red tint; invulnerability blinks at 18 Hz.",
+    "Beetles: 6 poses at anim·2.7, robot 6 poses at anim·1.8, ghost 6 poses at 7 fps + seed with an eased hover (holds at the top and bottom, own phase per actor) – crowds never move in lock-step.",
+    "Hit: hit pose + white flash while flash > 0.25, knocked 2 units in the push direction for the first half, squash 1.06 × 0.95.",
+    "All brick motion is in whole cells (studs, plates); debris and coins move smoothly, break-up blocks move on twos.",
+    "Coins spin 1.4 sets per second and bob ±0.9 units; floating numbers pop from 0.6 to 1.15 in the first 14 % of their life."
   ],
   "do": [
     "Build every prop, creature, icon and debris piece from real part sizes on one grid: 1 stud = 6 units across, 4.2 deep, 1 plate = 2.1 units, 1 brick = 3 plates.",
@@ -136,7 +292,9 @@
     "Use only flat saturated toy colours and the fixed gloss recipe; make transparent parts translucent with brighter highlights.",
     "Snap props to whole studs so they sit exactly on the baseplate grid.",
     "Mirror brick grids (not sprites) for the other facing so the light stays on the upper left.",
-    "Use smooth tiles (no studs) for roads, signs and roofs to give the eye calm areas."
+    "Use smooth tiles (no studs) for roads, signs and roofs to give the eye calm areas.",
+    "Pose the figure like a toy: rotate rigid parts on their pins, hold poses, hop at passing; give every state its pose (blink, crouch, lunge, hurt).",
+    "Grow decorations in beds: one flower colour per bed, leaf plants in clumps, almost no loose studs elsewhere."
   ],
   "dont": [
     "Don't add outlines or strokes around parts.",
@@ -145,7 +303,9 @@
     "Don't use half-stud offsets or arbitrary sizes; nothing may float between studs.",
     "Don't use muted, earthy or pastel palettes for the world; it must feel like a toy box.",
     "Don't make every surface studded: roads, curbs, signs and roof tiles stay smooth.",
-    "Don't use brand names, logos or embossed lettering on studs."
+    "Don't use brand names, logos or embossed lettering on studs.",
+    "Don't tween poses smoothly or squash the figure – toys don't bend.",
+    "Don't sprinkle flowers and loose studs evenly over the baseplate."
   ],
-  "performance": "All parts are baked once in init(): the figure (6 frames × 2 facings), the ghost (4 frames + flipped copies), beetle and robot (4 frames × 2 mirrored grids), 11 props with shadows, ~80 debris sprites and 20 coin frames — a few hundred ms. Per frame every object is 1–3 drawImage calls of cached canvases (flash and tint copies are cached on first use); particles use one setTransform per brick. Ground chunks are drawn row by row with fillRect and one stud drawImage per cell as a generator (~20 ms per chunk spread over frames); stud, flower and plant sprites are cached per resolution. Measured in the same noisy conditions, steady frames cost about the same as the voxel module and chunk builds are cheaper."
+  "performance": "All parts are baked once in init(): the figure (16 poses × 2 facings), the ghost (7 poses + flipped copies), two beetle designs and the robot (7 poses × 2 mirrored grids each), 11 props with shadows, ~80 debris sprites and 20 coin frames. Per frame every object is 1–3 drawImage calls of cached canvases; pop-apart uses source rectangles (no clip paths) and is capped at 8 per frame; particles use one setTransform per brick. Ground chunks are drawn row by row as a generator (~25 ms per chunk spread over frames). Measured against the previous version in the same session: median frame +6 %, chunk build −9 %."
 }

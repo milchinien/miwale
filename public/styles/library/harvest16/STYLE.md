@@ -21,7 +21,7 @@ ghosts and a lumpy root colossus; any chibi cast works.
 | Best for | top-down action games with many sprites, farming sims, cozy RPGs, harvest/Halloween themes |
 | Renderer | Canvas 2D, procedural, no image assets |
 | Pixel art | yes, `scale: 1` (1 art px = 1 world unit, 360 units of view height) |
-| Complexity | 5/10 — new 16-bit sprites with 4 walk frames as code/text grids are painstaking, especially large creatures |
+| Complexity | 6/10 — pose-driven 16-bit sprites (8-pose walk, squash and recoil states) are painstaking, especially large creatures |
 | Fonts | Pixelify Sans (400–700), Silkscreen (400, 700) |
 | Key colours | `#77963b` meadow, `#de6e2c` pumpkin, `#713488` root purple, `#bc5a2f` leaves, `#ffc640` ember, `#24162a` ink plum |
 
@@ -131,14 +131,17 @@ assets). Material classes: `GRASS 0, GOLD 1, CLOVER 2, SOIL 3, PATH 4`. Grass cl
   bulbs) on every ridge row (`phase == 1`) every 8 units. Fields may carry fences on the top/bottom edge and a
   scarecrow in 40 % of cases (see Props).
 - **Meadows:** clover where `fbm(x/360) + fringe > 0.64`, golden grass where `fbm(x/430) > 0.555`, else grass.
-  A 52-unit mottle noise switches tone 6 (patch colour) and drives tuft density `0.05 + 0.42·smoothstep(.42,.72)`.
+  A 52-unit mottle noise switches tone 6 (patch colour) and drives tuft density `0.012 + 0.45·smoothstep(.45,.72)`, so tufts gather in clumps and open grass stays calm.
 - **Spur cleanup:** remove 1-px spurs between height classes so every border is clean pixel art.
 - **Edge rules (the "16-bit height" look):** a grass pixel with low ground below → `lip` (dark), with low ground
   above → `rim` (bright), left/right → `rim2`/`dk`. A low pixel directly under grass → grass `lip` or `sh`
   (random 50/50), second row → checkerboard of `sh2`/`sh` (2-px dithered shadow), left of grass → `sh2`.
   Under grass, soil shadows are `#3c2530`/`#513232`, path shadows `#755244`/`#8f6a4c`.
 - **Leaf carpets:** density = forest field + one ellipse per tree (38×22 big, 31×18 small, `q·1.8`). Leaf stamps on
-  a 3×3 grid survive when `rank < density·1.05 - 0.12`; above 0.62 density the gaps become litter colour.
+  a 3×3 grid survive when `rank < (density·1.05 - 0.12)·(1 - inner) + inner·(0.08 + 0.55·smoothstep(.45,.7, mottle))` with
+  `inner = smoothstep(.55,.9, density)`: single leaves scatter along the carpet rim, the inside is a calm litter pool with
+  leaf drifts only where the mottle noise is high. Above 0.62 density the gaps become litter colour, and the darker litter
+  tone follows the clustered mottle mask (drifts), never per-pixel noise.
   The colour zone comes from the tree above it (`TREE_ZONE = [3, 0, 2, 1]`) and `LEAFZ` picks leaf sets per zone,
   so each carpet matches its canopy (red, orange, gold or turning). Without trees, use the litter zones
   `#7c3531 #86412f #93582f #8d4a2d` and leaf sets from the palette.
@@ -200,9 +203,20 @@ eyes at x=9:      mouth at x=8, y=eyeY+4:
   at `xl + 2`. Front arm 2×3 sleeve + 2×2 glove `#a4733e/#7e512e`. Mustard scarf rows 16–17 (x 6–15) with a
   3-px tail fluttering behind.
 - **Legs:** 2-px trousers `#2a2032` (far) / `#40304a` (near), boots 3 px wide `#a4733e → #331f1e` with a lit cuff.
-- **Walk frames** (`bob, a, b, la, lb, hand, flap`): `{0,2,-2,0,0,1,0}`, `{-1,0,0,0,-1,0,1}`, `{0,-2,2,0,0,-1,0}`,
-  `{-1,0,0,-1,0,0,1}` — legs step ±2 px, the passing frames lift a foot 1 px and bob the body up 1 px.
-- **Idle:** 2 frames; frame 1 bobs only the head 1 px and flaps the scarf.
+- **Pose table** (`bob, a, b, la, lb, hand, flap, hb, hx, face`): body bob (+ = down), near/far leg x offsets and
+  lifts, near-arm swing, scarf/cape lag, head offset relative to the body, head lean, face (normal, blink, hurt).
+  Sprites bake lazily per pose key; walk, idle, dash and hurt poses are warmed at init.
+- **Walk = 8 poses** (contact, down, passing, up per leg): `bob [0, 1, 0, -1, 0, 1, 0, -1]`, legs ±2 px with the
+  passing foot lifted 2 px, the near arm swinging **against** the near leg, the cape and scarf tail trailing 0-2 px
+  (`flap`) a step behind. The head uses the previous pose's body offset (`hb`), so it lands one frame late, and the
+  stem leaf lifts when the head drops. Frame = `floor(anim·1.3) & 7` (≈ 12 fps at walking speed).
+- **Idle:** breath on a 1.15 s beat (body 1 px down, head following 0.14 s later), blink every 3.6 s for 0.13 s
+  (eyes become dim slits), cape/scarf stir every 4.6 s; every figure has its own phase offset.
+- **Dash:** 50 ms crouch wind-up (bob 2, legs wide, arm back) → stretch pose (legs split ±3, head leaning 1 px
+  forward, scarf streaming) with 3 tinted afterimages → 120 ms skid (front boot forward, head leaning back).
+- **Throw:** the arm swings up and forward (`hand 2`) for ~90 ms after each shot.
+- **Hurt:** recoil pose (head tipped back, legs braced, squeezed eyes and an open mouth) alternating with its white
+  silhouette at 8 Hz, then the 18 Hz blink.
 - Variants: a second set with the brighter glow ramp for flicker, a white flash silhouette and a `#ffc36a`
   silhouette (dash afterimage).
 
@@ -211,13 +225,17 @@ eyes at x=9:      mouth at x=8, y=eyeY+4:
 in the root purple ramp `#2c1740 … #bf80c8`, a blended seam band 0.13 deep, cream flesh `#8a6458 … #fff6da`,
 a 1-px root tip, three `leaf()` blades on top that sway ±1 px per frame, 2-px root legs `#6e5040/#a2845e/#cdb282`.
 Face: slanted `#22122c` brows, 2×2 glowing eyes, a frown with one cream fang. Two colour variants (purple /
-magenta `#381634 … #d07e98`). Frames shift the bulb ±0.5 px and bob 1 px.
+magenta `#381634 … #d07e98`). Frames shift the bulb ±0.5 px and bob 1 px, with a per-creature phase. A **squash pose**
+(bulb `rx 8.8, ry 6`, eyes squeezed shut) is used for ~120 ms after every hit (with a 2-px recoil) and for the
+disappear pop: white squash silhouette for 0.12 of the sequence, then the crumpled body holds before the burst.
 
 **Fast creature** (ghost, 22×28): a head ellipse (6.6×7.4, alpha 242) and a sheet that streams back and waves
 (`ccx = cx - 4t² + sin(f·π/2 + 4.2t)·1.9t`), its lower half split into 3 tattered tails of lengths
 `[0.88, 1.0, 0.76]` rotating per frame; alpha fades `235 → 130` downward. Ghost ice ramp `#465482 … #f6fcff`.
 Hollow eye sockets `#100d24/#272650`, a gaping mouth that widens on odd frames, skinny reaching arms. Fixed cool
-outline `#33406c` instead of the automatic one. Drawn at 86 % alpha, hovering 3 ± 1.5 units, shadow at 55 %.
+outline `#33406c` instead of the automatic one. Drawn at 86 % alpha, floating on an eased lift `2 + [0,0,1,2,3,3,2,1]`
+units at 5 fps (holds at the top and bottom), shadow at 55 %. Disappear: a white flash, then the sheet rises 15 units
+while its alpha runs out.
 
 **Large creature** (root colossus, 52×58): a huge lumpy root bulb (`rx 18, ry 17`, radius bumped by
 `sin(5a)`/`sin(11a)`), purple crown `#2e1832 … #8e5078` with crown leaves, ochre flesh `#4e3028 … #ead08a`,
@@ -360,14 +378,19 @@ Rrrrrrrrrrrrr.
 
 ## Motion and animation
 
-- Main character: 4-frame walk, 1 frame per 10 units travelled (≈ 9 fps at 92 u/s); idle 2 frames at 2.2 fps.
-- Small creature ≈ 6 fps (anim × 1.6), ghost 6 fps (hover sine 3 rad/s, ±1.5 units), large creature ≈ 2.6 fps with
-  foot-fall dust.
+- Main character: 8-pose walk (contact, down, passing, up × 2) at `floor(anim·1.3) & 7`, ≈ 12 fps at walking speed;
+  arms counter-swing, the head lands one frame after the body, the cape and scarf tail lag a step, the stem leaf
+  lifts when the head drops. Footstep dust on the two "down" poses.
+- Idle: breath 1.15 s (head 0.14 s behind), blink every 3.6 s, cape stir every 4.6 s; per-figure phase offsets.
+- Dash: 50 ms crouch → stretch pose + 3 tinted afterimages 7 units apart → 120 ms skid. Throw arm ~90 ms.
+- Small creature ≈ 6 fps (`anim·1.6 + seed·4`), large creature ≈ 2.6 fps (`anim·1.2 + seed·4`) with foot-fall dust,
+  ghost 6 fps with an eased 8-step float at 5 fps — no plain sine bobs.
+- Hit: white silhouette while `flash > 0.45`, the squash pose and a 2-px recoil for ~120 ms.
+- Appear: roots climb out of a dirt mound (top rows revealed with `outQuad`) and throw soil chunks; ghosts rise 8 units
+  while fading in with vapour puffs. Disappear: white squash pop → crumpled hold → burst of chunks, leaves, dust and a
+  ring; ghosts flash and rise while thinning out.
 - Face glow flicker: `noise(t·9) > 0.62` → brighter glow ramp. Lantern glow flickers every 7th tick.
-- Flash: white silhouette for the first 0.15 s, then 18 Hz blink at α 0.35.
-- Dash: 3 tinted afterimages 7 units apart; footstep dust on frames 0 and 2.
-- Gems bob 1 px on a 3 rad/s sine; pop-up arc of 9 px when they appear.
-- Floating numbers pop up 2–3 px for 0.08 s, then fade.
+- Gems bob 1 px on a 3 rad/s sine; pop-up arc of 9 px when they appear. Floating numbers pop up 2–3 px for 0.08 s, then fade.
 - Everything moves in whole art pixels — no sub-pixel easing, no rotation or scaling of sprites
   (except the half-height squash of the ring burst).
 
@@ -387,7 +410,9 @@ Rrrrrrrrrrrrr.
 - Don't draw at fractional coordinates, rotate sprites or scale by non-integer factors.
 - Don't use black outlines or black shadows; shadows are plum (40,22,56) at 36 %/24 % alpha.
 - Don't light from more than one direction; every ramp assumes top-left light.
-- Don't leave flat ground — no tufts/specks/rims reads as a placeholder.
+- Don't leave flat ground — no tufts/specks/rims reads as a placeholder — but don't sprinkle leaves or tufts evenly either:
+  calm pools and clumps, detail at the rims.
+- Don't animate with 2–4 near-identical frames or same-side arm and leg swings; don't let crowds share a phase.
 - Don't mix pixel scales (e.g. 2× sprites over 1× ground) or add neon colours outside the ghost/ice family.
 
 ## Implementation recipe
@@ -395,8 +420,8 @@ Rrrrrrrrrrrrr.
 1. Set up a canvas; compute `up = max(1, round(h / 360))` and a buffer `ceil(w/up) × ceil(h/up)`.
 2. Port the `Pix` painter (set/rect/rows/line/blob/leaf/canvas with coloured outline) and `lam`/`qi`.
 3. Define your ramps (3–5 hue-shifted tones each) from the palette above.
-4. Write one `makeX(frame)` function per character: legs first (far leg darker), body, arms, head, face.
-   Bake 4 walk frames, mirror them, bake white flash silhouettes.
+4. Write one pose-driven `makeX(pose)` function per character: legs first (far leg darker), body, arms, head, face.
+   Bake the 8 walk poses plus idle, dash, hurt and squash poses lazily, mirror them, bake white flash silhouettes.
 5. Build the ground baker: noise fields → material map → stamps → colour pass with edge rules → decals.
    Cache it per 256-unit chunk (or once for a fixed screen).
 6. Bake props (trees with the blob canopy, fences, hay) and small sprites (gems, projectiles, sparkles, glows, shadows).
@@ -549,8 +574,9 @@ Use the Harvest 16-Bit art style for my project: cozy SNES-era autumn farm pixel
 - Paint every sprite in code into a pixel grid: ellipses/tapered leaves lit by ONE light (-0.5,-0.6,0.62),
   quantised into 3-5 step hue-shifted ramps (shadows plum/purple, highlights yellow/cream). No gradients/strokes.
 - Auto 1-px outline: empty pixels next to the sprite get the neighbours' average colour mixed 58-84% toward #24162a.
-- Chibi characters ~22x30 px with big round heads, glowing carved faces (#f2902a/#ffc640/#fff2a8), 4 walk frames
-  (bob 1 px, legs ±2 px), mirrored for left. Each creature type gets its own hue family.
+- Chibi characters ~22x30 px with big round heads, glowing carved faces (#f2902a/#ffc640/#fff2a8), an 8-pose walk
+  (contact/down/passing/up, counter-swinging arms, head landing a frame late, cape lagging), mirrored for left;
+  squash + recoil on hit, white pop before a burst, per-actor phases. Each creature type gets its own hue family.
 - Ground: three meadow greens (#77963b, #9a9d45, #5b893f) from noise, tuft stamps, sunken dirt paths (#b08a5a)
   and furrowed soil fields with a 2-px dithered shadow band under grass edges, bright rims/dark lips on grass.
 - Props: round autumn trees (orange/red/gold ramps) from overlapping lit blobs, with leaf-litter carpets

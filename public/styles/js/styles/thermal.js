@@ -178,11 +178,14 @@
   function bake(l, t, r, b, paint, o, variants) {
     const H = heatMap(l, t, r, b, paint, o);
     const s = { w: H.sw, h: H.sh, ax: H.ax, ay: H.ay };
-    s.img = renderHeat(H, F_NORMAL, 1);
+    // gain < 1 keeps a subject in a lower heat band (only the main character reaches white-hot)
+    const gn = (o && o.gain) || 1;
+    s.img = renderHeat(H, gn === 1 ? F_NORMAL : (t) => t * gn, 1);
     for (const v of variants || []) {
       if (v === 'flash') s.flash = renderHeat(H, F_FLASH, 1.3);
       else if (v === 'cold') s.cold = renderHeat(H, F_COLD, 0.25);
-      else if (v === 'after') s.after = renderHeat(H, F_AFTER, 0.6);
+      else if (v === 'after') s.after = renderHeat(H, (t) => F_AFTER(t * gn), 0.6);
+      else if (v === 'warm') s.warm = renderHeat(H, (t) => 0.1 + t * gn * 0.62, 0.5);
     }
     return s;
   }
@@ -190,7 +193,7 @@
   function bakeChar(l, t, r, b, paint, o, variants) {
     const R = bake(l, t, r, b, paint, o, variants);
     const L = { w: R.w, h: R.h, ax: 1 - R.ax, ay: R.ay };
-    for (const k of ['img', 'flash', 'cold', 'after']) if (R[k]) L[k] = U.flipX(R[k]);
+    for (const k of ['img', 'flash', 'cold', 'after', 'warm']) if (R[k]) L[k] = U.flipX(R[k]);
     return [R, L];
   }
   function blit(ctx, s, img, x, y) { ctx.drawImage(img, x - s.ax * s.w, y - s.ay * s.h, s.w, s.h); }
@@ -200,18 +203,33 @@
   }
 
   /* ================= characters (painted facing right) ================= */
-  /** Main character: small explorer in an insulated parka. Face = hottest spot, cold backpack = darkest. */
+  /** Main character: small explorer in an insulated parka. Face = hottest spot, cold backpack = darkest.
+      Modes: walk (8 poses), idle (8 poses: breathing, arms hugged against the cold, a foot stamp), launch / streak / brake (dash), hurt. */
+  const bumpT = (x, c, w) => { const t = (x - c) / w; return t <= -1 || t >= 1 ? 0 : 0.5 + 0.5 * Math.cos(t * Math.PI); };
   function explorerPaint(c, ph, mode) {
-    const a = ph * TAU, s = Math.sin(a), co = Math.cos(a);
-    const walk = mode === 'walk', dash = mode === 'dash';
-    const bob = walk ? -Math.abs(co) * 1.1 + 0.55 : 0;
+    const a = ph * TAU, s = Math.sin(a);
+    const walk = mode === 'walk', idle = mode === 'idle';
+    // feet reach their extremes at ph .25/.75 (contact); the body is lowest just after, highest near passing
+    let bob = walk ? 0.9 * Math.sin(2 * a - 2.33) : idle ? -0.32 * (0.5 + 0.5 * Math.sin(a)) : 0;
+    let rot = 0, feet = null, armB = 0.12, armF = -0.12, hood = 0;
+    if (walk) { armB = s * 0.8; armF = -s * 0.8; hood = 0.35 * Math.sin(2 * a - 3.4); }
+    else if (idle) {
+      // hugging against the cold: forearms folded in front, small shivers; a foot stamp at 55 % of the cycle
+      armB = 0.55 + 0.08 * Math.sin(a * 2); armF = 0.95 + 0.08 * Math.sin(a * 2 + 1);
+      hood = -0.25 * (0.5 + 0.5 * Math.sin(a - 0.6));
+      feet = [[-1.65, 0], [1.65, -1.3 * bumpT(ph, 0.56, 0.08)]];
+      bob += 0.25 * bumpT(ph, 0.6, 0.06);
+    } else if (mode === 'launch') { rot = 0.3; bob = 1.4; feet = [[-5.6, -0.5], [2.6, 0]]; armB = -1.5; armF = -1.25; hood = 0.8; }
+    else if (mode === 'streak') { rot = 0.26; bob = -0.6; feet = [[-4.8, -0.6], [5.4, -2.4]]; armB = -1.3; armF = -1.15; hood = -0.4; }
+    else if (mode === 'brake') { rot = -0.12; bob = 0.8; feet = [[-2.6, 0], [4.9, 0]]; armB = 0.8; armF = 0.6; hood = 0.7; }
+    else if (mode === 'hurt') { rot = -0.22; bob = 0.5; feet = [[-3.0, 0], [1.4, 0]]; armB = 2.4; armF = 2.7; hood = 0.4; }
     c.save();
-    if (dash) { c.translate(0, -0.6); c.rotate(0.24); }
+    if (rot) { c.translate(0, -0.6); c.rotate(rot); }
     const hipY = -9.6 + bob;
-    const leg = (hx, p, tl, tb) => {
+    const leg = (hx, p, tl, tb, fi) => {
       let fx, fy;
       if (walk) { fx = hx + Math.sin(p) * 3.8; fy = -Math.max(0, -Math.cos(p)) * 1.9; }
-      else if (dash) { fx = hx > 0 ? 5.4 : -4.8; fy = hx > 0 ? -2.4 : -0.6; }
+      else if (feet) { fx = feet[fi][0]; fy = feet[fi][1]; }
       else { fx = hx * 1.5; fy = 0; }
       const kx = (hx + fx) / 2 + 1.0, ky = (hipY + fy) / 2;
       c.beginPath(); c.moveTo(hx, hipY); c.lineTo(kx, ky); c.lineTo(fx, fy - 1.4);
@@ -226,10 +244,9 @@
       circ(c, hx, hy, 1.45); fillT(c, th);
     };
     const sy = -18.4 + bob;
-    const sw = walk ? s * 0.8 : 0.12;
-    arm(-0.7, sy, dash ? -1.3 : walk ? sw : -0.12, 0.52, 0.62);
-    leg(-1.1, a + Math.PI, 0.5, 0.28);
-    leg(1.1, a, 0.6, 0.32);
+    arm(-0.7, sy, armB, 0.52, 0.62);
+    leg(-1.1, a + Math.PI, 0.5, 0.28, 0);
+    leg(1.1, a, 0.6, 0.32, 1);
     // backpack: insulated and cold, the darkest shape of the figure (also shows the facing at a glance)
     rrect(c, -8.8, -23.4 + bob, 5.6, 11.8, 1.6); fillT(c, linear(c, 0, -23 + bob, 0, -11 + bob, 0.31, 0.23));
     ell(c, -5.9, -23.8 + bob, 3.7, 1.75); fillT(c, 0.2);
@@ -241,13 +258,15 @@
     fillT(c, radial(c, 2.0, -16.2 + bob, 8.8, 0.8, 0.58, [0.45, 0.7]));
     c.beginPath(); c.moveTo(-3.4, -19.9 + bob); c.lineTo(3.9, -10.8 + bob); strokeT(c, 0.42, 0.85); // pack strap
     c.beginPath(); c.moveTo(-4.4, -10.4 + bob); c.quadraticCurveTo(0.6, -9.2 + bob, 5.3, -10.5 + bob); strokeT(c, 0.47, 0.8); // hem
-    // hood
-    circ(c, 0.6, -24.7 + bob, 5.5); fillT(c, radial(c, 2.4, -24.4 + bob, 6.6, 0.7, 0.53));
-    ell(c, 2.95, -24.3 + bob, 3.65, 4.15); strokeT(c, 0.76, 1.35); // fur ruff
-    // face – the hottest spot of the whole figure
-    ell(c, 3.05, -24.2 + bob, 2.75, 3.25); fillT(c, radial(c, 3.0, -24.8 + bob, 3.5, 1.0, 0.86));
-    circ(c, 5.25, -23.8 + bob, 0.7); fillT(c, 0.79); // the nose tip is the coldest part of a face
-    arm(1.4, sy + 0.3, dash ? -1.15 : walk ? -sw : 0.1, 0.64, 0.76);
+    // hood: lands a beat after the body (overlap)
+    const hb = bob + hood;
+    circ(c, 0.6, -24.7 + hb, 5.5); fillT(c, radial(c, 2.4, -24.4 + hb, 6.6, 0.7, 0.53));
+    ell(c, 2.95, -24.3 + hb, 3.65, 4.15); strokeT(c, 0.76, 1.35); // fur ruff
+    // face – the hottest spot of the whole figure (and of the whole scene)
+    ell(c, 3.05, -24.2 + hb, 2.75, 3.25); fillT(c, radial(c, 3.0, -24.8 + hb, 3.5, 1.0, 0.88));
+    circ(c, 5.25, -23.8 + hb, 0.7); fillT(c, 0.79); // the nose tip is the coldest part of a face
+    if (mode === 'hurt') { ell(c, 4.0, -22.6 + hb, 0.8, 0.95); fillT(c, 0.7); } // gasping mouth
+    arm(1.4, sy + 0.3, armF, 0.64, 0.76);
     c.restore();
   }
 
@@ -1213,17 +1232,18 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
     init() {
       noiseTile();
       const V3 = ['flash', 'cold', 'after'];
-      HERO = { walk: [], idle: null, dash: null };
-      const hOpt = { halo: 1.5, haloA: 0.6 };
+      HERO = { walk: [], idle: [], dash: [], hurt: null };
+      const hOpt = { halo: 1.5, haloA: 0.72 };
       for (let i = 0; i < 8; i++) HERO.walk.push(bakeChar(15, 36, 17, 6, (c) => explorerPaint(c, i / 8, 'walk'), hOpt, V3));
-      HERO.idle = bakeChar(15, 36, 17, 6, (c) => explorerPaint(c, 0, 'idle'), hOpt, V3);
-      HERO.dash = bakeChar(15, 36, 19, 6, (c) => explorerPaint(c, 0, 'dash'), hOpt, V3);
+      for (let i = 0; i < 8; i++) HERO.idle.push(bakeChar(15, 36, 17, 6, (c) => explorerPaint(c, i / 8, 'idle'), hOpt, ['flash']));
+      for (const m of ['launch', 'streak', 'brake']) HERO.dash.push(bakeChar(17, 37, 19, 6, (c) => explorerPaint(c, 0, m), hOpt, ['flash', 'after']));
+      HERO.hurt = bakeChar(16, 37, 17, 6, (c) => explorerPaint(c, 0, 'hurt'), hOpt, ['flash']);
       CRIT = [];
-      for (let i = 0; i < 8; i++) CRIT.push(bakeChar(20, 22, 18, 6, (c) => critterPaint(c, i / 8), { halo: 1.3, haloA: 0.6 }, ['flash', 'cold']));
+      for (let i = 0; i < 8; i++) CRIT.push(bakeChar(20, 22, 18, 6, (c) => critterPaint(c, i / 8), { halo: 1.3, haloA: 0.6, gain: 0.92 }, ['flash', 'cold', 'warm']));
       WISP = [];
-      for (let i = 0; i < 8; i++) WISP.push(bakeChar(15, 37, 15, 6, (c) => wispPaint(c, i / 8), { halo: 2.1, haloA: 0.85, haloT: 0.66, limb: 0.32 }, V3));
+      for (let i = 0; i < 8; i++) WISP.push(bakeChar(15, 37, 15, 6, (c) => wispPaint(c, i / 8), { halo: 2.1, haloA: 0.75, haloT: 0.66, limb: 0.32, gain: 0.86 }, V3.concat(['warm'])));
       BRUTE = [];
-      for (let i = 0; i < 8; i++) BRUTE.push(bakeChar(29, 57, 29, 7, (c) => brutePaint(c, i / 8), { halo: 1.9, haloA: 0.65, diffuse: 0.7 }, ['flash', 'cold']));
+      for (let i = 0; i < 8; i++) BRUTE.push(bakeChar(29, 57, 29, 7, (c) => brutePaint(c, i / 8), { halo: 1.9, haloA: 0.6, diffuse: 0.7, gain: 0.9 }, ['flash', 'cold', 'warm']));
       GEMS = []; GEMB = [];
       for (let i = 0; i < 6; i++) {
         const p = 0.5 - 0.5 * Math.cos((i / 6) * TAU);
@@ -1501,16 +1521,22 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
 
     drawPlayer(ctx, p, view) {
       const rt = view.rt;
-      const mode = p.dashT > 0 ? 'dash' : p.moving ? 'walk' : 'idle';
-      const set = mode === 'dash' ? HERO.dash : mode === 'walk' ? HERO.walk[Math.floor(((p.anim / 3) % 1) * 8) & 7] : HERO.idle;
+      let mode, set, dk = 0;
+      if (p.dashT > 0) { mode = 'dash'; dk = clamp(1 - p.dashT / 0.2, 0, 1); set = HERO.dash[dk < 0.22 ? 0 : dk < 0.78 ? 1 : 2]; }
+      else if (p.hurtT > 0.55) { mode = 'hurt'; set = HERO.hurt; }
+      else if (p.moving) { mode = 'walk'; set = HERO.walk[Math.floor(((p.anim / 2.6) % 1) * 8) & 7]; }
+      else { mode = 'idle'; set = HERO.idle[Math.floor(((rt / 3.4) % 1) * 8) & 7]; }
       const side = p.facing < 0 ? 1 : 0;
       const s = set[side];
-      const bob = mode === 'idle' ? Math.sin(rt * 2.6) * 0.35 : 0;
+      const bob = 0;
+      let ssx = 1, ssy = 1;
+      if (mode === 'dash') { const st = Math.sin(dk * Math.PI); ssx = 1 + 0.15 * st - (dk > 0.8 ? 0.07 : 0); ssy = 1 - 0.1 * st + (dk > 0.8 ? 0.05 : 0); }
+      else if (mode === 'hurt') { const h = (p.hurtT - 0.55) / 0.45; ssx = 1 + 0.12 * h; ssy = 1 - 0.1 * h; }
       if (mode === 'dash') {
         // sensor afterimage: cooled copies stay on screen for a moment
         for (let i = 4; i >= 1; i--) {
           ctx.globalAlpha = 0.55 - i * 0.1;
-          blit(ctx, s, s.after, p.x - p.dashX * i * 6.5, p.y - p.dashY * i * 6.5);
+          blit(ctx, s, s.after, p.x - p.dashX * i * 6.5 * (0.4 + dk), p.y - p.dashY * i * 6.5 * (0.4 + dk));
         }
         ctx.globalAlpha = 1;
       }
@@ -1526,8 +1552,8 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
       let alpha = 1;
       if (p.iframes > 0 && p.hurtT > 0 && (Math.floor(rt * 18) & 1)) alpha = 0.45;
       ctx.globalAlpha = alpha;
-      blit(ctx, s, s.img, p.x, p.y + bob);
-      if (p.hurtT > 0.25) { ctx.globalAlpha = Math.min(1, (p.hurtT - 0.25) * 1.6); blit(ctx, s, s.flash, p.x, p.y + bob); }
+      blitS(ctx, s, s.img, p.x, p.y + bob, ssx, ssy);
+      if (p.hurtT > 0.25) { ctx.globalAlpha = Math.min(1, (p.hurtT - 0.25) * 1.6); blitS(ctx, s, s.flash, p.x, p.y + bob, ssx, ssy); }
       ctx.globalAlpha = 1;
       // warm breath clouds in the cold air
       if (mode !== 'dash') {
@@ -1547,23 +1573,32 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
     drawEnemy(ctx, e, view) {
       const rt = view.rt;
       let frames, fi;
-      if (e.type === 'ghost') { frames = WISP; fi = Math.floor(rt * 10 + e.seed * 50) & 7; }
+      if (e.type === 'ghost') { frames = WISP; fi = Math.floor(rt * (8 + e.seed * 5) + e.seed * 50) & 7; }
       else if (e.type === 'colossus') { frames = BRUTE; fi = Math.floor((e.anim * 0.22 + e.seed) * 8) & 7; }
       else { frames = CRIT; fi = Math.floor((e.anim * 0.4 + e.seed) * 8) & 7; }
       const side = e.facing < 0 ? 1 : 0;
       const s = frames[fi][side];
       let x = e.x, y = e.y;
       const ghost = e.type === 'ghost';
-      if (ghost) y -= 3 + Math.sin(rt * 2.4 + e.seed * 9) * 1.5;
+      if (ghost) {
+        // hot gas rises quickly and sinks slowly: eased, per-actor hover
+        const fb = (rt * 0.4 + e.seed * 3.7) % 1, up = fb < 0.35 ? smooth(0, 0.35, fb) : 1 - smooth(0.35, 1, fb);
+        y -= 2.2 + up * 3.2;
+      }
       if (e.dying) {
         // the body cools down through the ramp while it slumps
+        // 0–18 %: white-hot flare and a recoil (wide + short); then the heat drains hot → warm → cold
+        // through the ramp while the body slumps into a puddle; the imprint particle stays on the ground
         const t = clamp(e.deathT, 0, 1);
-        const sx = 1 + t * 0.16, sy = 1 - t * 0.38;
+        const rec = t < 0.18 ? Math.sin((t / 0.18) * Math.PI) : 0;
+        const sl = smooth(0.15, 1, t);
+        const sx = 1 + rec * 0.14 + sl * 0.22, sy = 1 - rec * 0.12 - sl * 0.46;
         ctx.globalAlpha = Math.max(0, 1 - t) * 0.95;
         blitS(ctx, s, s.cold, x, y, sx, sy);
-        ctx.globalAlpha = Math.max(0, 1 - t * 1.8);
+        if (s.warm) { ctx.globalAlpha = Math.max(0, 1 - Math.abs(t - 0.45) / 0.3) * 0.9; blitS(ctx, s, s.warm, x, y, sx, sy); }
+        ctx.globalAlpha = Math.max(0, 1 - t * 2.4);
         blitS(ctx, s, s.img, x, y, sx, sy);
-        ctx.globalAlpha = Math.max(0, 0.8 - t * 3);
+        ctx.globalAlpha = Math.max(0, 1 - t / 0.22);
         blitS(ctx, s, s.flash, x, y, sx, sy);
         ctx.globalAlpha = 1;
         return;
@@ -1571,10 +1606,13 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
       if (e.spawnT < 1) {
         // a cold silhouette appears first and warms up to full heat
         const k = clamp(e.spawnT, 0, 1);
+        const up = U.ease.outQuad(k), ov = k > 0.75 ? Math.sin(((k - 0.75) / 0.25) * Math.PI) * 0.07 : 0;
+        const asx = 1.12 - 0.12 * up - ov * 0.5, asy = 0.7 + 0.3 * up + ov;
         ctx.globalAlpha = Math.min(1, k * 2.2);
-        blit(ctx, s, s.cold, x, y);
-        ctx.globalAlpha = smooth(0.35, 1, k);
-        blit(ctx, s, s.img, x, y);
+        blitS(ctx, s, s.cold, x, y, asx, asy);
+        if (s.warm) { ctx.globalAlpha = smooth(0.2, 0.6, k) * (1 - smooth(0.6, 1, k)); blitS(ctx, s, s.warm, x, y, asx, asy); }
+        ctx.globalAlpha = smooth(0.45, 1, k);
+        blitS(ctx, s, s.img, x, y, asx, asy);
         const rr = e.r * (2.6 - 1.6 * k);
         ctx.globalAlpha = (1 - k) * 0.8;
         ctx.strokeStyle = col(0.55 + 0.35 * k); ctx.lineWidth = 1;
@@ -1590,7 +1628,17 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
         }
         ctx.globalAlpha = 0.8 + 0.2 * U.hash2(Math.floor(rt * 24), Math.floor(e.seed * 9999), 7);
       }
-      blit(ctx, s, s.img, x, y);
+      // hit reaction: damped squash/stretch (~250 ms) and a push in the knock-back direction
+      if ((e.flash || 0) > (e._nf || 0) + 0.3) e._ht = rt;
+      e._nf = e.flash || 0;
+      const hA = e._ht === undefined ? 9 : rt - e._ht;
+      let hsx = 1, hsy = 1;
+      if (hA < 0.32) {
+        const r = Math.exp(-hA * 13) * Math.cos(hA * 26);
+        hsx = 1 + 0.15 * r; hsy = 1 - 0.15 * r;
+        x += clamp((e.kx || 0) / 140, -1, 1) * 1.6 * Math.exp(-hA * 10);
+      }
+      blitS(ctx, s, s.img, x, y, hsx, hsy);
       ctx.globalAlpha = 1;
       if (e.type === 'colossus') {
         const ph = (e.anim * 0.22 + e.seed) * 2, f = ph - Math.floor(ph);
@@ -1606,7 +1654,7 @@ body.style-thermal.view-ui::after{content:'';position:fixed;right:44px;top:32%;h
       }
       if (e.flash > 0) {
         ctx.globalAlpha = Math.min(1, e.flash * 1.15);
-        blit(ctx, s, s.flash, x, y);
+        blitS(ctx, s, s.flash, x, y, hsx, hsy);
         ctx.globalAlpha = 1;
       }
     },

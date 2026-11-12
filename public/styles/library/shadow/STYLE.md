@@ -120,6 +120,7 @@ f(x, y) = (warped(x/1300, y/1300, seed 501, warp 0.85, 3 oct) − 0.5) × 9.5 + 
     - violet: small fallen leaves and maple shapes (cell 15/34) and 4–5-point cut-out stars plus additive light glints (cell 17);
     - teal: broken ripple ellipses (2–3 rings, radius 3.5 + 3.2k, height × 0.4, dashed in random gaps), reeds with cattail heads, lily pads;
     - large fern rosettes and branching root systems (cell 165).
+  - **Clumps, not sprinkle.** Every field decal is multiplied by a clump mask `keep = smoothstep(0.45, 0.68, noise(x/150, y/150))`: e.g. crimson filigree `5 % + 60 %·keep`, violet stars `4 % + 40 %·keep`, amber grass `1.2 % + 72 %·mask`. Big parts of every light field stay clean, so the figures read against calm light.
 - **Additive glints.** These go on top of the lace. Violet gets 4-point stars in `rgba(255,236,190,.55)` with a `rgba(255,250,230,.7)` dot. Teal ripples get pale ellipses in `rgba(220,255,250,.35)`.
 
 Scale: fields are hundreds of units across (noise period about 1300 units), so one screen shows 2–4 fields. Decals are tiny: 2–15 units, with strokes of 0.25–0.85 units. Keep decals much finer than the standing figures so the floor never competes with them.
@@ -137,9 +138,10 @@ All characters are **shadow puppets**: flat `#0b0510` silhouettes with no outlin
 5. **Scarf.** An ellipse (3.5 × 1.3) plus two streaming tails: limbs 1.6 → 0.5, 11.6 units long when walking, hanging down when idle, waving at twice the step frequency.
 6. **Front arm.** Width 1.1.
 7. **Pumpkin head.** Four overlapping ellipses (`pumpkinShape`, rx 6.8, ry 5.4) at (0.8, −22.4). Add a stem limb (1.5 → 0.9) curving back, a leaf (4.2 long) and a long spiral curl (4.6, turn 6).
-8. **Carved face**, the brightest thing on screen. Two triangular eyes, a triangle nose and a zig-zag grin with two teeth. It is filled by `glowFill` with the radial `FACE` gradient (`#fffbe2 → #ffd65e → #ff9a22 → #ff6a10`, centre radius 6) and a 1.6-unit bloom in `rgba(255,150,40,.95)`.
+8. **Puppet construction**, punched last with `destination-out` so the light behind the screen shines through: a **rivet hole** (r 0.36) at every pivot – both knees, the front elbow and the shoulder – and **pierced lace** in the cloak: four diamonds (0.9 × 1.5) in a row 2 units above the hem and a crescent moon (two circles r 1.25 / 1.05 offset by (0.55, −0.3), even-odd) in the middle of the cloak. They give the big calm cloak shape a second level of detail without breaking the silhouette.
+9. **Carved face**, the brightest thing on screen. Two triangular eyes, a triangle nose and a zig-zag grin with two teeth. It is filled by `glowFill` with the radial `FACE` gradient (`#fffbe2 → #ffd65e → #ff9a22 → #ff6a10`, centre radius 6) and a 1.6-unit bloom in `rgba(255,150,40,.95)`.
 
-**Frames.** There are 6 walk frames (phase i/6) and 4 idle frames, each baked with a warm rim (`#ffb24a`, rad 1.3), a white hurt rim and mirrored copies. The walk bob is `−|cos(phase)| × 0.9`, and the head bobs separately with a 0.4 phase lag.
+**Frames.** There are 6 walk frames (phase i/6) and 4 idle frames, each baked with a warm rim (`#ffb24a`, rad 1.3), a white hurt rim and mirrored copies, plus a **crouch** (the idle pose squashed 1.08 × 0.86 on its pivots) and a **dash lean** (walk phase 0.25 rotated 0.24 rad around the hip point (0, −8.6)), both with their own warm rim. The walk bob is `−|cos(phase)| × 0.9`, and the head bobs separately with a 0.4 phase lag.
 
 **Per frame:**
 - an additive follow-spot pool (r 30, scaled 1.1 × 0.62, alpha 0.55 ± 0.05);
@@ -204,7 +206,7 @@ Props are **standing ink silhouettes** in `#0b0510`, baked once at K px per worl
 - **Lit gourd lanterns** (34 × 16 units, 3 variants + mirrored): one to three pumpkins (`pumpkinShape`, r 3.4–6.2) on curly ground vines with three-lobed leaves; the lit ones have a carved face in the `FACE` gradient (bloom 1.1) and an additive flickering gold glow of radius 1.8 × r.
 - **Weeds** (16 × 18 units, 3 variants): thistles (three stems with a bulb head and 7 spines), tall grass clumps (11 blades 6–14 tall with seed heads), fiddlehead ferns (four stems ending in tight curls).
 
-**Placement.** Props are scattered on a cell grid and filtered by field: trees in 118-unit cells with a field-dependent chance (teal 40 %, violet 50 %, crimson 30 %, amber 14 %); graves cluster where a low-frequency noise (x/330) is above 0.64 and never on amber; fences (zone 0.56–0.62) and gates (zone above 0.62) in 150-unit cells; scarecrows, crow posts and gourd lanterns only on the warm crimson and amber fields; lantern poles anywhere (135-unit cells, 22 %); weeds in 44-unit cells (40 %), grass on teal, ferns on violet, thistles or grass on warm fields. Props stay away from seams.
+**Placement.** Props are scattered on a cell grid and filtered by field: trees in 118-unit cells with a field-dependent chance (teal 40 %, violet 50 %, crimson 30 %, amber 14 %); graves cluster where a low-frequency noise (x/330) is above 0.64 and never on amber; fences (zone 0.56–0.62) and gates (zone above 0.62) in 150-unit cells; scarecrows, crow posts and gourd lanterns only on the warm crimson and amber fields; lantern poles anywhere (135-unit cells, 22 %); weeds in 44-unit cells as **thickets** (`2 % + 75 %·smoothstep(0.45, 0.7, noise(x/200))`), grass on teal, ferns on violet, thistles or grass on warm fields; gourd lanterns in patches (`4 % + 55 %` by a 260-unit noise). Props stay away from seams.
 
 **Motion.** Trees sway ±0.012 rad and scarecrows ±0.02 rad at 0.7 rad/s, hinged at the foot like puppets. Weeds sway ±0.05 rad at 1.3 rad/s. The crow flicks its head on every 4th beat (0.8 Hz). Lanterns and gourd lanterns flicker with `0.75 + 0.15·sin(9t) + 0.1·sin(23t)`.
 
@@ -297,10 +299,12 @@ Everything moves like a **rod puppet**: jointed limbs swing, and whole sprites r
   - walk: 6 frames advanced at `anim × 1.5` (≈ 9 fps); idle: 4 frames at 2.6 fps;
   - the legs swing ±0.6 rad and the knees bend by `0.55·max(0, sin(phase + side·1.4))`;
   - the cloak hem and scarf tails flutter at 2× the step frequency;
-  - hurt state: the sprite blinks to 45 % alpha at 14 Hz and the white rim is added.
+  - dash: the crouch frame while `dashT > 0.165` (anticipation), then the lean pose with three ink afterimages;
+  - hurt state: the white rim is added and the puppet tilts back on its rod by `−facing × 0.2 × sin(1.5π·hurt) × hurt` – one swing and one overshoot; while invulnerable the candle behind the screen flickers (the white rim at 60 % every other 1/12 s) – it never turns see-through.
 - **Small creature:** 6 frames at 4.8 per anim second, rocking ±0.075 rad, with a per-creature seed offset so crowds never march in sync.
 - **Large creature:** 6 frames at 3.6 per anim second, rocking ±0.035 rad, with feet lifted up to 3.6 units; the magenta chest glow pulses 0.45 ± 0.25 at 4 rad/s.
-- **Ghost:** 4 frames at 6 fps. It floats 2.2 units up, bobs ±1.2 units at 3.1 rad/s and sways ±0.06 rad. It has no walk cycle.
+- **Ghost:** 4 frames at 6 fps. It hovers `1.2 + 2.6·smoothstep(tri)` units on a triangle wave with a 2.2 s period per ghost, so it lingers at the top and the bottom, and sways ±0.06 rad. It has no walk cycle.
+- **Hit reaction:** the cream rim flash plus a shove of 2.6 units (large creature 1.4) along the knock-back direction and a tilt of up to 0.22 rad away from the blow, both easing out with `flash²` over ~0.14 s.
 - **Props:** trees sway ±0.012 rad and scarecrows ±0.02 rad at 0.7 rad/s. Weeds sway ±0.05 rad at 1.3 rad/s. The crow flicks its head on every 4th beat (0.8 Hz). Lanterns and gourd lanterns flicker with `0.75 + 0.15·sin(9t) + 0.1·sin(23t)`.
 - **Collectibles:** bob ±0.8 units at 3 rad/s, the glow pulses 0.75–1.0 at 5 rad/s, and when collected they pop up to 1.6×.
 - **Pop-up numbers:** pop from 1.6× to 1× in 0.08 s and fade over the last 0.25 s.

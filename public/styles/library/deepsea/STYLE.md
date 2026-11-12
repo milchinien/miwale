@@ -99,7 +99,7 @@ The floor is computed per pixel from smooth noise fields, then decorated with ve
 - *silt* – fbm at 640 u
 - *ripple warp* and *ripple direction* – fbm at 170 u (phase offset, amplitude 7) and 900 u (angle 0.45 ± 1.3 rad)
 - *macro light* – fbm at 210 u
-- *ripple patches* – fbm at 150 u; ripples only appear where it is above 0.5–0.64
+- *ripple patches* – fbm at 150 u; ripples only appear where it is above 0.53–0.7, crests mixed in at 32 % and troughs darkened 18 % – a quiet texture, never stamped stripes
 - grain: one 256 px tileable fbm tile, read at 2 texels per unit (fine) and 0.5 (coarse)
 
 **Sand**: `#07101f` → `#162842` driven by macro light and grain. **Ripples**: `sin((x·cos a + y·sin a)·0.66 + warp)` – a wavelength of ≈ 9.5 units. Crests above 0.55 lerp towards `#2c4a6e` by `((s − 0.55)·2.22)² · 0.5`, troughs below −0.2 are darkened by up to 26 %. Ripples exist only in patches, so the floor reads as sand fields, not as a fingerprint.
@@ -110,10 +110,10 @@ The floor is computed per pixel from smooth noise fields, then decorated with ve
 
 **Decals** (deterministic per world cell, so they continue across chunk borders):
 - worm and sea-cucumber trails: two dotted dark lines with a faint lighter centre, 14–26 steps of 3.2 × 2.2 u
-- pebbles 0.6–1.5 u with a lit upper arc, burrows (dark hole + raised rim, 35 % with a teal glowing tip), small shells
+- pebbles 0.6–1.5 u with a lit upper arc, burrows (dark hole + raised rim, 15 % with a teal glowing tip), small shells – only in scattered beds: chance `0.04 + 0.5·smoothstep(0.48, 0.7, fbm(x/120, y/120))` per 22 u cell, so most sand stays bare
 - brittle stars (thin bent arms) and sea stars (5 solid arms) in pink or violet over a soft pool
 - **microbial mats**: 13–28 u soft pools in teal, cyan or violet with 30–70 glowing dots, denser in the middle
-- plankton specks 0.16–0.38 u in the four glow colours, barnacle glints along rock lips
+- plankton specks 0.16–0.38 u in the four glow colours, only inside the lit mats; barnacle glints along rock lips; brittle and sea stars only along rock lips and around the mats (no even sprinkle anywhere)
 - **brine pools** (one chance per 560-unit cell, never on rock): organic blob r 34–60 u (two sine harmonics), 0.62 high; dark crust ring, 140 mussels on the shore, near-black gradient surface `#0a0c22 → #020308` with faint concentric ripples, and a violet → cyan → violet rim drawn as three additive strokes (7 / 3 / 0.6 u at 5 / 12 / 55 %)
 
 At runtime the floor breathes: about 45 % of 46-unit cells flash a small glow (2.2–5.6 u) once every 2.6–6.6 s, sometimes with a wider pool.
@@ -135,7 +135,7 @@ At runtime the floor breathes: about 45 % of 46-unit cells flash a small glow (2
 
 **Large creature – anglerfish** (~41 × 30 u): a huge rounded body (`#2a4068 → #13213a → #070c18`, lit near the face by its own lure), darker blotches, a cold rim light along the back, a gaping mouth with 6 upper and 6 longer lower needle teeth (pale, faintly glowing), a small mint eye, 9 violet lateral dots, pectoral fin and fan tail with violet edges, three tipped dorsal spines. The **lure** is drawn per frame: a rod from the forehead arching forward and a mint bulb (glow 11 u + soft 30 u halo) that sways ±1.6 u and pulses, throwing a mint pool on the sand.
 
-Rules: bodies dark, light in a few features; silhouette tells the type, colour confirms it; everything except the diver hovers and bobs; flashes are added silhouettes, never recolours. Creatures emerge from the dark when they appear (alpha = t², glow 1.8 t, a shrinking light ring on the floor) and dissolve by rising 6 u, growing 30 % and fading while a plankton burst takes over.
+Rules: bodies dark, light in a few features; silhouette tells the type, colour confirms it; everything except the diver hovers and bobs; flashes are added silhouettes, never recolours. Appearing creatures **rise out of the dark** (450 ms): a pressure ring on the sand tightens from 2.8r to r (anticipation), the body rises 9 u and scales in from 82 % with an 8 % overshoot, its light switches on last (alpha `smoothstep(0.15, 0.7, t)`, halo `smoothstep(0.45, 1, t)`). Dying creatures **go dark** (350 ms): a white flare with a recoil squash (16 % wide, 18 % low) in the first 20 %, then the halo dies first, the body tips over (up to 0.9 rad, ease-in) and sinks 7 u while its light leaves as rising plankton motes. Hit: aqua-white silhouette flash plus a damped squash/stretch `0.15·e^(−13t)·cos 26t` (~250 ms) and a 1.6 u push in the knock-back direction. Light ranking: diver halo 1.3 (separate layer), jellyfish glowA 0.85, lantern fish 0.95.
 
 ## Props
 
@@ -216,6 +216,10 @@ A **submersible instrument panel** made of dark glass:
 - **Kelp**: 8 baked bend frames over ~7.7 s; anemones sway with a shear of ±0.05; vent smoke rises 34 u over ~4.5 s.
 - **Atmosphere**: the two caustic layers drift in different directions (≈ 2.8 u/s each), so the light web slowly shimmers; snow sinks 3–7.5 u/s; floor pulses rise and fall within 30 % of their period.
 - **UI**: sonar sweep 4.5 s per turn, blips 2.2 s, bubbles in the top bar 3 s.
+
+- **Idle** (main character): 8 poses over 3.6 s – arms drift up and down ±0.24 rad (the near arm 0.9 rad behind the far one), flippers paddle ±0.16 rad and lift 0.5 u, the chest breathes 0.45 u; the whole figure rises on a buoyant curve (quick lift in 40 % of the period, slow sink, 1.1 u). The walk body is lowest just after each contact (`0.8·sin 2a`).
+- **Creature hover**: a quick lift and slow sink instead of a sine (`bp < 0.4 ? smoothstep(0, 0.4, bp) : 1 − smoothstep(0.4, 1, bp)`), per-actor phase; lantern fish beat their tails at 2.1–2.8 cycles/s per actor through 8 frames.
+- **Appear / hit / death**: rise out of the dark (450 ms), damped squash (~250 ms), lights out – flare, halo dies, tip over and sink (350 ms).
 
 ## Do and don't
 

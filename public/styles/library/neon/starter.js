@@ -77,32 +77,59 @@
     c.closePath();
   }
   function faceGrad(c, x, y, r) { const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, '#fffbe2'); g.addColorStop(0.55, '#ffe08a'); g.addColorStop(1, '#ffa526'); return g; }
+  /** Two-bone IK: [jointX, jointY, endX, endY]; bend -1 = joint in front (knee), +1 = behind (elbow). */
+  function ik(ax, ay, bx, by, l1, l2, bend) {
+    let dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 1e-3;
+    if (d > l1 + l2 - 0.02) { const k = (l1 + l2 - 0.02) / d; bx = ax + dx * k; by = ay + dy * k; dx *= k; dy *= k; d = l1 + l2 - 0.02; }
+    const q = (l1 * l1 - l2 * l2 + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, l1 * l1 - q * q));
+    return [ax + (dx * q) / d - (dy / d) * hh * bend, ay + (dy * q) / d + (dx / d) * hh * bend, bx, by];
+  }
+  /** Main character walk pose ph 0..1: contact – down – passing – up, IK legs + boots, counter-swinging arms,
+      head and jacket hem lagging, scarf tails on a travelling wave. Feet at (0,0), facing +x. */
   function heroPose(c, pass, ph) {
-    const a = ph * TAU, s = Math.sin(a), bob = -Math.abs(s) * 1.1, body = P.amber, dark = 'rgba(26,10,3,0.96)', hipY = -7.6 + bob;
-    const leg = (hx, p, col) => { const fx = hx + Math.sin(p) * 3.5, fy = -Math.max(0, Math.cos(p)) * 1.7, kx = (hx + fx) / 2 + 0.9, ky = (hipY + fy) / 2;
-      c.beginPath(); c.moveTo(hx, hipY); c.lineTo(kx, ky); c.lineTo(fx, fy - 0.2); c.lineTo(fx + 1.7, fy - 0.2); tube(c, pass, col, 1.05); };
-    const arm = (sx, ang, col) => { const sy = -14.2 + bob, ex = sx + Math.sin(ang * 0.6) * 2.7 - 0.3, ey = sy + Math.cos(ang * 0.6) * 2.7, hx = ex + Math.sin(ang) * 2.8, hy = ey + Math.cos(ang) * 2.8;
-      c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(hx, hy); tube(c, pass, col, 1.0); c.beginPath(); c.arc(hx, hy, 0.85, 0, TAU); fillIn(c, pass, col, col); };
-    const swing = s * 0.75;
-    arm(-0.7, swing, '#c8761c'); leg(-0.9, a + Math.PI, '#c8761c'); leg(0.9, a, body); // back limbs are a darker shade
-    const w1 = Math.sin(a * 2) * 0.7, w2 = Math.sin(a * 2 + 1.3) * 0.9, tl = [-1.6, -15.2 + bob, -5.0, -15.0 + bob + w1, -8.4, -14.4 + bob + w2, -11.2, -15.4 + bob - w1];
-    c.beginPath(); c.moveTo(tl[0], tl[1]); c.quadraticCurveTo(tl[2], tl[3], (tl[2] + tl[4]) / 2, (tl[3] + tl[5]) / 2); c.quadraticCurveTo(tl[4], tl[5], tl[6], tl[7]); tube(c, pass, P.scarf, 1.15);
-    c.beginPath(); c.moveTo(-2.6, -15.2 + bob); c.lineTo(2.6, -15.2 + bob); c.lineTo(4.0, -8.0 + bob); c.quadraticCurveTo(0, -6.8 + bob, -4.0, -8.0 + bob); c.closePath();
-    fillIn(c, pass, dark); tube(c, pass, body, 1.05);
-    c.beginPath(); c.moveTo(-2.0, -14.8 + bob); c.lineTo(3.2, -9.6 + bob); tube(c, pass, '#ffcf7a', 0.5, { hot: false });
-    const hx = 0.5, hy = -21.7 + bob, rx = 7.6, ry = 6.3;
+    const a = ph * TAU, dy = 0.85 * Math.sin(2 * a), body = P.amber, far = '#c06a18', dark = 'rgba(26,10,3,0.96)';
+    const hipY = -8.3 + dy, shY = -14.9 + dy, hem = 0.7 * Math.sin(2 * a - 1.5), hdy = dy + 0.4 * Math.sin(2 * a - 1.1);
+    const leg = (hx, fx, lift, col) => {
+      const [kx, ky, ax, ay] = ik(hx, hipY, fx, -lift - 1.0, 4.3, 4.0, -1);
+      c.beginPath(); c.moveTo(hx, hipY); c.lineTo(kx, ky); c.lineTo(ax, ay); tube(c, pass, col, 1.15);
+      const p = -0.4 * Math.min(1, lift), cs = Math.cos(p), sn = Math.sin(p), pt = (x, y) => [ax + x * cs - y * sn, ay + x * sn + y * cs];
+      const h0 = pt(-1.0, 0.95), t0 = pt(2.6, 0.95), t1 = pt(2.4, -0.1), b0 = pt(-0.6, -0.4);
+      c.beginPath(); c.moveTo(b0[0], b0[1]); c.lineTo(h0[0], h0[1]); c.lineTo(t0[0], t0[1]); c.quadraticCurveTo(t1[0] + 0.4, t1[1], t1[0] - 0.6, t1[1] - 0.2); c.closePath();
+      fillIn(c, pass, dark); tube(c, pass, col, 0.75);
+    };
+    const arm = (sx, sw, col) => {
+      const sy = shY + 0.3, [ex, ey, hx, hy] = ik(sx, sy, sx + Math.sin(sw) * 5, sy + Math.cos(sw) * 5 - Math.max(0, sw) * 0.6, 2.9, 2.9, 1);
+      c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(hx, hy); tube(c, pass, col, 1.05);
+      c.beginPath(); c.arc(hx, hy, 0.95, 0, TAU); fillIn(c, pass, dark, col); tube(c, pass, col, 0.55, { hot: false });
+    };
+    const scarf = (off, n, w) => { // each link lags the previous one by 0.95 rad: follow-through
+      let x = -1.7, y = shY - 0.6; c.beginPath(); c.moveTo(x, y);
+      for (let i = 0; i < n; i++) { const an = Math.PI - 0.5 + off - 0.12 * i + 0.26 * Math.sin(2 * a - 1 - 0.95 * i - off * 2); x += Math.cos(an) * (2.8 - i * 0.2); y += Math.sin(an) * (2.8 - i * 0.2); c.lineTo(x, y); }
+      tube(c, pass, P.scarf, w);
+    };
+    arm(-0.9, 0.62 * Math.cos(a), far);
+    leg(-1.0, -0.4 - 3.5 * Math.cos(a), 2 * Math.max(0, Math.sin(a)), far);
+    scarf(0.18, 3, 0.85); scarf(0, 4, 1.15);
+    leg(1.0, 0.6 + 3.5 * Math.cos(a), 2 * Math.max(0, -Math.sin(a)), body);
+    c.beginPath(); c.moveTo(-2.9, shY - 0.4); c.lineTo(2.9, shY - 0.4); c.quadraticCurveTo(3.7, shY + 3, 4.4 + hem * 0.25, hipY + 0.3); // flared jacket, hem swings late
+    c.quadraticCurveTo(0.2, hipY + 1.6 + hem * 0.15, -4.5 + hem * 0.5, hipY + 0.4); c.quadraticCurveTo(-3.6, shY + 3, -2.9, shY - 0.4); c.closePath();
+    fillIn(c, pass, dark); tube(c, pass, body, 1.0);
+    c.beginPath(); c.moveTo(-2.1, shY); c.lineTo(3.0, hipY - 1.2); tube(c, pass, '#ffcf7a', 0.5, { hot: false });
+    c.beginPath(); c.rect(2.0, hipY - 2.3, 2.9, 2.4); fillIn(c, pass, dark); tube(c, pass, '#ffcf7a', 0.55, { hot: false });
+    const hx = 0.5, hy = -21.9 + hdy, rx = 7.6, ry = 6.3;
     pumpkinPath(c, hx, hy, rx, ry); fillIn(c, pass, 'rgba(30,9,2,0.97)');
     if (pass === 'full') { c.beginPath(); c.moveTo(hx - 3.6, hy - ry * 0.93); c.quadraticCurveTo(hx - 7.0, hy, hx - 3.6, hy + ry * 0.93);
-      c.moveTo(hx + 4.6, hy - ry * 0.9); c.quadraticCurveTo(hx + 7.6, hy, hx + 4.6, hy + ry * 0.9); c.strokeStyle = 'rgba(255,110,30,0.55)'; c.lineWidth = 0.55; c.stroke(); }
-    pumpkinPath(c, hx, hy, rx, ry); tube(c, pass, P.hero, 1.3);
+      c.moveTo(hx + 4.6, hy - ry * 0.9); c.quadraticCurveTo(hx + 7.6, hy, hx + 4.6, hy + ry * 0.9); c.strokeStyle = 'rgba(255,110,30,0.55)'; c.lineWidth = 0.55; c.stroke();
+      c.beginPath(); c.ellipse(hx - 0.4, hy + 0.3, rx * 0.88, ry * 0.86, 0, Math.PI * 0.6, Math.PI * 1.05); c.strokeStyle = 'rgba(255,58,214,0.55)'; c.lineWidth = 0.5; c.stroke(); } // cool rim, shadow side
+    pumpkinPath(c, hx, hy, rx, ry); tube(c, pass, P.hero, 1.35);
     c.beginPath(); c.moveTo(hx - 0.2, hy - ry + 0.5); c.quadraticCurveTo(hx - 0.1, hy - ry - 1.8, hx + 1.9, hy - ry - 2.7); tube(c, pass, P.stem, 1.15);
     const fx = hx + 1.7, fy = hy; c.beginPath(); // carved face: filled gradient, glows #ffb000 in the glow pass
     tri(c, fx - 4.4, fy - 0.3, fx - 1.4, fy - 0.3, fx - 2.8, fy - 3.7); tri(c, fx + 0.6, fy - 0.3, fx + 3.6, fy - 0.3, fx + 2.2, fy - 3.7);
     c.moveTo(fx - 5.0, fy + 2.0); poly(c, [fx - 5.0, fy + 2.0, fx - 3.2, fy + 2.7, fx - 2.4, fy + 2.0, fx - 1.0, fy + 2.8, fx + 0.1, fy + 2.1, fx + 1.3, fy + 2.8, fx + 2.4, fy + 2.0, fx + 3.4, fy + 2.6, fx + 4.7, fy + 1.7]);
     c.quadraticCurveTo(fx + 0.2, fy + 6.6, fx - 5.0, fy + 2.0); c.closePath();
     fillIn(c, pass, pass === 'full' ? faceGrad(c, fx - 0.3, fy + 0.6, 5.5) : null, '#ffb000');
-    c.beginPath(); c.moveTo(-3.3, -15.6 + bob); c.quadraticCurveTo(0.2, -14.1 + bob, 3.4, -15.5 + bob); tube(c, pass, P.scarf, 1.7);
-    arm(0.8, -swing, body);
+    c.beginPath(); c.moveTo(-3.3, shY - 0.7); c.quadraticCurveTo(0.2, shY + 0.9, 3.4, shY - 0.6); tube(c, pass, P.scarf, 1.75);
+    arm(0.9, -0.62 * Math.cos(a), body);
   }
   function leaf(c, pass, bx, by, ang, len, wid, col, fc) {
     const dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx, tx = bx + dx * len, ty = by + dy * len, mx = bx + dx * len * 0.5, my = by + dy * len * 0.5;
@@ -236,14 +263,15 @@
   }
   function bakeGround(w, h) {
     const s = h / 360, W = w / s, H = 360, px = 1 / s, nx = Math.ceil(W / CS) + 2, ny = Math.ceil(H / CS) + 2, n = nx * ny;
-    const m = [0, 1, 2, 3].map(() => new Float32Array(n)), wat = new Float32Array(n);
+    const m = [0, 1, 2, 3].map(() => new Float32Array(n)), wat = new Float32Array(n), sig = new Float32Array(n), road = new Float32Array(n);
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const x = (i - 0.5) * CS, y = (j - 0.5) * CS, k = j * nx + i;
       const qx = fbm(x / 400, y / 400, 501, 2) - 0.5, qy = fbm(x / 400 + 7.3, y / 400 - 3.1, 502, 2) - 0.5, X = x / 330 + qx * 1.3 + 2.1, Y = y / 330 + qy * 1.3;
-      m[0][k] = fbm(X, Y, 11, 2); m[1][k] = fbm(X + 13.1, Y - 7.7, 23, 2); m[2][k] = fbm(X - 5.3, Y + 19.9, 37, 2); m[3][k] = fbm(X + 29.3, Y + 3.7, 41, 2) + 0.06; wat[k] = fbm(x / 200 + 3.3, y / 200, 77, 3); }
+      m[0][k] = fbm(X, Y, 11, 2); m[1][k] = fbm(X + 13.1, Y - 7.7, 23, 2); m[2][k] = fbm(X - 5.3, Y + 19.9, 37, 2); m[3][k] = fbm(X + 29.3, Y + 3.7, 41, 2) + 0.06; wat[k] = fbm(x / 200 + 3.3, y / 200, 77, 3); sig[k] = fbm(x / 120, y / 120, 91, 2); road[k] = fbm(x / 300 + qx * 0.6 - 4.1, y / 300 + qy * 0.6 + 9.7, 1201, 2); }
     const base = new ImageData(nx, ny), masks = [0, 1, 2, 3, 4].map(() => new ImageData(nx, ny)), e = [0, 0, 0, 0];
     for (let k = 0; k < n; k++) { let mx = -1, sum = 0; for (let q = 0; q < 4; q++) mx = Math.max(mx, m[q][k]); for (let q = 0; q < 4; q++) { e[q] = Math.exp((m[q][k] - mx) / 0.012); sum += e[q]; }
       const ww = Math.min(1, Math.max(0, (wat[k] - WT + 0.01) / 0.02)), o = k * 4, br = 0.95; let r = 0, g = 0, b = 0;
-      for (let q = 0; q < 4; q++) { const wq = (e[q] / sum) * (1 - ww); r += REG[q].base[0] * wq; g += REG[q].base[1] * wq; b += REG[q].base[2] * wq; masks[q].data.fill(255, o, o + 3); masks[q].data[o + 3] = wq * 0.8 * 255; }
+      for (let q = 0; q < 4; q++) { const wq = (e[q] / sum) * (1 - ww); r += REG[q].base[0] * wq; g += REG[q].base[1] * wq; b += REG[q].base[2] * wq; const rn = 1 - Math.min(1, Math.max(0, (Math.abs(road[k] - 0.5) - 0.006) / 0.024)), inten = (0.16 + 0.84 * Math.min(1, Math.max(0, (sig[k] - 0.38) / 0.36))) * (1 - 0.8 * rn);
+        masks[q].data.fill(255, o, o + 3); masks[q].data[o + 3] = wq * inten * 255; }
       r += WATER.base[0] * ww; g += WATER.base[1] * ww; b += WATER.base[2] * ww; masks[4].data.fill(255, o, o + 3); masks[4].data[o + 3] = ww * 0.9 * 255;
       base.data[o] = r * br; base.data[o + 1] = g * br; base.data[o + 2] = b * br; base.data[o + 3] = 255; }
     const out = mk(w, h), ctx = out.getContext('2d'), small = mk(nx, ny), sx = small.getContext('2d'), scr = mk(w, h), sc = scr.getContext('2d');
@@ -252,13 +280,18 @@
     for (let q = 0; q < 5; q++) { sc.setTransform(1, 0, 0, 1, 0, 0); sc.globalCompositeOperation = 'source-over'; sc.clearRect(0, 0, w, h); sc.setTransform(s, 0, 0, s, 0, 0);
       PAT[q](sc, W, H, px); sx.putImageData(masks[q], 0, 0); sc.globalCompositeOperation = 'destination-in'; sc.drawImage(small, -CS, -CS, nx * CS, ny * CS);
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(scr, 0, 0); ctx.restore(); }
-    ctx.globalCompositeOperation = 'lighter'; const R = rng(1717); // star dust + faint glyph decals
-    for (let i = 0; i < W * H / 260; i++) { const d = R.range(0.3, 0.75); ctx.fillStyle = ['rgba(220,210,255,0.22)', 'rgba(255,255,255,0.55)', 'rgba(180,240,255,0.4)', 'rgba(255,200,240,0.35)'][R.int(0, 3)]; ctx.fillRect(R.range(0, W), R.range(0, H), d, d); }
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    { // light road: iso-line of a slow noise, dark lane with violet kerbs and a dim warm centre line (no dust sprinkle)
+      const f = new Float32Array(n); for (let k = 0; k < n; k++) f[k] = wat[k] > WT - 0.012 ? -1 : road[k] - 0.5;
+      const p = new Path2D(); march(f, nx, ny, p);
+      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(110,80,255,0.045)'; ctx.lineWidth = 17; ctx.stroke(p);
+      ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#3a2f86'; ctx.lineWidth = 11.6; ctx.stroke(p); ctx.strokeStyle = '#06050d'; ctx.lineWidth = 10.4; ctx.stroke(p);
+      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(255,150,70,0.07)'; ctx.lineWidth = 2.4; ctx.stroke(p); ctx.strokeStyle = 'rgba(255,190,120,0.34)'; ctx.lineWidth = 0.5; ctx.stroke(p);
+    }
     const f = new Float32Array(n);
     for (let q = 0; q < 4; q++) { for (let k = 0; k < n; k++) { let mo = -1; for (let o = 0; o < 4; o++) if (o !== q) mo = Math.max(mo, m[o][k]); f[k] = wat[k] > WT + 0.004 ? -1 : m[q][k] - mo; }
-      const p = new Path2D(); march(f, nx, ny, p); glowStroke(ctx, p, REG[q].line, px, 0.62); }
-    for (const [iso, col, k] of [[WT, [90, 200, 255], 1.15], [WT + 0.022, [60, 150, 255], 0.45]]) { for (let i = 0; i < n; i++) f[i] = wat[i] - iso; const p = new Path2D(); march(f, nx, ny, p); glowStroke(ctx, p, col, px, k); }
+      const p = new Path2D(); march(f, nx, ny, p); glowStroke(ctx, p, REG[q].line, px, 0.4); }
+    for (const [iso, col, k] of [[WT, [90, 200, 255], 0.95], [WT + 0.022, [60, 150, 255], 0.32]]) { for (let i = 0; i < n; i++) f[i] = wat[i] - iso; const p = new Path2D(); march(f, nx, ny, p); glowStroke(ctx, p, col, px, k); }
     return out;
   }
   /** Display overlay: 1 px scanlines every 3 px, violet vignette, magenta/cyan lens fringe on the edges. */
@@ -277,9 +310,9 @@
   function sprites() {
     if (S) return S;
     const frames = (n, fn, box, o) => Array.from({ length: n }, (_, i) => makeSprite(box[0], box[1], box[2], box[3], (c, p) => fn(c, p, i / n), o));
-    S = { hero: frames(8, heroPose, [16, 38, 16, 6]), creep: frames(8, creeperPose, [15, 34, 15, 6]), ghost: frames(6, ghostPose, [19, 33, 18, 6], { glowA: 1.15 }),
-      brute: frames(8, brutePose, [27, 60, 27, 7], { wide: 2.6 }), gem: Array.from({ length: 8 }, (_, i) => bakeSet(7, 15, 7, 6, (c, p) => gemPose(c, p, (i / 8) * (Math.PI / 2)), { wide: 1.6, tight: 0.5, glowA: 1.2 })),
-      pool: { hero: makePool(P.hero, 0.55, 0.22), creep: makePool(P.magenta, 0.5, 0.2), ghost: makePool(P.cyan, 0.22, 0.16), brute: makePool(P.toxic, 0.55, 0.2) } };
+    S = { hero: frames(8, heroPose, [17, 38, 17, 6], { glowA: 1.25 }), creep: frames(8, creeperPose, [15, 34, 15, 6], { glowA: 0.85 }), ghost: frames(6, ghostPose, [19, 33, 18, 6], { glowA: 1.0 }),
+      brute: frames(8, brutePose, [27, 60, 27, 7], { wide: 2.6, glowA: 0.9 }), gem: Array.from({ length: 8 }, (_, i) => bakeSet(7, 15, 7, 6, (c, p) => gemPose(c, p, (i / 8) * (Math.PI / 2)), { wide: 1.6, tight: 0.5, glowA: 1.2 })),
+      pool: { hero: makePool(P.hero, 0.6, 0.26), creep: makePool(P.magenta, 0.5, 0.14), ghost: makePool(P.cyan, 0.2, 0.12), brute: makePool(P.toxic, 0.55, 0.16) } };
     return S;
   }
 

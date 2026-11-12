@@ -13,7 +13,7 @@
     "bright"
   ],
   "summary": "A bright MagicaVoxel-style miniature world: every object is a real 3D cube grid, baked to sprites under one warm afternoon sun.",
-  "description": "Characters, props, collectibles, particles and even HUD icons are small 3D voxel grids that a tiny software renderer turns into sprites once at startup: 3/4 orthographic view at 46 degrees, three face tones, per-voxel colour jitter and ambient occlusion. The ground is a flat field of 4x4-unit voxel tiles with one-voxel height steps whose side faces and lit edges show, plus blocky blurred sun shadows. It reads like a tabletop toy diorama: saturated autumn colours, chunky shapes, no outlines.",
+  "description": "Characters, props, collectibles, particles and even HUD icons are small 3D voxel grids that a tiny software renderer turns into sprites once at startup: 3/4 orthographic view at 46 degrees, three face tones, per-voxel colour jitter and ambient occlusion. Characters are voxel rigs: every pose re-assembles legs, cloak hem, sleeves, scarf tail and head on whole-voxel offsets, so walks, breathing, blinks, lunges, hit poses and block break-ups stay snappy and grid-true. The ground is a flat field of 4x4-unit voxel tiles with one-voxel height steps, calm colour patches, clumped tufts and leaf litter under every crown. It reads like a tabletop toy diorama: saturated autumn colours, chunky shapes, no outlines.",
   "mood": [
     "cheerful",
     "toy-like",
@@ -184,23 +184,24 @@
   "world": {
     "summary": "A flat infinite voxel terrain baked per 256-unit chunk, pixel by pixel: 4×4-unit tiles, each with a material (grass, leaf litter, field, stone, path, water) and a height (-1 water, 0 field/path, 1 normal, 2 raised). Where the tile to the north is higher, its side face is painted into the top of the lower tile, so the world looks like a stepped voxel diorama seen from above.",
     "layers": [
-      "Base: per-tile colour from the material's shade list (noise + hash pick), ×(0.95–1.05) macro brightness noise",
+      "Base: per-tile colour from the material's shade list picked by noise at two scales (64 and 22 units) with only 10 % hash salt, so tones form calm patches instead of speckle; ×(0.95–1.05) macro brightness noise",
       "Tile bevel: top/left 0.42-unit strip ×1.035/×1.015, bottom/right ×0.95/×0.965 (stone joints ×0.86 / ×1.05)",
       "Height steps: lit top edge (north colour ×1.14 + 6), grass lip (×0.8, 1.05 units), side face band of 1.9 units per height step in the material's side colour fading ×0.98→0.78, then a 0.9-unit contact shadow ×0.84",
       "Sun shadow of west neighbours: 1.5-unit strip ×0.8 on lower tiles east of a higher tile",
-      "Decals on a 7-unit jittered grid: tiny voxel grass tufts, flowers, pebbles, leaves, twigs, sprouts, cracks, lily pads, reeds (each a 2-rect mini cube with its own shadow)",
+      "Decals with intent on a 7-unit jittered grid: grass tufts gather in clumps (noise/46 > 0.6), flowers grow in single-colour patches (noise/80 > 0.7), pebbles are rare; 16 crown-coloured leaf voxels lie under every tree (shadow side), loose leaves and twigs only sparsely on the leaf floor; sprouts in fields, moss/cracks on stone, lily pads and shore reeds on water",
       "Per frame: blinking water glints (#e8f8ff), a warm additive light pool (60×30 units, alpha 0.14) under the main character"
     ]
   },
   "characters": {
-    "summary": "Characters are voxel grids at ~2 world units per voxel, built from boxes and super-ellipsoid blobs, with faces painted onto the front-most voxel of each column. The main character is a pumpkin-headed figure in a navy cloak and teal scarf (10×9×18 voxels); the creatures are a purple-and-cream root creature with a leafy top (small, 10×10×15), a white floating ghost with a tapering disc tail (fast, 11×9×15) and a big plum root creature with glowing orange cracks (large, 19×16×25). Each grid is baked for yaw +0.6 (facing right) and -0.6 (facing left) and for every animation frame (main character: idle + 4 walk, creatures: 4), so the 3D model really turns instead of being mirrored.",
+    "summary": "Characters are voxel rigs at ~2 world units per voxel: parts (legs, cloak, hem, sleeves, scarf tail, head) are boxes and super-ellipsoid blobs re-assembled for every pose on whole-voxel offsets, with faces painted onto the front-most voxel of each column. The main character is a pumpkin-headed figure in a navy cloak with a gold buckle and a teal scarf (12×12×22 voxels, 16 poses: 8 walk, 4 breathing idle, blink, dash crouch, dash lunge, hurt). Creatures: a purple-and-cream root creature in two designed variants (round with a three-leaf tuft, or tall with one whipping sprout, a lopsided eye, a fang and a root tail), a white spirit with a curling tail, alternating arm strokes and a trailing wisp, and a big plum root creature with glowing cracks that stomps; each has 6 walk poses + 1 hit pose. Every pose is baked for yaw +0.6 (facing right) and -0.6 (facing left), so the model really turns instead of being mirrored.",
     "rules": [
-      "Big head, short body: the main character's pumpkin head is 10×9×8 voxels on a 6-voxel body; creatures are mostly one big blob with tiny legs.",
-      "Animation is done by rebuilding the grid per frame: legs shift ±1 voxel in y, the body lifts 1 voxel, arms counter-swing, leaves sway ±1 voxel.",
-      "Faces are 1-voxel pixels on the front surface: emissive yellow with a dark carved rim (#8a3412) for a warm glowing face, emissive red eyes (#ff4a2c) and dark brows for menacing creatures, dark holes (#1c2044) for ghosts.",
-      "Each character has one dominant colour family and a contrasting light underside (cream, white) so silhouettes read on any ground.",
+      "Big head on a readable body: the pumpkin head is 10×9×8 voxels on a 4-voxel cloak and 2-voxel legs; creatures are one big blob with tiny legs and one or two features (leaf tuft, sprout + root tail, wisp, crack lines).",
+      "Animation = re-posing on whole voxels: legs step ±1–3 voxels and lift 1 in the swing phase, the body bobs 1 voxel at passing, arms counter-swing, the head bob and the hem, scarf tail and leaves lag one frame behind (follow-through).",
+      "Small creatures waddle: the body shifts 1 voxel over the stance foot, hops 1 voxel at passing and squashes (z −0.35, x +0.25) at contact.",
+      "Every creature has a hit pose (squashed, leaves flung up, eyes squeezed to > < or widened) used while the flash is above 0.25.",
+      "Faces are 1-voxel pixels on the front surface: emissive yellow with a dark carved rim (#8a3412) for a warm glowing face, emissive red eyes (#ff4a2c) and dark brows for menacing creatures, dark holes (#1c2044) for ghosts; the main character blinks (eyes become one-voxel slits).",
       "No outlines and no mirroring; separate yaw renders keep the light from the left on both facings.",
-      "Every character casts a blocky blurred shadow to the lower right (alpha 0.42; floating figures 0.22, drawn at alpha 0.84 and 2.5 ± 1.5 units above the ground)."
+      "Every character casts a blocky blurred shadow to the lower right (alpha 0.42; floating figures 0.22, drawn at alpha 0.86 hovering 1.6–4.6 units)."
     ]
   },
   "props": {
@@ -218,36 +219,36 @@
   },
   "effects": [
     {
+      "name": "Core flash",
+      "how": "A voxel plus-burst (centre block + 4 arms, a 3×3 block from step 2) in the burst colour with a white centre voxel, growing in whole-voxel steps (1–4) over 0.12–0.22 s – the first layer of hits, bursts, pickups and celebrations."
+    },
+    {
       "name": "Cube debris",
-      "how": "Impacts and bursts spawn 2–34 tiny 1-voxel cubes (pre-rendered in 6 yaw frames at 2K px per unit, no AO) in the palette of the object that bursts; they fly with vz 60–140, gravity 320, drag 1.4, tumble through the 6 frames and leave a small square shadow when on the ground. Ghost cubes use negative gravity and float up."
+      "how": "Impacts and bursts spawn 2–34 tiny 1-voxel cubes (pre-rendered in 6 yaw frames, no AO) in the palette of the object that bursts; vz 60–140, gravity 320, drag 1.4, they tumble through the 6 frames, bounce, shrink to 60 % while resting and leave a small square shadow. Ghost cubes float up; the large creature also throws dirt cubes."
     },
     {
       "name": "Square rings",
-      "how": "Shockwaves are axis-aligned rectangles squashed by sin(46°) (strokeRect), radius easing outQuad 10→48 units (or 8→54), line width 3·k+0.4, alpha 0.85·k, colours #fff1c8 / #ffd84a – never circles."
+      "how": "Shockwaves are filled 4-sided frames squashed by sin(46°) whose radius grows in whole-voxel steps (outQuad 6→24, 10→48, 8→54 units), width shrinking with the life; big bursts stagger a second ring 0.1–0.12 s later. Never circles."
     },
     {
-      "name": "Rising appearance",
-      "how": "Creatures rise out of the ground: the sprite is cropped from the bottom and revealed in whole voxel layers (PPV·cos46° px) while 4 dirt cubes (#8c5b37, #a87a4c, #6fae46) pop around them."
+      "name": "Block break-up",
+      "how": "A vanishing creature swells one voxel and whites out (14 %), then its hit pose is sliced into 3×4 rectangular blocks (4×5 for the large creature) that fly out and up, tumble in eighth-turn steps, land and rest on the ground, and fade after 55 %; a white copy fades over the first 35 %. Spirits float up and shrink instead. At most 8 per frame."
     },
     {
-      "name": "Impact flash and squash",
-      "how": "A white silhouette copy (source-atop tint) at alpha ≤0.58; before a burst the sprite scales x 1+0.35t, y 1−0.6t over 0.28 s with a fading white overlay, then cubes burst."
+      "name": "Stack-up appearance",
+      "how": "Creatures are built from the ground up in whole voxel layers (PPV·cos46° px, outQuad over the first 75 %) while 5 dirt cubes (#8c5b37, #a87a4c, #6fae46) pop out, then land with a bounce (stretch 1.1, squash 0.93); spirits form from the top down with a 26 Hz flicker."
+    },
+    {
+      "name": "Residue tiles",
+      "how": "Where something burst, 3–5 dark tiles (#4a2a5e, #3a2a40, #9fc4ee) snapped to a 3-unit ground grid fade in over 0.12 s and out over the last 45 % of 0.9–2 s."
     },
     {
       "name": "Emissive bloom",
-      "how": "Additive (lighter) radial gradient sprite (0.9 → 0.35 → 0 alpha) over carved faces (alpha 0.34 ± 0.06 flicker at 9 rad/s), lamps, lanterns and glowing cracks."
+      "how": "Additive (lighter) radial gradient sprite over carved faces (alpha 0.34 ± 0.06 flicker, dimmed during a blink), lamps, lanterns and glowing cracks."
     },
     {
-      "name": "Seed projectile trail",
-      "how": "A spinning 3×2×4 voxel seed with three trailing squares 3.2 units apart, sizes 1.75/1.3/0.85, alphas 0.41/0.27/0.13 in #fff6dc / #ffe2a8."
-    },
-    {
-      "name": "Collectibles",
-      "how": "Stepped voxel octahedra (5×5×7 mint, 7×7×10 gold) in 8 spin frames, hovering 2.4 ± 0.9 units, with a mint (or gold) additive glow and a flat dark square shadow."
-    },
-    {
-      "name": "Orbiting lanterns",
-      "how": "Small 8×8×11 purple-and-cream root lanterns with an emissive carved face, 8 spin frames picked from the orbit angle, hovering 9 ± 1.2 units with a warm glow."
+      "name": "Projectile, collectibles, lanterns",
+      "how": "A spinning 3×2×4 voxel seed with three trailing squares; stepped voxel octahedra (mint 5×5×7, gold 7×7×10) in 8 spin frames hovering in half-voxel steps with a hold at the top and bottom; small purple-and-cream root lanterns with an emissive carved face orbiting with a warm glow."
     }
   ],
   "atmosphere": {
@@ -261,7 +262,8 @@
       "Ground light: only a 60×30-unit warm pool under the main character (alpha 0.14) and blinking water glints #e8f8ff.",
       "Vignette: radial gradient centred at (w/2, 0.48h), inner radius 0.32h, outer 0.62w, rgba(30,20,60,0) → 0.6: rgba(30,20,60,.12) → rgba(24,14,50,.42); plus a warm wash rgba(255,236,190,.10) at the top fading out by 35%.",
       "Overlay screens dim the world with radial-gradient(ellipse at 50% 45%, rgba(40,30,80,.35), rgba(16,10,34,.78)).",
-      "No outlines, bloom pass, colour grading or film grain; darker moods come from more emissive voxels and glows, not a darker renderer."
+      "No outlines, bloom pass, colour grading or film grain; darker moods come from more emissive voxels and glows, not a darker renderer.",
+      "Ambient motion, slower than the actors: single leaf voxels in the autumn colours flutter down over the leaf floor (one per other 56-unit cell, 5–8 s fall, height and drift snapped to half voxels, flipping between a wide and a tall rectangle), water glints blink on pond tiles."
     ]
   },
   "ui": {
@@ -269,30 +271,32 @@
     "css": ".panel { background: #2b2446; border-radius: 3px; padding: 7px 14px; color: #fff; font: 600 15px/1.3 'Chakra Petch', system-ui, sans-serif;\n  box-shadow: inset 0 3px 0 rgba(255,255,255,.16), inset 3px 0 0 rgba(255,255,255,.07), inset 0 -4px 0 rgba(0,0,0,.38), inset -3px 0 0 rgba(0,0,0,.22), 0 0 0 3px #151024, 0 6px 0 3px #151024, 0 10px 18px rgba(10,6,24,.35); }\n.bar { width: 216px; height: 22px; background: #160f22; border-radius: 2px; overflow: hidden; box-shadow: inset 0 3px 0 rgba(0,0,0,.55), 0 0 0 2px #0e0a18; }\n.bar > .fill { height: 100%; background: repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 15px, rgba(50,8,16,.8) 15px 18px), linear-gradient(180deg, #ffb09a 0 22%, #f0443a 22% 70%, #b3242a 70% 100%); }\n.bar.mint > .fill { background: repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 15px, rgba(16,40,40,.75) 15px 18px), linear-gradient(180deg, #c8ffee 0 20%, #57e6b4 20% 68%, #26a888 68% 100%); }\n.big-number { font: 400 34px/1.05 'Bungee', sans-serif; color: #ffc23e; letter-spacing: 2px; text-shadow: 0 2px 0 #d9741c, 0 4px 0 #a2470f, 0 6px 0 #151024; }"
   },
   "motion": [
-    "Main character walk: 4 baked frames (plus 1 idle), frame = 1 + floor(anim·1.6) mod 4; idle hops up to 0.6 units with max(0, sin(t·2.6)).",
-    "Small creature: 4 frames at anim·1.8; large creature: 4 frames at anim·1.3; ghost: 4 frames at 6 fps, floats 2.5 ± 1.5 units (sin t·2.8) at alpha 0.84.",
-    "Collectibles spin through 8 yaw frames (1.6 turns of the set per second) and bob ±0.9 units at 3 rad/s; orbiting lanterns pick their spin frame from the orbit angle and hover 9 ± 1.2 units.",
-    "All motion is stepped by whole frames and blits are snapped to screen pixels – nothing rotates or scales smoothly except the squash before a burst and particles.",
-    "Glows flicker with small sines (±0.02–0.12 alpha at 4–11 rad/s); water glints blink when sin(t·1.7 + phase) > 0.55.",
-    "Floating numbers pop 0.6→1.15 scale in the first 12% of life, then settle; emphasised numbers get a '!' and gold colour."
+    "Everything moves in whole voxels and whole frames – poses are stepped, positions of effects snap to the voxel grid; that is what makes it read as a toy.",
+    "Main character walk: 8 poses, frame = floor(anim·3.2) mod 8; legs step [2,1,0,−1,−2,−1,0,1] voxels (the other leg mirrored), the swing foot lifts 1 voxel, the body bobs up 1 voxel at passing, arms counter-swing ±1, head bob, cloak hem (1–2 voxels back) and scarf tail lag one frame.",
+    "Idle: 4 held breathing poses 0.45 s each (head drops 1 voxel on the exhale, hem and scarf settle, hands rise 1), plus a blink pose for 0.14 s every 3.4 s.",
+    "Dash: crouch pose for the first 45 ms (body 1 voxel lower, legs split, arms back = anticipation), then the lunge (legs ±3 voxels, airborne +1, hem 3 voxels back, scarf streaming) with two orange after-images snapped to whole voxels.",
+    "Hurt: hurt pose while hurtT > 0.62 (~130 ms: hands up, head thrown back, eyes > <, mouth open) with a red tint.",
+    "Creatures: 6 poses + hit pose. Small creature: frame floor(anim·2.7) mod 6 (~10 fps, on-twos feel); large creature floor(anim·1.95) mod 6 with a 1-voxel body drop on each footfall; ghost floor(t·9 + seed·6) mod 6 hovering on an eased, stepped triangle wave. Per-actor phase comes from each actor's own counter or seed.",
+    "Hit: hit pose + white flash while flash > 0.25, knocked 1 voxel in the push direction for the first half, squash 1.08 × 0.93.",
+    "Collectibles spin through 8 yaw frames and hover in half-voxel steps; orbiting lanterns pick their spin frame from the orbit angle; floating numbers pop 0.6→1.15 in the first 12 % of life."
   ],
   "do": [
     "Model everything — props, collectibles, particles, icons — as voxel grids and bake them through the same renderer so lighting is identical.",
-    "Keep one voxel ≈ 2 world units and the main character ≈ 10 voxels wide so all assets share one cube size.",
-    "Bake two yaws (±0.6 rad) per character instead of mirroring, so the sun stays on the left.",
-    "Use 2–4 hashed shades per material and the ±4.5% per-voxel jitter; it is what makes it look like MagicaVoxel.",
-    "Paint faces and markings onto the front-most voxel (paintFront) and use emissive colours plus an additive glow for anything that should shine.",
-    "Give every object the blocky sheared sun shadow to the lower right.",
-    "Make the ground out of 4×4-unit tiles with visible 1-voxel steps and lit edges."
+    "Build characters as rigs: re-assemble the parts per pose on whole-voxel offsets and let hem, scarf, head and leaves lag one frame behind.",
+    "Give every state a pose: walk (8), idle breathing (4) + blink, crouch → lunge, hurt; creatures 6 walk + hit.",
+    "Keep one voxel ≈ 2 world units and bake two yaws (±0.6 rad) per pose instead of mirroring.",
+    "Colour materials by region and role (top/crown, zig-zag border, belly) and keep per-voxel jitter subtle; pick ground tones from noise patches.",
+    "Place decals where something causes them: litter under crowns, tufts in clumps, flowers in single-colour patches.",
+    "Make effects from cubes, plus-shaped flashes, stepped square rings and residue tiles."
   ],
   "dont": [
     "Don't add outlines or black strokes – voxel faces define the forms.",
-    "Don't use smooth gradients or soft round shapes on characters and props; only glows and the vignette are soft.",
-    "Don't rotate or scale baked sprites at runtime (except the squash before a burst) – re-bake a new yaw/frame instead.",
+    "Don't interpolate poses smoothly or rotate sprites freely – motion is stepped (except tumbling debris in eighth turns).",
+    "Don't speckle: random per-voxel colour picks across a whole region read as noise.",
+    "Don't scatter tufts and flowers evenly over the grass.",
     "Don't mix voxel sizes: a 1-unit-voxel prop next to 2-unit-voxel characters breaks the miniature scale.",
-    "Don't use circular rings or round particles; effects are square rings and little cubes.",
-    "Don't light from multiple directions or add dynamic light to the ground beyond a faint warm pool.",
+    "Don't use circular rings or round particles; effects are square rings, plus-shaped flashes and cubes.",
     "Don't use muted/dark palettes for the world; the look depends on bright, sunlit toy colours."
   ],
-  "performance": "All voxel rendering happens once in init(): ~5 main-character frames + 3×4 creature frames × 2 yaws, 8-frame spin sets, ~15 props, 1-voxel debris cubes in 6 frames and shadows — a few hundred ms at most. Per frame everything is plain drawImage of cached canvases (tinted flash copies are cached per frame/colour). The expensive part is the ground: per-pixel chunk rendering with several noise calls per tile, done as a generator over multiple frames; on-screen cost is just chunk blits. Crowds of 300+ figures are cheap because each one is 2–3 drawImage calls."
+  "performance": "All voxel rendering happens once in init(): 16 main-character poses + 4 creature sets × 7 poses (two small-creature variants), × 2 yaws, spin sets, ~15 props, debris cubes and shadows – a few hundred ms. Per frame everything is drawImage of cached canvases; break-ups draw 12–20 source-rect slices per creature (no clipping) and are capped at 8 per frame. Props are memoised per chunk so the ground can place leaf litter under neighbouring crowns. The expensive part stays the per-pixel ground chunk, built by a generator over several frames."
 }

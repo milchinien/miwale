@@ -96,7 +96,7 @@
 
   /* ---------- characters (painted facing right) ---------- */
   function heroPaint(c, ph) {
-    const a = ph * TAU, s = Math.sin(a), bob = -Math.abs(Math.cos(a)) * 1.1 + 0.55, hip = -9.6 + bob;
+    const a = ph * TAU, s = Math.sin(a), bob = 0.9 * Math.sin(2 * a - 2.33), hip = -9.6 + bob; // lowest just after each contact
     const leg = (hx, p, tl, tb) => { const fx = hx + Math.sin(p) * 3.8, fy = -Math.max(0, -Math.cos(p)) * 1.9;
       c.beginPath(); c.moveTo(hx, hip); c.lineTo((hx + fx) / 2 + 1, (hip + fy) / 2); c.lineTo(fx, fy - 1.4); strokeT(c, tl, 3.1); ell(c, fx + 0.9, fy - 1, 2.35, 1.3); fillT(c, tb); };
     const arm = (sx, sy, an, tl, th) => { const ex = sx + Math.sin(an) * 3.6, ey = sy + Math.cos(an) * 3.6, a2 = an * 1.25 + 0.4;
@@ -194,10 +194,11 @@
     if (SPR) return SPR;
     SPR = { hero: [], critter: [], wisp: [], brute: [] };
     for (let i = 0; i < 4; i++) {
-      SPR.hero.push(bakeHeat(15, 36, 17, 6, (c) => heroPaint(c, i / 4)));
-      SPR.critter.push(bakeHeat(20, 22, 18, 6, (c) => critterPaint(c, i / 4), { halo: 1.3 }));
-      SPR.wisp.push(bakeHeat(15, 37, 15, 6, (c) => wispPaint(c, i / 4), { halo: 2.1, haloA: 0.85 }));
-      SPR.brute.push(bakeHeat(29, 57, 29, 7, (c) => brutePaint(c, i / 4), { halo: 1.9 }));
+      SPR.hero.push(bakeHeat(15, 36, 17, 6, (c) => heroPaint(c, i / 4), { haloA: 0.72 }));
+      // heat ranking: only the main character reaches white-hot, creatures are mapped through a gain < 1
+      SPR.critter.push(bakeHeat(20, 22, 18, 6, (c) => critterPaint(c, i / 4), { halo: 1.3, f: (v) => v * 0.92 }));
+      SPR.wisp.push(bakeHeat(15, 37, 15, 6, (c) => wispPaint(c, i / 4), { halo: 2.1, haloA: 0.75, f: (v) => v * 0.86 }));
+      SPR.brute.push(bakeHeat(29, 57, 29, 7, (c) => brutePaint(c, i / 4), { halo: 1.9, f: (v) => v * 0.9 }));
     }
     SPR.pine = bakeHeat(25, 61, 25, 12, pinePaint, { halo: 1.6 });
     return SPR;

@@ -3,13 +3,42 @@
   "name": "Shadow Theatre",
   "originalName": "Schattentheater",
   "family": "Silhouette · Paper Shadow Puppets",
-  "tags": ["silhouette", "shadow puppet", "cut paper", "backlit", "lace", "halloween", "gothic fairy tale", "glow"],
+  "tags": [
+    "silhouette",
+    "shadow puppet",
+    "cut paper",
+    "backlit",
+    "lace",
+    "halloween",
+    "gothic fairy tale",
+    "glow"
+  ],
   "summary": "Backlit paper shadow-puppet theatre: indigo-black cut-paper silhouettes over glowing teal, violet, crimson and amber light fields.",
   "description": "The whole floor is light: large noise-shaped colour fields (moonlit teal, dusk violet, crimson, amber) glow like a lit screen behind a puppet stage, separated by thin ink seams threaded with lace beads and covered in flat ink cut-outs (grass, leaves, filigree, stars). Everything standing on it is a single flat silhouette in near-black ink (#0b0510) built from tapered strokes, lens leaves and spiral curls in the Lotte Reiniger cut-paper tradition; the only colour on a silhouette is emissive, like carved pumpkin faces, green eyes or magenta cracks, plus a soft baked rim of light. Ghost creatures invert the rule and are pale glowing veils, and a theatre frame of velvet curtains and a scalloped valance closes the picture.",
-  "mood": ["fairy-tale gothic", "warm", "mysterious", "theatrical", "cosy-spooky"],
-  "bestFor": ["top-down action games with crowded scenes", "halloween or folklore projects", "puzzle-platformers with silhouette art", "storybook adventures", "rhythm games with a stage theme"],
-  "avoidFor": ["projects that need colour-coded characters (team colours, element colours on bodies)", "bright daylight or sci-fi settings", "detailed RPG equipment or faces", "UI-heavy strategy games with small units"],
-  "difficulty": { "stars": 4, "why": "A new asset is one flat ink silhouette built from a small kit (tapered limbs, lens leaves, spiral curls, cut-out holes) plus one emissive detail, so drawing it is quick. The hard part is designing outlines that stay distinct at 30 px tall when many figures overlap, and baking the rim light and glows cleanly." },
+  "mood": [
+    "fairy-tale gothic",
+    "warm",
+    "mysterious",
+    "theatrical",
+    "cosy-spooky"
+  ],
+  "bestFor": [
+    "top-down action games with crowded scenes",
+    "halloween or folklore projects",
+    "puzzle-platformers with silhouette art",
+    "storybook adventures",
+    "rhythm games with a stage theme"
+  ],
+  "avoidFor": [
+    "projects that need colour-coded characters (team colours, element colours on bodies)",
+    "bright daylight or sci-fi settings",
+    "detailed RPG equipment or faces",
+    "UI-heavy strategy games with small units"
+  ],
+  "difficulty": {
+    "stars": 4,
+    "why": "A new asset is one flat ink silhouette built from a small kit (tapered limbs, lens leaves, spiral curls, cut-out holes) plus one emissive detail, so drawing it is quick. The hard part is designing outlines that stay distinct at 30 px tall when many figures overlap, and baking the rim light and glows cleanly."
+  },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": false,
@@ -21,28 +50,116 @@
     "texture": "Paper grain: 256×256 tiling Int8 noise (3×3 box blur ×3.2 + raw ×5) with 70 random-walk paper fibres (+4), added to the ground RGB (R ×1, G ×0.9, B ×0.8). Silhouettes have no texture."
   },
   "palette": [
-    { "name": "Shadow Ink", "hex": "#0b0510", "role": "Every silhouette, prop, curtain and HUD panel (~25–35 % of the screen)" },
-    { "name": "Lace Ink", "hex": "#16081c", "role": "Ground seams and lace decals (composited at 80–85 %)" },
-    { "name": "Amber Core", "hex": "#ffc662", "role": "Centre of the warm amber light fields (largest field type)" },
-    { "name": "Amber Edge", "hex": "#ea7a2c", "role": "Amber field near its seams" },
-    { "name": "Hot Gold", "hex": "#fff0c4", "role": "Hot heart deep inside amber fields" },
-    { "name": "Crimson Core", "hex": "#f26a52", "role": "Centre of crimson light fields" },
-    { "name": "Crimson Edge", "hex": "#b02a42", "role": "Crimson field near its seams" },
-    { "name": "Violet Core", "hex": "#b682dc", "role": "Centre of dusk-violet fields" },
-    { "name": "Violet Edge", "hex": "#6840a2", "role": "Violet field near its seams" },
-    { "name": "Moon Teal", "hex": "#76ccc6", "role": "Centre of moonlit teal water fields (with ripple highlights #d7fff5)" },
-    { "name": "Teal Edge", "hex": "#2c748c", "role": "Teal field near its seams" },
-    { "name": "Face Core", "hex": "#fffbe2", "role": "Hottest centre of carved faces and lanterns" },
-    { "name": "Candle Gold", "hex": "#ffd65e", "role": "Carved face mid tone" },
-    { "name": "Ember Orange", "hex": "#ff6a10", "role": "Outer rim of carved faces; bloom rgba(255,150,40,.95)" },
-    { "name": "Main Rim", "hex": "#ffb24a", "role": "The main character's permanent rim of light" },
-    { "name": "Eye Green", "hex": "#d8ff62", "role": "Small creatures' glowing eyes (gradient #ffffe0 → #d8ff62 → #7fe02a)" },
-    { "name": "Crack Magenta", "hex": "#ff5ad2", "role": "Large-creature cracks, core and eyes (crack stroke #ffb8f0)" },
-    { "name": "Veil White", "hex": "#dcefff", "role": "Ghost veil (gradient #fbfdff → #dcefff → #a9d4ff)" },
-    { "name": "Ghost Hollow", "hex": "#1c0f36", "role": "Ghost eye and mouth holes" },
-    { "name": "Gem Aqua", "hex": "#3fe0d8", "role": "Small collectible gem glass (large gem: #fff0a8 → #ffb03a)" },
-    { "name": "Velvet", "hex": "#2a0a20", "role": "Curtain sheen stripes (with #240818)" },
-    { "name": "HUD Gold", "hex": "#ffd98a", "role": "HUD headings, badge text, hairlines rgba(255,196,120,.55)" }
+    {
+      "name": "Shadow Ink",
+      "hex": "#0b0510",
+      "role": "Every silhouette, prop, curtain and HUD panel (~25–35 % of the screen)"
+    },
+    {
+      "name": "Lace Ink",
+      "hex": "#16081c",
+      "role": "Ground seams and lace decals (composited at 80–85 %)"
+    },
+    {
+      "name": "Amber Core",
+      "hex": "#ffc662",
+      "role": "Centre of the warm amber light fields (largest field type)"
+    },
+    {
+      "name": "Amber Edge",
+      "hex": "#ea7a2c",
+      "role": "Amber field near its seams"
+    },
+    {
+      "name": "Hot Gold",
+      "hex": "#fff0c4",
+      "role": "Hot heart deep inside amber fields"
+    },
+    {
+      "name": "Crimson Core",
+      "hex": "#f26a52",
+      "role": "Centre of crimson light fields"
+    },
+    {
+      "name": "Crimson Edge",
+      "hex": "#b02a42",
+      "role": "Crimson field near its seams"
+    },
+    {
+      "name": "Violet Core",
+      "hex": "#b682dc",
+      "role": "Centre of dusk-violet fields"
+    },
+    {
+      "name": "Violet Edge",
+      "hex": "#6840a2",
+      "role": "Violet field near its seams"
+    },
+    {
+      "name": "Moon Teal",
+      "hex": "#76ccc6",
+      "role": "Centre of moonlit teal water fields (with ripple highlights #d7fff5)"
+    },
+    {
+      "name": "Teal Edge",
+      "hex": "#2c748c",
+      "role": "Teal field near its seams"
+    },
+    {
+      "name": "Face Core",
+      "hex": "#fffbe2",
+      "role": "Hottest centre of carved faces and lanterns"
+    },
+    {
+      "name": "Candle Gold",
+      "hex": "#ffd65e",
+      "role": "Carved face mid tone"
+    },
+    {
+      "name": "Ember Orange",
+      "hex": "#ff6a10",
+      "role": "Outer rim of carved faces; bloom rgba(255,150,40,.95)"
+    },
+    {
+      "name": "Main Rim",
+      "hex": "#ffb24a",
+      "role": "The main character's permanent rim of light"
+    },
+    {
+      "name": "Eye Green",
+      "hex": "#d8ff62",
+      "role": "Small creatures' glowing eyes (gradient #ffffe0 → #d8ff62 → #7fe02a)"
+    },
+    {
+      "name": "Crack Magenta",
+      "hex": "#ff5ad2",
+      "role": "Large-creature cracks, core and eyes (crack stroke #ffb8f0)"
+    },
+    {
+      "name": "Veil White",
+      "hex": "#dcefff",
+      "role": "Ghost veil (gradient #fbfdff → #dcefff → #a9d4ff)"
+    },
+    {
+      "name": "Ghost Hollow",
+      "hex": "#1c0f36",
+      "role": "Ghost eye and mouth holes"
+    },
+    {
+      "name": "Gem Aqua",
+      "hex": "#3fe0d8",
+      "role": "Small collectible gem glass (large gem: #fff0a8 → #ffb03a)"
+    },
+    {
+      "name": "Velvet",
+      "hex": "#2a0a20",
+      "role": "Curtain sheen stripes (with #240818)"
+    },
+    {
+      "name": "HUD Gold",
+      "hex": "#ffd98a",
+      "role": "HUD headings, badge text, hairlines rgba(255,196,120,.55)"
+    }
   ],
   "paletteRules": [
     "Two worlds only: glowing light (the floor and emissive parts) and flat ink (everything standing). Nothing is mid-grey or shaded.",
@@ -56,7 +173,11 @@
   "typography": [
     {
       "family": "Cinzel",
-      "weights": [400, 700, 900],
+      "weights": [
+        400,
+        700,
+        900
+      ],
       "role": "Counters, timer, titles, badges, pop-up numbers, card names",
       "source": "Google Fonts",
       "sample": "22:09",
@@ -64,7 +185,9 @@
     },
     {
       "family": "IM Fell English SC",
-      "weights": [400],
+      "weights": [
+        400
+      ],
       "role": "Small-caps labels and hints (\"until midnight\", \"choose with 1 · 2 · 3\")",
       "source": "Google Fonts",
       "sample": "Until Midnight",
@@ -72,7 +195,11 @@
     },
     {
       "family": "Cormorant Garamond",
-      "weights": [500, 600, 700],
+      "weights": [
+        500,
+        600,
+        700
+      ],
       "role": "Body text: card descriptions, stat lines, HUD default",
       "source": "Google Fonts",
       "sample": "Lit by a single candle",
@@ -87,12 +214,12 @@
       "Teal ripples: sin(y × 0.72 + 7·perlin(x/95) + 2.5·perlin(x/33)) > 0.86 lightens towards rgb(215,255,245)",
       "Paper grain + fibres (±~8 levels)",
       "Seam line: ink #16081c at 85 % where |signed distance| < 0.36 units (anti-aliased)",
-      "Lace layer (ink, composited at 80 %): seam beads every ~4.2 units (dot-in-ring 45 %, leaf pair 35 %, two dots 20 %), then field-specific decals: grass tufts and dandelion clocks on amber, filigree scrolls and lace rosettes on crimson, leaves and cut-out stars on violet, broken ripple rings, reeds and lily pads on teal, large ferns and root systems",
+      "Lace layer (ink, composited at 80 %): seam beads every ~4.2 units (dot-in-ring 45 %, leaf pair 35 %, two dots 20 %), then field-specific decals: grass tufts and dandelion clocks on amber, filigree scrolls and lace rosettes on crimson, leaves and cut-out stars on violet, broken ripple rings, reeds and lily pads on teal, large ferns and root systems; all field decals gather in clumps (a 150-unit noise field scales their probability from ~2 % to 60 %), leaving large calm light fields between them",
       "Additive glints: 4-point light stars on violet, pale moon glints on teal ripples"
     ]
   },
   "characters": {
-    "summary": "Shadow puppets built from a tiny vocabulary: ellipses, tapered limbs (Catmull-Rom smoothed polylines filled as ribbons), lens leaves, spiral curls and cut-out holes, all in one ink colour, facing +x and mirrored for -x. The main character is ~18 × 33 units: a slim puppet with a round pumpkin head (four overlapping ellipses, rx 6.8, ry 5.4) whose carved glowing face is the brightest thing on screen, a jagged cloak, streaming scarf tails and jointed puppet legs; 6 walk + 4 idle frames, all baked. Creatures: a small purple root-bulb puppet with a filigree leaf crown and green eyes (~24 × 30), a fast pale ghost veil with curled tail wisps, and a large knobby root-bulb colossus (~44 × 62) with an antler leaf crown and glowing magenta cracks.",
+    "summary": "Shadow puppets built from a tiny vocabulary: ellipses, tapered limbs (Catmull-Rom smoothed polylines filled as ribbons), lens leaves, spiral curls and cut-out holes, all in one ink colour, facing +x and mirrored for -x. The main character is ~18 × 33 units: a slim puppet with a round pumpkin head (four overlapping ellipses, rx 6.8, ry 5.4) whose carved glowing face is the brightest thing on screen, a jagged cloak pierced with cut-paper lace (a crescent moon and a row of pierced diamonds along the hem), streaming scarf tails and jointed puppet legs whose knee, elbow and shoulder pivots are punched rivet holes; 6 walk + 4 idle frames plus a crouch and a dash lean, all baked. Creatures: a small purple root-bulb puppet with a filigree leaf crown and green eyes (~24 × 30), a fast pale ghost veil with curled tail wisps, and a large knobby root-bulb colossus (~44 × 62) with an antler leaf crown and glowing magenta cracks.",
     "rules": [
       "Readability is 100 % silhouette: every character type needs a unique outline at 30 px tall (bulb + leaf crown, veil + tail, giant gorilla bulb + antler crown, pumpkin head + cloak).",
       "Every tip ends in a curl or a leaf – stems, toes, tails, scarf ends, crowns. Straight cut ends look wrong.",
@@ -100,7 +227,9 @@
       "One emissive colour per character class: orange/gold = main character and friendly lights, green = small creatures, magenta = large creatures, cold white = ghosts.",
       "The main character is always lit: warm #ffb24a rim at 75 % + follow-spot pool, so it pops out of any crowd.",
       "Creatures have no rim except during an impact flash: a white-cream #fff6dc rim added with 'lighter' at up to 90 % (70 % for large creatures).",
-      "Ghosts invert: pale veil (#fbfdff → #dcefff → #a9d4ff, fading to 35 % at the tail) with a dark #160828 halo (blur 2.2 units, 42 %) under a light #d6f0ff halo (blur 1.4 units, 95 %)."
+      "Ghosts invert: pale veil (#fbfdff → #dcefff → #a9d4ff, fading to 35 % at the tail) with a dark #160828 halo (blur 2.2 units, 42 %) under a light #d6f0ff halo (blur 1.4 units, 95 %).",
+      "Show the construction: every puppet pivot (knee, elbow, shoulder) is a punched rivet hole (r 0.36) and the main character's cloak carries pierced lace (diamonds 0.9 × 1.5, a crescent of two offset circles) – the light behind the screen shines through them.",
+      "Hits move the puppet on its rod: creatures are shoved 2.6 units (large creature 1.4) along the blow and tilt up to 0.22 rad, easing out with flash²; the main character tilts back up to 0.2 rad with one overshoot."
     ]
   },
   "props": {
@@ -109,21 +238,45 @@
       "Props are flat ink like the characters: no outlines, no shading; light only comes from emissive panes/carved faces and additive glows.",
       "End every branch, vine, hook and stem in a curl or leaf; trees use recursive branching (three depths, 2–3 splits at 0.62–0.76 of the length) with ~4 leaves per tip.",
       "Punch holes with destination-out (knotholes, gate pillar arches, crescent windows, see-through cross rings) so the floor light shows through.",
-      "Scatter by field: trees densest on violet and teal (50 % / 40 % per 118-unit cell), graves clustered by low-frequency noise and never on amber, scarecrows, crow posts and gourd lanterns only on warm crimson/amber fields, weeds per field (grass on teal, ferns on violet, thistles on warm fields); keep props off the seams.",
+      "Scatter by field: trees densest on violet and teal (50 % / 40 % per 118-unit cell), graves clustered by low-frequency noise and never on amber, scarecrows, crow posts and gourd lanterns only on warm crimson/amber fields, weeds per field (grass on teal, ferns on violet, thistles on warm fields); keep props off the seams. Weeds grow in thickets (44-unit cells, 2–77 % by a 200-unit noise field) and gourd lanterns in patches, so the open light between them stays clean.",
       "Sway like hinged puppets around the foot: trees ±0.012 rad, scarecrows ±0.02 rad at 0.7 rad/s, weeds ±0.05 rad at 1.3 rad/s; the crow flicks its head every 4th beat at 0.8 Hz.",
       "Lantern panes and gourd faces glow #ffffe6 → #ffe08a → #ffaa3a / the FACE gradient and flicker 0.75 + 0.15·sin(9t) + 0.1·sin(23t).",
       "Every prop gets a squashed contact shadow sized to its footprint: trees 1.9, gates 1.8, fences 1.4, scarecrows 1.0, gourd lanterns 0.9, graves 0.75, weeds 0.6, crow posts and lantern poles 0.5."
     ]
   },
   "effects": [
-    { "name": "Seed projectile", "how": "A baked lens-shaped seed with a #ffcf7a → #fff6d8 → #fff gradient and 1.2-unit bloom, rotated along its velocity, with an additive 11-unit tapered trail (rgba(255,120,30,0) → rgba(255,235,170,.9)) and an additive ember glow at 70 %." },
-    { "name": "Impact flare", "how": "4-point light star (arms 9 and 6 units, lens leaves with gradients) + radial core, added with 'lighter' for 0.16 s, plus 3 short additive spark streaks (0.22–0.32 s) and a cream rim flash on the struck figure." },
-    { "name": "Paper-crumble break-up", "how": "The silhouette is pre-cut into 5 (ghost 4, large creature 7) torn wedge shards along jagged radial lines; each shard's cut edge is stroked #ff9a3a (0.9 units, source-atop). Shards fly out, rotate and fall with alpha 1 − u² over ~0.6 s, plus ink paper scraps with one ember-lit edge and rising embers." },
-    { "name": "Embers", "how": "Tiny additive radial sprites (3-unit radius: white → rgba(255,190,80,.85) → transparent) rising with negative gravity and flickering 0.7–1.0 at 30 Hz; cold (blue-white) and pink variants." },
-    { "name": "Rise-in entrance", "how": "Creatures rise out of a slot in the stage like a puppet on a stick: outBack ease from 95 % of their height below the floor, clipped at the floor line, a 0.7-unit ink rod underneath, an additive warm slot glow and a damped swing of sin(14t)·(1 − t)·0.25 rad." },
-    { "name": "Ring burst", "how": "An additive ring of radius 10.5 units with 12 small 4-point stars on it and a 1.2-unit bloom, expanding with outQuad (0.4 + 1.2·outQuad), plus a large flare and 14 embers." },
-    { "name": "Collectible gems", "how": "Small: ink teardrop with an inner glass gradient (#fff → #b8fff4 → #3fe0d8) and an additive cyan glow pulsing 0.75–1.0, bobbing ±0.8 units. Large: gold (#fff0a8 → #ffb03a) with a curl on top and a slowly rotating flare. When collected they pop to 1.6× and release one ember." },
-    { "name": "Orbiting lantern", "how": "A small ink bulb (5.2 × 4.8 units) with a leaf top and a curl, a carved face glowing #ffffe8 → #ffe27a → #ffaa2a (bloom 1.3) and an additive gold glow, tilting ±0.12 rad as it circles." }
+    {
+      "name": "Seed projectile",
+      "how": "A baked lens-shaped seed with a #ffcf7a → #fff6d8 → #fff gradient and 1.2-unit bloom, rotated along its velocity, with an additive 11-unit tapered trail (rgba(255,120,30,0) → rgba(255,235,170,.9)) and an additive ember glow at 70 %."
+    },
+    {
+      "name": "Impact flare",
+      "how": "4-point light star (arms 9 and 6 units, lens leaves with gradients) + radial core, added with 'lighter' for 0.16 s, plus 3 short additive spark streaks (0.22–0.32 s) and a cream rim flash on the struck figure."
+    },
+    {
+      "name": "Paper-crumble break-up",
+      "how": "The silhouette is pre-cut into 5 (ghost 4, large creature 7) torn wedge shards along jagged radial lines; each shard's cut edge is stroked #ff9a3a (0.9 units, source-atop). Shards fly out, rotate and fall with alpha 1 − u² over ~0.6 s, plus ink paper scraps with one ember-lit edge and rising embers."
+    },
+    {
+      "name": "Embers",
+      "how": "Tiny additive radial sprites (3-unit radius: white → rgba(255,190,80,.85) → transparent) rising with negative gravity and flickering 0.7–1.0 at 30 Hz; cold (blue-white) and pink variants."
+    },
+    {
+      "name": "Rise-in entrance",
+      "how": "Creatures rise out of a slot in the stage like a puppet on a stick: outBack ease from 95 % of their height below the floor, clipped at the floor line, a 0.7-unit ink rod underneath, an additive warm slot glow and a damped swing of sin(14t)·(1 − t)·0.25 rad."
+    },
+    {
+      "name": "Ring burst",
+      "how": "An additive ring of radius 10.5 units with 12 small 4-point stars on it and a 1.2-unit bloom, expanding with outQuad (0.4 + 1.2·outQuad), plus a large flare and 14 embers."
+    },
+    {
+      "name": "Collectible gems",
+      "how": "Small: ink teardrop with an inner glass gradient (#fff → #b8fff4 → #3fe0d8) and an additive cyan glow pulsing 0.75–1.0, bobbing ±0.8 units. Large: gold (#fff0a8 → #ffb03a) with a curl on top and a slowly rotating flare. When collected they pop to 1.6× and release one ember."
+    },
+    {
+      "name": "Orbiting lantern",
+      "how": "A small ink bulb (5.2 × 4.8 units) with a leaf top and a curl, a carved face glowing #ffffe8 → #ffe27a → #ffaa2a (bloom 1.3) and an additive gold glow, tilting ±0.12 rad as it circles."
+    }
   ],
   "atmosphere": {
     "summary": "Backlit stage: the glowing floor is the only light source, everything standing is flat ink. Light is always added with 'lighter' — a warm follow-spot and permanent rim around the main character, baked emissive bloom with flickering additive halos, light leaking out of every floor seam — while soft dark contact blobs ground the figures. A baked theatre frame (vignette, velvet curtains, scalloped valance, stage lip) closes the picture; there is no directional light and no runtime grading.",
@@ -143,10 +296,10 @@
     "css": ".hud { font-family: 'Cormorant Garamond', Georgia, serif; color: #ffe9c4; }\n.bar { height: 18px; background: #0b0510; border-radius: 9px; position: relative; box-shadow: 0 0 0 2px #0b0510, 0 0 0 3px rgba(255,196,120,.55), 0 0 0 5px #0b0510, 0 0 16px 2px rgba(255,80,60,.35); }\n.bar > .fill { position: absolute; top: 6px; bottom: 6px; left: 4px; border-radius: 3px; background: linear-gradient(90deg, #a0103a, #ff4a36 55%, #ffc39a); box-shadow: 0 0 6px #ff7a5a, 0 0 14px rgba(255,60,50,.9); }\n.bar.progress > .fill { background: linear-gradient(90deg, #ff5a1f, #ffb347 55%, #fff4cc); box-shadow: 0 0 6px #ffc46a, 0 0 14px rgba(255,120,40,.9); }\n.panel { background: #0b0510; padding: 4px 30px 6px; border-radius: 6px 6px 40px 40px / 6px 6px 22px 22px; box-shadow: inset 0 0 0 1px rgba(255,196,120,.55), 0 0 0 3px #0b0510, 0 0 22px 4px rgba(255,140,60,.35); }\n.timer { font: 900 34px/1.05 'Cinzel', Georgia, serif; letter-spacing: 3px; color: #ffe4a6; text-shadow: 0 0 6px rgba(255,170,70,1), 0 0 16px rgba(255,110,40,.8); }\n.label { font: 13px 'IM Fell English SC', Georgia, serif; letter-spacing: 3px; color: #f4c99a; border-top: 1px solid rgba(255,196,120,.55); }\n.card { background: radial-gradient(ellipse 80% 70% at 50% 52%, #fff2c8 0%, #ffc45e 30%, #f0743a 60%, #b02c48 84%, #4a1438 100%); border: 3px solid #0b0510; border-radius: 12px 12px 6px 6px; box-shadow: 0 0 0 2px rgba(255,196,120,.55), 0 0 0 6px #0b0510, 0 0 34px 6px rgba(255,130,50,.4); color: #0b0510; }"
   },
   "motion": [
-    "Main character: 6-frame walk cycle advanced at anim × 1.5 (≈ 9 fps at normal speed), 4-frame idle at 2.6 fps; head bob −|cos| × 0.9 units, scarf tails and cloak hem wave at 2× the step phase; hurt state blinks to 45 % alpha at 14 Hz with a white rim.",
+    "Main character: 6-frame walk cycle advanced at anim × 1.5 (≈ 9 fps at normal speed), 4-frame idle at 2.6 fps; head bob −|cos| × 0.9 units, scarf tails and cloak hem wave at 2× the step phase. Dash: a crouch frame (squashed 1.08 × 0.86 on its pivots) while dashT > 0.165, then a lean pose rotated 0.24 rad around the hips. Hurt: white rim + a knock-back tilt of up to 0.2 rad that swings back once; while invulnerable the candle flickers (white rim at 60 % every other 1/12 s) – the puppet never turns see-through.",
     "Small creature: 6 frames at 4.8 per anim second, plus a whole-sprite rocking wobble of ±0.075 rad (puppet on a rod), seed-offset so crowds never move in sync.",
     "Large creature: 6 frames at 3.6 per anim second, wobble ±0.035 rad, magenta core glow pulsing 0.45 ± 0.25 at 4 rad/s.",
-    "Ghost: 4 frames at 6 fps, hovering 2.2 units up with ±1.2-unit bob (3.1 rad/s) and ±0.06 rad sway.",
+    "Ghost: 4 frames at 6 fps, hovering 1.2–3.8 units up on an eased triangle curve (2.2 s period per ghost, lingering at the top and bottom) with ±0.06 rad sway.",
     "Props sway like hinged puppets: trees ±0.012 rad, scarecrows ±0.02 rad at 0.7 rad/s; weeds ±0.05 rad at 1.3 rad/s.",
     "Candle flicker on faces and lanterns: 0.8 + 0.12·sin(11t) + 0.08·sin(27t).",
     "Afterimage streak for fast movement: three ink-tinted copies (rgba(20,6,26,1)) at alpha 0.4/i, 6 units apart, plus an ember trail.",
@@ -159,7 +312,8 @@
     "Keep the main character permanently rim-lit and standing in a warm follow-spot pool.",
     "Bake everything (frames, rims, mirrored copies, glows, shards) once at load and only blit per frame.",
     "Add light with globalCompositeOperation 'lighter' (glows, rims, embers, flares), never by brightening ink.",
-    "Frame the screen as a stage: curtains, scalloped valance with tassels, vignette, stage lip."
+    "Frame the screen as a stage: curtains, scalloped valance with tassels, vignette, stage lip.",
+    "Show the puppet construction: punched rivet holes at the pivots and pierced lace in the costume, lit from behind."
   ],
   "dont": [
     "Don't outline silhouettes or shade them with gradients – a lit edge comes only from the additive rim sprite.",
@@ -168,7 +322,8 @@
     "Don't let decals become as dense as the figures – lace sits at 80 % and is much finer (0.25–0.85 unit strokes).",
     "Don't use pure black, grey or photographic textures; ink is indigo-black #0b0510.",
     "Don't apply ctx.filter or shadowBlur per frame – bake it.",
-    "Don't make the light fields small and busy; they should be hundreds of units across."
+    "Don't make the light fields small and busy; they should be hundreds of units across.",
+    "Don't sprinkle weeds and lace motifs evenly over every field, and don't blink a puppet with transparency – flicker the light instead."
   ],
   "performance": "All sprites are baked once in init: main character 6 walk + 4 idle frames, each with rim and hurt-rim copies and mirrored versions; small creature 2 variants × 6 frames; ghost 4; large creature 6; plus torn-shard sets, glows and ~20 prop sprites. Rim light costs 8 drawImage + 1 blur filter per sprite at bake time only. Per frame only drawImage blits with transforms and a few 'lighter' composites run. The ground is the expensive part: per 256-unit chunk a 4-unit noise grid (warped fbm, ~70×70) and a per-pixel loop (bilinear + bleed + ripples + grain + seam) at up to 2.5 px/unit, computed as a generator that yields every 2 rows so chunks stream in without hitches; the lace layer is drawn with vector paths into an offscreen canvas then composited once. The theatre frame overlay is baked per screen size."
 }

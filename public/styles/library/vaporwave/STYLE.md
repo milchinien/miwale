@@ -117,7 +117,7 @@ Floating numbers are baked into a digit atlas once the web font is loaded (Rubik
 The floor is "a dream shopping-mall plaza at sunset", built from crisp 32-unit blocks.
 
 1. **Regions.** For each 32 u block sample at its centre: domain warp `q = fbm(x/1300, y/1300) − 0.5`, `X = x/860 + 1.4·q`, then four 2-octave fbm fields; the largest wins (`argmax`). Plazas are 300–700 u wide with stair-stepped borders. Block values are computed with a one-block margin so neighbouring chunks agree.
-2. **Rose marble slabs** (one per block). Fill with a tileable marble texture (256 px = 128 u): veins are iso-lines `1 − smoothstep(0, 0.04, |n − 0.5|)` of a domain-warped tileable fbm, plus thinner secondary veins (`0.025`) and a cloudy two-colour base. Variants: rose `#ffdcee/#f5b8da` veins `#c76aa8` (68 %), lilac `#eee2ff/#cfb8f6` veins `#8a62c8` (22 %), peach `#ffe6d8/#f8c2b6` veins `#cf7f90` (10 %). Bevel: white 0.7 u on the top/left edge at 75 %, violet `rgba(122,60,150,.28)` 0.8 u bottom/right. 7 % of slabs get a diamond inlay of a contrasting marble with a white edge and a cyan dot.
+2. **Rose marble slabs** (one per block). Fill with a tileable marble texture (256 px = 128 u): veins are iso-lines `1 − smoothstep(0, 0.04, |n − 0.5|)` of a domain-warped tileable fbm, plus thinner secondary veins (`0.025`) and a cloudy two-colour base. Variants: rose `#ffdcee/#f5b8da` veins `#c76aa8`, lilac `#eee2ff/#cfb8f6` veins `#8a62c8`, peach `#ffe6d8/#f8c2b6` veins `#cf7f90` – chosen per hall by a slow 300 u noise, not per slab. Bevel: white 0.7 u on the top/left edge at 75 %, violet `rgba(122,60,150,.28)` 0.8 u bottom/right. Every 4th slab in both directions gets a diamond inlay of a contrasting marble with a white edge and a cyan dot.
 3. **Checkerboard plazas.** 16 u squares, `#fff0f8` and `#cdb3f7`, two dark squares per block.
 4. **Pastel grid.** Base `#6d49b8`; 8 u lines `rgba(255,154,213,.3)` 0.4 u; 32 u lines drawn twice (2.6 u `rgba(255,95,193,.28)` glow, 0.65 u `#ff9ad5` core); cyan `#5ee7ff` crosses (6 u) every 64 u. Drawn over the whole chunk and clipped to the grid blocks.
 5. **Memphis terrazzo.** Base `#c6f4e3`; chips: on a 5.2 u jittered grid, 42 % chance, irregular 3–5-gons r 0.4–1.25 u in `#ffa8dc #c2a2ff #7fe4f5 #ffc9ae #f4fffb #ff7fcf`, 6 % `#8a64d8`. Rare (58 u cells, 30 %) memphis marks 1.0 u thick: zig-zags, half circles, triangle outlines in hot pink, violet or aqua.
@@ -127,6 +127,12 @@ The floor is "a dream shopping-mall plaza at sunset", built from crisp 32-unit b
 9. **Pools.** 16 u cells are water where `fbm(x/420, y/420, 3 oct) > 0.625` (never near the start). Depth = Chebyshev distance to the nearest dry cell (up to 4), coloured `#93f1ff #62dcf7 #40c6ee #2cafe2 #2399d6`, written into a tiny one-pixel-per-cell image and drawn upscaled with smoothing (soft depth gradient), clipped to the water cells. On top: a caustic web (warped Worley cell edges, 64 u period, 55 % white), short white and blush wave glints, a mosaic band of 1.7 u tiles alternating `#2f63d8` / `#ff7fcf` 1.7 u inside each edge, a violet coping shadow (4.6 u, 22 %) inside the north and west edges, and a white `#fffafd` coping 3.4 u wide straddling every edge with lilac seams every 8 u.
 
 Scale: a 1600 × 900 view shows two or three floor types, one trim line and often a pool.
+
+**Composition rules (no sprinkle).** Detail is clustered, never even:
+- Terrazzo chips appear with a chance of `0.03 + 0.42·smoothstep(0.45, 0.72, fbm(x/150, y/150))` per 5.2 u cell – drifts of chips with calm mint between them. Most chips are quiet tints of the base (`#ade9d6`, `#d4f7ea`, `#b9dcf2`, `#f1d6ea`, `#f4fffb`); bright `#ff7fcf` / `#8a64d8` / `#7fe4f5` chips only occur inside drifts.
+- Memphis squiggles, half circles and triangle outlines only appear inside the densest drifts, as small groups.
+- White four-point glints sit only on polished marble and checker (22 % of 46 u cells); grid glyphs follow their own cluster noise.
+- Marble halls take one stone colour from a slow 300 u noise (rose < 0.52, lilac < 0.6, peach above) – no per-slab colour jitter; inset diamonds follow a regular 4-slab rhythm.
 
 ## Characters
 
@@ -138,7 +144,7 @@ All characters are chunky sticker-like drawings: gradient fills lit from the upp
 - **Sunglasses**: wayfarer shape across the face (−0.8 … 6.9 u), gradient `#1d1040 → #5b2a9a → #ff5fc1 → #fff27a` (a sunset reflected in the lenses), two white glints, temple arm to the ear. A small smirk.
 - **Jacket**: trapezoid torso −17.8 … −8.4, pink gradient `#ff9ae0 → #ff4fb4`, clipped colour blocks: a teal → cyan diagonal band and a violet hem band; white collar triangle, faint zipper.
 - **Limbs**: arms 2.7 u hot pink with a violet cuff and skin hands r 1.3; legs 3.0 u indigo (`#4a3699` front, `#33246e` back), white rounded sneakers 5.4 × 2.7 u with a pink stripe. Back limbs are darker.
-- **Frames**: 8 walk frames, idle, dash (rotated 0.24 rad, arms swept back, legs spread). Baked box 16/40/16/6 u (dash 20/40/22/6).
+- **Frames**: 8 walk poses, 8 idle poses (breathing, head nod, a glint sweeping the shades), 3 dash poses (launch / streak / brake) and a recoil pose (sunglasses askew, round mouth). Legs and arms are two-bone IK chains (thigh 4.1, shin 4.0, upper arm and forearm 3.0 u). Baked box 16/40/16/6 u (dash 21/40/23/6, recoil 18/40/18/6).
 
 **Small creature** (~18 × 18 u) – a one-eyed pyramid on two feet:
 - Three-quarter pyramid: apex (0.4, −18.2), base corners (−8.8, −2), (4.4, −0.6), (9.2, −4.6). Front face gradient `#fff0f8 → #ff9ad5 → #ff5fc1` with two yellow sunset stripes near the base and a white highlight sliver along the left edge; side face `#d7c2ff → #b892ff → #7a4fd0`.
@@ -148,7 +154,7 @@ All characters are chunky sticker-like drawings: gradient fills lit from the upp
 **Fast creature** (~31 × 13 u) – a low-poly bottlenose dolphin:
 - Flat facets around three spine points: cyan back facets `#a8f4ff #7eeeff #5ee7ff #49cdf2 #3fb7ec`, blush/lilac belly facets `#fff0f8 #ffd1ea #f6c0ee #e2c6fb`, violet tail and flukes `#8a68ea #6c4bd2`; facet seams in ink at 28 %; outline 0.85 u.
 - Short beak with a mouth line, round melon, curved dorsal fin (gradient cyan), small violet pectoral fin, ink eye with a glint.
-- 6 tail-beat frames; floats 3 u above its shadow and bobs.
+- 8 tail-beat frames; swims through the air 2.4–5.4 u above its shadow with a quick rise and slow glide.
 
 **Large creature** (~46 × 60 u) – a walking marble statue:
 - Torso: broad shoulders tapering to the waist, marble gradient `#ffffff → #f6ecfb → #dcc8f2 → #c2a6ea`, a pink sash diagonally across, faint pec and ab lines, 1.0 u outline.
@@ -181,13 +187,15 @@ Placement: one candidate per 100 u cell (50 %), never on or next to water, never
 - **Projectile**: an iridescent compact disc r 3.6 (conic gradient `#ffd1ea #b892ff #5ee7ff #8ff5d2 #fff27a #ffc1a1`, white label ring, ink hole) with a white bloom, spinning in a plane squashed to 72 %; trail: a blurred streak 26 u long fading from transparent cyan through lavender to pink with a white core near the head.
 - **Collectibles**: rotating octahedra (8 baked frames) with flat facets from a pastel ramp – small: `#1590c8 → #45d4f5 → #8ff5d2 → #dcfff3`, large: `#6a3fc8 → #b892ff → #ff9ad5 → #ffe0f2`; ink silhouette, white sparkle, bloom 80 %, a small floor shadow; flying ones leave a 35 % ghost.
 - **Orbiting object**: a striped sunset sun r 5.6 with an amber bloom, trailing a pink/cyan polyline of its last 10 positions (stored relative to the main character).
-- **Impact**: three short streaks (white + the creature colour) with a faint ink underlay, two confetti triangles, a small white ring.
+- **Impact**: an ink-edged white sparkle flash (100 ms), three short streaks (white + the creature colour) with a faint ink underlay, two confetti triangles, a small white ring.
 - **Burst**: 7–8 confetti triangles with thin ink edges in the creature's colours, pink/cyan glitch squares, a squashed ring (colour 1.8 u + white 0.55 u core) and white/yellow streaks. The statue breaks into 16 white and lilac marble chunks (quads with 0.6 u ink edges), extra confetti, 14 glitch squares, two rings and a short screen glitch.
 - **Collect**: a thin mint (small) or pink (large) ring and rising white or blush four-point stars.
 - **Glow-up**: a light column (yellow → pink → transparent cyan) screen-blended over the main character, an expanding ring (ink 2.4 u + yellow 1.3 u), a pink inner ring, 16 rising stars and confetti.
 - **Dash**: a cyan ring, pink/cyan glitch squares and backward streaks.
 
 Particles are collected per kind, colour and alpha step (4 steps) and flushed as one path each: triangles and chunks fill + thin ink stroke, squares fill, rings stroke twice, streaks stroke twice (ink underlay at 40 %, then colour). If no flush hook runs (mixed with another style's atmosphere), the module switches to immediate drawing.
+
+**Layering.** Every hit and burst is built from four parts with their own lifetimes: (1) a core flash – an ink-edged white four-point sparkle that snaps open (`r·(0.45 + 0.55·√e)`) and is gone in 90–160 ms; (2) the main shape – a ring in the source colour with an ink edge (`#2a1a4c` at 32 %) so it reads on pale floors; (3) debris – confetti triangles, marble chunks and VHS pixel squares with gravity; (4) residue – 3–6 pink/cyan pixels that hang and drift upwards for ~1 s and a soft pastel floor ring that tightens and fades over 0.9–1.3 s. Particles are batched per colour and alpha step and flushed after the last visible particle of the frame.
 
 ## Atmosphere and lighting
 
@@ -226,13 +234,18 @@ A kit of **90s OS windows**, re-skinned entirely in CSS:
 
 ## Motion and animation
 
-- **Walk**: 8 frames per cycle (frame = anim / 3 mod 1), legs swing ±3.6 u with a 1.8 u lift, arms counter-swing, body bob 1.1 u twice per cycle. Idle: a ±0.5 u breathing bob at 3 rad/s.
-- **Dash**: lean 0.24 rad and four afterimages 7 u apart alternating pink and cyan (alpha 0.4 → 0.1). Fast walking leaves a faint pink/cyan double image at 12 %.
-- **Small creature**: hop phase = anim·0.3; height `sin(πφ)·5.5`; squash `1 − 0.18·cos(2πφ)³₊` on landing, 107 % stretch in the air, width compensated by `1/√sy`; blinks 7 % of the time.
-- **Fast creature**: 6 frames at 1.8 cycles/s, hover bob ±1.4 u, pink and cyan afterimages at 8 % / 16 % of the velocity (alpha 0.3 / 0.22).
-- **Large creature**: 8 frames, column legs lift 3.2 u, arm swing ±1.6 u; each footfall a white + pink floor ring growing 14 → 30 u.
-- **Props**: floating shapes bob ±2.2 u at 1.7 rad/s; pyramids turn 90° every 1.7 s; rings wobble; palms sway; the monitor flickers 4 % of the time.
-- **Collectibles** bob ±0.8 u and cycle 8 rotation frames at 1.5 Hz; numbers pop in at 130 % and fade over the last 40 % of their life.
+Smooth vector timing: poses are computed (IK limbs, lagging head) and baked, then picked by phase; squash and stretch are applied at draw time as scaled destination rects.
+
+- **Walk** (8 poses, one cycle per 2.6 distance units): contact (0) – down (.125, body 0.9 u lower: `bodyY = 0.9·sin 2a`) – passing (.25) – up (.375). Feet `x = ±(0.9 + 3.7·cos a)`, lift `2.1·max(0, ∓sin a)`, knees by two-bone IK (thigh 4.1 u, shin 4.0 u, knee forward). Arms counter-swing ±0.75 rad (IK elbows, forearm lifts on the forward swing). The head lands half a beat late (`+0.35·sin(2a − 1.1)`) and tilts `0.035·sin(2a − 1.3)`; whole figure leans 0.04 rad.
+- **Idle** (8 poses over 3.4 s): shoulders breathe 0.3 u, the head follows 0.5 rad later, a head nod on the beat (bump at 30 % of the cycle), arms drift on their own phases, and a white glint sweeps across the sunglasses lenses between 60 % and 90 % of the cycle.
+- **Dash** (0.2 s): launch crouch (0.2 rad, body 1.5 u lower – anticipation) → streak (0.27 rad, stretch 15 % along the motion) → brake (lean back, landing squash); four alternating pink/cyan afterimages whose spacing grows from 0.4× to 1.4× of 7 u.
+- **Hurt**: recoil pose (lean back 0.2 rad, arms up, sunglasses knocked askew by 0.16 rad, round mouth) while the flash lasts, 12 % squash; 18 Hz blink during invulnerability.
+- **Small creature (pyramid)**: hops on a per-actor clock (`anim·0.3 + seed`): 26 % of the cycle on the ground with a squash to 78 % (landing absorb flowing into the anticipation crouch), then a 6.2 u arc that starts stretched to 112 %; blinks 7 % of the time.
+- **Fast creature (dolphin)**: 8 tail-beat poses at 1.6–2.1 beats/s per actor (tail, back and fin on a travelling wave); hover = quick rise (35 % of the period) and slow glide (2.4–5.4 u), squashing 4 % at the bottom; afterimages at 8 % and 16 % of its velocity.
+- **Large creature (statue)**: 8 poses at `anim·0.22`, column legs lift 3.2 u; every footfall sends out a white + pink floor ring.
+- **Hit reaction** (all creatures): `squash = 0.16·e^(−13t)·cos 26t` (~250 ms: squash, rebound stretch, settle) plus a lean up to 0.22 rad in the knock-back direction, under the white/pink/cyan flash.
+- **Appear / disappear**: CRT switch-on 0.45 s (a white line opens vertically into the sprite), CRT switch-off 0.35 s (squash to a line, white-out, shrinking pink/cyan/white line).
+- **Ambient**: palms sway (shear 0.03 at 1.3 rad/s), floating shapes bob 2.2 u and spin, collectibles bob ±0.8 u through 8 spin frames, the VHS tracking band rolls every 8.5 s – all slower than the actors, all with per-object phases.
 
 ## Do and don't
 
@@ -260,10 +273,10 @@ Don't:
 1. Set up a 360-unit-tall world view and a bake resolution of 4 px per unit.
 2. Write `fs(ctx, fill, lw)` (fill then ink stroke) and `limb(ctx, pts, w, col)`; draw each subject as closed gradient-filled paths, back to front.
 3. Write `bake(l, t, r, b, draw, {bloom, bloomA, blur})`: draw the sharp art, then compose blurred tint (bloom) → pink copy −0.5 u → cyan copy +0.5 u → sharp art.
-4. For characters bake 8 walk frames + idle + dash, mirror the sharp art for the other facing and keep white/pink/cyan silhouettes.
+4. For characters compute poses (IK limbs, lagging head, squash on contact) and bake 8 walk + 8 idle + 3 dash + 1 recoil frames, mirror the sharp art for the other facing and keep white/pink/cyan silhouettes.
 5. For standing props also bake the sheared long shadow; draw shadows in a pass before the y-sorted subjects.
 6. Ground: pick a floor type per 32 u block, fill marble/checker/grid/terrazzo, add gloss and decals, then trims between different blocks, then pools on 16 u cells. Use world-anchored patterns; cache chunks.
-7. Effects: confetti triangles, glitch squares, rings and streaks batched by colour; CRT-on/off for appearing and disappearing.
+7. Effects in layers: white sparkle flash → ink-edged ring → confetti, chunks and glitch squares → hanging pixels and a fading floor ring; batched by colour; CRT-on/off for appearing and disappearing.
 8. Overlay: cache the sunset wash, vignette, fringe, scanlines and grain per screen size; paint the tracking band on top each frame.
 9. UI: bevelled lilac panels, gradient title bars, sunken segmented bars, chrome numbers, Monoton titles, VT323 text.
 
@@ -345,11 +358,12 @@ function crtOn(ctx, s, x, footY, cy, k /* 0..1 */) {
 
 ## Performance notes
 
-- **Baked once at load**: ~60 character frames × 2 facings with white, pink and cyan silhouettes; 16 collectible frames; 12 pyramid frames; 13 prop sprites with their shadow canvases; three marble textures (256 px), gloss, caustic and noise tiles. Init is a few hundred ms.
+- **Baked once at load**: ~80 character frames (main character 20 poses, dolphin 8, statue 8, pyramid 2) × 2 facings with white, pink and cyan silhouettes; 16 collectible frames; 12 pyramid frames; 13 prop sprites with their shadow canvases; three marble textures (256 px), gloss, caustic and noise tiles. Init is a few hundred ms.
 - **Ground**: 256 u chunks at ≤ 2.5 px/u take ~5–6 ms each, split over several frames by a generator – regions are sampled once per 32 u block and water once per 16 u cell (hundreds of samples, not tens of thousands). Patterns are canvas fills, not per-pixel loops.
-- **Per frame**: one `drawImage` per actor/prop (+1–2 during flashes, afterimages for fast creatures), batched particles (one path per kind/colour/alpha step), one full-screen cached overlay, and a small painted tracking band. About 1–1.5 ms for ~60 actors at 1600 × 900 in a headless browser.
+- **Per frame**: one axis-aligned `drawImage` per actor/prop (squash is a scaled destination rect; a rotated transform only while a hit lean plays; +1–2 during flashes, afterimages for fast creatures), batched particles (one path per kind/colour/alpha step, flushed after the last visible particle), one full-screen cached overlay, and a small painted tracking band. About 1–1.5 ms for ~60 actors at 1600 × 900 in a headless browser.
 - **Hot spots**: full-screen composites dominate at high resolutions – keep everything that covers the screen in one cached overlay. Never `drawImage(canvas, …)` the canvas onto itself every frame; it forces a GPU flush (20–30 ms). The glitch strips do it only for fractions of a second.
 - `screen` blending is used only for small light pools and the glow-up column.
+- Measured against the previous version in the same session: play frame ×0.98, chunk build ×0.91, dense stage ×1.30 (computed poses and layered residue particles).
 
 ## Copy-paste prompt
 

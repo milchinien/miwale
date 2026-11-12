@@ -268,14 +268,18 @@
     pump: [238, 122, 34], body: [60, 98, 166], pants: [52, 76, 128], scarf: [104, 174, 72], scarf2: [234, 214, 120],
     shoe: [108, 66, 42], hand: [248, 224, 186], stem: [120, 116, 52], leaf: [104, 166, 70],
   };
-  // back foot x,y | front foot x,y | back arm, front arm (rad from down, + = forward) | body lift
-  const JACK_FR = [
-    [-2.1, 0, 2.3, 0, 0.18, -0.18, 0],
-    [-3.5, 0, 3.7, -0.2, 0.8, -0.75, 0],
-    [-0.8, -1.7, 1.0, 0, 0.25, -0.2, 0.9],
-    [3.5, -0.2, -3.3, 0, -0.7, 0.8, 0],
-    [1.0, 0, -0.8, -1.7, -0.2, 0.25, 0.9],
-  ];
+  // back foot x,y | front foot x,y | back arm, front arm (rad from down, + = forward) | body lift | head lift
+  // Frame 0 = stand. Frames 1-8 = the walk: contact, down, passing, up – twice with the legs swapped.
+  // Feet come from a pose table (near-foot x, lift); the far foot runs half a cycle behind; the arms take the
+  // leg phase one frame late (overlapping action) and the heavy pumpkin head lags the body by one frame.
+  const WALK_X = [3.8, 2.2, 0.0, -2.2, -3.6, -1.6, 1.0, 2.8];
+  const WALK_L = [0, 0, 0, 0, 0.2, 1.6, 2.1, 1.0];
+  const WALK_B = [0, -0.85, 0.45, 1.05, 0, -0.85, 0.45, 1.05];
+  const JACK_FR = [[-2.1, 0, 2.3, 0, 0.18, -0.18, 0, 0]];
+  for (let w = 0; w < 8; w++) {
+    const g = (w + 4) & 7, a = -0.78 * WALK_X[(w + 7) & 7] / 3.8;
+    JACK_FR.push([WALK_X[g] - 0.4, -WALK_L[g], WALK_X[w], -WALK_L[w], -a, a, WALK_B[w], WALK_B[(w + 7) & 7]]);
+  }
   function jackFace(c, fx, cy, hurt) {
     const gg = glowGrad(c, fx - 0.4, cy + 1.2, 9.5);
     if (!hurt) {
@@ -295,10 +299,10 @@
     }
   }
   function jackDraw(c, fr, hurt) {
-    const F = JACK_FR[fr], by = -F[6];
-    const hx0 = 0.4, hy0 = -19.6 + by, hrx = 10.2, hry = 8.4;
-    // scarf tail (behind)
-    const fl = [0.22, 0.42, 0.55, 0.38, 0.58][fr];
+    const F = JACK_FR[fr], by = -F[6], hb = -F[7];
+    const hx0 = 0.4, hy0 = -19.6 + hb, hrx = 10.2, hry = 8.4;
+    // scarf tail (behind): flutters twice per cycle, a little after the body bounce
+    const fl = fr === 0 ? 0.22 : 0.44 + 0.16 * Math.sin(((fr - 1) / 8) * TAU * 2 - 0.9);
     const ax = -2.6, ay = -11.6 + by;
     const tx1 = ax - Math.sin(fl) * 3.8, ty1 = ay + Math.cos(fl) * 3.8;
     const tx2 = tx1 - Math.sin(fl + 0.3) * 3.4, ty2 = ty1 + Math.cos(fl + 0.3) * 3.4;
@@ -332,9 +336,9 @@
       spec: 0.3,
       detail(k) { for (const sx of [-3.6, -1.2, 1.2, 3.6]) groove(k, (q) => { q.moveTo(sx + 0.3, -13.4 + by); q.lineTo(sx - 0.2, -9.4 + by); }, 0.45, 0.25); },
     });
-    cCap(c, 0.2, -27.4 + by, 1.4, -31.3 + by, 1.35, JC.stem, {
+    cCap(c, 0.2, -27.4 + hb, 1.4, -31.3 + hb, 1.35, JC.stem, {
       spec: 0.25, cast: 0.3,
-      detail(k) { groove(k, (q) => { q.moveTo(0.4, -28 + by); q.lineTo(1.2, -31 + by); }, 0.35, 0.3); },
+      detail(k) { groove(k, (q) => { q.moveTo(0.4, -28 + hb); q.lineTo(1.2, -31 + hb); }, 0.35, 0.3); },
     });
     clay(c, (k) => pumpkinPath(k, hx0, hy0, hrx, hry), JC.pump, {
       b: [hx0, hy0, hrx, hry], spec: 0.55, gloss: 0.7, lit: 0.24, ao: 0.55, hi: [hx0 - 5.0, hy0 - 4.6, 4.4],
@@ -345,14 +349,18 @@
         jackFace(k, hx0 + 2.4, hy0, hurt);
       },
     });
-    clay(c, (k) => leafPath(k, -0.4, -28.6 + by, -1.25, 5.6, 2.1), JC.leaf, {
-      b: [-2.9, -29.4 + by, 2.9, 2.2], spec: 0.3, cast: 0.3,
-      detail(k) { groove(k, (q) => { q.moveTo(-0.6, -28.6 + by); q.lineTo(-4.6, -29.8 + by); }, 0.3, 0.3); },
+    clay(c, (k) => leafPath(k, -0.4, -28.6 + hb, -1.25, 5.6, 2.1), JC.leaf, {
+      b: [-2.9, -29.4 + hb, 2.9, 2.2], spec: 0.3, cast: 0.3,
+      detail(k) { groove(k, (q) => { q.moveTo(-0.6, -28.6 + hb); q.lineTo(-4.6, -29.8 + hb); }, 0.3, 0.3); },
     });
     c.strokeStyle = rgbS(darken(JC.leaf, 0.15)); c.lineWidth = 0.7; c.lineCap = 'round';
-    c.beginPath(); c.arc(3.4, -29.6 + by, 1.3, PI * 0.9, PI * 2.6); c.stroke();
+    c.beginPath(); c.arc(3.4, -29.6 + hb, 1.3, PI * 0.9, PI * 2.6); c.stroke();
   }
 
+  // hop table of the small creatures (8 steps): air height 0..1, squash (+) / stretch (-), tilt
+  const CR_AIR = [0, 0.5, 0.92, 1, 0.7, 0.25, 0, 0];
+  const CR_SQ = [0.8, -0.6, -0.25, 0.05, -0.15, -0.45, 1.0, 0.35];
+  const CR_ROT = [0, 0.05, 0.08, 0.04, 0, -0.05, -0.08, -0.04];
   const CREEP = [
     { top: [134, 80, 172], bot: [244, 232, 204] },
     { top: [178, 76, 142], bot: [246, 226, 206] },
@@ -657,7 +665,16 @@
       cLump(c, -6, -1.8, 2.6, 2, [160, 154, 160], 0.2, { spec: 0.3 });
     }
   }
+  function reedDraw(c, v) {
+    const G1 = [92, 150, 70], G2 = [124, 172, 82], HEAD = [128, 82, 50];
+    const bl = v ? [[-3.2, -15, -0.3], [0.6, -19, 0.08], [3.6, -13, 0.38], [-1.2, -11, -0.55]] : [[-2.6, -14, -0.26], [1.1, -18, 0.1], [3.4, -12, 0.42]];
+    bl.forEach((b, i) => cCap(c, b[0] * 0.3, -0.6, b[0] + Math.sin(b[2]) * 4, b[1], 0.85, i & 1 ? G2 : G1, { spec: 0.2, cast: i ? 0.3 : 0 }));
+    cCap(c, 0.2, -1, 0.9, -21, 0.5, G1, { spec: 0.15, cast: 0.2 });
+    cCap(c, 0.8, -16.6, 1.0, -22.6, 1.25, HEAD, { spec: 0.35, cast: 0.3 });
+    if (v) { cCap(c, -2.2, -1, -2.9, -17, 0.45, G2, { spec: 0.15 }); cCap(c, -2.8, -13.6, -3.0, -18.2, 1.1, HEAD, { spec: 0.35, cast: 0.3 }); }
+  }
   const PROP_DEF = {
+    reed: { n: 2, box: [-10, -25, 10, 2], sh: [7, 2.4], fn: reedDraw },
     tree: { n: 4, box: [-24, -64, 24, 3], sh: [17, 5.5], fn: treeDraw },
     bush: { n: 2, box: [-16, -22, 16, 3], sh: [14, 4.5], fn: bushDraw },
     mush: { n: 2, box: [-10, -16, 10, 2], sh: [7, 2.6], fn: mushDraw },
@@ -674,7 +691,7 @@
   const MEAD_A = [118, 164, 84], MEAD_B = [140, 172, 90];
   const LAY = [
     { c: [152, 108, 74], sunk: false, m: 1.1 },  // brown soil
-    { c: [102, 80, 126], sunk: false, m: 1 },    // dark-purple clay
+    { c: [128, 108, 150], sunk: false, m: 1 },   // dusty-purple heath clay (light enough for purple creatures to read)
     { c: [126, 186, 210], sunk: true, m: 0.35 }, // light-blue pond (sunken, glossy smooth)
     { c: [214, 162, 98], sunk: false, m: 0.9 },  // ochre paths + clearings
   ];
@@ -683,16 +700,19 @@
   function fieldsAt(x, y, out) {
     const wx = U.perlin(x / 900, y / 900, 701) * 110, wy = U.perlin(x / 900 + 9.2, y / 900, 702) * 110;
     const X = x + wx, Y = y + wy;
-    out[0] = U.fbm(X / 760 + 3.3, Y / 760, 111, 2) - 0.585;
-    out[1] = U.fbm(X / 600 + 13.7, Y / 600, 515, 2) - 0.635;
-    out[2] = U.fbm(X / 420 - 7.1, Y / 420, 414, 2) - 0.675;
+    out[0] = U.fbm(X / 460 + 3.3, Y / 460, 111, 2) - 0.64;     // soil garden beds: smaller and rarer
+    out[1] = U.fbm(X / 420 + 13.7, Y / 420, 515, 2) - 0.675;   // purple heath patches
+    out[2] = U.fbm(X / 420 - 7.1, Y / 420, 414, 2) - 0.675;    // sunken ponds
+    // the path: constant ~26-unit width = half-width minus the distance to the zero line of a warped noise
     const qx = U.perlin(x / 480, y / 480, 305) * 60, qy = U.perlin(x / 480 + 5.1, y / 480, 306) * 60;
-    const pn = U.perlin((x + qx) / 1500, (y + qy) / 1500, 304);
-    const clear = U.fbm(X / 650 + 31.1, Y / 650, 222, 2) - 0.665;
-    out[3] = Math.max(clear, (0.019 - Math.abs(pn)) * 2.6);
+    const px = (x + qx) / 1500, py = (y + qy) / 1500;
+    const pn = U.perlin(px, py, 304), gx = U.perlin(px + 0.002, py, 304) - pn, gy = U.perlin(px, py + 0.002, 304) - pn;
+    const gl = Math.sqrt(gx * gx + gy * gy) / 3 + 1e-7;   // per world unit (0.002 lattice = 3 units)
+    out[3] = (13 + U.perlin(x / 210, y / 210, 327) * 1.8 - Math.abs(pn) / gl) * 0.004;
     out[4] = 1 + (U.noise(x / 1300, y / 1300, 606) - 0.5) * 0.09;
     out[5] = U.smoothstep(0.3, 0.7, U.noise(x / 420, y / 420, 808));
   }
+  const woodAt = (x, y) => U.fbm(x / 380 + 77.1, y / 380 - 12.4, 909, 2);
   const FT = new Float32Array(NF);
   function matAt(x, y) {
     fieldsAt(x, y, FT);
@@ -778,15 +798,43 @@
     G.scatter(info, 10, 9101, 9, (x, y, rng) => { pts.push(x, y, rng.next(), rng.next(), rng.next(), rng.next()); });
     c.lineCap = 'round'; c.lineJoin = 'round';
     let n = 0;
+    // furrows drawn with a modelling tool across the garden beds (world-aligned rows, continue across chunks)
+    for (let row = Math.floor((info.wy - 6) / 7); row <= Math.floor((info.wy + info.size + 6) / 7); row++) {
+      if ((row & 7) === 0) yield;
+      imprint(c, (q, o) => {
+        for (let x = Math.floor((info.wx - 6) / 5) * 5; x < info.wx + info.size + 6; x += 5) {
+          const y = row * 7 + Math.sin(x / 60 + row * 0.4) * 2.2;
+          if (U.hash2(x, row, 41) < 0.18 || matAt(x, y) !== 1 || matAt(x + 6, y) !== 1 || matAt(x, y - 4) !== 1 || matAt(x, y + 4) !== 1) continue;
+          q.moveTo(x + 0.6, y + o); q.lineTo(x + 4.4, y + Math.sin((x + 4) / 60 + row * 0.4) * 2.2 - Math.sin(x / 60 + row * 0.4) * 2.2 + o);
+        }
+      }, 1.0, 0.2);
+    }
     for (let i = 0; i < pts.length; i += 6) {
       const x = pts[i], y = pts[i + 1], r0 = pts[i + 2], r1 = pts[i + 3], r2 = pts[i + 4], r3 = pts[i + 5];
-      if (r0 > 0.3) continue;
+      if (r0 > 0.5) continue;
       if ((++n & 15) === 15) yield;
-      const m = matSafe(x, y, 6);
-      if (m < 0) continue;
+      const m0 = matAt(x, y), m = matSafe(x, y, 6) < 0 ? -1 : m0;
       const rr = U.mulberry32(((r1 * 1e9) | 0) ^ 0x5bd1e995);
+      // density of the drifts: tufts gather where this field is high and leave calm clay between
+      const k = U.smoothstep(0.56, 0.78, U.noise(x / 170, y / 170, 931));
+      if (m < 0) { // fringes where two regions meet: tufts lining meadow edges, pebbles lining the path
+        if (m0 === 0 && r0 < 0.34) {
+          const col = r1 < 0.5 ? [140, 196, 92] : [108, 168, 74];
+          sausage(c, (q) => { q.moveTo(x - 0.8, y); q.quadraticCurveTo(x - 1.2, y - 1.8, x - 2.4, y - 3.0); q.moveTo(x, y); q.quadraticCurveTo(x + 0.2, y - 2.2, x - 0.1, y - 3.8); q.moveTo(x + 0.8, y); q.quadraticCurveTo(x + 1.3, y - 1.6, x + 2.5, y - 2.7); }, 1.0, col);
+        } else if (m0 === 4 && r0 < 0.2) bump(c, x, y, 1.1 + r2, 0.85 + r2 * 0.7, PEB_PATH[(r1 * 3) | 0]);
+        else if (m0 === 1 && r0 < 0.12) bump(c, x, y, 1.2 + r2, 0.9 + r2 * 0.7, PEB_SOIL[(r1 * 4) | 0]);
+        continue;
+      }
       if (m === 0) {
-        if (r0 < 0.15) {
+        // flower patches: a posy of 4-7 flowers around one point, only where a sparse patch field peaks
+        const fp = U.noise(x / 110, y / 110, 932);
+        if (fp > 0.7 && r0 < 0.3) {
+          const nf = 4 + ((r2 * 4) | 0), pc = FLOWER_COL[(r1 * 4) | 0], pc2 = FLOWER_COL[(r3 * 4) | 0];
+          for (let j = 0; j < nf; j++) { const a = rr() * TAU, d = Math.sqrt(rr()) * 4.6; flower(c, x + Math.cos(a) * d * 1.3, y + Math.sin(a) * d * 0.75, 0.8 + rr() * 0.4, j % 3 ? pc : pc2, rr); }
+          continue;
+        }
+        if (r0 > 0.3 * k) { if (r0 < 0.004) bump(c, x, y, 1.6 + r2, 1.2 + r2 * 0.7, [150, 146, 150]); continue; }
+        if (r1 < 0.55) {
           // modelling-tool grass impressions (fan of pressed strokes)
           const k = 3 + ((r1 * 3) | 0), base = r2 * 0.6 - 0.3, s = 0.9 + r3 * 0.5;
           imprint(c, (q, o) => {
@@ -796,41 +844,41 @@
               q.quadraticCurveTo(x + Math.sin(a) * l * 0.4 + (j - (k - 1) / 2) * 0.8, y - l * 0.5 + o, x + Math.sin(a) * l + (j - (k - 1) / 2) * 0.5, y - Math.cos(a) * l + o);
             }
           }, 0.65, 0.16);
-        } else if (r0 < 0.2) {
-          const col = r1 < 0.5 ? [140, 196, 92] : [108, 168, 74];
+        } else {
+          const col = r2 < 0.5 ? [140, 196, 92] : [108, 168, 74];
           sausage(c, (q) => { q.moveTo(x - 0.8, y); q.quadraticCurveTo(x - 1.2, y - 1.8, x - 2.4, y - 3.0); q.moveTo(x, y); q.quadraticCurveTo(x + 0.2, y - 2.2, x - 0.1, y - 3.8); q.moveTo(x + 0.8, y); q.quadraticCurveTo(x + 1.3, y - 1.6, x + 2.5, y - 2.7); }, 1.0, col);
-        } else if (r0 < 0.24) flower(c, x, y, 0.9 + r2 * 0.35, FLOWER_COL[(r1 * 4) | 0], rr);
-        else if (r0 < 0.245) {
+        }
+        if (r0 < 0.006 && r3 < 0.3) {
           bump(c, x, y, 2.6, 2.1, [232, 128, 44]);
           imprint(c, (q, o) => { q.moveTo(x - 0.8, y - 1.7 + o); q.quadraticCurveTo(x - 1.6, y + o, x - 0.8, y + 1.7 + o); q.moveTo(x + 0.8, y - 1.7 + o); q.quadraticCurveTo(x + 1.6, y + o, x + 0.8, y + 1.7 + o); }, 0.35, 0.25);
           bump(c, x + 0.2, y - 2.1, 0.5, 0.6, [110, 112, 50]);
-        } else if (r0 < 0.26) bump(c, x, y, 1.6 + r2, 1.2 + r2 * 0.7, [150, 146, 150]);
+        }
       } else if (m === 1) {
-        if (r0 < 0.13) {
+        if (r0 < 0.05) {
           const col = PEB_SOIL[(r1 * 4) | 0];
           bump(c, x, y, 1.3 + r2 * 1.5, 1.0 + r2 * 1.1, col);
           if (r3 < 0.5) bump(c, x + 2.6, y + 1.2, 0.9, 0.7, PEB_SOIL[(r3 * 8) & 3]);
-        } else if (r0 < 0.16) {
+        } else if (r0 < 0.065) {
           const a = r2 * TAU, l = 3.2, ph = r3 * TAU;
           const path = (q) => { for (let j = 0; j <= 8; j++) { const t = j / 8 - 0.5, px = x + Math.cos(a) * t * l * 2 - Math.sin(a) * Math.sin(ph + t * 6) * 0.8, py = y + Math.sin(a) * t * l * 2 * 0.6 + Math.cos(a) * Math.sin(ph + t * 6) * 0.8; if (j) q.lineTo(px, py); else q.moveTo(px, py); } };
           sausage(c, path, 1.5, [226, 140, 150]);
-        } else if (r0 < 0.19) {
+        } else if (r0 < 0.08) {
           const a = (r2 - 0.5) * 1.4, l = 3 + r3 * 2.5;
           sausage(c, (q) => { q.moveTo(x - Math.cos(a) * l, y - Math.sin(a) * l * 0.6); q.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l * 0.6); }, 1.3, [120, 82, 52]);
-        } else if (r0 < 0.28) {
+        } else if (r0 < 0.1) {
           imprint(c, (q, o) => { for (let j = 0; j < 3; j++) { const px = x + (rr() - 0.5) * 7, py = y + (rr() - 0.5) * 4 + o; q.moveTo(px + 0.7, py); q.arc(px, py, 0.7, 0, TAU); } }, 0.45, 0.16);
         }
       } else if (m === 2) {
-        if (r0 < 0.08) {
+        if (r0 < 0.03) {
           imprint(c, (q, o) => { for (let j = 0; j <= 26; j++) { const t = j / 26, a = t * 3.2 * PI + r2 * TAU, rad = 0.4 + t * 3.6; const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad * 0.75 + o; if (j) q.lineTo(px, py); else q.moveTo(px, py); } }, 0.55, 0.16);
-        } else if (r0 < 0.13) bump(c, x, y, 1.2 + r2 * 1.3, 0.95 + r2, PEB_PURP[(r1 * 3) | 0]);
-        else if (r0 < 0.145) {
+        } else if (r0 < 0.03 + 0.18 * k) bump(c, x, y, 1.2 + r2 * 1.3, 0.95 + r2, PEB_PURP[(r1 * 3) | 0]);
+        else if (r0 < 0.045 + 0.2 * k && r3 < 0.25) {
           const sc = 0.8 + r2 * 0.4;
           bump(c, x, y, 0.6 * sc, 1.4 * sc, [232, 222, 236]);
           bump(c, x, y - 1.6 * sc, 1.9 * sc, 1.1 * sc, [164, 128, 214]);
         }
       } else if (m === 3) {
-        if (r0 < 0.035) {
+        if (r0 < 0.12 * k) {   // lily pads in rafts
           const s = 1 + r2 * 0.6;
           c.fillStyle = 'rgba(30,60,80,0.22)'; c.beginPath(); c.ellipse(x + 0.5, y + 0.9, 4.2 * s, 2.8 * s, 0, 0, TAU); c.fill();
           c.fillStyle = 'rgb(88,150,74)'; c.beginPath(); c.ellipse(x, y, 4 * s, 2.6 * s, 0, 0, TAU); c.fill();
@@ -844,7 +892,7 @@
           imprint(c, (q, o) => { for (const rad of [2.2, 3.8]) { q.moveTo(x + rad, y + o); q.ellipse(x, y + o, rad, rad * 0.5, 0, 0, TAU); } }, 0.4, 0.1);
         }
       } else {
-        if (r0 < 0.1) {
+        if (r0 < 0.035) {
           // thumbprint pressed into the path
           const rot = r2 * PI, s = 0.9 + r3 * 0.4;
           imprint(c, (q, o) => {
@@ -854,7 +902,7 @@
               q.ellipse(x, y + o, rad, rad * 0.78, rot, a0, a0 + PI * (1.3 + rr() * 0.6));
             }
           }, 0.42, 0.15);
-        } else if (r0 < 0.14) {
+        } else if (r0 < 0.07) {
           const a = r2 * TAU, dx = Math.cos(a), dy = Math.sin(a) * 0.7;
           for (let j = 0; j < 2; j++) {
             const side = j ? 1 : -1, px = x + dx * j * 5 - dy * side * 1.6, py = y + dy * j * 5 + dx * side * 1.6;
@@ -863,7 +911,7 @@
             c.strokeStyle = 'rgba(255,240,210,0.22)'; c.lineWidth = 0.45;
             c.beginPath(); c.ellipse(px, py, 1.7, 0.9, Math.atan2(dy, dx), 0.15 * PI, 0.85 * PI); c.stroke();
           }
-        } else if (r0 < 0.17) bump(c, x, y, 1.1 + r2, 0.85 + r2 * 0.7, PEB_PATH[(r1 * 3) | 0]);
+        }
       }
     }
     // glossy studio-light reflections on the ponds
@@ -1166,7 +1214,7 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
     id: 'clay',
     name: 'Knetwelt',
     family: 'Claymation',
-    description: 'Stop-Motion-Knetwelt wie im Miniatur-Studio: weiche Plastilin-Figuren mit Fingerabdrücken, sanftem Studiolicht und 12-fps-Gewackel.',
+    description: 'Stop-motion plasticine miniature set: soft gradient-built clay figures with fingerprints, warm studio light and 12 fps boil.',
     groundColor: '#78a854',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1180,11 +1228,9 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
       K = Math.max(3, Math.min(5, Math.round(S * 1.2)));
       FPC = makeFingerprint();
       buildMod();
-      SPR.jack = []; SPR.jackHurt = [];
-      for (let f = 0; f < 5; f++) {
-        SPR.jack.push(set4([-15, -34, 15, 2.5], (c) => jackDraw(c, f, false), 100 + f));
-        SPR.jackHurt.push(set4([-15, -34, 15, 2.5], (c) => jackDraw(c, f, true), 100 + f));
-      }
+      SPR.jack = [];
+      for (let f = 0; f < JACK_FR.length; f++) SPR.jack.push(set4([-15, -35, 15, 2.5], (c) => jackDraw(c, f, false), 100 + f));
+      SPR.jackHurt = [set4([-15, -35, 15, 2.5], (c) => jackDraw(c, 0, true), 120)];
       SPR.creep = [0, 1, 2].map((v) => [0, 1, 2, 3].map((f) => set4([-14, -32, 14, 2.5], (c) => creeperDraw(c, f, v), 200 + v * 10 + f)));
       SPR.ghost = [0, 1, 2, 3].map((f) => set4([-15, -28, 14, 2.5], (c) => ghostDraw(c, f), 300 + f));
       SPR.colo = [0, 1, 2, 3].map((f) => set4([-30, -64, 30, 3], (c) => colossusDraw(c, f), 400 + f));
@@ -1363,45 +1409,59 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
     },
 
     propsForChunk(info) {
+      // composed, not sprinkled: groves (trees inside, mushrooms underneath, bushes on the rim), cattails on pond
+      // shores, fences and rocks along the path, pumpkin patches and hay in the garden beds, little groups of
+      // stones on the heath – and calm open meadow in between
       const out = [];
-      G.scatterOwned(info, 78, 5151, (x, y, rng) => {
+      const add = (x, y, t, v, f) => { const bx = PROP_DEF[t].box; out.push({ x, y, t, v, f, pad: Math.max(-bx[0], bx[2]) + 8 - 60 }); };
+      G.scatterOwned(info, 32, 5151, (x, y, rng) => {
         if (G.nearSpawn(x, y, 95)) return;
-        const r = rng.next(), vr = rng.next();
-        if (r > 0.4) return;
-        const m = matSafe(x, y, 14);
-        if (m < 0 || m === 3) return;
-        let t = null, v = 0;
-        if (m === 0) {
-          if (r < 0.1) { t = 'tree'; v = vr < 0.5 ? 0 : vr < 0.8 ? 1 : 3; }
-          else if (r < 0.2) { t = 'bush'; v = vr < 0.6 ? 0 : 1; }
-          else if (r < 0.25) { t = 'mush'; v = 0; }
-          else if (r < 0.28) t = 'fence';
-          else if (r < 0.3) { t = 'rock'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.31) { t = 'pump'; v = 0; }
-        } else if (m === 1) {
-          if (r < 0.12) { t = 'pump'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.18) t = 'hay';
-          else if (r < 0.22) t = 'fence';
-          else if (r < 0.26) { t = 'tree'; v = 2; }
-          else if (r < 0.28) { t = 'rock'; v = 1; }
-        } else if (m === 2) {
-          if (r < 0.1) { t = 'grave'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.17) { t = 'mush'; v = 1; }
-          else if (r < 0.22) { t = 'tree'; v = 3; }
-          else if (r < 0.25) { t = 'rock'; v = 0; }
-        } else {
-          if (r < 0.04) { t = 'rock'; v = 1; }
-          else if (r < 0.06) t = 'hay';
+        const r = rng.next(), vr = rng.next(), f = rng.chance(0.5);
+        const m = matSafe(x, y, 10);
+        if (m === 3) return;
+        if (m < 0) {
+          const m0 = matAt(x, y);
+          if (m0 !== 0) return;
+          const pond = matAt(x + 11, y) === 3 || matAt(x - 11, y) === 3 || matAt(x, y + 7) === 3 || matAt(x, y - 7) === 3;
+          const path = matAt(x + 13, y) === 4 || matAt(x - 13, y) === 4 || matAt(x, y + 9) === 4 || matAt(x, y - 9) === 4;
+          if (pond && r < 0.55) add(x, y, 'reed', vr < 0.6 ? 0 : 1, f);
+          else if (path && r < 0.1) add(x, y, 'fence', vr < 0.5 ? 0 : 1, f);
+          else if (path && r < 0.16) add(x, y, 'rock', vr < 0.5 ? 0 : 1, f);
+          return;
         }
-        if (!t) return;
-        out.push({ x, y, t, v, f: rng.chance(0.5), pad: t === 'tree' ? 75 : 35 });
+        if (m === 0) {
+          const wd = woodAt(x, y);
+          if (wd > 0.62) { if (r < 0.4) add(x, y, 'tree', vr < 0.45 ? 0 : vr < 0.8 ? 1 : 3, f); else if (r < 0.5) add(x, y, 'mush', 0, f); else if (r < 0.56) add(x, y, 'bush', vr < 0.6 ? 0 : 1, f); }
+          else if (wd > 0.575) { if (r < 0.3) add(x, y, 'bush', vr < 0.6 ? 0 : 1, f); else if (r < 0.37) add(x, y, 'tree', vr < 0.5 ? 0 : 1, f); else if (r < 0.41) add(x, y, 'rock', 1, f); }
+          else if (r < 0.01) add(x, y, 'tree', vr < 0.5 ? 0 : 1, f);
+          else if (r < 0.02) add(x, y, 'rock', vr < 0.5 ? 0 : 1, f);
+          else if (r < 0.026) add(x, y, 'bush', 0, f);
+        } else if (m === 1) {
+          if (U.noise(x / 90, y / 90, 61) > 0.5 && r < 0.34) add(x, y, 'pump', vr < 0.5 ? 0 : 1, f);
+          else if (r < 0.04) add(x, y, 'hay', 0, f);
+          else if (r < 0.055) add(x, y, 'tree', 2, f);
+        } else if (m === 2) {
+          if (U.noise(x / 120, y / 120, 77) > 0.6 && r < 0.3) add(x, y, 'grave', vr < 0.5 ? 0 : 1, f);
+          else if (r < 0.1) add(x, y, 'mush', 1, f);
+          else if (r < 0.13) add(x, y, 'tree', 3, f);
+          else if (r < 0.16) add(x, y, 'rock', 0, f);
+        } else if (r < 0.015) add(x, y, 'rock', 1, f);
       });
       return out;
     },
 
-    drawProp(ctx, p) {
-      const s = SPR.props[p.t][p.v];
-      blit(ctx, p.f ? s.l : s.n, p.x, p.y, 1, 1);
+    drawProp(ctx, p, view) {
+      const s = SPR.props[p.t][p.v], spr = p.f ? s.l : s.n;
+      const amp = p.t === 'tree' ? 0.018 : p.t === 'reed' ? 0.06 : p.t === 'bush' ? 0.012 : 0;
+      if (amp && view) {
+        // the animator nudges the set on twos: a stepped breeze (12 fps), each prop on its own phase
+        const st = Math.floor(view.rt * 12) / 12;
+        const k = (Math.sin(st * 1.1 + p.x * 0.013) * 0.7 + Math.sin(st * 2.3 + p.y * 0.017) * 0.3) * amp;
+        const V = tf(view), S = V.S, q = 1 / K;
+        ctx.setTransform(S, 0, -k * S, S, V.ox + p.x * S, V.oy + p.y * S);
+        ctx.drawImage(spr.c, -spr.ox * q, -spr.oy * q, spr.c.width * q, spr.c.height * q);
+        ctx.setTransform(S, 0, 0, S, V.ox, V.oy);
+      } else blit(ctx, spr, p.x, p.y, 1, 1);
     },
 
     drawShadow(ctx, o) {
@@ -1478,35 +1538,55 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
       let set, sx = 1, sy = 1, rot = 0, y = e.y, alpha = 1;
       let scl = 0.94 + e.seed * 0.12;
       if (e.type === 'creeper') {
-        const f = Math.floor((e.anim * 0.8 + e.seed * 4) * 4) & 3;
-        set = SPR.creep[Math.floor(e.seed * 3) % 3][f];
+        // a hop in 8 steps at 12 fps: crouch, take-off stretch, rise, apex, fall, fall stretch, landing squash, settle;
+        // the 4 boiled clay frames are held on twos, every creature on its own phase
+        const f8 = Math.floor((e.anim * 0.42 + e.seed * 4) * 8) & 7;
+        set = SPR.creep[Math.floor(e.seed * 3) % 3][f8 >> 1];
         scl *= CREEP_SCALE;
-        rot = [0, 0.07, 0, -0.07][f];
-        if (f & 1) { y -= 1.1; sy *= 1.03; } else { sx *= 1.05; sy *= 0.95; }
+        const sq = CR_SQ[f8];
+        y -= CR_AIR[f8] * 2.8;
+        sx *= 1 + 0.085 * sq; sy *= 1 - 0.095 * sq;
+        rot = CR_ROT[f8];
       } else if (e.type === 'ghost') {
         const f = Math.floor((view.rt * 1.8 + e.seed * 4) * 4) & 3;
         set = SPR.ghost[f];
-        const q = stp / 12;
-        y -= 5 + Math.sin(q * 2.4 + e.seed * 12) * 1.6;
-        rot = U.clamp(e.vx / 60, -1, 1) * 0.12;
-        alpha = 0.84;
+        const q = stp / 12, th = q * 2.4 + e.seed * 12;
+        y -= 5 + Math.sin(th) * 1.6 + Math.sin(th * 2 + 0.7) * 0.45;
+        const vv = Math.cos(th);
+        sy *= 1 + 0.045 * vv; sx *= 1 - 0.035 * vv;        // soft clay stretches while it rises
+        rot = U.clamp(e.vx / 60, -1, 1) * 0.14;
+        alpha = 0.86;
       } else {
         const f = Math.floor((e.anim * 0.3 + e.seed) * 4) & 3;
         set = SPR.colo[f];
-        if (f & 1) y -= 1.2; else { sx *= 1.06; sy *= 0.94; }
-        rot = [0, 0.03, 0, -0.03][f];
+        if (f & 1) { y -= 1.4; sy *= 1.02; } else { sx *= 1.08; sy *= 0.92; }   // heavy contact squash
+        rot = [0, 0.035, 0, -0.035][f];
       }
       sx *= scl * (1 + bj * 0.035); sy *= scl * (1 - bj * 0.03);
       rot += bj2 * 0.04;
       const left = e.facing < 0;
       if (e.dying) {
-        const q = e.deathT;
-        const k = U.ease.outQuad(Math.min(1, q / 0.55));
-        sx *= 1 + 0.7 * k; sy *= 1 - 0.8 * k;
-        ctx.globalAlpha = alpha * (q > 0.5 ? Math.max(0, 1 - (q - 0.5) / 0.5) : 1);
-        blit(ctx, left ? set.nl : set.n, e.x, y, sx, sy);
-        ctx.globalAlpha = 0.5 * (1 - q) * alpha;
-        blit(ctx, left ? set.fl : set.f, e.x, y, sx, sy);
+        // stepped like stop-motion (40 steps over the sequence), designed over deathT 0..1 (0.35 s in motion)
+        const q = Math.floor(e.deathT * 40) / 40;
+        const dir = e.kx > 2 ? 1 : e.kx < -2 ? -1 : (left ? 1 : -1);
+        let kx, ky, dy = 0, r = 0, a = alpha, fa = 0;
+        if (e.type === 'ghost') {
+          // the soft sheet puffs up in the pale flash, then slumps and melts into a puddle that fades
+          if (q < 0.14) { const k = U.ease.outQuad(q / 0.14); kx = 1 + 0.18 * k; ky = 1 + 0.12 * k; dy = -2 * k; fa = 1; }
+          else { const k = U.smoothstep(0.14, 0.75, q); kx = 1.18 + 0.75 * k; ky = 1.12 - 0.95 * k; dy = -2 + 2 * k; fa = Math.max(0, 1 - k * 2); a *= q > 0.7 ? Math.max(0, 1 - (q - 0.7) / 0.3) : 1; }
+        } else {
+          // the squish: anticipation stretch -> thumb-pressed flat with a twist -> the clay disc sinks into the set
+          if (q < 0.12) { const k = U.ease.outQuad(q / 0.12); kx = 1 - 0.12 * k; ky = 1 + 0.16 * k; dy = -2.5 * k; fa = 1; r = -0.08 * k * dir; }
+          else if (q < 0.3) { const k = U.ease.outQuad((q - 0.12) / 0.18); kx = 0.88 + 1.02 * k; ky = 1.16 - 0.96 * k; dy = -2.5 * (1 - k); fa = 1 - k; r = 0.12 * dir * (1 - k); }
+          else { const k = U.smoothstep(0.3, 1, q), w = Math.sin(q * 60) * 0.03 * (1 - k); kx = (1.9 - 0.9 * k) * (1 + w); ky = Math.max(0.02, 0.2 * (1 - k)); a *= 1 - U.smoothstep(0.75, 1, q); }
+        }
+        const s0 = left ? set.nl : set.n, s1 = left ? set.fl : set.f;
+        ctx.globalAlpha = a;
+        if (r) blitRot(ctx, V, s0, e.x, y + dy, sx * kx, sy * ky, r); else blit(ctx, s0, e.x, y + dy, sx * kx, sy * ky);
+        if (fa > 0.02) {
+          ctx.globalAlpha = a * fa * 0.85;
+          if (r) blitRot(ctx, V, s1, e.x, y + dy, sx * kx, sy * ky, r); else blit(ctx, s1, e.x, y + dy, sx * kx, sy * ky);
+        }
         ctx.globalAlpha = 1;
         return;
       }
@@ -1524,12 +1604,18 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
         }
       }
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.16 * fl; sy *= 1 - 0.15 * fl; }
+      const hT = e.hitT === undefined ? 9 : e.hitT;
+      if (hT < 0.5) {
+        const tq = Math.floor(hT * 24) / 24, w = Math.exp(-9 * tq) * Math.cos(tq * 26);
+        sx *= 1 + 0.24 * w; sy *= 1 - 0.22 * w;
+        const dir = e.kx > 2 ? 1 : e.kx < -2 ? -1 : (left ? 1 : -1);
+        rot += dir * 0.28 * Math.exp(-8 * tq);
+      }
       ctx.globalAlpha = alpha;
       const s = left ? set.nl : set.n;
       if (rot) blitRot(ctx, V, s, e.x, y, sx, sy, rot); else blit(ctx, s, e.x, y, sx, sy);
       if (fl > 0.02) {
-        ctx.globalAlpha = Math.min(0.55, fl * 0.8) * alpha;
+        ctx.globalAlpha = Math.min(0.85, fl * 1.3) * alpha;
         const f2 = left ? set.fl : set.f;
         if (rot) blitRot(ctx, V, f2, e.x, y, sx, sy, rot); else blit(ctx, f2, e.x, y, sx, sy);
       }
@@ -1548,9 +1634,11 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
       const stp = Math.floor(view.rt * 12);
       let fr = 0, sx = 1, sy = 1, rot = 0;
       if (p.moving) {
-        const f = Math.floor(p.anim * 0.34 * 4) & 3;
+        // 8 drawn poses at 12 fps (on twos, like the camera of a stop-motion set)
+        const f = Math.floor(p.anim * 1.3) & 7;
         fr = 1 + f;
-        if (f === 0 || f === 2) { sx = 1.04; sy = 0.96; } else { sx = 0.98; sy = 1.03; }
+        const k = f & 3;
+        if (k === 1) { sx = 1.045; sy = 0.955; } else if (k === 3) { sx = 0.975; sy = 1.03; }
         rot = 0.035 * p.facing;
       } else {
         const b = Math.sin(Math.floor(view.rt * 6) / 6 * 2.8);
@@ -1564,7 +1652,7 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
       if (hurt) { sx *= 1 + 0.15 * p.hurtT; sy *= 1 - 0.13 * p.hurtT; }
       sx *= JACK_SCALE; sy *= JACK_SCALE;
       const left = p.facing < 0;
-      const set = (hurt ? SPR.jackHurt : SPR.jack)[fr];
+      const set = hurt ? SPR.jackHurt[0] : SPR.jack[fr];
       if (p.dashT > 0) {
         const k = U.clamp(p.dashT / 0.2, 0, 1);
         sx *= 1 + 0.18 * k; sy *= 1 - 0.1 * k;
@@ -1701,7 +1789,7 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
       else for (let i = 0; i < 3; i++) { const a = Math.random() * TAU; game.addParticle({ kind: 'dust', ghost: true, x, y, z: 10, vx: Math.cos(a) * 18, vy: Math.sin(a) * 9, drag: 3, life: 0.55, size: 6 }); }
       if (big) { addSplat(game, x - 9, y + 3, CI.colo2, 1.0); addSplat(game, x + 10, y - 2, CI.colo, 0.9); }
       const n = big ? 12 : ghost ? 3 : 5;
-      for (let i = 0; i < n; i++) crumb(game, x, y, h * 0.7, cols[i % cols.length], big ? 75 : 55, big ? 1.15 : 0.8, 1.3);
+      for (let i = 0; i < n; i++) crumb(game, x, y, h * 0.7, cols[i % cols.length], big ? 75 : 55, big ? 1.15 : 0.8, 0.8);
       const nd = big ? 6 : 2;
       for (let i = 0; i < nd; i++) {
         const a = Math.random() * TAU;
@@ -1726,8 +1814,8 @@ body.style-clay #pausebox { font-family: ${F1}; font-weight: 400; font-size: 76p
     },
     onLevelUp(game, p) {
       game.addParticle({ kind: 'flash', x: p.x, y: p.y, z: 14, life: 0.35, size: 26, drag: 0 });
-      const cols = [CI.gold, CI.pump, CI.green, CI.purple0, CI.gold, CI.blue];
-      for (let i = 0; i < 18; i++) crumb(game, p.x, p.y + 0.5, 14, cols[i % cols.length], 85, 0.75, 1.4);
+      const cols = [CI.gold, CI.pump, CI.cream, CI.gold, CI.green];
+      for (let i = 0; i < 10; i++) crumb(game, p.x, p.y + 0.5, 14, cols[i % cols.length], 80, 0.8, 0.9);
       for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; dust(game, p.x + Math.cos(a) * 5, p.y + Math.sin(a) * 2.5, 2, 8, Math.cos(a) * 45, Math.sin(a) * 22, 0.6); }
     },
     onDeath(game, p) {

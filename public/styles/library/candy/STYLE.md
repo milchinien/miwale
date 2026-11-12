@@ -28,7 +28,7 @@ Everything in this world is edible and rendered like a premium candy commercial.
 
 | Swatch | Hex | Role |
 | --- | --- | --- |
-| Milk chocolate | `#7e4c32` | Ground base and 34-unit bar grid (~45% of the screen) |
+| Milk chocolate | `#7e4c32` | Ground base, moulded into rows of bars (~45% of the screen) |
 | Choc groove | `#5d3825` | Grooves between chocolate bars (base × 0.74) |
 | Caramel edge | `#ec9c3a` | Caramel pool edge band |
 | Caramel deep | `#b25a1a` | Caramel pool interior |
@@ -96,12 +96,17 @@ Text effects: the module builds `text-shadow` from 16 offsets on a circle of rad
 
 The floor is computed per pixel from noise fields sampled on a 4-unit grid and bilinearly interpolated; each material layer is a signed field (positive = inside) whose value divided by its gradient gives a distance in pixels → perfectly antialiased edges plus distance-based shading. The ground stays mid-value and warm so the saturated figures pop.
 
-- **Milk chocolate (base, `#7e4c32`)**: where a low-frequency mask (`smoothstep(.44,.58, fbm(x/620))`) is on, a **34-unit bar grid**: groove < 0.9 units darkens up to −26%; top/left 3.2-unit bevel +11%; bottom/right bevel −9%; bar centre a faint +2.5% dome. Where the mask is off, the chocolate "melts": sine gloss bands `sin(phase + x·0.018 + y·0.062)` > 0.6 brighten up to +9%, < −0.7 darken. Global tint ±4.5% from very low-frequency noise.
+- **Milk chocolate (base, `#7e4c32`)**: where a low-frequency mask (`smoothstep(.44,.58, fbm(x/620))`) is on, the floor is **moulded into rows of bars**. Rows are 34 / 26 / 34 / 30 units high (repeating every 124), each row shifted by its own hashed offset like brickwork, bars 34 units wide, every bar with its own tone (±3.5 %), so no square grid repeats. Groove < 0.9 units darkens up to −26 %; top/left 3.2-unit bevel +11 %; bottom/right bevel −9 %; a faint +2.5 % dome at 40 % of the bar. Where the mask is off, the chocolate "melts": sine gloss bands `sin(phase + x·0.018 + y·0.062)` > 0.6 brighten up to +9 %, < −0.7 darken. Global tint ±4.5 % from very low-frequency noise.
 - **Caramel pools (sunken)**: colour from `#ec9c3a` at the edge to `#b25a1a` 0.05 field units inside. Thin glossy streaks where `sin(y·0.2 + x·0.035 + warp)` > 0.955 lerp toward rgb(255,232,170). Upper inner edge darkens (−38% falloff over 4 units: the lip casts shadow into the pool); lower inner edge gets a light lip rgb(255,226,160) between 0.7 and 2 units in. Outside the pool, the chocolate brightens 12% within 1.3 units.
 - **Pink sugar-sand `#f4acc2`**: per 0.5-unit texel hash grain ±3.5%, 0.3% of texels pure `#fff6fa` sparkle; drop shadow (rgb 60,22,30) up to 28% within 2.6 units, stronger on down-facing edges; top edges +12% lighter, bottom edges −12%, very edge −12%.
 - **Mint frosting `#a0dab8` (raised)**: piped ridges `sin((y + warp + x·0.16)·0.62)` ±4.5%, ridge crests lerp to white. Down-facing edges grow **drips** (every 4.2 units, 62% chance, up to 9 units long, parabolic profile). Shadow below up to 50% over 5 units. A white gloss line 0.45–1.35 units inside up-facing edges (75%), top edges +16% lighter, bottom −22%, last 0.6 units −16%.
 - **Cookie-crumb paths `#543226`**: thin noise ridge `|perlin| < 0.0155` as a winding band; texture = 128-texel tileable Worley cells (0.5 units per texel), each cell domed and lit from the top-left (0.78 + 0.22·edge ± light); edge displaced by fBm for a crumbly outline; −20% at the edge and a sunken shadow on the upper side.
-- **Decals** (one candidate every 15 units, 42% kept, only where the material is uniform within 4 units; each with an `rgba(50,15,20,.25)` ellipse shadow offset (0.3, 0.4)): chocolate chips, sprinkle triples, candy corn, mini marshmallows, mini gourds on chocolate; star glints on caramel; glints, hearts, mini lollipops, gumdrops on sugar; frosting dollops, gumdrops, sprinkles on mint; crumbs and chips on paths.
+- **Decals are spills, not a sprinkle** (one candidate every 15 units; each with an `rgba(50,15,20,.25)` ellipse shadow offset (0.3, 0.4)):
+  - A spill field `smoothstep(0.56, 0.78, noise(x/140))` decides where candy lies, as if a bag burst there. Chocolate chips, candy corn, mini marshmallows and fans of 4 sprinkles appear only inside spills; the rest of the chocolate stays calm bars.
+  - Sugar sand keeps its sparkle grains everywhere (8 %, the material itself). Hearts, gumdrops and mini lollipops appear only in spills.
+  - Mint frosting gets a few piped dollops, plus gumdrops and sprinkles in spills.
+  - Caramel gets sparse star glints, and the cookie path is made of crumbs and chips.
+  - Edges: crumbs spill off the cookie path onto the chocolate, and sugar glints line the frosting rims.
 
 ## Characters
 
@@ -145,6 +150,14 @@ All props use the same gloss recipe (top-left radial, white specs, lower-right r
 - **Chocolate gravestones** with piped frosting "R.I.P." and a bead border.
 - **Candy buckets** shaped like orange gourds.
 - **Cupcake houses**: pleated liner, 3-tier frosting roof, sprinkles, cherry, warm windows.
+
+**Placement is composed** (34-unit jittered grid):
+- **Lollipop groves:** a grove field `fbm(x/360) > 0.63` holds lollipop trees (36 %) and gumdrop bushes. The lollipop colour depends on the ground: mint/teal swirls on frosting, pink on sugar, orange/purple on chocolate. A ring of gumdrop bushes forms each grove's rim (0.585–0.63).
+- **The cookie path:** lined with candy-cane fences (16 % of the edge cells) and wrapped-candy boulders.
+- **Little graveyards:** gravestones and candy buckets grouped where a graveyard field peaks on the chocolate.
+- **Elsewhere:** the odd cupcake house on the frosting or sugar; open floor stays calm. Nothing stands on caramel or on the path.
+
+**Ambient motion:** lollipops sway on their sticks (base-anchored skew `sin(1.1t)·0.03 + sin(2.3t)·0.01`), and gumdrop bushes jiggle (±2.5 % at 2.6 rad/s). Each prop has its own phase.
 
 ## Effects and particles
 
@@ -201,15 +214,25 @@ Candy-shop buttons: thick cocoa border (3–4 px), solid cocoa "base" drop of 4�
 
 ## Motion and animation
 
-- **Main character hop-walk:** phase = `anim·0.42` hops; `f = fract(phase)`, `air = sin(f·π)`, `lift = air·3.2`; contact = `max(0, 1 − min(f, 1−f)·6)`; `sy = 1 + .07·air − .13·contact`, `sx = 1 − .04·air + .12·contact`; frame = contact > .25 ? (odd hop ? 1 : 3) : 2; tilt `0.07·facing·air`. Sugar sparkle puff on 60% of landings.
+Smooth, interpolated motion (a rendered material, not drawn on twos). Everything that is jelly **rings on** after it moves: a damped oscillation follows every contact, every hit and every landing.
+
+- **Main character jelly hop:** phase = `anim·0.42` hops, `f = fract(phase)`.
+  - 0–0.25 landing: a squash that rings on as a damped wobble, `jig = e^(−14f)·cos(28f)` (sy −15 %, sx +13 %).
+  - 0.25–0.38 crouch (anticipation): squash 9 % and a back tilt.
+  - 0.38–1 airborne: `air = sin(π(f − 0.38)/0.62)`, lift `3.4·air`, stretching with vertical speed and slightly squashed at the apex. The airborne frame is 2; landings alternate frames 1/3.
+  - Tilt `0.07·facing·air`. A sugar sparkle puff on 60 % of landings.
 - **Idle:** breathing `sy = 1 + .03·sin(3.2t)`, `sx = 1 − .022·sin(3.2t)`, frame 0.
-- **Action squash:** 5%. **Celebration wobble:** `sin(T·4π)·T` (sy ±18%). **Flash:** sx +16%, sy −13%, flash overlay ≤ 0.75, alternative face; blinking at 16 Hz, alpha 0.5.
-- **Gummy creatures:** phase `anim·0.85`, 4 frames, jelly wobble `sx = 1 + 0.07·(1−|sin|)`, `sy = 1 − 0.08·(1−|sin|) + 0.04·|sin|`, rotation 0.1·sin, bob 1.3.
-- **Marshmallow floating creatures:** 6 fps frame cycle, hover 4.5 + 1.6·sin(2.6t), squash ±5% at 4.2 rad/s, tilt by velocity.
-- **Large creature:** phase `anim·0.32`, cubic contact squash 8%, bob 2.
-- **Impact:** sx +18%, sy −15%, flash. **Pop-out:** 0–0.2 grow to 1.25 (outQuad), then shrink to 0 by 0.42 (inQuad) with a 44-rad/s wobble ±12% and a 60% flash overlay.
-- **Collectibles:** bob 1.2 ± 0.9 at 4 rad/s, sway ±0.18, squash 5%; pop with outBack (0.4 → 1) and an arc of 10 units.
-- **Numbers:** scale 0.3 → 1.35 (10%) → 1.0 (24%), rise 4 units, slight random tilt ±0.15 rad.
+- **Action squash:** 5 %. **Celebration wobble:** `sin(T·4π)·T` (sy ±18 %). **Flash:** sx +16 %, sy −13 %, flash overlay ≤ 0.75, alternative face; blinking at 16 Hz, alpha 0.5.
+- **Gummy creatures:** phase `anim·0.85 + seed`, 4 frames, bob 1.6, rotation 0.09·sin. Every contact sets off a jiggle that rings on after the step (`e^(−9f)·cos(24f)`, sx +10 %, sy −11 %), so the jelly visibly lags the gait.
+- **Marshmallow floating creatures:** 6 fps frame cycle, hover 4.5 + 1.6·sin(2.6t), squash ±5 % at 4.2 rad/s, tilt by velocity.
+- **Large creature:** phase `anim·0.32`, cubic contact squash 6 % plus a slower jiggle (`e^(−7f)·cos(18f)`, 5 %), bob 2.
+- **Hit (~0.5 s):** a jelly spring `e^(−8t)·cos(30t)` (±22 %: squash → stretch → settle) with a 0.26 rad tilt away from the blow, and the flash overlay.
+- **Removal (deathT 0 → 1, 0.35 s in motion):**
+  - *Gummy pop:* the creature wobbles (±13 %, 70 rad/s), over-inflates to 1.38× and stretches upward while the flash copy rises to 95 %. At 0.34 it pops, and the layered burst (sprinkles, gummy chunks, sugar sparkles, puff) takes over.
+  - *Whipped cream:* the floating creature sags (height −70 %), spreads (+55 %), slides 4.5 units down into a puddle and fades by 0.85.
+- **Appearing:** the wrapper decal unwraps under the figure; gummies scale in with outElastic, marshmallows with outBack.
+- **Collectibles:** bob 1.2 ± 0.9 at 4 rad/s, sway ±0.18, squash 5 %; pop with outBack (0.4 → 1) and an arc of 10 units.
+- **Numbers:** scale 0.3 → 1.35 (10 %) → 1.0 (24 %), rise 4 units, slight random tilt ±0.15 rad.
 
 ## Do and don't
 
@@ -240,7 +263,7 @@ Candy-shop buttons: thick cocoa border (3–4 px), solid cocoa "base" drop of 4�
 5. Build each creature type from one material; give it 4 frames by moving feet/leaves slightly; bake normal, flash-tinted and mirrored sprites.
 6. Bake collectibles (wrapped candies), projectiles (candy seed + streak), particles (sprinkles, gummy chunks, puffs, impact star, sparkle) and the shadow sprite.
 7. Build the ground: chocolate base with bar grid, then noise-driven material regions (caramel sunken, sugar flat with grain, frosting raised with drips and gloss line, cookie paths). Cache in chunks; stamp decals with tiny shadows.
-8. Place props (lollipop trees, gumdrop bushes, fences, gravestones, cupcake houses) by material; y-sort them with the characters.
+8. Place props by feature, not by a flat chance per material: lollipop groves with gumdrop rims, cane fences along the cookie path, little graveyards, the odd cupcake house; y-sort them with the characters.
 9. Per frame: blit sprites with squash/stretch/tilt transforms, additive glows behind light sources, particles, floating numbers, ambient sparkles, plum vignette.
 10. Style the HUD with the CSS above: cocoa borders + base drop, gloss overlay, peppermint bars, Chewy numbers with the 16-direction outline.
 
@@ -334,14 +357,20 @@ function blit(ctx, s, x, y, sx = 1, sy = 1) {
 ```
 
 ```js
-// Main character hop-walk squash & stretch (applied at blit time, sprites stay baked).
+// Main character jelly hop (applied at blit time, sprites stay baked): landing squash that rings on,
+// a crouch before take-off, stretch while airborne.
 function heroPose(anim, moving, t) {
   if (!moving) { const b = Math.sin(t * 3.2); return { frame: 0, lift: 0, sx: 1 - 0.022 * b, sy: 1 + 0.03 * b, rot: 0 }; }
-  const ph = anim * 0.42, f = ph - Math.floor(ph), hop = Math.floor(ph), air = Math.sin(f * Math.PI);
-  const contact = Math.max(0, 1 - Math.min(f, 1 - f) * 6);
-  return { frame: contact > 0.25 ? (hop & 1 ? 1 : 3) : 2, lift: air * 3.2,
-           sx: 1 - 0.04 * air + 0.12 * contact, sy: 1 + 0.07 * air - 0.13 * contact, rot: 0.07 * air };
+  const ph = anim * 0.42, f = ph - Math.floor(ph), hop = Math.floor(ph);
+  const air = f > 0.38 ? Math.sin(Math.PI * (f - 0.38) / 0.62) : 0;
+  const jig = Math.exp(-14 * f) * Math.cos(f * 28);                         // damped jelly wobble after landing
+  const crouch = f > 0.25 && f < 0.38 ? Math.sin(Math.PI * (f - 0.25) / 0.13) : 0;
+  const vel = f > 0.38 ? Math.abs(Math.cos(Math.PI * (f - 0.38) / 0.62)) : 0;
+  return { frame: air > 0.05 ? 2 : (hop & 1 ? 1 : 3), lift: air * 3.4, rot: 0.07 * air - 0.03 * crouch,
+           sx: 1 + 0.13 * jig + 0.07 * crouch - 0.08 * vel * air, sy: 1 - 0.15 * jig - 0.09 * crouch + 0.12 * vel * air };
 }
+// Any jelly hit: a damped spring (t = seconds since the hit).
+const jellySpring = (t) => { const w = Math.exp(-8 * t) * Math.cos(t * 30); return { sx: 1 + 0.22 * w, sy: 1 - 0.22 * w }; };
 ```
 
 ## Adapting it to your project
@@ -358,7 +387,7 @@ function heroPose(anim, moving, t) {
 
 - Everything except the ground is baked once: per character 4 frames × 4 variants (normal, flash, mirrored ×2); per-frame cost is `drawImage` with a transform per figure (`blitRot` sets the transform directly instead of save/restore).
 - The ground is the expensive part: noise fields sampled every 4 units, per-pixel material compositing, run as a generator that yields every 4 rows and in 128-row `putImageData` bands so chunk generation never stalls a frame; resolution capped at 2.5 px/unit (`groundResMax`). Pixels whose 2×2 cell is fully inside/outside a layer skip the distance math.
-- Decals are stamped into the chunk once (≤ 1 per 15 units).
+- Decals are stamped into the chunk once (≤ 1 per 15 units, most of them only inside spills). The bar rows add two hashes per chocolate pixel at chunk build time.
 - Additive glows (`lighter`) are limited to the main character's halo, lanterns, sugar sparkles; `shadowBlur` is only used at bake time.
 - Floating numbers are cached as sprites per value (cache cleared above 400 entries); the vignette is a 320-px sprite stretched to the screen.
 - For a simpler port, the vector ground in `starter.js` (pre-baked once per canvas size) costs < 1 ms per frame.
@@ -375,9 +404,12 @@ Use the Trick or Treat art style for my project (glossy candy world):
   matte marshmallow for floating creatures (no sharp spec), dark chocolate with glowing caramel cracks for large creatures.
 - One soft cocoa-plum outline #3a1424, 0.5 units, around the whole sprite (stamp a tinted copy 12x); no inner ink lines, never black.
 - Faces: carved holes glowing caramel (#7a2406 then ramp #fffbd6 > #ffe07a > #ffa12a > #e2650e), or glossy dark eyes with yellow+white catchlights.
-- Ground: milk chocolate #7e4c32 with a 34-unit bar grid (dark groove, lit top-left bevel), sunken caramel pools (#ec9c3a > #b25a1a),
-  pink sugar-sand #f4acc2 with sparkle grain, raised mint frosting #a0dab8 with drips and a white gloss line, cookie-crumb paths #543226, sprinkle decals.
-- Props: lollipop trees, gumdrop bushes, candy-cane fences, cupcake houses – same gloss, 0.45 outline.
+- Ground: milk chocolate #7e4c32 moulded into rows of bars of varying height and offset (dark groove, lit top-left bevel), caramel pools (#ec9c3a > #b25a1a),
+  pink sugar-sand #f4acc2 with sparkle grain, raised mint frosting #a0dab8 with drips and a white gloss line, cookie-crumb paths #543226; candy decals only in a few spills, calm floor between.
+- Props in groups: lollipop groves ringed by gumdrop bushes, candy-cane fences along the path, little graveyards,
+  the odd cupcake house – same gloss, 0.45 outline; lollipops sway, gumdrops jiggle.
+- Motion: jelly hop (landing squash that rings on, crouch, stretch), jiggle that lags every contact, hit spring,
+  gummy pop removal (wobble, over-inflate, burst), whipped cream melts.
 - Atmosphere: soft warm ellipse shadows rgba(45,12,22,.42), plum vignette, additive warm glows behind light sources, drifting sugar sparkles.
 - Effects: sprinkles (#ff4f8b #ffd23a #4fd6ff #7ee26a #b88cff #ff9a3a #fff) on every impact and pop-out, white-pink impact stars, confetti.
 - Motion: squash & stretch everywhere (hop-walk with 12% contact squash, jelly wobble, outElastic reveals, overshoot pops).

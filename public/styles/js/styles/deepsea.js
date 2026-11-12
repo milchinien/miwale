@@ -178,8 +178,9 @@
   const LAMP = { x: 6.5, y: -28.6 };
   function diverPose(c, pass, ph, mode) {
     const a = ph * TAU, s = Math.sin(a);
-    const walk = mode === 'walk', dash = mode === 'dash';
-    const bob = walk ? -Math.abs(Math.sin(a)) * 0.9 : 0;
+    const walk = mode === 'walk', dash = mode === 'dash', idle = mode === 'idle';
+    // walk: down just after each contact, up at passing; idle: slow buoyant breathing
+    const bob = walk ? 0.8 * Math.sin(2 * a) : idle ? -0.45 * (0.5 + 0.5 * Math.sin(a)) : 0;
     c.save();
     if (dash) { c.translate(0, -3); c.rotate(0.62); }
     const hipY = -8.2 + bob;
@@ -187,7 +188,7 @@
       let fx, fy, fa;
       if (walk) { fx = hx + Math.sin(p) * 3.1; fy = -Math.max(0, Math.cos(p)) * 1.6; fa = Math.cos(p) * 0.32; }
       else if (dash) { fx = hx - 1.0 + (near ? 1.4 : -0.8); fy = near ? 0.4 : -0.8; fa = near ? 0.3 : -0.25; }
-      else { fx = hx * 1.6 + 0.4; fy = 0; fa = 0.04; }
+      else { fx = hx * 1.6 + 0.4; fy = idle ? -Math.max(0, Math.sin(p)) * 0.5 : 0; fa = 0.04 + (idle ? 0.16 * Math.sin(p) : 0); }
       c.beginPath(); c.moveTo(hx, hipY); c.quadraticCurveTo((hx + fx) / 2 + 0.8, (hipY + fy) / 2, fx, fy - 1.4);
       bStroke(c, pass, near ? P.suit : P.suitDk, 3.0);
       if (near) {
@@ -213,7 +214,7 @@
       if (near) { dot(c, ex * 0.35 + hx * 0.65, ey * 0.35 + hy * 0.65, 0.45); eFill(c, pass, '#aaf9ff', '#59e8ff'); }
     };
     const swing = walk ? s * 0.75 : 0.18;
-    arm(-0.6, dash ? 2.5 : swing, false);
+    arm(-0.6, dash ? 2.5 : idle ? 0.32 + 0.24 * Math.sin(a) : swing, false);
     leg(-0.8, a + Math.PI, false);
     // air tank on the back
     c.beginPath(); rrect(c, -7.6, -19.2 + bob, 4.2, 10.0, 1.9);
@@ -239,7 +240,7 @@
     c.beginPath(); c.moveTo(1.6, -16.6 + bob); c.quadraticCurveTo(4.2, -13.0 + bob, 3.0, -10.2 + bob);
     eStroke(c, pass, 'rgba(120,244,255,0.85)', 0.32);
     dot(c, 2.6, -13.8 + bob, 0.85); eFill(c, pass, '#d4feff', '#59e8ff');
-    arm(1.4, dash ? 2.3 : -swing, true);
+    arm(1.4, dash ? 2.3 : idle ? -0.02 + 0.24 * Math.sin(a - 0.9) : -swing, true);
     // collar ring
     c.beginPath(); c.ellipse(0.7, -17.6 + bob, 4.9, 1.6, 0, 0, TAU);
     if (pass === 'full') {
@@ -1078,13 +1079,13 @@
         let gg = C.sand0[1] + (C.sand1[1] - C.sand0[1]) * t;
         let b = C.sand0[2] + (C.sand1[2] - C.sand0[2]) * t;
         const sb = S < 0.36 ? 1 : S > 0.43 ? 0 : (0.43 - S) / 0.07;
-        const amp = sstep(0.5, 0.64, bl(6)) * (1 - sb * 0.8) * (0.55 + 0.45 * t);
+        const amp = sstep(0.53, 0.7, bl(6)) * (1 - sb * 0.8) * (0.5 + 0.4 * t);
         if (amp > 0.01) {
           const s = Math.sin((x * bl(3) + y * bl(4)) * 0.66 + bl(2) + (g - 0.5) * 0.9);
           const cr = s > 0.55 ? (s - 0.55) * 2.22 : 0, crest = cr * cr * amp * (0.55 + 0.9 * (g2 - 0.5) + 0.45);
           const tr = s < -0.2 ? (-0.2 - s) * 1.25 * amp : 0;
-          r += (C.crest[0] - r) * crest * 0.5; gg += (C.crest[1] - gg) * crest * 0.5; b += (C.crest[2] - b) * crest * 0.5;
-          const dk = 1 - tr * 0.26; r *= dk; gg *= dk; b *= dk;
+          r += (C.crest[0] - r) * crest * 0.32; gg += (C.crest[1] - gg) * crest * 0.32; b += (C.crest[2] - b) * crest * 0.32;
+          const dk = 1 - tr * 0.18; r *= dk; gg *= dk; b *= dk;
         }
         if (sb > 0) {
           let m = 0.4 + (g2 - 0.5) * 0.9 + (g - 0.5) * 0.35;
@@ -1144,8 +1145,9 @@
     yield;
     // pebbles, shells, burrows
     G.scatter(info, 22, 3313, 3, (x, y, rng) => {
+      // pebbles, shells and burrows lie in scattered beds, not evenly over the floor
       const r = rng.next();
-      if (r > 0.42) return;
+      if (r > 0.04 + 0.5 * sstep(0.48, 0.7, U.fbm(x / 120, y / 120, 3317, 2))) return;
       fieldsAt(x, y, o);
       if (inPool(x, y, 6)) return;
       const onRock = o[0] > 0.6;
@@ -1160,7 +1162,7 @@
         ctx.beginPath(); ctx.ellipse(x, y, s * 1.4, s * 0.6, 0, 0, TAU); ctx.fillStyle = '#02050a'; ctx.fill();
         ctx.beginPath(); ctx.ellipse(x, y + 0.3, s * 2.1, s * 1.0, 0, Math.PI * 1.05, Math.PI * 1.95);
         ctx.strokeStyle = 'rgba(46,70,104,0.6)'; ctx.lineWidth = 0.5; ctx.stroke();
-        if (rng.chance(0.35)) {
+        if (rng.chance(0.15)) {
           ctx.globalCompositeOperation = 'lighter';
           ctx.fillStyle = 'rgba(52,240,200,0.35)'; ctx.beginPath(); ctx.arc(x, y - 0.3, 1.4, 0, TAU); ctx.fill();
           ctx.fillStyle = 'rgba(200,255,240,0.9)'; ctx.beginPath(); ctx.arc(x, y - 0.3, 0.35, 0, TAU); ctx.fill();
@@ -1179,8 +1181,11 @@
     // brittle stars and sea stars
     ctx.globalCompositeOperation = 'lighter';
     G.scatter(info, 96, 4419, 8, (x, y, rng) => {
-      if (!rng.chance(0.32)) return;
+      // stars gather on the rock lips and around the mats, where food is
+      if (!rng.chance(0.5)) return;
       if (inPool(x, y, 6)) return;
+      fieldsAt(x, y, o);
+      if (Math.abs(o[0] - 0.6) > 0.05 && U.fbm(x / 150, y / 150, 3301, 2) < 0.55) return;
       const brittle = rng.chance(0.6), col = brittle ? (rng.chance(0.5) ? '#ff6fd2' : '#9d7dff') : '#ff7fae';
       const rot = rng.next() * TAU, s = rng.range(2.4, 4.2);
       ctx.globalAlpha = 0.45; ctx.drawImage(poolOf(col), x - s * 2.4, y - s * 1.4, s * 4.8, s * 2.8); ctx.globalAlpha = 1;
@@ -1224,7 +1229,8 @@
     yield;
     // fine plankton specks + barnacle glints on rock lips
     G.scatter(info, 9, 1717, 1, (x, y, rng) => {
-      if (!rng.chance(0.2)) return;
+      // plankton specks only inside the lit mats (the drifting snow is animated in the overlay)
+      if (!rng.chance(0.2) || U.fbm(x / 150, y / 150, 3301, 2) < 0.6) return;
       const s = rng.range(0.16, 0.38);
       ctx.fillStyle = hexA(SPARK[rng.int(0, 3)], rng.range(0.25, 0.6));
       ctx.fillRect(x - s / 2, y - s / 2, s, s);
@@ -1609,15 +1615,15 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
 
     init() {
       initNoise();
-      DIVER = { walk: [], idle: null, dash: null };
+      DIVER = { walk: [], idle: [], dash: null };
       for (let i = 0; i < 8; i++) DIVER.walk.push(charSprite(16, 40, 18, 7, (c, p) => diverPose(c, p, i / 8, 'walk')));
-      DIVER.idle = charSprite(16, 40, 18, 7, (c, p) => diverPose(c, p, 0, 'idle'));
+      for (let i = 0; i < 8; i++) DIVER.idle.push(charSprite(16, 40, 18, 7, (c, p) => diverPose(c, p, i / 8, 'idle')));
       DIVER.dash = charSprite(24, 42, 36, 10, (c, p) => diverPose(c, p, 0, 'dash'));
       JELLY = [];
       // creatures: the floor light pool under each one is baked into its sprite (one drawImage per creature)
-      for (let i = 0; i < 8; i++) JELLY.push(charSprite(22, 34, 22, 10, (c, p) => jellyPose(c, p, i / 8), { glowA: 1.1, merge: 1, pool: [P.pink, 20.7, 0.3] }));
+      for (let i = 0; i < 8; i++) JELLY.push(charSprite(22, 34, 22, 10, (c, p) => jellyPose(c, p, i / 8), { glowA: 0.85, merge: 1, pool: [P.pink, 20.7, 0.24] }));
       FISH = [];
-      for (let i = 0; i < 6; i++) FISH.push(charSprite(20, 24, 20, 9, (c, p) => lanternPose(c, p, i / 6), { wide: 2.6, glowA: 1.15, merge: 1, pool: [P.cyan, 18.2, 0.22] }));
+      for (let i = 0; i < 8; i++) FISH.push(charSprite(20, 24, 20, 9, (c, p) => lanternPose(c, p, i / 8), { wide: 2.6, glowA: 0.95, merge: 1, pool: [P.cyan, 18.2, 0.2] }));
       ANGLER = [];
       for (let i = 0; i < 8; i++) ANGLER.push(charSprite(34, 50, 34, 15, (c, p) => anglerPose(c, p, i / 8), { wide: 3.4, merge: 1, pool: [P.violet, 32, 0.18] }));
       // collectibles: floating orb + halo + floor pool in one sprite (origin = floor point)
@@ -1897,35 +1903,59 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
       const T = ETYPE[e.type] || ETYPE.creeper;
       const rt = view.rt;
       let frames, fi;
-      if (e.type === 'ghost') { frames = FISH; fi = Math.floor((rt * 2.4 + e.seed * 5) * 6); }
+      if (e.type === 'ghost') { frames = FISH; fi = Math.floor((rt * (2.1 + e.seed * 0.7) + e.seed * 5) * 8); }
       else if (e.type === 'colossus') { frames = ANGLER; fi = Math.floor((e.anim * 0.18 + rt * 0.3 + e.seed) * 8); }
       else { frames = JELLY; fi = Math.floor((rt * 0.85 + e.seed * 7) * 8); }
       const n = frames.length;
       fi = ((fi % n) + n) % n;
       const side = e.facing < 0 ? 1 : 0;
       const s = frames[fi][side];
-      const bob = Math.sin(rt * T.bobF + e.seed * 9) * T.bob;
-      const x = e.x, y = e.y + bob;
+      // buoyant float: quick lift, slow sink (eased), per-actor phase
+      const bp = fract((rt * T.bobF) / TAU + e.seed * 1.7);
+      const bu = bp < 0.4 ? sstep(0, 0.4, bp) : 1 - sstep(0.4, 1, bp);
+      const bob = (0.5 - bu) * 2 * T.bob;
+      let x = e.x, y = e.y + bob;
       if (e.dying) {
-        const t = U.clamp(e.deathT, 0, 1);
-        const sc = 1 + t * 0.3, yy = y - t * 6;
-        drawLit(ctx, s, x, yy, Math.pow(1 - t, 1.8), (1 - t) * 1.4, sc, sc);
+        // lights out (350 ms): a white flare and recoil, then the halo dies first, the body darkens,
+        // tips over and sinks while its light leaves as rising motes (see onKill)
+        const t = U.clamp(e.deathT, 0, 1), f = e.facing < 0 ? -1 : 1;
+        const rec = t < 0.2 ? Math.sin((t / 0.2) * Math.PI) : 0;
+        const sx = 1 + 0.16 * rec, sy = 1 - 0.18 * rec;
+        const sink = U.ease.inQuad(t) * 7, tilt = f * U.ease.inQuad(Math.max(0, (t - 0.15) / 0.85)) * 0.9;
+        ctx.save(); ctx.translate(x, y + sink); ctx.rotate(tilt);
+        const flare = t < 0.25 ? 1.6 * (1 - t / 0.25) : 0;
+        drawLit(ctx, s, 0, 0, Math.pow(1 - t, 1.4), (flare + Math.max(0, 1 - t * 2.6)) * T.ha, sx, sy);
         ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = Math.max(0, 0.85 - t * 1.3);
-        blit(ctx, s, s.flash, x, yy, sc, sc);
+        ctx.globalAlpha = Math.max(0, 0.9 - t * 3.2);
+        blit(ctx, s, s.flash, 0, 0, sx, sy);
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        ctx.restore();
         return;
       }
-      let a = 1, ha = T.ha;
+      let a = 1, ha = T.ha, sx = 1, sy = 1;
       if (e.spawnT < 1) {
+        // rising out of the dark: a pressure ring tightens (anticipation), the body rises 9 u and its
+        // light switches on last, settling with a small overshoot
         const k = e.spawnT;
-        a = k * k; ha = T.ha * Math.min(1, k * 1.8);
-        const rr = e.r * (2.6 - 1.6 * k);
+        a = sstep(0.15, 0.7, k); ha = T.ha * sstep(0.45, 1, k);
+        y += (1 - U.ease.outQuad(k)) * 9;
+        const ov = k > 0.7 ? Math.sin(((k - 0.7) / 0.3) * Math.PI) * 0.08 : 0;
+        sx = 0.82 + 0.18 * U.ease.outQuad(k) - ov * 0.5; sy = 0.82 + 0.18 * U.ease.outQuad(k) + ov;
+        const rr = e.r * (2.8 - 1.8 * U.ease.outQuad(Math.min(1, k * 1.4)));
         ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = T.pool; ctx.globalAlpha = (1 - k) * 0.6; ctx.lineWidth = 0.8;
+        ctx.strokeStyle = T.pool; ctx.globalAlpha = Math.sin(Math.min(1, k * 1.4) * Math.PI) * 0.6; ctx.lineWidth = 0.8;
         ctx.beginPath(); ctx.ellipse(e.x, e.y, rr, rr * 0.42, 0, 0, TAU); ctx.stroke();
-        ctx.globalAlpha = (1 - k) * 0.18; ctx.lineWidth = 3; ctx.stroke();
+        ctx.globalAlpha *= 0.3; ctx.lineWidth = 3; ctx.stroke();
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      }
+      // hit reaction: damped squash/stretch (~250 ms) plus a push in the knock-back direction
+      if ((e.flash || 0) > (e._nf || 0) + 0.3) e._ht = rt;
+      e._nf = e.flash || 0;
+      const hA = e._ht === undefined ? 9 : rt - e._ht;
+      if (hA < 0.32) {
+        const r = Math.exp(-hA * 13) * Math.cos(hA * 26);
+        sx *= 1 + 0.15 * r; sy *= 1 - 0.15 * r;
+        x += U.clamp((e.kx || 0) / 140, -1, 1) * 1.6 * Math.exp(-hA * 10);
       }
       if (e.type === 'ghost' && a >= 1) {
         const sp = Math.hypot(e.vx, e.vy);
@@ -1936,7 +1966,7 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
           ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
         }
       }
-      drawLit(ctx, s, x, y, a, ha);
+      drawLit(ctx, s, x, y, a, ha, sx, sy);
       if (e.type === 'colossus') {
         // the lure: rod from the forehead, glowing bulb swaying in front of the jaws
         const f = e.facing < 0 ? -1 : 1;
@@ -1956,7 +1986,7 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
       if (e.flash > 0) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = Math.min(0.75, e.flash * 0.9);
-        blit(ctx, s, s.flash, x, y);
+        blit(ctx, s, s.flash, x, y, sx, sy);
         ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
       }
     },
@@ -1968,10 +1998,11 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
       let set;
       if (mode === 'dash') set = DIVER.dash;
       else if (mode === 'walk') set = DIVER.walk[Math.floor(((p.anim / 3) % 1) * 8) & 7];
-      else set = DIVER.idle;
+      else set = DIVER.idle[Math.floor(fract(rt / 3.6) * 8) & 7];
       const f = p.facing < 0 ? -1 : 1, side = f < 0 ? 1 : 0;
       const s = set[side];
-      const bob = mode === 'idle' ? Math.sin(rt * 2.1) * 0.7 - 0.3 : 0;
+      const bq = fract(rt / 3.6 + 0.1), bu = bq < 0.4 ? sstep(0, 0.4, bq) : 1 - sstep(0.4, 1, bq);
+      const bob = mode === 'idle' ? -bu * 1.1 : 0;
       // volumetric lamp beam
       let lx = LAMP.x, ly = LAMP.y + bob, ang = 0.36;
       if (mode === 'dash') { const c = Math.cos(0.62), sn = Math.sin(0.62); lx = c * LAMP.x - sn * LAMP.y; ly = sn * LAMP.x + c * LAMP.y - 3; ang = 0.55; }
@@ -2007,7 +2038,7 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
       }
       let alpha = 1;
       if (p.iframes > 0 && p.hurtT > 0 && (Math.floor(rt * 16) & 1)) alpha = 0.45;
-      drawLit(ctx, s, p.x, p.y + bob, alpha, 1.1);
+      drawLit(ctx, s, p.x, p.y + bob, alpha, 1.3);
       if (p.hurtT > 0.3) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = Math.min(1, (p.hurtT - 0.3) * 1.3);
@@ -2211,7 +2242,7 @@ body.style-deepsea #pausebox{font:800 50px 'Exo 2',sans-serif;letter-spacing:.1e
     onKill(game, e) {
       const T = ETYPE[e.type] || ETYPE.creeper;
       const big = e.type === 'colossus';
-      const n = big ? 38 : 22;
+      const n = big ? 30 : 16;
       for (let i = 0; i < n; i++) {
         const a = Math.random() * TAU, sp = (big ? 40 : 30) + Math.random() * (big ? 110 : 80);
         mote(game, e.x + (Math.random() - 0.5) * e.r, e.y, T.z * (0.5 + Math.random() * 0.8), a, sp, T.cols[i % T.cols.length], 0.8 + Math.random() * 0.8, (big ? 3.0 : 2.5) * (0.7 + Math.random() * 0.6), 4 + Math.random() * 14);

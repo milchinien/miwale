@@ -57,6 +57,30 @@
     ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.scale((flip ? -1 : 1) * sc / K, sc / K);
     ctx.drawImage(s.c, -s.ox, -s.oy); ctx.restore();
   }
+  /** Gold silhouette of a baked sprite (for gilding, rising and vanishing). */
+  function goldSil(s) {
+    const g = canvas(s.c.width, s.c.height), c = g.getContext('2d');
+    c.drawImage(s.c, 0, 0); c.globalCompositeOperation = 'source-atop'; c.fillStyle = gold(c, 0, 0, g.width * 0.4, g.height); c.globalAlpha = 0.92; c.fillRect(0, 0, g.width, g.height);
+    return { c: g, ox: s.ox, oy: s.oy };
+  }
+  /** Draws rows fy0..fy1 (0..1) of sprite s, offset by (dx, dy) world units: the basis of the stepped-band vanish and the rising reveal. */
+  function blitRows(ctx, s, x, y, sc, fy0, fy1, dx, dy) {
+    const H = s.c.height, r0 = Math.max(0, Math.floor(fy0 * H)), r1 = Math.min(H, Math.ceil(fy1 * H));
+    if (r1 - r0 < 1) return;
+    ctx.save(); ctx.translate(x + dx, y + dy); ctx.scale(sc / K, sc / K);
+    ctx.drawImage(s.c, 0, r0, s.c.width, r1 - r0, -s.ox, r0 - s.oy, s.c.width, r1 - r0); ctx.restore();
+  }
+  /** Vanish (u 0..1 after the gilding): the gold figure splits into n stepped bands that slide apart alternately, drop and fade top-down. */
+  function vanishBands(ctx, g, x, y, sc, n, u, spread) {
+    const e = 1 - Math.pow(1 - u, 3);
+    for (let b = 0; b < n; b++) {
+      const t = b / (n - 1), a = 1 - Math.min(1, Math.max(0, (u - 0.3 - t * 0.3) / (0.42 - t * 0.04)));
+      if (a <= 0.01) continue;
+      ctx.globalAlpha = a;
+      blitRows(ctx, g, x, y, sc, b / n, (b + 1) / n + 0.004, (b & 1 ? 1 : -1) * spread * (0.5 + t * 0.7) * e, spread * 0.9 * u * u * (1.2 - t));
+    }
+    ctx.globalAlpha = 1;
+  }
 
   /* ---------------- main character: dapper gentleman (feet at 0,0, ~40 units tall) ---------------- */
   function gentleman(c, ph, moving) {
@@ -183,17 +207,20 @@
     c.beginPath(); stepRect(c, x0 + 7, y0 + 7, x1 - 7, y1 - 7, 5); pin(c, 0.45);
     return [x0 + 9.5, y0 + 9.5, x1 - 9.5, y1 - 9.5];
   }
+  // three designed medallion variants (rays, ray width, star points, turn) so neighbouring bays never read as one stamp
+  const MEDAL = [[16, 0.105, 8, 0], [12, 0.15, 12, PI / 12], [24, 0.07, 6, PI / 24]];
   function medallion(c, bx, by, seed) {
     const f = frame(c, bx + WALK, by + WALK, bx + BAY - WALK, by + BAY - WALK), cx = bx + BAY / 2, cy = by + BAY / 2, R = 58;
+    const [n, w, sp, rt] = MEDAL[((seed % 3) + 3) % 3];
     veins(c, f[0], f[1], f[2], f[3], seed, 'rgba(110,101,83,.5)');
     c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.fillStyle = '#101116'; c.fill();
-    c.beginPath(); for (let k = 0; k < 16; k++) { const a = (k / 16) * TAU - PI / 2; c.moveTo(cx + Math.cos(a) * 15, cy + Math.sin(a) * 15); c.arc(cx, cy, R, a - 0.105, a + 0.105); c.closePath(); }
-    c.fillStyle = P.emerald2; c.fill(); pin(c, 0.45);
-    c.beginPath(); for (let k = 0; k < 16; k++) { const a = ((k + 0.5) / 16) * TAU - PI / 2; c.moveTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24); c.lineTo(cx + Math.cos(a) * (R - 5), cy + Math.sin(a) * (R - 5)); } pin(c, 0.55, P.goldLight);
+    c.beginPath(); for (let k = 0; k < n; k++) { const a = (k / n) * TAU - PI / 2 + rt; c.moveTo(cx + Math.cos(a) * 15, cy + Math.sin(a) * 15); c.arc(cx, cy, R, a - w, a + w); c.closePath(); }
+    c.fillStyle = n === 12 ? '#182a4e' : P.emerald2; c.fill(); pin(c, 0.45);
+    c.beginPath(); for (let k = 0; k < n; k++) { const a = ((k + 0.5) / n) * TAU - PI / 2 + rt; c.moveTo(cx + Math.cos(a) * 24, cy + Math.sin(a) * 24); c.lineTo(cx + Math.cos(a) * (R - 5), cy + Math.sin(a) * (R - 5)); } pin(c, 0.55, P.goldLight);
     ringG(c, cx, cy, R, 3.4);
     c.beginPath(); for (let k = 0; k < 32; k++) { const a = (k / 32) * TAU, x = cx + Math.cos(a) * (R + 5.6), y = cy + Math.sin(a) * (R + 5.6); c.moveTo(x + 1, y); c.arc(x, y, 1, 0, TAU); } c.fillStyle = P.goldLight; c.fill();
     c.beginPath(); c.arc(cx, cy, 14, 0, TAU); c.fillStyle = P.ivory; c.fill(); ringG(c, cx, cy, 14, 2.4);
-    c.beginPath(); star(c, cx, cy, 8, 11.5, 4.4, -PI / 2); c.fillStyle = gold(c, cx - 8, cy - 11, cx + 8, cy + 11); c.fill();
+    c.beginPath(); star(c, cx, cy, sp, 11.5, sp > 8 ? 6 : 4.4, -PI / 2); c.fillStyle = gold(c, cx - 8, cy - 11, cx + 8, cy + 11); c.fill();
   }
   function harlequin(c, bx, by) {
     const f = frame(c, bx + WALK, by + WALK, bx + BAY - WALK, by + BAY - WALK), d = 12;
@@ -219,7 +246,7 @@
     const r = rng(53);
     for (let x = Math.ceil(x0 / BAY) * BAY; x <= x1 + WALK; x += BAY) { c.fillStyle = P.terrazzo; c.fillRect(x - WALK, y0, WALK * 2, y1 - y0); }
     for (let y = Math.ceil(y0 / BAY) * BAY; y <= y1 + WALK; y += BAY) { c.fillStyle = P.terrazzo; c.fillRect(x0, y - WALK, x1 - x0, WALK * 2); }
-    for (let i = 0; i < (x1 - x0) * (y1 - y0) / 90; i++) {
+    for (let i = 0; i < (x1 - x0) * (y1 - y0) / 190; i++) { // sparse chips: a calm walkway
       const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0), lx = ((x % BAY) + BAY) % BAY, ly = ((y % BAY) + BAY) % BAY;
       if ((lx > WALK && lx < BAY - WALK) && (ly > WALK && ly < BAY - WALK)) continue;
       c.fillStyle = ['#d9ccaa', '#c4953e', '#2c7d6a', '#0b1020', '#33467a'][(r() * 5) | 0]; c.fillRect(x, y, 0.6 + r() * 1.4, 0.6 + r() * 1.2);
@@ -247,7 +274,7 @@
       const t = ((i * 7 + j * 3) % 3 + 3) % 3;
       c.save(); c.beginPath(); c.rect(i * BAY, j * BAY, BAY, BAY); c.clip();
       if (t === 0) medallion(c, i * BAY, j * BAY, i * 31 + j); else if (t === 1) harlequin(c, i * BAY, j * BAY); else scallop(c, i * BAY, j * BAY);
-      c.fillStyle = 'rgba(4,5,9,.3)'; c.fillRect(i * BAY, j * BAY, BAY, BAY);
+      c.fillStyle = t === 0 ? 'rgba(4,5,9,.3)' : 'rgba(4,5,9,.44)'; c.fillRect(i * BAY, j * BAY, BAY, BAY); // busy patterns sit back, medallions are focal
       c.restore();
     }
     promenades(c, x0, y0, x1, y1);
@@ -266,11 +293,13 @@
     SP = {
       gent: [0, 1, 2, 3, 4, 5].map((f) => bake([-13, -42, 15, 2.5], (c) => gentleman(c, (f / 6) * TAU, true), 0.6, 0.42)),
       idle: bake([-13, -42, 15, 2.5], (c) => gentleman(c, 0, false), 0.6, 0.42),
+      gold: null,
       scarab: [0, 1, 2].map((v) => [0, 1, 2, 3].map((f) => bake([-14, -16, 16, 2], (c) => { c.scale(1.3, 1.3); scarab(c, f, v); }, 0.5, 0.42))),
       swift: [1, 0.72, 0.38, 0.72].map((sp) => bake([-18, -18, 16, 18], (c) => { c.scale(1.12, 1.12); swift(c, sp); }, 0.5, 0.42)),
       lamp: bake([-8, -66, 8, 2], lamp, 0.6), urn: bake([-17, -32, 17, 2], fanUrn, 0.6),
       sun: bake([-10, -10, 10, 10], sunDisc, 0.5), gem: bake([-5, -6, 5, 6], emerald, 0.5),
     };
+    SP.gold = goldSil(SP.scarab[1][0]);
     return SP;
   }
   function shadow(ctx, x, y, rx, ry) { ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry); const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(0,0,0,.6)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore(); }
@@ -316,6 +345,15 @@
     pin(ctx, 1.2 * (1 - k) + 0.3, '#f5d98a');
     for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + 0.4, d = 4 + k * 22, fl = Math.cos(t * 10 + i * 2.1); ctx.save(); ctx.translate(bx + Math.cos(a) * d, by + Math.sin(a) * d * 0.6 + k * k * 14); ctx.rotate(i + t * 3); ctx.scale(0.15 + 0.85 * Math.abs(fl), 1); ctx.fillStyle = fl > 0 ? gold(ctx, -1.5, -1, 1.5, 1) : '#8a611d'; ctx.fillRect(-1.6, -0.9, 3.2, 1.8); ctx.restore(); }
     ctx.globalAlpha = 1;
+    // appear (rise out of the gold floor sigil, bottom-up reveal) -> hold -> gild -> stepped-band vanish, looping every 2.6 s
+    const lx = hx - 40, ly = 230, lq = (t / 2.6) % 1;
+    if (lq < 0.3) {
+      const q = lq / 0.3, R = 13 * (0.35 + 0.65 * (1 - (1 - q) * (1 - q)));
+      ctx.globalAlpha = Math.sin(q * PI) * 0.95; ctx.beginPath(); ctx.ellipse(lx, ly, R, R * 0.48, 0, 0, TAU); pin(ctx, 0.8, P.goldLight); ctx.globalAlpha = 1;
+      if (q > 0.2) { const ev = 1 - Math.pow(1 - Math.min(1, (q - 0.2) / 0.6), 3); blitRows(ctx, S.gold, lx, ly + (1 - ev) * 5, 1, 1 - ev, 1, 0, 0); }
+    } else if (lq < 0.62) drawEnemy(ctx, lx, ly, t, 1);
+    else if (lq < 0.67) blit(ctx, S.gold, lx, ly, 1.04, false);
+    else vanishBands(ctx, S.gold, lx, ly, 1.06, 6, (lq - 0.67) / 0.33, 8);
     ctx.font = '11px "Limelight", Georgia, serif'; ctx.textAlign = 'center'; ctx.lineJoin = 'miter'; ctx.strokeStyle = P.ink; ctx.lineWidth = 2.6;
     const ny = by - 20 - k * 10; ctx.strokeText('34', bx, ny); ctx.fillStyle = gold(ctx, 0, ny - 8, 0, ny + 2); ctx.fillText('34', bx, ny);
     // the screen frame: gold double pin-line with stepped corners

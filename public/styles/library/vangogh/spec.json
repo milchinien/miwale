@@ -3,145 +3,321 @@
   "name": "Starry Night",
   "originalName": "Sternennacht",
   "family": "Traditional media · Impasto oil painting",
-  "tags": ["oil painting", "impasto", "post-impressionist", "brush strokes", "night", "swirls", "painterly"],
-  "summary": "A living Van Gogh night painting: every surface is thick, swirling impasto brush strokes in ultramarine, viridian and cadmium yellow.",
-  "description": "The whole world looks like a freshly painted post-impressionist canvas at night. Meadows, wheat fields, paths and ponds are made of thousands of short, thick, directional dabs that follow swirling flow fields, characters are painted stroke by stroke with dark prussian-blue contours, and every light source radiates concentric rings of glowing yellow strokes like the stars in The Starry Night. The UI is a museum: gilded frames, brush-stroke bars and little framed paintings as cards.",
-  "mood": ["dreamy", "vibrant", "nocturnal", "restless", "artful"],
-  "bestFor": ["atmospheric night adventure games", "top-down action games with a free camera", "art-themed or museum games", "cozy night exploration", "short arthouse games"],
-  "avoidFor": ["fast competitive shooters that need crisp silhouettes", "scenes with hundreds of tiny on-screen units", "UI-heavy strategy games", "pixel-precise platformers"],
-  "difficulty": { "stars": 8, "why": "Every new asset must be built from hundreds of oriented brush strokes: a polygon, a form-describing angle function, colour ramps with a light term and a dark stroke contour, and every animation frame is a separate painting. New shapes also need tuning so they stay readable against the swirling, equally stroky ground." },
+  "tags": [
+    "oil painting",
+    "impasto",
+    "post-impressionist",
+    "brush strokes",
+    "night",
+    "swirls",
+    "painterly"
+  ],
+  "summary": "A living Van Gogh night painting: thick, directional impasto strokes in ultramarine, viridian and cadmium yellow that follow every form.",
+  "description": "The whole world looks like a freshly painted post-impressionist canvas at night. Meadows, wheat fields, paths, forests and ponds are built from three sizes of thick oil dabs: big calm strokes everywhere, smaller bright ones gathered only along designed edges (dark ink borders, moonlit forest rims, cast shadows, shore ripples), and every stroke follows the form of its region. Characters are painted stroke by stroke with prussian-blue contours and move in 6-8 painted poses; light sources radiate concentric bands of yellow and pale turquoise comma strokes like the stars in The Starry Night. The UI is a museum: gilded frames, brush-stroke bars and little framed paintings as cards.",
+  "mood": [
+    "dreamy",
+    "vibrant",
+    "nocturnal",
+    "restless",
+    "artful"
+  ],
+  "bestFor": [
+    "atmospheric night adventure games",
+    "top-down action games with a free camera",
+    "art-themed or museum games",
+    "cozy night exploration",
+    "short arthouse games"
+  ],
+  "avoidFor": [
+    "fast competitive shooters that need crisp silhouettes",
+    "scenes with hundreds of tiny on-screen units",
+    "UI-heavy strategy games",
+    "pixel-precise platformers"
+  ],
+  "difficulty": {
+    "stars": 8,
+    "why": "Every new asset must be built from hundreds of oriented brush strokes: a polygon, a form-describing angle function, colour ramps with a light term and a dark stroke contour, and every animation frame is a separate painting. New shapes also need tuning so they stay readable against the swirling, equally stroky ground."
+  },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets)",
     "pixelArt": false,
-    "resolution": "Native resolution; character/prop sprites baked at 3 px per world unit, ground chunks at up to 2.5 px per world unit from a stroke atlas baked at 3 px per unit; small collectibles at 6 px per unit.",
-    "summary": "One primitive – an impasto dab with a light ridge, shadowed edge and bristle groove – is stamped thousands of times along noise-derived flow fields (ground) or shape-following angle functions (characters, props), all baked once into offscreen canvases; per frame only sprites and additive, slowly rotating stroke halos are drawn.",
-    "linework": "No vector outlines. Contours are rows of dark strokes laid along the silhouette (prussian blue #111733, 1.0–1.6 world units wide, 2.5–4.5 units long, spaced 0.6 × length), 30–55 % thicker on the shadow side (down-right).",
-    "shading": "Ramp picking: each stroke picks a colour from a 5–6 step ramp by a light term (light from upper left: index ≈ base − dx·1.5 − dy·1.3) plus ±0.6–0.8 random jitter, so values are broken into visible dabs instead of gradients. Each stroke also carries its own highlight ridge (mixed 30 % toward #fff6dc) and shadow edge (×0.58).",
-    "lighting": "Night scene on dark under-painting. Light sources (the main character's carved face, lanterns, windows, lamps, collectibles, fireflies) get additive ('lighter') halos made of concentric rings of tangential yellow strokes that rotate slowly, plus soft warm light pools on the ground. Carved glowing holes use 4 nested fills from #4a1206 to #fff6c8.",
-    "texture": "The strokes are the texture: every stroke has a bristle groove line; under-painting has a 4 px canvas weave (0.87 brightness on alternate cells). Screen edge varnish vignette in #0c0a1e plus loose dark strokes along the border."
+    "resolution": "Native resolution; character and prop sprites baked at 3 px per world unit and trimmed to their painted pixels, ground chunks at up to 2.5 px per world unit splatted from a stroke atlas baked at 3 px per unit; collectibles at 6 px per unit.",
+    "summary": "One primitive – an impasto dab with a light ridge, shadowed edge and bristle groove – is stamped along form-following angle functions (characters, props) or region flow fields (ground), all baked once into offscreen canvases. Every animation pose is its own small painting; per frame only sprite blits, a few additive stroke halos and short-lived paint effects are drawn.",
+    "linework": "No vector outlines. Contours are rows of dark strokes laid along the silhouette (prussian blue #111733 on the main character and houses, #1d1036 on root creatures, #0c0812 on the large creature, #04080a on cypresses; 0.85-1.7 world units wide, 2.4-4.5 long, spaced 0.6 x length), up to 55 % thicker on the shadow side (down-right). Ground regions get the same treatment: broken ink strokes #0c1228 / #111733 / #18202e along forest, wheat, pond and path borders.",
+    "shading": "Ramp picking: each stroke picks a colour from a 5-6 step ramp by a light term (light from the upper left: index = base - dx*1.5 - dy*1.3) plus random jitter, so values break into visible dabs instead of gradients. Core shadows shift hue rather than just darken (a cool #7a3a4a in the gourd, cobalt #4a5ab0 in the wisp, #22355f on cypresses, #3a4a7a on haystacks); every stroke carries its own highlight ridge (30 % toward #fff6dc) and shadow edge (x0.58).",
+    "lighting": "Night scene on a dark under-painting with one moonlight direction (upper left): moonlit rims of olive strokes on the lit side of forests, ultramarine cast-shadow strokes on the far side, lit tops on stones and haystacks. Warm light exists only at real sources (the carved face, lanterns, windows, lamps, collectibles, fireflies): additive halos of concentric comma-stroke bands, chrome yellow inside and pale turquoise #9fd4dc outside, rotating slowly, plus soft warm light pools on the ground.",
+    "texture": "The strokes are the texture: every stroke has a bristle groove; the under-painting shows through gaps between strokes and carries a 4 px canvas weave (0.87 brightness on alternate cells). Screen edge varnish vignette in rgb(12,10,30) plus loose dark strokes along the border."
   },
   "palette": [
-    { "name": "Night under-painting", "hex": "#141c30", "role": "Clear colour / ground base behind strokes" },
-    { "name": "Prussian contour", "hex": "#111733", "role": "Outline strokes on the main character and props" },
-    { "name": "Meadow viridian", "hex": "#2e5944", "role": "Meadow mid tone (most of the ground)" },
-    { "name": "Meadow light", "hex": "#70944e", "role": "Brightest meadow strokes" },
-    { "name": "Forest black-green", "hex": "#142a20", "role": "Forest / dark grass field" },
-    { "name": "Wheat ochre", "hex": "#866c2a", "role": "Wheat field mid tone" },
-    { "name": "Wheat light", "hex": "#bc9a3e", "role": "Brightest wheat strokes" },
-    { "name": "Path violet", "hex": "#3d4180", "role": "Paths / roads (indigo-violet strokes)" },
-    { "name": "Pond blue", "hex": "#26579c", "role": "Water, with whorl reflections" },
-    { "name": "Ultramarine coat", "hex": "#26409a", "role": "Main character's clothing" },
-    { "name": "Cobalt light", "hex": "#4a76cc", "role": "Highlights on blue cloth, speed smear" },
-    { "name": "Gourd orange", "hex": "#d86c1e", "role": "Main character's head mid tone" },
-    { "name": "Scarlet", "hex": "#c8341e", "role": "Scarf, red bar, alert vignette" },
-    { "name": "Cadmium yellow", "hex": "#ffd040", "role": "Creature eyes, impact dabs, light" },
-    { "name": "Chrome yellow", "hex": "#ffe070", "role": "Halo rings, stars, clock digits (#ffe27a)" },
-    { "name": "Star white", "hex": "#fff6c8", "role": "Hottest light centres" },
-    { "name": "Root violet", "hex": "#763896", "role": "Small root creature, top half" },
-    { "name": "Root cream", "hex": "#e2d09a", "role": "Small root creature, bottom half" },
-    { "name": "Ghost turquoise", "hex": "#a2d0d2", "role": "Fast floating creature body" },
-    { "name": "Frame gold", "hex": "#d8aa48", "role": "Gilded UI frames" }
+    {
+      "name": "Night under-painting",
+      "hex": "#141c30",
+      "role": "Clear colour / ground base behind strokes"
+    },
+    {
+      "name": "Prussian contour",
+      "hex": "#111733",
+      "role": "Outline strokes on the main character and props"
+    },
+    {
+      "name": "Meadow viridian",
+      "hex": "#2e5944",
+      "role": "Meadow mid tone (most of the ground)"
+    },
+    {
+      "name": "Meadow light",
+      "hex": "#70944e",
+      "role": "Brightest meadow strokes"
+    },
+    {
+      "name": "Moonlit rim",
+      "hex": "#9aae4c",
+      "role": "Rim strokes on the lit side of forests, moonlit cypress tongues"
+    },
+    {
+      "name": "Forest black-green",
+      "hex": "#173024",
+      "role": "Forest floor mid tone (dark curly strokes under the cypresses)"
+    },
+    {
+      "name": "Wheat ochre",
+      "hex": "#866c2a",
+      "role": "Wheat field mid tone"
+    },
+    {
+      "name": "Wheat light",
+      "hex": "#bc9a3e",
+      "role": "Brightest wheat strokes"
+    },
+    {
+      "name": "Path violet",
+      "hex": "#3d4180",
+      "role": "Paths / roads (indigo-violet strokes)"
+    },
+    {
+      "name": "Pond blue",
+      "hex": "#26579c",
+      "role": "Water, with whorl reflections"
+    },
+    {
+      "name": "Ultramarine coat",
+      "hex": "#26409a",
+      "role": "Main character's clothing"
+    },
+    {
+      "name": "Cobalt light",
+      "hex": "#4a76cc",
+      "role": "Highlights on blue cloth, speed smear"
+    },
+    {
+      "name": "Gourd orange",
+      "hex": "#d86c1e",
+      "role": "Main character's head mid tone"
+    },
+    {
+      "name": "Scarlet",
+      "hex": "#c8341e",
+      "role": "Scarf, red bar, alert vignette"
+    },
+    {
+      "name": "Cadmium yellow",
+      "hex": "#ffd040",
+      "role": "Creature eyes, impact dabs, light"
+    },
+    {
+      "name": "Chrome yellow",
+      "hex": "#ffe070",
+      "role": "Halo rings, stars, clock digits (#ffe27a)"
+    },
+    {
+      "name": "Star white",
+      "hex": "#fff6c8",
+      "role": "Hottest light centres"
+    },
+    {
+      "name": "Halo turquoise",
+      "hex": "#9fd4dc",
+      "role": "Outer bands of every light halo (the Starry Night yellow/turquoise rhythm)"
+    },
+    {
+      "name": "Root violet",
+      "hex": "#763896",
+      "role": "Small root creature, top half"
+    },
+    {
+      "name": "Root cream",
+      "hex": "#e2d09a",
+      "role": "Small root creature, bottom half"
+    },
+    {
+      "name": "Ghost turquoise",
+      "hex": "#a2d0d2",
+      "role": "Fast floating creature body"
+    },
+    {
+      "name": "Frame gold",
+      "hex": "#d8aa48",
+      "role": "Gilded UI frames"
+    }
   ],
   "paletteRules": [
-    "Blues, violets and greens own ~85 % of the screen; warm yellows/oranges are reserved for light, the main character and collectibles so they pop.",
-    "Every material is a 6-step ramp from almost-black to its light tone; strokes mix 2–4 neighbouring steps in the same area – never one flat colour.",
-    "About 12–14 % of the ground strokes are 'accent' complementary dabs (blue in wheat, olive in meadow, turquoise and yellow in ponds).",
-    "Outlines are never pure black: use prussian #111733, deep violet #1d1036 or #0c0812.",
-    "Impact flash tint is warm #ffc84a, never white; floating numbers are #f6c43a (emphasised #f6602a) with a #121838 outline.",
+    "Blues, violets and greens own ~85 % of the screen; warm yellows and oranges are reserved for light, the main character and collectibles so they pop.",
+    "Every material is a 6-step ramp from almost-black to its light tone; strokes mix 2-4 neighbouring steps in the same area – never one flat colour.",
+    "Value structure first: big calm areas use low-contrast strokes (ridge 12 %, shadow edge x0.82); full-contrast and bright accent strokes are spent on edges and focal points only.",
+    "Complementary accent dabs (blue in wheat, ochre in meadow, gold in ponds) appear in 3 % of the medium and small strokes, rising to 25 % where a cluster noise is high – drifts, not an even sprinkle.",
+    "Outlines are never pure black: #111733, #1d1036, #0c0812, #1f3a78 (wisp), #04080a (cypress).",
+    "Hit flash tint is a warm cream #fff0c8 over the sprite, never white; floating numbers are #f6c43a (emphasised #f6602a) with a #121838 outline.",
     "No neon, no pastel UI greys; UI uses golds (#d8aa48, #fbe7a0) and night blue (#121a44)."
   ],
   "typography": [
-    { "family": "Cinzel", "weights": [600, 800], "role": "Titles, clock digits, card names, style name", "source": "Google Fonts", "sample": "22:09", "css": "font: 800 36px/1 'Cinzel', 'Trajan Pro', Georgia, serif; letter-spacing: 2px; color: #ffe27a; text-shadow: 0 2px 0 #3a2408, 0 0 14px rgba(255,200,80,.45);" },
-    { "family": "Caveat Brush", "weights": [400], "role": "Labels, bar text, counters, floating numbers (handwritten brush)", "source": "Google Fonts", "sample": "Night 4  ·  100/100", "css": "font: 400 23px 'Caveat Brush', 'Segoe Print', cursive; color: #fff0c8; text-shadow: 0 2px 0 #0a0e24, 0 0 6px rgba(6,8,26,.9);" },
-    { "family": "Alegreya", "weights": [500], "role": "Italic descriptions on cards and panels", "source": "Google Fonts", "sample": "A swirl of golden light", "css": "font: italic 500 18px 'Alegreya', Georgia, serif; color: #e6eefa; line-height: 1.25; text-shadow: 0 1px 3px #000;" }
+    {
+      "family": "Cinzel",
+      "weights": [
+        600,
+        800
+      ],
+      "role": "Titles, clock digits, card names, style name",
+      "source": "Google Fonts",
+      "sample": "22:09",
+      "css": "font: 800 36px/1 'Cinzel', 'Trajan Pro', Georgia, serif; letter-spacing: 2px; color: #ffe27a; text-shadow: 0 2px 0 #3a2408, 0 0 14px rgba(255,200,80,.45);"
+    },
+    {
+      "family": "Caveat Brush",
+      "weights": [
+        400
+      ],
+      "role": "Labels, bar text, counters, floating numbers (handwritten brush)",
+      "source": "Google Fonts",
+      "sample": "Night 4  ·  100/100",
+      "css": "font: 400 23px 'Caveat Brush', 'Segoe Print', cursive; color: #fff0c8; text-shadow: 0 2px 0 #0a0e24, 0 0 6px rgba(6,8,26,.9);"
+    },
+    {
+      "family": "Alegreya",
+      "weights": [
+        500
+      ],
+      "role": "Italic descriptions on cards and panels",
+      "source": "Google Fonts",
+      "sample": "A swirl of golden light",
+      "css": "font: italic 500 18px 'Alegreya', Georgia, serif; color: #e6eefa; line-height: 1.25; text-shadow: 0 1px 3px #000;"
+    }
   ],
   "world": {
-    "summary": "An endless painted night landscape: five materials (wheat, meadow, path, forest, pond) chosen from warped fbm noise, each filled with two passes of atlas strokes oriented along its own flow field (curl of fbm at 120 and 52 world units, path tangent, mostly vertical for wheat), over a dark under-painting with canvas weave. Material borders dissolve into interleaved strokes. Decals: gold lamp reflections on paths, wildflower dabs, wheat ears, poppies, Starry-Night whorls and star reflections in ponds. The ground is never animated.",
+    "summary": "An endless painted night landscape of five regions – wheat, meadow, path, forest, pond – chosen from noise fields with designed edges. Each region has its own stroke flow (furrows parallel to the field edge, grass bending in the wind around forests and ponds, strokes along the path, curly foliage, ripples parallel to the shore) and is painted in three stroke scales: big calm coat strokes everywhere, medium body strokes that gather towards edges, and small bright focal strokes only on edges. Edges are designed bands: broken dark ink borders, a moonlit rim on the lit side of forests, ultramarine cast-shadow strokes on the far side, light shore ripples, worn ruts and poppy drifts. Decals with intent: wind eddies in open meadows, star whorls mirrored in deep water, flower drifts near edges. The ground is static; ambient motion comes from wind strokes, fireflies and swaying plants.",
     "layers": [
-      "Under-painting: per-material dark colour (wheat rgb(46,34,20), meadow rgb(17,32,28), path rgb(17,17,40), forest rgb(6,11,10), pond rgb(10,21,50)) × macro fbm brightness 0.8–1.25, bilinear on a 5-unit grid, with 4 px canvas weave",
-      "Pass 1 strokes: jittered grid cell 4.3 units, every cell one stroke, colour index 0–3 of the ramp (+macro bias), scale 1.12 × (0.8–1.2); stroke size per material from 6.5 × 2.6 (forest) to 11 × 2.5 (path)",
-      "Pass 2 strokes: cell 6.2 units, kept with probability pB (0.4–0.75), brighter ramp index 2–5, 12–14 % accent colours",
-      "Paths: 0.5 iso-line of a large fbm (scale 980), ≈24 units wide, strokes flowing along the tangent",
-      "Decals: path lamp reflections (cell 26), meadow wildflowers (cell 12), wheat ears (cell 9), poppies (cell 34, #e0582a), pond whorls (cell 70) and star reflections (cell 40)",
-      "Runtime overlay: warm additive light pools under lamps, windows, the main character and lanterns; paint swirls where creatures appear"
+      "Regions from noise (world units): forest where warped fbm(x/760) > 0.6, pond where warped fbm(x/640) < 0.314 (faded out near the start point), wheat where fbm(x/470) crosses 0.5, meadow elsewhere; paths are the 0.5 iso-line of fbm(x/980), 9-15 units half width. Signed edge distances = (field - threshold) / |gradient|.",
+      "Under-painting: per-region dark colours (wheat rgb(46,34,20), meadow rgb(17,32,28), path rgb(17,17,40), forest rgb(7,13,12), pond rgb(10,21,50)) x (0.8 + 0.45 macro fbm(x/250)), bilinear on a 5-unit grid, with a 4 px canvas weave",
+      "Coat pass: a stroke on every cell of a 6.6-unit jittered grid, 1.55x longer and 1.45x wider than the region stroke, low contrast (ridge 0.12, edge x0.82), ramp index 1.5 + light term",
+      "Body pass: 4.5-unit grid, kept with probability 0.3 + 0.62 x detail (detail = closeness to a designed edge or a cluster), ramp index 2.4 + light term, 3-25 % accent colours",
+      "Focal pass: 2.9-unit grid, only where detail > 0.12 (probability detail^2 x 1.15), small strokes (0.55-0.8 scale), ramp index 3.1 + light term",
+      "Edge bands (replace a stroke in the body/focal passes): ink borders (forest, wheat, pond, path), moonlit rim #6f8e3c / #9aae4c / #c4c062 on lit forest edges, cast shadow #0b1330 / #111b3e on the far side, shore ripples #4f94aa / #86c8c8 / #bfe4d4, path ruts #5e5a86 / #7a6e8e, poppies #b02a1a / #d8452a / #ec6a32 inside wheat edges",
+      "Light term per region: macro brightness, furrow bands in wheat (0.75 sin(edge distance x 0.95)), wind waves in meadows, lighter pond shallows, -1.3 in a forest cast shadow, +1.1 on the moonlit forest edge",
+      "Decals: meadow wind eddies (cell 330, 22-30 strokes on a 1.4-1.9 turn spiral, radius 18-30), pond star whorls (cell 80, gold centre), star reflections (cell 46, 5 gold dabs in a ring), flower drifts (cell 8, only near edges inside clusters)",
+      "Runtime overlay: warm additive light pools under lamps, windows, the main character and lanterns"
     ]
   },
   "characters": {
-    "summary": "Characters are painted offscreen at 3 px/unit with paint(): a polygon is filled with a flat base colour, then a jittered grid of strokes (spacing 1.25–2.0 units, length 3.4–5.4, width 1.35–2.05) clipped to the shape, each stroke oriented by a shape-specific angle function (meridians on round heads, vertical on coats, tangential on blobs) and coloured by ramp picking. A row of dark strokes forms the contour. Limbs are single seg() strokes. Faces are carved glowing holes or bold yellow eye strokes. 3–4 baked frames each. The main character has a round orange gourd head with a carved glowing face, an ultramarine coat and a red scarf; creatures are violet-and-cream root bulbs with leafy tops, pale turquoise floating ghosts and a large plum-and-umber root colossus with glowing orange cracks.",
+    "summary": "Characters are painted offscreen at 3 px/unit with paint(): a polygon gets a flat base fill, then a jittered grid of strokes clipped to the shape, each stroke oriented by a form function (meridians on the round head, vertical folds on the coat, around the bulb, tangential swirls on the wisp, around the hunched body of the large creature) and coloured by ramp picking with light from the upper left. A row of dark strokes forms the contour. Every body part has its own seeded random generator, so the strokes stay in place from pose to pose and the motion reads as one painted figure moving. The main character has a round orange gourd head with a carved glowing face and a curling vine tendril, an ultramarine coat with a rope belt and a red scarf; the small creatures are three root-bulb designs (a round violet bulb, a tall magenta radish, a wide dark beet) with leafy tops and cadmium eyes; the fast creature is a hooded pale-turquoise wisp with a Starry-Night swirl for a tail; the large creature is a hunched plum-and-umber root colossus with glowing orange cracks, a leaf crown and moss on its lit back.",
     "rules": [
-      "Main character ≈ 18 units wide, 30 tall, with a big warm head (rx 8.8, ry 7.4) and its own halo – the warmest, brightest object on screen.",
-      "Contours are mandatory: 0.8–1.6 unit dark strokes around every body so it separates from the equally stroky ground.",
-      "Creatures use colour families absent from the ground underneath: violet/cream (small root creature, 30 × 34), pale turquoise (fast floating ghost, 30 × 32, alpha 0.9), plum/umber with glowing orange cracks (large colossus, 66 × 64, bigger strokes 5.4 × 2.05).",
-      "Stroke direction must describe form (around a sphere, down a coat), never follow the ground flow.",
-      "Every character stands on a painted shadow of 16 dark ultramarine strokes (#0c1030 / #141a44, alpha 0.62).",
-      "Eyes and light are cadmium yellow (#ffcf40, #ffd040) so faces read at a glance even in dense crowds; the ghost uses flat dark ellipse eyes and an 'O' mouth for instant readability.",
-      "Animation frames are separate paintings with new random seeds – the 'boiling' stroke shimmer is part of the look."
+      "Main character: 18 units wide, 30 tall, head rx 8.8 / ry 7.4 at 22.6 units above the feet; it carries its own halo and is the warmest, brightest object on screen.",
+      "Contours are mandatory: 0.85-1.7 unit dark strokes around every body so it separates from the equally stroky ground.",
+      "Creatures use colour families absent from the ground underneath: violet/cream, magenta/cream, plum/gold root bulbs (about 18 x 26), pale turquoise wisp (about 20 x 26, alpha 0.92), plum/umber colossus with orange cracks (about 44 x 46, strokes 5.4 x 2.05).",
+      "Stroke direction must describe form, never follow the ground flow.",
+      "Faces: carved glowing holes (4 nested fills #4a1206 -> #fff6c8) on the main character and lanterns, bold cadmium eye strokes with heavy brows on the creatures, deep painted eye hollows with a tiny cadmium glint on the wisp.",
+      "Poses: main character 4 idle (breathing), 8 walk, 2 dash, 1 recoil; root bulbs 6 waddle poses per design; wisp 6 flight poses with the forward lean baked in; colossus 6 stomp poses.",
+      "Every creature gets a per-actor scale 0.92-1.08 and its own animation phase, so crowds never move in lock-step."
     ]
   },
   "props": {
-    "summary": "Y-sorted scenery sprites painted once with the same stroke tools as the characters, each with a painted shadow: flame-shaped cypresses (60–82 units tall), olive trees, haystacks, sunflower clumps, cream houses with blue side walls, red tiled roofs and lit windows, and street lamps. They follow the ground materials: cypresses in forests, olives in meadows, hay and sunflowers in wheat, houses and lamps near paths.",
+    "summary": "Y-sorted scenery sprites painted once with the same stroke tools, each grounded by a painted stroke shadow: twisting flame-shaped cypresses (3 heights), olive trees, haystacks, sunflower clumps, irises, path stones, cream cottages and a village church with lit windows, and street lamps. They are placed where the ground composition asks for them: a wall of cypresses along forest edges thinning towards the inside plus groups of 2-3 in open meadows, olive groves in clusters, haystacks in pairs in the wheat, sunflowers along the inner wheat edge, houses near paths with a sunflower garden, lamps and stones along paths, iris clumps on pond shores.",
     "rules": [
-      "Cypress: width 7.6·sin(π·(0.16+0.86t))^0.75 tapering upward, nearly vertical swaying strokes 7.5 × 2.0, ramp #081210 … #3f6e40 with 8 % #22355f blue dabs, contour #04080a 1.3; turns 45 % transparent when the main character walks behind it.",
-      "Olive tree: twisted trunk segs (#3a2c2a … #7a5e44) and 3 foliage blobs of radial strokes in sage greens #1e2e2c … #94a482 with 10 % #4a6a8c dabs; contour skipped on the lit side.",
-      "Haystack: a dome 28 × 22 units of radiating strokes #5a3e16 … #f0d062, blue #3a4a7a strokes on the shadow side, contour #2a1a0a, loose straw strokes at the foot.",
-      "Sunflowers: 2–3 stems 20–30 units tall, 13 petal strokes in #e8a020 / #f6c030 / #ffd84a around a dark seed head #4a2e14.",
-      "House: cream front #a88a5a … #f6ecc8, blue side #2e3c6a … #5e6c9a, red roof #7a2e1e … #f09a58, chimney, flat #ffc93a windows with #fff0a0 highlight and dark cross bars, prussian contours.",
-      "Street lamp: dark pole 27 units tall (#141a2a), lantern head filled #ffd24a with a #fff4c0 hot stroke; houses and lamps emit additive halos and ground light pools.",
-      "Props stay off paths and ponds; every prop gets a painted stroke shadow sized to its footprint (cypress 8 × 2.6, olive 16 × 4.5, house 17 × 4, lamp 4 × 1.5)."
+      "Cypress (70 / 84 / 58 units tall): lobed flame tongues, nearly vertical swaying strokes 7.5 x 2.0, ramp #081210 ... #3f6e40, moonlit tongues #6f7c34 / #9aa850 on the left, cool #22355f on the right, dark grooves between tongues, contour #04080a 1.3; 45 % transparent when the main character walks behind it.",
+      "Olive tree: twisted trunk strokes #3a2c2a ... #7a5e44 and 3 foliage masses of radial strokes in sage greens #1e2e2c ... #94a482 with 10 % #4a6a8c dabs; contour skipped on the lit side.",
+      "Haystack (2 sizes): a dome of radiating strokes #5a3e16 ... #f0d062, blue #3a4a7a strokes on the shadow side, loose straw at the foot.",
+      "Sunflowers (3 or 2 heads) and irises (3 or 5 blooms, ultramarine petals #2f3a9a / #4a56c0 with a cadmium beard on blue-green sword leaves).",
+      "Houses: cream walls #a88a5a ... #f6ecc8 with strokes in two directions, blue side walls, red roofs #7a2e1e ... #f09a58, chimney; the church has a blue roof, a tower and a pointed steeple; windows are flat #ffc93a with a #fff0a0 stroke and dark cross bars, each one a light source.",
+      "Wind: cypresses, olives, sunflowers and irises have 5 baked lean poses (skew -1 ... +1 x 0.025-0.06); a gust wave travels across the world and picks a pose per frame, so plants move in held poses, slower than the actors.",
+      "Props stay off paths and ponds; each gets a painted stroke shadow sized to its footprint (cypress 8 x 2.6, olive 16 x 4.5, house 17 x 4, lamp 4 x 1.5)."
     ]
   },
   "effects": [
-    { "name": "Light halo", "how": "Baked 160 px sprite: soft radial core plus 4–5 rings of tangential strokes from #fff6c8 to #d08a26, alpha falling outward. Drawn with globalCompositeOperation 'lighter', 44 and 72 units wide around the main character, rotating at +0.6 and −0.4 rad/s, pulsing 0.85–1.0." },
-    { "name": "Paint dab burst", "how": "On impact: 3 single stroke sprites (4.6 × 1.9 units) in the struck creature's colours fly out with gravity 240 and land squashed (y × 0.6) on the ground; when a creature vanishes 9 (22 for large creatures) plus a 3-arm paint swirl." },
-    { "name": "Impact star", "how": "4 crossed strokes (#fff6c8 / #ffe070) 8–12 units across, additive, 0.18 s." },
-    { "name": "Seed-shaped projectile", "how": "Cream seed sprite (7 × 5 units, contour #3a2410) with a 16 × 4 unit orange/yellow tapered stroke trail faded by a linear gradient." },
-    { "name": "Orbiting lanterns", "how": "Small violet-and-cream root-bulb lanterns (12 × 16 units) with carved glowing faces circling the main character, each inside its own rotating 28-unit halo at alpha 0.5." },
-    { "name": "Speed smear", "how": "6 parallel long strokes in #4a76cc, #a2d0d2, #f6aa3c, #26409a (30 × 12 units) fading over 0.35 s plus 4 blue/turquoise dabs and 2 fading copies of the main character." },
-    { "name": "Appear swirl", "how": "3-arm spiral of 16 strokes per arm in the creature's colours, squashed to 0.55 height, spinning −5 rad/s while the creature grows out of the ground." },
-    { "name": "Gold celebration burst", "how": "Large gold swirl (44 units) plus 14 star sprites bursting radially." }
+    {
+      "name": "Light halo",
+      "how": "Baked 160 px sprite: a soft radial core plus 4 bands of overlapping comma strokes whose radius wobbles ±5 %, chrome yellow #fff6c8 / #ffe070 / #ffd040 inside, pale turquoise #9fd4dc / #d6e6b0 outside. Drawn additively, rotating 0.35-0.9 rad/s: 40 units around the main character's head, 26 around each lantern, scaled to each window and lamp."
+    },
+    {
+      "name": "Impact",
+      "how": "Layered and short: an 8-ray star stroke flash (0.12 s, additive), two comma flicks thrown along the blow (0.22 s, one yellow, one in the creature colour), three paint dabs that fall with gravity and lie squashed on the ground for up to a second; the creature itself squashes, leans back and takes a warm cream tint for 150 ms."
+    },
+    {
+      "name": "Unpainting",
+      "how": "When a creature vanishes (0.35 s): squash plus warm flash for the first 15 %, then the body slumps into a paint puddle (the wisp stretches upward into its swirl) while 8-14 of its own strokes peel off with a staggered release, ride a spiral up and away, stretch as they are pulled and thin out. A star flash, a ring of tangential strokes and a painted-on swirl in the creature colours mark the spot; the puddle stain lingers 1.3-1.8 s."
+    },
+    {
+      "name": "Painted-on swirl",
+      "how": "2-3 arms of 7-10 loaded strokes appear one after another from the centre outwards (opaque paint, no alpha ghosting), the whorl turns slowly and the outer strokes thin out and dry first. Used for vanishing creatures and, in gold (32 units, 1 s), around the main character; strokes in the figure's column above its feet are skipped so the swirl passes behind it."
+    },
+    {
+      "name": "Spiral stars",
+      "how": "With the gold swirl: 9 star sprites flung out along the swirl arms on spiral paths, released one after another over the first 36 % of their life, twinkling out."
+    },
+    {
+      "name": "Seed-shaped projectile",
+      "how": "Cream seed sprite (7 x 5 units, contour #3a2410) with a growing 8-18 unit orange/yellow comet stroke trail and a faint additive glow; half of the throws leave an orange comma flick."
+    },
+    {
+      "name": "Orbiting lanterns",
+      "how": "Small violet-and-cream root-bulb lanterns (12 x 16 units) with flickering carved faces (3 poses at 5 fps), hanging from their handles and swinging behind the orbit like a pendulum, each inside its own rotating halo."
+    },
+    {
+      "name": "Speed smear",
+      "how": "A push-off puff of 4 dabs at the feet, 6 parallel long strokes in #4a76cc, #a2d0d2, #f6aa3c, #26409a (30 x 12 units, 0.35 s), 3 trailing blue/turquoise dabs and 2 fading copies of the main character."
+    }
   ],
   "atmosphere": {
-    "summary": "A night painting graded entirely by the palette: dark ultramarine under-painting, cool colours on ~85 % of the screen, and warm light that exists only as additive, slowly rotating rings of yellow strokes with warm pools on the ground. Stroke shadows ground every object, drifting firefly halos fill the dark, and a dark varnish vignette frames the canvas.",
+    "summary": "A night painting graded entirely by the palette: dark ultramarine under-painting, cool colours on ~85 % of the screen, one moonlight direction from the upper left, and warm light that exists only as additive, slowly rotating bands of yellow and turquoise comma strokes with warm pools on the ground. Painted stroke shadows ground every object, long translucent wind strokes and fireflies drift slowly across the scene, and a dark varnish vignette frames the canvas.",
     "rules": [
-      "Halos: radial core + concentric rings of tangential strokes, drawn with 'lighter', rotating 0.35–1.2 rad/s; gold 160 px for the main character, lamps and lanterns, cool 128 px for large collectibles, small 64 px for collectibles and fireflies.",
-      "Main character light: gold halos 44 and 72 units at alpha 0.6 / 0.34 × pulse, a flickering 16 × 14 face glow (0.32 + 0.08 sin 11t + 0.05 sin 23t) and a 36 × 14 warm ground pool.",
-      "Windows and lamps: halos of radius 13 × size flickering 0.85 + 0.1 sin 7t + 0.05 sin 17t, plus 60 × 30 unit additive light pools (rgba(255,200,90,0.5) → 0) at alpha 0.45.",
-      "Shadows are baked ellipses of 16 dark ultramarine strokes (#0c1030, #141a44) at alpha 0.62 (ghost 0.35), sized per object.",
-      "Varnish vignette: rounded-rect band 13 % of screen height in rgb(12,10,30), alpha t² · 0.62, plus loose dark edge strokes (22 × 6 units, alpha ≤ 0.5); a scarlet rgb(200,52,24) version flashes as an alert. Baked once per screen size.",
-      "Fireflies: on a 130-unit world grid, 3 of 4 cells hold a drifting small halo (7–10 units) twinkling between alpha 0.25 and 0.7.",
-      "No post-process filter; impact tints are warm #ffc84a, never white."
+      "Halos: radial core + concentric comma-stroke bands, yellow inside and pale turquoise outside, drawn with lighter, rotating 0.35-1.1 rad/s; gold 160 px for the main character, lamps, windows and lanterns, cool 128 px for large collectibles, small 64 px for small collectibles and fireflies.",
+      "Main character light: a 40-unit head halo at alpha 0.42 x (0.85 + 0.15 sin 2.2t), a flickering face glow (0.3 + 0.08 sin 11t + 0.05 sin 23t, with a short dip every ~3 s) and a 40 x 16 warm ground pool.",
+      "Windows and lamps: halos of radius 13 x size flickering 0.85 + 0.1 sin 7t + 0.05 sin 17t, plus 60 x 30 x size additive light pools (rgba(255,200,90,0.5) -> 0) at alpha 0.45.",
+      "Shadows are baked ellipses of 16 dark ultramarine strokes (#0c1030, #141a44) at alpha 0.62 (wisp 0.35), offset to the lower right, away from the moonlight.",
+      "Wind: on a 300-unit world grid one cell in four holds a long translucent 64 x 10 unit stroke that drifts along the wind (-0.45 rad) on its own 7-12 s clock, alpha at most 0.2.",
+      "Fireflies: on a 170-unit grid half the cells hold a drifting small halo (6-9 units) twinkling between alpha 0.15 and 0.65 on varied timings.",
+      "Varnish vignette: rounded band 13 % of the screen height in rgb(12,10,30), alpha t^2 x 0.62, plus loose dark edge strokes; a scarlet rgb(200,52,24) version with red strokes flashes as an alert. Baked once per screen size."
     ]
   },
   "ui": {
-    "summary": "Museum look: every panel and bar sits in a gilded 9-band gold frame with beads and corner rosettes; bar fills are textures of horizontal brush strokes with a ragged painted right edge; the clock panel and cards are small framed night paintings with swirling blue strokes and stars. Text is Cinzel (gold, embossed shadow) and Caveat Brush (cream).",
+    "summary": "Museum look: every panel and bar sits in a gilded 9-band gold frame with beads and corner rosettes; bar fills are textures of horizontal brush strokes with a ragged painted right edge; the clock panel, title banner and cards are small framed night paintings with swirling blue strokes and painted stars. Text is Cinzel (gold, embossed shadow), Caveat Brush (cream, handwritten) and Alegreya italic for descriptions; icons are little paintings in halos.",
     "css": ".panel { background: #121a44; border: 9px solid #d8aa48; border-image: linear-gradient(#fbe7a0, #b8862c 40%, #6a4610 60%, #e6c068) 9; box-shadow: 0 6px 16px rgba(0,0,0,.5); color: #f6e6b0; font-family: 'Cinzel', Georgia, serif; }\n.bar { position: relative; height: 20px; background: repeating-linear-gradient(90deg, #16224e 0 18px, #1d2c6a 18px 30px, #0e1638 30px 44px); outline: 4px solid #d8aa48; box-shadow: 0 3px 10px rgba(0,0,0,.55); }\n.bar > .fill { height: 100%; background: repeating-linear-gradient(90deg, #d0401e 0 16px, #ea6028 16px 28px, #f6883a 28px 38px, #a8281a 38px 50px); clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 30%, 100% 55%, calc(100% - 5px) 100%, 0 100%); transition: width .15s; }\n.label { font: 400 23px 'Caveat Brush', cursive; color: #fff0c8; text-shadow: 0 2px 0 #0a0e24, 0 0 6px rgba(6,8,26,.9); }\n.timer { font: 800 36px 'Cinzel', serif; color: #ffe27a; letter-spacing: 2px; text-shadow: 0 2px 0 #3a2408, 0 0 14px rgba(255,200,80,.45); }"
   },
   "motion": [
-    "Main character walk: 4 baked frames (legs ±1.9 units, bob −0.7), idle: 3 frames cycled at 3.5 fps with sine bob 0.4 units.",
-    "Small creature: 4 walk frames; fast floating creature: 3 frames at 5 fps plus vertical hover ±1.2 units; large creature: 4 frames at a slower rate.",
-    "Halos rotate slowly (0.35–1.2 rad/s) and pulse; the face glow flickers with two sines (11 and 23 rad/s).",
-    "Appear: a creature stretches from 0.35 to 1 height (outQuad) while a paint swirl spins beneath it.",
-    "Vanish: sprite rises 3 units, scales to 1.2 and fades with (1−d)²; first 40 % adds a warm #ffc84a flash.",
-    "Floating numbers pop from 0.55 to 1.2 scale in 12 % of their life, drift up 6 units, tilted ±0.15 rad.",
-    "The ground painting is static; motion comes only from characters, halos and fireflies."
+    "Hand-painted timing: poses are held, never tweened – main character walk 8 poses (contact, down, passing, up per foot) at ~12 fps, idle 4 breathing poses at 2.5 fps, root creatures 6 poses at ~12 fps, colossus 6 heavy stomp poses at ~8 fps, wisp 6 poses at 9 fps.",
+    "Walk: legs swing ±4 units with 2.1-unit foot lift, arms counter-swing ±3.2, body bob 1.7 with the head lagging ~1 rad behind the step, a 0.075 rad lean into the walk and a coat hem that swings against the step.",
+    "Follow-through: the scarf tail is a damped spring (stiffness 70, damping 8) chained in 3 strokes that curl with its angular velocity; leaves on creatures and the colossus crown lag the body; lanterns swing behind the orbit.",
+    "Anticipation: the dash starts with a crouch pose (first 35 ms) before the stretched lunge; creatures appear crouched, stretch past their size and settle.",
+    "Appear (0.45 s): a paint vortex spins up on the ground and the creature is painted in from the ground up with three loaded dabs riding the edge, crouched (88 % height) and then overshooting to 112 % before it settles.",
+    "Hit: 150 ms sharp squash (+17 % wide, -15 % tall) with a lean back and a warm tint; vanish: see the unpainting effect – nothing simply fades out.",
+    "Ambient motion is slower than the actors: plant sway with a travelling gust wave (period ~5 s), wind strokes on 7-12 s clocks, fireflies, halos rotating 0.35-1.1 rad/s; floaters bob with an eased curve (sin t + 0.35 sin(2t + 1.1)), not a plain sine.",
+    "Floating numbers pop from 0.55 to 1.2 scale in 12 % of their life, drift up 6 units, tilted ±0.15 rad."
   ],
   "do": [
-    "Build everything from the same stroke primitive – ground, characters, props, halos, UI bars.",
-    "Give every material its own flow direction so regions read by stroke direction, not only colour.",
-    "Outline characters with dark painted contour strokes, thicker on the shadow side.",
-    "Keep light warm and additive; let it be the only saturated yellow on screen.",
-    "Bake strokes into offscreen canvases at init/chunk build; draw sprites per frame.",
-    "Use seeded randomness so a chunk or sprite always repaints identically.",
-    "Frame UI elements like paintings in a gallery (gold frames, painted fills)."
+    "Build everything from the same stroke primitive – ground, characters, props, halos, effects, UI bars.",
+    "Spend detail where the eye should go: big calm low-contrast strokes for areas, small bright strokes only along designed edges and on faces.",
+    "Give every region its own stroke flow that follows its form (furrows along the field edge, ripples along the shore, grass bending around obstacles).",
+    "Outline characters and regions with broken dark contour strokes, thicker on the shadow side.",
+    "Keep light warm and additive and let it alternate with pale turquoise in the halos; it should be the only saturated yellow on screen.",
+    "Paint every animation pose as its own small painting with per-part seeds, and hold poses (on twos).",
+    "Make effects out of paint: strokes that are painted on, peel off, swirl and dry – never coloured circles.",
+    "Bake strokes into offscreen canvases at init/chunk build and trim them; draw sprites per frame."
   ],
   "dont": [
+    "Don't scatter bright strokes evenly over the ground – the noise drowns the composition; gather them on edges and clusters.",
     "Don't use smooth gradients or flat fills as final surfaces – the base fill must be covered by strokes.",
     "Don't draw thin vector outlines or pure black; contours are strokes.",
-    "Don't paint per frame with thousands of path calls – it will not hit 60 fps.",
+    "Don't fade a creature out with alpha alone or slice it digitally – let its paint run, peel and swirl away.",
     "Don't let creature colours match the ground (no green creatures on the meadow).",
-    "Don't use white impact flashes or clean sans-serif UI fonts.",
-    "Don't align all strokes the same way; the swirling, varying directions are the style.",
-    "Don't make strokes smaller than ~2 world units wide on the ground – it turns into noise."
+    "Don't rotate or skew sprites per frame when a baked pose can do it (cost and the wobbly look).",
+    "Don't make ground strokes thinner than ~2 world units – it turns into noise."
   ],
-  "performance": "Expensive bake, cheap frames. Init paints a stroke atlas (~150 strokes), ~25 character frames, ~10 props, FX and UI textures (roughly 0.5–1.5 s). Ground chunks (256 units) are generated incrementally with a generator: ~4 k under-painting grid samples and ~6 k atlas strokes splatted into an ImageData in pure JS, yielding every 30 strokes. Painting canvases are CPU (willReadFrequently) then copied to accelerated canvases for blitting. Per frame: ground chunk blits, ~1 drawImage per character or prop, a few additive rotated halos, a cached vignette – 2–4 ms in the module with hundreds of creatures."
+  "performance": "Expensive bake, cheap frames. Init paints a stroke atlas (~150 strokes on one 1024 px sheet), ~45 character poses, ~20 props plus their 5 wind poses, FX and UI textures (UI one per task, async); every sprite is trimmed to its painted pixels so blits do not pay for transparent margins. Ground chunks (256 units) are generated incrementally by a generator: noise and edge distances on a 5-unit grid, then ~8-10 k atlas strokes splatted into an ImageData in pure JS (exact span rasterising, alpha-over), yielding every 40 strokes. Per frame: ground chunk blits, one axis-aligned drawImage per character or prop (wind and wisp lean are baked poses), a few additive rotated halos, a cached vignette; painted swirls and unpainting draw 7-30 small dab sprites each while they live."
 }

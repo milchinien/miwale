@@ -513,9 +513,9 @@
     }
     // grass: sparse dim ticks, denser '"' meadows, rare amber flowers
     const m = meadowF(x, y);
-    if (r < 0.006) { o.ch = '*'; o.col = r2 < 0.5 ? P.a2 : P.a1; return; }
-    if (r < 0.0085) { o.ch = '♦'; o.col = P.r1; return; }
-    const dens = 0.08 + m * 0.36;
+    const bed = m > 0.5 ? hashf(gx >> 2, gy >> 1, 77) : 1;                // flower beds: 4 × 2-cell patches inside meadows
+    if (bed < 0.12 && r < 0.3) { o.ch = bed < 0.05 ? '♦' : '*'; o.col = bed < 0.05 ? P.r1 : r2 < 0.5 ? P.a2 : P.a1; return; }
+    const dens = 0.04 + m * 0.4;
     if (r2 > dens) return;
     if (m > 0.58) { o.ch = r3 < 0.45 ? '"' : r3 < 0.7 ? ',' : r3 < 0.85 ? ';' : '\''; o.col = fc('g', (r < 0.25 ? 3 : 4) + shift); }
     else { o.ch = r3 < 0.4 ? '.' : r3 < 0.62 ? ',' : r3 < 0.8 ? '\'' : r3 < 0.9 ? '`' : '"'; o.col = fc('g', (r < 0.38 ? 4 : 5) + shift); }
@@ -570,33 +570,50 @@
   /* =====================================================================
      Characters – multi-glyph sprites (facing right; left = mirrored glyphs)
      ===================================================================== */
-  // main character: an '@' adventurer, 3 × 3 cells
-  const HERO_ARMS = ['/█\\', '-█\\', '/█\\', '/█-'];
-  const HERO_LEGS = ['/ \\', ' |\\', '/ \\', '/| '];
+  // main character: an '@' adventurer with a trailing scarf glyph, 3 × 3 cells (facing right, scarf behind the head)
+  // frames 0-7 walk (held poses, legs/arms swap through distinct glyphs, the scarf lags), 8-11 idle breathing,
+  // 12 blink, 13 dash crouch (anticipation), 14 dash lunge, 15 hurt (head X, arms up)
+  const H_IDLE = 8, H_BLINK = 12, H_CROUCH = 13, H_LUNGE = 14, H_HURT = 15;
+  const HERO_POSE = [
+    ['~@ ', '/█\\', '/ \\'], ['~@ ', '-█\\', '/| '], ['-@ ', '|█|', ' | '], ['-@ ', '/█-', ' |\\'],
+    ['~@ ', '/█\\', '/ \\'], ['~@ ', '/█-', ' |\\'], ['-@ ', '|█|', ' | '], ['-@ ', '-█\\', '/| '],
+    [',@ ', '/█\\', '/ \\'], [',@ ', '/█\\', '/ \\'], ['`@ ', '|█|', '/ \\'], [',@ ', '|█|', '/ \\'],
+    [',o ', '/█\\', '/ \\'], ['~@ ', '<█ ', '/_\\'], ['=@ ', '-█=', '/ >'], ['~X ', '\\█/', '/ \\'],
+  ];
   function heroDef(frame, arm, dash) {
-    let arms = dash ? '-█=' : HERO_ARMS[frame];
-    if (arm) arms = arms.slice(0, 2) + arm;
-    const legs = dash ? '/ >' : HERO_LEGS[frame];
-    return { g: [' @ ', arms, legs], k: ['.H.', 'AaA', [...legs].map((c) => (c === ' ' ? 'K' : 'a')).join('')] };
+    const f = dash ? H_LUNGE : frame, p = HERO_POSE[f];
+    let arms = p[1];
+    if (arm && f < H_CROUCH) arms = arms.slice(0, 2) + arm;
+    const legs = p[2];
+    const ak = [...arms].map((c, i) => (c === ' ' ? 'K' : i === 1 ? 'a' : 'A')).join(''), lk = [...legs].map((c) => (c === ' ' ? 'K' : 'a')).join('');
+    return { g: [p[0], arms, legs], k: ['aH.', ak, lk] };
   }
-  // small creature: a glyph critter, 3 × 2 cells, two variants
+  // small creature: a glyph critter, 3 × 2 cells, two designed variants; frames 0-3 scuttle, 4 blink, 5 hit
   const CRAWL = [
-    { g: [['(ö)', '/"\\'], ['(ö)', '\\"/']], k: ['gWg', 'dgd'] },
-    { g: [['{x}', '/ \\'], ['{x}', '| |']], k: ['gRg', 'dKd'] },
+    { g: [['(ö)', '/"\\'], ['(ö)', '|"|'], ['(ö)', '\\"/'], ['(ö)', '|"|'], ['(-)', '|"|'], ['(×)', '\\"/']], k: ['gWg', 'dgd'] },
+    { g: [['{x}', '/ \\'], ['{x}', '| |'], ['{x}', '\\ /'], ['{x}', '| |'], ['{-}', '| |'], ['{#}', '/ \\']], k: ['gRg', 'dKd'] },
   ];
   // fast creature: a flickering '*' spirit, 3 × 1 cells + glyph tail
   const SPIRIT = ['(*)', '{+}', '(×)', '<*>', '{x}', '(+)'];
-  // large creature: a block-letter brute, 6 × 4 cells
+  // large creature: a block-letter brute, 7 × 4 cells; frames 0-3 stomp (horns pump, jaw chomps, legs swap), 4 hit
   const BRUTE = {
-    g: [['▀▄   ▄▀', '▄█O█O█▄', '█▀vvv▀█', '▀ █ █ ▀'], ['▀▄   ▄▀', '▄█O█O█▄', '█▀vvv▀█', ' █ ▀ █ ']],
-    k: [['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'rKrKrKr'], ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'KrKrKrK']],
+    g: [
+      ['▀▄   ▄▀', '▄█O█O█▄', '█▀vvv▀█', '▀ █ █ ▀'], ['▀▄   ▄▀', '▄█O█O█▄', '█▀VVV▀█', ' █ ▀ █ '],
+      ['▄▀   ▀▄', '▄█O█O█▄', '█▀vvv▀█', '▀ █ █ ▀'], ['▄▀   ▀▄', '▄█-█-█▄', '█▀VVV▀█', ' █ ▀ █ '],
+      ['▀▄   ▄▀', '▄█×█×█▄', '█▀###▀█', '▀ █ █ ▀'],
+    ],
+    k: [
+      ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'rKrKrKr'], ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'KrKrKrK'],
+      ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'rKrKrKr'], ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'KrKrKrK'],
+      ['SRKKKRS', 'RRHRHRR', 'RRYYYRR', 'rKrKrKr'],
+    ],
   };
   const CREATURE_FAM = { creeper: 'g', ghost: 'c', colossus: 'r' };
   function enemyDef(e, frame) {
-    if (e.type === 'colossus') return { g: BRUTE.g[frame & 1], k: BRUTE.k[frame & 1] };
+    if (e.type === 'colossus') { const f = frame % BRUTE.g.length; return { g: BRUTE.g[f], k: BRUTE.k[f] }; }
     if (e.type === 'ghost') return { g: [SPIRIT[frame % SPIRIT.length]], k: ['bCb'] };
     const v = CRAWL[e.seed < 0.55 ? 0 : 1];
-    return { g: v.g[frame & 1], k: v.k };
+    return { g: v.g[frame % v.g.length], k: v.k };
   }
   const flipDef = (d, left) => (left ? { g: mirror(d.g), k: mirrorK(d.k) } : d);
 
@@ -819,7 +836,7 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
     B: { col: (k) => (k === 'H' ? P.a3 : P.a1), dim: true },
   };
   function heroSprite(frame, arm, dash, left, pal) {
-    return sprite('hero' + frame + arm + (dash ? 'd' : '') + (left ? 'l' : 'r') + pal, () => ({ def: heroDefC(frame, arm, dash, left), opt: HERO_PAL[pal] }));
+    return sprite('hero' + frame + arm + (left ? 'l' : 'r') + pal, () => ({ def: heroDefC(frame, arm, false, left), opt: HERO_PAL[pal] }));
   }
   function enemySprite(type, variant, frame, left, inv) {
     const fam = CREATURE_FAM[type] || 'g', gh = type === 'ghost';
@@ -839,9 +856,15 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
     for (const ch of SCRAMBLE) { for (const f of ['g', 'c', 'r']) A.get(ch, fc(f, 3), 3); A.get(ch, P.r2, 1); A.get(ch, P.r3, 1); }
     for (const f of ['g', 'c', 'r']) for (let lv = 0; lv < 5; lv++) for (const ch of '▓▒░·.') A.get(ch, fc(f, lv), 1);
     const warmDone = SPRITES.size;
-    for (let f = 0; f < 4; f++) for (const l of [false, true]) { heroSprite(f, '', false, l, 'N'); if (!f) { heroSprite(0, '', true, l, 'D'); heroSprite(0, '', false, l, 'L'); } }
-    for (const l of [false, true]) for (let f = 0; f < 2; f++) for (const inv of [false, true]) {
-      enemySprite('creeper', 0, f, l, inv); enemySprite('creeper', 1, f, l, inv); enemySprite('colossus', '', f, l, inv);
+    for (let f = 0; f < 16; f++) for (const l of [false, true]) {
+      heroSprite(f, '', false, l, 'N');
+      if (f === H_CROUCH || f === H_LUNGE) heroSprite(f, '', true, l, 'D');
+      if (f < H_BLINK) heroSprite(f, '', false, l, 'L');
+      if (f <= H_BLINK) heroSprite(f, '', false, l, 'B');
+    }
+    for (const l of [false, true]) for (const inv of [false, true]) {
+      for (let f = 0; f < 6; f++) { enemySprite('creeper', 0, f, l, inv); enemySprite('creeper', 1, f, l, inv); }
+      for (let f = 0; f < 5; f++) enemySprite('colossus', '', f, l, inv);
     }
     for (let f = 0; f < SPIRIT.length; f++) { enemySprite('ghost', '', f, false, false); enemySprite('ghost', '', f, false, true); }
     return SPRITES.size - warmDone;
@@ -1094,7 +1117,8 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
       toScreen(ctx);
       const left = p.facing < 0;
       const dash = p.dashT > 0;
-      const frame = p.moving && !dash ? Math.floor(p.anim * 0.45) & 3 : 0;
+      // held poses: 8 walk poses, idle breathing (0.5 s per pose) with a blink, crouch before the lunge, hurt pose
+      const frame = p.hurtT > 0.45 ? H_HURT : dash ? (0.2 - p.dashT < 0.045 ? H_CROUCH : H_LUNGE) : p.moving ? Math.floor(p.anim * 0.9) % 8 : (view.rt + 0.7) % 3.6 < 0.16 ? H_BLINK : H_IDLE + (Math.floor(view.rt / 0.5) % 4);
       let arm = '';
       if (p.shootT > 0.25 && !dash) {
         let a = p.aim;
@@ -1103,7 +1127,7 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
         arm = a < -1.1 ? '|' : a < -0.35 ? '/' : a < 0.35 ? '-' : a < 1.1 ? '\\' : '|';
         if (Math.cos(p.aim) * (left ? -1 : 1) < -0.2) arm = '';
       }
-      const def = heroDefC(frame, arm, dash, left);
+      const def = heroDefC(frame, arm, false, left);
       // dash: afterimages fall down the density ramp ▓ ▒ ░
       if (dash) {
         const A = SA();
@@ -1124,7 +1148,7 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
           return [h < 0.55 ? scr(i + j * 3, sd, 5) : ch, h < 0.3 ? P.r3 : P.r2, 1];
         }, P.plate);
       } else {
-        put(ctx, heroSprite(frame, arm, dash, left, dash ? 'D' : lvl ? 'L' : blink ? 'B' : 'N'), p.x, p.y);
+        put(ctx, heroSprite(frame, arm, false, left, dash ? 'D' : lvl && frame < H_BLINK ? 'L' : blink && frame <= H_BLINK ? 'B' : 'N'), p.x, p.y);
       }
       toWorld(ctx);
     },
@@ -1135,7 +1159,10 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
       const left = e.facing < 0;
       const fam = famOfEnemy(e);
       const ghost = e.type === 'ghost', big = e.type === 'colossus';
-      const frame = (ghost ? Math.floor(view.rt * 11 + e.seed * 13) % SPIRIT.length : Math.floor(e.anim * (big ? 0.5 : 0.8) + e.seed * 2) & 1) | 0;
+      let frame = (ghost ? Math.floor(view.rt * 11 + e.seed * 13) % SPIRIT.length : Math.floor(e.anim * (big ? 1.0 : 1.6) + e.seed * 4) % 4) | 0;
+      if (!ghost && (e.dying || e.flash > 0.25)) frame = big ? 4 : 5;                                    // hit pose (and what dissolves)
+      else if (e.type === 'creeper' && U.fract(view.rt * 0.33 + e.seed * 7) < 0.05) frame = 4;             // blink, own timing per actor
+      else if (big && U.fract(view.rt * 0.27 + e.seed * 5) < 0.05) frame = 3;
       const variant = e.type === 'creeper' ? (e.seed < 0.55 ? 0 : 1) : '';
       const def = enemyDefC(e.type, variant, frame, left);
       const sid = (e.id || Math.floor(e.seed * 1e6)) | 0;
@@ -1176,7 +1203,8 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
         toWorld(ctx);
         return;
       }
-      put(ctx, enemySprite(e.type, variant, frame, left, e.flash > 0.45), e.x, e.y);
+      const kb = e.flash > 0.55 ? (Math.abs(e.kx) > 2 ? Math.sign(e.kx) : -e.facing) : 0; // knocked one whole cell
+      put(ctx, enemySprite(e.type, variant, frame, left, e.flash > 0.45), e.x, e.y, kb);
       toWorld(ctx);
     },
 
@@ -1226,6 +1254,17 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
           let ch = pt.ch || '*';
           if (life < 0.45 && !pt.keep) ch = SHADE[ch] || ch === '█' ? (life < 0.2 ? '░' : '▒') : life < 0.2 ? '.' : '·';
           cell(ctx, A, ch, fc(pt.fam || 'g', (pt.lv || 0) + Math.floor(age * 2.2)), life > 0.3 ? 1 : 3, colOf(X), rowOf(Y));
+          break;
+        }
+        case 'ash': {
+          // residue: a few cells of shade glyphs left on the ground, decaying ▒ → ░ → · → .
+          const c = colOf(X), r = rowOf(Y), sd = (pt.seed * 1e6) | 0;
+          for (let i = 0; i < pt.n; i++) {
+            const h = U.hashInt(i, sd, 11), dc = ((h & 7) % 5) - 2, dr = ((h >>> 3) % 3) - 1;
+            if (life < ((h >>> 8) & 255) / 512) continue;
+            const g = life > 0.7 ? '▒' : life > 0.45 ? '░' : life > 0.2 ? '·' : '.';
+            cell(ctx, A, g, fc(pt.fam || 'g', 3 + (life < 0.45 ? 1 : 0)), 3, c + dc, r + dr);
+          }
           break;
         }
         case 'ring': {
@@ -1354,6 +1393,7 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
     onHit(game, e) {
       const fam = famOfEnemy(e), z = top(e) * 0.6;
       burstGlyphs(game, e.x, e.y, z, 2, '*+\'`', fam, 1, 55, 0.3);
+      glyphP(game, { x: e.x, y: e.y, z: z + 2, ch: '█', fam: 'a', lv: 1, life: 0.05, drag: 0, keep: true }); // one-frame inverse block: the core flash
       glyphP(game, { x: e.x, y: e.y, z, ch: '*', fam: 'a', lv: 0, life: 0.1, drag: 0 });
     },
     onKill(game, e) {
@@ -1364,6 +1404,8 @@ ${B} #pausebox::after { content: '_'; animation: termblink 1.06s steps(1) infini
       burstGlyphs(game, e.x, e.y, z, big ? 16 : 6, chars, fam, 1, big ? 90 : 70, 0.6);
       burstGlyphs(game, e.x, e.y, z, big ? 8 : 3, '*+x', fam, 0, big ? 120 : 90, 0.45);
       game.addParticle({ kind: 'ring', x: e.x, y: e.y, z, r0: 4, r1: big ? 46 : 22, ch: big ? '#' : '*', fam, lv: big ? 1 : 2, life: big ? 0.55 : 0.32, drag: 0 });
+      const ash = game.addParticle({ kind: 'ash', x: e.x, y: e.y, z: 0, fam, life: big ? 1.6 : 1.1, drag: 0 });
+      if (ash) ash.n = big ? 9 : 4;
       if (big) {
         game.addParticle({ kind: 'ring', x: e.x, y: e.y, z, r0: 2, r1: 30, ch: '▓', fam: 'a', lv: 1, life: 0.4, drag: 0 });
         tearReq = 0.14;

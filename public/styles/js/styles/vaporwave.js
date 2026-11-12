@@ -119,47 +119,80 @@
   const IRIS = [0, '#ffd1ea', 0.17, '#b892ff', 0.34, '#5ee7ff', 0.5, '#8ff5d2', 0.66, '#fff27a', 0.83, '#ffc1a1', 1, '#ffd1ea'];
 
   /* ================= main character: sunglasses, flattop, colour-block windbreaker ================= */
+  function ik(ax, ay, bx, by, l1, l2, bend) {
+    let dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 0.001;
+    const mx = l1 + l2 - 0.02;
+    if (d > mx) { bx = ax + (dx / d) * mx; by = ay + (dy / d) * mx; dx = bx - ax; dy = by - ay; d = mx; }
+    const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    return [ax + (dx * a) / d - (dy / d) * h * bend, ay + (dy * a) / d + (dx / d) * h * bend, bx, by];
+  }
+  const bump = (x, c, w) => { const t = (x - c) / w; return t <= -1 || t >= 1 ? 0 : 0.5 + 0.5 * Math.cos(t * Math.PI); };
+  /** Pose parameters per mode; one drawing routine below renders them all. */
+  function heroParams(mode, ph) {
+    const a = ph * TAU;
+    const q = { rot: 0, dy: 0, sh: 0, fA: [2.0, 0], fB: [-1.9, 0], swA: -0.15, swB: 0.15, hdy: 0, tilt: 0, glint: -1, mouth: 'smirk' };
+    if (mode === 'walk') {
+      // contact (0) – down (.125) – passing (.25) – up (.375); two steps per cycle
+      const S = 3.7, L = 2.1;
+      q.dy = 0.9 * Math.sin(2 * a);
+      q.fA = [0.9 + S * Math.cos(a), -Math.max(0, -Math.sin(a)) * L];
+      q.fB = [-0.9 - S * Math.cos(a), -Math.max(0, Math.sin(a)) * L];
+      q.swA = -0.75 * Math.cos(a); q.swB = 0.75 * Math.cos(a);
+      q.hdy = q.dy + 0.35 * Math.sin(2 * a - 1.1);
+      q.tilt = 0.035 * Math.sin(2 * a - 1.3);
+      q.rot = 0.04;
+    } else if (mode === 'idle') {
+      // breathing + a head nod on the beat; a light glint sweeps across the shades late in the cycle
+      q.sh = -0.3 * (0.5 + 0.5 * Math.sin(a));
+      q.hdy = -0.32 * (0.5 + 0.5 * Math.sin(a - 0.5)) + 0.45 * bump(ph, 0.3, 0.12);
+      q.tilt = 0.02 * Math.sin(a) + 0.06 * bump(ph, 0.32, 0.14);
+      q.swA = -0.12 + 0.05 * Math.sin(a - 0.6); q.swB = 0.14 + 0.05 * Math.sin(a - 1.0);
+      q.glint = ph >= 0.6 && ph < 0.9 ? (ph - 0.6) / 0.3 : -1;
+    } else if (mode === 'launch') {
+      q.rot = 0.2; q.dy = 1.5; q.fA = [2.8, 0]; q.fB = [-5.6, -0.4]; q.swA = -1.45; q.swB = -1.65; q.hdy = 1.3; q.tilt = 0.12;
+    } else if (mode === 'streak') {
+      q.rot = 0.27; q.dy = -0.7; q.fA = [5.3, -1.9]; q.fB = [-4.9, -0.9]; q.swA = -1.35; q.swB = -1.7; q.hdy = -0.7; q.tilt = 0.05;
+    } else if (mode === 'brake') {
+      q.rot = -0.1; q.dy = 0.9; q.fA = [4.8, 0]; q.fB = [-2.6, 0]; q.swA = 0.95; q.swB = 0.55; q.hdy = 1.1; q.tilt = -0.08;
+    } else if (mode === 'hurt') {
+      q.rot = -0.2; q.dy = 0.6; q.fA = [1.5, 0]; q.fB = [-3.1, 0]; q.swA = 2.4; q.swB = 2.8; q.hdy = 0.3; q.tilt = -0.2; q.mouth = 'o';
+    }
+    return q;
+  }
   function heroPose(c, ph, mode) {
-    const a = ph * TAU, s = Math.sin(a);
-    const walk = mode === 'walk', dash = mode === 'dash';
-    const bob = walk ? -Math.abs(Math.sin(a)) * 1.1 : 0;
+    const q = heroParams(mode, ph);
+    const bob = q.dy;
     c.save();
-    if (dash) c.rotate(0.24);
-    const hipY = -9.2 + bob;
-    const leg = (hx, p, back) => {
-      let fx, fy;
-      if (walk) { fx = hx + Math.sin(p) * 3.6; fy = -Math.max(0, Math.cos(p)) * 1.8; }
-      else if (dash) { fx = hx > 0 ? 5.2 : -4.6; fy = hx > 0 ? -1.8 : -0.6; }
-      else { fx = hx * 1.5; fy = 0; }
-      const kx = (hx + fx) / 2 + 0.7, ky = (hipY + fy) / 2 - 0.3;
+    if (q.rot) c.rotate(q.rot);
+    const hipY = -9.2 + bob, shY = -16.4 + bob + q.sh;
+    const leg = (hx, f, back) => {
+      const [kx, ky, fx, fy0] = ik(hx, hipY, f[0], f[1] - 1.6, 4.1, 4.0, -1);
+      const fy = fy0 + 1.6;
       limb(c, [hx, hipY, kx, ky, fx, fy - 1.6], 3.0, back ? '#33246e' : '#4a3699');
       c.beginPath(); c.roundRect(fx - 2.0, fy - 2.6, 5.4, 2.7, 1.2);
       fs(c, back ? '#e4d8ff' : '#ffffff', 0.7);
       c.beginPath(); c.moveTo(fx - 0.8, fy - 1.25); c.lineTo(fx + 2.2, fy - 1.25);
       c.strokeStyle = back ? P.lav : P.hot; c.lineWidth = 0.7; c.stroke();
     };
-    const arm = (sx, ang, back) => {
-      const sy = -16.4 + bob;
-      const ex = sx + Math.sin(ang * 0.6) * 3.0, ey = sy + Math.cos(ang * 0.6) * 3.0;
-      const hx = ex + Math.sin(ang) * 3.0, hy = ey + Math.cos(ang) * 3.0;
+    const arm = (sx, sw, back) => {
+      const sy = shY;
+      const [ex, ey, hx, hy] = ik(sx, sy, sx + Math.sin(sw) * 5.9, sy + Math.cos(sw) * 5.9 - Math.max(0, Math.sin(sw)) * 0.8, 3.0, 3.0, 1);
       limb(c, [sx, sy, ex, ey, hx, hy], 2.7, back ? '#d84ca8' : P.hot);
       const cx = ex + (hx - ex) * 0.62, cy = ey + (hy - ey) * 0.62;
       c.beginPath(); c.moveTo(cx, cy); c.lineTo(ex + (hx - ex) * 0.86, ey + (hy - ey) * 0.86);
       c.strokeStyle = back ? '#5a3aa8' : P.vio; c.lineWidth = 2.7; c.stroke();
       c.beginPath(); c.arc(hx, hy + 0.3, 1.3, 0, TAU); fs(c, back ? P.skin2 : P.skin, 0.6);
     };
-    const swing = walk ? s * 0.85 : 0.12;
-    const backA = dash ? -1.7 : walk ? swing : 0.15;
-    const frontA = dash ? -1.35 : walk ? -swing : -0.15;
-    arm(-0.9, backA, true);
-    leg(-1.3, a + Math.PI, true);
-    leg(1.3, a, false);
-    // jacket
+    arm(-0.9, q.swB, true);
+    leg(-1.3, q.fB, true);
+    leg(1.3, q.fA, false);
+    // jacket: colour-block windbreaker, the top edge follows the breathing shoulders
+    const top = -17.8 + bob + q.sh;
     const torso = () => {
       c.beginPath();
-      c.moveTo(-4.5, -17.8 + bob); c.lineTo(4.7, -17.8 + bob);
+      c.moveTo(-4.5, top); c.lineTo(4.7, top);
       c.quadraticCurveTo(6.2, -13.2 + bob, 5.6, -8.4 + bob); c.lineTo(-5.1, -8.4 + bob);
-      c.quadraticCurveTo(-6.0, -13.2 + bob, -4.5, -17.8 + bob); c.closePath();
+      c.quadraticCurveTo(-6.0, -13.2 + bob, -4.5, top); c.closePath();
     };
     torso(); fs(c, grad(c, 0, -18 + bob, 0, -8 + bob, [0, '#ff9ae0', 1, '#ff4fb4']));
     c.save(); torso(); c.clip();
@@ -167,19 +200,23 @@
     c.fillStyle = grad(c, -6, 0, 6, 0, [0, '#46e3d3', 1, P.cyan]); c.fill();
     c.fillStyle = P.vio; c.fillRect(-7, -10.3 + bob, 14, 1.9);
     c.fillStyle = 'rgba(255,255,255,0.35)'; c.fillRect(-4.8, -17.6 + bob, 1.1, 7);
+    // cool shade on the far side (light from the upper left)
+    c.fillStyle = 'rgba(75,42,134,0.18)'; c.fillRect(2.6, -18 + bob, 5, 10);
     c.restore();
     torso(); fs(c, null, 0.85);
-    c.beginPath(); c.moveTo(1.4, -17.4 + bob); c.lineTo(1.2, -8.8 + bob);
+    c.beginPath(); c.moveTo(1.4, top + 0.4); c.lineTo(1.2, -8.8 + bob);
     c.strokeStyle = 'rgba(42,26,76,0.45)'; c.lineWidth = 0.4; c.stroke();
-    c.beginPath(); c.moveTo(-2.6, -17.9 + bob); c.lineTo(1.4, -15.6 + bob); c.lineTo(4.2, -17.9 + bob); c.closePath();
+    c.beginPath(); c.moveTo(-2.6, top - 0.1); c.lineTo(1.4, top + 2.2); c.lineTo(4.2, top - 0.1); c.closePath();
     fs(c, '#ffffff', 0.55);
-    // head
-    const hx = 0.8, hy = -23.3 + bob;
-    c.beginPath(); c.rect(-0.9, hy + 3.6, 3.0, 2.4); fs(c, P.skin2);
+    // head group: bobs late and tilts around the neck
+    c.save();
+    const nkY = top + 0.2;
+    c.translate(0.6, nkY); c.rotate(q.tilt); c.translate(-0.6, -nkY);
+    const hx = 0.8, hy = -23.3 + q.hdy;
+    c.beginPath(); c.rect(-0.9, hy + 3.6, 3.0, Math.max(1.2, nkY - hy - 3.2)); fs(c, P.skin2);
     c.beginPath(); c.arc(hx, hy, 5.9, 0, TAU);
     fs(c, rgrad(c, hx + 1.6, hy - 2.2, 0.4, hx, hy, 6.6, [0, '#ffe8d6', 0.55, P.skin, 1, P.skin2]), 0.85);
     c.beginPath(); c.ellipse(hx - 4.1, hy + 0.5, 1.3, 1.8, 0, 0, TAU); fs(c, P.skin2, 0.6);
-    // flattop hair
     c.beginPath();
     c.moveTo(hx - 4.6, hy + 1.6); c.quadraticCurveTo(hx - 6.6, hy - 2.0, hx - 6.1, hy - 7.6);
     c.quadraticCurveTo(hx - 5.9, hy - 10.0, hx - 3.8, hy - 10.0);
@@ -195,21 +232,34 @@
     c.strokeStyle = 'rgba(42,26,76,0.3)'; c.lineWidth = 0.4; c.stroke();
     c.beginPath(); c.moveTo(hx - 3.2, hy - 9.0); c.quadraticCurveTo(hx + 1, hy - 9.6, hx + 5.0, hy - 9.4);
     c.strokeStyle = 'rgba(255,255,255,0.85)'; c.lineWidth = 0.65; c.stroke();
-    // sunglasses (wayfarer, sunset reflection)
+    // sunglasses (wayfarer, sunset reflection); knocked askew in the hurt pose
     const gy = hy - 1.1;
+    c.save();
+    if (q.mouth === 'o') { c.translate(hx + 3, gy); c.rotate(-0.16); c.translate(-hx - 3, -gy - 0.6); }
     c.beginPath(); c.moveTo(hx - 0.8, gy - 0.6); c.lineTo(hx - 4.0, gy + 0.7);
     c.strokeStyle = P.ink; c.lineWidth = 0.8; c.stroke();
-    c.beginPath();
-    c.moveTo(hx - 0.8, gy - 1.3); c.lineTo(hx + 6.9, gy - 1.5); c.lineTo(hx + 6.6, gy + 1.2);
-    c.quadraticCurveTo(hx + 5.2, gy + 2.3, hx + 4.0, gy + 1.0); c.lineTo(hx + 3.3, gy + 0.2); c.lineTo(hx + 2.6, gy + 1.0);
-    c.quadraticCurveTo(hx + 0.9, gy + 2.3, hx - 0.6, gy + 0.9); c.closePath();
-    fs(c, grad(c, 0, gy - 1.5, 0, gy + 2.2, [0, '#1d1040', 0.42, '#5b2a9a', 0.6, P.hot, 1, P.sun]), 0.6);
+    const shades = () => {
+      c.beginPath();
+      c.moveTo(hx - 0.8, gy - 1.3); c.lineTo(hx + 6.9, gy - 1.5); c.lineTo(hx + 6.6, gy + 1.2);
+      c.quadraticCurveTo(hx + 5.2, gy + 2.3, hx + 4.0, gy + 1.0); c.lineTo(hx + 3.3, gy + 0.2); c.lineTo(hx + 2.6, gy + 1.0);
+      c.quadraticCurveTo(hx + 0.9, gy + 2.3, hx - 0.6, gy + 0.9); c.closePath();
+    };
+    shades(); fs(c, grad(c, 0, gy - 1.5, 0, gy + 2.2, [0, '#1d1040', 0.42, '#5b2a9a', 0.6, P.hot, 1, P.sun]), 0.6);
     c.beginPath(); c.moveTo(hx + 0.6, gy - 0.4); c.lineTo(hx + 1.6, gy - 0.4); c.moveTo(hx + 4.6, gy - 0.5); c.lineTo(hx + 5.6, gy - 0.5);
     c.strokeStyle = '#ffffff'; c.lineWidth = 0.45; c.stroke();
-    // smirk
-    c.beginPath(); c.moveTo(hx + 2.4, hy + 3.3); c.quadraticCurveTo(hx + 3.8, hy + 3.7, hx + 4.8, hy + 2.6);
-    c.strokeStyle = P.ink; c.lineWidth = 0.5; c.stroke();
-    arm(1.0, frontA, false);
+    if (q.glint >= 0) {
+      c.save(); shades(); c.clip();
+      const gx = hx - 1.5 + q.glint * 9.5;
+      c.beginPath(); c.moveTo(gx, gy + 2.6); c.lineTo(gx + 1.6, gy - 1.8); c.lineTo(gx + 2.4, gy - 1.8); c.lineTo(gx + 0.8, gy + 2.6); c.closePath();
+      c.fillStyle = 'rgba(255,255,255,0.9)'; c.fill();
+      c.restore();
+    }
+    c.restore();
+    c.beginPath();
+    if (q.mouth === 'o') { c.ellipse(hx + 3.6, hy + 3.2, 0.9, 1.1, 0, 0, TAU); fs(c, '#7a2a6a', 0.45); }
+    else { c.moveTo(hx + 2.4, hy + 3.3); c.quadraticCurveTo(hx + 3.8, hy + 3.7, hx + 4.8, hy + 2.6); c.strokeStyle = P.ink; c.lineWidth = 0.5; c.stroke(); }
+    c.restore();
+    arm(1.0, q.swA, false);
     c.restore();
   }
 
@@ -851,12 +901,16 @@
     // marble slabs
     const L0 = lists[REG_MARBLE];
     for (let i = 0; i < L0.length; i += 2) {
-      const x = L0[i], y = L0[i + 1], h = U.hash2(x / BQ, y / BQ, 404);
-      ctx.fillStyle = mPats[h < 0.68 ? 0 : h < 0.9 ? 1 : 2];
+      // marble colour comes in large patches (one stone per hall), with a few odd slabs at patch edges;
+      // inset diamonds follow a regular 4-slab rhythm instead of random placement
+      const x = L0[i], y = L0[i + 1], n = U.fbm(x / 300 + 0.5, y / 300, 404, 2) + (U.hash2(x / BQ, y / BQ, 404) - 0.5) * 0.06;
+      const h = n < 0.52 ? 0 : n < 0.6 ? 1 : 2;
+      ctx.fillStyle = mPats[h];
       ctx.fillRect(x, y, BQ, BQ);
-      if (U.hash2(x / BQ, y / BQ, 405) < 0.07) {
+      const gx = Math.round(x / BQ), gy = Math.round(y / BQ);
+      if ((((gx % 4) + 4) % 4) === 1 && (((gy % 4) + 4) % 4) === 1) {
         ctx.beginPath(); poly(ctx, [x + 16, y + 3.5, x + 28.5, y + 16, x + 16, y + 28.5, x + 3.5, y + 16], true);
-        ctx.fillStyle = mPats[h < 0.68 ? 1 : 0]; ctx.fill();
+        ctx.fillStyle = mPats[h === 0 ? 1 : 0]; ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 0.9; ctx.stroke();
         ctx.beginPath(); ctx.arc(x + 16, y + 16, 2.2, 0, TAU); ctx.fillStyle = P.cyan; ctx.fill();
         ctx.strokeStyle = 'rgba(42,26,76,0.4)'; ctx.lineWidth = 0.4; ctx.stroke();
@@ -903,12 +957,15 @@
     yield;
     if (L3.length) {
       ctx.save(); ctx.clip(blockPath(L3));
-      const CH = ['#ffa8dc', '#c2a2ff', '#7fe4f5', '#ffc9ae', '#f4fffb', '#ff7fcf', '#8a64d8'];
+      // terrazzo chips: mostly quiet tints of the base, gathered in drifts (cluster noise); bright chips are rare
+      const CH = ['#ade9d6', '#d4f7ea', '#b9dcf2', '#f1d6ea', '#f4fffb', '#ff7fcf', '#8a64d8', '#7fe4f5'];
       const paths = CH.map(() => new Path2D());
       G.scatter(info, 5.2, 6161, 2, (x, y, rng) => {
-        if (!rng.chance(0.42)) return;
-        const r = rng.range(0.4, 1.25), n = rng.int(3, 5), a0 = rng.next() * TAU;
-        const p = paths[rng.chance(0.06) ? 6 : rng.int(0, 5)];
+        const cl = U.smoothstep(0.45, 0.72, U.fbm(x / 150, y / 150, 6363, 2));
+        if (!rng.chance(0.03 + 0.42 * cl)) return;
+        const r = rng.range(0.4, 1.25) * (0.8 + cl * 0.5), n = rng.int(3, 5), a0 = rng.next() * TAU;
+        const pick = rng.next();
+        const p = paths[pick < 0.03 * cl ? 6 : pick < 0.1 * cl ? 5 : pick < 0.14 * cl ? 7 : rng.int(0, 4)];
         for (let k = 0; k < n; k++) {
           const t = a0 + (k / n) * TAU, rr = r * rng.range(0.6, 1.1);
           if (k) p.lineTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr); else p.moveTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr);
@@ -918,7 +975,8 @@
       CH.forEach((col, i) => { ctx.fillStyle = col; ctx.fill(paths[i]); });
       // memphis squiggles + confetti shapes
       G.scatter(info, 58, 6262, 14, (x, y, rng) => {
-        if (!rng.chance(0.3)) return;
+        // memphis motifs only inside the drifts, as small groups
+        if (!rng.chance(0.55 * U.smoothstep(0.52, 0.72, U.fbm(x / 150, y / 150, 6363, 2)))) return;
         const k = rng.int(0, 2), col = rng.pick([P.hot, P.vio, P.aqua]);
         ctx.beginPath();
         if (k === 0) { ctx.moveTo(x - 7, y); for (let i = 1; i <= 7; i++) ctx.lineTo(x - 7 + i * 2, y + (i % 2 ? -2 : 2)); }
@@ -947,14 +1005,16 @@
     // ---- 2. decals ----
     ctx.beginPath();
     G.scatter(info, 46, 7171, 4, (x, y, rng) => {
-      if (!rng.chance(0.4)) return;
-      if (blockAt(x, y) === REG_GRID) return;
+      // glints only on polished stone, a few per slab group
+      if (!rng.chance(0.22)) return;
+      const rg = blockAt(x, y);
+      if (rg !== REG_MARBLE && rg !== REG_CHECK) return;
       sparkle(ctx, x, y, rng.range(1.6, 2.8));
     });
     ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
     ctx.beginPath();
     G.scatter(info, 52, 7272, 6, (x, y, rng) => {
-      if (!rng.chance(0.5) || blockAt(x, y) !== REG_GRID) return;
+      if (!rng.chance(0.6 * U.smoothstep(0.48, 0.7, U.fbm(x / 170, y / 170, 7373, 2))) || blockAt(x, y) !== REG_GRID) return;
       const k = rng.int(0, 2), r = rng.range(2.4, 4.2);
       if (k === 0) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, TAU); }
       else if (k === 1) poly(ctx, [x, y - r, x + r * 0.9, y + r * 0.6, x - r * 0.9, y + r * 0.6], true);
@@ -1120,7 +1180,17 @@
 
   /* ---- batched particles (flushed before numbers / in the world overlay) ---- */
   const PB = new Map();
-  let pbPending = false, pbView = null, pbDirect = false;
+  let pbPending = false, pbView = null, pbLast = null;
+  /** The renderer culls particles with this margin; the last one it will draw flushes the batch. */
+  function lastVisible(view) {
+    const ps = view.game && view.game.particles;
+    if (!ps) return null;
+    for (let i = ps.length - 1; i >= 0; i--) {
+      const o = ps[i];
+      if (o.x > view.x0 - 60 && o.x < view.x1 + 60 && o.y > view.y0 - 60 && o.y < view.y1 + 120) return o;
+    }
+    return null;
+  }
   function bucket(kind, color, alpha) {
     const aq = alpha > 0.8 ? 4 : alpha > 0.55 ? 3 : alpha > 0.3 ? 2 : 1;
     const key = kind + color + aq;
@@ -1149,6 +1219,9 @@
         ctx.fillStyle = b.color; ctx.fill();
       } else if (b.kind === 'ring' || b.kind === 'ringT') {
         for (let i = 0; i < D.length; i += 4) { ctx.moveTo(D[i] + D[i + 2], D[i + 1]); ctx.ellipse(D[i], D[i + 1], D[i + 2], D[i + 3], 0, 0, TAU); }
+        // ink edge first so pastel rings still read on pale floors (same deep-indigo line as every sprite)
+        ctx.strokeStyle = P.ink; ctx.globalAlpha = b.a * 0.32; ctx.lineWidth = (b.kind === 'ring' ? 1.8 : 1.0) + 0.9; ctx.stroke();
+        ctx.globalAlpha = b.a;
         ctx.strokeStyle = b.color; ctx.lineWidth = b.kind === 'ring' ? 1.8 : 1.0; ctx.stroke();
         ctx.strokeStyle = '#ffffff'; ctx.globalAlpha = b.a * 0.9; ctx.lineWidth = b.kind === 'ring' ? 0.55 : 0.35; ctx.stroke();
       } else if (b.kind === 'star') {
@@ -1464,15 +1537,17 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
     css: CSS,
 
     init() {
-      HERO = { walk: [], idle: null, dash: null };
-      const ho = { bloomCol: P.hot, bloomA: 0.5 };
+      // main character: the strongest bloom of the cast (0.62), creatures and props sit lower
+      HERO = { walk: [], idle: [], dash: [], hurt: null };
+      const ho = { bloomCol: P.hot, bloomA: 0.62 };
       for (let i = 0; i < 8; i++) HERO.walk.push(makeSprite(16, 40, 16, 6, (c) => heroPose(c, i / 8, 'walk'), ho));
-      HERO.idle = makeSprite(16, 40, 16, 6, (c) => heroPose(c, 0, 'idle'), ho);
-      HERO.dash = makeSprite(20, 40, 22, 6, (c) => heroPose(c, 0, 'dash'), ho);
-      CRIT = [makeSprite(14, 24, 15, 6, (c) => critterPose(c, false), { bloomCol: P.hot, bloomA: 0.45 }),
-        makeSprite(14, 24, 15, 6, (c) => critterPose(c, true), { bloomCol: P.hot, bloomA: 0.45 })];
+      for (let i = 0; i < 8; i++) HERO.idle.push(makeSprite(16, 40, 16, 6, (c) => heroPose(c, i / 8, 'idle'), ho));
+      for (const m of ['launch', 'streak', 'brake']) HERO.dash.push(makeSprite(21, 40, 23, 6, (c) => heroPose(c, 0, m), ho));
+      HERO.hurt = makeSprite(18, 40, 18, 6, (c) => heroPose(c, 0, 'hurt'), ho);
+      CRIT = [makeSprite(14, 24, 15, 6, (c) => critterPose(c, false), { bloomCol: P.hot, bloomA: 0.38 }),
+        makeSprite(14, 24, 15, 6, (c) => critterPose(c, true), { bloomCol: P.hot, bloomA: 0.38 })];
       DOLPH = [];
-      for (let i = 0; i < 6; i++) DOLPH.push(makeSprite(22, 28, 17, 6, (c) => dolphinPose(c, i / 6), { bloomCol: P.cyan, bloomA: 0.55 }));
+      for (let i = 0; i < 8; i++) DOLPH.push(makeSprite(22, 28, 17, 6, (c) => dolphinPose(c, i / 8), { bloomCol: P.cyan, bloomA: 0.45 }));
       COLO = [];
       for (let i = 0; i < 8; i++) COLO.push(makeSprite(28, 64, 28, 7, (c) => colossusPose(c, i / 8), { bloomCol: P.lav, bloomA: 0.5, blur: 2.8, ca: 0.6 }));
       GEMS = []; GEMB = [];
@@ -1497,7 +1572,7 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
         return { img: out.c, w: w / K, h: h / K, ax: x1 / w };
       })();
       SUN = bake(10, 10, 10, 10, (c) => sunPose(c, 5.6), { bloomCol: P.amber, bloomA: 0.9, blur: 2.2, ca: 0.45 });
-      const po = (col) => ({ bloomCol: col, bloomA: 0.4, blur: 2.4 });
+      const po = (col) => ({ bloomCol: col, bloomA: 0.3, blur: 2.4 });
       PROPS = {
         palm: [bakeProp(28, 62, 31, 5, (c) => palmPose(c, 0), po(P.mint)), bakeProp(31, 62, 28, 5, (c) => palmPose(c, 1), po(P.hot))],
         column: [bakeProp(11, 42, 11, 4, (c) => columnPose(c, 0), po(P.lav)), bakeProp(13, 28, 21, 4, (c) => columnPose(c, 1), po(P.lav))],
@@ -1656,18 +1731,35 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
       let frames, fi;
       let x = e.x, y = e.y, sx = 1, sy = 1;
       if (e.type === 'ghost') {
-        frames = DOLPH; fi = Math.floor((rt * 1.8 + e.seed * 5) * 6) % 6;
-        y -= 3 + Math.sin(rt * 2.4 + e.seed * 9) * 1.4;
+        // the dolphin swims through the air: quick rise, slow glide down (eased), per-actor phase
+        frames = DOLPH; fi = Math.floor((rt * (1.6 + e.seed * 0.5) + e.seed * 5) * 8) & 7;
+        const fb = U.fract(rt * 0.42 + e.seed * 3.7);
+        const up = fb < 0.35 ? U.smoothstep(0, 0.35, fb) : 1 - U.smoothstep(0.35, 1, fb);
+        y -= 2.4 + up * 3.0;
+        sy = 1 - 0.04 * (1 - up); sx = 1 + 0.05 * (1 - up);
       } else if (e.type === 'colossus') {
         frames = COLO; fi = Math.floor((e.anim * 0.22 + e.seed) * 8) % 8;
       } else {
         frames = CRIT;
         const blink = U.fract(rt * 0.55 + e.seed * 7) < 0.07;
         fi = blink ? 1 : 0;
+        // hop: a beat on the ground (land squash → anticipation crouch), then a stretched arc in the air
         const ph = U.fract(e.anim * 0.3 + e.seed);
-        const sq = Math.pow(Math.max(0, Math.cos(ph * TAU)), 3);
-        y -= Math.sin(ph * Math.PI) * 5.5;
-        sy = 1 - 0.18 * sq + 0.07 * (1 - sq); sx = 1 / Math.sqrt(sy);
+        let hop = 0, sq = 0, st = 0;
+        if (ph < 0.26) sq = Math.sin((ph / 0.26) * Math.PI);
+        else { const u = (ph - 0.26) / 0.74; hop = Math.sin(u * Math.PI); st = Math.max(0, 1 - u * 2.4); }
+        y -= hop * 6.2;
+        sy = 1 - 0.22 * sq + 0.12 * st; sx = 1 / Math.sqrt(sy);
+      }
+      // hit reaction: damped squash/stretch for ~250 ms (works from flash alone, so it also plays in sheets)
+      if ((e.flash || 0) > (e._nf || 0) + 0.3) e._ht = rt;
+      e._nf = e.flash || 0;
+      const ha = e._ht === undefined ? 9 : rt - e._ht;
+      let rot = 0;
+      if (ha < 0.32 && !e.dying) {
+        const r = Math.exp(-ha * 13) * Math.cos(ha * 26);
+        sx *= 1 + 0.16 * r; sy *= 1 - 0.16 * r;
+        rot = U.clamp((e.kx || 0) / 140, -1, 1) * 0.22 * Math.exp(-ha * 9);
       }
       const side = e.facing < 0 ? 1 : 0;
       const s = frames[fi][side];
@@ -1728,7 +1820,21 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
           ctx.globalAlpha = 1;
         }
       }
+      const lean = Math.abs(rot) > 0.004;
+      if (lean) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.translate(-x, -y); }
       ctx.drawImage(s.img, x - s.ax * W, y - s.ay * H, W, H);
+      if (e.flash > 0) {
+        const dx = x - s.ax * W, dy = y - s.ay * H;
+        ctx.globalAlpha = Math.min(1, e.flash * 1.1);
+        ctx.drawImage(s.flash, dx, dy, W, H);
+        if (e.flash > 0.45) {
+          ctx.globalAlpha = 0.75 * e.flash;
+          ctx.drawImage(s.pk, dx - 1.8, dy, W, H);
+          ctx.drawImage(s.cy, dx + 1.8, dy, W, H);
+        }
+        ctx.globalAlpha = 1;
+      }
+      if (lean) ctx.restore();
       if (e.type === 'colossus') {
         const ph = (e.anim * 0.22 + e.seed) * 2, f = ph - Math.floor(ph);
         if (f < 0.35) {
@@ -1741,33 +1847,22 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
           ctx.globalAlpha = 1;
         }
       }
-      if (e.flash > 0) {
-        const dx = x - s.ax * W, dy = y - s.ay * H;
-        ctx.globalAlpha = Math.min(1, e.flash * 1.1);
-        ctx.drawImage(s.flash, dx, dy, W, H);
-        if (e.flash > 0.45) {
-          ctx.globalAlpha = 0.75 * e.flash;
-          ctx.drawImage(s.pk, dx - 1.8, dy, W, H);
-          ctx.drawImage(s.cy, dx + 1.8, dy, W, H);
-        }
-        ctx.globalAlpha = 1;
-      }
     },
 
     drawPlayer(ctx, p, view) {
       const rt = view.rt;
-      const mode = p.dashT > 0 ? 'dash' : p.moving ? 'walk' : 'idle';
-      let set;
-      if (mode === 'dash') set = HERO.dash;
-      else if (mode === 'walk') set = HERO.walk[Math.floor(((p.anim / 3) % 1) * 8) & 7];
-      else set = HERO.idle;
+      let mode, set, dk = 0;
+      if (p.dashT > 0) { mode = 'dash'; dk = U.clamp(1 - p.dashT / 0.2, 0, 1); set = HERO.dash[dk < 0.22 ? 0 : dk < 0.78 ? 1 : 2]; }
+      else if (p.hurtT > 0.55) { mode = 'hurt'; set = HERO.hurt; }
+      else if (p.moving) { mode = 'walk'; set = HERO.walk[Math.floor(((p.anim / 2.6) % 1) * 8) & 7]; }
+      else { mode = 'idle'; set = HERO.idle[Math.floor(U.fract(rt / 3.4) * 8) & 7]; }
       const side = p.facing < 0 ? 1 : 0;
       const s = set[side];
-      const bob = mode === 'idle' ? Math.sin(rt * 3.0) * 0.5 : 0;
+      const bob = 0;
       if (mode === 'dash') {
         for (let i = 1; i <= 4; i++) {
           ctx.globalAlpha = 0.5 - i * 0.1;
-          blit(ctx, s, i % 2 ? s.pk : s.cy, p.x - p.dashX * i * 7, p.y - p.dashY * i * 7);
+          blit(ctx, s, i % 2 ? s.pk : s.cy, p.x - p.dashX * i * 7 * (0.4 + dk), p.y - p.dashY * i * 7 * (0.4 + dk));
         }
         ctx.globalAlpha = 1;
       } else if (mode === 'walk' && Math.hypot(p.vx, p.vy) > 60) {
@@ -1794,7 +1889,11 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
       let alpha = 1;
       if (p.iframes > 0 && p.hurtT > 0 && (Math.floor(rt * 18) & 1)) alpha = 0.45;
       ctx.globalAlpha = alpha;
-      blit(ctx, s, s.img, p.x, p.y + bob);
+      // squash & stretch: the dash stretches along the motion, the brake frame squashes; the recoil squashes
+      let ssx = 1, ssy = 1;
+      if (mode === 'dash') { const st = Math.sin(dk * Math.PI); ssx = 1 + 0.15 * st - (dk > 0.8 ? 0.07 : 0); ssy = 1 - 0.1 * st + (dk > 0.8 ? 0.05 : 0); }
+      else if (mode === 'hurt') { const h = (p.hurtT - 0.55) / 0.45; ssx = 1 + 0.12 * h; ssy = 1 - 0.1 * h; }
+      ctx.drawImage(s.img, p.x - s.ax * s.w * ssx, p.y + bob - s.ay * s.h * ssy, s.w * ssx, s.h * ssy);
       ctx.globalAlpha = 1;
       if (p.hurtT > 0.35) {
         ctx.globalAlpha = (p.hurtT - 0.35) * 1.3;
@@ -1839,10 +1938,7 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
     },
 
     drawParticle(ctx, pt, view) {
-      if (view !== pbView) {
-        if (pbPending) { pbDirect = true; for (const b of PB.values()) b.d.length = 0; pbPending = false; }
-        pbView = view;
-      }
+      if (view !== pbView) { pbView = view; pbLast = lastVisible(view); }
       const k = Math.max(0, pt.life / pt.max);
       const y = pt.y - pt.z;
       switch (pt.kind) {
@@ -1863,6 +1959,13 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
           break;
         }
         case 'sq': bucket('sq', pt.color, Math.min(1, k * 1.5)).d.push(pt.x, y, pt.size); break;
+        case 'decal': { const r = pt.r0 * (0.85 + 0.15 * k); bucket('ringT', pt.color, k * k * 0.8).d.push(pt.x, pt.y, r, r * 0.4); break; }
+        case 'flash': {
+          // core flash: an ink-edged white sparkle that snaps open and is gone in ~100 ms
+          const e = 1 - k;
+          bucket('star', '#ffffff', 1).d.push(pt.x, y, pt.size * (0.45 + 0.55 * Math.sqrt(e)) * (0.6 + 0.4 * k));
+          break;
+        }
         case 'star': bucket('star', pt.color, Math.min(1, k * 1.6)).d.push(pt.x, y, pt.size * (0.5 + 0.5 * Math.sin(k * Math.PI))); break;
         default: {
           const vx = pt.vx, vy = pt.vy - (pt.vz || 0);
@@ -1872,7 +1975,7 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
           bucket((pt.size || 2) > 2.4 ? 'line2' : 'line', pt.color || '#ffffff', k).d.push(pt.x, y, pt.x - nx * L, y - ny * L);
         }
       }
-      if (pbDirect) pbFlush(ctx);
+      if (pt === pbLast) pbFlush(ctx);
     },
 
     drawNumber(ctx, n) {
@@ -1963,6 +2066,7 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
     onHit(game, e) {
       const T = ETYPE[e.type] || ETYPE.creeper;
       const z = T.h * 1.1;
+      game.addParticle({ kind: 'flash', x: e.x, y: e.y, z, size: 4.6, life: 0.1, drag: 0 });
       for (let i = 0; i < 3; i++) spark(game, e.x, e.y, z, Math.random() * TAU, 60 + Math.random() * 90, i ? T.col : '#ffffff', 0.18 + Math.random() * 0.1, 2);
       confetti(game, e.x, e.y, z, 2, [T.col, T.col2], 50, 0.35, 2.6);
       ring(game, e.x, e.y, z, 1.5, 7, '#ffffff', 0.15, 1, true);
@@ -1970,6 +2074,10 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
     onKill(game, e) {
       const T = ETYPE[e.type] || ETYPE.creeper;
       const big = e.type === 'colossus';
+      game.addParticle({ kind: 'flash', x: e.x, y: e.y, z: T.h * 0.9, size: big ? 13 : 8, life: big ? 0.16 : 0.12, drag: 0 });
+      game.addParticle({ kind: 'decal', x: e.x, y: e.y, r0: e.r * 1.6, color: T.col === P.marble ? P.lav : T.col, life: big ? 1.3 : 0.9, drag: 0 });
+      // slow residue: a few VHS pixels that hang in the air
+      for (let i = 0; i < (big ? 6 : 3); i++) game.addParticle({ kind: 'sq', x: e.x + (Math.random() - 0.5) * e.r * 2, y: e.y, z: T.h * (0.4 + Math.random()), vx: (Math.random() - 0.5) * 10, vz: 6 + Math.random() * 8, grav: -10, drag: 1.5, size: 1.1 + Math.random() * 0.8, color: i % 2 ? P.fringeC : P.fringeP, life: 0.7 + Math.random() * 0.5 });
       if (big) {
         confetti(game, e.x, e.y, T.h, 16, [P.marble, P.marble2, P.marble3], 110, 0.9, 5, 'chunk');
         confetti(game, e.x, e.y, T.h, 10, [P.hot, P.cyan, P.sun], 120, 0.7, 3);
@@ -1996,6 +2104,7 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
     },
     onPickup(game, g) {
       const p = game.player;
+      game.addParticle({ kind: 'flash', x: p.x, y: p.y, z: 12, size: g.big ? 6 : 3.6, life: 0.09, drag: 0 });
       ring(game, p.x, p.y, 0, 3, g.big ? 18 : 11, g.big ? P.hot : P.mint, 0.28, 0.42, true);
       for (let i = 0; i < (g.big ? 5 : 2); i++) {
         game.addParticle({ kind: 'star', x: p.x + (Math.random() - 0.5) * 14, y: p.y, z: 8 + Math.random() * 16, vx: (Math.random() - 0.5) * 20, vz: 30 + Math.random() * 20, grav: 1, drag: 1, size: g.big ? 3.2 : 2.4, color: g.big ? P.blush : '#ffffff', life: 0.45 + Math.random() * 0.2 });
@@ -2013,6 +2122,7 @@ body.style-vaporwave #pausebox{font:400 56px 'Monoton',cursive;color:#fff;text-s
       }
     },
     onLevelUp(game, p) {
+      game.addParticle({ kind: 'flash', x: p.x, y: p.y, z: 16, size: 12, life: 0.14, drag: 0 });
       ring(game, p.x, p.y, 0, 6, 66, P.hot, 0.7, 0.42);
       ring(game, p.x, p.y, 0, 4, 44, P.cyan, 0.55, 0.42, true);
       for (let i = 0; i < 16; i++) {

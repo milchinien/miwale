@@ -1,12 +1,13 @@
 /* Watercolor Storybook — starter kit from the miwale Game Style Library (https://miwale.com/styles/).
    Dependency-free Canvas 2D. Free to copy and adapt. Full spec: STYLE.md
    Technique: transparent pigment washes (absorbance mixing over warm paper, edge pooling, granulation,
-   wet-in-wet blobs) + loose, broken, variable-width ink contours. Everything expensive is baked once. */
+   wet-in-wet blobs) + loose, broken, variable-width ink contours. Poses come from a tiny rig (8-pose walk, breathing idle),
+   trees from one crown wash + clipped foliage-tier glazes. Everything expensive is baked once. */
 (function (root) {
   'use strict';
   const PALETTE = {
     paper: '#f5eede', ink: '#2a1b14', inkBlue: '#252c46', meadow: '#b2c6a2', sap: '#c2cc96', ochreWash: '#dace98',
-    forest: '#8e9c92', indigo: '#828aa2', field: '#e9ce88', path: '#d8b894', pumpkin: '#e8832f', pumpkinLight: '#f6b45e',
+    forest: '#8e9c92', indigo: '#828aa2', forestSun: '#acb880', water: '#6a84aa', field: '#e9ce88', path: '#d8b894', pumpkin: '#e8832f', pumpkinLight: '#f6b45e',
     pumpkinShade: '#bf531b', coat: '#41528a', coatShade: '#29345e', scarf: '#b4432f', turnip: '#7a4a8c', turnipSkin: '#eee0ba',
     leaf: '#6c8a38', ghost: '#d3dbe3', ghostShade: '#8fa0bb', glow: '#ffcf55', gold: '#e6a92f', hpRed: '#c23b2b', shadow: '#32365c',
   };
@@ -172,108 +173,143 @@
   }
   const blit = (ctx, s, x, y, flip, sc) => { sc = sc || 1; const ax = flip ? s.wu - s.ax : s.ax; ctx.drawImage(flip ? s.f : s.c, x - ax * sc, y - s.ay * sc, s.wu * sc, s.hu * sc); };
 
-  /* ---------- 3. characters (ported from the style module) ---------- */
-  function drawJack(ctx, ph, wave, r) {
-    const sw = ph === null ? 0 : Math.sin(ph), cw = ph === null ? 0 : Math.cos(ph), lift = (v) => (ph === null ? 0 : Math.max(0, v) * 1.5);
-    part(ctx, ribbon(jit([[-3.4, -11.6], [-4.8, -9.6], [-5 - sw * 1.5, -7.6]], 0.2, r), taperW(2.5, 2)), { c: '#34406c', blobs: [{ x: -4.6, y: -10, rx: 1.4, ry: 2, c: '#4b5a8e', a: 0.6, blur: 0.8 }], hi: 0.15, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: 0.55 });
-    wash(ctx, spline(blobPts(-5.1 - sw * 1.5, -7.2, 1.2, 1.1, 0.12, r, 7), true, 4), { c: '#e6d6b8', hi: 0.2, rim: 0.6, edge: '#a08060', gran: 0.3 }, r);
-    for (const [hx, dx, li] of [[-1.6, -2.4 * sw, lift(-cw)], [1.6, 2.4 * sw, lift(cw)]]) {
-      const fx = hx + dx, fy = -0.9 - li;
-      part(ctx, ribbon(jit([[hx, -6], [hx + dx * 0.5, -3.4 - li * 0.5], [fx, fy - 0.4]], 0.12, r), taperW(2.3, 1.9)), { c: '#4a3a34', hi: 0.12, rim: 0.6, edge: '#2a1e1a', gran: 0.35 }, r, { w: 0.5 });
-      part(ctx, spline(blobPts(fx + 0.7, fy + 0.1, 1.9, 1.15, 0.1, r, 8), true, 4), { c: '#3b2a24', blobs: [{ x: fx, y: fy - 0.4, rx: 1, ry: 0.5, c: '#6b5040', a: 0.7, blur: 0.5 }], hi: 0.1, rim: 0.5, gran: 0.3 }, r, { w: 0.5 });
+  /* ---------- 3. characters: a tiny rig drives every baked pose (ported from the style module) ---------- */
+  /** Walk = 8 poses (contact - down - passing - up, twice): body lowest just after contact, head settles a beat later,
+      hands counter-swing the feet, the scarf tail trails as a travelling wave. Idle = breathing, the head lags the chest. */
+  function rig(pose) {
+    const R = { bodyDy: 0, lean: 0, headDy: 0, tilt: 0, breath: 0, feet: [[-1.6, 0], [1.6, 0]], hands: [[-5.1, -7.2], [5.9, -7.4]], tail: [0.5, 0, 0.95] };
+    if (pose.kind === 'walk') {
+      const ph = pose.ph, s = Math.sin(ph), c = Math.cos(ph);
+      R.bodyDy = 0.75 * Math.cos(2 * (ph - 0.35)); R.lean = 0.07; R.headDy = 0.5 * Math.cos(2 * (ph - 0.95)); R.tilt = 0.04 * Math.sin(2 * ph - 0.7);
+      R.feet = [[-1.4 + 2.5 * c, Math.max(0, -s) * 2], [1.6 - 2.5 * c, Math.max(0, s) * 2]];
+      R.hands = [[-5 - 2.7 * c, -7.3 - 0.7 * c * c], [5.7 + 2.7 * c, -7.5 - 0.7 * c * c]];
+      R.tail = [0.24 + 0.07 * Math.cos(2 * ph), Math.sin(2 * ph - 1.5), 1.08];
+    } else {
+      const b = Math.sin(pose.br * TAU); R.breath = b; R.bodyDy = -0.22 * b; R.headDy = -0.28 * Math.sin(pose.br * TAU - 0.7);
+      R.hands = [[-5.1 - 0.15 * b, -7.2 - 0.25 * b], [5.9 + 0.15 * b, -7.4 - 0.25 * b]]; R.tail = [0.5 + 0.04 * b, 0.45 * Math.sin(pose.br * TAU + 1.3), 0.95];
     }
-    part(ctx, ribbon(jit([[-2, -13.2], [-5, -12.6 + wave * 0.5], [-8, -12 - wave * 0.7], [-10.4, -10.8 + wave * 0.9]], 0.2, r), (u) => 2.3 - u * 0.9 + Math.sin(u * 9) * 0.15), { c: '#b4432f', blobs: [{ x: -6, y: -12.8, rx: 2.5, ry: 1, c: '#d66a48', a: 0.6, blur: 0.7 }, { x: -9.5, y: -11, rx: 1.6, ry: 1.2, c: '#862a1e', a: 0.6, blur: 0.8 }], hi: 0.15, rim: 0.7, edge: '#6e1f15', gran: 0.4 }, r, { w: 0.55 });
+    return R;
+  }
+  function drawJack(ctx, pose, r) {                                       // main character: pumpkin-headed child, indigo coat, red scarf
+    const R = rig(pose), hip = -5 + R.bodyDy;
+    const bodyT = () => { ctx.translate(0, hip); ctx.rotate(R.lean); ctx.translate(0, 5); };
+    const arm = (sx, sy, h, col, lt, back) => {
+      part(ctx, ribbon(jit([[sx, sy], [(sx + h[0]) / 2 + (back ? -0.6 : 0.6), (sy + h[1]) / 2 + 0.5], h], 0.2, r), taperW(2.5, 2)), { c: col, blobs: [{ x: sx, y: sy + 1.4, rx: 1.3, ry: 1.8, c: lt, a: 0.6, blur: 0.8 }], hi: 0.2, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: back ? 0.55 : 0.6 });
+      wash(ctx, spline(blobPts(h[0], h[1] + 0.3, 1.25, 1.12, 0.12, r, 7), true, 4), { c: back ? '#e6d6b8' : '#ecdfc2', hi: 0.2, rim: 0.5, edge: '#a08060', gran: 0.25 }, r);
+    };
+    ctx.save(); bodyT(); arm(-3.4, -11.6, R.hands[0], '#34406c', '#4b5a8e', true); ctx.restore();
+    R.feet.forEach(([fx, li], i) => {                                    // legs: hips ride with the body, feet stay planted
+      const hx = i ? 1.6 : -1.6, fy = -0.9 - li, kx = (hx + fx) / 2 + 0.5 + Math.max(0, R.bodyDy) * 0.45, ky = (hip - 1 + fy) / 2 - li * 0.3;
+      part(ctx, ribbon(jit([[hx, hip - 1], [kx, ky], [fx, fy - 0.4]], 0.12, r), taperW(2.3, 1.9)), { c: i ? '#4a3a34' : '#3e302b', hi: 0.12, rim: 0.6, edge: '#2a1e1a', gran: 0.35 }, r, { w: 0.5 });
+      part(ctx, spline(blobPts(fx + 0.7, fy + 0.1, 1.9, 1.15, 0.1, r, 8), true, 4), { c: '#3b2a24', hi: 0.1, rim: 0.5, gran: 0.3 }, r, { w: 0.5 });
+    });
+    ctx.save(); bodyT();
+    if (R.breath) { ctx.translate(0, -4); ctx.scale(1 + 0.012 * R.breath, 1 + 0.028 * R.breath); ctx.translate(0, 4); }
+    const [ta, wv, tl] = R.tail, ca = Math.cos(ta), sa = Math.sin(ta), pt = (d, off) => [-2 - d * ca * tl, -13.2 + d * sa * tl + d * d * 0.028 * ca + off];
+    part(ctx, ribbon(jit([pt(0, 0), pt(3, wv * 0.7), pt(6, -wv), pt(8.8, wv * 1.25)], 0.2, r), (u) => 2.3 - u * 0.9 + Math.sin(u * 9) * 0.15), { c: '#b4432f', blobs: [{ x: -6, y: -12.8, rx: 2.5, ry: 1, c: '#d66a48', a: 0.6, blur: 0.7 }], hi: 0.15, rim: 0.7, edge: '#6e1f15', gran: 0.4 }, r, { w: 0.55 });
     const CP = spline(jit([[-3.4, -13.6], [-0.2, -14], [3.2, -13.6], [4.9, -11.8], [5.8, -8.2], [6.5, -4.6], [3.4, -4], [0.3, -4.5], [-3, -3.9], [-6.1, -4.7], [-5.6, -8.4], [-4.9, -12]], 0.2, r), true, 6);
     wash(ctx, CP, { c: '#41528a', blobs: [{ x: -2.2, y: -11, rx: 2.8, ry: 3.2, c: '#6677ad', a: 0.75, blur: 1.4 }, { x: 4.5, y: -6, rx: 3, ry: 3.4, c: '#29345e', a: 0.75, blur: 1.4 }], hi: 0.3, rim: 1, edge: '#1d2546', gran: 0.6 }, r);
     outline(ctx, CP, { w: 0.78, light: 0.5, pieces: 3 }, r);
-    stroke(ctx, [[0.9, -12.6], [1.2, -8.5], [1.4, -4.7]], { w: 0.32, jit: 0.15, ta: 0.1, tb: 0.4, alpha: 0.75 }, r);
     for (const by of [-10.8, -8.3, -5.9]) { ctx.beginPath(); ctx.arc(2, by, 0.48, 0, TAU); ctx.fillStyle = '#d4a03c'; ctx.fill(); ctx.lineWidth = 0.18; ctx.strokeStyle = INK; ctx.stroke(); }
     part(ctx, spline(jit([[-4.6, -13.9], [-1.2, -14.9], [2.8, -14.6], [4.8, -13.4], [3.6, -12.2], [0.2, -12.4], [-3.4, -12.3], [-5, -12.9]], 0.15, r), true, 5), { c: '#b4432f', blobs: [{ x: -1, y: -14.2, rx: 3, ry: 0.8, c: '#dc7650', a: 0.7, blur: 0.6 }], hi: 0.2, rim: 0.7, edge: '#6e1f15', gran: 0.4 }, r, { w: 0.6 });
-    const hx = 0.4, hy = -19.6, hp = [];                                   // pumpkin head: 14-point lobed ellipse, dented top
+    ctx.save(); ctx.translate(0.4, -14); ctx.rotate(R.tilt); ctx.translate(-0.4, 14 + R.headDy);   // head hinged at the neck
+    const hx = 0.4, hy = -19.6, hp = [];
     for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU - Math.PI / 2, lobe = 1 + 0.035 * Math.cos(a * 5 + 0.3); hp.push([hx + Math.cos(a) * 8.5 * lobe, hy + (Math.sin(a) * 6.9 + Math.exp(-Math.pow((a + Math.PI / 2) / 0.32, 2))) * lobe]); }
     const HP = spline(jit(hp, 0.22, r), true, 6);
-    wash(ctx, HP, { c: '#e8832f', blobs: [{ x: hx - 3, y: hy - 3, rx: 4.4, ry: 3.2, c: '#f6b45e', a: 0.85, blur: 1.6 }, { x: hx + 4.2, y: hy + 3.6, rx: 6, ry: 3.4, c: '#bf531b', a: 0.75, blur: 1.8 }, { x: hx - 5.5, y: hy + 1.5, rx: 2.2, ry: 2.8, c: '#dca13c', a: 0.45, blur: 1.2 }], hi: 0.35, rim: 1.25, edge: '#93380f', gran: 0.45 }, r);
+    wash(ctx, HP, { c: '#e8832f', blobs: [{ x: hx - 3, y: hy - 3, rx: 4.4, ry: 3.2, c: '#f6b45e', a: 0.85, blur: 1.6 }, { x: hx + 4.2, y: hy + 3.6, rx: 6, ry: 3.4, c: '#bf531b', a: 0.75, blur: 1.8 }], hi: 0.35, rim: 1.25, edge: '#93380f', gran: 0.45 }, r);
     for (const dx of [-5.6, -2.2, 3.4, 6.4]) stroke(ctx, [[hx + dx * 0.55, hy - 5.7], [hx + dx * 1.03, hy], [hx + dx * 0.6, hy + 5.9]], { w: 0.42, jit: 0.15, ta: 0.25, tb: 0.35, color: '#7e2f0e', alpha: 0.7 }, r);
     outline(ctx, HP, { w: 0.95, light: 0.55, pieces: 3 }, r);
-    part(ctx, ribbon(jit([[hx + 0.2, -25.6], [hx - 0.4, -27.6], [hx + 0.7, -29.6]], 0.12, r), taperW(2.2, 1.4)), { c: '#7a6a30', hi: 0.1, rim: 0.5, gran: 0.4 }, r, { w: 0.55 });
-    part(ctx, ribbon(jit([[hx - 0.6, -26.2], [hx - 2.6, -27.6], [hx - 4.6, -27.9]], 0.12, r), leafW(2.2)), { c: '#6e8b3a', hi: 0.1, rim: 0.5, edge: '#3e5220', gran: 0.4 }, r, { w: 0.45 });
-    const fx = hx + 1.7;
-    glow(ctx, jit([[fx - 4.1, -19.5], [fx - 1.3, -19.8], [fx - 2.5, -22.6]], 0.1, r), r);
-    glow(ctx, jit([[fx + 0.9, -19.8], [fx + 3.3, -19.5], [fx + 2.4, -22.3]], 0.1, r), r);
+    part(ctx, ribbon(jit([[hx + 0.2, -25.6], [hx - 0.4, -27.6], [hx + 0.7 - R.tilt * 4, -29.6]], 0.12, r), taperW(2.2, 1.4)), { c: '#7a6a30', hi: 0.1, rim: 0.5, gran: 0.4 }, r, { w: 0.55 });
+    part(ctx, ribbon(jit([[hx - 0.6, -26.2], [hx - 2.6, -27.6 + wv * 0.2], [hx - 4.6, -27.9 + wv * 0.6]], 0.12, r), leafW(2.2)), { c: '#6e8b3a', hi: 0.1, rim: 0.5, edge: '#3e5220', gran: 0.4 }, r, { w: 0.45 });
+    const fx = hx + 1.7, sl = pose.blink ? 0.25 : 1;                      // blink: the carved eyes dim to slits
+    glow(ctx, jit([[fx - 4.1, -19.5], [fx - 1.3, -19.8], [fx - 2.5, -19.7 - 2.9 * sl]], 0.08, r), r);
+    glow(ctx, jit([[fx + 0.9, -19.8], [fx + 3.3, -19.5], [fx + 2.4, -19.7 - 2.6 * sl]], 0.08, r), r);
     glow(ctx, jit([[-4.9, -17], [-3.6, -16.25], [-2.7, -16.75], [-1.7, -16.05], [0.3, -16.05], [1.3, -16.7], [2.3, -16.15], [3.7, -16.55], [4.4, -17.3], [3.4, -15.15], [1.2, -14.2], [-1.4, -14.1], [-3.6, -14.9]].map((p) => [fx + p[0], p[1]]), 0.08, r), r, { w: 0.45 });
-    part(ctx, ribbon(jit([[3, -11.8], [4.6, -9.8], [5.6 + sw * 1.5, -7.9]], 0.2, r), taperW(2.6, 2.1)), { c: '#46578f', blobs: [{ x: 3.6, y: -11, rx: 1.2, ry: 1.6, c: '#7182b5', a: 0.6, blur: 0.7 }], hi: 0.25, rim: 0.8, edge: '#1f2748', gran: 0.5 }, r, { w: 0.6 });
-    part(ctx, spline(blobPts(5.9 + sw * 1.5, -7.4, 1.3, 1.15, 0.12, r, 7), true, 4), { c: '#ecdfc2', hi: 0.2, rim: 0.5, edge: '#a08060', gran: 0.25 }, r, { w: 0.45 });
+    ctx.restore();
+    arm(3, -11.8, R.hands[1], '#46578f', '#7182b5', false);
+    ctx.restore();
   }
-  function drawCreeper(ctx, ph, sway, r, pal) {                           // small creature: violet-crowned root creature with a leafy top
-    const sw = Math.sin(ph), cw = Math.cos(ph), lift = (v) => Math.max(0, v) * 1.4;
-    for (const [hx, dir, li] of [[-2.4, -1, lift(cw)], [2.6, 1, lift(-cw)]]) {
-      const fx = hx + dir * (2 * sw + 0.4), fy = -0.4 - li;
-      stroke(ctx, [[hx, -5.6], [hx + (fx - hx) * 0.4 - 0.3, -3.2 - li * 0.4], [fx, fy]], { w: 1.25, jit: 0.12, ta: 0.05, tb: 0.35, wv: 0.2, color: '#4a3020' }, r);
+  function drawCreeper(ctx, ph, r, pal) {                                 // small creature: waddle = squash on contact, leaves trail a beat late
+    const sw = Math.sin(ph), cw = Math.cos(ph), lift = (v) => Math.max(0, v) * 1.6, q = 0.05 * Math.cos(2 * ph), dy = 0.65 * Math.cos(2 * ph) - 0.15;
+    for (const [hx, dir, li, dx] of [[-2.4, -1, lift(cw), 2.1 * sw + 0.4], [2.6, 1, lift(-cw), -2.1 * sw + 0.4]]) {
+      const fx = hx + dir * dx, fy = -0.4 - li;
+      stroke(ctx, [[hx, -5.6 + dy], [hx + (fx - hx) * 0.4 - 0.3, -3.2 - li * 0.4 + dy * 0.5], [fx, fy]], { w: 1.25, jit: 0.12, ta: 0.05, tb: 0.35, wv: 0.2, color: '#4a3020' }, r);
       stroke(ctx, [[fx, fy], [fx + 1.3, fy + 0.25]], { w: 0.45, ta: 0, tb: 0.6, wv: 0, color: '#4a3020' }, r);
     }
-    ctx.save(); ctx.translate(0, -4.5); ctx.rotate(sw * 0.075); ctx.translate(0, 4.5);
+    ctx.save(); ctx.translate(0, -4.5 + dy); ctx.rotate(0.085 * sw + 0.04); ctx.scale(1 + q * 0.8, 1 - q); ctx.translate(0, 4.5);
     const BP = spline(jit([[0, -22.6], [5.6, -21.4], [8.8, -15.6], [7.7, -9.4], [4.2, -5.6], [0.6, -3.9], [-3.4, -5.6], [-7.5, -9.2], [-8.7, -15.4], [-5.5, -21.4]], 0.28, r), true, 6);
     wash(ctx, BP, { c: '#eee0ba', blobs: [{ x: 0, y: -20.6, rx: 10.6, ry: 6, c: pal[0], a: 0.95, blur: 2 }, { x: -3.4, y: -19.6, rx: 3.8, ry: 2.4, c: pal[1], a: 0.6, blur: 1.3 }, { x: 5.6, y: -17.6, rx: 3.4, ry: 3.2, c: pal[2], a: 0.5, blur: 1.5 }, { x: 2.4, y: -7.6, rx: 6, ry: 2.6, c: '#e3c886', a: 0.55, blur: 1.6 }], hi: 0.32, rim: 1.2, edge: '#5a3a52', rimA: 0.5, gran: 0.5 }, r);
-    stroke(ctx, [[-5.8, -9.8], [-3, -8.7], [-0.4, -8.9]], { w: 0.34, jit: 0.12, alpha: 0.55, color: '#6a4a3a' }, r);
     outline(ctx, BP, { w: 0.95, light: 0.55, pieces: 3 }, r);
-    for (const [L, w] of [[[[-0.6, -22], [-3.8, -26.4], [-6.6 + sway * 0.6, -30.2]], 3], [[[0.3, -22.4], [0.2, -27.4], [1.6 + sway, -31.6]], 3.2], [[[1, -22], [4.2, -25.8], [6.8 + sway * 0.8, -28.4]], 2.8]]) {
+    const s = 1.7 * Math.sin(ph - 1.25) - 0.5;                            // follow-through: leaf tips lag the body
+    for (const [L, w] of [[[[-0.6, -22], [-3.8 + s * 0.25, -26.4], [-6.6 + s * 0.7, -30.2]], 3], [[[0.3, -22.4], [0.2 + s * 0.35, -27.4], [1.6 + s, -31.6]], 3.2], [[[1, -22], [4.2 + s * 0.3, -25.8], [6.8 + s * 0.85, -28.4]], 2.8]]) {
       const pts = jit(L, 0.18, r), LP = ribbon(pts, leafW(w));
       wash(ctx, LP, { c: '#6c8a38', blobs: [{ x: pts[0][0], y: pts[0][1] - 1, rx: 1.6, c: '#a7bd68', a: 0.7, blur: 0.8 }, { x: pts[2][0], y: pts[2][1], rx: 1.6, c: '#46602a', a: 0.6, blur: 0.9 }], hi: 0.1, rim: 0.7, edge: '#3a4e1c', gran: 0.45 }, r);
       outline(ctx, LP, { w: 0.5, light: 0.4 }, r); stroke(ctx, pts, { w: 0.32, ta: 0.05, tb: 0.5, wv: 0.1, alpha: 0.8 }, r);
     }
-    const eye = (cx, cy, s) => [[cx - 1.25 * s, cy + 0.25], [cx - 0.1, cy - 0.85 * s], [cx + 1.25 * s, cy - 0.15], [cx + 0.1, cy + 0.75 * s]];
+    const eye = (cx, cy, k) => [[cx - 1.25 * k, cy + 0.25], [cx - 0.1, cy - 0.85 * k], [cx + 1.25 * k, cy - 0.15], [cx + 0.1, cy + 0.75 * k]];
     glow(ctx, eye(2.4, -16.4, 1), r, { smooth: true, w: 0.4 }); glow(ctx, eye(6, -16.2, 0.82), r, { smooth: true, w: 0.36 });
     ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(2.7, -16.4, 0.42, 0, TAU); ctx.arc(6.15, -16.25, 0.36, 0, TAU); ctx.fill();
     stroke(ctx, [[0.3, -18.6], [1.9, -18.2], [3.5, -17.3]], { w: 0.95, ta: 0.15, tb: 0.35, wv: 0.1 }, r);
     stroke(ctx, [[7.6, -18.4], [6.4, -18], [5, -17.2]], { w: 0.85, ta: 0.15, tb: 0.35, wv: 0.1 }, r);
-    inkLine(ctx, jit([[2.2, -12.3], [3.3, -13.1], [4.3, -12.5], [5.3, -13.2], [6.5, -12.3]], 0.08, r), { w: 0.55, ta: 0.15, tb: 0.2, wv: 0.1 });
     ctx.restore();
   }
-  function drawGhost(ctx, p, r) {                                         // fast creature: frosty floating ghost sheet, feathered, lost-and-found edges
-    const w1 = Math.sin(p), w2 = Math.sin(p + 1.9), w3 = Math.sin(p + 3.6), arm = Math.sin(p + 0.8);
-    const BP = spline(jit([[-5.6, -19.2], [-1.6, -23.4], [4.2, -22.6], [7.2, -18.2], [7, -13], [5.2, -8.6], [2.6, -5.8 + w1 * 0.8], [0, -6.9], [-2.4, -3.7 + w2], [-4.1, -7.2], [-7, -4.8 + w3], [-7.1, -9.6], [-6.9, -14.6]], 0.25, r), true, 6);
-    wash(ctx, BP, { c: '#d3dbe3', blobs: [{ x: -3.4, y: -8.6, rx: 6, ry: 5, c: '#8fa0bb', a: 0.8, blur: 2.4 }, { x: -1.4, y: -20.2, rx: 4.6, ry: 2.6, c: '#f1f3ef', a: 0.7, blur: 1.6 }, { x: -5.6, y: -5.6, rx: 2.8, ry: 2, c: '#6a7b9e', a: 0.65, blur: 1.4 }], hi: 0.25, rim: 1.5, edge: '#6f80a2', rimA: 0.65, rimBlur: 0.7, gran: 0.55, feather: 0.85, salt: 12 }, r);
-    const n = BP.length;
-    inkLine(ctx, BP.slice(1, Math.round(n * 0.3)), { w: 0.62, ta: 0.3, tb: 0.35, wv: 0.35, color: INK_BLUE, alpha: 0.85, light: 0.5, cx: 0, cy: -15 });
-    inkLine(ctx, BP.slice(Math.round(n * 0.36), Math.round(n * 0.5)), { w: 0.5, ta: 0.3, tb: 0.4, color: INK_BLUE, alpha: 0.7 });
-    const k = hyp(ctx.getTransform().a, ctx.getTransform().b);
-    ctx.filter = 'blur(' + (0.3 * k).toFixed(1) + 'px)'; ctx.fillStyle = '#20263e'; ctx.globalAlpha = 0.92;
-    for (const [x, y, rx, ry] of [[1.3, -17.8, 1.35, 1.95], [4.85, -17.6, 1.05, 1.7], [3.3, -12.7, 1.35, 2.35 + w2 * 0.15]]) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0.1, 0, TAU); ctx.fill(); }
-    ctx.filter = 'none'; ctx.globalAlpha = 1;
-    const FA = ribbon(jit([[4.4, -13.4], [7.8, -13.8 + arm * 0.5], [11, -12.6 + arm]], 0.15, r), taperW(1.8, 0.6));
-    wash(ctx, FA, { c: '#c9d2dd', hi: 0.1, rim: 0.6, edge: '#6c7c9c', gran: 0.4, feather: 0.25 }, r);
-    for (let i = 0; i < 3; i++) stroke(ctx, [[10.9, -12.6 + arm], [10.9 + Math.cos(-0.55 + i * 0.5) * 1.6, -12.6 + arm + Math.sin(-0.55 + i * 0.5) * 1.6]], { w: 0.28, ta: 0, tb: 0.6, wv: 0, color: INK_BLUE, alpha: 0.85 }, r);
+  /** Deciduous tree: one light wash for the crown silhouette (union of lobes), then foliage tiers clipped to it –
+      transparent multiply glazes with a hard scalloped top edge, darker and higher on the shade side. */
+  function lobeUnion(cx, cy, lobes, n, r) {
+    return Array.from({ length: n }, (_, i) => {
+      const a = (i / n) * TAU, dx = Math.cos(a), dy = Math.sin(a); let best = 0;
+      for (const [lx, ly, lr] of lobes) { const qx = lx - cx, qy = ly - cy, b = dx * qx + dy * qy, disc = b * b - (qx * qx + qy * qy - lr * lr); if (disc >= 0) best = Math.max(best, b + Math.sqrt(disc)); }
+      best *= 1 + (r.next() - 0.5) * 0.06; return [cx + dx * best, cy + dy * best];
+    });
+  }
+  function drawTree(ctx, r, pal) {
+    const h = 80, ccx = 0.5, ccy = -h * 0.65, R = h * 0.31;
+    const TP = spline(jit([[-3.8, 0.4], [-2.3, -3.6], [-1.5, -20], [-1.2, -37]], 0.25, r), false, 5).concat(spline(jit([[1.5, -37], [1.9, -20], [2.6, -3.6], [4.4, 0.4]], 0.25, r), false, 5));
+    wash(ctx, TP, { c: '#7d5a3e', blobs: [{ x: 2.4, y: -15, rx: 1.4, ry: 16, c: '#4e3628', a: 0.65, blur: 1.2 }], hi: 0.1, rim: 0.8, edge: '#3a2618', gran: 0.6 }, r);
+    for (const [ex, ey] of [[-9, -50], [8, -53], [0.6, -60], [-4, -44]]) stroke(ctx, [[0.2, -h * 0.36], [ex * 0.45, (-h * 0.36 + ey) / 2 + 1], [ex, ey]], { w: 1.3, jit: 0.5, ta: 0.05, tb: 0.65 }, r);
+    const sil = lobeUnion(ccx, ccy, [[0, -0.32, 0.6], [-0.5, 0.02, 0.52], [0.52, 0, 0.54], [-0.22, 0.34, 0.48], [0.3, 0.36, 0.46], [-0.78, 0.3, 0.3], [0.8, 0.26, 0.32], [0.05, -0.72, 0.36]].map(([x, y, s]) => [ccx + x * R * 1.1, ccy + y * R * 0.92, s * R]), 72, r), B = bbox(sil);
+    wash(ctx, sil, { c: pal[0], blobs: [{ x: B.x0 + B.w * 0.3, y: B.y0 + B.h * 0.28, rx: B.w * 0.32, ry: B.h * 0.26, c: '#f4dc98', a: 0.7, blur: R * 0.22 }, { x: B.x0 + B.w * 0.72, y: B.y0 + B.h * 0.66, rx: B.w * 0.4, ry: B.h * 0.3, c: pal[1], a: 0.5, blur: R * 0.3 }], hi: 0.22, rim: 1.3, edge: pal[3], rimA: 0.5, gran: 0.5 }, r);
+    const tier = (yf, rr, slant) => {                                     // scalloped top edge, open below (the clip does the rest)
+      const pts = []; let x = B.x0 - rr * 0.6; while (x < B.x0 + B.w + rr * 0.3) { const w = rr * (0.75 + r.next() * 0.55), cx = x + w, ty = ccy + R * yf - slant * (cx - ccx); for (let k = 0; k <= 5; k++) { const a = Math.PI + (k / 5) * Math.PI; pts.push([cx + Math.cos(a) * w, ty + Math.sin(a) * w * 0.72]); } x += w * 1.8; }
+      return pts.concat([[B.x0 + B.w + 3, B.y0 + B.h + 4], [B.x0 - 3, B.y0 + B.h + 4]]);
+    };
+    ctx.save(); trace(ctx, sil); ctx.clip();
+    wash(ctx, tier(-0.12, R * 0.27, 0.12), { c: pal[1], hi: 0, rim: 1, edge: pal[3], rimA: 0.6, gran: 0.45, alpha: 0.5, op: 'multiply' }, r);
+    wash(ctx, tier(0.4, R * 0.2, 0.3), { c: pal[2], hi: 0, rim: 0.9, edge: pal[3], rimA: 0.6, gran: 0.5, alpha: 0.5, op: 'multiply' }, r);
+    wash(ctx, tier(0.8, R * 0.13, 0.2), { c: '#5a4648', hi: 0, rim: 0.6, edge: INK, rimA: 0.5, gran: 0.4, alpha: 0.45, op: 'multiply', dx: 0, dy: 0 }, r);
+    ctx.restore(); const sh = (p) => (p[0] - B.cx) * -LX + (p[1] - B.cy) * -LY > 0, i0 = sil.findIndex((p, i) => sh(p) && !sh(sil[(i + sil.length - 1) % sil.length]));
+    const keep = sil.slice(i0).concat(sil.slice(0, i0)).filter(sh); inkLine(ctx, keep, { w: 0.85, ta: 0.25, tb: 0.35, wv: 0.4, light: 0.5, cx: B.cx, cy: B.cy });   // ink only on the shade side
+  }
+  /** Watercolour splash: a wet pool whose pigment dried into a dark rim, detached teardrops thrown outward, fine spatter. */
+  function drawSplat(ctx, r, col, dk) {
+    MIS = [0, 0]; wash(ctx, spline(blobPts(0, 0, 3.3, 2.9, 0.32, r, 10), true, 4), { c: col, blobs: [{ x: -0.7, y: -0.6, rx: 1.7, ry: 1.4, c: '#fffaf0', a: 0.3, blur: 0.9 }], hi: 0, rim: 0.95, edge: dk, rimA: 0.8, rimBlur: 0.3, gran: 0.45 }, r); MIS = [0.45, 0.35];
+    ctx.fillStyle = col; for (let i = 0, nd = 6, a0 = r.next() * TAU; i < nd; i++) {
+      const a = a0 + (i / nd) * TAU + (r.next() - 0.5) * 0.7, d = 4.6 + r.next() * 2.4, d0 = 3.6 + r.next() * 0.8, hw = 0.45 + r.next() * 0.5, ca = Math.cos(a), sa = Math.sin(a);
+      trace(ctx, ribbon([[ca * d0, sa * d0], [ca * (d0 + d) / 2, sa * (d0 + d) / 2], [ca * d, sa * d]], (u) => 0.05 + hw * 2 * Math.pow(u, 1.6) * (u > 0.85 ? Math.sqrt((1 - u) / 0.15) * 0.6 + 0.4 : 1))); ctx.globalAlpha = 0.85; ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  /** Everything is baked once: 8 walk + 6 idle + blink poses, 6-pose creature cycles, tree, splats. Per frame only drawImage. */
+  let SPR = null;
+  function buildSprites() {
+    buildTextures(); const jf = (pose, i) => sprite(34, 36, 18, 33, (c, r) => drawJack(c, pose, r), 5000 + i * 7919); SPR = { walk: [], idle: [], creep: [[], []] };
+    for (let i = 0; i < 8; i++) SPR.walk.push(jf({ kind: 'walk', ph: (i / 8) * TAU }, i));
+    for (let i = 0; i < 6; i++) SPR.idle.push(jf({ kind: 'idle', br: i / 6 }, 8 + i)); SPR.blink = jf({ kind: 'idle', br: 0, blink: true }, 8);
+    [['#7a4a8c', '#a77ab5', '#4e2a5c'], ['#8b3d6d', '#b4729a', '#5a2244']].forEach((pal, v) => { for (let p = 0; p < 6; p++) SPR.creep[v].push(sprite(28, 37, 14, 34, (c, r) => drawCreeper(c, (p / 6) * TAU, r, pal), 6000 + v * 100 + p * 7919)); });
+    SPR.tree = sprite(72, 102, 36, 98, (c, r) => drawTree(c, r, ['#e2b866', '#c26a31', '#8a8a3a', '#7a4220']), 1100);
+    SPR.splat = [['#2a1b14', '#2a1b14'], ['#7a4a8c', '#4c2e57']].map(([c, d], i) => sprite(16, 16, 8, 8, (x, r) => drawSplat(x, r, c, d), 37 + i, 5));
+    MIS = [0, 0]; SPR.gem = [0, 1, 2].map((i) => sprite(8, 11, 4, 9.6, drawGem, 9100 + i, 4)); MIS = [0.45, 0.35];
+    const g = canvas(64, 64), gx = g.getContext('2d'), gr = gx.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,226,140,0.95)'); gr.addColorStop(0.35, 'rgba(255,196,90,0.5)'); gr.addColorStop(1, 'rgba(255,170,60,0)'); gx.fillStyle = gr; gx.fillRect(0, 0, 64, 64); SPR.glow = g;
   }
   function drawGem(ctx, r) {
     const P = spline(jit([[0, -8.6], [1.3, -6.4], [2.6, -4], [2.4, -2], [0.4, -0.9], [-1.8, -1.5], [-2.6, -3.6], [-1.6, -6.2]], 0.12, r), true, 5);
     wash(ctx, P, { c: '#e6a92f', blobs: [{ x: -0.4, y: -4, rx: 1.4, ry: 2, c: '#fbe39c', a: 0.95, blur: 0.6 }, { x: 1.6, y: -2, rx: 1.2, ry: 1, c: '#b8701c', a: 0.6, blur: 0.5 }], hi: 0, rim: 0.7, edge: '#9a5a14', rimA: 0.7, gran: 0.25, dx: 0.25, dy: 0.2 }, r);
     outline(ctx, P, { w: 0.42, light: 0.5 }, r); ctx.fillStyle = 'rgba(255,253,244,0.95)'; ctx.beginPath(); ctx.ellipse(-0.8, -4.6, 0.45, 0.7, 0.3, 0, TAU); ctx.fill();
   }
-  function drawBush(ctx, r) {
-    for (const [x, y, rr] of [[-5, -5, 6], [4, -5.4, 6.2], [0, -9, 6.4]]) {
-      const P = spline(blobPts(x, y, rr, rr * 0.8, 0.14, r, 12), true, 4);
-      wash(ctx, P, { c: '#7d8f45', blobs: [{ x: x - rr * 0.35, y: y - rr * 0.3, rx: rr * 0.5, ry: rr * 0.4, c: '#a9b86a', a: 0.6, blur: 1.4 }, { x: x + rr * 0.4, y: y + rr * 0.35, rx: rr * 0.6, ry: rr * 0.45, c: '#4f6428', a: 0.6, blur: 1.4 }], hi: 0.15, rim: 1, edge: '#2f3a1a', gran: 0.55, alpha: 0.92 }, r);
-      outline(ctx, P, { w: 0.62, wv: 0.4, pieces: 2 }, r);
-    }
-  }
-  /** All animation frames are baked once: walk poses x "boil" variants (re-jittered strokes = living line). */
-  let SPR = null;
-  function buildSprites() {
-    buildTextures();
-    SPR = { jack: [], creep: [[], []], ghost: [] };
-    for (let p = 0; p < 4; p++) for (let b = 0; b < 3; b++) SPR.jack.push(sprite(30, 35, 15.5, 32.5, (c, r) => drawJack(c, (p / 4) * TAU, Math.sin(p * 1.6 + b * 2.1), r), 5000 + (p * 3 + b) * 7919));
-    const pals = [['#7a4a8c', '#a77ab5', '#4e2a5c'], ['#8b3d6d', '#b4729a', '#5a2244']];
-    pals.forEach((pal, v) => { for (let p = 0; p < 4; p++) for (let b = 0; b < 2; b++) SPR.creep[v].push(sprite(26, 37, 13, 34, (c, r) => drawCreeper(c, (p / 4) * TAU, Math.sin(p * 1.7 + b * 2.4), r, pal), 6000 + v * 100 + (p * 2 + b) * 7919)); });
-    for (let p = 0; p < 4; p++) for (let b = 0; b < 2; b++) SPR.ghost.push(sprite(26, 28, 11.5, 26, (c, r) => drawGhost(c, (p / 4) * TAU + b * 0.4, r), 7000 + (p * 2 + b) * 7919));
-    MIS = [0, 0]; SPR.gem = [0, 1, 2].map((i) => sprite(8, 11, 4, 9.6, drawGem, 9100 + i, 4)); MIS = [0.45, 0.35];
-    SPR.bush = sprite(30, 22, 15, 19, drawBush, 1300);
-    const g = canvas(64, 64), gx = g.getContext('2d'), gr = gx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    gr.addColorStop(0, 'rgba(255,226,140,0.95)'); gr.addColorStop(0.35, 'rgba(255,196,90,0.5)'); gr.addColorStop(1, 'rgba(255,170,60,0)'); gx.fillStyle = gr; gx.fillRect(0, 0, 64, 64); SPR.glow = g;
-  }
 
   /* ---------- 4. ground: per-pixel pigment shader in absorbance space (baked once per canvas size) ---------- */
   const ab = (c) => c.map((v, i) => -Math.log(Math.max(4, v) / PAPER[i]));     // colour -> absorbance over paper
-  const PG = { mC: ab([178, 198, 162]), mS: ab([194, 204, 150]), mO: ab([218, 206, 152]), fP: ab([142, 156, 146]), fI: ab([130, 138, 162]), gO: ab([233, 206, 136]), gS: ab([228, 186, 122]), pE: ab([216, 184, 148]), pD: ab([198, 162, 128]) };
+  const PG = { mC: ab([178, 198, 162]), mS: ab([194, 204, 150]), mO: ab([218, 206, 152]), fP: ab([142, 156, 146]), fI: ab([130, 138, 162]), fS: ab([172, 184, 128]), gO: ab([233, 206, 136]), gS: ab([228, 186, 122]), pE: ab([216, 184, 148]), pD: ab([198, 162, 128]) };
   const sst = (t) => (t <= -1 ? 0 : t >= 1 ? 1 : ((t + 1) / 2) ** 2 * (3 - (t + 1)));
   const pool = (d) => (d <= 0 || d >= 2.6 ? 0 : (1 - d / 2.6) ** 2 * (d < 0.35 ? d / 0.35 : 1));   // pigment pooling inside a wash edge
   const gapf = (d) => (Math.abs(d) < 0.75 ? 1 - Math.abs(d) / 0.75 : 0);                         // thin bare-paper gap at edges
@@ -309,7 +345,7 @@
       const sM = wM * kM * dM * mul, sF = wF * kF * dF_ * mul, sG = wG * kG * dG_ * mul, sP = wP * kP * dP_ * mul, sh = 0.95 + 0.075 * P;
       for (let k = 0; k < 3; k++) {
         const aM = hh < 0.5 ? mix3(PG.mC, PG.mS, hh * 2, k) : mix3(PG.mS, PG.mO, hh * 2 - 1, k);
-        const A = sM * aM + sF * mix3(PG.fP, PG.fI, tf, k) + sG * mix3(PG.gO, PG.gS, tg, k) + sP * mix3(PG.pE, PG.pD, wa, k);
+        const A = sM * aM + sF * (mix3(PG.fP, PG.fI, tf, k) * (1 - dap * 0.75) + PG.fS[k] * dap * 0.75) + sG * mix3(PG.gO, PG.gS, tg, k) + sP * mix3(PG.pE, PG.pD, wa, k);
         d[o + k] = PAPER[k] * sh * EXP[Math.max(0, Math.min(4096, (A * 512) | 0))];  // Beer-Lambert: paper * exp(-absorbance)
       }
       d[o + 3] = 255;
@@ -322,12 +358,12 @@
     scat(30, 833, (x, y, r) => { if (mat(x, y) !== 'P' || !r.chance(0.6)) return; const sz = 0.7 + r.next() * 1.4, P = spline(blobPts(x, y, 1.6 * sz, 1.1 * sz, 0.2, r, 7), true, 4); cx.globalAlpha = 0.5; cx.fillStyle = '#a7aaa6'; trace(cx, P.map((p) => [p[0] + 0.3, p[1] + 0.22])); cx.fill(); cx.globalAlpha = 1; outline(cx, P, { w: 0.32, light: 0.5, pieces: 1, alpha: 0.75 }, r); });
     scat(8, 845, (x, y, r) => { if (mat(x, y) !== 'F' || !r.chance(0.5)) return; cx.save(); cx.translate(x, y); cx.scale(1, 0.78); cx.rotate(r.next() * TAU); const L = 1.8 + r.next() * 1.9; cx.beginPath(); cx.moveTo(-L / 2, 0); cx.quadraticCurveTo(0, -L * 0.45, L / 2, 0); cx.quadraticCurveTo(0, L * 0.4, -L / 2, 0); cx.globalAlpha = 0.8; cx.fillStyle = ['#b5602e', '#cf9a45', '#d9772f', '#a83c2a'][r.int(0, 3)]; cx.fill(); cx.restore(); cx.globalAlpha = 1; });
     scat(12, 867, (x, y, r) => {                                                     // ink grass tufts: 3-5 tapered blades
-      const m = mat(x, y); if (m === 'P' || !r.chance(m === 'M' ? 0.42 : m === 'G' ? 0.1 : 0.16)) return;
+      const m = mat(x, y), cl = vn(x / 58, y / 58, 31); if (m === 'P' || !r.chance(cl > 0.62 ? 0.75 : cl > 0.55 ? 0.15 : 0.01)) return;   // clumps, calm gaps
       const n = 3 + r.int(0, 2), sc = 0.8 + r.next() * 0.45;
       for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i - (n - 1) / 2) * 0.34 + (r.next() - 0.5) * 0.35, len = (2.2 + r.next() * 3.4) * sc, bx = x + (i - (n - 1) / 2) * 0.6 * sc, tx = bx + Math.cos(a) * len, ty = y + Math.sin(a) * len; inkLine(cx, spline([[bx, y], [(bx + tx) / 2 + (r.next() - 0.5) * 1.4 * sc, (y + ty) / 2], [tx, ty]], false, 4), { w: (0.36 + r.next() * 0.14) * sc, ta: 0.04, tb: 0.75, wv: 0.1, color: m === 'F' ? INK_BLUE : INK, alpha: m === 'F' ? 0.38 : 0.45 }); }
     });
     scat(24, 878, (x, y, r) => {                                                     // tiny flowers: daisy, poppy, cornflower
-      if (mat(x, y) !== 'M' || !r.chance(0.32)) return; const t = r.next();
+      if (mat(x, y) !== 'M' || vn(x / 105, y / 105, 41) < 0.7 || !r.chance(0.6)) return; const t = vn(x / 210, y / 210, 43);   // drifts, one species per patch
       if (t < 0.4) { for (let i = 0; i < 5; i++) { const a = (i / 5) * TAU; cx.beginPath(); cx.ellipse(x + Math.cos(a) * 0.95, y + Math.sin(a) * 0.75, 0.75, 0.42, a, 0, TAU); cx.fillStyle = 'rgba(252,249,238,0.95)'; cx.fill(); cx.lineWidth = 0.16; cx.strokeStyle = 'rgba(42,27,20,0.55)'; cx.stroke(); } cx.beginPath(); cx.arc(x, y, 0.45, 0, TAU); cx.fillStyle = '#d9a52e'; cx.fill(); }
       else if (t < 0.75) { cx.beginPath(); cx.ellipse(x + 0.2, y + 0.15, 1.25, 1, 0, 0, TAU); cx.fillStyle = 'rgba(196,62,40,0.8)'; cx.fill(); cx.beginPath(); cx.arc(x, y, 0.3, 0, TAU); cx.fillStyle = INK; cx.fill(); }
       else { cx.fillStyle = 'rgba(84,110,176,0.8)'; for (let i = 0; i < 6; i++) { cx.beginPath(); cx.arc(x + Math.cos(i) * 0.7, y + Math.sin(i) * 0.55, 0.42, 0, TAU); cx.fill(); } }
@@ -349,31 +385,25 @@
       if (A > 0.003) { d[o] = col[0] / A; d[o + 1] = col[1] / A; d[o + 2] = col[2] / A; d[o + 3] = A * 255; }
     }
     x.putImageData(img, 0, 0);
-    const u = H / 540, r = rng(21); x.lineCap = x.lineJoin = 'round'; MIS = [0, 0];      // HUD bars: wash fill + hand-drawn ink frame
-    for (const [x0, y0, bw, bh, f, c, c2, e] of [[14, 8, W / u - 28, 10, 0.77, '#dca23a', '#f2cd72', '#9a5a14'], [42, 32, 142, 12, 1, '#c23b2b', '#e06a50', '#7a1a12']]) {
-      x.setTransform(u, 0, 0, u, 0, 0);
-      const P = [[x0, y0 + 1], [x0 + bw * f, y0 + 0.5], [x0 + bw * f - 2, y0 + bh / 2], [x0 + bw * f, y0 + bh - 0.5], [x0, y0 + bh - 1]];
-      wash(x, P, { c, blobs: [{ x: x0 + bw * 0.3, y: y0 + bh / 2, rx: bw * 0.2, ry: bh * 0.4, c: c2, a: 0.55, blur: 4 }], hi: 0, rim: 2.5, edge: e, rimA: 0.7, rimBlur: 1, gran: 0.6 }, r);
-      for (const L of [[[x0 - 4, y0], [x0 + bw / 2, y0 - 0.5], [x0 + bw + 4, y0 + 0.5]], [[x0 - 4, y0 + bh], [x0 + bw / 2, y0 + bh + 0.4], [x0 + bw + 4, y0 + bh]], [[x0, y0 - 3], [x0, y0 + bh + 3]], [[x0 + bw, y0 - 3], [x0 + bw, y0 + bh + 3]]])
-        inkLine(x, spline(jit(L, 0.6, r), false, 12), { w: 1.6, ta: 0.04, tb: 0.06, wv: 0.35, ph: r.next() * 9, alpha: 0.9 });
-    }
-    MIS = [0.45, 0.35]; return c;
+    return c;
   }
 
   /* ---------- 5. public API ---------- */
-  /** Draws the main character (pumpkin-headed child) with feet at (x, y) in world units. t = seconds, facing = 1 | -1. */
-  function drawHero(ctx, x, y, t, facing) {
+  /** Main character with feet at (x, y). Walking: 8 baked poses at ~11 fps; standing: breathing poses held 0.42 s (on twos) + blink. */
+  function drawHero(ctx, x, y, t, facing, standing) {
     if (!SPR) buildSprites();
-    const ph = t * 7, fr = SPR.jack[(Math.floor(ph) & 3) * 3 + (Math.floor(t * 6) % 3)], bob = -0.9 * Math.abs(Math.cos(ph * Math.PI / 2));
-    blit(ctx, fr, x, y + bob, facing < 0);
-    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.3 + 0.08 * Math.sin(t * 11) + 0.05 * Math.sin(t * 23);   // warm glow of the carved face
-    ctx.drawImage(SPR.glow, x + (facing < 0 ? -2.1 : 2.1) - 9, y + bob - 26.6, 18, 16); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    let fr = standing ? SPR.idle[Math.floor(t / 0.42) % 6] : SPR.walk[Math.floor(t * 11) & 7];
+    if (standing && t % 3.9 > 3.72) fr = SPR.blink;
+    blit(ctx, fr, x, y, facing < 0);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (0.3 + 0.08 * Math.sin(t * 11) + 0.05 * Math.sin(t * 23)) * (fr === SPR.blink ? 0.45 : 1);
+    ctx.drawImage(SPR.glow, x + (facing < 0 ? -2.1 : 2.1) - 9, y - 26.6, 18, 16); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
-  /** Draws a typical creature (violet root creature with a leafy top) with feet at (x, y). */
-  function drawEnemy(ctx, x, y, t, facing, variant) {
+  /** Small creature with feet at (x, y). Every creature gets its own phase and breathing rate from a seed, so a crowd never moves in lock-step. */
+  function drawEnemy(ctx, x, y, t, facing, variant, seed) {
     if (!SPR) buildSprites();
-    const set = SPR.creep[variant || 0], seed = (x * 0.13 + y * 0.07) % 1;
-    blit(ctx, set[(Math.floor(t * 0.7 * 9 + seed * 4) & 3) * 2 + ((Math.floor(t * 5 + seed * 7)) & 1)], x, y, facing < 0, 0.93 + Math.abs(seed) * 0.14);
+    seed = seed === undefined ? (hash(x | 0, y | 0, 5) % 1000) / 1000 : seed;
+    const fr = SPR.creep[variant || 0][Math.floor(t * 6.6 + seed * 6) % 6], sc = 0.93 + seed * 0.14, b = Math.sin(t * (2.1 + seed * 0.8) + seed * 40) * 0.012;
+    ctx.save(); ctx.translate(x, y); ctx.scale(sc * (1 - b), sc * (1 + b)); blit(ctx, fr, 0, 0, facing < 0); ctx.restore();
   }
   let GROUND = null, PAGE = null, KEY = '';
   /** Paints a complete preview scene into a w×h canvas at time t (seconds). */
@@ -383,30 +413,34 @@
     if (KEY !== key) { GROUND = buildGround(w, h, s); PAGE = buildPage(w, h); KEY = key; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(GROUND, 0, 0);
     ctx.setTransform(s, 0, 0, s, 0, 0);
-    const hx = Wu * 0.47, hy = 200, actors = [{ k: 'bush', x: hx - 70, y: 245 }, { k: 'bush', x: hx + 120, y: 120 }, { k: 'hero', x: hx, y: hy }];
-    [[95, 190], [120, 215], [150, 175], [180, 230], [205, 200], [235, 165], [160, 255], [220, 260], [-150, 110], [-130, 280]].forEach(([dx, dy], i) => actors.push({ k: 'creep', x: hx + dx - Math.min(30, t * 4) % 30, y: dy, v: i % 2, f: dx > 0 ? -1 : 1 }));
-    [[-90, 150], [60, 300], [-200, 220]].forEach(([dx, dy], i) => actors.push({ k: 'ghost', x: hx + dx + Math.sin(t + i) * 4, y: dy, i }));
-    const sh = new Path2D(), shl = new Path2D();                                     // all shadows = one indigo glaze per frame
-    for (const a of actors) { const [rx, ry, P] = a.k === 'hero' ? [7.6, 2.8, sh] : a.k === 'creep' ? [8.5, 3.1, sh] : a.k === 'ghost' ? [5.2, 1.9, shl] : [10, 3.2, sh]; P.moveTo(a.x + 0.8 + rx, a.y + 0.4); P.ellipse(a.x + 0.8, a.y + 0.4, rx, ry, 0, 0, TAU); }
-    ctx.fillStyle = 'rgba(50,54,92,0.2)'; ctx.fill(sh); ctx.fillStyle = 'rgba(50,54,92,0.11)'; ctx.fill(shl);
+    const hx = Wu * 0.47, hy = 200, actors = [{ k: 'hero', x: hx, y: hy }];
+    [[Wu * 0.8, 92], [Wu * 0.93, 138], [Wu * 0.68, 46], [Wu * 0.98, 60], [hx - 130, 300]].forEach(([x, y]) => actors.push({ k: 'tree', x, y }));
+    [[95, 190], [120, 215], [150, 175], [180, 230], [205, 200], [235, 165], [160, 255], [220, 260], [-150, 110], [-130, 280]].forEach(([dx, dy], i) => actors.push({ k: 'creep', x: hx + dx - (t * 4) % 30, y: dy, v: i % 2, f: dx > 0 ? -1 : 1, seed: ((i * 0.618) % 1) }));
+    const sh = new Path2D();                                                         // all shadows = one indigo glaze per frame
+    for (const a of actors) { const [rx, ry] = a.k === 'hero' ? [7.6, 2.8] : a.k === 'creep' ? [8.5, 3.1] : [21, 6.5]; sh.moveTo(a.x + 0.8 + rx, a.y + 0.4); sh.ellipse(a.x + 0.8, a.y + 0.4, rx, ry, 0, 0, TAU); }
+    ctx.fillStyle = 'rgba(50,54,92,0.2)'; ctx.fill(sh);
     for (let i = 0; i < 9; i++) { const gx = hx + 40 + (hash(i, 1, 3) % 90), gy = 150 + (hash(i, 2, 3) % 110); ctx.drawImage(SPR.glow, gx - 3, gy - 1.5, 6, 3); blit(ctx, SPR.gem[(Math.floor(t * 4) + i) % 3], gx, gy); }
     actors.sort((a, b) => a.y - b.y);
+    const hitU = (t % 1.2) / 1.2;                                                     // one creature takes a hit every 1.2 s
     for (const a of actors) {
       if (a.k === 'hero') drawHero(ctx, a.x, a.y, t, 1);
-      else if (a.k === 'creep') drawEnemy(ctx, a.x, a.y, t, a.f, a.v);
-      else if (a.k === 'bush') blit(ctx, SPR.bush, a.x, a.y);
-      else { ctx.globalAlpha = 0.9; blit(ctx, SPR.ghost[((Math.floor(t * 2.5 + a.i) & 3) * 2) + (Math.floor(t * 5 + a.i) & 1)], a.x, a.y - 2.2 + Math.sin(t * 3 + a.i * 9) * 1.3, a.x > hx); ctx.globalAlpha = 1; }
+      else if (a.k === 'creep') drawEnemy(ctx, a.x, a.y, t, a.f, a.v, a.seed);
+      else if (a.k === 'tree') {                                                      // wind: a slow gust shears the tree from its base
+        const k = 0.03 * (0.55 + 0.45 * Math.sin(t * 0.37 + a.x * 0.004)) * (0.75 * Math.sin(t * 1.25 + a.x * 0.031) + 0.25 * Math.sin(t * 2.9 + a.x * 0.07));
+        ctx.save(); ctx.transform(1, 0, k, 1, -k * a.y, 0); blit(ctx, SPR.tree, a.x, a.y, a.x > Wu * 0.9); ctx.restore();
+      }
+    }
+    if (hitU < 0.3) {                                                                 // impact: ink splash snaps open, eases out and fades
+      const u = hitU / 0.3, k = 0.5 + 0.65 * (1 - Math.pow(1 - Math.min(1, u * 2.2), 3)), sz = 12 * k;
+        ctx.globalAlpha = Math.min(1, (1 - u) * 2.2) * 0.8; ctx.drawImage(SPR.splat[Math.floor(t / 1.2) & 1].c, hx + 95 - (t * 4) % 30 - sz / 2, 178 - sz / 2, sz, sz); ctx.globalAlpha = 1;
     }
     const pr = ((t * 1.3) % 1), sx = hx + 10 + pr * 75, sy = hy - 14 + pr * 4;          // seed projectile with dry-brush trail
     const tg = ctx.createLinearGradient(sx - 18, 0, sx, 0); tg.addColorStop(0, 'rgba(214,138,52,0)'); tg.addColorStop(1, 'rgba(224,128,42,0.85)');
     ctx.fillStyle = tg; trace(ctx, ribbon([[sx - 18, sy + 0.3], [sx - 9, sy - 0.2], [sx, sy]], (u) => 0.4 + 2.6 * Math.pow(u, 1.4))); ctx.fill();
     ctx.beginPath(); ctx.ellipse(sx, sy, 3.3, 1.8, 0.05, 0, TAU); ctx.fillStyle = '#f1e4bf'; ctx.fill(); ctx.lineWidth = 0.42; ctx.strokeStyle = INK; ctx.stroke();
-    ctx.font = '700 15px Caveat, "Segoe Print", cursive'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';  // floating accent counter
-    ctx.save(); ctx.translate(hx + 98, 160 - (t % 1) * 6); ctx.rotate(-0.1); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(246,239,224,0.9)'; ctx.strokeText('34', 0, 0); ctx.fillStyle = '#9e2a1c'; ctx.fillText('34', 0, 0); ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(PAGE, 0, 0);                     // book page margin on top
     const u = h / 540;
-    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.font = 26 * u + "px 'IM Fell English SC', Georgia, serif"; ctx.fillText('22:09', w / 2, 40 * u);
-    ctx.fillStyle = '#8a3a1e'; ctx.font = '700 ' + 15 * u + "px Caveat, cursive"; ctx.fillText('title text', w / 2, 58 * u);
+    ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.font = 26 * u + "px 'IM Fell English SC', Georgia, serif"; ctx.fillText('22:09', w / 2, 40 * u); ctx.fillStyle = '#8a3a1e'; ctx.font = '700 ' + 15 * u + "px Caveat, cursive"; ctx.fillText('title text', w / 2, 58 * u);
     ctx.fillStyle = INK; ctx.textAlign = 'left'; ctx.font = 14 * u + "px 'Cormorant Garamond', Georgia, serif"; ctx.fillText('100/100', 192 * u, 39 * u);
   }
 

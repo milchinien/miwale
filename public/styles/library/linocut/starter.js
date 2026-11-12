@@ -125,7 +125,16 @@
   function blit(ctx, s, x, y, sc) { const k = (sc || 1) / K; ctx.drawImage(s.c, x - s.ax * k, y - s.ay * k, s.c.width * k, s.c.height * k); }
 
   /* ---------- main character (feet at 0,0, facing f) ---------- */
-  const WALK = [{ fa: [3.3, 0], fb: [-3, 0], bob: 0, hem: 0.8, st: 0.5, arm: 0.4 }, { fa: [1, 0], fb: [-0.4, -1.5], bob: -0.8, hem: 0.2, st: -0.6, arm: 0 }, { fa: [-2.7, 0], fb: [3, 0], bob: 0, hem: 0.9, st: 0.6, arm: -0.4 }, { fa: [0.6, -1.5], fb: [-0.2, 0], bob: -0.8, hem: 0.1, st: -0.5, arm: 0 }];
+  /* walk = 8 computed poses from one phase: contact - down - passing - up for each leg. The swing foot lifts, the body
+     bobs twice per stride (down after each contact), the near hand counter-swings, and head, cloak hem and scarf follow
+     through with growing phase delays (overlapping action). Poses are held and swapped, never tweened. */
+  const WALK = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = (i / 8) * TAU, foot = (p) => [0.2 + 3.4 * Math.cos(p), Math.sin(p) < 0 ? Math.sin(p) * 1.9 : 0];
+    WALK.push({ fa: foot(ph), fb: foot(ph + Math.PI), bob: 0.85 * Math.sin(2 * ph), hd: 0.4 * Math.sin(2 * ph - 1.0), hem: 0.5 + 0.45 * Math.sin(2 * ph - 1.1), st: 0.6 * Math.sin(2 * ph - 1.8), arm: -0.9 * Math.cos(ph) });
+  }
+  /** Eased float for hovering things: a triangle wave with smoothstep ends, held in 14 steps per cycle (never a plain sine). */
+  function floatCurve(t) { const u = ((Math.floor(t * 14) / 14) % 1 + 1) % 1, tri = u < 0.5 ? u * 2 : 2 - u * 2; return tri * tri * (3 - 2 * tri); }
   function drawJack(ctx, f, fr, r) {
     const J = (s) => (r.next() - 0.5) * s, b = fr.bob;
     ctx.save(); ctx.scale(f, 1);
@@ -142,7 +151,7 @@
     const wrap = (c) => { c.moveTo(-4.6, -16.6 + b); c.quadraticCurveTo(0.4, -15.2 + b, 4.9, -16.6 + b); c.lineTo(4.6, -14.6 + b); c.quadraticCurveTo(0.4, -13 + b, -4.3, -14.6 + b); c.closePath(); };
     fillPath(ctx, wrap, cP); strokePath(ctx, wrap, cI, 0.45); ctx.fillStyle = cI; for (const x of [-2.6, 0.2, 3]) lens(ctx, x - 0.2, -16.2 + b, x + 0.3, -14 + b, 0.38);
     // round lobed head: paper, orange plate offset by (MX,MY), carved ribs + shading lenses, crescent shadow, carved face
-    const h0 = 0.7 + J(0.15), v0 = -21.6 + b, rx = 7.3, ry = 6.2, pts = [];
+    const h0 = 0.7 + J(0.15), v0 = -21.6 + b + (fr.hd || 0), rx = 7.3, ry = 6.2, pts = [];
     for (let i = 0; i < 22; i++) { const a = (i / 22) * TAU, lobe = 1 - 0.05 * Math.abs(Math.sin(a * 2.5 + 0.4)) + J(0.035), x = Math.cos(a) * rx * lobe; let y = Math.sin(a) * ry * lobe; if (y < 0) y *= 1 - 0.13 * Math.exp(-(x * x) / 5); pts.push([h0 + x, v0 + y]); }
     const head = (c) => smoothPath(c, pts);
     fillPath(ctx, head, cP); ctx.save(); ctx.translate(MX * f, MY); fillPath(ctx, head, cO); ctx.restore();
@@ -225,13 +234,14 @@
     ctx.fillStyle = cP; for (let i = 0; i < 6; i++) { const y = R(-24, -3, r), x = R(-3, -0.5, r); lens(ctx, x, y, x + R(-0.5, 0.5, r), y - R(4, 8, r), R(0.22, 0.4, r), R(-0.3, 0.3, r)); } // bark gouges on the lit side
   }
 
-  /* ---------- sprite bank: 4 frames x 2 carving variants (boil at 6 fps), facing baked separately ---------- */
+  /* ---------- sprite bank: n poses x 2 carving pulls (boil at 6 fps), facing baked separately ---------- */
   let SPR = null;
   function buildSprites() {
     buildTextures();
-    const fr4 = (fn) => [1, -1].map((f) => [0, 1, 2, 3].map((i) => [0, 1].map((v) => fn(f, i, v))));
+    const frN = (n, fn) => [1, -1].map((f) => Array.from({ length: n }, (_, i) => [0, 1].map((v) => fn(f, i, v))));
+    const fr4 = (fn) => frN(4, fn);
     SPR = {
-      jack: fr4((f, i, v) => mk(-11.5, -32, 11.5, 1.5, (c) => drawJack(c, f, WALK[i], rng(100 + v * 7 + i)), { halo: 0.9, seed: 3 + v * 5 + i })),
+      jack: frN(8, (f, i, v) => mk(-11.5, -32, 11.5, 1.5, (c) => drawJack(c, f, WALK[i], rng(100 + v * 17 + i)), { halo: 1.0, seed: 3 + v * 5 + i })),
       creeper: fr4((f, i, v) => mk(-10, -28.5, 10, 1.5, (c) => drawCreeper(c, f, i, rng(300 + v * 11 + i * 3)), { halo: 0.9, seed: 21 + v * 9 + i })),
       ghost: [1, -1].map((f) => [0, 1, 2, 3].map((i) => mk(-11, -26, 13.5, 1, (c) => drawGhost(c, f, i), { halo: 0.9, seed: 30 + i }))),
       oak: mk(-44, -86, 44, 4, (c) => drawOak(c, rng(800)), { halo: 0.8, seed: 80 }),
@@ -247,13 +257,13 @@
   function drawHero(ctx, x, y, t, facing) {
     if (!SPR) buildSprites();
     blit(ctx, SPR.sh[0], x, y + 0.5);
-    blit(ctx, SPR.jack[facing < 0 ? 1 : 0][Math.floor(t * 5) & 3][Math.floor(t * 6) & 1], x, y);
+    blit(ctx, SPR.jack[facing < 0 ? 1 : 0][Math.floor(t * 10) & 7][Math.floor(t * 6) & 1], x, y); // 8 held poses at 10 fps, pulls at 6 fps
   }
   /** Draws a typical creature with feet at (x, y). type: 'creeper' (small root creature) | 'ghost' (floating spirit). */
   function drawEnemy(ctx, x, y, t, type, seed, facing) {
     if (!SPR) buildSprites();
     seed = seed || 0; const fi = facing < 0 ? 1 : 0;
-    if (type === 'ghost') { blit(ctx, SPR.sh[2], x, y + 0.5); blit(ctx, SPR.ghost[fi][Math.floor(t * 5 + seed * 9) & 3], x, y - 2.2 - Math.round(Math.sin(t * 3.1 + seed * 20) * 2.5) * 0.4); return; }
+    if (type === 'ghost') { blit(ctx, SPR.sh[2], x, y + 0.5); blit(ctx, SPR.ghost[fi][Math.floor(t * 5 + seed * 9) & 3], x, y - 1.6 - floatCurve(t * 0.55 + seed * 3.7) * 2.6); return; }
     blit(ctx, SPR.sh[1], x, y + 0.5);
     blit(ctx, SPR.creeper[fi][Math.floor(t * 4 + seed * 4) & 3][Math.floor(t * 6 + seed * 10) & 1], x, y);
   }
@@ -274,12 +284,13 @@
     return a;
   }
   function bakeGround(w, h, s) {
-    const G = 4, gw = Math.ceil(w / G) + 2, gh = Math.ceil(h / G) + 2, D = new Float32Array(gw * gh), B = new Float32Array(gw * gh), T = new Float32Array(gw * gh);
+    const G = 4, gw = Math.ceil(w / G) + 2, gh = Math.ceil(h / G) + 2, D = new Float32Array(gw * gh), B = new Float32Array(gw * gh), T = new Float32Array(gw * gh), M = new Float32Array(gw * gh);
     for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
       const X = (i * G - w / 2) / s, Y = (j * G - h / 2) / s, q = j * gw + i;
       D[q] = fbm(X / 300, Y / 300, 202, 2) + 0.4 * Math.exp(-((X + 150) ** 2 + (Y + 95) ** 2) / 4200) + 0.45 * sm(140, 300, Math.hypot(X - 330, Y - 190)) * -1 + 0.35; // dark soil blobs
       B[q] = fbm(X / 400 + 2, Y / 400, 101, 3) + sm(120, 300, X) * 0.3; // forest stipple to the right
-      T[q] = fbm(X / 140, Y / 140, 606, 2);
+      T[q] = fbm(X / 140, Y / 140, 606, 2); // clump field
+      M[q] = fbm(X / 19, Y / 19, 505, 2); // clump breakup
     }
     const img = new ImageData(w, h), d = img.data, res = s, DTH = 0.74, B2 = 0.62, GUT = 1.5;
     for (let py = 0; py < h; py++) {
@@ -299,10 +310,14 @@
           const fade = clamp01((-dS - GUT) * res + 0.5);
           if (dB > 0) { // forest floor: hashed stipple, density from T, with a carved edge line
             const ix = Math.floor(X / 2.5), iy = Math.floor(Y / 2.5), hh = hashInt(ix, iy, 919);
-            if ((hh & 1023) < (0.14 + 0.52 * sm(0.3, 0.72, tt)) * 1024) { const r0 = 0.3 + ((hh >>> 10) & 63) / 63 * 0.24; a = clamp01((r0 - Math.hypot(X - (ix + 0.22 + ((hh >>> 16) & 255) / 255 * 0.56) * 2.5, Y - (iy + 0.22 + ((hh >>> 24) & 255) / 255 * 0.56) * 2.5)) * res + 0.5); }
+            if ((hh & 1023) < (0.015 + 0.6 * sm(0.5, 0.7, tt)) * 1024) { const r0 = 0.3 + ((hh >>> 10) & 63) / 63 * 0.24; a = clamp01((r0 - Math.hypot(X - (ix + 0.22 + ((hh >>> 16) & 255) / 255 * 0.56) * 2.5, Y - (iy + 0.22 + ((hh >>> 24) & 255) / 255 * 0.56) * 2.5)) * res + 0.5); }
             a = Math.max(a, clamp01((0.42 - Math.abs(dB - 0.5)) * res + 0.5));
             if (dB > 0.92 && dB < 1.92 && a < 1) a *= clamp01((dB - 1) * res + 0.5);
-          } else if (dB < -GUT) a = grass(X, Y, 0.1 + 0.5 * sm(0.32, 0.72, tt), res) * clamp01((-dB - GUT) * res + 0.5);
+          } else if (dB < -GUT) { // meadow: grass only in clumps and in a drift along every region edge – bare paper between
+            const em = Math.min(-dB, -dS) - GUT, edge = em < 8 ? 1 - sm(0, 8, em) : 0;
+            const dens = Math.max(0.8 * sm(0.57, 0.72, tt) * sm(0.4, 0.62, L(M)), 0.55 * edge * edge);
+            if (dens > 0.02) a = grass(X, Y, dens, res) * clamp01((-dB - GUT) * res + 0.5);
+          }
           a *= fade;
         }
         const fo = FIB[((py & 511) << 9) + (px & 511)];
@@ -317,8 +332,8 @@
       }
     }
     const C = canvas(w, h); C.ctx.putImageData(img, 0, 0);
-    const c = C.ctx, r = rng(3101); c.setTransform(s, 0, 0, s, w / 2, h / 2); // decals: carved flowers knocked out of the grass
-    for (let i = 0; i < 26; i++) { const x = R(-300, 120, r), y = R(-160, 160, r); c.fillStyle = cP; c.beginPath(); c.arc(x, y, 3, 0, TAU); c.fill(); c.fillStyle = cI; for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; lens(c, x + Math.cos(a) * 0.75, y + Math.sin(a) * 0.75, x + Math.cos(a) * 2.4, y + Math.sin(a) * 2.4, 0.62); } }
+    const c = C.ctx, r = rng(3101); c.setTransform(s, 0, 0, s, w / 2, h / 2); // decals: carved flowers knocked out of the grass clumps
+    for (let i = 0, n = 0; i < 160 && n < 26; i++) { const x = R(-300, 120, r), y = R(-160, 160, r); if (fbm(x / 140, y / 140, 606, 2) < 0.57) continue; n++; c.fillStyle = cP; c.beginPath(); c.arc(x, y, 3, 0, TAU); c.fill(); c.fillStyle = cI; for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; lens(c, x + Math.cos(a) * 0.75, y + Math.sin(a) * 0.75, x + Math.cos(a) * 2.4, y + Math.sin(a) * 2.4, 0.62); } }
     return C.c;
   }
   /** Ragged ink frame (torn print edge) + inner rule. */

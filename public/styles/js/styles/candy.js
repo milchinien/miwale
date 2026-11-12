@@ -943,6 +943,7 @@
   };
   const SHC = [60, 22, 30];
   const AUX = new Float32Array(NF);
+  const BAR_RH = [34, 26, 34, 30];
   const MC = new Float32Array(3);
   // material colour at world x,y -> MC
   function matCol(m, x, y, s) {
@@ -951,15 +952,21 @@
       let f = 1;
       const bar = AUX[4];
       if (bar > 0.01) {
-        const S = 34;
-        const u = x - Math.floor(x / S) * S, v = y - Math.floor(y / S) * S;
-        const dl = u, dt = v, dr = S - u, db = S - v;
+        // rows of bars (34 / 26 / 34 / 30 units high, repeating every 124), each row shifted by its own offset,
+        // every bar with its own tone -> a moulded chocolate floor instead of a repeating square grid
+        const S = 34, RP = 124;
+        let v = y - Math.floor(y / RP) * RP, ri = 0;
+        while (ri < 3 && v >= BAR_RH[ri]) { v -= BAR_RH[ri]; ri++; }
+        const H = BAR_RH[ri], row = Math.floor(y / RP) * 4 + ri, xs = x + U.hash2(row, 0, 51) * S, col = Math.floor(xs / S);
+        const u = xs - col * S;
+        const dl = u, dt = v, dr = S - u, db = H - v;
+        f += (U.hash2(col, row, 52) - 0.5) * 0.07 * bar;
         const mn = Math.min(dl, dt, dr, db);
         let b = 0;
         if (mn < 0.9) b = -0.26 * (1 - mn / 0.9);
         else if (dl < 3.2 || dt < 3.2) b = 0.11 * (1 - (Math.min(dl, dt) - 0.9) / 2.3);
         else if (dr < 3.2 || db < 3.2) b = -0.09 * (1 - (Math.min(dr, db) - 0.9) / 2.3);
-        else b = 0.025 * (1 - Math.abs(u - S * 0.4) / S - Math.abs(v - S * 0.4) / S);
+        else b = 0.025 * (1 - Math.abs(u - S * 0.4) / S - Math.abs(v - H * 0.4) / H);
         f += b * bar;
       }
       if (bar < 0.99) {
@@ -1090,31 +1097,35 @@
       if ((++n & 15) === 0) yield;
       const x = pts[i], y = pts[i + 1], r0 = pts[i + 2], r1 = pts[i + 3], r2 = pts[i + 4];
       if (r0 > 0.42) continue;
-      const m = matSafe(x, y, 4);
-      if (m < 0) continue;
+      const m0 = matAt(x, y), m = matSafe(x, y, 4) < 0 ? -1 : m0;
       const pick = (arr) => arr[Math.floor(r1 * arr.length) % arr.length];
-      if (m === 0) { // milk chocolate
-        if (r0 < 0.07) dPut(ctx, pick(DEC.chip), x, y);
-        else if (r0 < 0.095) dPut(ctx, DEC.corn, x, y, (r2 - 0.5) * 2.4);
-        else if (r0 < 0.12) dPut(ctx, pick(DEC.mallow), x, y);
-        else if (r0 < 0.19) { for (let k = 0; k < 3; k++) dPut(ctx, DEC.sprink[(r1 * 7 + k * 3 | 0) % 7], x + Math.cos(k * 2.1 + r2 * 6) * 2.6, y + Math.sin(k * 2.1 + r2 * 6) * 1.6, r2 * 6 + k * 1.3); }
-        else if (r0 < 0.205) dPut(ctx, DEC.pumpkin, x, y);
+      // spills: candy lies where a low-frequency field peaks (as if a bag burst there) and leaves the rest calm
+      const k = U.smoothstep(0.56, 0.78, U.noise(x / 140, y / 140, 7011));
+      if (m < 0) { // edges: crumbs spill off the cookie path, sugar glints line the frosting rims
+        if (m0 === 0 && r0 < 0.16 && (matAt(x + 7, y) === 4 || matAt(x - 7, y) === 4 || matAt(x, y + 5) === 4 || matAt(x, y - 5) === 4)) dPut(ctx, pick(DEC.crumb), x, y, r2 * 6);
+        else if ((m0 === 2 || m0 === 3) && r0 < 0.1) dPut(ctx, DEC.glint, x, y, 0, 0.6 + r2 * 0.5);
+        continue;
+      }
+      if (m === 0) { // milk chocolate: calm bars, candy only in spills
+        if (r0 < 0.05 * k) dPut(ctx, pick(DEC.chip), x, y);
+        else if (r0 < 0.07 * k) dPut(ctx, DEC.corn, x, y, (r2 - 0.5) * 2.4);
+        else if (r0 < 0.09 * k) dPut(ctx, pick(DEC.mallow), x, y);
+        else if (r0 < 0.2 * k) { for (let j = 0; j < 4; j++) dPut(ctx, DEC.sprink[(r1 * 7 + j * 3 | 0) % 7], x + Math.cos(j * 1.7 + r2 * 6) * (1.6 + j), y + Math.sin(j * 1.7 + r2 * 6) * (1 + j * 0.6), r2 * 6 + j * 1.3); }
+        else if (r0 < 0.006) dPut(ctx, DEC.pumpkin, x, y);
       } else if (m === 1) { // caramel
-        if (r0 < 0.08) dPut(ctx, DEC.glint, x, y, 0, 0.8 + r2 * 0.6);
-      } else if (m === 2) { // pink sugar
-        if (r0 < 0.12) dPut(ctx, DEC.glint, x, y, 0, 0.6 + r2 * 0.6);
-        else if (r0 < 0.17) dPut(ctx, pick(DEC.heart), x, y, (r2 - 0.5) * 0.8);
-        else if (r0 < 0.2) dPut(ctx, pick(DEC.lolli), x, y, (r2 - 0.5) * 1.2);
-        else if (r0 < 0.24) dPut(ctx, pick(DEC.gum), x, y);
-        else if (r0 < 0.26) dPut(ctx, DEC.sprink[(r1 * 7) | 0], x, y, r2 * 6);
-      } else if (m === 3) { // mint frosting
-        if (r0 < 0.09) dPut(ctx, pick(DEC.dollop), x, y);
-        else if (r0 < 0.14) dPut(ctx, pick(DEC.gum), x, y);
-        else if (r0 < 0.19) dPut(ctx, DEC.sprink[(r1 * 7) | 0], x, y, r2 * 6);
-        else if (r0 < 0.21) dPut(ctx, pick(DEC.lolli), x, y, (r2 - 0.5) * 1.2);
-      } else { // cookie path
+        if (r0 < 0.06) dPut(ctx, DEC.glint, x, y, 0, 0.8 + r2 * 0.6);
+      } else if (m === 2) { // pink sugar: sparkle grains everywhere (the material), sweets in spills
+        if (r0 < 0.08) dPut(ctx, DEC.glint, x, y, 0, 0.6 + r2 * 0.6);
+        else if (r0 < 0.08 + 0.08 * k) dPut(ctx, pick(DEC.heart), x, y, (r2 - 0.5) * 0.8);
+        else if (r0 < 0.08 + 0.12 * k) dPut(ctx, pick(DEC.gum), x, y);
+        else if (r0 < 0.08 + 0.15 * k) dPut(ctx, pick(DEC.lolli), x, y, (r2 - 0.5) * 1.2);
+      } else if (m === 3) { // mint frosting: piped dollops in little rows, sweets in spills
+        if (r0 < 0.03 + 0.1 * k) dPut(ctx, pick(DEC.dollop), x, y);
+        else if (r0 < 0.03 + 0.15 * k) dPut(ctx, pick(DEC.gum), x, y);
+        else if (r0 < 0.03 + 0.2 * k) dPut(ctx, DEC.sprink[(r1 * 7) | 0], x, y, r2 * 6);
+      } else { // cookie path: crumbs are the material
         if (r0 < 0.24) dPut(ctx, pick(DEC.crumb), x, y, r2 * 6);
-        else if (r0 < 0.3) dPut(ctx, pick(DEC.chip), x, y);
+        else if (r0 < 0.28) dPut(ctx, pick(DEC.chip), x, y);
       }
     }
   }
@@ -1387,7 +1398,7 @@ body.style-candy #pausebox { font-family: 'Chewy', cursive; font-weight: 400; fo
     id: 'candy',
     name: 'Süßes oder Saures',
     family: 'Candy-Land',
-    description: 'Glänzende Halloween-Süßigkeitenwelt: Schokoboden, Minz-Zuckerguss, Gummirüben, Marshmallow-Geister und ein Bonbon-Kürbis.',
+    description: 'A glossy Halloween candy world: hard-candy shine, gummy jelly, matte marshmallow and chocolate on a melting chocolate floor.',
     groundColor: '#7e4c32',
     groundResMax: 2.5,
     chunkSize: 256,
@@ -1591,41 +1602,64 @@ body.style-candy #pausebox { font-family: 'Chewy', cursive; font-weight: 400; fo
     },
 
     propsForChunk(info) {
+      // composed, not sprinkled: lollipop groves with gumdrop bushes on their rim, cane fences and candy rocks along
+      // the cookie path, a cupcake now and then on the frosting, graves and buckets in little graveyards on the
+      // chocolate - and calm open floor in between
       const out = [];
-      G.scatterOwned(info, 80, 4243, (x, y, rng) => {
+      const add = (x, y, t, v, f) => out.push({ x, y, t, v, f, pad: Math.max(-PROP_DEF[t].box[0], PROP_DEF[t].box[2]) + 8 - 60 });
+      G.scatterOwned(info, 34, 4243, (x, y, rng) => {
         if (G.nearSpawn(x, y, 95)) return;
-        const r = rng.next(), vr = rng.next();
+        const r = rng.next(), vr = rng.next(), f = rng.chance(0.5);
         const m = matSafe(x, y, 10);
-        let t = null, v = 0;
-        if (m === 0) { // chocolate
-          if (r < 0.07) { t = 'lolli'; v = vr < 0.5 ? 1 : (vr * 4) | 0; }
-          else if (r < 0.12) { t = 'grave'; v = vr < 0.6 ? 0 : 1; }
-          else if (r < 0.15) t = 'bucket';
-          else if (r < 0.19) { t = 'rock'; v = vr < 0.5 ? 0 : 1; }
-          else if (r < 0.215) t = 'fence';
-          else if (r < 0.225) { t = 'cupcake'; v = vr < 0.5 ? 0 : 1; }
-        } else if (m === 3) { // mint
-          if (r < 0.12) { t = 'lolli'; v = vr < 0.4 ? 0 : vr < 0.7 ? 3 : 1; }
-          else if (r < 0.22) { t = 'bush'; v = (vr * 3) | 0; }
-          else if (r < 0.25) t = 'fence';
-          else if (r < 0.265) { t = 'cupcake'; v = 1; }
-        } else if (m === 2) { // pink
-          if (r < 0.09) { t = 'bush'; v = (vr * 3) | 0; }
-          else if (r < 0.15) { t = 'lolli'; v = vr < 0.5 ? 2 : 3; }
-          else if (r < 0.19) { t = 'rock'; v = vr < 0.5 ? 1 : 0; }
-          else if (r < 0.205) { t = 'cupcake'; v = 0; }
-          else if (r < 0.22) t = 'bucket';
+        if (m === 1 || m === 4) return;
+        if (m < 0) {
+          const m0 = matAt(x, y);
+          if (m0 === 4 || m0 === 1) return;
+          const path = matAt(x + 14, y) === 4 || matAt(x - 14, y) === 4 || matAt(x, y + 10) === 4 || matAt(x, y - 10) === 4;
+          if (path && r < 0.16) add(x, y, 'fence', 0, f);
+          else if (path && r < 0.24) add(x, y, 'rock', vr < 0.5 ? 0 : 1, f);
+          return;
         }
-        if (!t) return;
-        const d = PROP_DEF[t];
-        out.push({ x, y, t, v, f: rng.chance(0.5), pad: d.pad });
+        const gr = U.fbm(x / 360 + 41.3, y / 360 - 7.7, 917, 2);   // lollipop groves
+        if (gr > 0.63) {
+          if (r < 0.36) add(x, y, 'lolli', m === 3 ? (vr < 0.5 ? 0 : 3) : m === 2 ? (vr < 0.5 ? 2 : 3) : (vr < 0.5 ? 1 : (vr * 4) | 0), f);
+          else if (r < 0.5) add(x, y, 'bush', (vr * 3) | 0, f);
+          return;
+        }
+        if (gr > 0.585) { if (r < 0.3) add(x, y, 'bush', (vr * 3) | 0, f); else if (r < 0.34) add(x, y, 'lolli', (vr * 4) | 0, f); return; }
+        if (m === 0) {
+          const yard = U.noise(x / 130, y / 130, 4447) > 0.68;   // a little graveyard
+          if (yard && r < 0.34) add(x, y, 'grave', vr < 0.6 ? 0 : 1, f);
+          else if (yard && r < 0.4) add(x, y, 'bucket', 0, f);
+          else if (r < 0.012) add(x, y, 'rock', vr < 0.5 ? 0 : 1, f);
+        } else if (m === 3) {
+          if (r < 0.018) add(x, y, 'cupcake', vr < 0.5 ? 0 : 1, f);
+          else if (r < 0.03) add(x, y, 'bush', (vr * 3) | 0, f);
+        } else if (m === 2) {
+          if (r < 0.012) add(x, y, 'cupcake', 0, f);
+          else if (r < 0.025) add(x, y, 'rock', 1, f);
+        }
       });
       return out;
     },
 
-    drawProp(ctx, p) {
-      const s = SPR.props[p.t][p.v];
-      blit(ctx, p.f && p.t !== 'grave' ? s.l : s.n, p.x, p.y, 1, 1);
+    drawProp(ctx, p, view) {
+      const s = SPR.props[p.t][p.v], spr = p.f && p.t !== 'grave' ? s.l : s.n;
+      if ((p.t === 'lolli' || p.t === 'bush') && view) {
+        // lollipops sway on their sticks, gumdrops jiggle - slowly, each on its own phase
+        const rt = view.rt, ph = p.x * 0.021 + p.y * 0.013;
+        const V = tf(view), S = V.S, k = 1 / spr.k;
+        if (p.t === 'lolli') {
+          const a = Math.sin(rt * 1.1 + ph) * 0.03 + Math.sin(rt * 2.3 + ph * 1.7) * 0.01;
+          ctx.setTransform(S, 0, -a * S, S, V.ox + p.x * S, V.oy + p.y * S);
+          ctx.drawImage(spr.c, -spr.ox * k, -spr.oy * k, spr.c.width * k, spr.c.height * k);
+        } else {
+          const j = Math.sin(rt * 2.6 + ph) * 0.025;
+          ctx.setTransform(S * (1 + j), 0, 0, S * (1 - j), V.ox + p.x * S, V.oy + p.y * S);
+          ctx.drawImage(spr.c, -spr.ox * k, -spr.oy * k, spr.c.width * k, spr.c.height * k);
+        }
+        ctx.setTransform(S, 0, 0, S, V.ox, V.oy);
+      } else blit(ctx, spr, p.x, p.y, 1, 1);
     },
 
     drawShadow(ctx, o) {
@@ -1746,9 +1780,11 @@ body.style-candy #pausebox { font-family: 'Chewy', cursive; font-weight: 400; fo
         set = SPR.creep[Math.floor(e.seed * 3) % 3][f];
         scl *= 0.92;
         const sn = Math.sin(ph * TAU), up = Math.abs(sn);
-        rot = sn * 0.1;
-        y -= up * 1.3;
-        sx = 1 + (1 - up) * 0.07; sy = 1 - (1 - up) * 0.08 + up * 0.04; // jelly wobble
+        rot = sn * 0.09;
+        y -= up * 1.6;
+        // gummy jelly: every contact sets off a damped jiggle that rings on after the step (follow-through)
+        const fc = ph * 2 - Math.floor(ph * 2), jig = Math.exp(-9 * fc) * Math.cos(fc * 24);
+        sx = 1 + 0.1 * jig + up * 0.02; sy = 1 - 0.11 * jig + up * 0.04;
       } else if (e.type === 'ghost') {
         const f = Math.floor(view.rt * 6 + e.seed * 4) & 3;
         set = SPR.ghost[f];
@@ -1764,7 +1800,8 @@ body.style-candy #pausebox { font-family: 'Chewy', cursive; font-weight: 400; fo
         const sn = Math.sin(ph * TAU), up = Math.abs(sn);
         const contact = Math.pow(1 - up, 3);
         y -= up * 2.0;
-        sx = 1 + contact * 0.08; sy = 1 - contact * 0.08;
+        const fc = ph * 2 - Math.floor(ph * 2), jig = Math.exp(-7 * fc) * Math.cos(fc * 18);
+        sx = 1 + contact * 0.06 + 0.05 * jig; sy = 1 - contact * 0.06 - 0.055 * jig;
         rot = sn * 0.035;
       }
       sx *= scl; sy *= scl;
@@ -1784,21 +1821,41 @@ body.style-candy #pausebox { font-family: 'Chewy', cursive; font-weight: 400; fo
         }
       }
       if (e.dying) {
+        // designed over deathT 0..1 (0.35 s in motion)
         const q = e.deathT;
-        if (q >= 0.42) return;
-        const k = q < 0.2 ? 1 + U.ease.outQuad(q / 0.2) * 0.25 : 1.25 * (1 - U.ease.inQuad((q - 0.2) / 0.22));
-        sx *= k * (1 + 0.12 * Math.sin(q * 44)); sy *= k * (1 - 0.12 * Math.sin(q * 44));
+        let fa = 0.6;
+        if (e.type === 'ghost') {
+          // whipped cream melts: it sags, spreads, slides down into a puddle and fades
+          if (q >= 0.85) return;
+          const k = U.smoothstep(0, 0.7, q), w = Math.sin(q * 30) * 0.05 * (1 - k);
+          sx *= 1 + 0.55 * k + w; sy *= 1 - 0.7 * k - w; y += 4.5 * k;
+          alpha *= 1 - U.smoothstep(0.5, 0.85, q); fa = 0.5 * (1 - k);
+        } else {
+          // gummy pop: a jelly wobble, then it over-inflates, stretching upward, and pops at 0.34 (the burst covers it)
+          if (q >= 0.34) return;
+          const wob = Math.sin(q * 70) * 0.13 * (1 - q / 0.34);
+          const k = 1 + 0.38 * U.ease.outQuad(q / 0.34);
+          sx *= k * (1 + wob); sy *= k * (1 - wob) * (1 + 0.12 * q / 0.34);
+          fa = 0.35 + 0.6 * (q / 0.34);
+        }
         ctx.globalAlpha = alpha;
         const s0 = left ? set.nl : set.n;
         if (rot) blitRot(ctx, V, s0, e.x, y, sx, sy, rot); else blit(ctx, s0, e.x, y, sx, sy);
-        ctx.globalAlpha = alpha * 0.6;
+        ctx.globalAlpha = alpha * fa;
         const s1 = left ? set.fl : set.f;
         if (rot) blitRot(ctx, V, s1, e.x, y, sx, sy, rot); else blit(ctx, s1, e.x, y, sx, sy);
         ctx.globalAlpha = 1;
         return;
       }
       const fl = e.flash;
-      if (fl > 0) { sx *= 1 + 0.18 * fl; sy *= 1 - 0.15 * fl; }
+      // hit: a jelly spring (squash -> stretch -> settle, ~0.5 s) and a tilt away from the blow
+      const hT = e.hitT === undefined ? 9 : e.hitT;
+      if (hT < 0.6) {
+        const w = Math.exp(-8 * hT) * Math.cos(hT * 30);
+        sx *= 1 + 0.22 * w; sy *= 1 - 0.22 * w;
+        const dir = e.kx > 2 ? 1 : e.kx < -2 ? -1 : (left ? 1 : -1);
+        rot += dir * 0.26 * Math.exp(-9 * hT);
+      }
       ctx.globalAlpha = alpha;
       const s = left ? set.nl : set.n;
       if (rot) blitRot(ctx, V, s, e.x, y, sx, sy, rot); else blit(ctx, s, e.x, y, sx, sy);
@@ -1815,13 +1872,17 @@ body.style-candy #pausebox { font-family: 'Chewy', cursive; font-weight: 400; fo
       let frame = 0, sx = 1, sy = 1, lift = 0, rot = 0;
       if (p.moving) {
         const ph = p.anim * 0.42, f = ph - Math.floor(ph), hop = Math.floor(ph);
-        const air = Math.sin(f * PI);
-        lift = air * 3.2;
-        const contact = Math.max(0, 1 - Math.min(f, 1 - f) * 6);
-        sy = 1 + 0.07 * air - 0.13 * contact;
-        sx = 1 - 0.04 * air + 0.12 * contact;
-        frame = contact > 0.25 ? (hop & 1 ? 1 : 3) : 2;
-        rot = 0.07 * p.facing * air;
+        // 0-0.25 landing: squash that rings on as a damped jelly wobble · 0.25-0.38 crouch (anticipation) ·
+        // 0.38-1 airborne: stretch going up, a slight squash at the apex, stretch coming down
+        const air = f > 0.38 ? Math.sin(PI * (f - 0.38) / 0.62) : 0;
+        const jig = Math.exp(-14 * f) * Math.cos(f * 28);
+        const crouch = f > 0.25 && f < 0.38 ? Math.sin(PI * (f - 0.25) / 0.13) : 0;
+        const vel = f > 0.38 ? Math.cos(PI * (f - 0.38) / 0.62) : 0;   // + rising, - falling
+        lift = air * 3.4;
+        sy = 1 - 0.15 * jig - 0.09 * crouch + 0.06 * Math.abs(vel) * air * 2;
+        sx = 1 + 0.13 * jig + 0.07 * crouch - 0.04 * Math.abs(vel) * air * 2;
+        frame = air > 0.05 ? 2 : (hop & 1 ? 1 : 3);
+        rot = 0.07 * p.facing * air - 0.03 * p.facing * crouch;
         if (hop !== lastHop) {
           if (lastHop >= 0 && game && game.state === 'play' && p.dashT <= 0 && Math.random() < 0.6) {
             sugar(game, p.x - p.facing * 3, p.y + 0.5, 1.5, 1, 18, (Math.random() * 3) | 0);

@@ -2,7 +2,7 @@
 
 > A toy-box world of glossy plastic bricks: stud-covered baseplates, tiled roads, transparent-blue water plates and a little toy figure.
 
-Everything on screen is built from interlocking plastic parts — bricks, plates, smooth tiles and round bricks — seen from a steep 3/4 front view. A small cell renderer bakes every model once at startup: each part gets a glossy vertical gradient, a sheen band, a lit rim along its top edge, dark gaps where it meets other parts and a round stud with a white highlight crescent on every open top. The ground is an endless green baseplate covered in studs, with raised lime and grey plates whose front edges show, smooth grey road tiles with white lane dashes and transparent-blue water plates one plate lower. The main character is a molded toy figure (yellow cylinder head with a printed face, claw hands, pith helmet); the creatures are a red brick beetle with eye studs, a translucent ghost piece and a brick-built robot. Saturated toy-box primaries, clean studio light, no texture and no outlines.
+Everything is built from interlocking plastic parts seen from a steep 3/4 front view: bricks, plates, smooth tiles and round bricks, each baked to sprites at startup by a small cell renderer that gives every part a glossy front gradient, a sheen band, lit rims, dark gaps to its neighbours and a round stud with a highlight crescent on every open top. The ground is a green baseplate covered in studs, with raised lime and grey plates, smooth grey road tiles with white lane dashes and transparent-blue water plates. The main character is a molded toy figure with a yellow cylinder head, printed face and claw hands, posed like a played-with toy: rigid legs swing on the hip pin, arms on the shoulder pins, the head looks around, the helmet pops up when it is hit. Creatures are brick beetles in two designs, a translucent ghost piece and a brick-built robot; they click together from the baseplate and pop apart into bricks. Saturated toy-box primaries, crisp and cheerful.
 
 ## At a glance
 
@@ -117,7 +117,7 @@ The ground is an endless baseplate seen from the same front view, drawn row by r
 - **Plate seams:** dark 0.2-alpha lines every 16 studs on baseplates, every 4 on raised plates, every 8 on tan and water — the world reads as many plates laid side by side.
 - **Raised edges:** a cell above its southern neighbour shows a 2.1-unit glossy front face (×1.16+10 → ×0.84 at 25% → ×0.64) with a white top rim; raised cells get a white rim on their back and left edges; lower cells get a 2.2-unit contact shadow under a higher northern neighbour and a 2.4-unit shadow gradient right of a higher western neighbour.
 - **Water:** transparent-blue plates with pale blue studs at 0.75 alpha, a 0.07 white sheen on the upper half of each cell, a 1.4-unit dark band under the shore edge, lily pads (green round tile with a pink flower) on 2% of open water cells, and white cross glints blinking on 12% of the cells.
-- **Toy parts instead of studs** (pure hash per cell): flower plates on ~1.6% of green cells — five glossy petals (red, yellow, white, pink, azure, violet) around a yellow centre stud; leaf plants on ~2.4% — three pointed glossy leaves fanning up; loose 1×1 round plates in toy colours on ~0.3% (and on tan); flowers on 2% of lime plates.
+- **Toy parts instead of studs, grown in beds** (pure functions of the cell): flower plates — five glossy petals (red, yellow, white, pink, azure, violet) around a yellow centre stud — only inside **flower beds** (`noise(x/70) > 0.68`, 30 % of the cells there), one colour per bed from `noise(x/160)` with rare accents; leaf plants (three pointed glossy leaves) in **clumps** (`noise(x/48) > 0.64` → 14 %, elsewhere 0.4 %); loose 1×1 round plates only 0.08 %; flowers on 2 % of lime plates; lily pads on open water. Nothing is sprinkled evenly.
 
 ## Characters
 
@@ -130,13 +130,17 @@ All characters share the upper-left studio light and cast a soft shadow to the l
 - **Arms and hands:** 3-unit-thick curved strokes from the shoulders, ending in yellow `#f7c51e` C-shaped claw hands (a 1.4-unit circle with a darker 0.62-unit notch at the front-bottom).
 - **Head:** yellow cylinder 7.2 units wide and 6.9 tall with a rounded bottom, cylinder gradient and a white vertical highlight streak. Printed face shifted 0.85 units toward the facing direction: two black oval eyes (0.5 × 0.76) with white glints, short brows, a smile arc.
 - **Pith helmet:** brim ellipse 11.6 × 3.7 units in `#e6d2a0` over a darker underside, dome 8.1 × 4.5 with a brown `#8a5a2c` band, a white highlight spot and a small top button. A brown backpack peeks out on the side away from the facing direction.
-- **Frames:** idle; 4 walk poses (legs swing ±1.5 units as stiff toy legs, the forward foot reaches lower, arms counter-swing ±1.6, 0.5-unit bob); dash (whole figure leans 0.17 rad, legs and arms trail back). Each frame is painted for facing right and left.
+- **Posed like a toy:** legs are rigid pieces rotating on the hip pin (the back leg is drawn first and darker), arms rotate on the shoulder pins (`hand = shoulder + rotate((±2.45, 6.0), −angle·facing)`), the claw's notch turns on the wrist pin, the face print looks around (offset −0.3 … 1.6 units toward the facing side), and the helmet is a separate piece that lags the hop (−0.4) and pops up 2.2 units on a hit.
+- **16 poses** per facing: 0–7 walk (legs `[0.42, 0.28, 0, −0.28, −0.42, −0.28, 0, 0.28]` rad, the other leg mirrored, arms ×1.25 opposite, hop 1.2 units at passing), 8–11 idle fidgets (look further, look away + turn a hand, breath), 12 blink (eyes as small arcs), 13 dash crouch (1.4 lower, leaning back, arms back), 14 dash lunge (leaning 0.22 rad, legs ±0.7, arms swept back), 15 hurt (leaning back, arms up, round white-ringed eyes, raised brows, O-mouth, helmet popped up).
 
-**Small creature — red brick beetle** (4 × 3 × 6 cells, ~24 × 26 units): a dark grey 2×3 base plate, a 2×3 red brick body with a printed black grin and two white fangs, a dark red 2×2 shell plate on the back, two white 1×1 round bricks (2 plates tall) on the front as eyes with black pupils looking toward the facing direction, and black 1×2 side feet that jump one stud forward/back per frame.
+**Small creature — brick beetles in two designs** (4 × 3 × 9 cells, ~24 × 26 units), picked by the actor's seed:
+- *Red beetle:* a dark grey 2×3 base plate, a 2×3 red brick body with a printed black grin and two white fangs, a dark red 2×2 shell plate, two white 1×1 round bricks (2 plates tall) as eyes with black pupils.
+- *Yellow beetle:* a yellow brick body with a black stripe print, a black shell plate, one tall and one short white eye brick and a black round antenna with a red round tile on top.
+- 6 scuttle poses: black 1×2 side feet jump one stud forward/back, the body hops one plate (2.1 units), the eye bricks lag the hop by one pose. Hit pose: the body jumps a plate, all four feet splay out, the eyes print an X.
 
-**Fast creature — translucent ghost piece** (~20 wide, ~20 tall): a sheet with a round head (radius 6.2), raised stubby arms and a four-scallop wavy hem; fill is a radial gradient from `rgba(250,253,255,.5)` to `rgba(150,200,245,.78)` at the edges, a 0.75-unit white rim, an inner `rgba(110,165,225,.45)` rim, a white gloss arc on the head and a streak on the left. Printed face: black oval eyes (1.05 × 1.5) with white glints and an O-mouth. Hovers 4 ± 1.6 units with a faint additive blue glow; 4 frames animate hem and arms.
+**Fast creature — translucent ghost piece** (~20 wide, ~20 tall): a sheet with a round head (radius 6.2), raised stubby arms and a four-scallop wavy hem; fill is a radial gradient from `rgba(250,253,255,.5)` to `rgba(150,200,245,.78)` at the edges, a 0.75-unit white rim, an inner `rgba(110,165,225,.45)` rim, a white gloss arc on the head and a streak on the left. Printed face: black oval eyes (1.05 × 1.5) with white glints and an O-mouth. Hovers on an eased bob (2.6–5.8 units, holding at the top and bottom, own phase per actor) with a faint additive blue glow; 6 poses alternate the arms and ripple the hem, the hit pose flares the sheet, throws the arms high and widens the eyes 1.35×.
 
-**Large creature — brick robot** (7 × 3 × 18 cells, ~42 × 52 units): dark grey 2×3 feet and 2×2 legs (one leg lifts a plate per step), a black hip plate, a blue 5×3 torso of two stacked bricks (lower one printed with a 4-slot grille, upper one with a yellow chest panel, three dark lines and a glowing red core), light grey 1×2 arms with yellow shoulder plates and red hands (arms swing one stud), a light grey 3×2 head printed with two glowing red eyes and a mouth grille, a black round antenna with a transparent red tip. Additive red glows sit on the eyes, core and tip.
+**Large creature — brick robot** (7 × 3 × 22 cells, ~42 × 52 units): dark grey 2×3 feet and 2×2 legs, a black hip plate, a blue 5×3 torso of two stacked bricks (lower one printed with a 4-slot grille, upper one with a yellow chest panel and a glowing red core), light grey 1×2 arms with yellow shoulder plates and red hands, a light grey 3×2 head printed with two glowing red eyes and a mouth grille, a black round antenna with a transparent red tip. 6 stomp poses: one foot lifts a plate, the arms swing a stud opposite, the head and antenna rise one plate a pose later (lag). Hit pose: arms raised five plates, bigger antenna glow. Additive red glows sit on the eyes, core and tip.
 
 **Rules**
 
@@ -164,15 +168,16 @@ Placement: a jittered 46-unit grid; a prop stands only if every footprint cell h
 
 ## Effects and particles
 
-- **Flying single bricks:** every burst throws baked loose parts — 1×1 brick, 1×2 brick, 2×2 plate, 1×1 round plate, 1×1 plate (weights 22/35/26/12/5%) — in the colours of what burst (beetle red/black/white, robot blue/greys/yellow/red, ghost clear/transparent blue, figure orange/blue/yellow/tan). Size 1.6–3.4 units, 2D tumbling (±7 rad/s), vz 50–150, gravity 330 (ghost: −40, they float up), drag 1.3, soft shadow when low, fade in the last 25%.
+- **Plastic pop** — The core flash of every hit, burst, pickup and celebration: a white 4-point star (cool blue for clear pieces) that snaps open from 45 % to full size with outQuad and a thin white ring around it, 0.12–0.22 s.
+- **Flying single bricks** — Bursts throw baked loose parts (1×1 brick, 1×2 brick, 2×2 plate, 1×1 round plate, 1×1 plate) in the colours of what burst; they tumble (±7 rad/s), fly with vz 50–150, gravity 330, drag 1.3, bounce, leave a soft shadow near the ground and fade in the last 25 %. Ghost pieces float upward.
+- **Loose studs (residue)** — Each burst also drops 3–5 round 1×1 plates that barely jump (vz 25–30) and lie on the baseplate for 1.8–2.2 s before fading – what is left of the creature.
+- **Stud ring** — An ellipse (r × 0.8 r) easing out to 22–56 units, white stroke at 0.8·k alpha, with 4–16 yellow studs riding on it; the celebration ring's studs advance in quarter steps.
+- **Click-together appearance** — Brick creatures are built up from the baseplate in whole plate rows (outQuad over 75 % of 0.45 s) while two loose bricks drop in, then they press down (squash 0.92) and spring back (1.04) with a white pop on top – the click. The ghost fades in, drops 10 units onto its peg and un-stretches.
+- **Pop apart** — A vanishing creature swells (1.08 × 1.05) and whites out for 14 %, then its hit pose splits into brick-sized blocks (2×3, robot 3×5) that jump out and up, land on the baseplate and fade; positions advance on twos and rotations snap to 30° steps (stop-motion). The ghost piece floats apart and shrinks. At most 8 per frame.
+- **Stud coins** — Collectibles are round stud coins spinning through 10 baked frames: azure #2f9bff small, gold #ffc81e large with a gold glow; raised ring, highlight crescent, edge band, hovering 4.4–6 units with a twinkle star.
+- **Projectile and orbiting beacon** — A yellow 1×1 round plate with two fading copies and a pale yellow speed line; a transparent orange round brick on a black plate with a yellow cap hovering 10 ± 1.4 units in a warm glow.
 - **Sparkles:** 4-point stars `#fff6c8` (clear pieces `#d8f1ff`) with a white dot, 3–6 units, scaled by `0.4 + sin(life·π)·0.8`.
-- **Stud ring:** ellipse (r × 0.8r) easing out 8 → 56 units, white stroke `1.6·k + 0.4` at `0.8·k` alpha with 12–16 yellow studs riding on it.
-- **Impact:** 2–3 small round plates + 2 sparkles; the creature flashes with a cached white silhouette copy (alpha ≤ 0.65).
-- **Build-up appearance:** brick creatures are revealed from the bottom in whole plate rows while two loose bricks drop in; the ghost fades and scales in from 0.6.
-- **Coming apart:** the creature sprite splits into three horizontal bands that slide apart, hop and fade over a short white flash.
-- **Stud coins (collectibles):** upright round coins spinning through 10 baked frames — azure `#2f9bff` (3.1 units) and gold `#ffc81e` (4.3 units, gold glow) — with a raised ring, highlight crescent and edge band, hovering 4.4–6 units, twinkle star.
-- **Projectile:** yellow 1×1 round plate with two fading copies behind it and a pale yellow 10-unit speed line.
-- **Orbiting beacon:** transparent orange round brick on a black round plate with a yellow cap, hovering 10 ± 1.4 units, warm glow.
+- **Layering:** every burst = plastic pop (core) → flying bricks (main) → sparkles + stud ring (secondary) → loose studs on the ground (residue).
 
 ## Atmosphere and lighting
 
@@ -197,32 +202,39 @@ The HUD is brick-built; the cards are instruction-booklet pages.
 
 ## Motion and animation
 
-- Main character: idle + 4 walk frames (`frame = 1 + floor(anim·1.4) mod 4`), dash pose with three white tinted trail copies 6 units apart; idle hop `max(0, sin(t·2.4))·0.5`; i-frames blink at 18 Hz between alpha 1 and 0.5; hurt = cached red silhouette at alpha ≤ 0.6.
-- Beetle: 4 frames at `anim·1.8`; robot: 4 frames at `anim·1.2`; ghost: 4 frames at 5 fps, hovering `4 + sin(t·2.6 + seed)·1.6`.
-- Brick parts move in clicks (whole studs or plates); smooth motion is reserved for debris, coins, the ghost and floating numbers.
-- Coins: 10 frames at 1.4 sets per second, bob `±0.9` at 3 rad/s, twinkle when `sin(t·4 + seed) > 0.7`.
-- Floating numbers pop 0.6 → 1.15 in the first 14% of their life, then settle, fading over the last third.
-- Glows breathe ±0.08–0.12 alpha at 3–9 rad/s; water glints show when `sin(t·1.6 + phase) > 0.4`.
+- The toy is animated like a brickfilm: poses are held and stepped, not tweened. Main character walk: 8 poses at frame = floor(anim·1.3) mod 8 (~12 fps at walking speed): legs ±0.42 / ±0.28 / 0 rad on the hip pins, arms counter-swing at 1.25× the leg angle, the figure hops 1.2 units at passing, the helmet lags the hop.
+- Idle: 4 fidget poses held 0.75 s each (look further toward the facing side, look away while turning a hand on its wrist pin, small breath), and a blink pose for 0.16 s every 3.8 s.
+- Dash: crouch pose for the first 50 ms (body 1.4 lower, leaning back, arms back = anticipation), then the lunge (leaning 0.22 rad, legs ±0.7, arms back) with two white copies two units apart; hurt pose while hurtT > 0.62 with a red tint; invulnerability blinks at 18 Hz.
+- Beetles: 6 poses at anim·2.7, robot 6 poses at anim·1.8, ghost 6 poses at 7 fps + seed with an eased hover (holds at the top and bottom, own phase per actor) – crowds never move in lock-step.
+- Hit: hit pose + white flash while flash > 0.25, knocked 2 units in the push direction for the first half, squash 1.06 × 0.95.
+- All brick motion is in whole cells (studs, plates); debris and coins move smoothly, break-up blocks move on twos.
+- Coins spin 1.4 sets per second and bob ±0.9 units; floating numbers pop from 0.6 to 1.15 in the first 14 % of their life.
 
 ## Do and don't
 
 **Do**
 
-- Build everything from real part sizes on one grid: stud 6 × 4.2 units, plate 2.1, brick 3 plates.
-- Let the part structure draw the lines: rims on top edges, gaps between parts, running-bond walls.
-- Put a stud on every open non-tile top and every baseplate cell; keep roads, signs and roofs smooth.
-- Use flat saturated toy colours + the fixed gloss recipe; make transparent parts translucent with brighter highlights.
-- Snap props to whole studs; mirror grids (not sprites) for the other facing.
-- Give printed faces tiny white glints.
+- Build every prop, creature, icon and debris piece from real part sizes on one grid: 1 stud = 6 units across, 4.2 deep, 1 plate = 2.1 units, 1 brick = 3 plates.
+- Let the part structure do the line work: rims on top edges, dark gaps between parts, staggered bricks in walls.
+- Put a stud on every open top that is not a smooth tile, and on every baseplate cell.
+- Use only flat saturated toy colours and the fixed gloss recipe; make transparent parts translucent with brighter highlights.
+- Snap props to whole studs so they sit exactly on the baseplate grid.
+- Mirror brick grids (not sprites) for the other facing so the light stays on the upper left.
+- Use smooth tiles (no studs) for roads, signs and roofs to give the eye calm areas.
+- Pose the figure like a toy: rotate rigid parts on their pins, hold poses, hop at passing; give every state its pose (blink, crouch, lunge, hurt).
+- Grow decorations in beds: one flower colour per bed, leaf plants in clumps, almost no loose studs elsewhere.
 
 **Don't**
 
-- Don't draw outlines, noise, dithering or per-cell colour jitter.
-- Don't rotate the camera or show side faces.
-- Don't use half-stud offsets or free sizes; nothing floats between studs.
-- Don't use muted, earthy or pastel world palettes.
-- Don't stud every surface.
-- Don't put brand names, logos or lettering on studs.
+- Don't add outlines or strokes around parts.
+- Don't use noise, texture, dithering or per-cell colour jitter — plastic is clean and uniform.
+- Don't rotate the camera or show side faces; the look depends on the straight front 3/4 view.
+- Don't use half-stud offsets or arbitrary sizes; nothing may float between studs.
+- Don't use muted, earthy or pastel palettes for the world; it must feel like a toy box.
+- Don't make every surface studded: roads, curbs, signs and roof tiles stay smooth.
+- Don't use brand names, logos or embossed lettering on studs.
+- Don't tween poses smoothly or squash the figure – toys don't bend.
+- Don't sprinkle flowers and loose studs evenly over the baseplate.
 
 ## Implementation recipe
 
@@ -231,10 +243,10 @@ The HUD is brick-built; the cards are instruction-booklet pages.
 3. Write the stud sprite baker (cylinder gradient, top ellipse, crescent, contact shadow), cached per colour and resolution.
 4. Write the renderer: loop `y`, `z`, `x`; draw front faces with the part gradient + sheen + rims/gaps, top faces + studs, round parts as cylinder slices, prints last. Round all coordinates.
 5. Bake a shadow per grid (sheared footprint, blurred).
-6. Paint the molded figures with paths and bake idle/walk/dash frames for both facings.
+6. Paint the molded figures with paths from a pose (`figPose(f)`: leg/arm pin angles, hop, lean, look, hat lag, blink/hurt) and bake 16 poses for both facings; give brick creatures 6 walk poses + a hit pose and a second design for the most common one.
 7. Build the baseplate: per-cell material + level, rows back to front, front faces on level drops, seams, studs, toy parts; cache 256-unit chunks.
 8. Place props on whole studs, y-sort with figures, fade tall props over the figure and redraw it as an x-ray copy.
-9. Effects: tumbling baked loose parts, star sparkles, stud rings, stud coins.
+9. Effects: plastic pop → tumbling baked loose parts → sparkles + stud rings → loose studs left on the baseplate; click-together appearance and pop-apart vanish; stud coins.
 10. HUD: brick panels with CSS stud rows, stud-covered bar fills, booklet cards with step numbers and callout boxes.
 
 ## Code
@@ -337,8 +349,8 @@ function head(g, top, bottom, facing) {            // yellow cylinder, 7.2 units
 
 ## Performance notes
 
-- Everything is baked in `init()`: figure 6 frames × 2 facings, ghost 4 frames (+ flipped copies), beetle and robot 4 frames × 2 mirrored grids, 11 props + shadows, ~80 loose-part sprites, 20 coin frames — a few hundred ms.
-- Per frame: 1–3 `drawImage` per object; flash/tint copies cached on first use; one `setTransform` per tumbling brick.
+- Everything is baked in `init()`: figure 16 poses × 2 facings, ghost 7 poses (+ flipped copies), two beetle designs and the robot 7 poses × 2 mirrored grids, 11 props + shadows, ~80 loose-part sprites, 20 coin frames — a few hundred ms.
+- Per frame: 1–3 `drawImage` per object; flash/tint copies cached on first use; one `setTransform` per tumbling brick. Pop-apart draws source rectangles (no clip paths), at most 8 creatures per frame.
 - Ground chunks: per cell one `fillRect` + one stud `drawImage` (plus seams and edges), as a generator yielding every two rows (~20 ms per 256-unit chunk spread over frames); stud, flower and plant sprites cached per resolution; ground resolution capped at 2.5 px per unit.
 - Roads cost a few extra noise samples (distance = |n| / |∇n| needs 3 samples per network), still cheap per cell.
 - Measured in the same noisy conditions as the voxel module, steady frames cost about the same and chunk builds are cheaper. `starter.js` bakes its background once per size and draws a frame in about a millisecond.
@@ -358,9 +370,11 @@ Use the Toy Bricks art style for my project: a glossy plastic toy-brick world in
 - Ground: a stud-covered green baseplate #47a347 with raised lime/grey plates (front edge visible), smooth grey road tiles #666d73
   with light curbs and white lane dashes, transparent-blue water plates one plate lower, flowers and leaf plants as small toy parts.
 - Main character: a molded toy figure ~31 units tall: cylinder yellow head with a printed face, claw hands, orange torso, blue legs,
-  explorer helmet; stiff-leg walk in 4 frames. Creatures: a red brick beetle with round eye bricks, a translucent ghost piece,
+  explorer helmet; posed like a toy (rigid legs/arms rotating on pins, hop at passing, helmet lags), 8 walk poses on twos,
+  4 idle fidgets + blink, crouch before a lunge, hurt pose with the helmet popping up. Creatures: a red brick beetle with round eye bricks, a translucent ghost piece,
   a big brick robot with glowing red eyes. Brick creatures move in whole studs/plates.
-- Effects: flying single bricks and plates that tumble and bounce, star sparkles, rings with studs on them, spinning stud coins.
+- Effects, layered: white plastic pop -> flying bricks that tumble and bounce -> sparkles + stud rings -> loose studs left lying;
+  creatures click together plate by plate and pop apart into brick blocks (stop-motion steps). Flowers grow in beds.
 - UI: brick panels with a row of studs on top and hard drop edges, bars filled with stud-covered plates, instruction-booklet cards
   (white page, black border, big step number, parts-callout box with "1x"); fonts Titan One + Fredoka.
 ```

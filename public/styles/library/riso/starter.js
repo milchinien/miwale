@@ -104,25 +104,42 @@
   const LIN = (x0, y0, x1, y1, t0, t1) => (x, y) => { const dx = x1 - x0, dy = y1 - y0; return t0 + (t1 - t0) * clamp(((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy), 0, 1); };
 
   /* ---------------- assets (world units, feet at 0,0) ---------------- */
-  function heroParts(P, step) {
-    const s = Math.sin(step * PI) * 3.6;
-    P.fill([PK, BL], CAP(-1.5, -8.2, -2.4 - s, -1.6, 1.45)); P.fill([PK, YE], E(-1.5 - s, -1.15, 2.55, 1.35));
-    P.fill([BL, PK], CAP(-2.4, -15, -2.4 - s * 0.9, -9.8, 1.4));
-    const body = (c) => { c.moveTo(-4.6, -17.2); c.quadraticCurveTo(-6.3, -12.2, -5.7, -7.3); c.quadraticCurveTo(0, -6.3, 5.9, -7.3); c.quadraticCurveTo(6.4, -12.2, 4.6, -17.2); c.quadraticCurveTo(0, -18.6, -4.6, -17.2); c.closePath(); };
+  /* main character pose: bf/ff = back/front foot [x, y<0 lifted], ba/fa = arm angles (+ forward), b = body bob (+ down),
+     hd = head lag, pom = pompom lag, lean. 8 walk poses are COMPUTED from one phase (contact, down, passing, up per leg);
+     the knee is solved from the hip-ankle distance; head and pompom follow through with growing phase delays. */
+  const WALK = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = (i / 8) * TAU, foot = (p) => [0.3 + 4.1 * Math.cos(p), Math.sin(p) < 0 ? Math.sin(p) * 2.4 : 0];
+    WALK.push({ ff: foot(ph), bf: foot(ph + PI), fa: -0.95 * Math.cos(ph), ba: 0.95 * Math.cos(ph), b: 0.9 * Math.sin(2 * ph), hd: 0.45 * Math.sin(2 * ph - 0.9), pom: Math.sin(2 * ph - 1.8), lean: 0.06 });
+  }
+  function heroParts(P, F) {
+    const hipY = -8.2 + F.b, cl = Math.cos(F.lean), sl = Math.sin(F.lean);
+    // upper body: bob + lean around the hip point (every shape point goes through up())
+    const up = (x, y, extra) => [x * cl - (y + 8.2) * sl, -8.2 + F.b + (extra || 0) + x * sl + (y + 8.2) * cl];
+    const U2 = (fn) => (c) => { const m = c.getTransform(); c.translate(0, -8.2 + F.b); c.rotate(F.lean); c.translate(0, 8.2); fn(c); c.setTransform(m); };
+    const leg = (hx, fx, fy, ink) => {
+      const ax = fx, ay = fy - 1.6, dx = ax - hx, dy = ay - hipY, d = Math.hypot(dx, dy) || 1, L = 7.9;
+      const bend = d < L ? Math.sqrt((L / 2) ** 2 - (d / 2) ** 2) : 0, kx = (hx + ax) / 2 + (dy / d) * bend, ky = (hipY + ay) / 2 - (dx / d) * bend;
+      if (bend > 0.3) { P.fill(ink, CAP(hx, hipY, kx, ky, 1.45)); P.fill(ink, CAP(kx, ky, ax, ay, 1.4)); } else P.fill(ink, CAP(hx, hipY, ax, ay, 1.45));
+      P.fill([PK, YE], E(fx + 0.9, fy - 1.15, 2.55, 1.35));
+    };
+    const arm = (sx, sy, a, ink) => { const p0 = up(sx, sy), p1 = up(sx + Math.sin(a) * 5.4, sy + Math.cos(a) * 5.4); P.fill(ink, CAP(p0[0], p0[1], p1[0], p1[1], 1.4)); P.fill(YE, E(p1[0], p1[1] + 0.3, 1.6, 1.6)); };
+    leg(-1.5, F.bf[0], F.bf[1], [PK, BL, YE]);
+    arm(-2.4, -15, F.ba, [BL, PK]);
+    const body = U2((c) => { c.moveTo(-4.6, -17.2); c.quadraticCurveTo(-6.3, -12.2, -5.7, -7.3); c.quadraticCurveTo(0, -6.3, 5.9, -7.3); c.quadraticCurveTo(6.4, -12.2, 4.6, -17.2); c.quadraticCurveTo(0, -18.6, -4.6, -17.2); c.closePath(); });
     P.fill(BL, body);
     P.fill(PK, body, { tone: LIN(-6, -7, 3, -15, 0.62, 0), knock: false });
-    P.fill([PK, BL], CAP(1.6, -8.2, 2.4 + s, -1.6, 1.45)); P.fill([PK, YE], E(3.3 + s, -1.15, 2.55, 1.35));
-    const hx = 0.8, hy = -22.6;
+    leg(1.6, F.ff[0], F.ff[1], [PK, BL]);
+    const [hx, hy] = up(0.8, -22.6, F.hd);
     P.fill(PK, E(hx, hy, 6.5, 6.5), { tone: 0.34, pitch: 0.78 });
     P.fill(YE, E(hx, hy, 6.5, 6.5), { tone: 0.3, pitch: 0.78, knock: false });
     P.fill([PK, BL], E(hx - 3.7, hy + 1.2, 3.1, 3.9));
     P.fill(YE, (c) => { c.moveTo(hx - 7, hy - 1.2); c.bezierCurveTo(hx - 7.4, hy - 9.6, hx + 7.6, hy - 9.6, hx + 7.1, hy - 1.2); c.closePath(); });
     P.fill([PK, YE], (c) => c.rect(hx - 7.4, hy - 2.8, 14.8, 2.9));
-    P.fill(PK, E(hx - 1.6, hy - 8.4, 2.3, 2.3));
+    P.fill(PK, E(hx - 1.6 - F.pom * 0.9, hy - 8.4 + Math.abs(F.pom) * 0.35, 2.3, 2.3)); // pompom swings after the head
     P.fill([BL, PK], E(hx + 2.3, hy + 1.8, 0.85, 1.25)); P.fill([BL, PK], E(hx + 5, hy + 1.8, 0.8, 1.2));
     P.fill(PK, E(hx + 5.6, hy + 4, 1.05, 1.05));
-    P.fill(BL, CAP(2.6, -14.8, 2.6 + s * 0.9, -9.6, 1.4));
-    P.fill(YE, E(2.6 + s * 0.9, -9.3, 1.6, 1.6));
+    arm(2.6, -14.8, F.fa, BL);
   }
   function critterParts(P, v) {
     const body = (c) => { c.moveTo(0, -17.2); c.bezierCurveTo(5.6, -17.2, 8.8, -9.5, 8.8, -4.8); c.bezierCurveTo(8.6, -1.6, 5, -1.1, 0, -1.1); c.bezierCurveTo(-5, -1.1, -8.6, -1.6, -8.8, -4.8); c.bezierCurveTo(-8.8, -9.5, -5.6, -17.2, 0, -17.2); c.closePath(); };
@@ -182,9 +199,9 @@
   }
 
   function drawHero(ctx, x, y, t, facing) {
-    const u = ctx.__risoU || 2, step = Math.floor(t * 6) & 3;
+    const u = ctx.__risoU || 2, i = Math.floor(t * 12) & 7; // 8 held walk poses at 12 fps – bob and lean live inside the poses
     shadow(ctx, x, y + 0.4 * u, 9, u);
-    blit(ctx, sprite('hero' + step, kOf(u), [-10, -34, 9, 1.5], (P) => heroParts(P, [0, 1, 0, -1][step])), x, y - Math.abs(Math.sin(t * 6 * PI / 2)) * 1.4 * u, u, facing < 0);
+    blit(ctx, sprite('hero' + i, kOf(u), [-12, -36, 12, 1.5], (P) => heroParts(P, WALK[i])), x, y, u, facing < 0);
   }
   function drawEnemy(ctx, x, y, t, variant) {
     const u = ctx.__risoU || 2;
@@ -209,7 +226,11 @@
         if (pond) { if (i === BL) cov = (Y + Math.sin(X / 23) * 4) % 7.5 < 0.95 && X % 23 < 12 ? 0 : 1; }
         else if (path) { if (i === YE) am = 0.46; }
         else if (meadow) { am = i === YE ? 0.27 : i === BL ? 0.11 : 0; }
-        else fm = i === PK ? Math.max(0, fbm(X / 160, Y / 160, 81) - 0.45) * 0.8 : i === YE ? Math.max(0, fbm(X / 180 + 5, Y / 180, 91) - 0.45) * 0.6 : 0;
+        else {
+          // tint clouds on bare paper: AM dots that grow toward the cloud core – a printed halftone fade, never FM speckle
+          const cl = i === PK ? fbm(X / 160, Y / 160, 81) : i === YE ? fbm(X / 180 + 5, Y / 180, 91) : 0, t = clamp((cl - 0.5) * 4, 0, 1);
+          am = t * t * (i === PK ? 0.3 : 0.26);
+        }
         if (am) {
           const uu = (X * Math.cos(ANG[i]) + Y * Math.sin(ANG[i])) / pitch, vv = (Y * Math.cos(ANG[i]) - X * Math.sin(ANG[i])) / pitch;
           const fu = uu - Math.floor(uu) - 0.5, fv = vv - Math.floor(vv) - 0.5;

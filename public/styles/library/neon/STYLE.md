@@ -1,8 +1,8 @@
 # Neon Midnight — Game Art Style Spec
 
-> Glowing neon tube line-art with baked halos on a near-black holographic floor of circuit, hex and halftone regions.
+> Glowing neon tube line-art with baked halos on a calm near-black floor of glowing roads, pattern districts and water.
 
-Every character and prop is drawn as glowing tubes: a saturated coloured line with a near-white "hot" core, on top of a soft halo that is pre-blurred once at load time, around a near-black tinted glass fill. The floor is a dark midnight board split into noise-shaped districts, each with its own faint additive pattern (violet grid, teal hexagons, magenta halftone dots, copper circuit traces, blue water scanlines), separated by thin glowing contour lines. Scanlines, a violet vignette and short chromatic glitches finish the look: a Halloween rave at 23:59 — black, electric and crisp.
+Every character and prop is drawn as glowing tubes: a saturated coloured line with a near-white "hot" core, a soft halo pre-blurred once at load time and a near-black tinted glass fill. Light is ranked like a stage: the main character carries the brightest halo and a warm floor light, creatures glow one step lower, props lower still, and the floor stays a calm dark board – faint patterns gather in districts, meandering light roads with violet kerbs connect them, reeds fringe the lakes and a few floor plazas carry the detail. Scanlines, a violet vignette and short chromatic glitches finish the look: a Halloween rave at 23:59 — black, electric and crisp.
 
 ## At a glance
 
@@ -103,99 +103,94 @@ Floating numbers are baked into a digit atlas (Orbitron 46 px): blur 6 px + blur
 
 ## World and ground
 
-The floor is "a circuit board seen at night" split into districts. It is near-black throughout (< 15 % brightness) so anything placed on it outshines it.
+The floor is "a city map of light seen at night": dark districts, roads that lead somewhere, lakes with lit shores and a few plazas. It stays near-black (< 15 % brightness) so everything standing on it outshines it.
 
-1. **Fields.** Per world point sample 4 fbm fields (2 octaves) with domain warp: `q = fbm(x/1150, y/1150) − 0.5`, `X = x/1050 + q*1.3`. Also a water field `fbm(x/560 …, 3 oct)` and a slow brightness field `fbm(x/240)`. Sample on a 4 u grid with a 2-cell margin so chunks match.
-2. **Base colour.** Softmax of the 4 fields with temperature 0.012 (nearly hard borders, a 1–2 cell blend) mixes the bases: violet `rgb(8,8,32)`, teal `rgb(3,15,21)`, magenta `rgb(30,4,22)`, copper `rgb(14,9,15)`. Water (`smoothstep(0.625, 0.645, wat)`) mixes in `rgb(2,9,30)`. Multiply by `0.7 + 0.6*bright`. Put it in a tiny ImageData and draw it scaled up with smoothing. Fallback ground colour `#06050f`.
-3. **Patterns.** Each region draws its full pattern on a scratch canvas, then `destination-in` with its upscaled weight mask (alpha = weight × (0.42 + 0.58·smoothstep(0.3, 0.7, bright))), then composites onto the chunk with `lighter`:
-   - *Violet grid*: 8 u lines at `rgba(120,80,255,.16)`, every 32 u a 4 px halo `rgba(120,70,255,.1)` + 1 px `rgba(165,115,255,.5)`, a 5.2 u cross `rgba(225,200,255,.85)` every 64 u.
-   - *Teal hex*: pointy hexes of radius 9 u, 1 px `rgba(40,215,195,.34)`; 7.5 % of cells lit with fill `rgba(40,215,195,.075)` and inner hex at 52 % radius `rgba(100,255,230,.6)`; 2.5 % get a 1.1 u dot.
-   - *Magenta halftone*: staggered 6 u grid, dot radius `0.42 + 1.25*smoothstep(0.3,0.78,noise(x/120,y/120))`, `rgba(255,70,200,.52)`; 1.2 % big dots (0.9 u bright + 2.6 u ring).
-   - *Copper circuit*: in 26 u cells (42 % chance) a trace of 2–3 segments, 8–26 u long, turning ±45°, 0.6 u `rgba(255,150,60,.38)`; 45 % of traces are 2–3 parallel offset lines 2.8 u apart. End pads r 1.2 u ring, start vias r 0.7 u filled; chips (96 u cells, 30 %): 10–16 × 6–10 u rectangles with 2 u pins.
-   - *Water*: 1 px horizontal lines every 2 u `rgba(40,130,255,.24)` plus moonlight glints 2–12 u long (`rgba(90,190,255,.55)` / `rgba(200,240,255,.8)`).
-4. **Ground decals** (`lighter`): star dust squares 0.3–0.75 u in pale lilac/white/cyan/pink at 22–55 % (about one per 11 u cell); line glyphs 1.8–3.2 u (cross, moon, star, diamond, triangle, ring, chevrons, bat, rune; 13 % are small pumpkins in `#ff9a3c`), each stroked 2.2 u at 16 % + 0.5 u at full; landmarks 18–28 u (targets with tick rings, clock faces at 23:59, moons with stars) stroked 5 u/5 %, 1.8 u/16 %, 0.55 u/42 %.
-5. **Contours.** Marching squares on `field_i − max(other fields)` at iso 0 (skipping water cells) and on the water field at iso 0.635 and 0.657. Each segment set is stroked three times additively (`glowStroke`): 6 u at 5 %·k, 2 u at 15 %·k, 1.15 px at 62 %·k in the line colour mixed 35 % to white. Line colours: violet `rgb(136,104,255)`, teal `rgb(30,214,196)`, magenta `rgb(255,64,206)`, copper `rgb(255,150,64)`; water `rgb(90,200,255)` (k 1.15) and an inner contour `rgb(60,150,255)` (k 0.45).
+1. **Fields.** Per world point sample 4 fbm district fields (2 octaves) with domain warp `q = fbm(x/1150, y/1150) − 0.5`, `X = x/1050 + q·1.3`; a water field `fbm(x/560 …, 3 oct)`; a slow intensity field `fbm(x/240)`; and a **road field** `fbm(x/780 + q·0.6, …, 2 oct)`. Sample on a 4 u grid with a 2-cell margin so chunks match.
+2. **Base colour.** Softmax (temperature 0.012) of the 4 fields mixes violet `rgb(8,8,32)`, teal `rgb(3,15,21)`, magenta `rgb(30,4,22)`, copper `rgb(14,9,15)`; water (`smoothstep(0.625, 0.645, wat)`) mixes in `rgb(2,9,30)`. Brightness `(0.72 + 0.5·intensity)·(1 − 0.3·roadNear)`. Drawn as a tiny ImageData scaled up with smoothing. Fallback `#06050f`.
+3. **Pattern districts.** Each district pattern is drawn on a scratch canvas, masked (`destination-in`) by weight × `(0.16 + 0.84·smoothstep(0.38, 0.74, intensity))` × `(1 − 0.8·roadNear)` and added with `lighter`. So patterns bloom only inside clusters, calm gaps lie between them and road shoulders stay clean:
+   - *Violet grid*: 8 u lines `rgba(120,80,255,.09)`; every 32 u a 4 px halo + 1 px `rgba(165,115,255,.34)`; a 5.2 u cross `rgba(225,200,255,.6)` every 64 u.
+   - *Teal hex*: radius 9 u, 1 px `rgba(40,215,195,.24)`; 7.5 % of cells lit with an inner hex.
+   - *Magenta halftone*: staggered 6 u grid, dot radius 0.42–1.67 u by noise, `rgba(255,70,200,.36)`.
+   - *Copper circuit boards*: traces in 26 u cells with a chance of `0.06 + 0.5·smoothstep(0.42, 0.68, fbm(x/340))` – boards, not an even carpet – 2–3 segments turning ±45°, 0.6 u `rgba(255,150,60,.27)`, pads, vias and chips with pins.
+   - *Water*: 1 px lines every 2 u `rgba(40,130,255,.24)` plus moonlight glints.
+4. **Light roads.** The 0.5 iso-line of the road field (marching squares, cells inside water skipped, so roads end at the shore) is stroked four times: additive shoulder 17 u `rgba(110,80,255,.045)`, kerb 11.6 u `#3a2f86`, surface 10.4 u `#06050d` (leaving two 0.6 u kerb lines), centre line additive 2.4 u `rgba(255,150,70,.07)` + 0.5 u `rgba(255,190,120,.34)`. Roads are 300–500 u apart and meander for thousands of units.
+5. **Floor plazas** (the only ground decals, `lighter`): one candidate per 360 u cell (55 %), never within 34 u of a road or on water: a landmark 18–26 u (target rings with ticks, clock face at 23:59, carved pumpkin, crescent moon with stars) stroked 5 u / 1.8 u / 0.55 u at 36 %, ringed at r + 9..13 u by 6–9 glyphs that alternate between two types (cross, moon, star, diamond, triangle, ring, chevrons, bat, rune), every third one brighter. No dust, no evenly sprinkled glyphs.
+6. **Contours.** Marching squares on `field_i − max(other fields)` (skipping water) and on the water field at 0.635 and 0.657; each stroked three times additively (6 u at 5 %·k, 2 u at 15 %·k, 1.15 px at 62 %·k, colour mixed 35 % to white). District borders k 0.4 (quiet), shores k 0.95 (the strongest ground light) plus an inner shore line k 0.32.
 
-Scale: districts are 300–800 u across, so a screen usually shows 2–3 of them and one border curve.
+Scale: districts are 300–800 u across; a screen shows 2–3 districts, usually one road and often a shore.
 
 ## Characters
 
-All characters are outline drawings made of neon tubes over near-black glass fills: one dominant outline colour per type with a hot near-white core (36 % width, colour mixed 62 % to white), thinner interior details (0.3–0.7 u) without a core, round caps and joins, a 1.8× halo baked once (blur 2.2 u at 70 % + 0.6 u at 60 %). Each body part is a separate path. Every character type owns one hue family and one strong silhouette.
+All characters are outline drawings made of neon tubes over near-black glass fills: one dominant outline colour per type with a hot near-white core (36 % width, colour mixed 62 % to white), thinner interior details (0.3–0.7 u) without a core, round caps and joins, a 1.8× halo baked once. Poses are **computed** from a few parameters (two-bone IK limbs, travelling waves for cloth, leaves and tails) and baked into frames. Halo strength (`glowA`) ranks the cast: main character 1.25, fast creature 1.0, large creature 0.9, small creature 0.85.
 
-**Main character** (feet at 0,0, ~18 u wide, ~30 u tall, faces right) – a small stick-limbed figure with a round carved pumpkin head and a trailing scarf:
-- **Head**: pumpkin path, ellipse rx 7.6 × ry 6.3 centred at (0.5, −21.7), radius modulated `1 + 0.035·cos(6t) − 0.08·max(0,−sin t)^14` (6 lobes, flattened top), fill `rgba(30,9,2,.97)`, outline `#ff7a1a` 1.3 u with hot core. Two side ribs `rgba(255,110,30,.55)` 0.55 u (full pass only). Stem `#9cff4a` 1.15 u curving right.
-- **Face**: two triangle eyes and a zig-zag grin, filled with a radial gradient `#fffbe2 → #ffe08a (55 %) → #ffa526`, glowing `#ffb000` in the glow pass – it is the brightest thing on screen.
-- **Body**: small tunic trapezoid (−2.6..2.6 at the top, −4..4 at the hem) filled near-black `rgba(26,10,3,.96)`, outlined `#ffae35` 1.05 u; a satchel strap `#ffcf7a` 0.5 u without core.
-- **Limbs**: stick limbs 1.0–1.05 u (hip → knee → foot → toe; shoulder → elbow → hand with a 0.85 u filled hand). Front limbs `#ffae35`, back limbs `#c8761c`.
-- **Scarf**: front wrap `#ffe14a` 1.7 u + two trailing tails 1.15 u / 0.8 u that wave at 2× walk frequency.
-- **Frames**: 8 walk frames (`phase = i/8`), 1 idle, 1 dash (body rotated 0.26 rad, limbs stretched, scarf horizontal). Baked box: 16 u left, 38 u up, 16 u right, 6 u down (dash: 20 u sides).
-- **Facing** is a mirrored copy, not a redraw. A blink state flashes at 18 Hz to 40 % alpha.
-- **Floor light**: an additive radial glow `#ff8a2a` at 34 % alpha, 116 × 52 u, under the feet, plus a contact pool (dark core 55 %, orange rim 22 %) 26 u wide.
+**Main character** (feet at 0,0, ~18 u wide, ~31 u tall to the stem tip, faces right) – a pumpkin-headed courier:
+- **Head**: pumpkin path rx 7.6 × ry 6.3 at (0.5, −21.9), radius `1 + 0.035·cos 6t − 0.08·max(0,−sin t)^14`, fill `rgba(30,9,2,.97)`, outline `#ff7a1a` 1.35 u with hot core; two side ribs `rgba(255,110,30,.55)`; a dim magenta rim `rgba(255,58,214,.55)` on the lower-left (shadow side of the upper-right key light); stem `#9cff4a` 1.15 u with a curled 0.5 u leaf. The head rotates around the neck (tilt) and bobs half a beat after the body.
+- **Face**: triangle eyes and a zig-zag grin filled with `#fffbe2 → #ffe08a → #ffa526`, glowing `#ffb000`; the hurt pose squints (chevron eyes, round mouth). A candle glow (`#ffb84a`, flickering) sits behind it at draw time – the warmest point on screen.
+- **Jacket**: a short tunic from narrow shoulders (±2.9 u) flaring to a hem (±4.4 u) whose corners swing late, fill `rgba(26,10,3,.96)`, outline `#ffae35` 1.0 u, a dim zip and hem band `rgba(255,170,70,.42)`; a satchel `#ffcf7a` on a diagonal strap.
+- **Legs**: hip → knee → ankle by two-bone IK (thigh 4.3, shin 4.0 u, knee bends forward), 1.15 u tubes; heeled boots (heel to toe 3.6 u, dark fill, 0.75 u outline) pitched around the ankle. Far limbs `#c06a18`, near limbs `#ffae35`.
+- **Arms**: shoulder → elbow → hand by IK (2.9 + 2.9 u, elbow bends back), 1.05 u, a 0.95 u mitten hand.
+- **Scarf**: front wrap `#ffe14a` 1.75 u and two tails (4 and 3 links of ~2.7 u) whose link angles follow a travelling wave – each link 0.95 rad behind the previous – and curl towards the ground; fringed ends.
+- **Frames**: 8 walk, 8 idle, 3 dash (launch / streak / brake), 1 hurt; box 17 u left/right, 38 u up, 6 u down (dash 21 u).
 
-**Small creature** (~18 × 27 u) – a purple-magenta root bulb with a leafy top: a bulb (bezier, −8.9..8.9 × −20..−4.2) outlined magenta `#ff3ad6` 1.25 u, filled `rgba(32,4,34,.96)`; the top part above a sine wave line is tinted `rgba(170,40,215,.42)` (clipped) with a violet 0.6 u wave line – a "liquid level" that suggests volume. Three violet `#b066ff` leaves on top (0.8 u), lilac `#d77bff` root legs (0.95 u), angry slanted triangle eyes filled `#ffeafb` glowing `#ff5fe4`, a zig-zag mouth `#ffa6f2`. 8 frames, bob 1.2 u, rock ±0.09 rad. Contact pool magenta, dark 0.5 / rim 0.2.
+**Small creature** (~22 × 27 u) – a magenta root bulb: bezier bulb (−8.9..8.9 × −20..−4.2) outlined `#ff3ad6` 1.25 u, filled `rgba(32,4,34,.96)`, a "liquid level" cap tinted `rgba(170,40,215,.42)` above a wavy violet line and an indigo shadow crescent on the lower left; a violet `#b066ff` crown of three leaves; lilac `#d77bff` root legs (far leg `#a95ccc`); two root arms – the near one reaches forward with a small claw; a dangling root tail; slanted triangle eyes `#ffeafb` (blink: two thin lines) and a jagged mouth that opens on each step. 8 poses + 8 blink poses.
 
-**Fast creature** (~22 × 30 u) – a floating sheet spirit: a dome head (radius 6.6 u) and a wavy hem whose control points move with three phase-shifted sines. Fill is translucent `rgba(6,26,44,.58)`, inner rim `rgba(111,244,255,.2)` 3.4 u clipped inside, outline cyan `#6ff4ff` 1.15 u. Black hollow oval eyes and mouth (`#010409`) with 0.42 u cyan rims and tiny white pupils, three-fingered stick arms, two twinkling white star sparkles with cyan glow (frost sparkles). 6 frames, glowA 1.15; hovers 2.5 u above its pool with ±1.3 u float. Contact pool cyan, dark 0.22 / rim 0.16 (it floats).
+**Fast creature** (~22 × 30 u) – a hollow-eyed wisp: a dome head (r 6.6 u) and a long rippling tail, translucent fill `rgba(6,26,44,.58)` with an inner cyan rim, outline `#6ff4ff` 1.15 u; black oval eyes with white pupils (blink: flattened ovals), a breathing oval mouth, two three-fingered claws that reach forward and retract, two twinkling frost sparkles. 8 poses + 8 blink poses + 2 glitch frames.
 
-**Large creature** (~40 × 52 u, scaled 0.92) – a faceted crystal golem: a 12-point crystal body outlined acid violet `#b44dff` 1.4 u, filled `rgba(22,6,38,.97)`; an inner hexagon connected to the outline by 11 facet lines in `#7a38d6` 0.55 u (no core) – this faceting is its whole shading. Top band tinted `rgba(150,60,230,.32)`. Thick arms drawn as a 5.4 u violet stroke with a 3.3 u dark stroke inside (a hollow tube), hex fists, block legs, three jagged crown leaves. Toxic green `#8dff2a` cracks (0.6 u) radiate from a pulsing hex core filled `#fbfff0 → #c8ff6a → #45c414`, and two slit eyes 1.35 u. Footfalls emit a squashed green ring 14 → 30 u. Contact pool toxic green, dark 0.55 / rim 0.2.
+**Large creature** (~40 × 55 u, scaled 0.92) – a faceted root golem: 12-point crystal body in acid violet `#b44dff` 1.4 u over `rgba(22,6,38,.97)`, 11 facet lines `#7a38d6`, a tinted top band, an indigo shadow arc on the left, hollow tube arms (5.4 u violet around 3.3 u dark) ending in hex fists, block legs, a crown of three jagged leaves, toxic-green `#8dff2a` cracks around a pulsing hex core (`#fbfff0 → #c8ff6a → #45c414`) and two slit eyes. 8 poses.
 
-Contact pool size for creatures = creature radius × 1.45 (fast floating creature × 1.3).
-
-Readability rules for crowded scenes:
-- Silhouette first: big, simple closed shapes (pumpkin, bulb, sheet, crystal) with 2–3 protruding features (leaves, stem, arms) so each type is identifiable as a glowing outline alone.
-- Dark glass fills mean a crowd is a stack of opaque shapes, each fully outlined – no line soup.
-- Halos are baked at alpha ≤ 0.7, so 100 overlapping sprites don't white out. Do **not** draw characters with `lighter`; only effects are additive.
-- Eyes and faces are the brightest point of a character (filled `#ffeafb` / `#d8feff` / gradient `#fffbe2 → #ffa526`) and glow in the glow pass.
-- Each type differs in hue *and* silhouette (round bulb with leaves / dome sheet with hem / huge faceted block) and size class: small ~18 × 27 u, fast ~22 × 30 u, large ~40 × 52 u, collectibles 5–8 u.
+Readability rules:
+- Silhouette first: pumpkin + scarf + satchel, bulb + leaf crown + root arms, dome + tail + claws, crystal + crown + fists – each type identifiable as a black shape.
+- Detail hierarchy: calm dark glass bodies, a few medium lines, small bright details clustered on faces.
+- Dark glass fills keep crowds as stacks of opaque shapes; characters are never drawn with `lighter`.
+- Facing is a mirrored copy; flash/chroma copies are white `#ffffff`, magenta `#ff2a7a` and cyan `#2ae8ff` silhouettes of the sharp pass.
+- Contact pools: main character orange dark 0.6 / rim 0.26, rw 14; creatures radius × 1.4 (fast × 1.2).
 
 ## Props
 
-Props are scenery sprites drawn with the same tube + glass logic as characters but in their own hues – lavender, pink, teal and cyan, never the creature colours – and at lower brightness so they never compete with characters.
+Props use the same tube + glass logic in their own dimmer hues – lavender, pink, teal, lamp blue, shore blue, never creature colours – and are baked at `glowA` 0.6–0.85 so they sit below the actors in the light hierarchy. Only lamp bulbs, carved faces, orbs and fruit carry full light.
 
-- **Construction**: closed outline, near-black fill `rgba(12,8,30,.95)` (lamps `rgba(6,10,26,.95)`, signs `rgba(10,4,24,.96)`), front outline 0.85–1.0 u with hot core, detail lines 0.35–0.6 u without core.
-- **Fake 3D extrusion** (gravestones, crosses, pylons): a copy of the outline offset (1.9, −1.4) u (crosses 1.6, −1.2; small stones 1.5, −1.1; pylons 1.7, −1.2) stroked in the dark back colour (`#6a5ad0`, pylon `#9b3a9a`) at 0.5 u without core, plus short connecting edges from the front corners.
-- **Gravestones**: round-topped stone 10.4 × 15.7 u in lavender `#c3b5ff` 0.9 u with an engraved cross `#e8e0ff` 0.6 u and a slab base in `#6a5ad0`; a cross 11.2 × 20 u with a curved mound line; a small tilted stone (−0.13 rad) 8.8 × 8.6 u with three text lines `#b8a8ff` 0.4 u. They appear in clusters of 2–4.
-- **Fence**: four leaning pointed posts in `#c3b5ff` 0.65 u, two rails in `#6a5ad0` 0.7 u, ~26 u wide.
-- **Street lamp**: cyan-blue `#7fd8ff` pole 0.85 u bending into a 31 u tall hook, a trapezoid hood, a warm bulb ellipse filled `#fff1c6` glowing `#ffbe55`.
-- **Glowing pumpkins**: carved pumpkins (7.2 × 5.6 u, or a pair 6.6 + 4.0 u) outlined `#ff8a2a` 1.0 u with ribs `rgba(255,110,30,.5)`, stem `#9cff4a` 0.9 u and a gradient face glowing `#ffaa00`.
-- **Pylon**: tapered pink `#ff4fd8` spire 7.2 × 32 u with three cyan bands 0.55 u, a dim inner line, a glowing tip orb `#ffe4fb` and a tilted cyan halo ellipse 3.6 × 1.0 u.
-- **Holo tree**: recursive teal `#38f5d6` branches (depth 4, trunk 13 u, branch angles ±0.28–0.62 rad, length × 0.62–0.8, line width 0.35 + depth·0.22) on a teal `#2ef2d0` base ellipse 6.5 × 1.8 u, with small orange fruit (r 1.05 u, `#ffcf6a` glowing `#ff9a2e`) on 28 % of tips; drawn as a hologram with scan gaps.
-- **Sign post**: two thin legs `#9a8cff`, a 19 × 12 u board with a pink `#ff4fd8` frame and a cyan inner frame, and one icon: pumpkin + arrow, crescent moon + stars, or a magenta warning triangle with a yellow exclamation mark.
-- **Shrine**: a violet `#b066ff` double-ellipse plinth (10 × 3.2 u) carrying a hologram of the magenta leafy bulb with a glowing pink orb and a cyan halo ring.
-- **Floor pool**: every prop gets a baked radial glow ellipse in its hue (y-scale 0.34, stops 100 % / 40 % at 0.45 / 0), e.g. lavender `#9d8cff` r 12 at 0.3, lamp `#ffb84a` r 18 at 0.42, pumpkins `#ff8a2a` at 0.4, pylon `#ff4fd8` at 0.32, trees `#2ef2d0` at 0.3.
-- **Floor reflection**: the sprite flipped vertically at 36 % scale (25–30 % for trees, shrines, fences and lamps), faded by a 30 % → 0 alpha gradient (`destination-in`) – a glossy wet-floor feel.
-- **Hologram props** (trees, shrines): 0.55 u gaps punched out every 2.2 u at 55 % with `destination-out`; they breathe between 86 and 100 % alpha.
-- **Placement**: props are scattered sparsely (one candidate per ~118 u, 45 % kept) and picked per district – graves, fences and lamps on the violet grid; trees and pylons on teal hex; pumpkins and signs on magenta halftone; pylons, signs and shrines on copper circuit.
+- **Construction**: closed outline 0.85–1.0 u with hot core, near-black fill `rgba(12,8,30,.95)`, details 0.35–0.6 u without core. Fake 3D: an outline copy offset (1.9, −1.4) u in `#6a5ad0` (pylons `#9b3a9a`) plus corner links.
+- **Gravestones** (3): round-topped stone with engraved cross, a cross on a mound, a tilted small stone with text lines – lavender `#c3b5ff`.
+- **Fences** (2): an intact run of four pointed pickets and two rails; a broken run with a leaning picket, a sagging rail and a fallen picket.
+- **Street lamps** (2): a crook lamp and a twin-arm road lamp, `#7fd8ff` pole with two collar rings, dark hood, warm bulb `#fff1c6` glowing `#ffbe55`.
+- **Carved pumpkins** (2): single or a pair, `#ff8a2a` with ribs, stem and a gradient face.
+- **Pylons** (2): a tall obelisk with three cyan bands, tip orb and floating halo; a squat beacon with twin flares.
+- **Holo trees** (3): recursive branches (depth 4, trunk 13 u or 10 u), trunk `#38f5d6`, mid branches `#2fd6bd`, twigs `#23a894` without core – the big shape is bright, the fine ends fade; orange fruit on 28 % of tips; scan gaps.
+- **Sign posts** (3): pink-framed board with a pumpkin + arrow, moon + stars or warning icon.
+- **Shrine**: violet plinth with a hologram of the leafy bulb and a cyan halo.
+- **Shore reeds** (3 clusters of 7–11 stems): thin `#2a7fd6` stems (0.45 u, no core), a few hot `#8fe6ff` seed tips and leaf blades – small bright accents along the waterline.
+- **Floor pool + reflection**: every prop bakes a radial ellipse in its hue (lavender `#9d8cff` r 12 at 0.22, lamp `#ffb84a` r 18–20 at 0.4, pumpkins at 0.34, reeds `#3a8cff` at 0.14) and a flipped reflection at 25–40 % height fading from 30 %.
+- **Composition** (props are placed by rules, not sprinkled): road lamps and a few signs stand 7.5–12 u from the road centre line; reeds only within 9 u of a shore (distance from the water-field gradient); trees in groves of 2–4 around a seed tree; graves in yards of 3–5 with a fence in front; everything else keeps 22 u off the roads and picks its kind by district (yards, fences, shrines on the violet grid; groves and pylons on teal; pumpkins, trees and fences on halftone; pylons, shrines and pumpkins on circuit boards).
+- **Ambient life**: lamps, signs and pylons double-blink (50 % / 78 %) on a per-prop clock; holograms breathe 84–100 %; trees sway with a slow shear (±0.025, 0.7 rad/s, phase by position) pivoting on the base.
 
 ## Effects and particles
 
-All effects are additive (`globalCompositeOperation = 'lighter'`) and use only the source's own colours plus white.
+All effects are additive (`lighter`), use the source's own colours plus white, and are **layered**: core flash → main shape → debris → lingering residue, each with its own lifetime.
 
-- **Particles are lines, not dots.** A spark is a line from its position back along its velocity, length `min(9, 1 + speed·0.035)·size·0.5`. Fragments are rotating short lines. Dots are tiny squares.
-- **Batching**: particles go into buckets keyed by colour + quantised alpha (4 levels) + line-width class (0.45 / 0.8 / 1.3 u). Each bucket is one path stroked twice: `lineWidth·3.2` at `alpha·0.28` (the glow) then `lineWidth` at `alpha` (the core).
-- **Rings**: ellipses squashed to 42 % height (floor rings) or 100 % (air rings), radius eased out `r0 + (r1−r0)(1−(1−e)²)`.
-- **Projectile**: baked trail (24 × 2.4 u orange gradient wedge `rgba(255,90,20,0) → rgba(255,150,50,.95)` with a white inner wedge, blurred 0.9 u then re-stamped sharp) behind a small seed sprite in `#ff9a2e`; trail scales in over 0.1 s (15 % → 100 % length) and out in the last 0.15 s. 2 launch sparks (`#ff9a2e`, `#ffe14a`).
-- **Impact flash**: white flash silhouette (alpha flash·1.2) + magenta/cyan copies ±1.4 u when flash > 0.5; 4 sparks (2 white, 2 in the creature's colour), white ring 1.5 → 7 u in 0.14 s.
-- **Dissolve burst** (a creature disappearing): 7 / 9 / 20 fragments (fast / small / large creature), length 3.6 / 4.2 / 6.5 u, in the creature's two colours (68 % primary), gravity 170; 5–10 white sparks; floor ring 0.6r → 3.2r. The large creature adds a 5r toxic ring, an air ring and 12 green dots, plus a 0.12 s screen glitch.
-- **Dissolving sprite**: scales to 1.35×, sinks 3 u, image fades at 1.6/s while the white flash fades at 1.4/s and magenta/cyan copies drift apart by `2 + 4t` u.
-- **Warp-in**: squashed ring shrinking 2.4r → r plus a bottom-up reveal (source-rect crop) with a 0.7 u bright scan line on the edge and a 25 % colour column below it.
-- **Collectible gems**: 4-vertex octahedra rotated per frame (8 frames over 90°): only front faces drawn, translucent fills `hexA(col, 0.3–0.75)`, a 0.6 u outline with a pure white core, a white 0.5 u specular dot. Lime `#c6ff3a` small (yc −7.5 u), cyan `#45f4ff` large. Drawn with `lighter` and given a baked floor glow ellipse.
-- **Collect sparkle**: ring 3 → 11 u (18 u for large gems) + 2–6 rising dots in the gem colour.
-- **Orbiting lanterns**: small carved pumpkin lanterns (`#ffb84a` outline, gradient face), glow wide 3.0 u / tight 0.8 u / glowA 1.5, swinging ±0.18 rad, with an additive amber light arc behind them.
-- **Fast-creature trails and glitch**: 2 additive after-images at 22 % and 10 % alpha, offset by −0.07 / −0.14 s of velocity; 5 % of frames swap in a pre-baked glitch frame (horizontal bands 5–16 px shifted ±10 px with a magenta or cyan copy added at 60 %).
-- **Dash after-images**: 4 additive copies of the main character, 7 u apart, alpha 0.34 / 0.26 / 0.18 / 0.10; orange ring 4 → 24 u; 8 sparks in `#ff7a1a`/`#ffe14a` thrown backwards.
-- **Celebration beam**: 18 × 92 u vertical beam (amber `rgba(255,190,80,.9)` at the bottom → transparent magenta, soft-edged horizontally), amber ring 6 → 70 u, lime ring 4 → 46 u, 22 rising sparks in lime/amber/yellow.
-- **Main-character impact**: 10 sparks in `#ff2a7a`/`#ffae35`, pink ring, and a 0.22 s screen glitch.
+- **Particle kinds**: sparks are lines along their velocity (`min(9, 1 + speed·0.035)·size·0.5`); fragments are rotating short lines; *star flashes* are four-point stars that snap open (`r·(0.35 + 0.65·√e)`) and die in 90–160 ms; *rings* are ellipses (42 % for floor rings, 100 % in the air) eased out cubic; *data bits* are tiny squares that rise (negative gravity) and stutter out in their last half; *scorches* are thin floor ellipses that tighten and fade over ~1 s; *streaks* are short vertical light lines.
+- **Batching**: particles go into buckets keyed by colour + quantised alpha (4 levels) + width class (0.45 / 0.8 / 1.3 u); each bucket is one path stroked twice (3.2× width at 28 %, then 1× at full). The batch is flushed after the last visible particle of the frame, so effects also render when another style draws the overlays.
+- **Projectile**: baked trail (24 × 2.4 u orange wedge with white inner wedge, blurred 0.9 u, re-stamped sharp) at 85 % behind a seed sprite `#ff9a2e` that flips to fake spin; 2 launch sparks.
+- **Impact**: white star 6 u (90 ms) → white ring 1.5 → 8 u (150 ms) → 4 sparks fanned around the knock-back direction → 1 rising bit in the target's second colour. The target squashes and leans (see Motion) under a white silhouette flash with magenta/cyan copies ±1.6 u.
+- **De-rez death** (350 ms): white squashed silhouette (0–22 %) → 5 bands (large: 7) that shear apart with quadratic ease-in and dissolve top-first, alternate bands with magenta/cyan copies (14–86 %) → a hot floor line 2.4r wide that shrinks to a point (50–100 %). Burst on top: star 12 u (large 22 u), 7 / 9 / 20 line fragments in the creature's two colours with gravity 170, 4–8 white sparks, floor ring 0.6r → 3r, 3–8 rising bits, a scorch ellipse (0.95 s; large 1.4 s). The large creature adds a 5r toxic ring, an air ring, 12 green dots and a 0.12 s screen glitch.
+- **Warp-in** (450 ms): three dashed sigil arcs rotate and close in from 2.5r to 1.2r, a light column rises and fades, the body builds from the feet up behind a hot scan edge, then settles with an 8 % overshoot. Pools fade in with it.
+- **Collectible gems**: octahedra, 8 rotation frames over 90°, translucent faces, white-core outline, lime `#c6ff3a` / cyan `#45f4ff`, baked floor glow; eased float; a rare four-point glint. Collect: ring 3 → 11 u (18 u large), vertical streak 16/26 u, 2–6 rising dots.
+- **Orbiting lanterns**: carved pumpkin lanterns (`#ffb84a`, glowA 1.4) hanging from the handle as a pendulum, with an amber trail along their real recent path (up to 9 points, alpha rising quadratically to the head).
+- **Fast-creature trails and glitch**: 2 after-images at 20 % / 9 %; 4 % of frames swap in a pre-baked glitch frame.
+- **Dash**: launch/streak/brake poses, 4 after-images whose spacing grows with dash progress, orange ring 4 → 24 u, floor scorch, 8 sparks thrown backwards.
+- **Celebration**: warm star 16 u, vertical beam 18 × 92 u, amber ring 6 → 70 u, lime ring 4 → 46 u, 22 rising sparks, 6 drifting lime bits.
+- **Main-character impact**: pink star, 10 sparks `#ff2a7a`/`#ffae35`, pink ring and a 0.22 s glitch.
 
 ## Atmosphere and lighting
 
-- **Pitch-black ambient.** There is no ambient or directional light; everything visible is emitted light. A violet radial vignette darkens the edges.
-- **No drop shadows.** Characters sit on **contact pools**: a radial sprite with a dark core (`rgba(0,0,0,darkA)` to 38 %, 75 % of that to 38 %) fading into a coloured rim at 62 % and transparent at the edge, drawn as an ellipse `2rw × 0.8rw`. Main character: orange, dark 0.55, rim 0.22, rw 13. Small creature: magenta 0.5/0.2. Fast floating creature: cyan 0.22/0.16. Large creature: toxic 0.55/0.2. Radius = creature radius × 1.45 (floating creature 1.3).
-- **Prop floor pools and reflections**: baked coloured glow ellipses (y-scale 0.34) plus a 36 % flipped reflection fading from 30 % alpha, so the floor reads as glossy black glass.
-- **Light spill**: additive radial glows (stops 100 % / 45 % @ 0.35 / 12 % @ 0.7 / 0) under the main character (`#ff8a2a`, 34 %) and each lantern (30 %), squashed vertically.
-- **Glow** is baked into sprites (blurred fat-stroke pass + sharp pass, see Rendering technique). Never `shadowBlur` at runtime – only for HUD icons baked once.
-- **Display overlay** (built once per resolution): 1 px black lines every 3 px (4 px above 1100 px height) at 12 %; radial vignette from 32 % of the short side to 56 % of the diagonal: `rgba(6,0,18,0)` → `rgba(6,0,18,.3)` at 62 % → `rgba(2,0,8,.78)`; additive lens fringe in the outer 9 % of the width: magenta `rgba(255,40,200,.10)` on the left, cyan `rgba(40,220,255,.09)` on the right.
-- **Glitch**: 3–6 random horizontal strips of the frame (4–28 px high) redrawn shifted ±18 px, plus a 6 % `#ff2a7a` additive wash – 0.22 s on a main-character impact, 0.12 s when a large creature dissolves, 0.4 s for the strongest event. Only for impactful moments.
-- **Flicker**: signs, lamps and pylons randomly dim to 55 % (3.5 % chance per 1/13 s tick), holograms breathe 86–100 %, pumpkins flicker 90 ± 10 %.
+- **Pitch-black ambient, ranked emitted light.** Brightest: the main character (glowA 1.25, warm floor light, candle glow behind the face). Next: creatures (0.85–1.0). Then props (0.6–0.85, single hot accents). Faintest: the floor (patterns ≤ 0.35 alpha, district borders k 0.4) – except the shores, which carry the strongest ground line.
+- **One key light** from the upper right: shapes get a dim cool rim on their lower-left (magenta on the pumpkin head, indigo on bulb and golem); far limbs are one shade darker.
+- **No drop shadows.** Contact pools: a radial sprite with a dark core fading into a coloured rim, drawn as `2rw × 0.8rw`. Main character orange (dark 0.6, rim 0.26, rw 14), small creature magenta (0.5 / 0.14), fast creature cyan (0.2 / 0.12, pulsing with its hover), large creature toxic (0.55 / 0.16). Pools fade in during warp-in and out during death.
+- **Light spill**: additive radial glow `#ff8a2a` at 40 % ± 4 % flicker (124 × 56 u) plus a tight amber core at 18 % under the main character; a 26 % amber pool under each lantern. Nothing else lights the floor.
+- **Prop floor pools and reflections** make the floor read as glossy black glass.
+- **Glow** is baked into sprites; never `shadowBlur` or `filter` at runtime (HUD icons are baked once).
+- **Display overlay** (built once per resolution): 1 px lines every 3 px (4 px above 1100 px) at 12 %; radial vignette `rgba(6,0,18,0)` → `rgba(6,0,18,.3)` at 62 % → `rgba(2,0,8,.78)`; additive lens fringe in the outer 9 %: magenta `rgba(255,40,200,.10)` left, cyan `rgba(40,220,255,.09)` right.
+- **Glitch**: 3–6 strips (4–28 px) redrawn shifted ±18 px plus a 6 % `#ff2a7a` wash – 0.22 s on a main-character impact, 0.12 s for a large creature, 0.4 s for the strongest event.
+- **Flicker**: props double-blink on per-prop clocks, holograms breathe 84–100 %, pumpkins flicker 90 ± 10 %.
 
 ## UI
 
@@ -206,7 +201,7 @@ Panels are near-black translucent with a 1 px neon border and an outer glow; bar
 - **Secondary bar**: 12 px tall, violet border, fill cyan → mint → lime.
 - **Badge**: dark `#0b0620` chip with a lime border and Orbitron 11 px text.
 - **Counter**: Orbitron 800 24 px `#ffe6fb` with a magenta glow; the timer uses the gradient `.clock-time` style from Typography.
-- **Card**: violet-to-navy gradient glass, cyan border, inner violet glow; on hover it lifts 8 px and turns gold/orange.
+- **Card**: violet-to-navy gradient glass, 1 px cyan border at 62 %, faint inner violet glow, content centred; the title carries a short magenta neon rule under it (title → rule → body hierarchy); on hover it lifts 8 px and turns gold/orange.
 
 ```css
 .hud-panel{background:linear-gradient(90deg,rgba(30,6,40,.88),rgba(6,10,30,.88));border:1px solid rgba(255,79,216,.75);
@@ -222,9 +217,9 @@ Panels are near-black translucent with a 1 px neon border and an outer glow; bar
 .badge{padding:1px 9px;background:#0b0620;border:1px solid #c6ff3a;font:700 11px 'Orbitron',sans-serif;color:#eaffc0;
   letter-spacing:1px;text-shadow:0 0 6px #b6ff3a;box-shadow:0 0 10px rgba(198,255,58,.55)}
 .counter{font:800 24px 'Orbitron',sans-serif;color:#ffe6fb;text-shadow:0 0 8px #ff3ad6,0 0 18px rgba(255,58,214,.55)}
-.card{background:linear-gradient(170deg,rgba(74,24,124,.62),rgba(10,6,30,.93) 58%,rgba(6,20,42,.93));
-  border:1px solid rgba(111,244,255,.85);border-radius:3px;
-  box-shadow:0 0 18px rgba(60,220,255,.38),inset 0 0 26px rgba(170,80,255,.32),inset 0 1px 0 rgba(255,255,255,.25)}
+.card{background:linear-gradient(170deg,rgba(60,20,104,.6),rgba(9,6,26,.94) 52%,rgba(5,14,32,.95));
+  border:1px solid rgba(111,244,255,.62);border-radius:3px;
+  box-shadow:0 0 14px rgba(60,220,255,.24),inset 0 0 22px rgba(150,70,255,.2),inset 0 1px 0 rgba(255,255,255,.18)}
 .card:hover{transform:translateY(-8px);border-color:#ffd36b;box-shadow:0 0 28px rgba(255,160,60,.55),inset 0 0 30px rgba(255,120,40,.25)}
 .overlay{background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px),
   radial-gradient(ellipse at 50% 42%,rgba(52,12,88,.6),rgba(3,2,12,.9) 72%)}
@@ -232,52 +227,54 @@ Panels are near-black translucent with a 1 px neon border and an outer glow; bar
 
 ## Motion and animation
 
-- All animation is **baked frames** chosen by phase; nothing is re-drawn as paths at runtime.
-- **Main character**: 8-frame walk, cycle = 3 distance-units of anim time; bob `−|sin a|·1.1` u, foot swing ±3.5 u, foot lift 1.7 u, arm swing 0.75 rad; idle bob `sin(t·3.2)·0.5` u; dash pose tilts 0.26 rad.
-- **Small creature**: 8 frames, speed `anim·0.36`, bob 1.2 u, rock ±0.09 rad, leaves sway ±0.1 rad, feet lift 1.9 u.
-- **Fast creature**: 6 frames at 1.7 cycles/s; hem waves via 3 sines 2.1 rad apart; float 1.3 u at 2.6 rad/s; frost sparkles twinkle at 2× frequency; 5 % glitch frames; after-images when speed > 8.
-- **Large creature**: 8 frames at `anim·0.22`, bob 1.5 u, foot lift 3 u, core radius pulses 4.3 ± 0.35 u at 2× frequency, footfall ring in the first 35 % of each half-cycle.
-- **Gems**: 8 frames at 1.6 cycles/s, bob 0.7 u at 3 rad/s, pop-up 6 u when they appear.
-- **Projectiles**: spin flip `0.65 + 0.35·|cos(spin)|` on Y.
-- **Floating numbers**: pop scale `1 + max(0, life − 0.78)·2.6`, fade with `min(1, life·2.4)`.
-- **Dissolve**: sprite scales up to 1.35×, drifts down 3 u, fades out over ~0.6 s while flash copies drift apart.
-- **Light flicker**: signs/lamps/pylons drop to 55 % on 3.5 % of 1/13 s ticks; holograms breathe 86–100 %; pumpkins flicker 90 ± 10 %.
-- Easing: ease-out quad for rings and the warp-in reveal; linear fades. No squash-and-stretch on bodies – the look is crisp and mechanical.
+Smooth vector timing: poses are computed and baked (8 per cycle), then chosen by phase; squash, stretch and leans are applied at draw time as cheap axis-aligned scaling.
+
+- **Walk** (main character, one cycle per 2.4 distance units): contact (0) – down (.125, body 0.85 u lower) – passing (.25) – up (.375, highest) – contact (.5) for each step: `bodyY = 0.85·sin 2a`. Feet: `x = ±3.5·cos a`, lift `2·max(0, ∓sin a)` on the swinging leg, toe pitch from −0.55 rad (push-off) to +0.3 (heel strike). Arms counter-swing ±0.62 rad with extra elbow bend on the forward swing. Overlap: head `+0.4·sin(2a − 1.1)` and tilt `0.04·sin(2a − 1.3)`, hem `0.7·sin(2a − 1.5)`, scarf links `0.26·sin(2a − 1 − 0.95·i)`. Slight 0.07 rad forward lean.
+- **Idle** (8 poses over 3.2 s): breath lifts shoulders 0.32 u and the head 0.36 u half a beat later; a head-tilt fidget (0.085 rad) peaks at 62 % of the cycle; arms, hem and scarf drift on their own phases; the face's candle glow flickers on two beating sines plus noise, so it never loops visibly.
+- **Dash** (0.2 s): launch crouch (lean 0.46 rad, body 1.3 u lower – the anticipation), streak (stretch 16 %, scarf streaming, legs trailing), brake (lean −0.14, scarf whipping over the top) with a landing squash; after-images spread as the dash progresses.
+- **Hurt**: recoil pose (lean back 0.24 rad, arms up, squint) held while the flash lasts, 12 % squash, small knock-back offset, 18 Hz blink during invulnerability.
+- **Small creature**: 8 poses at `anim·0.36`; bob 1.3 u, squash/stretch `0.065·cos 2a` (squash on contact), body rock ±0.08 rad, leaf crown `0.17·sin(2a − 1.3)`, root arms and tail on their own phases, mouth opens with each step.
+- **Fast creature**: 8 poses at `1.45–1.95` cycles/s (per actor); tail ripples travel back (1.5 rad apart), claws reach and retract; hover = quick rise (38 % of the period) and slow settle, 2.2–4.2 u above the pool, squashing 5 % at the bottom.
+- **Large creature**: 8 poses at `anim·0.22` on a warped phase (`p + 0.07·sin 4πp`) so each foot hangs and then drops; 4.5 % squash on impact, fists `1.6·sin(a − 0.7)` behind the legs, crown whips late; a toxic floor ring per footfall (quadratic fade, 13 → 31 u).
+- **Blink**: 110 ms on a per-actor clock of 2.4–4.6 s (small and fast creatures).
+- **Hit reaction** (all creatures): `squash = 0.15·e^(−13t)·cos 26t` for ~250 ms – a sharp squash, a stretch rebound and a settle – plus a lean of up to 0.24 rad in the knock-back direction.
+- **Per-actor phase offsets** everywhere (seed-driven): walk phase, hover phase, blink clock, prop flicker, tree sway – a crowd never moves in lock-step.
+- **Gems**: 8 frames at 1.6 cycles/s, eased float 1.6 u, glint 9 % of a 2.4 s period; projectiles flip-spin; floating numbers pop `1 + max(0, life − 0.78)·2.6`.
 
 ## Do and don't
 
 Do:
 - Bake the glow once per sprite (blurred fat-stroke pass + sharp pass) and only `drawImage` at runtime.
-- Give every primary line a near-white hot core at 36 % width; skip it on detail lines.
-- Fill bodies with near-black glass of their own hue.
-- Use `lighter` for every light effect: halos, particles, rings, floor glows, gems.
-- Keep the floor dark and patterned at low alpha; mark region borders with thin glowing contours.
-- Keep one hue family per subject type across sprite, particles, pool and appear ring.
-- Finish with scanlines, violet vignette and the magenta/cyan lens fringe.
+- Rank the light: main character brightest, creatures one step lower, props lower with single hot accents, floor faint.
+- Give every primary line a near-white hot core at 36 % width; fill bodies with near-black glass of their own hue.
+- Compute poses (IK limbs, travelling waves for cloth, leaves and tails) and bake 8 frames per cycle plus blink variants.
+- Compose the floor: roads that lead somewhere, lamps along them, reeds on shores, groves and yards, detail in a few plazas.
+- Layer every effect: star flash → ring/shape → debris → slow residue.
+- Use `lighter` for light only: halos, particles, rings, floor glows, gems.
 
 Don't:
-- Use `shadowBlur` or `ctx.filter` per frame on sprites – it ruins performance.
-- Draw dark or black outlines, or pure white outlines.
-- Leave shapes unfilled (wireframes) or fill them with bright colour.
-- Put gradients or textures on character bodies; use 1–3 interior lines for volume.
-- Brighten the floor patterns above ~0.5 alpha.
-- Mix more than two hues + white in one effect – a burst is the source's own two colours plus white.
+- Use `shadowBlur` or `ctx.filter` per frame – it ruins performance.
+- Let everything glow equally; bright floors or bright props flatten the hierarchy.
+- Scatter dust, glyphs or traces evenly over the ground.
+- Draw dark outlines, pure white outlines or unfilled wireframes.
+- Animate with one plain sine on everything – use contact/passing poses, lag and eased hovers.
+- Mix more than two hues + white in one effect.
 - Draw characters themselves with `lighter` – crowds would white out.
 - Use daylight colours, browns or greys.
 
 ## Implementation recipe
 
 1. Set up a Canvas 2D scene with a world-space camera; pick a vertical view of ~360 world units and a main character ~18 × 30 u.
-2. Copy the helpers from `starter.js`: `tube`, `fillIn`, `bakeSet`, `makeSprite`, `tint`, `flip`, `makePool`.
-3. Define your palette: background `#05040d`, then one hue family per subject type (main character warm orange/amber/yellow; creatures magenta, cyan, acid violet + toxic green; collectibles lime/cyan; props lavender/pink/teal).
-4. Write each character as `pose(ctx, pass, phase)` with feet at (0,0), facing right: closed silhouette paths → `fillIn(dark glass)` → outline `tube(col, 1.15–1.4)` → thinner detail tubes (`hot:false`) → glowing eyes/faces via `fillIn(fill, glowFill)`.
-5. At load time bake N frames per character with `makeSprite(left, top, right, bottom, pose)` (8 walk frames, 6 for floaters), which yields both facings + white/magenta/cyan silhouettes.
-6. Bake props with a floor pool, a 36 % reflection and (for holograms) scan gaps.
-7. Build the floor: dark base + region patterns (grid / hex / halftone / circuit / water) masked by noise regions and added with `lighter`, star dust, faint glyphs, glowing marching-squares borders. Bake per chunk.
-8. Each frame: ground → contact pools → additive light spill → y-sorted sprites (`drawImage`) → additive flashes → projectiles → batched additive particles → numbers → glitch → cached overlay.
-9. Effects: line sparks, line fragments and squashed rings in the source's colours plus white, always two strokes (3.2× at 28 %, 1× at 100 %).
+2. Copy the helpers from `starter.js`: `tube`, `fillIn`, `bake`, `ik`, the pumpkin path and the scarf chain.
+3. Define your palette: background `#05040d`, then one hue family per subject type (main character warm orange/amber/yellow; creatures magenta, cyan, acid violet + toxic green; collectibles lime/cyan; props lavender/pink/teal/blue).
+4. Write each character as `pose(ctx, pass, phase)` with feet at (0,0), facing right: compute joint positions (IK for limbs, travelling waves for cloth), then closed silhouettes → `fillIn(dark glass)` → outline `tube(col, 1.15–1.4)` → thinner detail tubes (`hot:false`) → glowing faces via `fillIn(fill, glowFill)`.
+5. At load time bake 8 frames per cycle (walk, idle; blink variants for creatures; launch/streak/brake for the dash) with both facings and white/magenta/cyan silhouettes; set `glowA` per class (1.25 main character, ≤ 1 creatures, ≤ 0.85 props).
+6. Bake props with a floor pool, a reflection and (for holograms) scan gaps; place them by rules (along roads, on shores, in groves and yards).
+7. Build the floor per chunk: dark base, pattern districts masked by intensity and road distance, light roads from one iso-line, a few plazas, glowing contours.
+8. Each frame: ground → contact pools → additive light spill → y-sorted sprites (axis-aligned `drawImage`, squash as scale) → additive flashes → projectiles → batched additive particles → numbers → glitch → cached overlay.
+9. Effects: star flash, ring, debris lines, bits/scorch residue – each with its own life; death = flash → de-rez bands → floor line; warp-in = sigil → beam → build → overshoot.
 10. HUD: Orbitron numbers with gradient + glow, skewed segmented bars, 1 px neon borders, Monoton titles.
-11. Check readability with 200 creatures on screen; if it blooms out, reduce halo alpha (`glowA`), not the line colour.
+11. Check readability with 200 creatures on screen and in greyscale; if it blooms out, lower `glowA` of the crowd, not of the main character.
 
 ## Code
 
@@ -370,6 +367,27 @@ function glowStroke(ctx, path, rgb, px, k) {
 }
 ```
 
+```js
+// Computed walk pose: contact – down – passing – up, two-bone IK legs, a scarf that follows a travelling wave.
+function ik(ax, ay, bx, by, l1, l2, bend) { // bend -1: joint in front (knee), +1: behind (elbow)
+  let dx = bx - ax, dy = by - ay, d = Math.hypot(dx, dy) || 1e-3;
+  if (d > l1 + l2 - 0.02) { const k = (l1 + l2 - 0.02) / d; bx = ax + dx * k; by = ay + dy * k; dx *= k; dy *= k; d = l1 + l2 - 0.02; }
+  const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  return [ax + dx * a / d - dy / d * h * bend, ay + dy * a / d + dx / d * h * bend, bx, by];
+}
+function walkPose(ph) {            // ph 0..1, two steps per cycle
+  const a = ph * Math.PI * 2;
+  return {
+    bodyY: 0.85 * Math.sin(2 * a), // lowest just after each contact, highest at passing/up
+    footA: [0.6 + 3.5 * Math.cos(a), -2 * Math.max(0, -Math.sin(a))],
+    footB: [-0.4 - 3.5 * Math.cos(a), -2 * Math.max(0, Math.sin(a))],
+    armA: -0.62 * Math.cos(a), armB: 0.62 * Math.cos(a),
+    headY: 0.85 * Math.sin(2 * a) + 0.4 * Math.sin(2 * a - 1.1), // overlap: the head lands late
+    scarf: (i) => Math.PI - 0.5 - 0.12 * i + 0.26 * Math.sin(2 * a - 1 - 0.95 * i),
+  };
+}
+```
+
 ## Adapting it to your project
 
 Keep fixed (this *is* the style):
@@ -391,33 +409,34 @@ May change:
 
 ## Performance notes
 
-- Bake cost: each frame is 3 canvases + 2 blur filters + 3 tint copies + 4 mirrored copies. The style module bakes ~60 character frames, 16 gem frames and ~14 props at init (~0.3–0.6 s on desktop). Bake lazily or in a generator if you have more.
-- Runtime per character: 1 `drawImage` (2–4 when flashing or trailing). 500 creatures is fine on desktop.
-- Particles: never one stroke per particle; bucket by colour/alpha/width – the module ends up with ~10–20 strokes per frame regardless of particle count.
-- Ground: baked per 256 u chunk at ≤ 2.5 px/u with a generator that yields between steps (fields, base, each pattern layer, decals, contours) so chunk streaming never hitches. The masks are tiny (67 × 67) ImageData upscaled with smoothing.
-- Overlay: one cached full-screen canvas per resolution.
-- Floating digits: baked atlas per font weight; re-baked once the web font has loaded.
-- Avoid: runtime `shadowBlur`/`filter`, `lighter` on character sprites (overdraw blooms), per-frame gradient creation for many objects.
+- Bake cost: each frame is 3 canvases + 2 blur filters + 3 tint copies + 4 mirrored copies. The module bakes ~70 frames (main character 20, small creature 16, fast creature 16 + 2 glitch, large creature 8, gems 16) and 22 prop variants at init. Bake lazily or in a generator if you have more.
+- Runtime per character: 1 axis-aligned `drawImage` (2–4 when flashing or trailing); squash/stretch is just a scaled destination rect, a rotated transform is only used while a hit lean plays. Death bands cost 5–7 extra draws per dying creature.
+- Particles: bucketed by colour/alpha/width – ~10–25 strokes per frame regardless of particle count; flushed after the last visible particle.
+- Ground: baked per 256 u chunk at ≤ 2.5 px/u with a generator that yields between steps (fields, base, each pattern layer, roads, plazas, contours); roads reuse the marching-squares code on one extra noise field.
+- Prop placement samples the noise fields a few hundred times per chunk (once, when the chunk is built).
+- Measured against the previous version in the same session: play frame ×1.07, chunk build ×1.13, dense stage ×1.20.
+- Avoid: runtime `shadowBlur`/`filter`, `lighter` on character sprites, per-frame gradients for many objects, hundreds of tiny props (merge them into clusters like the reed sprites).
 
 ## Copy-paste prompt
 
 ```text
 Use the Neon Midnight art style for my project (Canvas 2D, procedural, no image assets):
 - Background near-black #05040d; colour exists only as emitted light. At least 60 % of the screen stays black.
-- Every sprite is neon tube line-art: draw each path twice, a 'full' pass (line in colour + a core stroke at 36 % width
-  in the colour mixed 62 % to white) and a 'glow' pass (same path at 1.8x width). At load time blur the glow pass
-  (blur 2.2 world units at 70 % alpha + 0.6 units at 60 %) and stamp the sharp pass on top. Never blur per frame.
-- Bodies are closed silhouettes filled with near-black glass of their own hue (alpha 0.95); faces/eyes are the brightest fill.
-- Line widths at a 360-unit-tall view: silhouettes 1.15–1.4, limbs ~1.0, details 0.3–0.7 (no hot core). Round caps/joins.
-- One hue family per subject type: main character orange #ff7a1a / amber #ffae35 / yellow #ffe14a; small creature magenta #ff3ad6
-  + violet #b066ff; fast creature cyan #6ff4ff; large creature acid violet #b44dff with toxic green #8dff2a core;
-  collectibles lime #c6ff3a / cyan #45f4ff; props lavender #c3b5ff, pink #ff4fd8, teal #38f5d6 with a floor pool + 36 % reflection.
-- Bake 8 walk frames per character, mirrored copies, and white/#ff2a7a/#2ae8ff silhouettes for impact flash + chroma split.
-- No shadows: contact pools (dark core, coloured rim ellipse) and additive floor light under light sources.
-- Floor: dark noise districts with faint additive patterns (violet grid, teal hexes, magenta halftone, copper circuit traces,
-  blue water lines) ≤ 0.5 alpha, separated by thin glowing contour lines; sparse star dust.
-- Effects are additive ('lighter'), in the source's colours + white: line sparks, line fragments, rings squashed to 42 %,
-  each stroked twice (3.2x width at 28 % alpha, then 1x). Batch particles by colour.
-- Atmosphere: 1 px scanlines every 3 px at 12 %, violet vignette, magenta-left/cyan-right lens fringe, short glitch on big impacts.
-- UI: Orbitron numbers with gradient fill + glow, skewed segmented bars, 1 px neon borders, Monoton titles, Rajdhani body.
+- Every sprite is neon tube line-art: each path drawn in a 'full' pass (line + a core at 36 % width mixed 62 % to white)
+  and a 'glow' pass (1.8x width), the glow blurred once at load (2.2 + 0.6 world units). Never blur per frame.
+- Rank the light: main character brightest (halo x1.25, warm floor light, candle glow behind its face), creatures one
+  step lower, props lower (only bulbs/faces/cores fully lit), floor patterns at most 0.35 alpha.
+- Bodies: closed silhouettes filled with near-black glass of their own hue; faces are the brightest fill; far limbs darker.
+- Main character: pumpkin head (orange #ff7a1a), short flared amber #ffae35 jacket, satchel, IK legs with boots, a long
+  two-tail yellow #ffe14a scarf on a travelling wave. Creatures: magenta root bulb with leaf crown and root arms,
+  cyan wisp with claws and rippling tail, acid-violet #b44dff crystal golem with toxic #8dff2a hex core.
+- Motion: 8 computed poses per cycle (contact/down/passing/up, counter-swinging arms, lagging head, hem and scarf),
+  8-pose breathing idle with a fidget, launch/streak/brake dash with stretch and landing squash, blinks on per-actor
+  clocks, damped hit squash (~250 ms), de-rez death (flash, shearing bands, floor line) and sigil warp-in.
+- Floor: dark districts whose faint patterns (violet grid, teal hexes, magenta halftone, copper circuit boards) gather
+  in clusters; meandering light roads with violet kerbs and a dim warm centre line, lamps along them; lakes with bright
+  shores and reeds; a few plazas of landmark + glyph ring. No evenly scattered dust or glyphs.
+- Effects additive in the source's colours + white, layered: star flash → ring → line debris → rising bits / scorch.
+- Atmosphere: 1 px scanlines every 3 px, violet vignette, magenta/cyan lens fringe, short glitch on big impacts.
+- UI: Orbitron numbers with gradient + glow, skewed segmented bars, 1 px neon borders, Monoton titles, Rajdhani body.
 ```

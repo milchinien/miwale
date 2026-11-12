@@ -346,23 +346,39 @@
 
   /* =============================================================== characters
      MAIN CHARACTER – a kid in a yellow beanie and a blue hoodie; rides a skateboard when dashing.
-     frame: back foot x,y | front foot x,y | back arm angle | front arm angle */
-  const KID_FR = [
-    [-2.3, 0, 2.5, 0, 0.18, -0.12],
-    [-4.3, -0.5, 4.1, -1.5, 0.95, -0.85],
-    [-0.9, -2.2, 1.3, 0, 0.2, 0.05],
-    [3.9, -0.9, -3.7, -0.3, -0.85, 0.95],
-  ];
-  function kidParts(P, f, dash) {
-    const F = dash ? [-4.4, -2.7, 3.8, -2.7, 1.9, 1.35] : KID_FR[f];
-    const hipY = dash ? -9.0 : -8.2;
+     Pose table: back / front foot [x, y] (y < 0 = lifted), back / front arm angle (0 = hanging, + = forward),
+     body bob (+ = down), head lag, pompom lag, lean (rad, + = forward). */
+  function kp(o) { return Object.assign({ bf: [-2.3, 0], ff: [2.5, 0], ba: 0.18, fa: -0.12, b: 0, hd: 0, pom: 0, lean: 0 }, o); }
+  /* walk: 8 computed poses – contact, down, passing, up for each leg. The swing foot lifts and its knee bends, the body
+     dips after every contact and rises on the passing pose, the arms counter-swing, and head and pompom follow through
+     with growing phase delays (overlapping action). */
+  const KID_WALK = [];
+  for (let i = 0; i < 8; i++) {
+    const ph = (i / 8) * TAU, foot = (p) => [0.3 + 4.1 * Math.cos(p), Math.sin(p) < 0 ? Math.sin(p) * 2.4 : 0];
+    KID_WALK.push(kp({ ff: foot(ph), bf: foot(ph + PI), fa: -0.95 * Math.cos(ph), ba: 0.95 * Math.cos(ph), b: 0.9 * Math.sin(2 * ph), hd: 0.45 * Math.sin(2 * ph - 0.9), pom: Math.sin(2 * ph - 1.8), lean: 0.06 }));
+  }
+  /* idle: 3 held breathing poses; crouch = the anticipation before the skateboard dash; recoil = thrown back */
+  const KID_IDLE = [kp({}), kp({ b: -0.2, hd: 0.1, pom: 0.4, ba: 0.22, fa: -0.16 }), kp({ b: -0.38, hd: -0.05, pom: 0.8, ba: 0.26, fa: -0.2 })];
+  const KID_CROUCH = kp({ b: 2.1, bf: [-3.4, 0], ff: [3.3, 0], ba: -0.8, fa: -1.0, hd: 0.7, pom: 1.3, lean: 0.12 });
+  const KID_RECOIL = kp({ b: -0.4, bf: [-3.2, 0], ff: [2.6, -1.8], ba: 2.3, fa: 2.7, hd: -0.7, pom: -1.4, lean: -0.22 });
+  const KID_DASH = kp({ bf: [-4.4, -2.7], ff: [3.8, -2.7], ba: 1.9, fa: 1.35 });
+  function kidParts(P, F, dash) {
+    const hipY = dash ? -9.0 : -8.2 + F.b;
+    // everything above the hips bobs and leans around the hip point; the head adds its own lag
+    const UP = (extra) => (dash ? P.at(0, hipY, 0.24, 0.6, 1.0) : P.at(0, -8.2, F.lean, 0, F.b + (extra || 0)));
     const shoe = (fx, fy) => P.fill([PK, YE], E(fx + 0.9, fy - 1.15, 2.55, 1.35));
     const leg = (hx, fx, fy, back) => {
-      if (dash) {
-        const kx = (hx + fx) / 2 + 2.6, ky = (hipY + fy) / 2 - 0.6;
-        P.fill(back ? [PK, BL, YE] : [PK, BL], CAP(hx, hipY, kx, ky, 1.45));
-        P.fill(back ? [PK, BL, YE] : [PK, BL], CAP(kx, ky, fx, fy - 1.6, 1.4));
-      } else P.fill(back ? [PK, BL, YE] : [PK, BL], CAP(hx, hipY, fx, fy - 1.6, 1.45));
+      const ink = back ? [PK, BL, YE] : [PK, BL];
+      let kx, ky, bend = 0;
+      if (dash) { kx = (hx + fx) / 2 + 2.6; ky = (hipY + fy) / 2 - 0.6; bend = 1; }
+      else {
+        // two-bone leg: the knee bends forward when hip and ankle come closer than the leg length
+        const ax = fx, ay = fy - 1.6, dx = ax - hx, dy = ay - hipY, d = Math.hypot(dx, dy) || 1, L = 7.9;
+        bend = d < L ? Math.sqrt((L / 2) ** 2 - (d / 2) ** 2) : 0;
+        kx = (hx + ax) / 2 + (dy / d) * bend; ky = (hipY + ay) / 2 - (dx / d) * bend;
+      }
+      if (bend > 0.3) { P.fill(ink, CAP(hx, hipY, kx, ky, 1.45)); P.fill(ink, CAP(kx, ky, fx, fy - 1.6, 1.4)); }
+      else P.fill(ink, CAP(hx, hipY, fx, fy - 1.6, 1.45));
     };
     const arm = (sx, sy, a, back) => {
       const ex = sx + Math.sin(a) * 5.4, ey = sy + Math.cos(a) * 5.4;
@@ -379,9 +395,9 @@
       P.fill(BL, CIRCLES([[-5.6, -0.2, 1.25], [5.6, -0.2, 1.25]]));
       P.hole(CIRCLES([[-5.6, -0.2, 0.4], [5.6, -0.2, 0.4]]));
     }
-    leg(-1.5, F[0], F[1], true); shoe(F[0], F[1]);
-    if (dash) P.at(0, hipY, 0.24, 0.6, 1.0);
-    arm(-2.4, -15.0, F[4], true);
+    leg(-1.5, F.bf[0], F.bf[1], true); shoe(F.bf[0], F.bf[1]);
+    UP();
+    arm(-2.4, -15.0, F.ba, true);
     P.fill(BL, E(-2.6, -17.3, 4.3, 2.7));                       // hood behind the head
     const body = (c) => {
       c.moveTo(-4.6, -17.2); c.quadraticCurveTo(-6.3, -12.2, -5.7, -7.3); c.quadraticCurveTo(0, -6.3, 5.9, -7.3);
@@ -392,8 +408,8 @@
     P.fill(PK, RRECT(-1.2, -11.6, 6.4, 3.3, 1.2), { tone: 0.55, knock: false });  // pocket
     P.fill(YE, STAR(2.6, -14.6, 1.9, 0.85, 5));                // chest badge
     P.at();
-    leg(1.6, F[2], F[3], false); shoe(F[2], F[3]);
-    if (dash) P.at(0, hipY, 0.24, 0.6, 1.0);
+    leg(1.6, F.ff[0], F.ff[1], false); shoe(F.ff[0], F.ff[1]);
+    UP(F.hd);
     // head
     const hx = 0.8, hy = -22.6, hr = 6.5;
     P.fill(PK, CIRC(hx, hy, hr), { tone: 0.34, pitch: 0.78 });
@@ -404,44 +420,54 @@
     P.stip(PK, (c) => { c.moveTo(hx - 7.0, hy - 1.2); c.bezierCurveTo(hx - 7.4, hy - 9.6, hx + 7.6, hy - 9.6, hx + 7.1, hy - 1.2); c.closePath(); },
       LIN(hx + 6, hy - 6, hx - 6, hy - 1, 0, 0.35), { seed: 31 });
     P.fill([PK, YE], RRECT(hx - 7.4, hy - 2.8, 14.8, 2.9, 1.4));   // cuff (red-orange)
-    P.fill(PK, CIRC(hx - 1.6, hy - 8.4, 2.3));                       // pompom
+    P.fill(PK, CIRC(hx - 1.6 - F.pom * 0.9, hy - 8.4 + Math.abs(F.pom) * 0.35, 2.3));   // pompom, swinging after the head
     // face
     P.fill([BL, PK], E(hx + 2.3, hy + 1.8, 0.85, 1.25)); P.fill([BL, PK], E(hx + 5.0, hy + 1.8, 0.8, 1.2));
     P.fill(PK, CIRC(hx + 5.6, hy + 4.0, 1.05));
     P.line(BL, (c) => { c.moveTo(hx + 2.5, hy + 4.4); c.quadraticCurveTo(hx + 3.5, hy + 5.4, hx + 4.5, hy + 4.5); }, 0.6);
-    arm(2.6, -14.8, F[5], false);
+    UP();
+    arm(2.6, -14.8, F.fa, false);
     P.at();
   }
 
-  // SMALL CREATURE – blob critters: a pink one with a yellow bobble, a blue one with pink horns
-  const CR_FR = [[-3.4, 0, 3.4, 0, 0], [-4.2, 1.4, 2.8, 0, 0.6], [-3.4, 0, 3.4, 0, 0], [-2.8, 0, 4.2, 1.4, 0.6]];
+  // SMALL CREATURE – blob critters: a pink one with a yellow bobble, a blue one with pink horns. 6 waddle poses: the
+  // feet step with a lift, the body squashes at contact and stretches on the passing pose, two stubby arms swing
+  // against the feet, the bobble antenna / the horns lag behind the body.
+  const CR_N = 6;
   function critterParts(P, f, v) {
-    const F = CR_FR[f], sq = F[4];
+    const ph = (f / CR_N) * TAU, sq = 0.6 * (0.5 + 0.5 * Math.cos(2 * ph));
+    const foot = (p) => [3.6 * Math.cos(p), Math.sin(p) < 0 ? -Math.sin(p) * 1.5 : 0];
+    const fb = foot(ph + PI), ff = foot(ph), sw = Math.cos(ph), lag = Math.sin(2 * ph - 1.5);
     const top = -17.2 + sq * 0.9, wd = 8.8 + sq * 0.35;
     const body = (c) => {
       c.moveTo(0, top); c.bezierCurveTo(5.6, top, wd, -9.5, wd, -4.8); c.bezierCurveTo(wd - 0.2, -1.6, 5, -1.1, 0, -1.1);
       c.bezierCurveTo(-5, -1.1, -wd + 0.2, -1.6, -wd, -4.8); c.bezierCurveTo(-wd, -9.5, -5.6, top, 0, top); c.closePath();
     };
-    P.fill([PK, BL], E(F[0], -1.0 - F[1], 2.6, 1.6));
-    P.fill([PK, BL], E(F[2], -1.0 - F[3], 2.6, 1.6));
+    P.fill([PK, BL], E(fb[0], -1.0 - fb[1], 2.6, 1.6));
+    P.fill([PK, BL], E(ff[0], -1.0 - ff[1], 2.6, 1.6));
+    const armInk = v === 0 ? PK : BL;
+    P.fill(armInk, CAP(-wd + 1.4, -7.6, -wd - 2.0, -5.6 + sw * 1.4, 1.15));
+    P.fill(armInk, CAP(wd - 1.4, -7.6, wd + 2.0, -5.6 - sw * 1.4, 1.15));
     if (v === 0) {
-      P.line(PK, (c) => { c.moveTo(0.8, top + 1); c.quadraticCurveTo(1.0, top - 2.6, 3.4, top - 4.4); }, 1.0);
-      P.fill(YE, CIRC(3.6, top - 4.8, 2.0));
-      P.fill(BL, CIRC(3.6, top - 4.8, 2.0), { tone: LIN(2, top - 6.5, 5.5, top - 3, 0, 0.5), knock: false, pitch: 1.0 });
+      const ax = 3.6 + lag * 1.3, ay = top - 4.8 + Math.abs(lag) * 0.3;
+      P.line(PK, (c) => { c.moveTo(0.8, top + 1); c.quadraticCurveTo(1.0 + lag * 0.3, top - 2.6, ax - 0.2, ay + 0.4); }, 1.0);
+      P.fill(YE, CIRC(ax, ay, 2.0));
+      P.fill(BL, CIRC(ax, ay, 2.0), { tone: LIN(ax - 1.6, ay - 1.7, ax + 1.9, ay + 1.8, 0, 0.5), knock: false, pitch: 1.0 });
       P.fill(PK, body);
       P.fill(BL, body, { tone: LIN(-2, -13, 6, -2, 0, 0.66), knock: false });
     } else {
-      P.fill(PK, POLY([[-5.6, top + 3.2], [-6.4, top - 1.6], [-3.0, top + 1.4]]));
-      P.fill(PK, POLY([[3.4, top + 1.2], [5.6, top - 2.6], [6.4, top + 2.6]]));
+      const hl = lag * 0.5;
+      P.fill(PK, POLY([[-5.6, top + 3.2], [-6.4 - hl, top - 1.6], [-3.0, top + 1.4]]));
+      P.fill(PK, POLY([[3.4, top + 1.2], [5.6 - hl, top - 2.6], [6.4, top + 2.6]]));
       P.fill(BL, body);
       P.fill(YE, body, { tone: LIN(-5, top + 1, 3, -6, 0.6, 0), knock: false });
     }
     // eyes: paper showing through, pupils in violet
     P.hole(E(-0.6, -10.6 + sq * 0.4, 2.2, 2.6)); P.hole(E(4.3, -10.6 + sq * 0.4, 2.0, 2.5));
     P.fill([PK, BL], E(0.1, -10.0 + sq * 0.4, 1.0, 1.4)); P.fill([PK, BL], E(4.9, -10.0 + sq * 0.4, 0.95, 1.35));
-    // grin
-    P.hole((c) => { c.moveTo(0.2, -6.4); c.quadraticCurveTo(2.0, -6.0, 3.8, -6.4); c.quadraticCurveTo(2.0, -3.4, 0.2, -6.4); c.closePath(); });
-    if (v === 1) P.fill(PK, E(2.0, -4.9, 0.9, 0.45));
+    // grin (opens on the squash)
+    P.hole((c) => { c.moveTo(0.2, -6.4); c.quadraticCurveTo(2.0, -6.0, 3.8, -6.4); c.quadraticCurveTo(2.0, -3.4 + sq * 0.8, 0.2, -6.4); c.closePath(); });
+    if (v === 1) P.fill(PK, E(2.0, -4.9 + sq * 0.3, 0.9, 0.45));
   }
 
   // FAST CREATURE – a scribbled ghost: paper silhouette filled with blue and pink hand scribbles
@@ -458,8 +484,9 @@
       c.closePath();
     };
   }
+  const GH_N = 6;
   function ghostParts(P, f) {
-    const ph = (f / 4) * TAU, shape = ghostShape(ph);
+    const ph = (f / GH_N) * TAU, shape = ghostShape(ph);
     P.fill(PK, shape, { tone: 0.2, pitch: 0.8 });
     P.fill(BL, shape, { tone: LIN(-2, -19, 3, -5, 0, 0.3), knock: false, pitch: 0.8 });
     P.scribble(BL, shape, { seed: 11 + f * 7, ang: 0.55, gap: 1.2, w: 0.75 });
@@ -718,28 +745,32 @@
     for (let i = 0; i < pts.length; i += 5) {
       if (i % 100 === 95) yield;
       const x = pts[i], y = pts[i + 1], r0 = pts[i + 2], r1 = pts[i + 3], r2 = pts[i + 4];
-      if (r0 > 0.34) continue;
       const m = matSafe(x, y, 4);
-      if (m < 0) continue;
       const s = 0.8 + r1 * 0.5;
+      // along every region edge a drift of blue grass strokes underlines the shape
+      if (m < 0) { if (r0 < 0.3 && matAt(x, y) !== 4) DL(c, info, BL, (q) => { for (const k of [-1, 0, 1]) { q.moveTo(x + k * 1.1 * s, y); q.lineTo(x + k * 1.6 * s + (r2 - 0.5), y - (2.2 + Math.abs(k) * -0.6) * s); } }, 0.5); continue; }
+      // everything else gathers in clumps (noise field) – calm paper between them, never an even sprinkle
+      const keep = U.smoothstep(0.48, 0.7, U.noise(x / 120, y / 120, 7373));
+      const rq = r0 / (0.08 + 1.2 * keep);
+      if (rq > 0.34) continue;
       if (m === 0) {
-        if (r0 < 0.07) DL(c, info, BL, (q) => { for (const k of [-1, 0, 1]) { q.moveTo(x + k * 1.1 * s, y); q.lineTo(x + k * 1.6 * s + (r2 - 0.5), y - (2.2 + Math.abs(k) * -0.6) * s); } }, 0.5);
-        else if (r0 < 0.105) flowerDecal(c, info, x, y, s * 0.9, r2 < 0.5 ? PK : BL, YE);
-        else if (r0 < 0.13) D(c, info, r2 < 0.5 ? YE : PK, POLY([[x, y - 1.6 * s], [x + 1.5 * s, y + 1 * s], [x - 1.4 * s, y + 0.8 * s]]));
-        else if (r0 < 0.15) { D(c, info, PK, CIRC(x, y, 0.9 * s)); D(c, info, BL, CIRC(x + 0.6, y + 0.3, 0.9 * s)); }
+        if (rq < 0.07) DL(c, info, BL, (q) => { for (const k of [-1, 0, 1]) { q.moveTo(x + k * 1.1 * s, y); q.lineTo(x + k * 1.6 * s + (r2 - 0.5), y - (2.2 + Math.abs(k) * -0.6) * s); } }, 0.5);
+        else if (rq < 0.105) flowerDecal(c, info, x, y, s * 0.9, r2 < 0.5 ? PK : BL, YE);
+        else if (rq < 0.13) D(c, info, r2 < 0.5 ? YE : PK, POLY([[x, y - 1.6 * s], [x + 1.5 * s, y + 1 * s], [x - 1.4 * s, y + 0.8 * s]]));
+        else if (rq < 0.15) { D(c, info, PK, CIRC(x, y, 0.9 * s)); D(c, info, BL, CIRC(x + 0.6, y + 0.3, 0.9 * s)); }
       } else if (m === 1) {
-        if (r0 < 0.2) DL(c, info, BL, (q) => { for (const k of [-1, -0.3, 0.4, 1]) { q.moveTo(x + k * 1.2 * s, y); q.quadraticCurveTo(x + k * 1.4 * s, y - 1.4 * s, x + k * 2.2 * s + (r2 - 0.5) * 0.8, y - (2.4 + (1 - Math.abs(k)) * 0.9) * s); } }, 0.6);
-        else if (r0 < 0.26) flowerDecal(c, info, x, y, s, YE, PK);
-        else if (r0 < 0.29) flowerDecal(c, info, x, y, s * 0.8, PK, YE);
+        if (rq < 0.2) DL(c, info, BL, (q) => { for (const k of [-1, -0.3, 0.4, 1]) { q.moveTo(x + k * 1.2 * s, y); q.quadraticCurveTo(x + k * 1.4 * s, y - 1.4 * s, x + k * 2.2 * s + (r2 - 0.5) * 0.8, y - (2.4 + (1 - Math.abs(k)) * 0.9) * s); } }, 0.6);
+        else if (rq < 0.26) flowerDecal(c, info, x, y, s, YE, PK);
+        else if (rq < 0.29) flowerDecal(c, info, x, y, s * 0.8, PK, YE);
       } else if (m === 2) {
-        if (r0 < 0.2) flowerDecal(c, info, x, y, s * 1.1, PK, YE);
-        else if (r0 < 0.27) { D(c, info, BL, E(x - 1.3 * s, y, 1.6 * s, 0.7 * s, -0.5)); D(c, info, BL, E(x + 1.3 * s, y - 0.2, 1.6 * s, 0.7 * s, 0.5)); }
-        else if (r0 < 0.3) D(c, info, YE, CIRC(x, y, 0.8 * s));
+        if (rq < 0.2) flowerDecal(c, info, x, y, s * 1.1, PK, YE);
+        else if (rq < 0.27) { D(c, info, BL, E(x - 1.3 * s, y, 1.6 * s, 0.7 * s, -0.5)); D(c, info, BL, E(x + 1.3 * s, y - 0.2, 1.6 * s, 0.7 * s, 0.5)); }
+        else if (rq < 0.3) D(c, info, YE, CIRC(x, y, 0.8 * s));
       } else if (m === 3) {
-        if (r0 < 0.12) D(c, info, PK, E(x, y, 1.3 * s, 0.85 * s, r2));
-        else if (r0 < 0.16) D(c, info, BL, CIRCLES([[x, y, 0.55 * s], [x + 1.6 * s, y + 0.5, 0.45 * s], [x + 0.6, y + 1.4 * s, 0.4 * s]]));
+        if (rq < 0.12) D(c, info, PK, E(x, y, 1.3 * s, 0.85 * s, r2));
+        else if (rq < 0.16) D(c, info, BL, CIRCLES([[x, y, 0.55 * s], [x + 1.6 * s, y + 0.5, 0.45 * s], [x + 0.6, y + 1.4 * s, 0.4 * s]]));
       } else {
-        if (r0 < 0.09) {
+        if (rq < 0.09) {
           const a = r2 * TAU;
           D(c, info, YE, (q) => { q.moveTo(x, y); q.arc(x, y, 3.0 * s, a + 0.5, a + TAU - 0.1); q.closePath(); });
           if (r1 > 0.55) flowerDecal(c, info, x + 0.8, y - 0.6, 0.7, PK, YE);
@@ -794,8 +825,18 @@
           const fu = uu - Math.floor(uu) - 0.5, fv = vv - Math.floor(vv) - 0.5;
           c0 = (R_BLOS - Math.sqrt(fu * fu + fv * fv) * HP) * res + 0.5;
           c0 = c0 > 1 ? 1 : c0 < 0 ? 0 : c0;
-        } else if (q0 === 3) { if (RND[fi & 65535] < 0.05) c0 = 1; }
-        else if (q0 === 0) { if (RND[fi & 65535] < (F[o00 + 4] * w00 + F[o10 + 4] * w10 + F[o01 + 4] * w01 + F[o11 + 4] * w11) * 0.24) c0 = 1; }
+        } else if (q0 === 3) { if (RND[fi & 65535] < 0.02) c0 = 1; }
+        else if (q0 === 0) {
+          // pink tint clouds on the open paper: coarse AM dots that grow toward the cloud core (a printed halftone fade)
+          const cl = F[o00 + 4] * w00 + F[o10 + 4] * w10 + F[o01 + 4] * w01 + F[o11 + 4] * w11;
+          if (cl > 0.3) {
+            const t = (cl - 0.3) * 1.43, tone = t * t * 0.3;
+            const xs = x - m0x, uu = (xs * ca0 + y0 * sa0) * IP, vv = (y0 * ca0 - xs * sa0) * IP;
+            const fu = uu - Math.floor(uu) - 0.5, fv = vv - Math.floor(vv) - 0.5;
+            c0 = (RK * Math.sqrt(tone) - Math.sqrt(fu * fu + fv * fv) * HP) * res + 0.5;
+            c0 = c0 > 1 ? 1 : c0 < 0 ? 0 : c0;
+          }
+        }
         // blue plate
         let c1 = 0;
         if (q1 === 4) {
@@ -815,7 +856,7 @@
             c1 = (RK * Math.sqrt(am) - Math.sqrt(fu * fu + fv * fv) * HP) * res + 0.5;
             c1 = c1 > 1 ? 1 : c1 < 0 ? 0 : c1;
           }
-          if (q1 === 1 && c1 < 1 && RND[(fi + 21839) & 65535] < (F[o00 + 6] * w00 + F[o10 + 6] * w10 + F[o01 + 6] * w01 + F[o11 + 6] * w11) * 0.1) c1 = 1;
+          if (q1 === 1 && c1 < 1 && RND[(fi + 21839) & 65535] < (F[o00 + 6] * w00 + F[o10 + 6] * w10 + F[o01 + 6] * w01 + F[o11 + 6] * w11) * 0.035) c1 = 1;
         }
         // yellow plate
         let c2 = 0;
@@ -825,7 +866,16 @@
           c2 = ((q2 === 3 ? R_PATH : R_MY) - Math.sqrt(fu * fu + fv * fv) * HP) * res + 0.5;
           c2 = c2 > 1 ? 1 : c2 < 0 ? 0 : c2;
         } else if (q2 !== 4) {
-          if (RND[(fi + 43678) & 65535] < (F[o00 + 5] * w00 + F[o10 + 5] * w10 + F[o01 + 5] * w01 + F[o11 + 5] * w11) * (q2 === 2 ? 0.36 : 0.2)) c2 = 1;
+          // yellow tint clouds: the same halftone fade on the yellow screen (blossom fields get a light FM grain instead)
+          const cl = F[o00 + 5] * w00 + F[o10 + 5] * w10 + F[o01 + 5] * w01 + F[o11 + 5] * w11;
+          if (q2 === 2) { if (RND[(fi + 43678) & 65535] < cl * 0.12) c2 = 1; }
+          else if (cl > 0.3) {
+            const t = (cl - 0.3) * 1.43, tone = t * t * 0.26;
+            const xs = x - m2x, uu = (xs * ca2 + y2 * sa2) * IP, vv = (y2 * ca2 - xs * sa2) * IP;
+            const fu = uu - Math.floor(uu) - 0.5, fv = vv - Math.floor(vv) - 0.5;
+            c2 = (RK * Math.sqrt(tone) - Math.sqrt(fu * fu + fv * fv) * HP) * res + 0.5;
+            c2 = c2 > 1 ? 1 : c2 < 0 ? 0 : c2;
+          }
         }
         // decals
         const di = (py * Wp + px) << 2;
@@ -1176,10 +1226,12 @@ ${BD} #pausebox { padding: 14px 40px 10px; background: ${Y_}; font: 400 58px/1 $
       buildTables();
       const actor = (box, fn, seed) => { const P = new Press(box, K, { seed }); fn(P); return bake(P, { plates: true, flash: true }); };
       const mult = (box, fn, o) => { const P = new Press(box, K, o); fn(P); return bake(P, { comp: false, mult: true }); };
-      SPR.kid = [0, 1, 2, 3].map((f) => actor([-10, -34, 9, 1.5], (P) => kidParts(P, f, false)));
-      SPR.kidDash = actor([-12, -34, 12, 1.5], (P) => kidParts(P, 0, true));
-      SPR.crit = [0, 1].map((v) => [0, 1, 2, 3].map((f) => actor([-11, -25, 11, 1.5], (P) => critterParts(P, f, v))));
-      SPR.ghost = [0, 1, 2, 3].map((f) => actor([-19, -22, 8, 1], (P) => ghostParts(P, f)));
+      // main character: 8 walk + 3 idle + crouch + skateboard + recoil poses; creatures 6 / 6 / 4 poses
+      const kid = (F, dash) => actor([-12, -36, 12, 1.5], (P) => kidParts(P, F, dash));
+      SPR.kidWalk = KID_WALK.map((F) => kid(F)); SPR.kidIdle = KID_IDLE.map((F) => kid(F));
+      SPR.kidCrouch = kid(KID_CROUCH); SPR.kidRecoil = kid(KID_RECOIL); SPR.kidDash = kid(KID_DASH, true);
+      SPR.crit = [0, 1].map((v) => Array.from({ length: CR_N }, (_, f) => actor([-13, -25, 13, 1.5], (P) => critterParts(P, f, v))));
+      SPR.ghost = Array.from({ length: GH_N }, (_, f) => actor([-19, -22, 8, 1], (P) => ghostParts(P, f)));
       SPR.colo = [0, 1, 2, 3].map((f) => actor([-30, -62, 30, 1.5], (P) => colossusParts(P, f)));
       SPR.props = {};
       for (const t in PROP_DEF) {
@@ -1252,7 +1304,9 @@ ${BD} #pausebox { padding: 14px 40px 10px; background: ${Y_}; font: 400 58px/1 $
       const out = [];
       G.scatterOwned(info, 84, 5151, (x, y, rng) => {
         if (G.nearSpawn(x, y, 95)) return;
-        const r = rng.next(), vr = rng.next();
+        // props gather in groves and little villages (a 330-unit noise field), open paper between them
+        const cl = U.smoothstep(0.36, 0.66, U.noise(x / 330, y / 330, 5252));
+        const r = rng.next() / (0.3 + 1.5 * cl), vr = rng.next();
         const m = matSafe(x, y, 14);
         if (m < 0 || m >= 3) return;
         let t = null, v = 0;
@@ -1360,13 +1414,15 @@ ${BD} #pausebox { padding: 14px 40px 10px; background: ${Y_}; font: 400 58px/1 $
       const scl = 0.95 + (e.seed || 0) * 0.1;
       if (e.type === 'creeper') {
         const ph = e.anim * 0.85 + (e.seed || 0);
-        s = SPR.crit[(e.seed || 0) < 0.55 ? 0 : 1][Math.floor(ph * 4) & 3];
+        s = SPR.crit[(e.seed || 0) < 0.55 ? 0 : 1][((Math.floor(ph * CR_N) % CR_N) + CR_N) % CR_N];
         const sn = Math.sin(ph * TAU), up = Math.abs(sn);
         y -= up * 1.4; sx = 1 + (1 - up) * 0.05; sy = 1 - (1 - up) * 0.05 + up * 0.03;
         rot = sn * 0.07;
       } else if (e.type === 'ghost') {
-        s = SPR.ghost[Math.floor(view.rt * 8 + (e.seed || 0) * 4) & 3];
-        y -= 4 + Math.sin(view.rt * 2.8 + (e.seed || 0) * 12) * 1.6;
+        s = SPR.ghost[Math.floor(view.rt * 8 + (e.seed || 0) * 6) % GH_N];
+        // eased hover on a triangle wave (lingers at the top and the bottom), every ghost on its own clock
+        const u = (view.rt * 0.42 + (e.seed || 0) * 3.1) % 1, tri = u < 0.5 ? u * 2 : 2 - u * 2;
+        y -= 2.6 + tri * tri * (3 - 2 * tri) * 3.4;
         rot = U.clamp((e.vx || 0) / 64, -1, 1) * 0.12;
       } else {
         const ph = e.anim * 0.32 + (e.seed || 0);
@@ -1397,40 +1453,45 @@ ${BD} #pausebox { padding: 14px 40px 10px; background: ${Y_}; font: 400 58px/1 $
         return;
       }
       const fl = e.flash || 0;
-      if (fl > 0) { sx *= 1 + 0.14 * fl; sy *= 1 - 0.1 * fl; }
-      blit(ctx, V, s, s.comp, e.x, y, sx, sy, rot, flip);
+      let hx = e.x;
+      if (fl > 0) {
+        // hit: squash, a knock-back shove and a tilt away from the blow, easing out with flash² (~0.14 s)
+        sx *= 1 + 0.14 * fl; sy *= 1 - 0.1 * fl;
+        const kl = Math.hypot(e.kx || 0, e.ky || 0) || 1, k2 = fl * fl;
+        hx += ((e.kx || 0) / kl) * 2.6 * k2; y += ((e.ky || 0) / kl) * 1.4 * k2; rot += ((e.kx || 0) / kl) * 0.22 * fl;
+      }
+      blit(ctx, V, s, s.comp, hx, y, sx, sy, rot, flip);
       if (fl > 0.02) {
         ctx.globalAlpha = Math.min(1, fl * 1.5);
-        blit(ctx, V, s, s.flash, e.x + fl * 1.4, y, sx, sy, rot, flip);
+        blit(ctx, V, s, s.flash, hx + fl * 1.4, y, sx, sy, rot, flip);
         ctx.globalAlpha = 1;
-        plates(ctx, V, s, e.x, y, sx, sy, flip, fl * 3.2, [fl * 0.7, fl * 0.5, 0]);
+        plates(ctx, V, s, hx, y, sx, sy, flip, fl * 3.2, [fl * 0.7, fl * 0.5, 0]);
       }
     },
 
     drawPlayer(ctx, p, view) {
       const V = tf(view), game = view.game;
-      let frame = 0, sx = 1, sy = 1, lift = 0, rot = 0;
-      const dash = p.dashT > 0;
-      if (p.moving && !dash) {
-        const ph = p.anim * 0.4, step = Math.floor(ph * 4);
-        frame = [1, 2, 3, 2][step & 3];
-        const f = ph * 2 - Math.floor(ph * 2);
-        lift = Math.sin(f * PI) * 1.6;
-        rot = 0.04 * p.facing * Math.sin(f * PI);
-        if ((step & 1) === 0 && step !== lastStep) {
-          lastStep = step;
-          if (game && game.state === 'play' && Math.random() < 0.45) dot(game, p.x - p.facing * 4, p.y + 0.5, 0.5, Math.random() < 0.5 ? YE : PK, 0.9, 14, 0.35, { vz: 10, grav: 60 });
-        }
-      } else if (!dash) {
-        const b = Math.sin(view.rt * 3.2);
-        sy = 1 + 0.022 * b; sx = 1 - 0.016 * b;
+      let sx = 1, sy = 1, lift = 0, rot = 0, s;
+      const dash = p.dashT > 0 && p.dashT <= 0.165, crouch = p.dashT > 0.165;
+      if (p.hurtT > 0.45) s = SPR.kidRecoil;
+      else if (crouch) s = SPR.kidCrouch;                        // one crouch frame of anticipation
+      else if (dash) s = SPR.kidDash;
+      else if (p.moving) {
+        const i = Math.floor(p.anim * 0.4 * 8) & 7;
+        s = SPR.kidWalk[i];
+        // an ink fleck kicked up on every contact pose
+        if ((i & 3) === 0 && i !== lastStep && game && game.state === 'play' && Math.random() < 0.55) dot(game, p.x - p.facing * 4, p.y + 0.5, 0.5, Math.random() < 0.5 ? YE : PK, 0.9, 14, 0.35, { vz: 10, grav: 60 });
+        lastStep = i;
+      } else {
+        // held breathing: exhale - mid - inhale - mid on an eased 2.6 s clock (lingers at both ends)
+        const br = 0.5 - 0.5 * Math.cos(((view.rt / 2.6) % 1) * TAU);
+        s = SPR.kidIdle[br < 0.3 ? 0 : br < 0.75 ? 1 : 2];
       }
       if (p.shootT > 0) { sy *= 1 - 0.045 * p.shootT; sx *= 1 + 0.035 * p.shootT; }
       if (p.levelT > 0) { const w = Math.sin(p.levelT * PI * 4) * p.levelT; sy *= 1 + 0.15 * w; sx *= 1 - 0.09 * w; lift += p.levelT * 5 * Math.abs(Math.sin(p.levelT * PI * 2)); }
       const hurt = p.hurtT > 0;
       if (hurt) { sx *= 1 + 0.1 * p.hurtT; sy *= 1 - 0.08 * p.hurtT; }
       const flip = p.facing < 0;
-      const s = dash ? SPR.kidDash : SPR.kid[frame];
       if (dash) {
         const k = U.clamp(p.dashT / 0.2, 0, 1);
         // speed: a smear of the pink and blue plates left behind + ink streaks
@@ -1452,11 +1513,9 @@ ${BD} #pausebox { padding: 14px 40px 10px; background: ${Y_}; font: 400 58px/1 $
         ctx.globalCompositeOperation = 'source-over';
         rot = -0.05 * p.facing;
       }
-      let a = 1;
-      if (p.iframes > 0 && !hurt && !dash && (Math.floor(view.rt * 14) & 1)) a = 0.5;
-      ctx.globalAlpha = a;
+      // invulnerable blink = the pink and blue plates slip out of register (never a see-through main character)
+      if (p.iframes > 0 && !hurt && !dash && (Math.floor(view.rt * 12) & 1)) plates(ctx, V, s, p.x, p.y - lift, sx, sy, flip, 2.4, [0.85, 0.85, 0]);
       blit(ctx, V, s, s.comp, p.x, p.y - lift, sx, sy, rot, flip);
-      ctx.globalAlpha = 1;
       if (hurt) {
         // misregistration jolt: the plates kick out of register
         ctx.globalAlpha = Math.min(0.9, p.hurtT * 1.3);

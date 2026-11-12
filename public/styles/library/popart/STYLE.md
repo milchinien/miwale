@@ -170,9 +170,12 @@ crossed by winding paths:
 All figures use the same part painter so they share outline weight (~1 unit, doubled offset stroke), dot spacing
 (1.3 units) and the top-left light. Each figure is 10–20 primitive parts (ellipses, capsules, polygons, superellipses,
 bezier blobs) painted back-to-front, gets a shade crescent + spot-black crescent per part, a cyan plate behind it
-(magenta for ghosts) and four walk frames plus a yellow flash copy, baked facing right and mirrored for left.
+(magenta for ghosts), a set of poses plus a yellow flash copy of each, baked facing right and mirrored for left, and
+cyan / magenta plate copies used for smears, blink slips and the vanish.
 Readability in crowds comes from: saturated colours vs. pale ground, distinct silhouettes per type, big yellow eyes,
-the cyan fringe separating overlapping sprites, and the halftone shadow anchoring each one.
+the cyan fringe separating overlapping sprites, and the halftone shadow anchoring each one. The **main character
+alone** gets a 1.1-unit paper-white keyline (`#fffdf2`, 8 offset silhouettes drawn behind it before the cyan plate)
+so it is always the clearest read, even on the orange field.
 
 **Main character** — a figure with a round orange pumpkin head and a carved glowing face, blue cape and red scarf,
 ~21 × 34 units at 1.12× scale, feet at y = 0:
@@ -187,8 +190,14 @@ the cyan fringe separating overlapping sprites, and the halftone shadow anchorin
 - **Limbs**: capsules (`CAP`) — legs r 1.35 in `#2b2846` (back leg darker `#1f1c36`), black ellipse shoes with a
   white shine; arms r 1.25 in cape blue with Ben-Day overlay, white glove ellipses `#fffaf0` with cyan-dot shade.
 - **Paint order**: scarf tail → back leg → back arm → front leg → cape → front arm → scarf knot → stem → head → face.
-- **Frames**: 0 idle, 1 contact A, 2 passing (front foot lifted 1.9), 3 contact B; each frame is a row of numbers
-  (back foot x/y, front foot x/y, back/front arm angle, cape flare). Cape flare also swings the hem and scarf tail.
+- **Pose table** `jp({ bf, ff, ba, fa, fl, b, hd, ht, sw, lean })`: back / front foot (x, y with y < 0 = lifted),
+  back / front arm angle (0 = hanging, + = forward), cape flare, body bob (+ = down), head lag and tilt, scarf wave,
+  lean. Everything above the hips is drawn in a space translated by the bob and rotated by the lean around the hip
+  point (0, −8.6); the head adds its own lag and tilt around the neck (0.4, −16.4).
+- **Poses**: 8 computed walk poses (`ph = i/8·2π`: foot x = `0.3 + 3.7·cos p`, lifted `2.3·sin p` while swinging,
+  arms `±0.9·cos ph`, bob `0.95·sin 2ph`, head `0.5·sin(2ph − 0.9)`, cape `0.55 + 0.45·sin(2ph − 1.3)`, scarf
+  `sin(2ph − 1.9)`, lean 0.07), 3 breathing idle poses (bob 0 / −0.22 / −0.42 with the head lagging), a crouch
+  (bob 1.9, arms back), a dash pose (lean 0.24, cape flare 1.7, scarf 2.1) and a recoil (lean −0.22, arms flung up).
 - **Facing**: bake once facing right, mirror the canvas for left (the face is offset +1.4 units toward the facing).
 - **Plate**: cyan behind the main character.
 
@@ -196,13 +205,17 @@ the cyan fringe separating overlapping sprites, and the halftone shadow anchorin
 teardrop root body (bezier, top −20.6, bottom −2.6, half-width 8.5, outline 1.1, shade `[-2.3, -1.5]` rf 0.6, spot
 `[-0.95, -0.6]`), *two-tone*: magenta `#d4308c` or violet `#8a3cc0` top with complementary dots (rf 0.42) above a
 wavy ink line (0.45 wide) at y −12.2 (amplitude 0.9), cream bottom with sparse orange dots (rf 0.22, rotated 30°).
-Three dotted leaves on top, stubby capsule legs (r 1.05). Face: yellow eye ellipses with ink pupils, angular ink brows,
-ink frown with a pink `#ff5a6a` tongue and white fangs. Two colour variants chosen by seed. Cyan plate.
+Three dotted leaves on top (they lag the steps by up to 0.17 rad), stubby capsule legs (r 1.05) that lift 1.8 units on
+the swing, two little root arms (r 0.75, three root fingers on the front one) that counter-swing, and a curling tap
+root behind that whips after the steps – the silhouette reads as a walking root, not a ball. Face: yellow eye ellipses
+with ink pupils, angular ink brows, an ink frown that chews with the steps, pink `#ff5a6a` tongue and white fangs.
+Two colour variants chosen by seed, 6 poses. Cyan plate.
 
 **Fast creature** — a floating ghost, ~25 × 26 units: white sheet `#fcfbf4` with a 7-unit dome and a wavy tail whose
 control points move with frame phase; strong cyan-dot shade `[-2.6, -1.6]` rf 0.62; cyan dots over the bottom 12
 units; the bottom 28 % is erased with a `destination-out` gradient to 75 % so it hovers. Ink oval eyes with cyan
-catchlights, gaping ink mouth. Magenta plate (not cyan) so it reads as a different "ink".
+catchlights, a gaping ink mouth that wails open and shut, two claw hands with three ink fingers that reach forward in
+turn. 6 poses. Magenta plate (not cyan) so it reads as a different "ink".
 
 **Large creature** — a giant root colossus, ~48 × 66 units: half-width 17.8, outline 1.45, plum `#8a3a86` top over
 clay `#c98545` bottom (shade `#3a1030`), five dark leaves, capsule arms r 3.0 in `#9a5a30` with blob fists, zig-zag
@@ -257,9 +270,9 @@ All effects are baked sprites from the same painter (ink outline, dot fills, pla
   r 3.6); pops with outBack in the first 16 %, grows +35 %/life, fades the last 40 %.
 - **Chunks**: 4 (small creature), 2 (ghost), 9 (large creature) five-sided polygons in the creature's colours with
   spot-black crescent, thrown with gravity 280; plus 2–6 ink droplets (ghosts: cyan).
-- **Sound words**: POW! ZACK! KRACH! PENG! ZONK! PLOPP! for normal bursts (30 % chance, ≥ 1.3 s apart), bigger
-  WUMMS!/RUMMS! for large-creature bursts (always) with a 16-wedge ring shockwave, AUTSCH! when the main character is
-  struck (≥ 2.2 s apart). Max 3 alive. Balloon: Bangers 11 units centred in a 13-point jagged star (inner 0.72), a
+- **Sound words**: POW! ZAP! BAM! WHAM! BONK! ZONK! SPLAT! for normal bursts (30 % chance, ≥ 1.3 s apart), bigger
+  KABOOM!/KRAKOOM!/BLAM! for large-creature bursts (always) with a 16-wedge ring shockwave, OUCH! when the main
+  character is struck (≥ 2.2 s apart), KA-POW! for the final burst. Max 3 alive. Balloon: Bangers 11 units centred in a 13-point jagged star (inner 0.72), a
   darker offset plate (−0.8, +0.7, 70 %), a dot rim outside 62 % of the radius, 1.0 ink outline. Colour sets
   `[fill, text, plate]`: yellow/red/orange-dot, red/yellow/dark-red, cyan/white/dark-blue, white/red/cyan.
 - **Pop-up numbers**: Bangers 9.5 units white (13 units yellow when emphasised, inside a white 11-point star balloon);
@@ -276,6 +289,14 @@ All effects are baked sprites from the same painter (ink outline, dot fills, pla
 - **Celebration ring**: yellow ring of 16 wedges + 8 white 4-point twinkles with cyan shade flying out.
 - **Appear burst**: flattened (y × 0.45) yellow 12-point star with red dots and a black hole on the ground; the
   creature grows with outElastic; ink droplets fly out.
+- **Vanish – plates come apart** (0.35 s): 0–0.06 s the yellow flash frame inflates 1 → 1.28 and squashes wide; then
+  the magenta plate copy slides 6 units up-left and the cyan one 6 units down-right (outQuad) and fade, while the
+  figure is flung up 9 units, falls back (`6u²`), spins up to 1.1 rad, shrinks to 50 % and fades `1 − u²` – a
+  misprint falling off the page, layered with the big burst, chunks, droplets and a balloon.
+- **Struck**: the flash copy plus a knock-back shove of 2.6 units and a 0.24 rad tilt away from the blow, easing out
+  with `flash²` (~0.14 s).
+- **Blink slip**: while the main character is invulnerable, every other 1/12 s its magenta and cyan plate copies print
+  1.3 units out of register on either side – never a see-through figure.
 
 ## Atmosphere and lighting
 
@@ -328,19 +349,22 @@ Overlays: celebration backdrop = radial dark vignette + red dots (2.2 px / 11 px
 
 ## Motion and animation
 
-- **Main character walk**: frame sequence 1, 2, 3, 2 at `anim × 0.4`; lift `sin(f·π) × 1.8` units, tilt `0.05 ×
-  facing × sin(f·π)`; a dust puff on every other step (50 %).
-- **Main character idle**: `sy = 1 + 0.025 sin(3.2t)`, `sx = 1 − 0.018 sin(3.2t)`. Launching a projectile squashes
-  5 %; the celebration wobble is `sin(t·4π)` ±16 %; when struck it overlays the yellow flash and squashes 14/12 %,
-  then blinks at 16 Hz down to 45 % alpha.
-- **Small creature**: 4 frames at `anim × 0.85`, rotation `sin × 0.09`, hop 1.2 units, 5 % squash at contact, random
-  scale 0.94–1.06.
-- **Ghost**: 4 tail frames at 7 fps, hover 4.5 units up, bob ±1.6 at 2.6 rad/s, lean `vx/64 × 0.14`, alpha 0.94.
+- **Main character walk**: 8 computed poses per stride at `floor(anim × 0.4 × 8) & 7` – contact, down, passing, up
+  for each leg; the swing foot lifts, the body dips after each contact and rises on the passing pose, the arms
+  counter-swing and head (0.9 rad delay), cape (1.3) and scarf (1.9) follow through. A dust puff on every contact pose.
+- **Main character idle**: 3 held breathing poses picked on an eased 2.6 s clock (`0.5 − 0.5·cos`, thresholds 0.3 /
+  0.75), so it lingers at both ends; the head lags the chest, the scarf settles after it.
+- **Dash**: crouch pose while `dashT > 0.165` (anticipation), then the dash pose with cyan/magenta smear copies at
+  6 and 12 units and tapered speed lines. **Struck**: recoil pose while `hurtT > 0.45`, flash overlay, squash
+  14/12 % and a 0.12 rad tilt; then the blink slip during invulnerability.
+- Launching a projectile squashes 5 %; the celebration wobble is `sin(t·4π)` ±16 %.
+- **Small creature**: 6 poses at `anim × 0.85` with its own phase (`+ seed`), rotation `sin × 0.09`, hop 1.2 units,
+  5 % squash at contact, random scale 0.94–1.06.
+- **Fast creature**: 6 frames at 7 fps (offset by seed), hover `3.2 + 3.4·smoothstep(tri)` on a triangle wave with a
+  2.4 s period per spirit – it lingers at the top and bottom instead of bobbing on a sine; lean `vx/64 × 0.14`.
 - **Large creature**: 4 frames at `anim × 0.32`, contact squash `(1 − up)^3 × 7 %`, rotation ±0.03, hop 2 units.
 - **Appear**: solid creatures grow vertically with outElastic (width compensates `1/√p`), ghosts fade + outBack.
-- **Struck**: flash frame alpha `min(cap, flash × 1.4)`, squash sx +18 %, sy −14 %.
-- **Vanish**: 0–0.2 s inflate to 1.25× in the yellow frame (outQuad), 0.2–0.42 s shrink to 0 (inQuad) while rotating
-  +0.6 rad; the big burst covers it.
+- **Struck** and **vanish**: see Effects (knock-back 0.14 s, plates-apart 0.35 s).
 - **Trees** sway with a skew of ±0.02 at 1.2 rad/s; HUD shake = 0.22 s steps(3) jitter of ±4 px and ±1.5°.
 - **Pops everywhere use overshoot** (outBack, outElastic, CSS `cubic-bezier(.3,1.8,.5,1)`).
 

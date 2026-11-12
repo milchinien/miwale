@@ -3,12 +3,38 @@
   "name": "Deep Sea Glow",
   "originalName": "Deep Sea Glow",
   "family": "Underwater · Bioluminescent",
-  "tags": ["underwater", "bioluminescent", "deep sea", "glow", "dark", "soft", "organic", "atmospheric"],
+  "tags": [
+    "underwater",
+    "bioluminescent",
+    "deep sea",
+    "glow",
+    "dark",
+    "soft",
+    "organic",
+    "atmospheric"
+  ],
   "summary": "The abyssal sea floor at night, lit only by living light: glowing jellies, kelp and coral, marine snow and blue depth fog.",
   "description": "A dark navy sea floor of sand ripples, terraced rock shelves and brine pools, with kelp forests, coral, tube-worm gardens and whale bones – and no light except what lives there. Every creature and plant carries its own soft cyan, teal, violet or pink glow: photophores along bodies, polyp tips, gas bulbs, a pulsing jelly bell, an anglerfish lure. The single warm note is the helmet lamp of a small diver. Marine snow drifts past in three parallax layers, faint caustics and light shafts fall from far above, and a blue depth fog swallows the edges of the frame. Unlike hard neon line art, the glow here is soft, organic and always attached to something alive.",
-  "mood": ["mysterious", "calm", "wondrous", "lonely", "dreamy"],
-  "bestFor": ["underwater exploration games", "calm atmospheric adventures", "horror games about light and darkness", "night or deep-space style worlds with glowing life", "relaxing collect-and-explore games"],
-  "avoidFor": ["bright daylight farming sims", "colour-coded puzzle games that need warm hues", "flat UI-heavy strategy games", "projects that need hard graphic line art"],
+  "mood": [
+    "mysterious",
+    "calm",
+    "wondrous",
+    "lonely",
+    "dreamy"
+  ],
+  "bestFor": [
+    "underwater exploration games",
+    "calm atmospheric adventures",
+    "horror games about light and darkness",
+    "night or deep-space style worlds with glowing life",
+    "relaxing collect-and-explore games"
+  ],
+  "avoidFor": [
+    "bright daylight farming sims",
+    "colour-coded puzzle games that need warm hues",
+    "flat UI-heavy strategy games",
+    "projects that need hard graphic line art"
+  ],
   "difficulty": {
     "stars": 5,
     "why": "Each new asset is a dark body with a thin cold rim light plus a few bright emissive spots; the shared bake (blurred halo + floor light pool) makes it glow, so drawing is quick. The care goes into restraint: deciding which few spots emit, keeping bodies dark but still readable, giving every creature type its own glow colour and silhouette, and keeping the overdraw of halos and full-screen layers low."
@@ -24,27 +50,111 @@
     "texture": "Per-pixel ground: two lookups of one tileable fbm noise tile (128 and 512 units period) for sand grain and mottling, sine sand ripples, terraced rock bands. Elsewhere no texture – the softness comes from blur, gradients and fog."
   },
   "palette": [
-    { "name": "Abyss", "hex": "#040b18", "role": "Background and fallback ground colour, fog base" },
-    { "name": "Sand", "hex": "#07101f", "role": "Dark sand, the darkest ground (~45 % of the floor)" },
-    { "name": "Sand light", "hex": "#162842", "role": "Lighter sand patches" },
-    { "name": "Ripple crest", "hex": "#2c4a6e", "role": "Thin bright crests of sand ripples" },
-    { "name": "Silt", "hex": "#09091b", "role": "Violet-black silt basins" },
-    { "name": "Silt light", "hex": "#1a1838", "role": "Mottling inside silt basins" },
-    { "name": "Rock", "hex": "#060a13", "role": "Rock shelf crevices and step shadows" },
-    { "name": "Rock top", "hex": "#1f2f48", "role": "Lit faces of rock terraces" },
-    { "name": "Rock rim", "hex": "#547aa6", "role": "Lit upper lips of rock shelves" },
-    { "name": "Cyan", "hex": "#59e8ff", "role": "Main glow colour: lantern fish photophores, diver seams, sponges, projectile, sonar UI" },
-    { "name": "Teal", "hex": "#34f0c8", "role": "Kelp bulbs, microbial mats, small collectible, title glow" },
-    { "name": "Aqua white", "hex": "#c4fdff", "role": "Hot cores of cyan lights, flashes, highlights" },
-    { "name": "Violet", "hex": "#9d7dff", "role": "Anglerfish rim and lateral dots, vents, brine pool rim, large collectible" },
-    { "name": "Pink", "hex": "#ff6fd2", "role": "Jellyfish, coral polyps, sea stars, UI bar fill" },
-    { "name": "Rose", "hex": "#ff7fae", "role": "Tube-worm plumes, fan coral polyps" },
-    { "name": "Mint", "hex": "#8dffe0", "role": "Anglerfish lure and eye" },
-    { "name": "Lamp", "hex": "#fff1c8", "role": "Helmet lamp lens – the only warm light" },
-    { "name": "Lamp glow", "hex": "#ffc46b", "role": "Lamp halo, lamp floor pool, belt buckle light" },
-    { "name": "Suit", "hex": "#1f4d6e", "role": "Diving suit body" },
-    { "name": "Suit dark", "hex": "#112e46", "role": "Far limbs, suit shadow side" },
-    { "name": "Bone", "hex": "#7d90a0", "role": "Whale bones, tube-worm tubes (dim, cold)" }
+    {
+      "name": "Abyss",
+      "hex": "#040b18",
+      "role": "Background and fallback ground colour, fog base"
+    },
+    {
+      "name": "Sand",
+      "hex": "#07101f",
+      "role": "Dark sand, the darkest ground (~45 % of the floor)"
+    },
+    {
+      "name": "Sand light",
+      "hex": "#162842",
+      "role": "Lighter sand patches"
+    },
+    {
+      "name": "Ripple crest",
+      "hex": "#2c4a6e",
+      "role": "Thin bright crests of sand ripples"
+    },
+    {
+      "name": "Silt",
+      "hex": "#09091b",
+      "role": "Violet-black silt basins"
+    },
+    {
+      "name": "Silt light",
+      "hex": "#1a1838",
+      "role": "Mottling inside silt basins"
+    },
+    {
+      "name": "Rock",
+      "hex": "#060a13",
+      "role": "Rock shelf crevices and step shadows"
+    },
+    {
+      "name": "Rock top",
+      "hex": "#1f2f48",
+      "role": "Lit faces of rock terraces"
+    },
+    {
+      "name": "Rock rim",
+      "hex": "#547aa6",
+      "role": "Lit upper lips of rock shelves"
+    },
+    {
+      "name": "Cyan",
+      "hex": "#59e8ff",
+      "role": "Main glow colour: lantern fish photophores, diver seams, sponges, projectile, sonar UI"
+    },
+    {
+      "name": "Teal",
+      "hex": "#34f0c8",
+      "role": "Kelp bulbs, microbial mats, small collectible, title glow"
+    },
+    {
+      "name": "Aqua white",
+      "hex": "#c4fdff",
+      "role": "Hot cores of cyan lights, flashes, highlights"
+    },
+    {
+      "name": "Violet",
+      "hex": "#9d7dff",
+      "role": "Anglerfish rim and lateral dots, vents, brine pool rim, large collectible"
+    },
+    {
+      "name": "Pink",
+      "hex": "#ff6fd2",
+      "role": "Jellyfish, coral polyps, sea stars, UI bar fill"
+    },
+    {
+      "name": "Rose",
+      "hex": "#ff7fae",
+      "role": "Tube-worm plumes, fan coral polyps"
+    },
+    {
+      "name": "Mint",
+      "hex": "#8dffe0",
+      "role": "Anglerfish lure and eye"
+    },
+    {
+      "name": "Lamp",
+      "hex": "#fff1c8",
+      "role": "Helmet lamp lens – the only warm light"
+    },
+    {
+      "name": "Lamp glow",
+      "hex": "#ffc46b",
+      "role": "Lamp halo, lamp floor pool, belt buckle light"
+    },
+    {
+      "name": "Suit",
+      "hex": "#1f4d6e",
+      "role": "Diving suit body"
+    },
+    {
+      "name": "Suit dark",
+      "hex": "#112e46",
+      "role": "Far limbs, suit shadow side"
+    },
+    {
+      "name": "Bone",
+      "hex": "#7d90a0",
+      "role": "Whale bones, tube-worm tubes (dim, cold)"
+    }
   ],
   "paletteRules": [
     "The scene is ~85 % near-black navy (#040b18 to #1f2f48); glow colours cover only a few percent of the pixels but carry all the contrast.",
@@ -52,21 +162,54 @@
     "One warm colour only: the helmet lamp (#fff1c8 / #ffc46b). Nothing else in the world is warm, so the main character is always found by its lamp.",
     "Every creature type owns one glow colour: small jelly pink, fast fish cyan, large anglerfish violet + mint lure. Props reuse the palette but never with the same intensity as creatures.",
     "Dark bodies are never pure black: they are navy or violet-black with a cold rim light, so they read as shapes against the floor.",
-    "No greens, oranges, reds or greys as surface colours; no white surfaces except tiny highlights and teeth."
+    "No greens, oranges, reds or greys as surface colours; no white surfaces except tiny highlights and teeth.",
+    "Light ranking: the warm diver lamp and the diver halo are the brightest, clearest read; creature glow sits a step lower; props carry small clustered light spots; the open sand stays dark and quiet."
   ],
   "typography": [
-    { "family": "Exo 2", "weights": [600, 700, 800], "role": "Panel titles, the timer, counters, bar numbers, floating digits", "source": "Google Fonts", "sample": "12:30", "css": "font: 800 25px/1 'Exo 2', sans-serif; letter-spacing: 1px; color: #eafffb; text-shadow: 0 0 8px #34f0c8, 0 0 20px rgba(52,240,200,.55);" },
-    { "family": "Quantico", "weights": [400, 700], "role": "Spaced instrument labels and card titles (uppercase)", "source": "Google Fonts", "sample": "SECOND CARD", "css": "font: 700 15px 'Quantico', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; color: #e6fffb; text-shadow: 0 0 8px rgba(52,240,200,.6);" },
-    { "family": "Comfortaa", "weights": [400, 600, 700], "role": "Body copy, card descriptions, caption bar", "source": "Google Fonts", "sample": "Body copy in the card font", "css": "font: 600 14px/1.45 'Comfortaa', sans-serif; color: #9fdcf0;" }
+    {
+      "family": "Exo 2",
+      "weights": [
+        600,
+        700,
+        800
+      ],
+      "role": "Panel titles, the timer, counters, bar numbers, floating digits",
+      "source": "Google Fonts",
+      "sample": "12:30",
+      "css": "font: 800 25px/1 'Exo 2', sans-serif; letter-spacing: 1px; color: #eafffb; text-shadow: 0 0 8px #34f0c8, 0 0 20px rgba(52,240,200,.55);"
+    },
+    {
+      "family": "Quantico",
+      "weights": [
+        400,
+        700
+      ],
+      "role": "Spaced instrument labels and card titles (uppercase)",
+      "source": "Google Fonts",
+      "sample": "SECOND CARD",
+      "css": "font: 700 15px 'Quantico', sans-serif; text-transform: uppercase; letter-spacing: 1.5px; color: #e6fffb; text-shadow: 0 0 8px rgba(52,240,200,.6);"
+    },
+    {
+      "family": "Comfortaa",
+      "weights": [
+        400,
+        600,
+        700
+      ],
+      "role": "Body copy, card descriptions, caption bar",
+      "source": "Google Fonts",
+      "sample": "Body copy in the card font",
+      "css": "font: 600 14px/1.45 'Comfortaa', sans-serif; color: #9fdcf0;"
+    }
   ],
   "world": {
     "summary": "An abyssal sea floor at night, built per pixel from smooth noise fields and topped with vector decals: dark navy sand with patchy ripples, violet-black silt basins, terraced rock shelves with lit lips, glowing microbial mats, worm trails, burrows, pebbles, shells, sea stars and brine pools with a glowing rim.",
     "layers": [
       "Fields on a 4-unit grid (bilinear per pixel): rock (fbm 330 u, domain-warped), silt (fbm 640 u), ripple warp and ripple direction (fbm 170 / 900 u), macro light (fbm 210 u), ripple patches (fbm 150 u); noise detail from one 256 px tileable fbm tile sampled at 2 and 0.5 texels per unit.",
-      "Sand: #07101f → #162842 by macro light and grain; ripples sin((x·cos a + y·sin a)·0.66 + warp) (wavelength ≈ 9.5 u) only inside ripple patches – bright crests towards #2c4a6e at up to 50 %, troughs darkened by up to 26 %.",
+      "Sand: #07101f → #162842 by macro light and grain; ripples sin((x·cos a + y·sin a)·0.66 + warp) (wavelength ≈ 9.5 u) only inside ripple patches – bright crests towards #2c4a6e at up to 50 %, troughs darkened by up to 26 %. Ripple patches only where a 150 u fbm exceeds 0.53–0.7, crests at 32 % and troughs at 18 % strength – a quiet texture, not stamped stripes.",
       "Silt basins where the silt field < 0.43 (fully at 0.36): #09091b → #1a1838 mottling, ripples reduced to 20 %.",
       "Rock shelves where the rock field > 0.6: 24 terraces per field unit; inside a step the tone ramps #060a13 → #1f2f48, the first 16 % after a step is the lip, brightened by the top-left light (dot of the field gradient with (0.45, 0.85)), the last 7 % is a dark crevice, the outer edge gets a #547aa6 rim; a 0.035 band outside the shelf is darkened by up to 60 % as contact shadow.",
-      "Decals: worm and sea-cucumber trails (dotted double lines, 14–26 steps of 3.2 u), pebbles (0.6–1.5 u), burrows with a raised rim and sometimes a teal glowing tip, shells, brittle stars and sea stars in pink/violet with a soft pool, microbial mats (13–28 u wide teal/cyan/violet pools with 30–70 glowing dots), 0.16–0.38 u plankton specks, barnacle glints on rock lips.",
+      "Decals, all clustered: worm and sea-cucumber trails (dotted double lines, 14–26 steps of 3.2 u); pebbles, shells and burrows only in scattered beds (chance 4–54 % from a 120 u cluster noise, 15 % of burrows with a teal glowing tip); brittle and sea stars only along rock lips and around the microbial mats; glowing microbial mats (soft pool + 30–70 clustered dots); plankton specks only inside the mats; barnacle glints on rock lips.",
       "Brine pools (one chance per 560-unit cell): an organic blob (r 34–60 u, two sine harmonics, 0.62 high) with a dark crust, 140 mussels on the shore, a near-black gradient surface with faint concentric ripples and a violet-cyan rim drawn as three additive strokes (7 / 3 / 0.6 u at 5 / 12 / 55 %).",
       "At runtime only: short light pulses on the floor – about 45 % of 46-unit cells flash once every 2.6–6.6 s in one of the four glow colours."
     ]
@@ -77,10 +220,11 @@
       "Bodies stay dark (navy, violet-black, translucent pink); glow lives only in a few emissive features per creature – rim dots, photophores, teeth, eye, lure, seams.",
       "Silhouette tells the type: dome + tentacles, slim horizontal fish, huge round body with jaws. Colour confirms it: pink, cyan, violet + mint.",
       "Every creature has a matching light pool on the sand below it (2.3 / 2.6 / 1.9 × its radius, alpha 0.3 / 0.22 / 0.18), baked into its sprite; the anglerfish adds a live mint pool under its swaying lure.",
-      "Creatures hover: jelly bob 1.6 u at 1.4 rad/s, fish 0.9 u at 3.1 rad/s, anglerfish 1.4 u at 0.9 rad/s – nothing stands on the ground except the diver.",
-      "The diver is the only warm light. Its halo stays a separate additive layer (alpha 1.1) so it always blooms over neighbours; creatures have their halo pre-composited into one sprite.",
+      "Creatures hover with buoyancy: a quick lift (40 % of the period) and a slow sink, per-actor phase – jelly 1.6 u at 1.4 rad/s, fish 0.9 u at 3.1 rad/s, anglerfish 1.4 u at 0.9 rad/s; nothing stands on the ground except the diver.",
+      "The diver is the only warm light and the clearest read: its halo stays a separate additive layer (alpha 1.3) so it always blooms over neighbours; creature halos are pre-composited and baked lower (jellyfish glowA 0.85, lantern fish 0.95).",
       "Facing is a mirrored copy; flash and hurt states are tinted silhouettes (#e6fffb aqua-white, #ff5c9a pink) added on top, never a colour change of the body.",
-      "Spawning creatures emerge from the dark (alpha = t², glow at 1.8 t) inside a shrinking light ring; dissolving creatures rise 6 u, grow 30 % and fade into a burst of plankton."
+      "Appearing creatures rise out of the dark (450 ms): a pressure ring tightens on the sand, the body rises 9 u and scales in from 82 % with a small overshoot, and its light switches on last. Dying creatures go dark (350 ms): a white flare and recoil squash, then the halo dies first, the body tips over (up to 0.9 rad) and sinks 7 u while its light leaves as rising motes.",
+      "Hit: an aqua-white silhouette flash plus a damped squash/stretch (15 %, ~250 ms) and a 1.6 u push in the knock-back direction."
     ]
   },
   "props": {
@@ -94,14 +238,38 @@
     ]
   },
   "effects": [
-    { "name": "Glowing projectile", "how": "A 2-unit white-to-cyan orb with its own halo, a 22-unit tapered cyan tail (blurred gradient wedge) that grows from 20 % to full length in 0.1 s, and three tiny aqua plankton sparks wobbling behind it – all additive." },
-    { "name": "Plankton burst", "how": "When a creature dissolves: 22 (large: 38) glowing motes in the creature's colours drift outwards with heavy water drag (3.2) and float slowly upwards (buoyancy −9), living 0.8–1.6 s; plus a 0.25 s core flash, 4–9 rising bubbles and a dark ink puff for the large creature." },
-    { "name": "Light rings", "how": "Additive ellipses drawn twice (3.6 × width at 22 % alpha, then the line itself): flat floor rings 0.42 high that expand with ease-out (impact, collect, dash, glow-up) and upright circles at body height for impacts." },
-    { "name": "Bubble streams", "how": "A baked bubble sprite (thin pale ring, soft inner glow, white highlight) that rises with buoyancy (−36), wobbles ±0.8 u and fades; streams from the diver's helmet every 1.3–2.6 s, along a dash, from vents and on bursts." },
-    { "name": "Collectibles", "how": "Small: a teal-white plankton orb (core r 1.55 + ring r 2.7) bobbing 0.9 u, 4.5 u above a small teal pool. Large: a 3.3-unit pearl with a white-violet gradient, softer halo and a rotating four-point glint." },
-    { "name": "Orbiting moon jelly", "how": "A tiny aqua-white jellyfish (bell 3.4–4.2 u, four-leaf gonads, six tentacles, 4 pulse frames) circling the main character 10 u above the floor, trailing a fading arc of seven segments and a small cyan floor pool." },
-    { "name": "Impact spark", "how": "Six short-lived motes (aqua-white + creature colour) bursting from the hit point, a 0.14 s aqua flash and a small upright ring; the body itself is overlaid with its aqua-white silhouette at up to 75 % for ~0.15 s." },
-    { "name": "Glow-up", "how": "A teal light column (20 × 98 u gradient), three rising ellipse rings, 24 motes floating up in the four glow colours, 12 bubbles and two wide floor rings in teal and violet." }
+    {
+      "name": "Glowing projectile",
+      "how": "A 2-unit white-to-cyan orb with its own halo, a 22-unit tapered cyan tail (blurred gradient wedge) that grows from 20 % to full length in 0.1 s, and three tiny aqua plankton sparks wobbling behind it – all additive."
+    },
+    {
+      "name": "Plankton burst",
+      "how": "When a creature dissolves: 16 (large: 30) glowing motes in the creature's colours drift outwards with heavy water drag (3.2) and float slowly upwards (buoyancy −9), living 0.8–1.6 s; plus a 0.25 s core flash, 4–9 rising bubbles and a dark ink puff for the large creature. The body meanwhile goes dark: a short white flare, the halo dies, the creature tips over and sinks."
+    },
+    {
+      "name": "Light rings",
+      "how": "Additive ellipses drawn twice (3.6 × width at 22 % alpha, then the line itself): flat floor rings 0.42 high that expand with ease-out (impact, collect, dash, glow-up) and upright circles at body height for impacts."
+    },
+    {
+      "name": "Bubble streams",
+      "how": "A baked bubble sprite (thin pale ring, soft inner glow, white highlight) that rises with buoyancy (−36), wobbles ±0.8 u and fades; streams from the diver's helmet every 1.3–2.6 s, along a dash, from vents and on bursts."
+    },
+    {
+      "name": "Collectibles",
+      "how": "Small: a teal-white plankton orb (core r 1.55 + ring r 2.7) bobbing 0.9 u, 4.5 u above a small teal pool. Large: a 3.3-unit pearl with a white-violet gradient, softer halo and a rotating four-point glint."
+    },
+    {
+      "name": "Orbiting moon jelly",
+      "how": "A tiny aqua-white jellyfish (bell 3.4–4.2 u, four-leaf gonads, six tentacles, 4 pulse frames) circling the main character 10 u above the floor, trailing a fading arc of seven segments and a small cyan floor pool."
+    },
+    {
+      "name": "Impact spark",
+      "how": "Six short-lived motes (aqua-white + creature colour) bursting from the hit point, a 0.14 s aqua flash and a small upright ring; the body itself is overlaid with its aqua-white silhouette at up to 75 % for ~0.15 s."
+    },
+    {
+      "name": "Glow-up",
+      "how": "A teal light column (20 × 98 u gradient), three rising ellipse rings, 24 motes floating up in the four glow colours, 12 bubbles and two wide floor rings in teal and violet."
+    }
   ],
   "atmosphere": {
     "summary": "Underwater depth instead of sky: soft light shafts and two layers of drifting caustics from far above, marine snow in three parallax depths (including big out-of-focus specks), coloured light pools instead of shadows, and a blue depth fog that darkens and swallows the frame edges.",
@@ -121,11 +289,12 @@
   },
   "motion": [
     "Everything drifts slowly – water has drag: particles use drag 2.6–3.2 and float upwards (negative gravity) instead of falling.",
-    "Main character: 8-frame walk with flippers kicking ±3.1 u, body bob 0.9 u, arms swinging ±0.75 rad; idle floats 0.7 u at 2.1 rad/s; dash tilts the figure 0.62 rad forward into a swimming pose with three halo afterimages 8 u apart; exhaled bubble clusters of 3–5 rise from the helmet valve every 1.3–2.6 s.",
-    "Jellyfish: 8 pulse frames at ~0.85 cycles/s – the bell narrows from 8.5 to 6.2 u, rises 1.4 u and the tentacles stretch; lantern fish: 6 tail frames at 2.4 cycles/s with a two-step speed streak; anglerfish: 8 frames of jaw opening and fin flaps, lure swaying ±1.6 u and pulsing.",
+    "Main character: 8-frame walk with flippers kicking ±3.1 u, the body lowest just after each contact (0.8·sin 2a), arms swinging ±0.75 rad; idle = 8 poses over 3.6 s with arms drifting up and down (±0.24 rad, the near arm 0.9 rad behind), flippers paddling ±0.16 rad and the body rising on a buoyant curve (quick lift, slow sink, 1.1 u); dash tilts the figure 0.62 rad into a swimming pose with three halo afterimages 8 u apart; exhaled bubble clusters of 3–5 rise from the helmet valve every 1.3–2.6 s.",
+    "Jellyfish: 8 pulse frames at ~0.85 cycles/s – the bell narrows from 8.5 to 6.2 u, rises 1.4 u and the tentacles stretch; lantern fish: 8 tail frames at 2.1–2.8 cycles/s per actor with a two-step speed streak; anglerfish: 8 frames of jaw opening and fin flaps, lure swaying ±1.6 u and pulsing.",
     "Lights breathe instead of blinking: floor pulses rise and fall in 30 % of their 2.6–6.6 s period, polyp and plume spots pulse at 1.6 rad/s, the lamp flickers ±8 %.",
     "Kelp bends through 8 baked frames over ~7.7 s; the two caustic layers drift at 2.8 and 2.8 u/s in different directions; marine snow sinks 3–7.5 u/s.",
-    "The sonar sweep rotates once every 4.5 s, its blips pulse every 2.2 s, bubbles drift through the top bar fill every 3 s."
+    "The sonar sweep rotates once every 4.5 s, its blips pulse every 2.2 s, bubbles drift through the top bar fill every 3 s.",
+    "Appear (rise from the dark, 450 ms), hit (damped squash ~250 ms) and death (lights out: flare, halo dies, tip over and sink, 350 ms) are designed sequences; their light motes keep drifting upwards for up to 1.6 s."
   ],
   "do": [
     "Keep 85 % of the image near-black navy and let a few small, bright, living lights carry the picture.",
@@ -145,5 +314,5 @@
     "Don't make creatures fully transparent ghosts: their bodies need enough opacity and a rim to read on the dark floor.",
     "Don't fill the water with too many bright particles; marine snow is faint (alpha 0.1–0.55) and tiny."
   ],
-  "performance": "Baked once in init (~0.4 s): main character 8 walk + idle + dash, jellyfish 8, lantern fish 6, anglerfish 8 frames (each a body pass, an emissive pass, two blurs, flash and hurt tints and mirrored copies; creature halos pre-composited), collectibles, projectile head and tail, 4 moon-jelly frames, 24 kelp bend frames and 13 other prop sprites, glow sprites per colour, one caustic tile. Ground: generator chunks of 256 units (~60–100 ms each, split into ~57 steps of at most a few ms): one field grid, one per-pixel pass with lazily interpolated channels, decal passes and brine pools. Per frame: one drawImage per prop, creature and collectible (halos AND floor light pools are pre-composited and sprites are cropped to their visible pixels), a small pulse glow for anemones, tube worms and vents, ~140 snow sprites, one half-resolution compose (copy of the static fog + shaft base, two translation-only caustic fills) and a single nearest-neighbour full-screen blit. The fill rate of full-screen layers is the main cost to watch: in the benchmark the frame cost is on par with the neon style."
+  "performance": "Baked once in init (~0.4 s): main character 8 walk + 8 idle + dash, jellyfish 8, lantern fish 8, anglerfish 8 frames (each a body pass, an emissive pass, two blurs, flash and hurt tints and mirrored copies; creature halos pre-composited), collectibles, projectile head and tail, 4 moon-jelly frames, 24 kelp bend frames and 13 other prop sprites, glow sprites per colour, one caustic tile. Ground: generator chunks of 256 units (~60–100 ms each, split into ~57 steps of at most a few ms): one field grid, one per-pixel pass with lazily interpolated channels, decal passes and brine pools. Per frame: one drawImage per prop, creature and collectible (halos AND floor light pools are pre-composited and sprites are cropped to their visible pixels), a small pulse glow for anemones, tube worms and vents, ~140 snow sprites, one half-resolution compose (copy of the static fog + shaft base, two translation-only caustic fills) and a single nearest-neighbour full-screen blit. The fill rate of full-screen layers is the main cost to watch: death and appear sequences add one transform per dying or appearing creature only. Measured against the previous version in the same session: play frame x0.89, chunk build x1.02; the dense stage is within noise (A/B median x1.36 from widely spread runs, a per-hook profile of the same scene shows the frame 20 % cheaper because death bursts emit fewer motes)."
 }

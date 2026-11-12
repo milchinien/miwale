@@ -43,10 +43,10 @@ The look of an early sound cartoon, rebuilt from code. Every figure is a round, 
 | Shoe | `#d9d1c1` | Big shoes; shade `#a59d8e` |
 | Sheet | `#f4efe4` | Ghost sheet; shade `#cbc3b3` |
 | Ground Base | `#cfc8b9` | Base wash (~45 % of the screen) |
-| Meadow Wash | `#b2aa9a` | Meadow regions, lighter rim `#bfb8a9` |
-| Hummock Wash | `#928a7c` | Dark rolling hills, rim `#a39b8c`, inner contour ring |
-| Path | `#e4ddcd` | Winding paths, rim `#d6cebe` |
-| Pond | `#565047` | Ponds, rim `#726b60`, paper ripples |
+| Meadow Wash | `#bdb6a6` | Soft meadow regions, lighter rim `#c6bfb0`, thin 0.42 contour |
+| Hill Wash | `#968e7f` | Rolling hills, rim `#aaa293`, inner contour ring, hatch on the shade side |
+| Road | `#e5dece` | The winding road (constant ~21 u), rim `#d6cebe`, pebbled shoulders |
+| Pond | `#4e4840` | Ponds, rim `#6e675c`, shore ring, paper ripples, cattails |
 | Sepia Grade | `#978c7b` | `color` blend at 74 % — only over foreign colours |
 | Gate Black | `#0c0a08` | Vignette, gate corners, dark dust and scratches |
 | Title Card | `#17130f` | UI panels and cards |
@@ -56,7 +56,7 @@ The look of an early sound cartoon, rebuilt from code. Every figure is a round, 
 - No hue anywhere. The faint warmth (silver-sepia) is built into the greys themselves.
 - Read by **value**: black bodies + pale face masks + white gloves + light shoes on a light-mid ground.
 - The brightest whites are reserved for small focal shapes: gloves, eyes, buttons, petals, collectibles.
-- Dark ground regions (hummocks, ponds) stay small and rare, so ink figures never sink into them.
+- Dark ground regions (hills, ponds) stay small and rare, so ink figures never sink into them.
 - Exactly one grey crescent per part; black parts stay flat black with a thin white rim arc.
 - When elements of other styles are shown under the film, a `color` blend of `#978c7b` at 74 % desaturates them to match.
 
@@ -97,90 +97,125 @@ Limbs (`hose`) are stroked quadratic curves that take part in both passes (outli
 
 ## World and ground
 
-A flat, painted studio background seen from above. Noise fields are sampled on a 4-unit grid per 256-unit chunk. Each pixel gets a signed distance `value / |gradient|` to every region edge. That gives three things:
+A flat, painted studio background seen from above, laid out like a cartoon backdrop: a winding road, rolling hills, ponds and small villages, with calm open meadow in between. Noise and cell fields are sampled on a 4-unit grid per 256-unit chunk. Each pixel gets a signed distance `value / |gradient|` to every region edge. That gives three things:
 - a crisp anti-aliased edge,
-- a lighter **inner rim band** (2.4–2.8 units), so regions read as gently raised,
-- a centred **ink contour** 0.8 units wide at 92 % opacity.
+- a lighter **inner rim band** (1.8–3.4 units), so regions read as gently raised,
+- a centred **ink contour** 0.8 units wide, weighted by layer (line hierarchy: a soft 0.42 for meadow washes, full ink for hills, road and ponds).
 
-Dark hummocks get a second, fainter ring 5.5 units inside (ponds at 4 units). That turns them into rolling hills.
-
-| Layer (bottom → top) | Fill | Rim | Extra |
+| Layer (bottom → top) | Fill | Rim | Shape |
 | --- | --- | --- | --- |
 | Base wash | `#cfc8b9` | — | ±4 % brightness tint, period ~1400 u |
-| Meadow wash | `#b2aa9a` | `#bfb8a9`, 2.4 u | noise period ~440 u |
-| Dark hummocks | `#928a7c` | `#a39b8c`, 2.8 u | inner ring at 5.5 u, alpha 0.45 |
-| Winding path | `#e4ddcd` | `#d6cebe`, 1.6 u | zero-contour of 1600-u noise → even width |
-| Ponds | `#565047` | `#726b60`, 2.6 u | inner ring 4 u; kept away from paths |
+| Meadow wash | `#bdb6a6` | `#c6bfb0`, 3.0 u | warped low-frequency noise (~620 u); a soft, thin edge line |
+| Rolling hills | `#968e7f` | `#aaa293`, 3.4 u | one lobed oval per jittered 400-unit cell (55 % of cells), sometimes a second ridge lobe; inner contour ring 6 u inside |
+| The road | `#e5dece` | `#d6cebe`, 1.8 u | the zero line of a warped 1500-u noise divided by its gradient → a constant width of ~21 units, gently wavering |
+| Ponds | `#4e4840` | `#6e675c`, 3.0 u | lobed ovals on a 560-unit grid, cut back from the road and the hills; shore ring 4.2 u inside |
 
-**Decals** (jittered 11-unit grid, only where the material is uniform for 4.5 units):
-- base: three-stroke ink tufts (0.5 u lines), spiral curls, tiny ink-ringed white daisies, short dashes;
-- meadow: tufts, hatch clusters (3–5 parallel 0.4 u strokes), daisies;
-- hummocks: pale tufts, ink hatch, curls;
-- path: paper pebbles with an ink ring, faint dashes;
-- ponds: paper ripple arcs, slate lily pads with a notch.
+**Decals are placed by feature, not sprinkled.** All of them are baked into the chunk:
+1. *Hills:* parallel ink hatch strokes inside the lower-right rim (the shade side, with light from the upper left) and a pale shine arc on the upper-left rim.
+2. *Edges:* grass clumps where two regions meet. Each is one tall three-stroke tuft with smaller ones leaning off it along a shallow arc, never a straight row. Cattail reeds stand at the water's edge.
+3. *Road:* outlined paper pebbles lining both shoulders, a few faint wheel dashes inside.
+4. *Water:* paper ripple arcs following the shore ring, slate lily pads in little rafts.
+5. *Flower patches:* at most one per 150-unit cell, only on plain meadow. Small ink-ringed daisies sit around a centre, where a big smiling daisy prop may stand, plus a few tufts.
+6. *Open meadow:* only a handful of ink wind-curls, so large calm areas stay calm.
 
 ## Characters
 
-All figures face right and are mirrored for left. Size: the main character is ~20 units wide and ~36 tall. Shadows are solid ink ellipses at 36 % opacity.
+All figures face right and are mirrored for left. Size: the main character is ~20 units wide and ~36 tall. Shadows are solid ink ellipses at 36 % opacity. Every figure has its own animation phase (from its seed or position), so a crowd never moves in lock-step.
 
 **Main character — a jaunty ink cat-fellow.**
-- *Head:* black ellipse 7.1 × 6.7 with a thin white rim arc. Two pointed ears (roundPoly, radius 1.0); the front ear has a soot inner ear.
+- *Head:* black ellipse 7.1 × 6.7 with a thin white rim arc. Two pointed ears (roundPoly, radius 1.0); the front ear has a soot inner ear. The ears and the head tilt lag behind the body (follow-through).
 - *Face mask:* pale `#e6dece` with two lobes over the eyes and a snout that sticks out past the head outline.
-- *Face:* pie-cut eyes 1.05 × 1.95; an ink button nose with a white glint; a wide open grin with a slate tongue; a small cheek crease.
+- *Face:* pie-cut eyes 1.05 × 1.95; an ink button nose with a white glint; a wide open grin with a slate tongue; a small cheek crease. Expressions: normal, blink, "oops" (skid), hurt (X eyes, O mouth).
 - *Body:* black ellipse torso 4.0 × 4.7, a white bow tie with slate polka dots, slate shorts with two white buttons.
-- *Limbs:* ink hoses — arms 1.45, legs 1.75 — and a curly tail ending in a spiral.
+- *Limbs:* ink hoses (arms 1.45, legs 1.75) and a curly tail ending in a spiral, which swings a quarter cycle behind the body.
 - *Gloves:* white palm 2.05 × 1.85, a thumb, a rolled cuff and two ink stitch lines.
 - *Shoes:* pale ovals 3.75 × 2.1 with a toe-cap arc and a white shine.
-- *Poses:*
-  - walk: 8 frames;
-  - idle: hands on hips (the arms bow outward), toe tap;
-  - run: the body leans 0.24 and the legs become a **wheel** of ink motion arcs (4 outer, 3 inner) around a faint grey disc, with the shoes flung front and back;
+- *Baked poses (19 sprites, each normal + flash, both facings):*
+  - walk: 8 frames from a pose table. Foot x is `[6.2, 3.2, 0.2, −3.0, −6.0, −3.6, 1.0, 4.6]`, foot lift `[0, 0, 0, 0.5, 1.3, 3.4, 4.6, 2.4]`, shoe angle −0.38 … 0.52. The body bob for contact / down / passing / up is `0.3 / 1.3 / −0.7 / −1.9` (+ = lower). The far leg runs half a cycle behind. Each arm swings against the leg on its side **one frame late**, and the noodle bows behind the motion;
+  - idle: 4 beat poses (dip on the beat, rise, up + toe tap, settle) + 2 blink frames, with hands on hips and the arms bowing outward;
+  - run: the body leans 0.24 and the legs become a **wheel** of ink motion arcs around a faint grey disc, with ears and tail streaming back;
+  - skid: held for 0.16 s after every run. Heels are dug in, the body is thrown back (−0.17), the arms fly up behind and the face reads "oops";
   - recoil: arms flung up, legs splayed, X eyes, O mouth.
 
 **Small creature — a hopping imp.** About 13 wide, 17 tall (drawn at 1.12).
-- *Body:* round, 6.5 × 5.9, in three tones: ink, slate or paper.
-- *Head parts:* two curved horns (fog on ink bodies, ink on light ones) and a pale two-lobed face patch.
+- *Body:* round, 6.5 × 5.9, in three designed tones: ink (with pale horns and pale shoes), slate, and paper (both with ink horns and soot shoes).
+- *Head parts:* two curved horns and a pale two-lobed face patch.
 - *Face:* white eyes with pie-cut pupils and a toothy grin with two white fangs.
 - *Limbs and tail:* an arrow-tipped tail, tiny gloves and little shoes.
-- *Hop:* 6 frames; the body rises 3.2 units and the legs tuck in the air.
+- *Hop (6 frames):* 0 crouch (anticipation) · 1 take-off stretch · 2 rise · 3 apex · 4 fall stretch · 5 landing squash.
+  - Air height is `[0, 0.42, 0.86, 1, 0.62, 0.1] × 3.8 u`.
+  - Squash per frame is `[0.9, −0.8, −0.35, 0.05, −0.5, 0.6]` (+ squash, − stretch): width × (1 + 0.11·s), height × (1 − 0.13·s).
+  - The legs tuck in the air and the tail whips.
 
 **Fast creature — a sheet ghost.**
 - *Sheet:* white `#f4efe4` with a fog crescent, a wavy three-scallop hem and a curling tail.
 - *Face:* big pie-cut ink eyes, worried brows and an O mouth with a slate tongue.
 - *Arms:* two noodle arms (width 2.0–2.1) reaching forward, each with a small oval hand.
-- *Fade:* the bottom 9 units fade to 35 % opacity.
-- *Motion:* 6 wobble frames at 8 fps; it floats 4.5 units above its shadow.
+- *Fade:* the bottom 9 units fade to 35 % opacity. Its flash is **negative** (ink).
+- *Motion:* 6 wobble frames at 8 fps. It hovers 4.6 units up on an uneven two-partial bob that lingers near the top. It stretches while rising, squashes while sinking, and leans into its motion (up to 0.16 rad).
 
 **Large creature — the big bully.** About 46 wide, 60 tall.
-- *Body:* a barrel body in a **striped sweater** (paper/soot bands 3.1 units high, every 6.2), soot trousers with two buttons.
-- *Head:* a black head with a stubbled pale jaw, a heavy ink unibrow, small pie eyes, a big bulb nose and a scowl with an underbite tooth. A slate derby hat with a black band sits on top.
+- *Body:* a barrel body in a **striped sweater** (paper/soot bands 3.1 units high, every 6.2) over soot trousers with two buttons.
+- *Head:* a black head with a stubbled pale jaw, a heavy ink unibrow, small pie eyes, a big bulb nose and a scowl with an underbite tooth.
+- *Hat:* a slate derby with a black band, baked as a **separate sprite** and placed on the head top each frame, so it can lag:
+  - it jumps up to 2.6 units a little after every heavy landing and tips the other way;
+  - it jumps 7 units on a hit;
+  - it pops off and tumbles away on removal.
 - *Limbs:* thick ink hose arms (3.7–3.9) ending in huge gloved fists (glove scale 1.9–2.0); short thick legs in black boots with a white shine.
-- *Motion:* 4 stomp frames.
+- *Stomp (8 frames):* body bob `[1.8, 0.6, −0.9, 0.2]` twice, foot lift `[0, 2.3, 4.4, 2.0]` alternating legs, lean ±0.085, fists swinging opposite, plus a 3 % squash on the shared beat.
+
+**States (all creatures).**
+- *Hit (~120 ms):* a sharp squash that springs back through a stretch.
+  - The spring is `sp = e^(−11t)·cos(30t)`, applied as width × (1 + 0.8·A·sp) and height × (1 − A·sp), with A = 0.3 (0.2 for the bully).
+  - The body recoils, rotating up to 0.32 rad away from the blow.
+  - The flash sprite (white, or ink for ghosts) is laid on top at `min(0.9, flash·1.4)`.
+- *Removal (deathT 0 → 1, 0.35 s in motion):*
+  - Imps and the bully jolt up, stretched, in the flash colour (0–0.14). They slam down into a pancake (0.14–0.3), then spin shut like a coin under the poof (0.3–0.52).
+  - The bully's hat flies off on a parabola and tumbles.
+  - A pale copy of the creature (the soul) with a little halo rises 26 units (34 for the bully), sways and fades.
+  - Ghosts puff up in negative, then deflate and sink into an empty, crumpled sheet that fades.
+- *Spawn (spawnT 0 → 1, 0.45 s):*
+  - An ink puddle spreads first (until 0.18).
+  - The creature springs out of it stretched (height 0.1 → 1.3, up 4.5 u), lands in a squash and settles with a damped wobble `e^(−5u)·cos(9u)`.
+  - Ghosts instead unroll upward out of their puff: a thin streak first, then they fill out with an outBack overshoot.
 
 ## Props
 
-| Prop | Look |
-| --- | --- |
-| Curly tree | Wavy soot trunk (hose 3.3), cloud canopy of 6 ash circles with a slate crescent, 5 ink spiral curls, fog highlight arcs |
-| Swirled poplar | Tall slate flame shape with 4 ink chevron bands and a curl at the tip |
-| Bare curly tree | Soot trunk with four branches, each ending in a spiral curl |
-| Cottage | Paper walls slightly out of square, a soot roof with scalloped shingle rows, a slate chimney with three curly smoke puffs, windows like sleepy eyes (half-drawn slate shade), a door like a mouth |
-| Crooked house | Tall, leaning, with clapboard lines, a round attic window and a steep scalloped roof |
-| Picket fence | Five white pickets, each leaning differently, on two ash rails |
-| Daisy clump | Three smiling daisies (9 white petals, ink centre with two white eyes and a smile) on ink stems with slate leaves |
-| Hill mound | Low ash dome with a slate crescent, a fog highlight ridge, ink tufts along the top and a curl |
-| Street lamp | Ink post with curly scroll arms and a white lantern; a soft white radial glow flickers at 24 fps |
-| Barrel / crate | Slate barrel with ink hoops and ash staves; ash crate with an ink X brace |
-| Toadstools | Paper stems under soot caps with paper spots, two or three in a cluster |
+| Prop | Variants | Look |
+| --- | --- | --- |
+| Tree | 3 | Curly tree: wavy soot trunk (hose 3.3), cloud canopy of 6 ash circles with a slate crescent, 5 ink spiral curls, fog highlight arcs · swirled poplar: tall slate flame shape with 4 ink chevron bands and a curl at the tip · bare curly tree: soot trunk with four branches, each ending in a spiral curl |
+| House | 2 | Cottage: paper walls slightly out of square, a soot roof with scalloped shingle rows, a slate chimney, windows like sleepy eyes (half-drawn slate shade), a door like a mouth · crooked house: tall, leaning, clapboard lines, a round attic window and a steep scalloped roof |
+| Windmill | 1 | A tapering paper tower with a fog crescent and an ink door; four lattice sails as a separate sprite that turns |
+| Picket fence | 1 | Five white pickets, each leaning differently, on two ash rails |
+| Daisy clump | 1 | Three smiling daisies (9 white petals, an ink centre with two white eyes and a smile) on ink stems with slate leaves |
+| Cattails | 2 | Two or three slate blades and ink cattail heads, the tallest bending over |
+| Hill mound | 2 | Low ash dome with a slate crescent, a fog highlight ridge, ink tufts along the top and a curl |
+| Street lamp | 1 | Ink post with curly scroll arms and a white lantern; a soft white radial glow flickers at 24 fps |
+| Barrel / crate | 2 | Slate barrel with ink hoops and ash staves; ash crate with an ink X brace |
+| Toadstools | 2 | Paper stems under soot caps with paper spots, two or three in a cluster |
 
-**The dance.** All props share one beat at 120 bpm. With `q` as the squash pulse and `sway` as the alternating swing:
-- trees: skew `sway × 0.04–0.05`, squash 4 %;
-- daisies: skew 0.09, squash 7 %;
-- houses: skew 0.025, squash 5 %;
-- toadstools: squash 8 %;
-- fences: sway only.
+**Placement is composed**, never a uniform scatter:
+- **Hill groves:** 2–4 trees stand on an arc along the upper rim of most hills (78 %), sometimes with toadstools at their feet. About a third of the hills carry a windmill on the crest.
+- **Villages:** one per 520-unit cell at most (46 %), only on plain meadow. Each has 2 or 3 houses in a staggered row, picket fences at both ends (80 %), one lamp post, one barrel or crate, and trees framing the back corners.
+- **The road:** lamp posts stand on its shoulders. Fences follow its straight east–west runs, projected exactly onto a line 7–8 units outside the edge.
+- **Ponds:** cattails ring the shore, projected onto the shore line; a few stand back as bare reeds.
+- **Flower patches:** the big daisy clump stands at the centre of a decal flower patch.
+- A clear area of 95 units is kept around the starting point.
 
-The skew is anchored at the base (`setTransform(S·sx, 0, −skew·S·sy, S·sy, x, y)`).
+**The dance.** All props share one beat at 120 bpm (`q` = squash pulse, `sway` = alternating swing). Each prop type has its own response and its own **lag**, so tall things follow through after the beat. Each prop also swings with its own amplitude (0.8–1.2):
+
+| Prop | Sway (skew) | Squash | Lag |
+| --- | --- | --- | --- |
+| Tree | 0.045 | 4 % | 0.07 s |
+| House | 0.025 | 5 % | 0.03 s |
+| Windmill | 0.02 | 3.5 % | 0.05 s (sails turn 0.85 rad/s and kick on every beat) |
+| Daisies | 0.09 | 7 % | 0.02 s |
+| Cattails | 0.12 | 3 % | 0.10 s |
+| Lamp | 0.03 | 3 % | 0.06 s |
+| Toadstools | — | 8 % | 0.01 s |
+| Fence | 0.03 | — | — |
+
+The skew is anchored at the base (`setTransform(S·sx, 0, −skew·S·sy, S·sy, x, y)`). The cottage chimney sends three curly smoke puffs up in turn. Lamp glows and windmill sails ride along with the sway.
 
 ## Effects and particles
 
@@ -191,7 +226,8 @@ The skew is anchored at the base (`setTransform(S·sx, 0, −skew·S·sy, S·sy,
 - **Impact:** a jagged white **POW** burst with 11 spikes and a fog centre, scaling 0.5 → 1.25 → 0.35 over 0.16 s, plus a twinkle flying off.
 - **Poof:** a large central cloud puff and 5–9 smaller puffs bursting out and rising 7 units (white and fog, each with an inner ink spiral). Add 2–6 white stars bouncing with gravity and 3–7 ink drops.
 - **Large poof:** adds an ink + white ring (0.45 s) and 14 radiating ink rays.
-- **Spawn:** an ink puddle with five splatter dots and a paper glint spreads out (outBack), throws up ink drops, then dries away.
+- **Spawn:** an ink puddle with five splatter dots and a paper glint spreads out (outBack) and throws up ink drops. The creature springs out of it stretched, and the puddle dries away. Ghosts unroll out of a curly puff instead.
+- **Removal residue:** the poof covers the coin-spin; a pale **soul** copy of the creature with a small ink-ringed halo floats up, swaying, and fades. The bully's derby tumbles away on a parabola.
 - **Recoil:** a big POW, 4 stars and two white sweat drops.
 - **Glow-up:** ring + rays, 8 notes floating up with a sway (1.1–1.5 s), 6 stars.
 - **Run:** 3 grey dust puffs, 4 ink zip dashes, and live speed lines behind the figure.
@@ -234,21 +270,23 @@ Light inside the scene is implied from the top-left (shines top-left, crescents 
 
 ## Motion and animation
 
-- **The beat:** `b = time × 2`; `q = max(0, cos(frac(b)·π))^6 + max(0, −cos(frac(b)·π))^6` (sharp pulse on each beat); `sway = cos(b·π)`.
+- **The beat:** `b = time × 2`; `q = max(0, cos(frac(b)·π))^6 + max(0, −cos(frac(b)·π))^6` (a sharp pulse on each beat); `sway = cos(b·π)`. Props sample it with their own lag, so the dance ripples instead of snapping.
+- **Per-actor phases:** creatures offset their cycles by their seed, and the main character's blink by its position. No two figures hop, bob or blink together.
 - **Walk:**
-  - `cycle = anim × 0.2`, 8 frames;
-  - the body is highest (−1.8 u) at passing;
-  - the lifted foot rises 3 u and bows its leg forward (bend −1.1 to −3.7), the planted leg bows back 1.0;
-  - arms swing ±4.4 u opposite the legs with bend `2.4·cos(phase)`;
-  - contact squash at draw time: sx 1.06, sy 0.93;
-  - a dust puff at about 70 % of steps.
-- **Idle:** toe tap on odd beats (front shoe rotated −0.42), squash 3.5 % on every beat.
-- **Imps:** hop through 6 frames at `anim × 0.55`, contact squash sx 1.10 / sy 0.88, rock ±0.08.
-- **Ghosts:** bob ±1.8 at 2.6 rad/s, breathe ±5 %, lean into horizontal speed (up to 0.14 rad).
-- **Bully:** stomps through 4 frames at `anim × 0.3`, contact squash 7–8 %, plus the beat pulse.
-- **Hit:** squash sx +22 % / sy −18 % and overlay the flash sprite at `min(0.9, flash·1.4)`.
-- **Spawn:** elastic stretch out of the puddle (`outElastic`, sx compensates 0.7–1.6).
-- **Removal:** stretch up to 0.7 × 1.4 in the flash colour over 0.09 s, then snap flat (1.6 × 0) by 0.19 s.
+  - `cycle = anim × 0.2`, 8 drawn frames (contact, down, passing, up — twice);
+  - body bob `0.3 / 1.3 / −0.7 / −1.9` per quarter, with an extra squash on the two down frames (sx 1.035 / sy 0.955) and a stretch on the up frames (sx 0.98 / sy 1.03);
+  - the lifted foot rises up to 4.6 u and bows its leg forward;
+  - the arms swing against the legs one frame late, and the hoses bow behind the motion (overlapping action);
+  - ears and head tilt run on a double-frequency sine, the tail a quarter cycle behind;
+  - a dust puff on 45 % of steps.
+- **Idle:** four poses locked to the beat (dip, rise, toe tap, settle), a 2.2 % sway, a blink every ~3.3 s on its own phase.
+- **Run → skid:** two run frames alternating 22 times a second under a 16 % stretch, then 0.16 s of skid that eases out of a 12 % squash.
+- **Imps:** 6-frame hop at `anim × 0.55 + seed` (crouch → stretch → apex → stretch → squash), rock ±0.07 rad.
+- **Ghosts:** 6 wobble frames at 8 fps; an uneven hover `sin(t)·1.5 + sin(2t + 1.1)·0.55` at 2.6 rad/s that stretches 5 % while rising; lean up to 0.16 rad.
+- **Bully:** 8-frame stomp at `anim × 0.3 + seed`, 3 % squash on the beat; the hat lags each landing by about 0.16 of a cycle.
+- **Hit:** a damped spring, `e^(−11t)·cos(30t)` (squash → stretch → settle in ~120 ms), a recoil tilt away from the blow and a flash overlay.
+- **Spawn:** puddle first, then a stretched spring out of it, a squash landing and a damped wobble; ghosts unroll upward with an outBack overshoot.
+- **Removal:** jolt (stretch, flash colour) → pancake slam → coin-spin shut; the soul with a halo floats up; the bully's hat tumbles off; ghosts deflate into an empty sheet.
 - **Glow-up:** bounce `sy 1 + 0.2·sin(4π·t)·t` with a 5-unit lift.
 - **Floating numbers:** start tall (sy 1.6), overshoot wide (sx 1.4), settle, then shrink 70 % and fade.
 - **Film:** always 24 fps, whatever the frame rate.
@@ -279,10 +317,10 @@ Light inside the scene is implied from the top-left (shines top-left, crescents 
 1. **Palette first:** ink, 4 warm greys, 2 whites, plus face/shoe/sheet tones. Nothing else.
 2. **Painter:** write the two-pass part painter (`part` for closed shapes, `hose` for limbs, `detail` for faces). One outline weight (1.0 u), one crescent per part.
 3. **Signature parts:** `pieEye`, `glove`, `shoe`, `hosePath(x1, y1, x2, y2, bend)`.
-4. **Main character:** a pose function returning bob, lean, limb end points and bends per frame. Bake 8 walk + 2 idle + 2 run + 1 recoil frames, each normal + flash, mirrored.
-5. **Creatures:** imp (6 hop frames × 3 tones), ghost (6 wobble frames, negative flash, bottom fade), bully (4 stomp frames).
+4. **Main character:** a pose function that reads pose tables (foot x, lift, angle, bob per frame) and returns limb end points and bends. Arms take the leg phase one frame late. Bake 8 walk + 6 idle (4 beat poses, 2 blinks) + 2 run + 1 skid + 1 recoil frames, each normal + flash, mirrored.
+5. **Creatures:** imp (6 hop frames from an air + squash table, × 3 tones), ghost (6 wobble frames, negative flash, bottom fade), bully (8 stomp frames + a separate hat sprite with a per-frame anchor). Give every actor its own phase.
 6. **Props:** the same painter; draw them with a base-anchored skew + scale from the shared beat.
-7. **Ground:** noise fields → signed distance → fill, lighter rim, centred ink contour, inner contour ring for hills → ink decals.
+7. **Ground:** cell-based hills and ponds + a constant-width road + soft meadow washes → signed distance → fill, lighter rim, weighted ink contour, inner ring → feature-placed ink decals (edge clumps, shoulder pebbles, shore ripples, flower patches). Then place props as groves, villages, road furniture and shore reeds.
 8. **Effects:** notes, coin, diamond, bird, POW, puffs with spirals, stars, ink drops; give each a pop / fade curve.
 9. **Film:** bake 3 film-layer variants per screen size and blit one per frame with a tick-hashed offset. Then dust, scratches and a cue mark. Grade only foreign colours.
 10. **UI:** an ornamental SVG `border-image` for all panels, a film-strip bar, Limelight / Rye / Special Elite.
@@ -319,7 +357,7 @@ Painter.prototype.hose = function (x1, y1, x2, y2, bend, w, col) {      // a lim
 function paint(ctx, fn) { ctx.lineCap = ctx.lineJoin = 'round'; fn(new Painter(ctx, 'outline')); fn(new Painter(ctx, 'fill')); }
 ```
 
-**Pie-cut eye and the walk pose**
+**Pie-cut eye, the walk and hop tables, the hit spring**
 
 ```js
 function pieEye(c, x, y, rx, ry, faceColour) {
@@ -329,14 +367,22 @@ function pieEye(c, x, y, rx, ry, faceColour) {
   c.beginPath(); c.moveTo(rx * 0.15, -ry * 0.12); c.lineTo(rx * 1.4, -ry * 1.05); c.lineTo(rx * 1.4, -ry * 0.25); c.fill();
   c.restore();
 }
+// The walk is a pose TABLE (contact, down, passing, up – twice), not a sine: held, readable poses.
+const WALK = { x: [6.2, 3.2, 0.2, -3.0, -6.0, -3.6, 1.0, 4.6], l: [0, 0, 0, 0.5, 1.3, 3.4, 4.6, 2.4],
+  a: [-0.38, -0.05, 0, 0.22, 0.52, 0.35, 0.05, -0.25], bob: [0.3, 1.3, -0.7, -1.9] };  // bob: + = lower
 function walkPose(f) {                                                    // f = 0..7
-  const ph = (f / 8) * Math.PI * 2, s = Math.sin(ph), cc = Math.cos(ph);
-  const up = Math.max(0, cc), upB = Math.max(0, -cc);
-  const bob = -1.8 * (1 - Math.abs(s));                                   // two bounces per cycle
-  const leg = (x, lift) => [x, -3 * lift, lift > 0.05 ? -(1.1 + 2.6 * lift) : 1.0];  // foot x, y, bend
-  return { bob, near: leg(1.5 + 4.7 * s, up), far: leg(-0.9 - 4.7 * s, upB),
-    nearHand: [2.6 - 4.4 * s, -9 + bob, 2.4 * cc], farHand: [-1.6 + 4.4 * s, -9.4 + bob, -2.4 * cc] };
+  const g = (f + 4) % 8, bob = WALK.bob[f % 4];                          // far leg half a cycle behind
+  const leg = (k, x0) => [x0 + WALK.x[k], -WALK.l[k], WALK.l[k] > 0.3 ? -(1.1 + 0.6 * WALK.l[k]) : 1.0, WALK.a[k]];
+  const arm = (k) => -WALK.x[(k + 7) % 8] / 6.2;                          // arms: the leg phase ONE FRAME LATE
+  const sN = arm(f), sF = arm(g);
+  return { bob, near: leg(f, 1.0), far: leg(g, -1.0),
+    nearHand: [3.2 + sN * 6.0, -9.2 + bob - sN * sN * 1.9], farHand: [-1.6 + sF * 5.0, -9.6 + bob - sF * sF * 1.6] };
 }
+// The imp hop: crouch (anticipation) → take-off stretch → rise → apex → fall stretch → landing squash.
+const IMP_AIR = [0, 0.42, 0.86, 1.0, 0.62, 0.1], IMP_SQ = [0.9, -0.8, -0.35, 0.05, -0.5, 0.6];
+const hopBody = (f) => ({ y: -7.8 - IMP_AIR[f] * 3.8, rx: 6.5 * (1 + 0.11 * IMP_SQ[f]), ry: 5.9 * (1 - 0.13 * IMP_SQ[f]) });
+// Hit: a damped spring – squash, stretch, settle in ~120 ms (t = seconds since the hit).
+const hitSpring = (t, A = 0.3) => { const sp = Math.exp(-11 * t) * Math.cos(30 * t); return { sx: 1 + 0.8 * A * sp, sy: 1 - A * sp }; };
 ```
 
 **The shared beat for dancing props**
@@ -347,8 +393,8 @@ function beat(time) {
   const q = Math.max(0, Math.cos(ph * Math.PI)) ** 6 + Math.max(0, -Math.cos(ph * Math.PI)) ** 6;
   return { q, sway: Math.cos(b * Math.PI) };
 }
-function drawDancing(ctx, sprite, x, y, S, amp, time) {                   // base-anchored skew + squash
-  const { q, sway } = beat(time), sx = 1 + amp * 0.7 * q, sy = 1 - amp * q;
+function drawDancing(ctx, sprite, x, y, S, amp, time, lag) {              // base-anchored skew + squash
+  const { q, sway } = beat(time - lag), sx = 1 + amp * 0.7 * q, sy = 1 - amp * q;   // lag 0.03–0.1 s: tall props follow through
   ctx.setTransform(S * sx, 0, -sway * amp * S * sy, S * sy, x * S, y * S);
   ctx.drawImage(sprite.canvas, -sprite.ax, -sprite.ay, sprite.w, sprite.h);
 }
@@ -389,7 +435,7 @@ function drawFilm(ctx, layers, W, H, g, time) {
 
 ## Performance notes
 
-- All sprites (~170 canvases including flash and mirrored copies) are baked once in init. Per frame it is only `drawImage` with transforms; the beat is computed once per frame.
+- All sprites (~190 canvases including flash and mirrored copies, the separate bully hat and the windmill sails) are baked once in init. Per frame it is only `drawImage` with transforms; the beat is computed once per frame (props re-sample it with their lag, which is a few multiplications).
 - Ground chunks are generators: the per-pixel distance work runs only in grid cells near an edge (others are block-filled); decals are baked into the chunk.
 - The film layer is baked per screen size (3 variants at grain resolution). Each frame costs **one** full-screen `drawImage`, plus a handful of strokes for dust and scratches.
 - The `color` grade is a full-screen blend. Skip it when only native elements are visible.
@@ -406,12 +452,16 @@ Use the Rubber Hose 1930s art style for my project:
   elbow-less rubber-hose limbs (one bowed curve per limb), puffy white four-finger gloves and big pale shoes.
 - One merged ink outline per figure (outline pass at 2x weight, then fills), one grey crescent per part,
   thin white rim shines on black parts.
-- 8-frame bouncy walk with two bounces per cycle; limbs bow like noodles; strong squash & stretch.
+- 8-frame bouncy walk (contact, down, passing, up x2) with arms one frame behind the legs; limbs bow like
+  noodles; hops with crouch anticipation, stretch and landing squash; a lagging hat, ears and tail.
+- Hits: a squash that springs back through a stretch (~120 ms) + flash; removals: jolt, pancake, coin-spin,
+  then a pale soul with a halo floats up. Spawns: an ink puddle, then a stretched spring out of it.
 - Everything idle dances on one shared 120 bpm beat: props squash on the beat and sway from beat to beat.
-- Ground: flat grey washes (#cfc8b9 base, #b2aa9a meadows, #928a7c hills, #e4ddcd paths) with a lighter
-  inner rim and a crisp 0.8-unit ink contour; tiny ink tufts, curls, hatch strokes and daisies.
-- Props: curly trees with spiral curls, cottages with eye-like windows and curly smoke, picket fences,
-  smiling daisies, curly street lamps.
+- Ground: flat grey washes (#cfc8b9 base, #bdb6a6 meadows, #968e7f hills, #e5dece road, #4e4840 ponds) with a
+  lighter inner rim and a crisp 0.8-unit ink contour; decals only where features meet (tuft clumps at edges,
+  pebbles on the road shoulders, ripples at the shore, daisy patches), calm open meadow between.
+- Props in designed groups: tree groves on hill rims, little villages (houses, fences, lamp, barrel), lamps
+  along the road, cattails around ponds, windmills on hill crests; all dance on the beat with per-type lag.
 - Effects: music-note projectiles, POW bursts, curly cloud poofs, white stars, ink drops.
 - Atmosphere at 24 fps: grain, dust, hairs, scratches, flicker, ~1 px gate weave, heavy vignette with
   rounded projector-gate corners, faint silver-sepia tone.

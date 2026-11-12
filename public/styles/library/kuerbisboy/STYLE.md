@@ -84,7 +84,7 @@ The floor is an autumn farmland seen from straight above, painted only in rust, 
 
 Per-pixel patterns (`gx, gy` are global art-pixel coordinates):
 
-- `grassPx`: cream with sparse pumpkin `v` tufts or double blades in staggered 6x5 cells; density `0.06 + 0.5 * macro noise`.
+- `grassPx`: cream with pumpkin `v` tufts or double blades in staggered 6x5 cells. The density is passed in by the caller: `0.008 + 0.62 * edge² + 0.32 * smoothstep(0.7, 0.85, macro)`, where `edge = 1 - d / 18` and `d` is the distance in world units to the nearest road, field or tall-grass edge. Tufts line the edges, the open meadow stays calm.
 - `tallPx`: 4x4 motif `3,2,3,3 / 2,3,2,3 / 2,1,2,3 / 3,3,3,3`, rows staggered by 2 px, 1 in 8 motifs knocked out.
 - `roadPx`: pumpkin with a rust speck at `(gy & 3) == 1` every 4th column (rows staggered), 2 of 3 kept.
 - `fieldPx`: furrow every 6 px (`r == 0`, diagonal fields also `r == 1`) in pumpkin with rust clods (1 in 11 blocks of 2x2), a crumb row in pumpkin, the rest cream.
@@ -97,57 +97,29 @@ Keep the ground busy but low-contrast (mostly cream with pumpkin marks) so ink-o
 
 ## Characters
 
-All characters are text grids of palette digits (10-26 px wide), composed from parts, auto-outlined with 1 px ink, mirrored for facing left, and baked with a palette-inverted copy for flash frames. Feet anchor at bottom centre; every blit snaps to whole art pixels (2 world units). Animation is frame swapping only.
+All characters are built on char grids and converted to palette-index grids (`0` ink `#2a1712`, `1` rust `#7c3a1e`, `2` pumpkin `#e0812c`, `3` cream `#f6d7a1`), auto-outlined with 1 px ink, mirrored for facing left and baked with a palette-inverted copy for flash frames. The main character and the small and fast creatures are **posed from parts** and baked lazily per pose (key → sprite set, common poses warmed at init). Feet anchor at bottom centre; every blit snaps to whole art pixels (2 world units). Animation is held poses only, never tweening.
 
-**Main character** (a pumpkin-headed figure): a 12x14 grid composed of a 10x10 head over a 12x4 body, then double outlined (ink, then cream) to 16x18 art px (32 x 36 world units). It is the only character with a light rim, so it reads on every ground. Head (verbatim):
+### Main character
 
-```text
-....11....
-.22211222.
-2221221222
-2223222322
-2233323332
-2222222221
-2322222231
-2333233332
-.22322322.
-..222222..
-```
+A 12 x 16 grid (with ink outline and the extra cream halo 16 x 20 px): a 10 x 7 pumpkin head (pumpkin `2`, rust ribs at x = 2 and 7 on the top and bottom rows, rust underside, two cream glint pixels upper left), a carved face turned one pixel to the facing side (two 2 x 2 ink eye holes with a cream glint in the upper-left pixel, an ink smile with a cream tooth that curls up at both corners), an ink stem with a rust leaf; a cream scarf collar whose tail trails behind, a rust coat with a pumpkin belt and cream buckle, an ink hem, ink near leg, rust far leg and far arm, cream hands.
 
-Body frames (rows placed at y = 10): row 0 is always `...113311...` (collar with cream buttons).
+- **Walk = 8 computed poses** (contact, down, passing, up per leg) from a legs table: body offsets `[0, +1, 0, -1, 0, +1, 0, -1]` px, a hip row fills the gap on "up" frames, near arm swings back/forward against the legs, far arm shows in front on the opposite step. The **head uses the previous frame's body offset** (it lands a frame late), the scarf tail alternates two flap shapes one frame behind the step, and the stem leaf lifts when the head drops. Frame = `floor(anim * 1.3) & 7` (~12 fps).
+- **Idle:** breath on a 1.1 s beat (body down 1 px, head following 0.12 s later), leaf flick at 1.5 fps, blink (eyes become a single ink row) every 3.4 s for 0.13 s, a two-frame scarf flutter every 4.3 s; each figure has its own phase.
+- **Dash:** 50 ms crouch wind-up (body 2 px down, boots wide, arms back) → stretch pose (legs split, head 1 px forward, scarf straight back) with two pumpkin checker afterimages 9 and 18 world units behind → 120 ms skid. **Throw:** the near arm snaps out at shoulder height for ~90 ms after a shot.
+- **Hurt:** a recoil pose (arms up, head tipped back, squeezed eyes, open "O" mouth) that alternates normal and palette-inverted every 2 frames, then the classic flicker (skip drawing on even 15 Hz frames).
+- **Shadow:** checker ellipse 11 x 3 px.
 
-| Frame | Rows 1-3 |
-| --- | --- |
-| idle | `..21111112..` `...111111...` `...11..11...` |
-| w0 | `.321111112..` `...111111...` `..11...11...` |
-| w1 | `.321111112..` `...111111...` `...11.11....` |
-| w2 | `.321111112..` `...111111...` `...11...11..` |
-| w3 | `.321111112..` `...111111...` `....11.11...` |
-| throw | `..2111111...` (row 0 `...1133112..`) |
-| dash | `3321111112..` `..1111111...` `.11.....11..` (head shifted +1,+1) |
+### Creatures
 
-Construction rules: big round pumpkin-orange head (index 2) with cream carved eyes and grin (3) and rust ribs/stem (1); small rust body; legs as 2-px pairs. Idle frame 2 drops the head by 1 px. Facing left = mirrored canvas. The sprite sits 1 px below the logical position so it stands *on* its shadow (rust checker ellipse 11x3 px).
+- **Small creature** (12 x 14 grid): a hopping root with a rust top, a one-row rust/pumpkin checker seam and a pumpkin bottom (the pale variant has a cream bottom, is 0.5 px narrower and a row taller), a pumpkin highlight upper left, cream eyes with ink pupils under angry ink brows, an ink grin with two cream teeth, rust root legs and a pumpkin leaf crown (three-leaf fan or two long leaves). **Hop cycle, 4 frames:** land (squash: half-width 5.3, height 6, legs splayed, crown flops) → push (4.5 x 7) → air (stretch: 3.9 x 8, 2 px up, legs tucked, crown lags down) → fall (crown lifts). Frame = `floor(anim * 1.6 + phase) & 3`. Shadow 9 x 2 px.
+- **Fast creature** (13 x 16 ghost): a cream hood with a peak, pumpkin shade on its back and lower body, a rust tail rim, two separate 2 x 2 ink eye holes, a mouth that opens for 0.5 s every 2.6 s and a reaching arm (2 positions at 3 fps). The tail waves through 4 frames at 7 fps. After outlining, rows dissolve with a Bayer threshold (rows < 10 kept 100 %, 10-11 75 %, 12-13 55 %, 14+ 35 %). It floats on an eased lift `[0, 0, 1, 2, 3, 3, 2, 1]` px (+3 px) at 5 fps. The dark outline and pumpkin shade keep it readable on the cream meadow.
+- **Large creature** (a root colossus, 26 x 27 procedural): dithered ellipse rx 8.8 / ry 8.6 with bands by height (rust top, checker, pumpkin, checker, cream), right flank one band darker, a checkered pumpkin rim light upper left, ink cracks and angry brows, cream eyes, a cream chest core whose ring pulses ink/rust, 1-px-gap root arms with their own outline, leaf crown; 4 stomp frames (legs lift 2 px alternately, body bobs 1 px, arms swing 1 px). Shadow 20 x 4 px.
 
-**Creatures** use a single ink outline (no cream halo), so the main character stays the only figure with a light rim.
+### States (all creatures)
 
-- **Small creature** (a walking root bulb with a leafy crown, 10x12 + outline): rust body, pumpkin leaf crown, cream belly band and ink/cream eyes. Grid:
-  ```text
-  ..2..2..2.
-  ..22.2.22.
-  ...21212..
-  ..111111..
-  .11111111.
-  1113010311
-  1113313311
-  2121212121
-  .33300332.
-  ..333322..
-  ```
-  plus 4 leg frames (`['..1.32.1..','.1......1.']`, ...). Leaves sway 1 px on frames 1 and 3. Shadow 9x2 px.
-- **Fast creature** (a floating ghost, 11x14): cream body with ink eyes, 3 tail frames. After outlining, rows dissolve with a Bayer threshold: rows < 9 kept 100%, 9-10 75%, 11-12 50%, 13+ 30% (phase shifted per frame). Hovers 3-4 px above a small 6x2 shadow.
-- **Large creature** (a root colossus, 26x27 procedural): dithered ellipse rx 8.8 / ry 8.6 with bands by height - rust (t < 0.4), checker, pumpkin (< 0.7), checker, cream; right flank one band darker, a checkered pumpkin rim light on the upper left. Ink cracks and angry brows, cream eyes, a cream chest core whose ring pulses ink/rust, 1-px-gap root arms that get their own outline, leaf crown, 4 stomp frames. Shadow 20x4 px.
-- **Readability rule:** distinguish creature types by **silhouette and value mass** - dark rust blob (small), cream blob with dither tail (fast floater), huge banded oval (large). Never by hue - there is only one.
-- **Size classes for new designs:** 10x12 small, 11x14 floater, 26x27 large; keep everything under ~26 px.
+- **Hit (~130 ms):** palette-inverted frame while `flash > 0.4`, the squash pose with shut eyes for the small creature, and a 2-px recoil away from the facing side.
+- **Appear (0.45 s):** a rust/pumpkin dirt mound (10 px, 18 px for the colossus) heaves for 0.13 s, then the creature climbs out (only its top rows drawn, eased by `outQuad`, the mound in front covers the cut) and lands in its squash frame. Ghosts fade in through the 25/50/75/100 % dither levels.
+- **Disappear (0.35 s):** an inverted "pop" in the squash pose that blinks for ~90 ms, then the 4-frame puff (small, normal or large). Ghosts instead rise 10 px while dithering away level by level.
 
 ## Props
 
@@ -166,19 +138,18 @@ Props are y-sorted with the characters, drawn as text grids of palette digits wi
 
 ## Effects and particles
 
-All effects are palette pixels on the art grid: no alpha, no blur, no rotation.
+All effects use only the four tones, snap to the 2-unit grid and fade by blinking or dither, never by alpha. Every effect is layered: flash → main shape → debris → residue.
 
+- **Impact:** a 3-frame sprite over 0.2 s (7 x 7 cream cross with an ink rim → 9 x 9 ink/rust X of sparks around a cream core → four far ink corner dots), plus 3 debris pixels (ink, rust, cream) with gravity 200.
+- **Disappear burst:** the inverted pop (see States) → 4 puff frames: one round cream blob, five clustered blobs with pumpkin undersides, six small blobs in a ring (rust outline), seven tiny pumpkin specks; small, normal and large sizes.
+- **Debris and residue:** 7 (14 for the colossus) 1-2 px chunks in rust/pumpkin/ink with gravity 260, tumbling 2 x 2 rust leaf scraps (4 rotation frames, outlined) from root creatures, cream sparks rising from ghosts, and a small puff that drifts up and lingers 0.55-0.8 s.
+- **Collect:** an expanding diamond outline (radius 2, 4, 6; ink, then rust with a cream inner line, the last one broken) plus the star sparkle.
+- **Glow-up:** a 7 x 30 px light column (cream core, pumpkin every third row, rust checker sides, ink edge ticks; 2 phases alternating at 8 fps) that shrinks from the top over 0.55 s, a ring, 8 outward stars and the orbiting stars around the main character.
 - **Projectiles:** 4 rotation frames of an outlined seed (`['333','322']`, `['32','33','23']`, `['33.','.33']`, `['.33','33.']`), frame = `floor(spin / (PI/4)) & 3`. Trail: one rust pixel at `pos - v * 0.016 * 2.4` and one pumpkin pixel at `pos - v * 0.016 * 1.2`.
-- **Impact flash:** the palette-inverted sprite copy while `flash > 0.4`; 3 pixel sparks (1 ink, 2 cream), speed 40-80, life 0.22 s.
-- **Vanish puff:** inverted frame for 0.22 s, then a 4-frame puff (radius scale 0.6 / 1 / 1.7 for floater / normal / large): one blob, five blobs, ring of six, ring of seven loose pumpkin dots. Cream with a pumpkin underside and ink outline (frame 3 rust outline). Plus 8 (large 16, ghost 5) pixel particles cycling rust, pumpkin, cream, ink with gravity 260.
-- **Particles:** always 1x1 or 2x2 art pixels in a palette colour; they **blink out** (skip every other 1/20 s) in the last 30% of their life instead of fading.
-- **Emerge from the ground:** creatures rise out of the ground (clip rect at the feet, offset `h * outQuad`) with a small puff at the feet; ghosts fade in via 3 dither masks (25 / 50 / 75%).
-- **Collectibles:** gems 3x3 / 5x7, two-frame blink (pumpkin-edged vs. all-cream), rust 2x1 drop dot underneath; big gems emit a 3x3 cream star. Sparkle stars `['.3.','333','.3.']` / `['3.3','.3.','3.3']` alternate.
-- **Ring burst:** 6 cream stars orbiting the main character on an expanding ring 12 -> 28 units.
-- **Orbiting lanterns:** 7x8 lantern grids with a lit and an unlit frame plus a dithered pumpkin halo ring (`haloSprite(3, 7, 0.45)`), flicker when `sin(t*11 + i*2.1) + sin(t*27 + seed*9) > -0.6`.
-- **Dash afterimage:** two pumpkin checkerboard silhouettes 9 and 18 units behind, 3 puffs.
-- **Alert ring:** 10 2x2 particles in a ring (ink/rust); the main character then blinks at 15 Hz (skips every other 1/15 s step).
-- **Floating numbers:** 3x5 bitmap digits, cream with ink outline and rust underline (emphasised variant pumpkin with `!`).
+- **Collectibles:** small 3 x 3 and large 5 x 7 outlined gems blinking between 2 frames at 3 fps, a 2 x 1 rust contact pixel below, a hop of `sin(pop * PI) * 4` px when they appear; large ones flash a star.
+- **Orbiting lantern:** 7 x 8 outlined lantern with a cream glass that flickers lit/unlit from two summed sines and a dithered pumpkin halo ring (radius 3-7) while lit.
+- **Dash dust:** three puffs left behind along the dash.
+- **Floating numbers:** a 3 x 5 pixel font, outlined, cached per string; they blink out at 20 Hz in the last 25 %.
 
 ## Atmosphere and lighting
 
@@ -215,33 +186,35 @@ Handheld-style windows everywhere: cream fill, 4 px ink border, 4 px cream gap, 
 
 ## Motion and animation
 
-- Everything snaps to the art grid (2 world units). No sub-pixel motion, no rotation, no scaling.
-- Main character: idle 2 frames at 2.2 fps (head bobs 1 px); walk 4 frames, `floor(anim * 0.9) & 3`, 1 px lift on odd frames; throw frame while `shootT > 0.55`; dash frame + afterimages.
-- Small creature: 4 frames at `anim * 1.1 + seed * 7`, 1 px lift on odd frames. Large creature: 4 frames at `anim * 0.6`, legs lift 2 px alternately, body bobs 1 px, arms swing 1 px. Ghost: 3 frames at 6 fps, hover bob 1 px at 3 fps.
-- Collectibles: 2-frame blink at 3 fps, 1 px bob at 2 fps, pop-in hop `round(sin(pop * PI) * 4)` px.
-- Floating numbers: drawn 1 px higher during the first 20% of life, blink at 20 Hz in the last 25%.
-- Fades are always dither steps or blinking; flicker is frame swapping. UI uses `steps(1)` and `transition: none`.
+- Held poses on the handheld beat (8-12 fps), whole-pixel snapping, no tweening of position on the art grid.
+- Main character: 8-pose walk at `floor(anim * 1.3) & 7` with body offsets `[0,1,0,-1,…]`, counter-swinging arms, the head one frame behind the body, the scarf one frame behind the step; idle breath 1.1 s (head 0.12 s later), blink 3.4 s, leaf 1.5 fps, scarf flutter 4.3 s; dash = 50 ms wind-up → stretch → 120 ms skid; throw arm ~90 ms; hurt recoil ~150 ms.
+- Small creature: 4-frame squash & stretch hop at `floor(anim * 1.6 + phase) & 3`; the leaf crown droops while rising and lifts while falling.
+- Ghost: tail 4 frames at 7 fps, eased lift `[0,0,1,2,3,3,2,1]` at 5 fps, arm 3 fps, mouth 0.5 s per 2.6 s. Large creature: 4 stomp frames at `anim * 0.6 + phase`.
+- Per-actor phase: every figure gets its own phase (`seed × 10`, random once for clones) added to all timers, so crowds never move in lock-step.
+- Collectibles blink at 3 fps, bob 1 px at 2 fps and hop `sin(pop * PI) * 4` px when they appear. Floating numbers rise, sit 1 px higher in the first 20 % of life and blink out at 20 Hz in the last 25 %.
+- Lights flicker by frame swap (lit / unlit), never by alpha; UI blinks use `steps(1)`.
 
 ## Do and don't
 
-Do:
+**Do**
 
-- Keep every art-buffer pixel on one of the four indices; write sprites as text grids.
-- Auto-outline every sprite with 1 px ink, and give the main character an extra cream halo.
-- Fake shadows, transparency and glow with Bayer dither or checkerboards locked to world pixels.
-- Render at 2 world units per pixel and upscale by an integer factor with smoothing off.
-- Separate creature types by silhouette and value mass.
-- Reserve ink for outlines and details; the ground uses rust, pumpkin and cream only.
+- Use exactly the four tones everywhere (world, sprites, effects, HUD, icons).
+- Pose figures from parts on a char grid (legs table, arm table, head, scarf or crown) and bake each pose once.
+- Give every cycle real poses and one lagging feature: the head a frame late, the scarf or leaf crown a frame behind.
+- Give every state its own sequence: wind-up before a dash, squash and recoil on hit, a mound before an appearance, an inverted pop before a puff.
+- Keep the meadow calm: tufts gather along roads, fields and tall grass; flowers grow in small beds.
 - Use palette inversion for flash frames and frame swaps for flicker.
+- Keep ink for outlines, faces and the darkest accents; let the main character carry the only cream halo.
 
-Don't:
+**Don't**
 
-- Add a fifth colour, gradients or `globalAlpha` inside the art buffer.
-- Draw sprites at sub-pixel positions, rotate or scale them.
-- Use image smoothing or anti-aliased paths in the world.
-- Paint large ground areas in ink.
-- Use blurred glows or soft shadows.
-- Make sprites much larger than ~26 px or rely on hue to distinguish groups.
+- Don't add a fifth colour, a tint or any alpha blending.
+- Don't animate with a 2-pixel leg shuffle or a plain bob on everything; don't let crowds share one phase.
+- Don't sprinkle tufts or decals evenly over the meadow.
+- Don't draw a light figure on the light ground without an ink outline and a darker shade side.
+- Don't use smooth gradients or sub-pixel positions.
+- Don't put ink on the ground (only rust, pumpkin and cream).
+- Don't use rounded corners or soft shadows in the UI.
 
 ## Implementation recipe
 
@@ -332,7 +305,7 @@ function hashInt(x, y, s) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y |
   h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return h >>> 0; }
 function grassPx(gx, gy, mac) { // cream with staggered 'v' tufts in pumpkin
   const cy = Math.floor(gy / 5), sx = gx + ((cy & 1) ? 3 : 0), cx = Math.floor(sx / 6), h = hashInt(cx, cy, 77);
-  if ((h & 1023) / 1024 < 0.06 + 0.5 * mac) {
+  if ((h & 1023) / 1024 < mac) {            // mac = density from the caller: high near edges, tiny on open meadow
     const lx = sx - cx * 6 - (h >>> 10) % 4, ly = gy - cy * 5 - (h >>> 13) % 3;
     if (((h >>> 16) & 3) < 3) { if ((ly === 0 && (lx === 0 || lx === 2)) || (ly === 1 && lx === 1)) return 2; }
     else if ((lx === 0 || lx === 2) && (ly === 0 || ly === 1) && !(lx === 2 && ly === 0)) return 2;
@@ -399,19 +372,18 @@ function present(display, buffer, up) {
 ## Copy-paste prompt
 
 ```text
-Use the Pumpkin Boy art style for my project: 4-colour pumpkin-tinted handheld LCD pixel art.
-- Use ONLY 4 colours in the image: ink #2a1712, rust #7c3a1e, pumpkin #e0812c, cream #f6d7a1. No alpha, no gradients in the art.
-- Render into a low-res buffer at 2 world units per pixel (~180 px tall view), upscale by an integer with imageSmoothingEnabled = false.
-- Define every sprite as text rows of palette digits '0'-'3' ('.' = empty), compose from parts (head + body frames).
-- Auto-outline every sprite with a 1 px ink 4-neighbour outline; the main character gets an extra 1 px cream halo outline.
-- Main character ~16x18 px incl. outline (big round pumpkin-orange head, cream carved face, small rust body); small creatures ~12x14 rust bodies with leafy crowns; floating ghosts cream with a Bayer-dithered fading tail; large creatures ~28 px banded dithered ovals.
-- Shading = four flat bands joined by single checkerboard rows, light from the upper left. Transparency/fades = Bayer 4x4 masks.
-- Shadows = rust checkerboard ellipses with two baked phases locked to the pixel grid. Glow = dithered pumpkin halo ring + lit sprite frame.
-- Ground: mostly cream meadow with pumpkin 'v' tufts, pumpkin roads with rust specks, fields with furrows every 6 px, crisp 1 px rust/pumpkin borders, dithered drop shadows, tiny decal glyphs. Never ink on the ground.
-- Props: round autumn trees from blob unions, pumpkins, carved glowing pumpkins, scarecrows, fences, graves, lamp posts, signs - all outlined text grids.
-- Flash = palette inversion (0<->3, 1<->2). Particles are 1-2 px squares that blink out instead of fading.
-- Animation by frame swapping only: 2 idle, 4 walk frames, 1 px bob on odd frames; everything snaps to whole pixels.
-- After upscaling: faint LCD cell grid rgba(250,228,180,0.2), ink vignette to 16%, recessed top/left bezel.
-- UI: cream windows with 4 px ink border + 4 px cream gap + 4 px ink outer ring, segmented bars, Press Start 2P in multiples of 8 px, hard 4 px pumpkin text shadow on big numbers.
-- Floating numbers from a 3x5 bitmap font, cream with ink outline (emphasised variant pumpkin with '!').
+Use the Kürbis-Boy art style (pumpkin-tinted 4-colour handheld LCD) for my project: <X>.
+- Exactly four colours everywhere: #2a1712 ink, #7c3a1e rust, #e0812c pumpkin, #f6d7a1 cream. No other colour, no alpha.
+- Render into a low-res buffer: 1 art pixel = 2 world units (view = 180 art rows), integer upscale, smoothing off, then an LCD grid.
+- Sprites are char grids converted to palette indices, auto-outlined with 1 px ink; the main character also gets a cream halo.
+- Pose figures from parts (legs table, arm table, head, scarf or leaf crown) and bake each pose once.
+- Animate with held poses: 8-pose walk (contact/down/passing/up) with counter-swinging arms, the head landing a frame late,
+  a scarf that flaps a frame behind; 4-frame squash & stretch hops; an eased 8-step ghost float; per-actor phase offsets.
+- States: dash wind-up -> stretch + checker afterimages -> skid; hit = inverted palette + squash + 2 px recoil;
+  appear = dirt mound -> climb out -> land (ghosts fade in through dither levels); disappear = inverted pop -> 4-frame puff.
+- Ground: a calm cream meadow; pumpkin 'v' tufts gather along roads, fields and tall grass; flowers in small beds;
+  pumpkin roads with rust specks, furrowed fields, 4x4 tall-grass motif, flagstone plazas, dithered drop shadows. No ink on the ground.
+- Effects layered: cross flash -> X sparks -> far dots; puffs, debris, tumbling leaf scraps, a lingering puff;
+  diamond rings on collect; a dithered light column for big moments.
+- UI: cream panels with double ink borders, pixel font, dithered bars, blinking steps(1) cursors.
 ```

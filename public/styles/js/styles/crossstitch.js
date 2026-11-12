@@ -255,7 +255,7 @@
   /* =====================================================================
      Characters
      ===================================================================== */
-  const PN = 6; // spawn / unravel steps
+  const PN = 8; // spawn / unravel steps
   function buildChar(frames, opts = {}) {
     const out = { w: frames[0].w, h: frames[0].h, r: [], l: [], fr: [], fl: [], part: [], partL: [] };
     for (const m of frames) {
@@ -293,14 +293,29 @@
     '.qOyOyOq.',
     '..RrrrR..',
   ];
+  // body poses; [down, rows]: "down" poses are drawn one stitch lower (an empty top row, 3 body rows),
+  // "up" poses use 4 body rows, so the head bobs one stitch while the feet stay on the cloth
   const JACK_BODY = [
-    ['.rdDDDdk.', '..dDDDd..', '..BB.BB..'],
-    ['.rdDDDd.k', '.ddDDDd..', '.BB...BB.'],
-    ['r.dDDDdk.', '..dDDDdd.', '...BBB...'],
+    [false, ['.rdDDDd..', '.kdDDDdk.', '..dDdDd..', '..BB.BB..']], // 0 stand
+    [false, ['..dDDDd..', 'rkdDDDdk.', '..dDdDd..', '..BB.BB..']], // 1 stand, scarf end flutters
+    [true, ['.rdDDDd.k', '.kdDDDdd.', '.BB...BB.']],                // 2 contact A (front hand forward)
+    [false, ['r.dDDDdk.', '..dDDDd..', '...BBB...', '...BB....']], // 3 passing A (up)
+    [true, ['.rdDDDdk.', 'k.dDDDd..', '.BB...BB.']],                // 4 contact B
+    [false, ['.rdDDDd..', '.kdDDDdk.', '...BBB...', '....BB...']], // 5 passing B (up)
+    [true, ['.rdDDDd..', 'k.dDDDd.k', '.BBB.BBB.']],                // 6 crouch (anticipation)
+    [false, ['rr.dDDDdk', 'r..dDDDd.', '..BB..BB.', '.BB......']], // 7 dash: torso forward, scarf streams back
+    [false, ['.rdDDDd..', '.kdDDDdk.', '..dDdDd..', '..BB.BB..']], // 8 stand, blink
   ];
   const JACK_SEGS = [{ k: 'g', w: 1.8, pts: [6, 1, 7, 0.5, 7.5, 0] }];
+  const shiftSegs = (segs, dy) => segs.map((s) => ({ ...s, pts: s.pts.map((v, i) => (i % 2 ? v + dy : v)) }));
   function jackFrames() {
-    return JACK_BODY.map((b) => { const m = motif([...JACK_HEAD, ...b], 'K', JACK_SEGS); m.inner = { keys: 'yY', k: 'Q' }; return m; });
+    return JACK_BODY.map(([down, b], f) => {
+      let head = JACK_HEAD, segs = JACK_SEGS;
+      if (f === 8) { head = JACK_HEAD.map((r, y) => (y === 3 ? 'qoOOOOOOq' : r)); segs = segs.concat([{ k: 'Q', w: 1.5, pts: [3, 3.5, 4, 3.8, 5, 3.5] }, { k: 'Q', w: 1.5, pts: [6, 3.5, 7, 3.8, 8, 3.5] }]); }
+      const m = motif(down ? ['.........', ...head, ...b] : [...head, ...b], 'K', down ? shiftSegs(segs, 1) : segs);
+      m.inner = { keys: 'yY', k: 'Q' };
+      return m;
+    });
   }
 
   // Rüben-Schleicher: 7 x 8
@@ -308,8 +323,17 @@
   const CREEP_MID = ['.PPpPP.', 'PpmpppP', 'PppyPyP', 'pCcccCp', '.CcccC.'];
   const CREEP_LEG = ['..k.k..', '.k...k.', '...kk..'];
   const CREEP_SEGS = [{ k: 'K', w: 1.6, pts: [3, 3, 4, 4] }, { k: 'K', w: 1.6, pts: [6, 3, 5, 4] }, { k: 'R', w: 1.6, pts: [3, 6.6, 4, 5.6, 5, 6.6] }];
+  // 4-frame hop (down, up, down, up) + a blink frame; the leaf tuft swaps its lean a frame behind the hop
   function creeperFrames() {
-    return [0, 1, 2].map((f) => motif([...CREEP_TOP[f], ...CREEP_MID, CREEP_LEG[f]], 'K', CREEP_SEGS));
+    const blinkMid = CREEP_MID.map((r, y) => (y === 2 ? 'PpppPpP' : r));
+    const blinkSegs = CREEP_SEGS.concat([{ k: 'K', w: 1.4, pts: [3, 4.5, 4, 4.7] }, { k: 'K', w: 1.4, pts: [5, 4.7, 6, 4.5] }]);
+    return [
+      motif(['.......', ...CREEP_TOP[2], ...CREEP_MID, '.k...k.'], 'K', shiftSegs(CREEP_SEGS, 1)),
+      motif([...CREEP_TOP[0], ...CREEP_MID, '..k.k..', '..k....'], 'K', CREEP_SEGS),
+      motif(['.......', ...CREEP_TOP[1], ...CREEP_MID, 'k.....k'], 'K', shiftSegs(CREEP_SEGS, 1)),
+      motif([...CREEP_TOP[0], ...CREEP_MID, '..k.k..', '....k..'], 'K', CREEP_SEGS),
+      motif(['.......', ...CREEP_TOP[0], ...blinkMid, '.k...k.'], 'K', shiftSegs(blinkSegs, 1)),
+    ];
   }
 
   // Hungergeist: 8 x 8
@@ -397,6 +421,22 @@
       const x = r.int(1, 11), y = r.int(1, 9);
       if (mget(m, x, y)) mset(m, x, y, ramp[3]);
     }
+    return m;
+  }
+  /** Eight-point sampler star: square + diamond union, diagonal windows, two-colour rings around a gold centre. */
+  function starMotif(c1, c2, c3, c4) {
+    const n = 15, h = 7, m = blank(n, n, c2);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const dx = Math.abs(x - h), dy = Math.abs(y - h), d = dx + dy, mx = Math.max(dx, dy);
+      if (!(mx <= 4 || d <= 7)) continue;
+      if (dx === dy && d >= 2 && d <= 6) continue; // diagonal windows
+      mset(m, x, y, d <= 1 ? c4 : d <= 3 ? c3 : (mx === 4 && d > 4) || d === 7 ? c2 : c1);
+    }
+    return m;
+  }
+  function heartMotif() {
+    const m = motif(['.rrr...rrr.', 'rEErr.rrEEr', 'rEErrrrrrrr', 'rrrrrrrrrrr', '.rrrrrrrrr.', '..rrrrrrr..', '...rrrrr...', '....rrr....', '.....r.....'], 'R');
+    m.segs = [{ k: 'w', w: 1.3, pts: [2, 2, 3, 1.4] }];
     return m;
   }
   function pineMotif(seed) {
@@ -660,6 +700,15 @@
       }
     });
   }
+  /** Star stitch: eight straight stitches radiating from one hole (gold long, cream short) with a knot centre. */
+  function starStitchSprite() {
+    const s = 12 * DS, c = s / 2, a1 = [], a2 = [];
+    return U.sprite(s, s, (ctx) => {
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * U.TAU + 0.2, L = (k & 1 ? 3.7 : 5.5) * DS; (k & 1 ? a2 : a1).push(c + Math.cos(a) * 1.1 * DS, c + Math.sin(a) * 1.1 * DS, c + Math.cos(a) * L, c + Math.sin(a) * L); }
+      threadSegs(ctx, a1, PALR.h, 2.6, 0.3); threadSegs(ctx, a2, PALR.w, 2.1, 0.3);
+      const kn = knotSprite(PALR.y, 1.1); ctx.drawImage(kn, c - kn.width / 2, c - kn.height / 2);
+    });
+  }
   function needleSprite() {
     return U.sprite(40, 40, (ctx) => {
       ctx.lineCap = 'round';
@@ -840,13 +889,15 @@
         const x = i * C, y = j * C;
         let key = null, half = false;
         if (m === MEADOW) {
+          // grass is stitched in PATCHES: a solid band along the forest edge and a few low-frequency beds,
+          // fringed with half stitches; the open linen between them stays bare (no even sprinkle)
           const cx = x + C / 2, cy = y + C / 2;
-          let dens = 0.03 + 0.24 * U.smoothstep(0.36, 0.78, U.fbm(cx / 190, cy / 190, SD.mead, 3));
-          dens += 0.36 * U.smoothstep(0.5, FOREST_T, VAL[q]);
-          if (bayer(i, j) * 0.55 + U.hash2(i, j, 17) * 0.45 < dens) {
+          const dens = Math.max(1.08 * U.smoothstep(0.515, FOREST_T, VAL[q]), U.smoothstep(0.6, 0.73, U.fbm(cx / 230, cy / 230, SD.mead, 3)));
+          if (dens > 0.04 && bayer(i, j) * 0.6 + U.hash2(i, j, 17) * 0.4 < dens) {
             const tn = U.fbm(cx / 260, cy / 260, SD.mtone, 2);
             const tones = MEADOW_TONES[U.noise(cx / 600, cy / 600, SD.dry) > 0.62 ? 1 : 0];
             key = tones[U.clamp(Math.floor(tn * 3.4 - 0.2 + (bayer(i + 3, j + 5) - 0.5) * 0.9), 0, 2)];
+            half = dens < 0.62;
           }
         } else if (m === FOREST) {
           const cx = x + C / 2, cy = y + C / 2;
@@ -963,6 +1014,16 @@
   }
 
   function* decals(ctx, info, matAt) {
+    // sampler motifs (eight-point star, heart) stitched into calm open linen: rare focal points
+    G.scatter(info, 520, SD.dec + 9, 30, (x, y, rng) => {
+      if (rng.next() > 0.55 || G.nearSpawn(x, y, 80)) return;
+      const spr = SPR.sampler[(rng.next() * SPR.sampler.length) | 0];
+      const w = spr._w, h = spr._h, i0 = Math.round(x / C - w / 2), j0 = Math.round(y / C - h / 2);
+      for (let b = -2; b <= h + 2; b += 3) for (let a = -2; a <= w + 2; a += 3) if (matAt(i0 + a, j0 + b) !== MEADOW) return;
+      if (pathDistCell(i0 + (w >> 1), j0 + (h >> 1)) < 40) return;
+      blitCell(ctx, spr, i0, j0);
+    });
+    yield;
     const list = [];
     G.scatter(info, 21, SD.dec, 8, (x, y, rng) => list.push([x, y, rng.next(), rng.next(), rng.next(), rng.next()]));
     let n = 0;
@@ -973,7 +1034,20 @@
       const hx = i * C, hy = j * C; // hole (top-left corner of the cell)
       if (m === MEADOW) {
         if (matAt(i - 1, j) !== MEADOW || matAt(i + 1, j) !== MEADOW || matAt(i, j - 1) !== MEADOW || matAt(i, j + 1) !== MEADOW) continue;
-        if (r0 < 0.26) {
+        const verge = matAt(i, j + 3) === PATH || matAt(i, j - 3) === PATH || matAt(i + 3, j) === PATH || matAt(i - 3, j) === PATH;
+        const bed = U.fbm(x / 240, y / 240, SD.dec + 5, 2);
+        if (verge) {
+          // path verge: grass tufts and pebble knots line the path
+          if (r0 < 0.5) threadSegs(ctx, [hx, hy + C, hx - C * 0.7, hy - C * 0.3, hx, hy + C, hx + C * 0.1, hy - C * 0.8, hx, hy + C, hx + C * 0.8, hy - C * 0.2], r1 < 0.5 ? PALR.g : PALR.l, 0.62, 0.12);
+          else if (r0 < 0.66) { drawKnot(ctx, ['e', 'a', 'k'][Math.floor(r1 * 3)], hx, hy, 0.85 + r2 * 0.3); if (r3 < 0.5) drawKnot(ctx, 'a', hx + 1.4, hy + 0.8, 0.7); }
+          continue;
+        }
+        if (bed < 0.635) {
+          // open linen: only a rare single daisy
+          if (r0 < 0.01) { const spr = SPR.daisy[Math.floor(r1 * SPR.daisy.length)]; threadSegs(ctx, [hx, hy + 2, hx + 0.6, hy + 7], PALR.g, 0.6, 0.1); ctx.drawImage(spr, hx - spr.width / DS / 2, hy - spr.height / DS / 2, spr.width / DS, spr.height / DS); }
+          continue;
+        }
+        if (r0 < 0.3) {
           // French knot flower cluster with stems
           const cols = ['s', 'w', 'h', 'V', 'm', 'E'];
           const ck = cols[Math.floor(r1 * cols.length)];
@@ -984,28 +1058,28 @@
             drawKnot(ctx, ck, hx + Math.cos(a) * 1.25, hy + Math.sin(a) * 1.0, 0.95);
           }
           drawKnot(ctx, ck === 'h' ? 'q' : 'y', hx, hy, 0.75);
-        } else if (r0 < 0.36) {
+        } else if (r0 < 0.5) {
           const spr = SPR.daisy[Math.floor(r1 * SPR.daisy.length)];
           threadSegs(ctx, [hx, hy + 2, hx + 0.6, hy + 7], PALR.g, 0.6, 0.1);
           ctx.drawImage(spr, hx - spr.width / DS / 2, hy - spr.height / DS / 2, spr.width / DS, spr.height / DS);
-        } else if (r0 < 0.56) {
+        } else if (r0 < 0.62) {
           // grass tuft: three straight stitches from one hole
           const k = r1 < 0.5 ? PALR.g : PALR.l;
           threadSegs(ctx, [hx, hy + C, hx - C * 0.7, hy - C * 0.3, hx, hy + C, hx + C * 0.1, hy - C * 0.8, hx, hy + C, hx + C * 0.8, hy - C * 0.2], k, 0.62, 0.12);
-        } else if (r0 < 0.585) {
+        } else if (r0 < 0.635) {
           const spr = SPR.sequins[Math.floor(r1 * SPR.sequins.length)];
           ctx.drawImage(spr, hx - 1.8, hy - 1.8, 3.6, 3.6);
-        } else if (r0 < 0.61) {
+        } else if (r0 < 0.66) {
           for (let k = 0; k < 3; k++) {
             const spr = bead(['#c3312b', '#f3e6bf', '#e3b24d', '#7b59a8'][Math.floor(r1 * 4)]);
             ctx.drawImage(spr, hx + (k - 1) * 1.7 - 1.2, hy + Math.sin(k + r2 * 6) * 0.8 - 1.2, 2.4, 2.4);
           }
-        } else if (r0 < 0.62) {
+        } else if (r0 < 0.68) {
           blitCell(ctx, SPR.mush, i - 1, j - 1);
         }
       } else if (m === FOREST) {
-        if (r0 < 0.24) blitCell(ctx, SPR.leaves[Math.floor(r1 * SPR.leaves.length)], i - 1, j - 1);
-        else if (r0 < 0.29) blitCell(ctx, SPR.mush, i - 1, j - 1);
+        if (r0 < 0.1) blitCell(ctx, SPR.leaves[Math.floor(r1 * SPR.leaves.length)], i - 1, j - 1);
+        else if (r0 < 0.14 && U.fbm(x / 200, y / 200, SD.dec + 11, 2) > 0.52) blitCell(ctx, SPR.mush, i - 1, j - 1); // mushrooms in rings/clumps
         else if (r0 < 0.4) { drawKnot(ctx, 'b', hx, hy, 1.0); drawKnot(ctx, 'k', hx + 1.3, hy + 0.9, 0.85); }
       } else if (m === POND) {
         if (matAt(i - 2, j) !== POND || matAt(i + 2, j) !== POND || matAt(i, j - 2) !== POND || matAt(i, j + 2) !== POND) continue;
@@ -1190,7 +1264,7 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
     id: 'crossstitch',
     name: 'Kreuzstich',
     family: 'Stickerei',
-    description: 'Ein lebendiges Kreuzstich-Mustertuch auf Aida-Stoff – Omas Halloween-Stickerei mit Knötchen, Perlen und Steppstich-Konturen.',
+    description: 'The whole world is a living cross-stitch sampler on Aida cloth: every cell is a real thread X, contours are backstitched.',
     groundColor: '#d9c8a4',
     groundResMax: 2.5,
     chunkSize: CS,
@@ -1222,9 +1296,10 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       SPR.colossus = buildChar([0, 1, 2].map(colossusMotif));
       // props
       SPR.trees = [
-        renderMotif(treeMotif(['Q', 'q', 'O', 'o'], 1)), renderMotif(treeMotif(['R', 'r', 'E', 'o'], 2)),
-        renderMotif(treeMotif(['F', 'f', 'h', 't'], 3)), renderMotif(treeMotif(['X', 'q', 'O', 'h'], 4)),
+        renderMotif(treeMotif(['z', 'X', 'x', 'f'], 1)), renderMotif(treeMotif(['R', 'r', 'E', 'h'], 2)),
+        renderMotif(treeMotif(['F', 'f', 'h', 't'], 3)), renderMotif(treeMotif(['G', 'g', 'l', 'L'], 4)),
       ];
+      SPR.sampler = [starMotif('r', 'R', 'h', 'y'), starMotif('n', 'N', 'W', 'w'), heartMotif()].map((m) => { const s = renderMotif(m, { shadowAlpha: 0.22 }); s._w = m.w; s._h = m.h; return s; });
       SPR.pines = [renderMotif(pineMotif(5)), renderMotif(pineMotif(6))];
       SPR.bare = [renderMotif(bareTreeMotif(1)), renderMotif(bareTreeMotif(2))];
       SPR.pumpkins = PUMPKIN_ROWS.map((r, k) => renderMotif(motif(r, 'K', k ? [{ k: 'g', w: 1.6, pts: [3, 2, 2, 1.4, 1, 1.8, 0.6, 2.8] }] : [{ k: 'g', w: 1.6, pts: [4, 1, 6, 0.5, 8, 1, 9, 2] }, { k: 'g', w: 1.6, pts: [3, 0.5, 2, 0, 1, 0.4] }])));
@@ -1260,6 +1335,7 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       SPR.button = ['#c3312b', '#e3b24d', '#3c5078', '#55843a'].map((h) => buttonSprite(U.hex(h), 20));
       SPR.lantern = renderMotif(motif(['..G..', '.pmp.', 'pymyp', 'cCyCc', '.cCc.'], 'K'));
       SPR.needle = needleSprite();
+      SPR.star = starStitchSprite();
       SPR.shadow = U.sprite(48, 18, (ctx) => {
         const g = ctx.createRadialGradient(24, 9, 0, 24, 9, 24);
         g.addColorStop(0, 'rgba(50,28,12,0.55)'); g.addColorStop(0.6, 'rgba(50,28,12,0.25)'); g.addColorStop(1, 'rgba(50,28,12,0)');
@@ -1429,15 +1505,23 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
 
     drawPlayer(ctx, p, view) {
       const set = SPR.jack;
-      const left = p.facing < 0;
-      let fr = 0;
-      if (p.moving) fr = [1, 0, 2, 0][Math.floor(p.anim * 2) & 3];
-      const gx = Math.round(p.x / C - set.w / 2), gy = Math.round(p.y / C) - set.h;
+      const left = p.facing < 0, rt = view.rt;
+      let fr = 0, ox = 0, oy = 0;
+      if (p.dashT > 0) fr = p.dashT > 0.165 ? 6 : 7;                       // 40 ms crouch, then the dash pose
+      else if (p.moving) fr = 2 + (Math.floor(p.anim * 1.1) & 3);           // contact - passing - contact - passing, ~10 fps
+      else if (p.shootT > 0.45) fr = 2;                                     // throw stance
+      else {
+        fr = Math.floor(rt * 1.5 + 0.4) % 3 === 2 ? 1 : 0;                  // held poses, the scarf end flutters
+        if (U.fract(rt / 3.1 + 0.37) < 0.045 || p.hurtT > 0) fr = 8;        // blink
+      }
+      if (p.hurtT > 0.55) ox = left ? 1 : -1;                               // recoil one stitch
+      if (p.levelT > 0.55) oy = -1;                                         // little hop of joy
+      const gx = Math.round(p.x / C - set.w / 2) + ox, gy = Math.round(p.y / C) - set.h + oy;
       const img = (left ? set.l : set.r)[fr];
       if (p.dashT > 0) {
-        for (let k = 2; k >= 1; k--) {
-          ctx.globalAlpha = 0.22 / k;
-          blitCell(ctx, img, Math.round((p.x - p.dashX * k * 7) / C - set.w / 2), Math.round((p.y - p.dashY * k * 7) / C) - set.h);
+        for (let k = 3; k >= 1; k--) {
+          ctx.globalAlpha = 0.3 / k;
+          blitCell(ctx, (left ? set.fl : set.fr)[7], Math.round((p.x - p.dashX * k * 7) / C - set.w / 2), Math.round((p.y - p.dashY * k * 7) / C) - set.h);
         }
       }
       ctx.globalAlpha = p.iframes > 0 && Math.floor(view.rt * 18) % 2 ? 0.45 : 1;
@@ -1449,8 +1533,8 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       ctx.globalAlpha = 1;
       // carved face glow
       ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = 0.22 + 0.07 * Math.sin(view.rt * 9) + 0.05 * Math.sin(view.rt * 23);
-      const hx = (gx + 4.5 + (left ? -0.6 : 0.6)) * C, hy = (gy + 5) * C;
+      ctx.globalAlpha = (fr === 8 ? 0.1 : 0.22) + 0.07 * Math.sin(view.rt * 9) + 0.05 * Math.sin(view.rt * 23);
+      const hx = (gx + 4.5 + (left ? -0.6 : 0.6)) * C, hy = (gy + 5 + (JACK_BODY[fr][0] ? 1 : 0)) * C;
       ctx.drawImage(SPR.glowC, hx - 12, hy - 9, 24, 18);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
@@ -1464,31 +1548,48 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       let gy = Math.round(e.y / C) - set.h;
       if (e.type === 'ghost') gy -= 1 + (Math.sin(view.rt * 2.2 + e.seed * 9) > 0.3 ? 1 : 0);
       const ghostA = e.type === 'ghost' ? 0.9 : 1;
+      if (e.dying && e.deathT < 0.12) {
+        // the stitches go taut: a white flash and a one-stitch jolt before the unpicking starts
+        const jx = gx + (e.kx > 0 ? 1 : e.kx < 0 ? -1 : 0);
+        ctx.globalAlpha = ghostA; blitCell(ctx, (left ? set.l : set.r)[0], jx, gy);
+        ctx.globalAlpha = 1; blitCell(ctx, (left ? set.fl : set.fr)[0], jx, gy);
+        return;
+      }
       if (e.spawnT < 1 || e.dying) {
-        const prog = e.dying ? 1 - e.deathT : e.spawnT;
+        const prog = e.dying ? 1 - (e.deathT - 0.12) / 0.88 : e.spawnT;
         const k = Math.floor(prog * PN);
         if (k >= PN) { ctx.globalAlpha = ghostA; blitCell(ctx, (left ? set.l : set.r)[0], gx, gy); }
         else if (k > 0) {
           ctx.globalAlpha = ghostA * (e.dying ? Math.min(1, prog * 3) : 1);
           blitCell(ctx, (left ? set.partL : set.part)[k - 1], gx, gy);
         }
-        if (!e.dying) {
-          // the needle stitching it into existence
-          const nx = (gx + set.w * 0.5) * C + Math.sin(view.rt * 30 + e.seed * 9) * set.w * 0.9;
-          const ny = (gy + set.h * (1 - prog)) * C - 4;
+        // the needle: stitching it in bottom-up, or unpicking it top-down and pulling the thread out
+        const row = (gy + set.h * (1 - prog)) * C;
+        const nx = (gx + set.w * 0.5) * C + Math.sin(view.rt * (e.dying ? 18 : 30) + e.seed * 9) * set.w * (e.dying ? 0.5 : 0.9);
+        if (e.dying) {
+          const lift = 10 + (1 - prog) * 8, ex = nx + 9, ey = row - lift;
+          threadSegs(ctx, [nx, row, nx + 2, row - lift * 0.45, nx + 2, row - lift * 0.45, nx + 6, row - lift * 0.85, nx + 6, row - lift * 0.85, ex, ey], toRgb(KILL_COLS[e.type === 'creeper' ? (e.seed < 0.5 ? 'creeper' : 'creeperB') : e.type][0]), 0.75, 0);
+          ctx.globalAlpha = Math.min(1, prog * 4);
+          ctx.drawImage(SPR.needle, ex - 3, ey - 13, 16, 16);
+        } else {
           ctx.globalAlpha = Math.min(1, (1 - prog) * 4);
-          ctx.drawImage(SPR.needle, nx - 3, ny - 14, 16, 16);
+          ctx.drawImage(SPR.needle, nx - 3, row - 18, 16, 16);
+          if (prog > 0.84) { ctx.globalAlpha = (1 - prog) / 0.16 * 0.7; blitCell(ctx, (left ? set.fl : set.fr)[0], gx, gy); }
         }
         ctx.globalAlpha = 1;
         return;
       }
-      let fr = [0, 1, 0, 2][Math.floor(e.anim * 1.6 + e.seed * 4) & 3];
+      let fr;
       if (e.type === 'ghost') fr = Math.floor(view.rt * 5 + e.seed * 7) % 3;
+      else if (e.type === 'creeper') fr = U.fract(view.rt / 2.9 + e.seed * 7) < 0.06 ? 4 : Math.floor(e.anim * 2.2 + e.seed * 4) & 3;
+      else fr = [0, 1, 0, 2][Math.floor(e.anim * 1.6 + e.seed * 4) & 3];
+      const fl = e.flash;
+      const hx = fl > 0.4 ? (e.kx > 0 ? 1 : e.kx < 0 ? -1 : 0) : 0; // knocked back one stitch for the sharpest part of the hit
       ctx.globalAlpha = ghostA;
-      blitCell(ctx, (left ? set.l : set.r)[fr], gx, gy);
-      if (e.flash > 0) {
-        ctx.globalAlpha = Math.min(1, e.flash * 1.3) * 0.9;
-        blitCell(ctx, (left ? set.fl : set.fr)[fr], gx, gy);
+      blitCell(ctx, (left ? set.l : set.r)[fr], gx + hx, gy);
+      if (fl > 0) {
+        ctx.globalAlpha = Math.min(1, fl * 1.6);
+        blitCell(ctx, (left ? set.fl : set.fr)[fr], gx + hx, gy);
       }
       ctx.globalAlpha = 1;
       if (e.type === 'colossus') {
@@ -1562,6 +1663,26 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
           ctx.drawImage(SPR.glowS, x - pt.size, y - pt.size, pt.size * 2, pt.size * 2);
           break;
         }
+        case 'star': {
+          const t = 1 - life, sc = (pt.size || 1) * (0.4 + 0.75 * U.ease.outQuad(t));
+          ctx.globalAlpha = t < 0.5 ? 1 : Math.max(0, 1 - (t - 0.5) / 0.5);
+          ctx.save(); ctx.translate(x, y); ctx.rotate(pt.rot + t * 0.5);
+          ctx.drawImage(SPR.star, -6 * sc, -6 * sc, 12 * sc, 12 * sc);
+          ctx.restore();
+          break;
+        }
+        case 'wreath': {
+          // a wreath of lazy daisies stitched one after another around the main character, then it fades
+          const t = 1 - life, R = 15 + 8 * U.ease.outQuad(t), fade = t > 0.72 ? 1 - (t - 0.72) / 0.28 : 1;
+          for (let k = 0; k < 10; k++) {
+            const tk = U.clamp((t - k * 0.035) / 0.12, 0, 1);
+            if (tk <= 0) continue;
+            const ang = (k / 10) * U.TAU - Math.PI / 2 + t * 0.5, sz = 7 * U.ease.outBack(tk), s = SPR.daisy[k % 4];
+            ctx.globalAlpha = fade;
+            ctx.drawImage(s, x + Math.cos(ang) * R - sz / 2, y + Math.sin(ang) * R * 0.55 - sz / 2, sz, sz);
+          }
+          break;
+        }
         case 'ring': {
           const t = 1 - life;
           const r = U.lerp(pt.r0, pt.r1, U.ease.outQuad(t));
@@ -1631,6 +1752,7 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       const top = e.type === 'colossus' ? 30 : e.type === 'ghost' ? 14 : 12;
       const cols = e.type === 'ghost' ? KILL_COLS.ghost : e.type === 'colossus' ? KILL_COLS.colossus : e.seed < 0.5 ? KILL_COLS.creeper : KILL_COLS.creeperB;
       game.addParticle({ x: e.x, y: e.y, z: top, kind: 'knot', color: 'w', life: 0.18, size: 0.9 });
+      game.addParticle({ x: e.x + (Math.random() - 0.5) * 4, y: e.y, z: top, kind: 'star', life: 0.17, size: e.type === 'colossus' ? 1.1 : 0.8, rot: Math.random() * U.TAU, drag: 0 });
       if (Math.random() < 0.6) {
         game.addParticle({
           x: e.x + (Math.random() - 0.5) * 8, y: e.y, z: top, vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 10, vz: 30, grav: 120, drag: 2,
@@ -1659,6 +1781,12 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       }
       if (big) game.addParticle({ x: e.x, y: e.y, z: 20, vx: (Math.random() - 0.5) * 30, vz: 70, grav: 220, kind: 'button', b: (Math.random() * 4) | 0, life: 1.6, vr: 6 });
       game.addParticle({ x: e.x, y: e.y - top * 0.6, kind: 'ring', r0: big ? 6 : 3, r1: big ? 22 : 11, color: e.type === 'ghost' ? '#97b6d4' : '#f3e6bf', life: 0.3 });
+      game.addParticle({ x: e.x, y: e.y, z: top, kind: 'star', life: 0.22, size: big ? 1.5 : 1, rot: Math.random() * U.TAU, drag: 0 });
+      // residue: a few loose cross stitches drop onto the cloth and lie there for a moment
+      for (let k = 0; k < (big ? 5 : 3); k++) {
+        const a = Math.random() * U.TAU;
+        game.addParticle({ x: e.x, y: e.y, z: top * 0.7, vx: Math.cos(a) * 30, vy: Math.sin(a) * 16, vz: 30, grav: 220, drag: 2, kind: 'spark', color: cols[(Math.random() * cols.length) | 0], life: 1.2 + Math.random() * 0.4, size: 1.1 });
+      }
     },
     onHurt(game, p) {
       for (let k = 0; k < 7; k++) {
@@ -1680,6 +1808,7 @@ ${B} #pausebox { font: 900 54px 'Grandstander', sans-serif; ${STITCHED(tP, 8)} f
       }
     },
     onLevelUp(game, p) {
+      game.addParticle({ x: p.x, y: p.y, kind: 'wreath', life: 1.2, drag: 0 });
       for (let k = 0; k < 16; k++) {
         const a = (k / 16) * U.TAU;
         game.addParticle({ x: p.x + Math.cos(a) * 8, y: p.y + Math.sin(a) * 4, z: 12, vx: Math.cos(a) * 55, vy: Math.sin(a) * 28, vz: 30, grav: 40, kind: 'spark', color: k % 2 ? '#e3b24d' : '#c3312b', life: 0.7 + Math.random() * 0.3, size: 1.1 });

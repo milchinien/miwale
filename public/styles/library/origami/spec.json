@@ -3,142 +3,153 @@
   "name": "Origami Fold",
   "originalName": "Origami Fold",
   "family": "Paper · Origami",
-  "tags": ["origami", "folded paper", "facets", "crease pattern", "washi", "pastel", "cozy", "two-sided paper"],
-  "summary": "A world folded from washi paper: flat facets with crisp mountain and valley creases on a giant crease-pattern sheet.",
-  "description": "Every character, creature, prop, collectible and icon is a small fold mesh: flat triangular facets whose tone comes from one light in the upper left, picked from a 4-step ramp per paper colour. Shared edges are classified automatically into mountain folds (a thin bright line) and valley folds (a thin dark line), and the paper is two-sided, so hems, inner ears, bellies and wing backs show the cream back of the sheet. The ground is one huge sheet scored with a crease tessellation, with pastel sheets laid on top along straight folded hems and pleated blue water sunk below. Soft sheared drop shadows lift every folded object off the paper.",
+  "tags": ["origami", "folded paper", "facets", "crease pattern", "washi", "pastel", "cozy", "stop-motion"],
+  "summary": "A world folded from washi paper: flat-lit facets, mountain and valley creases, hemmed pastel sheets and stop-motion paper puppets.",
+  "description": "Every character, creature, prop, collectible and icon is a small fold mesh: flat triangular facets whose tone comes from one light in the upper left, picked from a 4-step ramp per paper colour, with every shared edge drawn as a mountain (bright) or valley (dark) crease. The paper is two-sided, so hems, inner ears, bellies, wing backs and confetti show the cream back. The ground is one huge washi sheet scored with a crease tessellation; designed sites sit on it – villages on mustard field diamonds with pleated crop ridges, orchards on blush diamonds, deep-green groves, lakes sunk below a teal shore band – joined by folded paper ribbons. Actors move like stop-motion paper puppets: held poses on 8–12 fps steps, crouch-and-hop frogs, a flapping crane, creatures that crumple into a paper ball and pop open into a flat sheet.",
   "mood": ["calm", "crafted", "gentle", "playful", "tidy"],
   "bestFor": ["cozy top-down action and adventure", "puzzle games and board-game adaptations", "children's and educational games", "zen, relaxing or seasonal projects", "papercraft-themed menus and map screens"],
   "avoidFor": ["horror or gritty realism", "dark, high-contrast neon moods", "projects that need hundreds of distinct animated models", "pixel-precise retro looks"],
   "difficulty": {
-    "stars": 5,
-    "why": "Each new asset is a list of triangles with a pseudo height per vertex – shading and every crease line follow automatically, so a new creature is mostly composing kites, strips and fans. The craft is in choosing folds that read as real origami and keeping silhouettes simple; animation means rebuilding the mesh per frame and baking it (both facing directions are baked separately so the light stays upper-left)."
+    "stars": 6,
+    "why": "Each new asset is a list of triangles with a pseudo height per vertex – shading and every crease line follow automatically, so a new creature is mostly composing kites, strips and fans. The craft is in choosing folds that read as real origami, posing a puppet over 6–8 held frames with overlapping parts (tails, ears, hems, manes) and designing the crumple/unfold sequences; both facing directions are baked from mirrored geometry so the light stays upper-left."
   },
   "technique": {
     "renderer": "Canvas 2D (procedural, no image assets): 2D fold meshes with pseudo heights -> per-facet flat tone -> automatic crease classification -> baked sprites",
     "pixelArt": false,
     "resolution": "Native resolution. Sprites are baked at K = clamp(round(screenHeight/360 * 1.6), 3, 8) px per world unit (4 px/unit at 900 px); the ground is baked in 256-unit chunks at up to 2.5 px/unit (groundResMax 2.5).",
-    "summary": "Shapes are triangle lists in screen space with a z height per vertex; the facet normal against one light picks 1 of 4 tones, and each shared edge is drawn as a mountain (bright) or valley (dark) crease depending on the fold direction. Meshes are baked once into sprites, mirrored copies are rebuilt (not flipped) so light stays upper-left.",
-    "linework": "No ink outline. Open paper edges are stroked in the ramp's deep tone mixed 38 % toward ink #2a2433 at 0.55 units; mountain folds 0.3 units in the light tone mixed 55 % with white at alpha 0.9; valley folds 0.3 units in the deep tone at alpha 0.6; seams between two paper colours at alpha 0.45. Round joins and caps. Each facet is also stroked in its own fill colour (0.9 px) to hide anti-aliasing seams.",
-    "shading": "Flat per facet. d = n·L with L = normalize(-0.55, -0.45, 0.7) (x right, y down the screen, z towards the viewer); tone = d > 0.8 light, > 0.55 base, > 0.3 shade, else deep. A flat facet is the base tone; far legs and far wings add +1 tone for depth. No gradients inside a facet.",
-    "lighting": "One soft light from the upper left for everything (models, ground relief, water pleats). Cast shadows are the sprite silhouette tinted rgb(78,56,72), sheared to the lower right (x' = x - 0.62*y, y' = -0.36*y around the feet), blurred 1.1-1.6 units at alpha 0.24-0.32, plus a contact ellipse. A screen overlay adds warm light rgba(255,250,235,.16) at the upper left and plum shade rgba(90,64,80,.14) at the lower right with a soft vignette rgba(96,70,70,.17).",
-    "texture": "Paper fibre: a 160 px tileable canvas of 420 short curved fibres (white at alpha 0.3-0.65, brown rgba(120,92,64,0.1-0.22)) plus 900 speckles, laid over every sprite with source-atop at 0.55 and over the ground at 0.5."
+    "summary": "Shapes are triangle lists in screen space with a z height per vertex; the facet normal against one light picks 1 of 4 tones, and each shared edge is drawn as a mountain (bright) or valley (dark) crease depending on the fold direction. Every pose is baked once into a sprite; mirrored copies are rebuilt (not flipped) so light stays upper-left. Motion is a sequence of these held poses, not interpolation.",
+    "linework": "No ink outline. Open paper edges are stroked in the ramp's deep tone mixed 38 % toward ink #2a2433 at 0.55 units; mountain folds 0.3 units in the light tone mixed 55 % with white; valley folds 0.3 units in the deep tone mixed 15 % toward ink; seams between two paper colours at alpha 0.45. Round joins and caps. Each facet is also stroked in its own fill colour to hide anti-aliasing seams. Closed eyes and squeezed eyes are 0.45-0.5 unit ink lines.",
+    "shading": "Flat per facet. d = n·L with L = normalize(-0.55, -0.45, 0.7) (x right, y down the screen, z towards the viewer); tone = d > 0.8 light, > 0.55 base, > 0.3 shade, else deep. Far legs, far sleeves and far wings add +1 tone for depth. Hit and fall poses re-bake the same mesh with every shared vertex jittered (crumple 0.8-1.6), so the facets catch new tones like crushed paper. No gradients inside a facet.",
+    "lighting": "One soft light from the upper left for everything (models, ground relief, sheet drop shadows, water pleats, ribbons). Cast shadows are the sprite silhouette tinted rgb(78,56,72), sheared to the lower right (x' = x - 0.62*y, y' = -0.36*y around the feet), blurred 1.1-1.6 units at alpha 0.24-0.32, plus a contact ellipse. A screen overlay adds warm light rgba(255,250,235,.16) at the upper left and plum shade rgba(90,64,80,.14) at the lower right with a soft vignette rgba(96,70,70,.17).",
+    "texture": "Paper fibre: a 160 px tileable canvas of 420 short curved fibres (white at alpha 0.3-0.65, brown rgba(120,92,64,0.1-0.22)) plus 900 speckles, laid over every sprite with source-atop at 0.55 and over the ground at 0.5. The ground sheet keeps a faint relief of its folds: every 160-unit panel has its own crease pattern (pyramids, waterbomb, pleats, twist) shown with a large-scale calm/busy variation."
   },
   "palette": [
-    { "name": "Washi White", "hex": "#f4eee1", "role": "Base sheet of the ground (~50 % of the screen); hem #fbf8f0" },
-    { "name": "Sage Sheet", "hex": "#d5e1c0", "role": "Pale green sheet laid on the ground" },
-    { "name": "Mustard Sheet", "hex": "#f2dca6", "role": "Pale yellow sheet" },
-    { "name": "Coral Sheet", "hex": "#f3cebe", "role": "Pale coral sheet" },
-    { "name": "Teal Sheet", "hex": "#c3dfd6", "role": "Pale teal sheet" },
-    { "name": "Water", "hex": "#88a8d8", "role": "Sunken water sheet; wave pleats lit #a9c3ea, shaded #6d8cc6" },
+    { "name": "Washi White", "hex": "#f4eee1", "role": "Base sheet of the ground (~45 % of the screen); hem #fbf8f0" },
+    { "name": "Meadow Sheet", "hex": "#d5e1c0", "role": "Pale green sheet laid on the base paper" },
+    { "name": "Grove Sheet", "hex": "#b7cf9e", "role": "Deeper green sheet under pine groves, one layer above the meadow" },
+    { "name": "Field Sheet", "hex": "#f2dca6", "role": "Mustard diamond under every village, carries the pleated crop ridges" },
+    { "name": "Blossom Sheet", "hex": "#f3cebe", "role": "Blush diamond under every orchard" },
+    { "name": "Shore Band", "hex": "#c3dfd6", "role": "Teal band one layer below the base paper around every lake" },
+    { "name": "Water", "hex": "#88a8d8", "role": "Sunken water sheet; chevron pleats #a9c3ea / #7f9dd3 / #6d8cc6" },
+    { "name": "Ribbon Kraft", "hex": "#e8d9bc", "role": "Front of the folded paper ribbons; every second run shows the back #faf5ea" },
     { "name": "Coral", "hex": "#e8755b", "role": "Main character fur, roofs, accents – ramp #f7a283 / #e8755b / #c95b47 / #9b4136" },
     { "name": "Kami Cream", "hex": "#f3e9d6", "role": "The back side of every sheet: hems, bellies, inner ears, wing backs, paper planes – ramp #fffbf3 / #f3e9d6 / #dccbae / #b5a083" },
     { "name": "Indigo", "hex": "#4f62a6", "role": "Main character's kimono, doors, diagram ink – ramp #7488c9 / #4f62a6 / #3b4a87 / #283462" },
     { "name": "Teal", "hex": "#35a194", "role": "Small creature variant, two-tone orbiting star, top bar – ramp #63c2b3 / #35a194 / #277f76 / #1a5b56" },
-    { "name": "Sage", "hex": "#98b37d", "role": "Small creature variant, stems, grass – ramp #bdd39b / #98b37d / #779562 / #587149" },
+    { "name": "Sage", "hex": "#98b37d", "role": "Small creature variant, crop ridges, grass – ramp #bdd39b / #98b37d / #779562 / #587149" },
     { "name": "Mustard", "hex": "#e6ae42", "role": "Sash, mane spikes, small collectible star – ramp #f8d372 / #e6ae42 / #c68c2d / #936624" },
     { "name": "Blush", "hex": "#ee9597", "role": "Fast creature (paper crane), tulips, lotus – ramp #f9c0bd / #ee9597 / #cd7279 / #9d525c" },
     { "name": "Plum", "hex": "#76599b", "role": "Large creature body – ramp #9a7fbb / #76599b / #5a447c / #3f3059" },
-    { "name": "Pine", "hex": "#60a077", "role": "Folded pine tiers – ramp #88c197 / #60a077 / #46805c / #305d44" },
-    { "name": "Wood", "hex": "#b0875e", "role": "Trunks, sticks – ramp #d4ae83 / #b0875e / #8b6543 / #63472f" },
-    { "name": "Stone", "hex": "#cac3ba", "role": "Faceted boulders – ramp #e6e1da / #cac3ba / #a8a098 / #7f7873" },
+    { "name": "Pine", "hex": "#60a077", "role": "Folded pine tiers, sprouts, shore grass – ramp #88c197 / #60a077 / #46805c / #305d44" },
+    { "name": "Wood", "hex": "#b0875e", "role": "Trunks, sticks, reed heads – ramp #d4ae83 / #b0875e / #8b6543 / #63472f" },
+    { "name": "Stone", "hex": "#cac3ba", "role": "Faceted boulders and pebbles – ramp #e6e1da / #cac3ba / #a8a098 / #7f7873" },
     { "name": "Paw Ink", "hex": "#3d3747", "role": "Main character's legs and paws – ramp #5a5368 / #3d3747 / #2e2936 / #201c27" },
-    { "name": "Ink", "hex": "#2a2433", "role": "Eyes, noses; mixed into open paper edges" },
-    { "name": "Shadow Plum", "hex": "#4e3848", "role": "All cast shadows (drawn at alpha 0.24-0.32), never black" },
-    { "name": "HUD Ink", "hex": "#3d3852", "role": "HUD body text; titles in indigo #3b4a87, captions in coral #c95b47" }
+    { "name": "Ink", "hex": "#2a2433", "role": "Eyes, noses, closed-eye lines; mixed into open paper edges" },
+    { "name": "Shadow Plum", "hex": "#4e3848", "role": "All cast shadows (drawn at alpha 0.24-0.32), never black" }
   ],
   "paletteRules": [
     "Every paper colour is a 4-step ramp (light / base / shade / deep); the light picks the step per facet – never invent in-between colours or gradients.",
     "The ground is pale washi (white #f4eee1 and pastel sheets); everything standing on it uses the saturated mid-value ramps, so actors pop by value and hue.",
-    "Kami paper is two-sided: wherever a sheet turns over (hems, bellies, inner ears, wing undersides, confetti backs) use the cream ramp.",
+    "Each ground sheet has a meaning: mustard = village field, blush = orchard, deep green = grove, teal = shore. Do not use them as random patches.",
+    "Kami paper is two-sided: wherever a sheet turns over (hems, ribbon folds, bellies, inner ears, wing undersides, confetti backs) use the cream ramp.",
     "Main character = coral + indigo + cream + dark paws; small creatures = teal / sage / mustard; fast creature = blush; large creature = plum with a mustard mane – keep creature hues off the main character.",
-    "Water is the only large saturated ground area (#88a8d8) and always sits below the paper with an inner shadow.",
+    "Water is the only large saturated ground area (#88a8d8) and always sits below the paper with a shore band and an inner shadow.",
     "Shadows are plum rgb(78,56,72) at low alpha, never black or grey; no pure black anywhere (darkest is #201c27)."
   ],
   "typography": [
     { "family": "Zen Maru Gothic", "weights": [500, 700, 900], "role": "Titles, counters, card titles, floating numbers", "source": "Google Fonts", "sample": "12:30", "css": "font: 900 32px/1.05 'Zen Maru Gothic', sans-serif; letter-spacing: .05em; color: #3b4a87; text-shadow: 2px 2px 0 rgba(255,251,243,.9);" },
-    { "family": "M PLUS Rounded 1c", "weights": [500, 700, 800], "role": "Body copy, card descriptions, caption bar", "source": "Google Fonts", "sample": "Short card text", "css": "font: 700 15px/1.3 'M PLUS Rounded 1c', sans-serif; color: #7a6c74;" },
+    { "family": "M PLUS Rounded 1c", "weights": [500, 700, 800], "role": "Body copy, card descriptions, caption bar (body ink #3d3852)", "source": "Google Fonts", "sample": "Short card text", "css": "font: 700 15px/1.3 'M PLUS Rounded 1c', sans-serif; color: #7a6c74;" },
     { "family": "Kalam", "weights": [400, 700], "role": "Handwritten notes: labels, hints, families – like pencil on the paper", "source": "Google Fonts", "sample": "fold here", "css": "font: 700 15px/1.1 'Kalam', cursive; color: #c95b47;" }
   ],
   "world": {
-    "summary": "One endless sheet of washi paper scored with a crease tessellation (40-unit squares with both diagonals). Pastel sheets lie on top of it, their outlines following the crease lines so every border is a straight folded edge with a cream hem and an offset drop shadow; water is a blue pleated sheet sunk below the paper. Major folds every 160 units are marked in origami diagram notation.",
+    "summary": "One endless sheet of washi paper scored with a crease tessellation (40-unit squares with both diagonals). Designed sites – one per 520 x 520 block – give the sheet its regions: villages on mustard field diamonds, orchards on blush diamonds, groves on deep-green sheets inside meadows, lakes sunk below a teal shore band. Every border follows the crease grid, so edges are straight 45° folds with a cream hem and a soft drop shadow. Folded paper ribbons run from doorstep to doorstep between neighbouring sites, and grass gathers in clumps where something happens.",
     "layers": [
       "Base fill #f4eee1 (groundColor)",
-      "Crease tessellation: 40-unit squares, each split into 4 triangles (N, E, S, W) by its diagonals; one region id per triangle from fbm noise (water: fbm(x/720) > 0.64 away from the centre; sheets: fbm(x/420) >= 0.5, colour from fbm(x/1000) -> sage / mustard / coral / teal)",
-      "Relief: every 160-unit panel has its own pattern (42 % pyramids, 26 % waterbomb checker, 16 % horizontal pleats, 16 % twist); a triangle's colour is multiplied by 1 + relief*amp, relief N +0.022, E -0.017, S -0.027, W +0.013, amp 0.35-1.25 from noise",
-      "Layers drawn bottom to top: water, base sheet, sage, mustard, coral, teal; before each layer its union is filled twice offset (+1.3,+1.6) alpha 0.09 and (+2.6,+3.2) alpha 0.07 in rgba(84,60,58) – a soft drop shadow onto the lower layers",
-      "Hems: along every edge that borders a lower layer, a 2.4-unit strip inside the sheet in its colour mixed 55 % toward #fffcf4, with a fold line rgba(96,72,60,.22) and the paper edge rgba(96,72,60,.34)",
-      "Water: chevron pleats (period 18, row 11, amplitude 3.4) – shaded slope #6d8cc6, valley line rgba(44,64,122,.32), lit slope #a9c3ea, ridge line rgba(255,255,255,.7); small cream three-facet wave crests on a 52-unit grid",
-      "Crease lines: mountain diagonals rgba(255,253,246,.7) 0.45 with a faint shadow twin offset 0.5; valley lines rgba(98,76,60,.16); grid lines rgba(98,76,60,.13); pleat panels draw alternating horizontal mountain/valley lines",
-      "Major folds every 4 cells in diagram notation: valley = dashed [5, 3.5] indigo rgba(59,74,135,.28), mountain = dash-dot [7, 2.5, 1.2, 2.5] coral rgba(201,91,71,.3)",
-      "Paper fibre over the whole chunk at alpha 0.5",
-      "Sparse flat decals on a 21-unit grid (13 % of cells): folded grass blades (sage/pine strips), 4-petal folded flowers in blush/cream/mustard, two-tone paper scraps, and rare curved fold arrows in indigo"
+      "Crease tessellation: 40-unit squares, each split into 4 triangles (N, E, S, W) by its diagonals. Every cell gets one region; a higher sheet also fills the cell triangle where it wraps around two sides, so staircases become straight 45° folds.",
+      "Sites (one per 520-unit block, jittered): 36 % village (field diamond |dx|+|dy| < 104-140), 24 % orchard (blush diamond 82-108), 24 % grove (deep-green sheet, radius 100-140 wobbled by noise), 16 % open paper. The area around the start is composed by hand. Meadows come from fbm(x/470) > 0.53 and a 1.6x halo around groves; lakes from fbm(x/720) > 0.64 with a shore band from 0.607.",
+      "Stacking order bottom to top: water, shore, base, meadow, grove, field and blossom. Before each layer its union is filled twice offset (+1.3,+1.6) alpha 0.09 and (+2.6,+3.2) alpha 0.07 in rgba(84,60,58) – a drop shadow onto the lower sheets (x1.25 deeper for the base over the shore).",
+      "Hems: along every edge that borders a lower sheet, a 2.4-unit strip inside the sheet in its colour mixed 55 % toward #fffcf4, with a fold line rgba(96,72,60,.22) and the paper edge rgba(96,72,60,.34).",
+      "Relief: every 160-unit panel has its own crease pattern (42 % pyramids, 26 % waterbomb checker, 16 % horizontal pleats, 16 % twist); triangle tone x (1 + relief*amp); a large-scale noise makes some panels calm and flat, others busy.",
+      "Water: chevron pleats (period 18, row 11, amplitude 3.4) – shaded slope #6d8cc6, valley line, lit slope #a9c3ea, ridge line rgba(255,255,255,.7); small cream three-facet wave crests.",
+      "Crease lines: mountain diagonals rgba(255,253,246,.7) 0.45 with a faint shadow twin, valley lines rgba(98,76,60,.16), grid lines rgba(98,76,60,.13); major folds every 160 units in diagram notation – valley dashed [5, 3.5] indigo, mountain dash-dot [7, 2.5, 1.2, 2.5] coral – fading with the panel calmness.",
+      "Ribbons: 11-14 units wide, four straight runs with small random offsets, folded flat at every bend along the bisector (mitred), runs alternating front #e8d9bc and back #faf5ea, edge rgba(120,92,64,.38), dashed centre crease, fold crease rgba(96,70,52,.5), drop shadow (+1.4,+1.9) alpha 0.1. Never across water.",
+      "Paper fibre over the whole chunk at alpha 0.5.",
+      "Decals, stamped from baked sprites: grass clumps of 3-7 folded tufts (3 cuts, sage or pine, golden-angle spiral, biggest in the middle) at sheet edges, ribbon verges and shores; flowers only in small drifts; pebbles on shores; field crop ridges – pleated sage ridges 3.2 units wide on the 45° grid, every 12 units, double rows with a fallow gap, tapered ends, pine sprouts every 7 units, cut short around houses and fences; rare two-tone scraps and curved indigo fold arrows on open paper."
     ]
   },
   "characters": {
-    "summary": "Upright and creature models are small fold meshes of 10-60 facets in 3/4 side view, baked for both facing directions (mirrored geometry, re-lit). The main character (~26 x 36 units with ears and tail) is a coral origami fox: a faceted head with a raised muzzle peak, two kite ears with cream inner sides, an indigo kimono folded down the middle with a mustard sash and cream hem, dark ink paws and a big kite tail with a cream tip. Creatures: a jumping frog (small, teal / sage / mustard, cream belly), a paper crane (fast, blush, hovers 8 units up, wings show the cream back on the down-stroke) and a plum folded boar (large, ~46 x 40 units) with a mustard spiked mane, cream tusk and belly band.",
+    "summary": "Fold meshes of 10-60 facets in 3/4 side view, baked as held poses for both facing directions (mirrored geometry, re-lit). The main character (~14 units wide in the kimono, ~24 with the tail, ~36 tall to the ear tips) is a coral origami fox: faceted head with a raised muzzle peak, kite ears with cream inner sides, an indigo kimono folded down the middle with a mustard sash and cream hem, counter-swinging sleeves with cream cuffs, dark ink paws and a big kite tail with a cream tip – 20 poses. Creatures: a jumping frog (small, teal / sage / mustard, cream belly, 7 poses), a paper crane (fast, blush, hovers 8 units up, 6 wing poses showing the cream back on the down-stroke) and a plum folded boar (large, ~48 x 42 units, 8 walk poses) with a mustard spiked mane, tail tuft, cream tusk and belly band.",
     "rules": [
       "Build everything from kites (two triangles folded along an axis), folded strips (legs, necks, tails) and fans around one raised point (heads, bodies, crowns); the raised point sets where the light breaks.",
       "Keep 2-3 colours per model plus the cream back side; the main character is the only coral-and-indigo figure.",
-      "Silhouette first: big ears, tails, wings and manes are the readable shapes – details are only ink dot eyes (0.75-0.85 units, white catch-light) and a dot nose.",
+      "Silhouette first: big ears, tails, wings and manes are the readable shapes – details are only ink dot eyes (0.75-0.85 units, white catch-light) and a dot nose, clustered on the face.",
       "Never flip a sprite with a negative scale: rebuild the mirrored mesh so the light stays in the upper left.",
-      "Main character: 4 walk frames + idle + dash pose, 1.1-unit step bob; frog: sit / crouch / leap frames with a 4.5-unit hop arc and tilt; crane: 4 wing frames at 10 fps; boar: 4 heavy walk frames with a 1.3-unit body bob.",
-      "Appearing: ground creatures fold up out of a flat four-facet square of their own colour (outBack on the vertical scale); the crane drops in from 30 units while fading in.",
-      "Vanishing: the creature flattens into its sheet (scale y -> 0.15, x -> 1.35, fading) while the impact burst takes over; hit flash is a cream #fffaf0 silhouette over the sprite plus a short squash."
+      "Main character poses: 3 idle breaths, the same 3 with closed eyes (blink), ear flick, 8 walk poses (contact, down, passing, up per foot), dash, dash landing, hurt (crumpled), throw, down.",
+      "Overlapping parts lag one pose behind the body: tail tip, ear tips, kimono hem and the boar's mane tips are offset by the previous pose's bob, so they follow through.",
+      "Frog: sit, sit with throat puff, blink, crouch, launch (stretched, back leg thrown out), airborne (legs tucked), landing squash. Crane: up, half, down-stroke, low, recovery, half. Boar: 8-pose lateral-sequence walk, each leg 3/4 of the cycle on the ground.",
+      "Every creature runs on its own phase from its seed (hop phase, flap step, walk phase) and its own size (frog 0.95-1.05, boar 0.96-1.04), so a crowd never moves in lock-step."
     ]
   },
   "props": {
-    "summary": "Folded scenery baked with the same fold engine and light: tiered pines, round trees with a geodesic folded crown, faceted boulders, the classic origami house (cream walls, coral or indigo roof with cream squash-fold flaps), tulip clusters, a spinning pinwheel, an accordion screen, and on the water paper boats and lotus flowers.",
+    "summary": "Folded scenery baked with the same fold engine and light, placed by design: villages get 2-3 houses with tulip clusters and accordion screens, a pinwheel and a tree on the rim; orchards are a diamond grid of round trees around a tulip bed; groves are clusters of tiered pines ringed by bushes and a boulder; shores grow reeds and stones; lakes carry lotus clusters and paper boats. Open paper stays calm: stones beside the ribbons, the odd shrub or tree.",
     "rules": [
-      "Pines: three kite tiers (half-widths 15.5 / 11.7 / 7.9) folded down the middle so the left half is lit, on a wood strip trunk; pine green or teal.",
-      "Round trees: crown of 8 outer + 8 inner points and a raised apex (24 facets) in coral, mustard, sage or teal on a strip trunk with one branch.",
-      "Boulders: a fan of 7 jittered points around a raised point at the upper left, stone ramp; one variant has a second small stone.",
-      "House: front walls folded slightly at the middle, side wall one tone darker, door indigo, window mustard, roof as one folded triangle with two cream flap triangles.",
-      "Pinwheel: 12 baked rotation frames (coral and teal blades, cream inner flaps) on a stick, turning at 9 frames per second.",
-      "Paper boats and lotus sit only on water, bob 0.8 units and rock ±0.05 rad with an expanding cream ripple ellipse.",
-      "Every land prop casts the same sheared, blurred plum shadow as the characters; tall props turn 50 % translucent when the main character is behind them."
+      "Pines (3 variants: two pine green heights, one teal): three kite tiers folded down the middle so the left half is lit, on a wood strip trunk.",
+      "Round trees (4 variants: coral, mustard, sage, teal): crown of 8 outer + 8 inner points and a raised apex (24 facets) on a strip trunk with one branch.",
+      "Bushes (sage, pine, teal) are 2-3 folded lobes; boulders (3 variants) are a fan of 7 jittered points around a raised point at the upper left.",
+      "House (coral or indigo roof): front wall folded at the middle, side wall in the cream shade, indigo door, mustard window, roof as one folded triangle with two cream squash-fold flaps.",
+      "Tulips (2 colour orders of coral / mustard / blush), reeds (2), accordion screen (cream and teal pleats), pinwheel (12 baked rotation frames, coral and teal blades, 9 fps).",
+      "Paper boats (mustard, coral, cream) and lotus sit only on water, bob 0.8 units and rock ±0.05 rad with an expanding cream ripple ellipse.",
+      "Paper on a stand sways in the breeze: a slow rotation per prop (reeds 0.05, tulips 0.035, trees 0.014-0.016 rad) plus gusts that roll across the world from the left.",
+      "Every land prop casts the same sheared, blurred plum shadow as the characters; tall props turn 50 % translucent when the main character is behind them; the start area keeps a 100-unit radius free of tall props."
     ]
   },
   "effects": [
-    { "name": "Paper-plane projectile", "how": "A folded dart (cream wings with coral tips, valley crease down the middle) baked at 16 angles so the light stays upper-left, with its own soft shadow 7 units below and two short pencil dashes #7a6c74 behind it." },
-    { "name": "Orbiting shuriken", "how": "A two-tone origami throwing star (coral and teal arms around a raised centre) baked in 8 rotation frames over 90°, spinning at 30 frames per second over a soft shadow blob." },
-    { "name": "Collectibles", "how": "Small: a mustard lucky star (5 points, 10 facets, 6 rotation frames). Large: a teal folded crystal (4 facets) turning through 8 frames. Both bob 3 ± 1.2 units over a plum blob shadow." },
-    { "name": "Unfolding burst", "how": "When a creature vanishes: 8-12 two-tone kite petals in its colour and cream shoot outward and fold shut again (length 0.5 -> 1.3 -> 0, sin envelope), its flat square sheet tumbles up and away (flipping between colour front and cream back), and 8-16 confetti triangles follow; the large creature adds a dash-dot crease ring." },
-    { "name": "Two-sided confetti", "how": "Flat triangles that flip with cos(t*9): the colour front (light/base tone) when positive, the cream back when negative, with a gentle sideways sway, gravity 50-120 and high drag so they flutter." },
-    { "name": "Impact", "how": "A crisp 4-point folded sparkle (cream with a thin plum edge) at hit height plus 3 two-tone shards (light/shade halves) with gravity 260." },
-    { "name": "Glow-up", "how": "A dashed mustard crease ellipse opening to 40 units, a ground-level ring of 10 mustard/coral petals plus 8 teal/cream petals, and 22 confetti triangles drifting down from 30-46 units; the main character turns once like a card (horizontal scale cos(2πt), mirrored sprite on the back half)." },
-    { "name": "Dash strips", "how": "Thin folded paper strips (light/shade halves) in cream and indigo trail behind the dash direction, three cream afterimages of the main character fade at alpha 0.38/i." },
-    { "name": "Floating numbers", "how": "Zen Maru Gothic 900 in indigo #3b4a87 with a cream #fffbf3 border; emphasised values are deep coral #9b4136 on a folded mustard tag (two halves #f8d372 / #e6ae42 with a cream crease). They unfold vertically from a crease (outBack) and fold away." }
+    { "name": "Paper-plane projectile", "how": "A folded dart (cream wings with coral tips, valley crease down the middle) baked at 16 angles so the light stays upper-left, banking ±0.2 rad in flight, with its own soft shadow 7 units below and two short pencil dashes #7a6c74 behind it." },
+    { "name": "Orbiting shuriken", "how": "A two-tone origami throwing star (coral and teal arms around a raised centre) baked in 8 rotation frames over 90°, spinning at 30 frames per second, bobbing 1.2 units over a soft shadow blob." },
+    { "name": "Collectibles", "how": "Small: a mustard lucky star (6 rotation frames at 5 fps). Large: a teal folded crystal (8 frames at 8 fps). Both bob 3 ± 1.2 units on held 12 fps steps, each on its own phase, over a plum blob shadow; spawned ones pop up 10 units with an outBack scale. On collect: a tinted 4-point sparkle and the star swelling to 1.9x while lifting 9 units in 0.3 s." },
+    { "name": "Impact", "how": "Layered in 4 parts: core = a crisp cream 4-point folded sparkle for 0.13 s; main = three crease lines snapping open in a fan around the hit direction (a lit mountain line beside a dark valley line, 0.17 s, outQuad); secondary = three two-tone paper shards flung along the hit with gravity 260; residue = one cream fleck drifting down for 0.65 s." },
+    { "name": "Crumple and unfold", "how": "When a creature vanishes: flash 0.16 s, 8 (large: 12) two-tone kite petals shoot out and fold shut again (sin envelope), 7 (14) two-sided confetti triangles flutter, and the flat sheet left on the ground folds itself back up in held steps over 1.1 s (open, half, closed, shrink and fade). The large creature adds a plum dash-dot crease ring and a short screen shake." },
+    { "name": "Two-sided confetti", "how": "Flat triangles that flip with cos(t*9): the colour front (light/base tone) when positive, the cream back when negative, with a gentle sideways sway, gravity 40-120 and high drag so they flutter." },
+    { "name": "Glow-up", "how": "A pale-gold sparkle, a dash-dot mustard crease ellipse opening to 40 units and a dashed indigo one 0.12 s later, a ground ring of 10 mustard/coral petals plus 8 teal/cream petals, and 22 confetti triangles drifting down from 30-46 units; the main character turns once like a card (horizontal scale cos(2πt), mirrored sprite on the back half)." },
+    { "name": "Dash strips", "how": "Thin folded paper strips (light/shade halves) in cream and indigo trail behind the dash direction, plus two cream cut-out afterimages of the main character 8 units apart at alpha 0.42/i." },
+    { "name": "Floating numbers", "how": "Zen Maru Gothic 900 in indigo #3b4a87 with a cream #fffbf3 border; emphasised values are deep coral #9b4136 on a folded mustard tag (two halves #f8d372 / #e6ae42 with a cream crease). They unfold vertically from a crease (outBack, 14 % of their life) and fold away in the last 22 %." }
   ],
   "atmosphere": {
-    "summary": "A calm, evenly lit paper table: one soft light from the upper left, sheared plum drop shadows to the lower right, layered sheets casting short offset shadows, a faint warm light gradient across the screen and a few origami butterflies drifting over the paper.",
+    "summary": "A calm, evenly lit paper table: one soft light from the upper left, sheared plum drop shadows to the lower right, layered sheets casting short offset shadows, a faint warm light gradient across the screen, paper props swaying in slow gusts and a few origami butterflies drifting over the paper.",
     "rules": [
       "One light direction for everything: L = normalize(-0.55, -0.45, 0.7); shadows always fall to the lower right.",
-      "Cast shadow = silhouette tinted rgb(78,56,72), sheared x' = x - 0.62*y, y' = -0.36*y, blurred 1.1 units (props 1.6), alpha 0.3 (crane 0.24, props 0.28) + contact ellipse; flying things get an unsheared, flattened shadow offset by their height.",
+      "Cast shadow = silhouette tinted rgb(78,56,72), sheared x' = x - 0.62*y, y' = -0.36*y, blurred 1.1 units (props and the large creature 1.4-1.6), alpha 0.3 (crane 0.24, props 0.28) + contact ellipse; hopping and flying things get a flattened shadow that shrinks with height (1 - lift*0.04).",
       "Screen overlay baked once per size: linear gradient from rgba(255,250,235,.16) at the upper left to rgba(90,64,80,.14) at the lower right, plus a radial vignette to rgba(96,70,70,.17).",
-      "Ambient life: origami butterflies (two kite wings, flap by horizontal scale 0.25-1 at 11 rad/s) on a 230-unit grid, 22 ± 4 units above their shadows.",
+      "Ambient life is slower than the actors: butterflies (two kite wings, beats on 12 fps steps open - half - closed - half with held glides) on a 230-unit grid, 22 ± 4 units above their shadows; prop sway at 0.4-0.9 rad/s.",
       "No glow, no bloom, no fog – paper is matte; brightness differences come from facets only.",
       "Modal overlays: indigo tint linear-gradient(135deg, rgba(59,74,135,.34), rgba(40,52,98,.5)) with a diagonal crease grid of rgba(255,250,240,.13) lines every 64 px."
     ]
   },
   "ui": {
-    "summary": "UI is folded paper: bars are cream strips folded lengthwise (top half lighter, bottom half shaded) with pleated fills, the clock is an envelope with a flap and diagonal creases, counters are paper tabs with a dog-eared corner, the caption bar is a note folded down the middle and cards are envelopes with a coloured flap triangle that unfold (rotateX from the top edge) into place. Hard offset shadows rgba(82,60,72,.15), 1 px edges rgba(120,96,80,.24), no rounded corners.",
-    "css": ".bar { position: relative; width: 250px; height: 26px; background: linear-gradient(180deg, #fffaf1 0 50%, #e9ddc7 50% 100%); box-shadow: 0 0 0 1px rgba(120,96,80,.26), 3px 4px 0 rgba(82,60,72,.16); overflow: hidden; }\n.bar-fill { height: 100%; background: linear-gradient(180deg, rgba(255,255,255,.2) 0 50%, rgba(90,24,14,.13) 50% 100%), repeating-linear-gradient(62deg, #ee8063 0 15px, #df6c52 15px 30px); box-shadow: 1px 0 0 #9b4136; }\n.envelope { position: relative; isolation: isolate; padding: 9px 30px 7px; background: #fbf5e8; box-shadow: 0 0 0 1px rgba(120,96,80,.24), 4px 5px 0 rgba(82,60,72,.15); }\n.envelope::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 60%; z-index: -1; background: linear-gradient(90deg, #f3e9d6 0 50%, #e9dcc4 50% 100%); clip-path: polygon(0 0, 100% 0, 50% 100%); }\n.tab { position: relative; padding: 3px 26px 3px 8px; background: linear-gradient(225deg, transparent 14px, #fbf5e8 14px); filter: drop-shadow(0 0 .6px rgba(110,86,70,.9)) drop-shadow(3px 4px 0 rgba(82,60,72,.15)); }\n.tab::after { content: ''; position: absolute; right: 0; top: 0; width: 14px; height: 14px; background: linear-gradient(225deg, transparent 50%, #dccbae 50%); }\n.card { position: relative; isolation: isolate; width: 232px; min-height: 300px; background: linear-gradient(180deg, #fffaf1, #f5ecdb); box-shadow: 0 0 0 1px rgba(120,96,80,.24), 6px 8px 0 rgba(82,60,72,.16); transform: rotate(-1.5deg); }\n.card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 118px; z-index: -1; background: linear-gradient(90deg, #f29074 0 50%, #e2735a 50% 100%); clip-path: polygon(0 0, 100% 0, 50% 100%); }\n.ribbon { padding: 12px 64px 14px; font: 900 54px/1 'Zen Maru Gothic', sans-serif; color: #fffbf3; background: linear-gradient(180deg, #ee8466 0 50%, #d8644b 50% 100%); clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 50%, 100% 100%, 0 100%, 22px 50%); }"
+    "summary": "UI is folded paper: bars are cream strips folded lengthwise (top half lighter, bottom half shaded) with pleated fills, the clock is an envelope with a flap and diagonal creases, counters are paper tabs with a dog-eared corner, the caption bar is a note folded down the middle and cards are envelopes with a coloured flap triangle (coral, teal, mustard) that unfold (rotateX from the top edge) into place, the title is a coral ribbon with notched ends. Hard offset shadows rgba(82,60,72,.15), 1 px edges rgba(120,96,80,.24), no rounded corners.",
+    "css": ".bar { position: relative; width: 250px; height: 26px; background: linear-gradient(180deg, #fffaf1 0 50%, #e9ddc7 50% 100%); box-shadow: 0 0 0 1px rgba(120,96,80,.26), 3px 4px 0 rgba(82,60,72,.16); overflow: hidden; }\n.bar-fill { height: 100%; background: linear-gradient(180deg, rgba(255,255,255,.2) 0 50%, rgba(90,24,14,.13) 50% 100%), repeating-linear-gradient(62deg, #ee8063 0 15px, #df6c52 15px 30px); box-shadow: 1px 0 0 #9b4136; }\n.envelope { position: relative; isolation: isolate; padding: 9px 30px 7px; background: #fbf5e8; box-shadow: 0 0 0 1px rgba(120,96,80,.24), 4px 5px 0 rgba(82,60,72,.15); }\n.envelope::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 60%; z-index: -1; background: linear-gradient(90deg, #f3e9d6 0 50%, #e9dcc4 50% 100%); clip-path: polygon(0 0, 100% 0, 50% 100%); }\n.tab { position: relative; padding: 3px 26px 3px 8px; background: linear-gradient(225deg, transparent 14px, #fbf5e8 14px); filter: drop-shadow(0 0 .6px rgba(110,86,70,.9)) drop-shadow(3px 4px 0 rgba(82,60,72,.15)); }\n.tab::after { content: ''; position: absolute; right: 0; top: 0; width: 14px; height: 14px; background: linear-gradient(225deg, transparent 50%, #dccbae 50%); }\n.card { position: relative; isolation: isolate; width: 232px; min-height: 300px; background: linear-gradient(180deg, #fffaf1, #f5ecdb); box-shadow: 0 0 0 1px rgba(120,96,80,.24), 6px 8px 0 rgba(82,60,72,.16); transform: rotate(-1.5deg); animation: unfold .6s cubic-bezier(.2,1.25,.4,1) backwards; }\n.card::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 118px; z-index: -1; background: linear-gradient(90deg, #f29074 0 50%, #e2735a 50% 100%); clip-path: polygon(0 0, 100% 0, 50% 100%); }\n@keyframes unfold { from { transform: perspective(700px) rotateX(-88deg); opacity: 0; } to { transform: perspective(700px) rotateX(0) rotate(-1.5deg); opacity: 1; } }\n.ribbon { padding: 12px 64px 14px; font: 900 54px/1 'Zen Maru Gothic', sans-serif; color: #fffbf3; background: linear-gradient(180deg, #ee8466 0 50%, #d8644b 50% 100%); clip-path: polygon(0 0, 100% 0, calc(100% - 22px) 50%, 100% 100%, 0 100%, 22px 50%); }"
   },
   "motion": [
-    "Main character: 4 walk frames over 4.6 animation units per cycle with a |sin| step bob of 1.1 units; idle breathing ±1.8 % vertical; small 0.04 rad lean while walking.",
-    "Small creature: hop cycle anim*0.5 – 20 % crouch squash (8 %), 58 % airborne with a 4.5-unit arc and nose-up tilt −0.2 rad, then land.",
-    "Fast creature: 4 wing frames at 10 per second, hover 8 ± 1.8 units, banking ±0.12 rad with its velocity.",
-    "Large creature: 4 walk frames at anim*0.32*4, 1.3-unit body bob, ±0.03 rad sway.",
-    "Appear 0.45 s: flat sheet rotates 1.6 rad and shrinks while the creature unfolds upward (outBack after 25 %); vanish 0.35 s: flatten and fade.",
+    "Stop-motion timing: every actor switches between baked poses on held steps (8-12 fps); only position, a small squash and a lean are continuous.",
+    "Main character walk: 8 poses per cycle (one cycle = 6.2 animation units ≈ 0.67 s at walking speed ≈ 12 fps), stride 4.4 units, foot lift 2.4, body bob 0.3 / -0.3 / 0.8 / 1.3 per half step, lean 0.07-0.095 rad; sleeves counter-swing the feet; tail, ear tips and hem lag one pose.",
+    "Main character idle: breathing on 8 fps steps over 2.5 s (neutral - in, held 0.75 s - neutral - out, held 0.75 s), blink every 3.7 s for 0.17 s, ear flick every 6.3 s for 0.36 s; throw pose while aiming with a 3 % recoil squash.",
+    "Dash: lean 0.22 rad, ears swept back, tail streaming, squash 1.1 / 0.93 lifted 1.2 units, then a landing pose (squash 1.06 / 0.95) for 0.14 s. Hurt: crumpled pose with squash 1.08 / 0.92 and a cream flash, then blinking at 12 fps while untouchable.",
+    "Small creature hop on 9 held steps: crouch 20 % (squash 1.05 / 0.94, anticipation) - launch - airborne arc 6.5 units with nose-up tilt -0.16 then +0.1 rad - landing squash 1.08 / 0.9 - sit with throat puff and blinks; phase anim*0.38 + seed*3.",
+    "Fast creature: 12 fps flap sequence up (held 2 steps) - half - down-stroke - low - recovery - half; the body rises up to 1.6 units on the down-stroke and the neck bobs; hover 8 ± 1.6 units, banking ±0.12 rad with its velocity.",
+    "Large creature: 8-pose lateral-sequence walk, body bobs twice per cycle (0-1.1 units), head nods ±1, mane tips lag the bob, tail wags ±2.4.",
+    "Hit (crease pop): crumpled hit pose squashed 1.16 / 0.84 for ~80 ms with a cream flash on the first frames, then a spring-back 0.95 / 1.06 until ~120 ms.",
+    "Vanish 0.35 s in 5 held steps: crumple + flash - squeeze - crumpled paper ball tossed up 6 units - ball lands - pops open into a flat sheet; the crane is crushed and its loose sheet see-saws down. The left sheet folds itself away over the next 1.1 s.",
+    "Appear 0.45 s in 6 held steps: a folded packet drops in, half-opens, opens flat; the creature rises out of it squashed (1.22 / 0.42) - stretched (0.9 / 1.18) - settles (1.05 / 0.93) while the sheet shrinks and fades. The crane: a loose sheet see-saws down from 30 units, then the crane pops in with pinched wings and a 1.12 overshoot.",
     "Glow-up: one card-flip turn in the first third of a second; numbers unfold from a crease in 14 % of their life and fold away in the last 22 %.",
-    "HUD cards unfold from their top edge (perspective rotateX −88° -> 0) in 0.6 s, staggered 0.08 s; the title ribbon unfolds horizontally (scaleX 0.05 -> 1)."
+    "HUD cards unfold from their top edge (perspective rotateX −88° -> 0) in 0.6 s, staggered 0.08 s; the title ribbon unfolds horizontally (scaleX 0.05 -> 1) in 0.5 s."
   ],
   "do": [
     "Model every asset as facets with a z height per vertex and let one shared light choose 1 of 4 tones per facet.",
     "Draw shared edges as creases: bright for mountain folds, dark for valley folds; stroke only open edges as paper edges.",
-    "Show the cream back of the paper wherever a sheet turns over – hems, bellies, inner ears, wing backs, confetti.",
-    "Keep the ground pale and structured by its crease pattern; put colour on things standing on it.",
-    "Let region borders follow crease lines so every edge between sheets is straight, hemmed and shadowed.",
+    "Show the cream back of the paper wherever a sheet turns over – hems, ribbon folds, bellies, inner ears, wing backs, confetti.",
+    "Animate with held poses (8-12 fps) and let tails, ears, hems and manes lag one pose behind the body.",
+    "Give every region a reason: villages on fields, orchards on blossom diamonds, groves in meadows, reeds at shores; connect sites with folded ribbons.",
+    "Gather grass in clumps at edges, verges and shores and leave open paper calm.",
     "Bake both facing directions from mirrored geometry so the light never flips.",
     "Lift every folded object with a soft plum shadow falling to the lower right."
   ],
@@ -146,10 +157,11 @@
     "Don't use smooth gradients, soft airbrush shading or rounded blobs – paper folds are straight.",
     "Don't add thick black outlines; edges are paper edges in the colour's deep tone.",
     "Don't mirror sprites with negative scale – the light would jump to the right.",
+    "Don't tween poses smoothly or animate everything with one shared sine – it stops looking like paper puppets.",
     "Don't cut organic, torn or scissor-cut silhouettes – that is cut-paper, not origami.",
-    "Don't fill the ground with saturated colour or dense decals; it must stay quiet behind the actors.",
+    "Don't scatter tufts and flowers evenly over the ground or fill it with saturated colour; it must stay quiet behind the actors.",
     "Don't make shadows black or grey, and don't let them point in different directions.",
     "Don't use glows, bloom or neon – paper is matte."
   ],
-  "performance": "All fold meshes are baked at init (main character 6 poses x 2 directions, 3 x 3 frog sprites x 2, 4 crane and 4 boar frames x 2, 19 props, 12 pinwheel frames, 16 plane angles, 8 shuriken, 6 star and 8 crystal frames, butterflies) together with their blurred shadow sprites – roughly 150-250 ms. Hit flashes are lazily tinted copies. Per frame only drawImage blits, a few particle paths and one full-screen overlay: about 1 ms of script for 100+ creatures. Ground chunks (256 units, up to 640 px) are vector-drawn by a generator yielding per layer and every 16 decals (about 4 ms each), with a region cache for the per-triangle noise; ctx.filter blur is used only at bake time."
+  "performance": "All fold meshes are baked at init together with their blurred shadow sprites: main character 20 poses x 2 directions (blink poses share the idle shadows), 3 frog colours x 7 poses + 3 crumpled poses, 6 crane and 8 boar poses + crumpled ones, 5 paper balls, 24 prop variants, 12 pinwheel frames, 16 plane angles, 8 shuriken, 6 star and 8 crystal frames, 4 butterflies and 23 ground-decal sprites (12 tufts, 9 flowers, 2 pebbles). Hit flashes are lazily tinted copies. Per frame only drawImage blits, a few particle paths and one full-screen overlay. Ground chunks (256 units, up to 640 px) are vector-drawn by a generator that yields per layer and every 8 crop ridges, with caches for sites, cell regions and ribbons. Triangles are grouped by colour (relief quantised to 0.25 % steps) into a few dozen fill + seam-stroke paths per layer, crease lines are batched into a few paths per 160-unit panel, and decals and crop sprouts are stamped from the baked sprites (no per-decal mesh) – about 4-5 ms of script per chunk. ctx.filter blur is used only at bake time."
 }

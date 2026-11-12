@@ -628,9 +628,9 @@
       FINE[(y << 8) | x] = (U.fbmTile(x / 16, y / 16, 16, 901, 3) - 0.5) * 2.2;
       CLUMP[(y << 8) | x] = (U.fbmTile(x / 5.12, y / 5.12, 50, 902, 2) - 0.5) * 2.2;
     }
-    TEX.grassA = grassTex(101, R.grass, 3, 7, 1400);
-    TEX.grassB = grassTex(202, R.grass, 3, 7, 1400);
-    TEX.meadow = grassTex(303, R.meadow, 4, 8, 1700);
+    TEX.grassA = grassTex(101, R.grass, 3, 7, 800);
+    TEX.grassB = grassTex(202, R.grass, 3, 7, 800);
+    TEX.meadow = grassTex(303, R.meadow, 4, 8, 1000);
     TEX.forest = forestTex(404).data;
     TEX.stone = stoneTex(505).data;
     makeBlossoms(606);
@@ -709,7 +709,7 @@
           const wm = sstep(0.555, 0.64, fM + fn * 0.05);
           if (wm > 0) {
             r += (gM[t4] - r) * wm; g += (gM[t4 + 1] - g) * wm; b += (gM[t4 + 2] - b) * wm;
-            if (BLOOM_T[t] < wm * 255) { r = BLOOM_C[t * 3]; g = BLOOM_C[t * 3 + 1]; b = BLOOM_C[t * 3 + 2]; }
+            if (BLOOM_T[t] < wm * 255 * sstep(0.47, 0.6, fL + fn * 0.04)) { r = BLOOM_C[t * 3]; g = BLOOM_C[t * 3 + 1]; b = BLOOM_C[t * 3 + 2]; }
           }
         } else if (m === FOREST) {
           r = gF[t4]; g = gF[t4 + 1]; b = gF[t4 + 2];
@@ -784,16 +784,16 @@
       const m = at(x, y), v = rng.next();
       if (m === GRASS) {
         sampleFields(gc, Math.floor(x), Math.floor(y), fd);
-        const meadow = fd[1] > 0.585;
+        const meadow = fd[1] > 0.585, bed = fd[4];                  // bed: the light-pool field (sunlit patches)
         if (meadow) {
-          if (v < 0.22) put(rng.pick(DEC.flower), x, y);
-          else if (v < 0.36) put(rng.pick(DEC.lav), x, y);
-          else if (v < 0.5) put(rng.pick(DEC.tuftM), x, y);
+          if (bed > 0.58) { if (v < 0.6) put(rng.pick(bed > 0.62 && v < 0.24 ? DEC.lav : DEC.flower), x, y); }
+          else if (bed > 0.52) { if (v < 0.28) put(rng.pick(DEC.tuftM), x, y); else if (v < 0.36) put(rng.pick(DEC.flower), x, y); }
+          else if (v < 0.06) put(rng.pick(DEC.tuftM), x, y);
         } else {
-          if (v < 0.2) put(rng.pick(DEC.tuft), x, y);
-          else if (v < 0.25) put(rng.pick(DEC.daisy), x, y);
-          else if (v < 0.29) put(rng.pick(DEC.clover), x, y);
-          else if (v < 0.305) put(rng.pick(DEC.pebble), x, y);
+          if (bed > 0.56) { if (v < 0.36) put(rng.pick(DEC.tuft), x, y); else if (v < 0.46) put(rng.pick(DEC.daisy), x, y); }
+          else if (v < 0.05) put(rng.pick(DEC.tuft), x, y);
+          else if (v < 0.07) put(rng.pick(DEC.clover), x, y);
+          else if (v < 0.075) put(rng.pick(DEC.pebble), x, y);
         }
       } else if (m === FOREST) {
         if (v < 0.13) put(rng.pick(DEC.fern), x, y);
@@ -1172,7 +1172,6 @@
     const r = finish(pix, o), l = finish(pix.flip(), Object.assign({}, o, { ox: pix.w - (o.ox !== undefined ? o.ox : pix.w / 2) }));
     return [r, l];
   }
-  function withFlash(s) { s.fl = { c: U.tint(s.c, WHITE, 1), ox: s.ox, oy: s.oy }; return s; }
 
   function leafStroke(p, x0, y0, ang, len, wid, rmp, bend) {
     for (let k = 0; k <= len * 2; k++) {
@@ -1189,66 +1188,108 @@
     }
   }
 
-  /* ---------- Jack: pumpkin head with soft inner glow, little teal hooded cape, satchel */
-  function jackPix(mode, k, throwing) {
-    const W = 26, H = 32, p = new Pix(W, H), cx = 13, FY = 31;
-    let bob = 0, hb = 0, ax = 1, bx = -1, al = 0, bl = 0, arm = 0, hem = 0;
-    if (mode === 1) {
-      bob = [1, 0, 0, 1, 0, 0][k]; hb = [1, 1, 0, 1, 1, 0][k];
-      ax = [2, 1, -1, -2, -1, 1][k]; bx = -ax; al = [0, 0, 0, 0, 1, 1][k]; bl = [0, 1, 1, 0, 0, 0][k];
-      arm = [-1, -1, 0, 1, 1, 0][k]; hem = [0, -1, -1, 0, -1, -1][k];
-    } else {
-      bob = [0, 0, 1, 1][k]; hb = [0, 0, 0, 1][k]; hem = [0, -1, -1, 0][k];
-    }
-    // legs + boots
-    const leg = (lx, lift, dk) => {
-      const x0 = cx - 1 + lx;
-      for (let y = 24 + bob; y <= FY - 2 - lift; y++) { p.set(x0, y, R.pants[3 - dk]); p.set(x0 + 1, y, R.pants[2 - dk]); }
-      const by = FY - lift;
-      p.set(x0, by - 1, R.leather[3 - dk]); p.set(x0 + 1, by - 1, R.leather[2 - dk]);
-      p.set(x0, by, R.leather[2 - dk]); p.set(x0 + 1, by, R.leather[2 - dk]); p.set(x0 + 2, by, R.leather[1 - dk]);
+  /* ---------- the main character: a pumpkin head with a carved, softly glowing face, a short teal hooded cape with a
+     magenta lining, a leather satchel and boots. Built per pose and cached: slanted legs, counter-swinging arms,
+     the head arriving one pose late, cape hem + satchel trailing, the stem leaf flicking after the head. */
+  // pose: bob torso drop (+ down) · a/b near/far foot x · la/lb foot lift · arm near-arm swing (-2..2, 3 throw, 4 raised)
+  // farm far-arm swing · hb head lag · hx head shift · lean torso lean (+ forward) · flap cape trail (-1 forward .. 3 streaming)
+  // leaf stem-leaf lag (-1 up) · face n|blink|focus|hurt|joy · look (glance back, face 1 px towards the back)
+  const HP0 = { bob: 0, a: 0, b: 0, la: 0, lb: 0, arm: 0, farm: 0, hb: 0, hx: 0, lean: 0, flap: 0, leaf: 0, face: 'n', look: 0 };
+  const hp = (o) => Object.assign({}, HP0, o);
+  const HWALK = [
+    { bob: 0, a: 3, b: -3, la: 0, lb: 0, arm: -2, flap: 0 },   // contact: near foot forward, near arm back
+    { bob: 1, a: 2, b: -2, la: 0, lb: 1, arm: -1, flap: 1 },   // down: the weight lands, the back heel peels off
+    { bob: 0, a: 0, b: 0, la: 0, lb: 2, arm: 0, flap: 2 },     // passing: the far foot swings through
+    { bob: -1, a: -2, b: 2, la: 0, lb: 1, arm: 1, flap: 1 },   // up: push-off
+    { bob: 0, a: -3, b: 3, la: 0, lb: 0, arm: 2, flap: 0 },    // contact: far foot forward, near arm forward
+    { bob: 1, a: -2, b: 2, la: 1, lb: 0, arm: 1, flap: 1 },
+    { bob: 0, a: 0, b: 0, la: 2, lb: 0, arm: 0, flap: 2 },
+    { bob: -1, a: 2, b: -2, la: 1, lb: 0, arm: -1, flap: 1 },
+  ];
+  HWALK.forEach((s, i) => {
+    const p1 = HWALK[(i + 7) & 7].bob, p2 = HWALK[(i + 6) & 7].bob;
+    s.hb = p1 - s.bob;                                   // the head arrives one pose late
+    s.farm = -s.arm;                                     // far arm counter-swings
+    s.leaf = p1 - p2 > 0 ? -1 : p1 - p2 < 0 ? 1 : 0;     // the stem leaf trails the head
+    Object.assign(s, hp(s));
+  });
+  const HPOSE = {
+    wind: hp({ bob: 2, a: 1, b: -2, arm: -2, farm: -1, lean: -1, flap: 0, face: 'focus', leaf: -1 }),             // dash anticipation: crouch
+    go: hp({ bob: -1, a: 4, b: -4, lb: 1, arm: -2, farm: -2, hb: 1, hx: 1, lean: 2, flap: 3, face: 'focus', leaf: 1 }), // dash stretch
+    skid: hp({ bob: 1, a: 4, b: -1, arm: 2, farm: 1, hx: -1, lean: -2, flap: -1, leaf: -1 }),                       // brake: heels dug in
+    skid2: hp({ bob: 0, a: 2, b: -1, arm: 1, hb: 1, lean: -1, flap: 1 }),                                             // settle
+    hurt: hp({ a: -1, b: -3, la: 1, arm: 4, farm: -2, hb: -1, hx: -2, lean: -2, flap: 2, face: 'hurt', leaf: -1 }),   // knock-back recoil
+    cheer: hp({ bob: -1, a: 1, b: -1, arm: 4, farm: 4, flap: 1, face: 'joy', leaf: -1 }),
+  };
+  const HAND = [[-2, 4], [-1, 5], [0, 5], [1, 5], [2, 4], [6, 0], [6, -4]];   // hand offset per arm value -2..4 (4 = raised)
+  function heroPix(s) {
+    const W = 28, H = 34, p = new Pix(W, H), cx = 13, FY = 33;
+    const bob = s.bob, lean = s.lean, flap = s.flap;
+    const top = 16 + bob, hemY = 27 + bob, hipY = 26 + bob;
+    const shear = (y) => Math.round(lean * clamp((hemY - y) / (hemY - top), 0, 1));
+    // legs, far first: slanted 2-px trousers into chunky boots with a lit cuff
+    const leg = (hx0, fx, lift, far) => {
+      const fy = FY - lift, y1 = fy - 2, k = far ? 1 : 0;
+      for (let y = hipY; y <= y1; y++) {
+        const t = (y - hipY) / Math.max(1, y1 - hipY), x = Math.round(hx0 + (fx - hx0) * t);
+        p.set(x, y, R.pants[3 - k]); p.set(x + 1, y, R.pants[2 - k]);
+      }
+      const bx = Math.round(fx);
+      p.set(bx, fy - 1, R.leather[4 - k * 2]); p.set(bx + 1, fy - 1, R.leather[3 - k * 2]);
+      p.set(bx, fy, R.leather[3 - k]); p.set(bx + 1, fy, R.leather[2 - k]); p.set(bx + 2, fy, R.leather[2 - k * 2]);
     };
-    leg(bx - 1, bl, 1);
-    leg(ax, al, 0);
-    // hood bunched behind the head
-    const top = 14 + bob, hemY = 25 + bob;
-    p.blob(cx - 5, top + 1, 3.4, 3, R.cape, { bias: -0.08 });
-    // cape body
+    leg(cx - 3, cx - 3 + s.b, s.lb, true);
+    leg(cx - 1, cx - 1 + s.a, s.la, false);
+    // arms: sleeve in cape teal, leather glove; the far one swings wider and mostly hides behind the cape
+    const arm = (sx, sy, sw, far) => {
+      const hd = HAND[clamp(sw + 2, 0, 6)];
+      const ex = Math.round(sx + (far && sw === 4 ? -7 : hd[0] * (far && sw < 3 ? 1.5 : 1))), ey = sy + hd[1];
+      const n = Math.max(1, Math.abs(ex - sx), Math.abs(ey - sy)), horiz = Math.abs(ex - sx) > Math.abs(ey - sy);
+      for (let i = 0; i < n; i++) {
+        const x = Math.round(sx + (ex - sx) * i / n), y = Math.round(sy + (ey - sy) * i / n);
+        p.set(x, y, R.cape[far ? 3 : 5]);
+        if (horiz) p.set(x, y + 1, R.cape[far ? 2 : 3]); else p.set(x + 1, y, R.cape[far ? 2 : 3]);
+      }
+      p.set(ex, ey, R.leather[far ? 2 : 4]); p.set(ex + 1, ey, R.leather[far ? 1 : 3]);
+      p.set(ex, ey + 1, R.leather[far ? 1 : 3]); p.set(ex + 1, ey + 1, R.leather[far ? 0 : 2]);
+    };
+    const shY = top + 2;
+    arm(cx - 4 + shear(shY), shY, s.farm, true);
+    // hood bunched behind the head (moves with the shoulders)
+    p.blob(cx - 5 + shear(top), top + 1, 3.4, 3, R.cape, { bias: -0.08 });
+    // cape: widening bell, back edge trails by `flap`, hem lifts at the back while it streams
     for (let y = top; y <= hemY; y++) {
-      const t = (y - top) / (hemY - top);
-      const hw = 3.8 + t * 3.4;
-      const ccx = cx - 0.5 - t * 0.9 + (y >= hemY - 2 ? hem : 0);
-      for (let x = Math.floor(ccx - hw - 1); x <= Math.ceil(ccx + hw); x++) {
-        const nx = (x + 0.5 - ccx) / hw;
-        if (Math.abs(nx) > 1) continue;
-        if (y === hemY && (x + k) % 3 === 0) continue;
-        const nz = Math.sqrt(1 - nx * nx);
-        let v = (nx * LDIR[0] - 0.15 * LDIR[1] + nz * LDIR[2]) * 0.5 + 0.5 - t * 0.1;
+      const t = (y - top) / (hemY - top), hw = 3.8 + t * 3.4;
+      const tr = flap * sstep(0.2, 1, t);
+      const ccx = cx - 0.5 - t * 0.9 + shear(y);
+      const xl = ccx - hw - tr, xr = ccx + hw + (tr < 0 ? -tr * 0.8 : 0);
+      for (let x = Math.floor(xl) - 1; x <= Math.ceil(xr) + 1; x++) {
+        const xc = x + 0.5;
+        if (xc < xl || xc > xr) continue;
+        const nx = (xc - ccx) / hw;
+        if (y === hemY && (x + flap + 40) % 3 === 0) continue;
+        if (flap >= 2 && y > hemY - (flap - 1) && nx < -0.25) continue;
+        const nc = clamp(nx, -1, 1), nz = Math.sqrt(Math.max(0, 1 - nc * nc));
+        let v = (nc * LDIR[0] - 0.15 * LDIR[1] + nz * LDIR[2]) * 0.5 + 0.5 - t * 0.1;
         if ((x - Math.round(ccx) + 40) % 4 === 1 && t > 0.3) v -= 0.08;
+        if (nx < -1) v -= 0.14;                                   // the trailing hem shows its shaded inside
         let c = R.cape[clamp(Math.floor(v * 8), 0, 7)];
-        if (nx > 0.7 && t > 0.35) c = mix(hx('#7a2f5a'), hx('#c45a7a'), clamp(1 - t, 0, 1)); // magenta lining at the front edge
+        if (nx > 0.7 && t > 0.35) c = mix(hx('#7a2f5a'), hx('#c45a7a'), clamp(1 - t, 0, 1));   // magenta lining at the front edge
         p.set(x, y, c);
       }
     }
-    // satchel strap + bag on the back hip
-    for (let i = 0; i <= 6; i++) p.set(cx + 3 - i, top + i, R.leather[i < 2 ? 4 : 3]);
-    for (let y = top + 6; y <= top + 9; y++) for (let x = cx - 8; x <= cx - 4; x++) {
-      const v = y === top + 6 ? 4 : y === top + 9 ? 1 : x === cx - 8 ? 3 : 2;
-      p.set(x, y, R.leather[v]);
+    // satchel strap + bag on the back hip (the bag lands a pose late, like the head)
+    const sh0 = shear(top);
+    for (let i = 0; i <= 6; i++) p.set(cx + 3 - i + sh0, top + i, R.leather[i < 2 ? 4 : 3]);
+    const by0 = top + 6 + s.hb, bx0 = cx - 8 + shear(top + 7);
+    for (let y = by0; y <= by0 + 3; y++) for (let x = bx0; x <= bx0 + 4; x++) {
+      p.set(x, y, R.leather[y === by0 ? 4 : y === by0 + 3 ? 1 : x === bx0 ? 3 : 2]);
     }
-    p.set(cx - 6, top + 7, R.gold[4]); p.set(cx - 6, top + 6, R.gold[3]);
-    // clasp
-    p.set(cx + 1, top + 1, R.gold[4]); p.set(cx + 2, top + 1, R.gold[3]);
-    // near arm
-    if (throwing) {
-      for (let x = cx + 3; x <= cx + 7; x++) { p.set(x, top + 2, R.cape[5]); p.set(x, top + 3, R.cape[3]); }
-      p.set(cx + 8, top + 1, R.leather[3]); p.set(cx + 9, top + 1, R.leather[2]); p.set(cx + 8, top + 2, R.leather[2]); p.set(cx + 9, top + 2, R.leather[1]);
-    } else {
-      for (let y = top + 2; y <= top + 6; y++) { const ox = y > top + 4 ? arm : 0; p.set(cx + 3 + ox, y, R.cape[5]); p.set(cx + 4 + ox, y, R.cape[3]); }
-      p.set(cx + 3 + arm, top + 7, R.leather[3]); p.set(cx + 4 + arm, top + 7, R.leather[2]);
-    }
+    p.set(bx0 + 2, by0 + 1, R.gold[4]); p.set(bx0 + 2, by0, R.gold[3]);
+    p.set(cx + 1 + sh0, top + 1, R.gold[4]); p.set(cx + 2 + sh0, top + 1, R.gold[3]);   // clasp
+    if (s.arm !== 4) arm(cx + 3 + shear(shY), shY, s.arm, false);
     // pumpkin head
-    const hcx = cx + 0.5, hcy = 8.5 + hb, rx = 7.6, ry = 6.4;
+    const hcx = cx + 0.5 + lean + s.hx, hcy = 10.5 + bob + s.hb, rx = 7.6, ry = 6.4;
     const RIBS = [-0.62, -0.22, 0.2, 0.6];
     p.blob(hcx, hcy, rx, ry, R.pumpkin, {
       tex: (x, y, nx, ny) => {
@@ -1258,23 +1299,32 @@
         return g + (ny < -0.75 ? -0.06 : 0) - 0.03;
       },
     });
-    // stem + leaf
-    const ty = Math.round(hcy - ry);
+    // stem + leaf (the leaf trails the head: up when the head drops)
+    const ty = Math.round(hcy - ry), lf = s.leaf;
     p.set(hcx - 1, ty, R.stem[2]); p.set(hcx - 1, ty - 1, R.stem[3]); p.set(hcx - 2, ty - 2, R.stem[3]); p.set(hcx - 1, ty - 2, R.stem[4]);
     p.set(hcx - 3, ty - 2, R.stem[2]);
-    p.set(hcx, ty - 1, R.tops[5]); p.set(hcx + 1, ty - 1, R.tops[6]); p.set(hcx + 1, ty - 2, R.tops[4]); p.set(hcx + 2, ty - 2, R.tops[5]);
+    p.set(hcx, ty - 1, R.tops[5]); p.set(hcx + 1, ty - 1 + (lf > 0 ? 1 : 0), R.tops[6]);
+    p.set(hcx + 1, ty - 2 + lf, R.tops[4]); p.set(hcx + 2, ty - 2 + lf, R.tops[5]);
+    if (lf < 0) p.set(hcx + 3, ty - 3, R.tops[6]); else if (lf > 0) p.set(hcx + 3, ty - 1, R.tops[4]);
     // carved face (3/4 view, emissive)
-    const fx = Math.round(hcx + 1), fy = Math.round(hcy);
+    const fx = Math.round(hcx + 1) - s.look, fy = Math.round(hcy);
     const G0 = hx('#fff6c4'), G1 = hx('#ffd05a'), G2 = hx('#ff9a2e'), G3 = hx('#d4581e');
-    const em = (x, y, c) => p.set(x, y, c, 255, EMIT);
-    // eyes: upward triangles
-    em(fx - 3, fy - 2, G1); em(fx - 4, fy - 1, G2); em(fx - 3, fy - 1, G0); em(fx - 2, fy - 1, G1);
-    em(fx + 2, fy - 2, G1); em(fx + 1, fy - 1, G1); em(fx + 2, fy - 1, G0); em(fx + 3, fy - 1, G2);
-    // jagged grin
-    em(fx - 5, fy + 1, G2); em(fx + 4, fy + 1, G2);
-    for (let x = fx - 4; x <= fx + 3; x++) em(x, fy + 2, x === fx - 1 ? G2 : (x === fx - 2 || x === fx) ? G0 : G1);
-    for (let x = fx - 3; x <= fx + 2; x++) if (x !== fx - 1 && x !== fx + 1) em(x, fy + 3, G3);
-    em(fx - 1, fy + 1, G1);
+    const em = (pts) => { for (let i = 0; i < pts.length; i += 3) p.set(fx + pts[i], fy + pts[i + 1], pts[i + 2], 255, EMIT); };
+    const f = s.face;
+    if (f === 'blink') em([-4, -1, G3, -3, -1, G2, -2, -1, G3, 1, -1, G3, 2, -1, G2, 3, -1, G3]);
+    else if (f === 'focus') em([-4, -2, G2, -3, -1, G0, -2, -1, G1, 3, -2, G2, 2, -1, G0, 1, -1, G1]);
+    else if (f === 'hurt') em([-4, -2, G2, -3, -1, G1, -4, 0, G2, 3, -2, G2, 2, -1, G1, 3, 0, G2]);
+    else if (f === 'joy') em([-4, -1, G2, -3, -2, G0, -2, -1, G2, 1, -1, G2, 2, -2, G0, 3, -1, G2]);
+    else em([-3, -2, G1, -4, -1, G2, -3, -1, G0, -2, -1, G1, 2, -2, G1, 1, -1, G1, 2, -1, G0, 3, -1, G2]);
+    if (f === 'hurt') em([-1, 2, G1, 0, 2, G1, -2, 3, G2, -1, 3, G0, 0, 3, G0, 1, 3, G2, -1, 4, G1, 0, 4, G1]);   // a small round gasp
+    else {
+      // jagged grin (wider when joyful)
+      em([-5, 1, G2, 4, 1, G2, -1, 1, G1]);
+      for (let x = -4; x <= 3; x++) em([x, 2, x === -1 ? G2 : (x === -2 || x === 0) ? G0 : G1]);
+      for (let x = -3; x <= 2; x++) if (x !== -1 && x !== 1) em([x, 3, G3]);
+      if (f === 'joy') em([-5, 2, G2, 4, 2, G2]);
+    }
+    if (s.arm === 4) arm(cx + 3 + shear(shY), shY, 4, false);   // raised arm in front of the head
     // carved rind around every glowing hole: deep cut wall above/left (in shade), thin dark rim at the sides/below
     const cut = [];
     for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
@@ -1288,201 +1338,391 @@
     for (let i = 0; i < cut.length; i += 3) p.set(cut[i], cut[i + 1], R.pumpkin[cut[i + 2] === 2 ? 2 : cut[i + 2]]);
     return p;
   }
+  const HCACHE = new Map(), HSH = new Map();
+  const hkey = (s) => s.bob + ',' + s.a + ',' + s.b + ',' + s.la + ',' + s.lb + ',' + s.arm + ',' + s.farm + ',' + s.hb + ',' + s.hx + ',' + s.lean + ',' + s.flap + ',' + s.leaf + ',' + s.face + ',' + s.look;
+  function hero(s) {
+    const k = hkey(s);
+    let v = HCACHE.get(k);
+    if (!v) {
+      const pix = heroPix(s);
+      v = variants(pix, { ox: 13, oy: 34 });
+      const sk = s.bob + ',' + s.a + ',' + s.b + ',' + s.la + ',' + s.lb + ',' + s.lean;
+      v.sh = HSH.get(sk);
+      if (!v.sh) { v.sh = [makeShadow(pix, 13, 34, { contact: 6, alpha: 0.32 }), makeShadow(pix.flip(), 15, 34, { contact: 6, alpha: 0.32 })]; HSH.set(sk, v.sh); }
+      HCACHE.set(k, v);
+    }
+    return v;
+  }
+  function flashOf(s) { return s.fl || (s.fl = { c: U.tint(s.c, WHITE, 1), ox: s.ox, oy: s.oy }); }
+  /** Which pose the main character holds right now (also used for its shadow). */
+  function heroPose(p, rt) {
+    if (p.__ph === undefined) p.__ph = Math.random() * 10;                 // per-actor phase: crowds never breathe in sync
+    const t = rt + p.__ph, since = 1.4 - p.dashCd;
+    let s;
+    if (p.hurtT > 0.5) return HPOSE.hurt;
+    if (p.dashT > 0) return p.dashT > 0.15 ? HPOSE.wind : HPOSE.go;
+    if (p.dashCd > 0 && since < 0.46) s = since < 0.34 ? HPOSE.skid : HPOSE.skid2;
+    else if (p.levelT > 0.45) s = HPOSE.cheer;
+    else if (p.moving) s = HWALK[Math.floor(p.anim * 1.3) & 7];
+    else {
+      // breathing on a 1.3 s beat (the head follows 0.16 s later), blinks every ~3-4 s (sometimes twice),
+      // the cape stirs in the evening breeze, now and then a glance back over the shoulder
+      const br = Math.floor(t / 0.65) & 1, hb = (Math.floor((t - 0.16) / 0.65) & 1) - br;
+      const bp = 3.1 + (p.__ph % 1.3), bt = t % bp;
+      const blink = bt < 0.12 || (p.__ph % 2 < 0.7 && bt > 0.26 && bt < 0.36);
+      const key = br + (hb + 1) * 2 + (blink ? 8 : 0) + ((t % 4.7) < 0.5 ? 16 : 0) + ((t % 7.9) > 6.4 ? 32 : 0);
+      s = IDLE[key] || (IDLE[key] = hp({ bob: br, a: 1, b: -2, hb, flap: (t % 4.7) < 0.5 ? 1 : 0, face: blink ? 'blink' : 'n', look: (t % 7.9) > 6.4 ? 1 : 0, leaf: hb > 0 ? -1 : 0 }));
+    }
+    if (p.shootT > 0.55 && s.arm !== 4) s = THROW.get(s) || (THROW.set(s, hp(Object.assign({}, s, { arm: 3 }))), THROW.get(s));
+    return s;
+  }
+  const IDLE = {}, THROW = new Map();
 
-  /* ---------- Rüben-Schleicher: glossy violet turnip with a leaf crown, root legs and angry glowing eyes */
-  function creeperPix(k, variant) {
-    const W = 24, H = 28, p = new Pix(W, H), cx = 12;
-    const bob = [0, 1, 0, 0, 1, 0][k], tilt = [0, 1, 1, 0, -1, -1][k];
-    const al = [0, 1, 1, 0, 0, 0][k], bl = [0, 0, 0, 0, 1, 1][k];
-    const TR = variant ? R.turnipM : R.turnip;
-    const bcx = cx, bcy = 15.5 + bob, rx = 7.6, ry = 7.1;
+  /* ---------- small creature: glossy violet turnip with a leaf crown, root legs and angry glowing eyes. It travels in hops:
+     crouch (anticipation) – launch (stretch) – rise – apex – fall – land (squash) – recover; the crown lags every move. */
+  // by body lift (- up) · sq squash (+) / stretch (-) · legs 0 stand 1 crouch 2 reach 3 tuck · lf crown lag (+ lifted) · tl lean
+  const CHOP = [
+    { by: 0, sq: 0, legs: 0, lf: 0, tl: 0 },          // 0 stand
+    { by: 2, sq: 1, legs: 1, lf: 1, tl: -1 },         // 1 crouch – anticipation
+    { by: -2, sq: -1, legs: 2, lf: -1, tl: 1 },       // 2 launch – stretch
+    { by: -4, sq: -0.4, legs: 3, lf: -1, tl: 1 },     // 3 rise – feet tucked
+    { by: -5, sq: 0, legs: 3, lf: 1, tl: 0 },         // 4 apex – the crown floats up
+    { by: -3, sq: -0.5, legs: 2, lf: 1, tl: 0 },      // 5 fall – feet reach for the ground
+    { by: 2, sq: 1.3, legs: 1, lf: -1, tl: 0 },       // 6 land – squash, the crown flops
+    { by: 1, sq: 0.4, legs: 0, lf: 0, tl: 0 },        // 7 recover
+  ];
+  const CHOP_T = [0, 0, 1, 1, 2, 3, 4, 4, 5, 6, 6, 7];     // 12 ticks per hop: holds on the crouch, the apex and the landing
+  const CHIT = { by: 1, sq: 0.9, legs: 1, lf: 1, tl: -2, face: 'hit' };
+  function creeperPix(s, variant) {
+    const W = 26, H = 36, p = new Pix(W, H), cx = 12, FY = 35;
+    const TR = variant ? R.turnipM : R.turnip, sq = s.sq, tl = s.tl;
+    const rx = 7.6 * (1 + 0.15 * sq), ry = 7.1 * (1 - 0.15 * sq);
+    const bcx = cx, bcy = FY - 12.5 + (7.1 - ry) + s.by;
     // root legs
-    const leg = (x0, lift, dk) => {
-      for (let y = Math.round(bcy + 4); y <= H - 2 - lift; y++) { p.set(x0, y, R.rbody[4 - dk]); p.set(x0 + 1, y, R.rbody[3 - dk]); }
-      p.set(x0, H - 1 - lift, R.rbody[3 - dk]); p.set(x0 + 1, H - 1 - lift, R.rbody[3 - dk]); p.set(x0 + 2, H - 1 - lift, R.rbody[2 - dk]);
+    const legTop = Math.round(bcy + 4);
+    const leg = (x0, far, mode) => {
+      const dk = far ? 1 : 0;
+      let fx = x0, fy = FY;
+      if (mode === 1) fx = x0 + (far ? -1 : 1);
+      else if (mode === 2) fy = Math.min(FY, legTop + 6);
+      else if (mode === 3) fy = Math.min(FY, legTop + 3);
+      for (let y = legTop; y < fy; y++) {
+        const x = Math.round(x0 + (fx - x0) * (y - legTop) / Math.max(1, fy - legTop));
+        p.set(x, y, R.rbody[4 - dk]); p.set(x + 1, y, R.rbody[3 - dk]);
+      }
+      if (mode === 2) { p.set(fx, fy, R.rbody[3 - dk]); p.set(fx + 1, fy, R.rbody[2 - dk]); }
+      else { p.set(fx, fy, R.rbody[3 - dk]); p.set(fx + 1, fy, R.rbody[3 - dk]); p.set(fx + 2, fy, R.rbody[2 - dk]); }
     };
-    leg(cx - 4, bl, 1);
-    leg(cx + 1, al, 0);
+    leg(cx - 4, true, s.legs);
+    leg(cx + 1, false, s.legs);
     // tail root
     p.set(cx - 1, Math.round(bcy + ry), R.rbody[3]); p.set(cx - 2, Math.round(bcy + ry) + 1, R.rbody[2]);
-    // bulb (pointed turnip, sheared for the waddle), violet top fading into cream
+    if (variant) { p.set(cx - 3, Math.round(bcy + ry) + 1, R.rbody[2]); p.set(cx - 4, Math.round(bcy + ry), R.rbody[3]); }
+    // bulb (pointed turnip, sheared by the lean), violet top fading into cream
     for (let y = Math.floor(bcy - ry - 1); y <= Math.ceil(bcy + ry + 1); y++) {
-      const sh = tilt * clamp((bcy - y) / ry, 0, 1);
+      const shx = tl * clamp((bcy - y) / ry, 0, 1);
       for (let x = 0; x < W; x++) {
         const ny = (y + 0.5 - bcy) / ry;
         const rxe = rx * (1 - Math.pow(Math.max(0, ny), 2) * 0.38);
-        const nx = (x + 0.5 - bcx - sh) / rxe, dd = nx * nx + ny * ny;
+        const nx = (x + 0.5 - bcx - shx) / rxe, dd = nx * nx + ny * ny;
         if (dd > 1) continue;
         const nz = Math.sqrt(1 - dd);
         const v = (nx * LDIR[0] + ny * LDIR[1] + nz * LDIR[2]) * 0.55 + 0.36;
-        const split = bcy + 1.5 + Math.sin(x * 1.3 + variant * 2) * 0.8;
-        let top = y + 0.5 < split;
-        if (Math.abs(y + 0.5 - split) < 0.9 && (x + y) % 2 === 0) top = !top;
-        const Rm = top ? TR : R.rbody;
+        const split = bcy + 1.5 + Math.sin((x - bcx) * 1.3 + variant * 2) * 0.8;
+        let topc = y + 0.5 < split;
+        if (Math.abs(y + 0.5 - split) < 0.9 && (x + y) % 2 === 0) topc = !topc;
+        const Rm = topc ? TR : R.rbody;
         p.set(x, y, Rm[clamp(Math.floor(v * Rm.length), 0, Rm.length - 2)]);
       }
     }
     // gloss
-    const gx = Math.round(bcx - 4 + tilt), gy = Math.round(bcy - 4);
+    const gx = Math.round(bcx - 4 + tl), gy = Math.round(bcy - 4);
     p.set(gx, gy, hx('#ffeefa'), 255, NORIM); p.set(gx + 1, gy, TR[8], 255, NORIM); p.set(gx, gy + 1, TR[7], 255, NORIM);
-    // leaf crown
-    const lx = bcx + tilt + 0.5, ly = bcy - ry + 1;
-    const sw = [0, 1, 1, 0, -1, -1][k] * 0.15;
-    leafStroke(p, lx - 1, ly, -Math.PI * 0.72 + sw, 6, 1.2, R.tops, -0.3);
-    leafStroke(p, lx + 1, ly, -Math.PI * 0.3 + sw, 6, 1.2, R.tops, -0.3);
-    leafStroke(p, lx, ly, -Math.PI * 0.5 + sw, 8, 1.4, R.tops, -0.2);
+    // leaf crown: two designs; it lags the hop (lifted on the way down, flattened on the way up)
+    const lx = bcx + tl + 0.5, ly = bcy - ry + 1, lf = s.lf, Q = Math.PI;
+    const crown = variant
+      ? [[-0.8, 7, 1.7, -0.1], [-0.22, 7, 1.7, -0.1], [-0.55, 4, 1, -0.6]]
+      : [[-0.72, 6, 1.2, -0.3], [-0.3, 6, 1.2, -0.3], [-0.5, 8, 1.4, -0.2]];
+    for (const [a, len, wid, bend] of crown) {
+      const side = a < -0.5 ? 1 : a > -0.5 ? -1 : 0;
+      leafStroke(p, lx + (side > 0 ? -1 : side < 0 ? 1 : 0), ly, (a + side * lf * 0.07 - tl * 0.05) * Q, len + lf, wid, R.tops, bend - lf * 0.3);
+    }
+    if (variant) { p.set(lx - 1, ly - 4, FLOWERS.peach[2], 255, NORIM); p.set(lx - 1, ly - 3, FLOWERS.peach[1], 255, NORIM); }
     p.set(lx, ly + 1, TR[2]); p.set(lx - 1, ly + 1, TR[3]); p.set(lx + 1, ly + 1, TR[2]);
-    // angry eyes (glowing) + brows + frown
-    const ex = Math.round(bcx + 0.5 + tilt * 0.5), ey = Math.round(bcy - 1);
-    const E0 = hx('#ffe2ec'), E1 = hx('#ff4f7a'), BR = hx('#24082c');
+    // face: angry glowing eyes + brows + frown; hit = eyes squeezed shut and a yelp
+    const ex = Math.round(bcx + 0.5 + tl * 0.5), ey = Math.round(bcy - 1);
+    const E0 = hx('#ffe2ec'), E1 = hx('#ff4f7a'), BR = hx('#24082c'), MO = hx('#5a1430');
     const em = (x, y, c) => p.set(x, y, c, 255, EMIT);
-    em(ex, ey, E1); em(ex, ey + 1, E1); em(ex + 1, ey + 1, E0); p.set(ex + 1, ey, BR, 255, NORIM); p.set(ex, ey - 1, BR, 255, NORIM);
-    em(ex + 4, ey, E1); em(ex + 4, ey + 1, E1); em(ex + 3, ey + 1, E0); p.set(ex + 3, ey, BR, 255, NORIM); p.set(ex + 4, ey - 1, BR, 255, NORIM);
-    p.set(ex + 1, ey + 4, BR, 255, NORIM); p.set(ex + 2, ey + 3, BR, 255, NORIM); p.set(ex + 3, ey + 3, BR, 255, NORIM); p.set(ex + 4, ey + 4, BR, 255, NORIM);
+    const dk = (x, y, c) => p.set(x, y, c || BR, 255, NORIM);
+    if (s.face === 'hit') {
+      dk(ex, ey); dk(ex + 1, ey + 1); dk(ex, ey + 2); dk(ex + 4, ey); dk(ex + 3, ey + 1); dk(ex + 4, ey + 2);
+      dk(ex + 1, ey + 4); dk(ex + 2, ey + 4); dk(ex + 3, ey + 4); dk(ex + 1, ey + 5); dk(ex + 2, ey + 5, MO); dk(ex + 3, ey + 5); dk(ex + 2, ey + 6);
+    } else {
+      em(ex, ey, E1); em(ex, ey + 1, E1); em(ex + 1, ey + 1, E0); dk(ex + 1, ey); dk(ex, ey - 1);
+      em(ex + 4, ey, E1); em(ex + 4, ey + 1, E1); em(ex + 3, ey + 1, E0); dk(ex + 3, ey); dk(ex + 4, ey - 1);
+      dk(ex + 1, ey + 4); dk(ex + 2, ey + 3); dk(ex + 3, ey + 3); dk(ex + 4, ey + 4);
+    }
+    p.eye = [ex + 2, ey + 1];
     return p;
   }
 
-  /* ---------- Hungergeist: translucent icy wisp, hollow eyes, gaping mouth, reaching arms */
-  function ghostPix(k) {
-    const W = 26, H = 30, p = new Pix(W, H), cx = 12;
-    const ph = (k / 6) * Math.PI * 2;
-    const hcy = 9, hr = 6.6;
-    for (let y = 2; y < 29; y++) {
-      let hw, cxx, alpha, nyv;
+  /* ---------- fast creature: a translucent icy wisp with hollow eyes, a gaping mouth, thin reaching arms and a tattered
+     tail that streams behind; it floats with ease (holds at the top and bottom), tail and arms trail the float. */
+  const GFL = [0, 0, 1, 2, 3, 3, 2, 1];
+  function ghostPix(f, hit) {
+    const W = 32, H = 34, p = new Pix(W, H), cx = 14;
+    const ph = (f / 8) * Math.PI * 2;
+    const vel = GFL[f] - GFL[(f + 7) & 7];                    // + rising
+    const hcx = cx + (hit ? -2 : 0), hcy = 10 + (hit ? -1 : 0), hr = 6.6;
+    const L = hit ? 15 : 18 + vel * 1.5;                       // the tail stretches while rising, bunches while sinking
+    for (let y = 2; y < H; y++) {
+      let hw, cxx, alpha, nyv, t = -1;
       if (y + 0.5 <= hcy + 2) {
         const dy = y + 0.5 - hcy;
-        hw = Math.sqrt(Math.max(0, hr * hr - dy * dy)); cxx = cx; nyv = dy / hr; alpha = 230;
+        hw = Math.sqrt(Math.max(0, hr * hr - dy * dy)); cxx = hcx; nyv = dy / hr; alpha = 230;
       } else {
-        const t = (y + 0.5 - hcy - 2) / 18;
+        t = (y + 0.5 - hcy - 2) / L;
         if (t > 1) break;
         hw = 6.4 * Math.pow(1 - t, 0.85) + 0.3;
-        cxx = cx - t * 2 + Math.sin(ph + t * 4.2) * t * 3.2;
-        nyv = 0.2 + t * 0.4; alpha = 225 - t * 150;
+        cxx = hcx - t * 3.5 + Math.sin(ph + t * 4.2) * t * 2.6 + (hit ? t * t * 6 : 0);
+        nyv = 0.2 + t * 0.4; alpha = 228 - t * 140;
       }
       for (let x = 0; x < W; x++) {
         const nx = (x + 0.5 - cxx) / hw;
         if (Math.abs(nx) > 1) continue;
-        const t = (y - hcy) / 18;
-        if (t > 0.55 && U.dither(x, y) < (t - 0.55) * 1.4) continue;
-        const nz = Math.sqrt(Math.max(0, 1 - nx * nx - (y + 0.5 <= hcy + 2 ? nyv * nyv : 0)));
+        if (t > 0.5) {
+          // tattered end: three strands of different length, the gaps widen towards the tip
+          const u = (nx + 1) / 2, si = Math.min(2, Math.floor(u * 3)), su = u * 3 - si;
+          if (t > [0.86, 1, 0.74][(si + f) % 3]) continue;
+          if (su < 0.12 + (t - 0.5) * 0.8 || su > 0.96) continue;
+        }
+        const nz = Math.sqrt(Math.max(0, 1 - nx * nx - (t < 0 ? nyv * nyv : 0)));
         const v = (nx * LDIR[0] + nyv * LDIR[1] + nz * LDIR[2]) * 0.5 + 0.55 - Math.max(0, t) * 0.25;
         p.set(x, y, R.ice[clamp(Math.floor(v * 9), 1, 8)], alpha);
       }
     }
-    // reaching arms (towards the front/right)
-    const reach = Math.round(Math.sin(ph) * 1);
-    const armA = 170;
-    for (let i = 0; i < 5; i++) p.set(cx + 6 + i, 13 + Math.round(i * 0.5) + (i > 2 ? reach : 0), R.ice[i < 2 ? 6 : 5], armA);
-    p.set(cx + 11, 15 + reach, R.ice[7], armA); p.set(cx + 11, 16 + reach, R.ice[6], armA); p.set(cx + 10, 17 + reach, R.ice[6], armA);
-    for (let i = 0; i < 3; i++) p.set(cx - 6 - i, 14 + i, R.ice[4], 120);
-    // hollow eyes + gaping mouth
-    const HO = hx('#120c2c'), IN = hx('#2c2a6a');
-    const fx = cx + 1;
-    for (const ex of [fx - 3, fx + 1]) { p.set(ex, 7, HO, 240, NORIM); p.set(ex + 1, 7, HO, 240, NORIM); p.set(ex, 8, HO, 240, NORIM); p.set(ex + 1, 8, HO, 240, NORIM); p.set(ex, 9, IN, 240, NORIM); p.set(ex + 1, 9, HO, 240, NORIM); }
-    p.set(fx - 3, 8, hx('#bff4ff'), 255, EMIT); p.set(fx + 1, 8, hx('#bff4ff'), 255, EMIT);
-    const mo = [[fx - 1, 11], [fx, 11], [fx - 2, 12], [fx - 1, 12], [fx, 12], [fx + 1, 12], [fx - 2, 13], [fx - 1, 13], [fx, 13], [fx + 1, 13], [fx - 1, 14], [fx, 14]];
-    for (const [x, y] of mo) p.set(x, y, y === 13 && (x === fx - 1 || x === fx) ? IN : HO, 240, NORIM);
+    // thin reaching arms with three-finger claws; they trail the float by a pose (flung up on a hit)
+    const lag = -vel, ARM = 175;
+    const armTo = (x0, y0, x1, y1, c, a) => {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let i = 0; i <= n; i++) p.set(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), c, a);
+    };
+    if (hit) {
+      armTo(hcx + 5, 13, hcx + 9, 8, R.ice[6], ARM); armTo(hcx - 5, 13, hcx - 8, 9, R.ice[4], 130);
+      p.set(hcx + 10, 7, R.ice[7], ARM); p.set(hcx + 10, 6, R.ice[7], ARM); p.set(hcx + 9, 6, R.ice[6], ARM); p.set(hcx + 11, 7, R.ice[6], ARM);
+    } else {
+      armTo(hcx + 4, 15, hcx + 8, 17 + lag, R.ice[4], 140);                        // far arm
+      armTo(hcx + 5, 13, hcx + 10, 14 + lag, R.ice[6], ARM);                       // near arm
+      const hx0 = hcx + 10, hy0 = 14 + lag;
+      p.set(hx0 + 1, hy0, R.ice[7], ARM); p.set(hx0 + 1, hy0 + 1, R.ice[6], ARM); p.set(hx0, hy0 + 1, R.ice[6], ARM); p.set(hx0, hy0 + 2, R.ice[5], ARM); p.set(hx0 + 2, hy0 + 2, R.ice[6], ARM);
+      p.set(hcx + 9, 18 + lag, R.ice[5], 140);
+    }
+    // hollow eyes with icy pin-point pupils + a gaping mouth that chews slowly
+    const HO = hx('#120c2c'), IN = hx('#2c2a6a'), fx = hcx + 1;
+    const dk = (x, y, c) => p.set(x, y, c, 240, NORIM);
+    if (hit) {
+      for (const ex of [fx - 3, fx + 1]) { dk(ex, 8, HO); dk(ex + 1, 8, HO); dk(ex - (ex < fx ? 1 : -2), 7, IN); }
+      for (let y = 10; y <= 15; y++) for (let x = fx - 2; x <= fx + 1; x++) if (!((y === 10 || y === 15) && (x === fx - 2 || x === fx + 1))) dk(x, y, y > 11 && y < 14 && x > fx - 2 && x < fx + 1 ? IN : HO);
+    } else {
+      for (const ex of [fx - 3, fx + 1]) { dk(ex, 7, HO); dk(ex + 1, 7, HO); dk(ex, 8, HO); dk(ex + 1, 8, HO); dk(ex, 9, IN); dk(ex + 1, 9, HO); }
+      p.set(fx - 3, 8, hx('#bff4ff'), 255, EMIT); p.set(fx + 1, 8, hx('#bff4ff'), 255, EMIT);
+      const open = f >= 2 && f <= 5 ? 1 : 0;
+      const mo = [[fx - 1, 11], [fx, 11], [fx - 2, 12], [fx - 1, 12], [fx, 12], [fx + 1, 12], [fx - 2, 13], [fx - 1, 13], [fx, 13], [fx + 1, 13], [fx - 1, 14], [fx, 14]];
+      if (open) mo.push([fx - 2, 14], [fx + 1, 14], [fx - 1, 15], [fx, 15]);
+      for (const [x, y] of mo) dk(x, y, y === 13 && (x === fx - 1 || x === fx) ? IN : HO);
+    }
+    p.eye = [hcx, 10];
     return p;
   }
 
-  /* ---------- Steckrüben-Koloss: mossy ancient rutabaga guardian, flowers, glowing runes */
-  function colossusPix(k) {
-    const W = 60, H = 58, p = new Pix(W, H), cx = 30;
-    const bob = [2, 1, 0, 2, 1, 0][k], al = [0, 0, 2, 0, 0, 0][k], bl = [0, 0, 0, 0, 0, 2][k], sw = [1, 0, -1, -1, 0, 1][k];
-    const bcx = cx, bcy = 35 + bob, rx = 19, ry = 16.5;
+  /* ---------- large creature: a mossy ancient rutabaga guardian with flowers, glowing runes and gnarled root limbs.
+     Heavy stomp: the foot lifts high, slams down, the body keeps sinking a pose later (squash), then heaves up. */
+  // by body drop · a/b near/far foot x · la/lb lift · sw near-arm swing · sq weight squash · lf crown lag · lean · face
+  const KWALK = [
+    { by: 1, a: 3, b: -3, la: 0, lb: 0, sw: -1, sq: 0 },      // 0 contact: the near foot slams down
+    { by: 3, a: 2, b: -3, la: 0, lb: 0, sw: -1, sq: 1 },      // 1 weight: the body keeps sinking, squash
+    { by: 1, a: 1, b: -1, la: 0, lb: 2, sw: 0, sq: 0 },       // 2 heave: the far foot peels off
+    { by: -1, a: 0, b: 1, la: 0, lb: 5, sw: 1, sq: 0 },       // 3 passing: the far foot high
+    { by: 1, a: -3, b: 3, la: 0, lb: 0, sw: 1, sq: 0 },       // 4 contact far foot
+    { by: 3, a: -3, b: 2, la: 0, lb: 0, sw: 1, sq: 1 },
+    { by: 1, a: -1, b: 1, la: 2, lb: 0, sw: 0, sq: 0 },
+    { by: -1, a: 1, b: 0, la: 5, lb: 0, sw: -1, sq: 0 },
+  ];
+  KWALK.forEach((s, i) => { const d = s.by - KWALK[(i + 7) & 7].by; s.lf = d > 0 ? 1 : d < 0 ? -1 : 0; s.lean = 0; s.face = 'n'; });
+  const KWALK_T = [0, 1, 1, 2, 3, 3, 4, 5, 5, 6, 7, 7];       // 12 ticks per two steps: holds on the weight and the lifted foot
+  const KHIT = { by: 2, a: 1, b: -2, la: 0, lb: 0, sw: 3, sq: 1, lf: 1, lean: -2, face: 'hit' };
+  function colossusPix(s) {
+    const W = 64, H = 62, p = new Pix(W, H), cx = 32, FY = 61;
+    const sq = s.sq || 0, rx = 19 + sq * 1.2, ry = 16.5 - sq * 1.2;
+    const bcx = cx, bcy = FY - 24 + (16.5 - ry) + s.by;
     const C0 = hx('#e8fffa'), C1 = hx('#6ff5e0'), C2 = hx('#2fb8b0'), DK = hx('#1a0f24');
-    const BK = R.bark;
-    // stubby root legs
-    const leg = (x0, lift, dk) => {
-      const y0 = Math.round(bcy + 8), y1 = H - 2 - lift;
+    const BK = R.bark, lean = s.lean || 0;
+    const shear = (y) => Math.round(lean * clamp((bcy - y) / ry, 0, 1.4));
+    // stubby root legs, slanted towards the foot
+    const leg = (x0, fdx, lift, dk) => {
+      const y0 = Math.round(bcy + 8), y1 = FY - 1 - lift;
       for (let y = y0; y <= y1; y++) {
-        const t = (y - y0) / Math.max(1, y1 - y0), w = Math.round(10 - t * 1.5);
+        const t = (y - y0) / Math.max(1, y1 - y0), w = Math.round(10 - t * 1.5), ox = Math.round(fdx * t + t);
         for (let i = 0; i < w; i++) {
           const nx = ((i + 0.5) / w) * 2 - 1;
           const v = (nx * LDIR[0] + Math.sqrt(1 - nx * nx) * LDIR[2]) * 0.5 + 0.42 - dk * 0.16;
-          p.set(x0 + i + Math.round(t), y, BK[clamp(Math.floor(v * 9), 0, 8)]);
+          p.set(x0 + i + ox, y, BK[clamp(Math.floor(v * 9), 0, 8)]);
         }
       }
-      const fy = H - 1 - lift;
-      for (let i = -2; i < 11; i++) p.set(x0 + i, fy, BK[clamp(3 - dk + (i < 3 ? 1 : 0), 0, 8)]);
-      p.set(x0 - 3, fy, BK[2]); p.set(x0 + 11, fy, BK[1]);
+      const fy = FY - lift, fx = x0 + fdx + 1;
+      for (let i = -2; i < 11; i++) p.set(fx + i, fy, BK[clamp(3 - dk + (i < 3 ? 1 : 0), 0, 8)]);
+      p.set(fx - 3, fy, BK[2]); p.set(fx + 11, fy, BK[1]);
+      if (lift > 2) for (let i = 0; i < 9; i++) p.set(fx + i, fy + 1, BK[1]);    // the sole shows while the foot is high
     };
-    leg(cx - 14, bl, 1);
-    leg(cx + 3, al, 0);
-    // gnarled root arms
+    leg(cx - 14, s.b, s.lb, 1);
+    leg(cx + 3, s.a, s.la, 0);
+    // gnarled root arms (swing against the legs; raised in front of the body on a hit)
     const arm = (sx, sy, dir, swing, dk) => {
       let x = sx, y = sy;
-      for (let i = 0; i < 15; i++) {
+      const n = swing > 2 ? 11 : 15;
+      for (let i = 0; i < n; i++) {
         const th = i < 5 ? 5 : i < 10 ? 4 : 3;
-        for (let q = 0; q < th; q++) p.set(x + q, y, BK[clamp(6 - Math.round(q * 1.6) - dk * 2, 0, 8)]);
-        y += 1;
+        for (let q = 0; q < th; q++) p.set(Math.round(x) + q, y, BK[clamp(6 - Math.round(q * 1.6) - dk * 2, 0, 8)]);
+        y += swing > 2 && i > 5 ? 0 : 1;
         if (i < 5 || i % 4 === 0) x += dir;
-        if (i === 9) x += swing;
+        if (i > 4) x += swing * 0.28;
       }
+      x = Math.round(x);
       for (let f = -1; f <= 1; f++) { p.set(x + 1 + f * 2, y, BK[4 - dk]); p.set(x + 1 + f * 3, y + 1, BK[3 - dk]); p.set(x + 1 + f * 3, y + 2, BK[2 - dk]); }
     };
-    arm(bcx - rx + 2, bcy - 6, -1, -sw, 1);
-    // body: old violet top, ochre rutabaga belly, rough skin
+    arm(bcx - rx + 2 + shear(bcy - 6), Math.round(bcy - 6), -1, -s.sw * (s.sw > 2 ? -0.5 : 1), 1);
+    // body: old violet top, ochre rutabaga belly, rough skin (texture in body space, so it travels with the body)
+    const ox0 = Math.round(bcx), oy0 = Math.round(bcy);
     for (let y = Math.floor(bcy - ry - 1); y <= Math.ceil(bcy + ry); y++) for (let x = 0; x < W; x++) {
+      const ly = y - oy0, sx = x - shear(y);
       const ny = (y + 0.5 - bcy) / ry;
       const rxe = rx * (1 - Math.pow(Math.max(0, ny), 3) * 0.32);
-      const nx = (x + 0.5 - bcx) / rxe, dd = nx * nx + ny * ny;
-      if (dd > 1 - 0.1 * U.hash2(x >> 1, y >> 1, 7)) continue;
+      const nx = (sx + 0.5 - bcx) / rxe, dd = nx * nx + ny * ny;
+      if (dd > 1 - 0.1 * U.hash2((sx - ox0) >> 1, ly >> 1, 7)) continue;
       const nz = Math.sqrt(Math.max(0, 1 - dd));
       let v = (nx * LDIR[0] + ny * LDIR[1] + nz * LDIR[2]) * 0.5 + 0.46;
-      v += (U.hash2(x >> 1, y >> 1, 77) - 0.5) * 0.12;
-      const split = bcy + 3 + Math.sin(x * 0.5) * 1.6;
+      v += (U.hash2((sx - ox0) >> 1, ly >> 1, 77) - 0.5) * 0.12;
+      const split = bcy + 3 + Math.sin((sx - ox0) * 0.5) * 1.6;
       let top = y + 0.5 < split;
       if (Math.abs(y + 0.5 - split) < 1 && (x + y) % 2 === 0) top = !top;
       const Rm = top ? R.oldv : R.ochre;
       p.set(x, y, Rm[clamp(Math.floor(v * Rm.length), 0, Rm.length - 1)]);
-      if (!top && (y - Math.round(bcy)) % 5 === 1 && U.hash2(x >> 2, y, 5) < 0.55) p.set(x, y, R.ochre[clamp(Math.floor(v * 8) - 2, 0, 7)]);
+      if (!top && (ly % 5 + 5) % 5 === 1 && U.hash2((sx - ox0) >> 2, ly, 5) < 0.55) p.set(x, y, R.ochre[clamp(Math.floor(v * 8) - 2, 0, 7)]);
     }
     // moss cap with tiny flowers
     for (let y = Math.floor(bcy - ry - 1); y < bcy + 2; y++) for (let x = 0; x < W; x++) {
       if (!p.a(x, y)) continue;
-      const ny = (y + 0.5 - bcy) / ry, nx = (x + 0.5 - bcx) / rx;
-      const lim = -0.45 + (U.fbm(x / 4, y / 4, 31, 2) - 0.5) * 1.3 - nx * 0.25;
+      const sx = x - shear(y), lx = sx - ox0, ly = y - oy0;
+      const ny = (y + 0.5 - bcy) / ry, nx = (sx + 0.5 - bcx) / rx;
+      const lim = -0.45 + (U.fbm(lx / 4 + 8, ly / 4 + 9, 31, 2) - 0.5) * 1.3 - nx * 0.25;
       if (ny < lim) {
         const v = (nx * LDIR[0] + ny * LDIR[1]) * 0.5 + 0.5;
-        p.set(x, y, R.moss[clamp(Math.floor(v * 7 + U.hash2(x, y, 3) * 0.8), 1, 7)]);
-        const hh = U.hash2(x, y, 99);
+        p.set(x, y, R.moss[clamp(Math.floor(v * 7 + U.hash2(lx, ly, 3) * 0.8), 1, 7)]);
+        const hh = U.hash2(lx, ly, 99);
         if (hh < 0.045) p.set(x, y, [FLOWERS.white[2], FLOWERS.pink[2], FLOWERS.gold[2], FLOWERS.lav[2]][Math.floor(hh * 88)], 255, NORIM);
       }
     }
-    for (const [fx0, fy0, F] of [[cx - 8, bcy - 12, FLOWERS.pink], [cx + 7, bcy - 13, FLOWERS.white], [cx - 14, bcy - 6, FLOWERS.lav]]) {
-      if (!p.a(fx0, fy0)) continue;
-      p.set(fx0, fy0 - 1, F[2], 255, NORIM); p.set(fx0 - 1, fy0, F[1], 255, NORIM); p.set(fx0, fy0, CENTER, 255, NORIM); p.set(fx0 + 1, fy0, F[1], 255, NORIM); p.set(fx0, fy0 + 1, F[0], 255, NORIM);
+    for (const [fx0, fy0, F] of [[-8, -12, FLOWERS.pink], [7, -13, FLOWERS.white], [-14, -6, FLOWERS.lav]]) {
+      const X = cx + fx0 + shear(oy0 + fy0), Y = oy0 + fy0;
+      if (!p.a(X, Y)) continue;
+      p.set(X, Y - 1, F[2], 255, NORIM); p.set(X - 1, Y, F[1], 255, NORIM); p.set(X, Y, CENTER, 255, NORIM); p.set(X + 1, Y, F[1], 255, NORIM); p.set(X, Y + 1, F[0], 255, NORIM);
     }
     // cracks with glowing seams
     const crack = (pts, glowAt) => {
-      for (let i = 0; i < pts.length; i += 2) p.set(pts[i], pts[i + 1], i / 2 === glowAt ? C1 : DK, 255, i / 2 === glowAt ? EMIT : NORIM);
+      for (let i = 0; i < pts.length; i += 2) {
+        const y = oy0 + pts[i + 1], x = cx + pts[i] + shear(y);
+        p.set(x, y, i / 2 === glowAt ? C1 : DK, 255, i / 2 === glowAt ? EMIT : NORIM);
+      }
     };
-    crack([cx - 13, bcy + 1, cx - 12, bcy + 2, cx - 12, bcy + 3, cx - 11, bcy + 4, cx - 11, bcy + 5, cx - 12, bcy + 6, cx - 12, bcy + 7], 3);
-    crack([cx + 12, bcy - 1, cx + 13, bcy, cx + 13, bcy + 1, cx + 12, bcy + 2, cx + 13, bcy + 3, cx + 14, bcy + 4], 2);
-    // brow ridge + deep-set glowing eyes
-    const ex = cx + 3, ey = Math.round(bcy - 6);
-    for (let x = ex - 7; x <= ex + 8; x++) { p.set(x, ey - 2, R.oldv[3], 255, NORIM); p.set(x, ey - 1, DK, 255, NORIM); }
+    crack([-13, 1, -12, 2, -12, 3, -11, 4, -11, 5, -12, 6, -12, 7], 3);
+    crack([12, -1, 13, 0, 13, 1, 12, 2, 13, 3, 14, 4], 2);
+    // brow ridge + deep-set glowing eyes (squeezed to a seam on a hit)
+    const ey = oy0 - 6, ex = cx + 3 + shear(ey);
+    for (let x = ex - 7; x <= ex + 8; x++) { p.set(x, ey - 2 + (s.face === 'hit' ? 1 : 0), R.oldv[3], 255, NORIM); p.set(x, ey - 1, DK, 255, NORIM); }
     for (let x = ex - 6; x <= ex + 7; x++) p.set(x, ey, DK, 255, NORIM);
-    for (const e0 of [ex - 5, ex + 3]) { p.set(e0, ey, C2, 255, EMIT); p.set(e0 + 1, ey, C0, 255, EMIT); p.set(e0 + 2, ey, C1, 255, EMIT); p.set(e0 + 1, ey + 1, C2, 255, EMIT); }
-    // mouth: a dark maw with a faint inner glow
-    const my = ey + 6;
-    for (let x = ex - 3; x <= ex + 3; x++) p.set(x, my, DK, 255, NORIM);
-    for (let x = ex - 2; x <= ex + 2; x++) p.set(x, my + 1, DK, 255, NORIM);
-    p.set(ex, my, C2, 255, EMIT); p.set(ex - 2, my - 1, R.ochre[1], 255, NORIM); p.set(ex + 2, my - 1, R.ochre[1], 255, NORIM);
+    if (s.face === 'hit') {
+      for (const e0 of [ex - 5, ex + 3]) { p.set(e0, ey, C2, 255, EMIT); p.set(e0 + 1, ey, C1, 255, EMIT); p.set(e0 + 2, ey, C2, 255, EMIT); }
+    } else {
+      for (const e0 of [ex - 5, ex + 3]) { p.set(e0, ey, C2, 255, EMIT); p.set(e0 + 1, ey, C0, 255, EMIT); p.set(e0 + 2, ey, C1, 255, EMIT); p.set(e0 + 1, ey + 1, C2, 255, EMIT); }
+    }
+    // mouth: a dark maw with a faint inner glow (roaring open on a hit)
+    const my = ey + 6, mx = ex;
+    if (s.face === 'hit') {
+      for (let y = my - 1; y <= my + 3; y++) for (let x = mx - 3; x <= mx + 3; x++) {
+        if ((y === my - 1 || y === my + 3) && Math.abs(x - mx) === 3) continue;
+        p.set(x, y, DK, 255, NORIM);
+      }
+      p.set(mx - 1, my + 1, C2, 255, EMIT); p.set(mx, my + 1, C1, 255, EMIT); p.set(mx + 1, my + 1, C2, 255, EMIT);
+    } else {
+      for (let x = mx - 3; x <= mx + 3; x++) p.set(x, my, DK, 255, NORIM);
+      for (let x = mx - 2; x <= mx + 2; x++) p.set(x, my + 1, DK, 255, NORIM);
+      p.set(mx, my, C2, 255, EMIT); p.set(mx - 2, my - 1, R.ochre[1], 255, NORIM); p.set(mx + 2, my - 1, R.ochre[1], 255, NORIM);
+    }
     // rune on the belly
-    const rx0 = cx - 1, ry0 = Math.round(bcy + 5);
+    const ry0 = oy0 + 5, rx0 = cx - 1 + shear(ry0);
     const rune = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [-1, 1], [-2, 0], [1, 1], [2, 0], [-1, 5], [-2, 6], [1, 5], [2, 6]];
     for (const [dx, dy] of rune) p.set(rx0 + dx, ry0 + dy, dy === 3 && dx === 0 ? C0 : C1, 255, EMIT);
-    // leaf crown: big ragged leaves + a small sapling
-    const lx = bcx - 1, ly = Math.round(bcy - ry + 1);
+    // leaf crown: big ragged leaves + a small sapling; it lags the body (lifted while the body sinks, flattened while it heaves)
+    const lx = bcx - 1 + shear(bcy - ry), ly = Math.round(bcy - ry + 1), lf = s.lf || 0, Q = Math.PI;
     const DR = R.tops.slice(0, 6);
-    leafStroke(p, lx - 3, ly, -Math.PI * 0.78 + sw * 0.05, 11, 2.2, DR, -0.4);
-    leafStroke(p, lx + 3, ly, -Math.PI * 0.24 + sw * 0.05, 11, 2.2, DR, -0.4);
-    leafStroke(p, lx, ly, -Math.PI * 0.55, 13, 2.4, R.tops, -0.3);
-    leafStroke(p, lx + 1, ly - 1, -Math.PI * 0.42, 9, 1.6, R.tops, -0.2);
-    arm(bcx + rx - 5, bcy - 6, 1, sw, 0);
+    leafStroke(p, lx - 3, ly, (-0.78 + lf * 0.06) * Q, 11 + lf, 2.2, DR, -0.4 - lf * 0.25);
+    leafStroke(p, lx + 3, ly, (-0.24 - lf * 0.06) * Q, 11 + lf, 2.2, DR, -0.4 - lf * 0.25);
+    leafStroke(p, lx, ly, (-0.55 + lean * 0.03) * Q, 13 + lf, 2.4, R.tops, -0.3 - lf * 0.2);
+    leafStroke(p, lx + 1, ly - 1, (-0.42 - lf * 0.04) * Q, 9, 1.6, R.tops, -0.2);
+    arm(bcx + rx - 5 + shear(bcy - 6), Math.round(bcy - 6), 1, s.sw, 0);
+    p.eye = [ex + 1, ey];
+    p.rune = [rx0, ry0 + 3];
     return p;
+  }
+
+  /** Dissolve frames: the body breaks up along a noise front; a glowing seam runs ahead of it and the freed
+   *  pixels drift upward as motes of light. dir: 1 = top first, -1 = bottom first. */
+  function dissolvePix(src, n, rise, edge, seed, dir) {
+    const w = src.w, h = src.h, out = [];
+    const th = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const v = dir > 0 ? y / h : 1 - y / h;
+      th[y * w + x] = 0.55 * U.hash2(x >> 1, y >> 1, seed) + 0.25 * U.hash2(x, y, seed + 1) + 0.2 * v;
+    }
+    for (let k = 0; k < n; k++) {
+      const u = 0.12 + (k / (n - 1)) * 0.9, p = new Pix(w, h + rise);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const i = y * w + x, a = src.d[i * 4 + 3];
+        if (!a) continue;
+        const t = th[i];
+        if (t >= u) {
+          const o = i * 4, c = [src.d[o], src.d[o + 1], src.d[o + 2]];
+          if (t < u + 0.07) p.set(x, y + rise, edge[1], 255, EMIT);
+          else if (t < u + 0.13) p.set(x, y + rise, mix(c, edge[0], 0.55), a, src.f[i]);
+          else p.set(x, y + rise, c, a, src.f[i]);
+        } else if (U.hash2(x, y, seed + 7) < 0.2 && u - t < 0.5) {
+          const d = u - t, mx = Math.round(x + Math.sin(U.hash2(x, y, seed + 9) * 6.3) * d * 6), my = Math.round(y + rise - d * rise * 1.8);
+          if (my >= 0) p.set(mx, my, d < 0.22 ? edge[2] : edge[1], d < 0.22 ? 255 : 200, EMIT | NOOUT);
+        }
+      }
+      out.push(p);
+    }
+    return out;
+  }
+  const eyeOf = (v, pix, ox, oy) => { v[0].ex = pix.eye[0] + 0.5 - ox; v[0].ey = pix.eye[1] + 0.5 - oy; v[1].ex = -v[0].ex; v[1].ey = v[0].ey; return v; };
+
+  function moundPix(w, h, seed) {
+    const p = new Pix(w + 2, h + 2), cx = (w + 2) / 2, rng = U.rng(seed);
+    p.blob(cx, h + 1, w / 2, h, R.earth, { bias: 0.12, tex: (x, y) => (U.hash2(x, y, seed) - 0.5) * 0.2 });
+    for (let i = 0; i < w / 3; i++) {
+      const x = Math.round(cx - w / 2 + 1 + rng.next() * (w - 2)), y = Math.round(h + 1 - Math.sqrt(Math.max(0, 1 - ((x + 0.5 - cx) / (w / 2)) ** 2)) * h);
+      if (p.a(x, y)) p.set(x, y - 1, R.moss[3 + (i % 3)]);
+    }
+    return finish(p, { ox: cx, oy: h + 2, rimA: 0.35, coolA: 0.15 });
+  }
+  function wispPix(r) {
+    // a small banded puff of cold light (drawn additively)
+    const p = new Pix(r * 2 + 3, r + 3), c = (r * 2 + 3) / 2, cy = (r + 3) / 2;
+    for (let y = 0; y < p.h; y++) for (let x = 0; x < p.w; x++) {
+      const d = Math.hypot((x + 0.5 - c) / (r + 1), (y + 0.5 - cy) / ((r + 1) * 0.6));
+      if (d < 1) p.set(x, y, d < 0.45 ? R.ice[8] : d < 0.75 ? R.ice[6] : R.ice[4], d < 0.45 ? 200 : d < 0.75 ? 120 : 60);
+    }
+    return p.canvas();
   }
 
   function seedPix(ang, spin) {
@@ -1536,44 +1776,51 @@
   }
 
   function buildCharacters() {
-    SPR.jack = [[], []];
-    for (let mode = 0; mode < 4; mode++) {
-      const walk = mode & 1, thr = mode >> 1;
-      const n = walk ? 6 : 4;
-      const r = [], l = [];
-      for (let k = 0; k < n; k++) {
-        const [a, b] = variants(jackPix(walk, k, thr), { ox: 13, oy: 32 });
-        r.push(withFlash(a)); l.push(withFlash(b));
-      }
-      SPR.jack[0][mode] = r; SPR.jack[1][mode] = l;
-    }
-    SPR.jackDash = [0, 1].map((fl) => SPR.jack[fl][1].map((s) => ({ c: U.tint(s.c, '#c88cf0', 1), ox: s.ox, oy: s.oy })));
-    const jp = jackPix(0, 0, 0);
-    SPR.jackSh = [makeShadow(jp, 13, 32, { contact: 6, alpha: 0.32 }), makeShadow(jp.flip(), 13, 32, { contact: 6, alpha: 0.32 })];
+    HCACHE.clear(); HSH.clear();
+    for (const k in IDLE) delete IDLE[k];
+    THROW.clear();
+    // warm the poses that show up in the first seconds (others bake lazily, once)
+    for (const s of HWALK) { hero(s); hero(hp(Object.assign({}, s, { arm: 3 }))); }
+    for (const k in HPOSE) hero(HPOSE[k]);
+    for (const br of [0, 1]) for (const hb of [-1, 0, 1]) hero(hp({ bob: br, a: 1, b: -2, hb, face: 'n', leaf: hb > 0 ? -1 : 0 }));
+    // dash afterimages: silhouettes of the stretch pose, rose then violet
+    SPR.heroAfter = [0, 1].map((fl) => ['#ff86cc', '#9466f0'].map((col) => { const s = hero(HPOSE.go)[fl]; return { c: U.tint(s.c, col, 1), ox: s.ox, oy: s.oy }; }));
+    // small creature: hop poses, hit pose, dissolve, shadows on the ground and in the air
     SPR.cr = [0, 1].map((v) => {
-      const out = [[], []];
-      for (let k = 0; k < 6; k++) { const [a, b] = variants(creeperPix(k, v), { ox: 12, oy: 28 }); out[0].push(withFlash(a)); out[1].push(withFlash(b)); }
-      return out;
+      const hop = CHOP.map((s) => { const pix = creeperPix(s, v); return eyeOf(variants(pix, { ox: 12, oy: 36 }), pix, 12, 36); });
+      const hp0 = creeperPix(CHIT, v), hit = variants(hp0, { ox: 12, oy: 36 });
+      const die = dissolvePix(hp0, 6, 10, [FLOWERS.pink[1], hx('#ffb4d0'), hx('#fff2c4')], 31 + v, 1).map((d) => variants(d, { ox: 12, oy: 46 }));
+      return { hop, hit, die };
     });
-    const cp = creeperPix(0, 0);
-    SPR.crSh = [makeShadow(cp, 12, 28, { contact: 6, alpha: 0.3 }), makeShadow(cp.flip(), 12, 28, { contact: 6, alpha: 0.3 })];
-    SPR.gh = [[], []];
-    for (let k = 0; k < 6; k++) {
-      const [a, b] = variants(ghostPix(k), { ox: 12, oy: 30, rim: hx('#f4ffff'), rimA: 0.5, cool: hx('#7466e6'), coolA: 0.3, outA: 0.55, dark: hx('#141640'), lit: hx('#3a4a9a') });
-      SPR.gh[0].push(withFlash(a)); SPR.gh[1].push(withFlash(b));
-    }
-    SPR.co = [[], []];
-    for (let k = 0; k < 6; k++) { const [a, b] = variants(colossusPix(k), { ox: 30, oy: 58 }); SPR.co[0].push(withFlash(a)); SPR.co[1].push(withFlash(b)); }
-    const kp = colossusPix(0);
-    SPR.coSh = [makeShadow(kp, 30, 58, { contact: 14, alpha: 0.32 }), makeShadow(kp.flip(), 30, 58, { contact: 14, alpha: 0.32 })];
-    // ghosts float: soft oval shadow
+    const cg = creeperPix(CHOP[0], 0), ca = creeperPix(CHOP[4], 0);
+    SPR.crSh = [makeShadow(cg, 12, 36, { contact: 6, alpha: 0.3 }), makeShadow(cg.flip(), 14, 36, { contact: 6, alpha: 0.3 })];
+    const caLow = new Pix(ca.w, ca.h);   // the airborne body, dropped to the ground, without a contact blob
+    for (let y = 0; y < ca.h - 5; y++) for (let x = 0; x < ca.w; x++) { const s = (y * ca.w + x) * 4, t = ((y + 5) * ca.w + x) * 4; for (let q = 0; q < 4; q++) caLow.d[t + q] = ca.d[s + q]; }
+    SPR.crShAir = [makeShadow(caLow, 12, 36, { alpha: 0.24 }), makeShadow(caLow.flip(), 14, 36, { alpha: 0.24 })];
+    // fast creature
+    const GO = { rim: hx('#f4ffff'), rimA: 0.5, cool: hx('#7466e6'), coolA: 0.3, outA: 0.55, dark: hx('#141640'), lit: hx('#3a4a9a') };
+    SPR.gh = [];
+    for (let f = 0; f < 8; f++) { const pix = ghostPix(f, false); SPR.gh.push(eyeOf(variants(pix, Object.assign({ ox: 14, oy: 34 }, GO)), pix, 14, 34)); }
+    const gHit = ghostPix(2, true);
+    SPR.ghHit = variants(gHit, Object.assign({ ox: 14, oy: 34 }, GO));
+    SPR.ghDie = dissolvePix(ghostPix(3, false), 6, 12, [R.ice[6], R.ice[7], R.ice[8]], 41, -1).map((d) => variants(d, Object.assign({ ox: 14, oy: 46 }, GO)));
+    SPR.wisp = [3, 2, 1].map(wispPix);
     {
       const p = new Pix(16, 6);
       p.blob(8, 3, 7, 2.6, [P.shadow]);
       const d = p.d;
       for (let i = 0; i < 16 * 6; i++) if (d[i * 4 + 3]) d[i * 4 + 3] = 70;
-      SPR.ghSh = { c: p.canvas(), ox: 6, oy: 3 };
+      SPR.ghSh = { c: p.canvas(), ox: 8, oy: 3 };
     }
+    // large creature
+    SPR.co = KWALK.map((s) => { const pix = colossusPix(s); const v = eyeOf(variants(pix, { ox: 32, oy: 62 }), pix, 32, 62); v[0].rx = pix.rune[0] + 0.5 - 32; v[0].ry = pix.rune[1] + 0.5 - 62; v[1].rx = -v[0].rx; v[1].ry = v[0].ry; return v; });
+    const kh = colossusPix(KHIT);
+    SPR.coHit = eyeOf(variants(kh, { ox: 32, oy: 62 }), kh, 32, 62);
+    SPR.coDie = dissolvePix(colossusPix(Object.assign({}, KHIT, { by: 4, lean: 0 })), 6, 14, [C_SEAM[0], C_SEAM[1], C_SEAM[2]], 51, 1).map((d) => variants(d, { ox: 32, oy: 76 }));
+    const kp = colossusPix(KWALK[2]);
+    SPR.coSh = [makeShadow(kp, 32, 62, { contact: 14, alpha: 0.32 }), makeShadow(kp.flip(), 32, 62, { contact: 14, alpha: 0.32 })];
+    SPR.mound = [[8, 2], [12, 3], [16, 4], [26, 5], [34, 7]].map(([w, h], i) => moundPix(w, h, 61 + i));
+    // small things
     SPR.seed = [];
     for (let a = 0; a < 16; a++) {
       SPR.seed[a] = [];
@@ -1582,6 +1829,176 @@
     SPR.orb = [0, 1].map((h) => finish(lanternOrbPix(h), { ox: 7, oy: 17 }));
     SPR.gem = [0, 1].map((k) => finish(gemPix(false, k), { ox: 2.5, oy: 7, rimA: 0.3, dark: hx('#4a1020'), lit: hx('#7a2a2a') }));
     SPR.gemBig = [0, 1].map((k) => finish(gemPix(true, k), { ox: 4.5, oy: 11, rimA: 0.25, dark: hx('#2a0830'), lit: hx('#5a1848') }));
+  }
+  const C_SEAM = rp('#2fb8b0', '#6ff5e0', '#e8fffa');
+
+  /* ---------- actor drawing: pose selection, hit reactions, spawn and death sequences */
+  function sprClip(ctx, s, x, y, gy) {
+    // draw only the rows above the ground line gy (rising out of / sinking into the soil)
+    const top = Math.round(y) - s.oy, vis = Math.round(gy) - top;
+    if (vis <= 0) return;
+    const h = Math.min(vis, s.c.height);
+    ctx.drawImage(s.c, 0, 0, s.c.width, h, Math.round(x) - s.ox, top, s.c.width, h);
+  }
+  /** Glowing spores spiralling in to the spawn point (u 0..1), lifting off the ground at the end. */
+  function spores(ctx, x, y, u, n, r0, type, core, seed) {
+    add(ctx);
+    const e = u * u * (3 - 2 * u);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + seed * 9 + u * 3.6, r = r0 * (1 - e) + 1;
+      const px = x + Math.cos(a) * r, py = y - 1 + Math.sin(a) * r * 0.45 - e * (2 + (i % 3) * 2);
+      const tw = 0.55 + 0.45 * Math.sin(u * 17 + i * 2.3);
+      drawGlow(ctx, type, 3, px, py, 0.75 * tw);
+      ctx.globalAlpha = tw;
+      ctx.fillStyle = core;
+      ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
+    }
+    norm(ctx);
+  }
+  const crTick = (e) => CHOP_T[((Math.floor(e.anim * 3.2 + e.seed * 12) % 12) + 12) % 12];
+  const coTick = (e) => KWALK_T[((Math.floor(e.anim * 3.4 + e.seed * 12) % 12) + 12) % 12];
+  const ghF = (e, rt) => Math.floor(rt * 7 + e.seed * 8) & 7;
+  const crHit = (e) => e.hitT < 0.13 && e.flash > 0.05;
+
+  function drawCreeper(ctx, e, x, y, fl, rt) {
+    const S = SPR.cr[e.seed < 0.5 ? 0 : 1];
+    if (e.dying) {
+      // flash in the squash pose, then the turnip comes apart into petals and drifting light
+      const k = e.deathT;
+      if (k < 0.14) { spr(ctx, flashOf(S.hit[fl]), x, y); return; }
+      spr(ctx, S.die[Math.min(5, Math.floor((k - 0.14) / 0.86 * 6))][fl], x, y);
+      add(ctx); drawGlow(ctx, 'pink', 9, x, y - 10, 0.55 * (1 - k)); norm(ctx);
+      return;
+    }
+    if (e.spawnT < 1) {
+      // spores spiral in, the soil swells, the turnip bursts out stretched, floats, lands in a squash
+      const k = e.spawnT;
+      if (k < 0.55) spores(ctx, x, y, k / 0.55, 6, 13, 'pink', '#fff0f6', e.seed);
+      const mi = k < 0.15 ? 0 : k < 0.3 ? 1 : k < 0.7 ? 2 : 1;
+      if (k >= 0.3) {
+        const u = (k - 0.3) / 0.7;
+        if (u < 0.32) { const s = S.hop[2][fl]; sprClip(ctx, s, x, y + Math.round((1 - U.ease.outQuad(u / 0.32)) * 20), y); }
+        else spr(ctx, S.hop[u < 0.55 ? 4 : u < 0.7 ? 5 : u < 0.88 ? 6 : 7][fl], x, y);
+      } else if (k > 0.18) sprClip(ctx, S.hop[1][fl], x, y + Math.round(26 - (k - 0.18) * 30), y);
+      if (k < 0.85) { ctx.globalAlpha = Math.min(1, (0.85 - k) * 5); spr(ctx, SPR.mound[mi], x, y + 1); ctx.globalAlpha = 1; }
+      return;
+    }
+    if (crHit(e)) {
+      // knock-back pose: squashed, leaning away, eyes squeezed; white for the first frames
+      const rec = Math.round((1 - e.hitT / 0.13) * 2) * (fl ? 1 : -1), s = S.hit[fl];
+      spr(ctx, e.flash > 0.6 ? flashOf(s) : s, x + rec, y);
+      return;
+    }
+    const s = S.hop[crTick(e)][fl];
+    spr(ctx, s, x, y);
+    add(ctx); drawGlow(ctx, 'eye', 3, x + s.ex, y + s.ey, 0.45); norm(ctx);
+  }
+
+  function ghostWisps(ctx, e, x, y, rt, fl, a) {
+    // little wisps peel off the tail and drift back and up
+    const dir = fl ? 1 : -1;
+    for (let i = 0; i < 2; i++) {
+      const age = U.fract(rt * 1.15 + e.seed * 3 + i * 0.5);
+      const wx = x + dir * (4 + age * 13), wy = y - 6 - age * 7 + Math.sin(rt * 2.6 + i * 2 + e.seed * 9) * 1.4;
+      const im = SPR.wisp[Math.min(2, Math.floor(age * 3))];
+      ctx.globalAlpha = (1 - age) * 0.7 * a;
+      ctx.drawImage(im, Math.round(wx) - (im.width >> 1), Math.round(wy) - (im.height >> 1));
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawGhost(ctx, e, x, y, fl, rt) {
+    const f = ghF(e, rt), lift = 3 + GFL[f];
+    if (e.dying) {
+      // a pale flash, then the sheet frays from the tail up into icy motes that rise away
+      const k = e.deathT;
+      if (k < 0.14) { spr(ctx, flashOf(SPR.ghHit[fl]), x, y - lift); return; }
+      ctx.globalAlpha = 0.92;
+      spr(ctx, SPR.ghDie[Math.min(5, Math.floor((k - 0.14) / 0.86 * 6))][fl], x, y - lift - Math.round((k - 0.14) * 8));
+      ctx.globalAlpha = 1;
+      add(ctx); drawGlow(ctx, 'ice', 9, x, y - lift - 22, 0.4 * (1 - k)); norm(ctx);
+      return;
+    }
+    if (e.spawnT < 1) {
+      // motes rise and gather into a column, the wisp forms head first, overshoots its float and settles
+      const k = e.spawnT;
+      if (k < 0.6) spores(ctx, x, y - k * 18, k / 0.6, 5, 9, 'ice', '#f0ffff', e.seed);
+      if (k >= 0.25 && k < 0.85) {
+        ctx.globalAlpha = 0.9;
+        spr(ctx, SPR.ghDie[clamp(5 - Math.floor((k - 0.25) / 0.6 * 6), 0, 5)][fl], x, y - lift);
+        ctx.globalAlpha = 1;
+      } else if (k >= 0.85) {
+        ctx.globalAlpha = 0.92;
+        spr(ctx, SPR.gh[f][fl], x, y - lift - Math.round(Math.sin((k - 0.85) / 0.15 * Math.PI) * 2));
+        ctx.globalAlpha = 1;
+      }
+      return;
+    }
+    if (crHit(e)) {
+      const rec = Math.round((1 - e.hitT / 0.13) * 3) * (fl ? 1 : -1);
+      ctx.globalAlpha = 0.95;
+      spr(ctx, e.flash > 0.6 ? flashOf(SPR.ghHit[fl]) : SPR.ghHit[fl], x + rec, y - lift);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    add(ctx); ghostWisps(ctx, e, x, y - lift, rt, fl, 1); norm(ctx);
+    const s = SPR.gh[f][fl];
+    ctx.globalAlpha = 0.92;
+    spr(ctx, s, x, y - lift);
+    ctx.globalAlpha = 1;
+    add(ctx); drawGlow(ctx, 'ice', 9, x + s.ex, y - lift + s.ey + 2, 0.16); norm(ctx);
+  }
+
+  function drawColossus(ctx, e, x, y, fl, rt, game) {
+    if (e.dying) {
+      // white flash in the flinch, then it slumps and crumbles into cyan motes from the seams
+      const k = e.deathT;
+      if (k < 0.14) { spr(ctx, flashOf(SPR.coHit[fl]), x, y); return; }
+      spr(ctx, SPR.coDie[Math.min(5, Math.floor((k - 0.14) / 0.86 * 6))][fl], x, y);
+      add(ctx); drawGlow(ctx, 'cyan', 18, x, y - 22, 0.28 * (1 - k)); norm(ctx);
+      return;
+    }
+    if (e.spawnT < 1) {
+      // a wide ring of spores and glowing ground seams, then it heaves itself out of the soil with a rumble and lands heavily
+      const k = e.spawnT;
+      if (k < 0.6) {
+        spores(ctx, x, y, k / 0.6, 10, 26, 'cyan', '#e8fffa', e.seed);
+        add(ctx);
+        ctx.globalAlpha = Math.min(1, k * 4) * (1 - k / 0.6);
+        ctx.fillStyle = '#6ff5e0';
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * TAU + e.seed * 5, len = 4 + Math.round(k * 22);
+          for (let j = 3; j < len; j += 1) if ((j + i) % 3) ctx.fillRect(Math.round(x + Math.cos(a) * j), Math.round(y + Math.sin(a) * j * 0.45), 1, 1);
+        }
+        norm(ctx);
+      }
+      if (k >= 0.22) {
+        const u = (k - 0.22) / 0.78;
+        if (u < 0.8) {
+          const jit = (Math.floor(rt * 24) & 1) ? 1 : 0;
+          sprClip(ctx, SPR.co[3][fl], x + jit, y + Math.round((1 - U.ease.outQuad(u / 0.8)) * 54), y);
+        } else spr(ctx, SPR.co[u < 0.9 ? 1 : 2][fl], x, y);
+      }
+      if (k < 0.9) { ctx.globalAlpha = Math.min(1, (0.9 - k) * 5); spr(ctx, SPR.mound[k < 0.2 ? 3 : 4], x, y + 1); ctx.globalAlpha = 1; }
+      return;
+    }
+    if (crHit(e)) {
+      const s = SPR.coHit[fl], rec = (e.hitT < 0.07 ? 1 : 0) * (fl ? 1 : -1);
+      spr(ctx, e.flash > 0.6 ? flashOf(s) : s, x + rec, y);
+      return;
+    }
+    const f = coTick(e), s = SPR.co[f][fl];
+    if ((f === 0 || f === 4) && e.__lf !== f && game) {
+      // the stomp lands: dust kicks out from under the planted foot
+      const fx = x + (f === 0 ? 8 : -6) * (fl ? -1 : 1);
+      for (let i = -1; i <= 1; i += 2) game.addParticle({ kind: 'puff', color: '#8a7a9a', x: fx + i * 7, y: y + 1, vx: i * 18, vy: -1, life: 0.32, drag: 5, size: 1 });
+    }
+    e.__lf = f;
+    spr(ctx, s, x, y);
+    const pz = 0.75 + 0.25 * Math.sin(rt * 2.2 + e.seed * 7);
+    add(ctx);
+    drawGlow(ctx, 'cyan', 14, x + s.rx, y + s.ry, 0.38 * pz);
+    drawGlow(ctx, 'cyan', 5, x + s.ex, y + s.ey, 0.5 * pz);
+    norm(ctx);
   }
 
   /* =================================================================== effects sprites */
@@ -1614,7 +2031,15 @@
       }
       FX.ring.push({ c: p.canvas(), h: n / 2 });
     }
-    FX.puff = [2, 3, 4, 5].map((r) => { const p = new Pix(r * 2 + 1, r + 2); p.blob(r + 0.5, (r + 2) / 2, r, (r + 1) / 2, rp('#6a5a8a', '#9a88b0', '#c8b8d0', '#efe2e6'), {}); return p.canvas(); });
+    // dust puffs: a lumpy little cloud (three overlapping lobes), lit from the upper left, flat underside
+    FX.puff = [2, 3, 4, 5].map((r) => {
+      const W = Math.ceil(r * 3.4) + 2, H = Math.ceil(r * 1.9) + 1, p = new Pix(W, H), cx = W / 2, by = H - 0.5;
+      const ramp = rp('#5a4a7a', '#8a78a8', '#b8a8c8', '#e8dce6');
+      for (const [bx, byy, br] of [[cx - 0.2 * r, by - r * 0.95, r], [cx - r * 0.95, by - r * 0.55, r * 0.66], [cx + r * 0.95, by - r * 0.5, r * 0.6]]) {
+        p.blob(bx, byy, br, br * 0.85, ramp, { under: true, mask: (x, y) => y + 0.5 < by, bias: 0.05 });
+      }
+      return p.canvas();
+    });
     FX.star = [0, 1, 2].map((s) => {
       const p = new Pix(7, 7), c = 3, W = hx('#fffbe8'), Y = hx('#ffd27a');
       p.set(c, c, W);
@@ -1670,16 +2095,6 @@
 
   /* =================================================================== draw helpers */
   function spr(ctx, s, x, y) { ctx.drawImage(s.c, Math.round(x) - s.ox, Math.round(y) - s.oy); }
-  function sprS(ctx, s, x, y, sx, sy) {
-    if (sx === 1 && sy === 1) return spr(ctx, s, x, y);
-    const w = Math.max(1, Math.round(s.c.width * sx)), h = Math.max(1, Math.round(s.c.height * sy));
-    ctx.drawImage(s.c, Math.round(x) - Math.round(s.ox * sx), Math.round(y) - Math.round(s.oy * sy), w, h);
-  }
-  /** Draw only the top part of a sprite rising out of the ground (spawn). */
-  function sprRise(ctx, s, x, y, k) {
-    const h = s.c.height, vis = Math.max(1, Math.round((h - (h - s.oy)) * k + (h - s.oy)));
-    ctx.drawImage(s.c, 0, 0, s.c.width, vis, Math.round(x) - s.ox, Math.round(y) - vis + (h - s.oy) * 0, s.c.width, vis);
-  }
   const LIGHTS = [];  // light sources collected while drawing props (used next frame for ground pools)
   let lightsPrev = [];
   function add(ctx) { ctx.globalCompositeOperation = 'lighter'; }
@@ -1940,14 +2355,15 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
   if (window.__DUSK_DEBUG) {
     window.__DUSK_DEBUG.draw = function (b, which, put) {
       if (which === 'chars') {
-        for (let fl = 0; fl < 2; fl++) for (let m = 0; m < 4; m++) SPR.jack[fl][m].forEach((s, k) => put(s, 14 + k * 28 + fl * 180, 36 + m * 0 + (m % 2) * 0 + Math.floor(m / 2) * 0 + (m ? 0 : 0) + (m === 0 ? 0 : m === 1 ? 34 : m === 2 ? 68 : 102)));
-        SPR.cr[0][0].forEach((s, k) => put(s, 14 + k * 26, 170));
-        SPR.cr[1][1].forEach((s, k) => put(s, 180 + k * 26, 170));
-        SPR.gh[0].forEach((s, k) => put(s, 14 + k * 26, 205));
-        SPR.co[0].slice(0, 3).forEach((s, k) => put(s, 200 + k * 60, 225));
+        HWALK.forEach((s, k) => put(hero(s)[0], 14 + k * 28, 36));
+        Object.keys(HPOSE).forEach((n, k) => put(hero(HPOSE[n])[0], 14 + k * 28, 72));
+        SPR.cr[0].hop.forEach((s, k) => put(s[0], 14 + k * 26, 170));
+        SPR.cr[1].hop.forEach((s, k) => put(s[0], 230 + k * 26, 170));
+        SPR.gh.forEach((s, k) => put(s[0], 14 + k * 26, 205));
+        SPR.co.slice(0, 3).forEach((s, k) => put(s[0], 230 + k * 60, 240));
         put(SPR.orb[0], 350, 40); put(SPR.orb[1], 370, 40); put(SPR.gem[0], 350, 60); put(SPR.gemBig[0], 365, 64);
         for (let a = 0; a < 8; a++) put(SPR.seed[a * 2][0], 345 + (a % 4) * 10, 80 + Math.floor(a / 4) * 10);
-        put(SPR.jackSh[0], 360, 130); put(SPR.jack[0][0][0], 360, 130);
+        put(hero(HWALK[0]).sh[0], 360, 130); put(hero(HWALK[0])[0], 360, 130);
       } else if (which === 'props') {
         put(PROPS.oak[0], 50, 122); put(PROPS.oak[1], 150, 122); put(PROPS.bloom[0], 250, 122); put(PROPS.birch[0], 340, 122);
         put(PROPS.rock[0], 20, 160); put(PROPS.rock[2], 55, 160); put(PROPS.pillar[0], 90, 220); put(PROPS.pillar[1], 115, 220);
@@ -1955,7 +2371,7 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
         put(PROPS.shroom[0], 330, 222); put(PROPS.bush[0], 365, 222); put(PROPS.bush[1], 365, 196); put(PROPS.lupine[0], 20, 222); put(PROPS.fern[0], 50, 222);
       } else if (which === 'shadows') {
         put(PROPS.oak[0].sh, 60, 122); put(PROPS.oak[0], 60, 122); put(PROPS.arch[0].sh, 250, 200); put(PROPS.arch[0], 250, 200);
-        put(SPR.coSh[0], 100, 200); put(SPR.co[0][0], 100, 200);
+        put(SPR.coSh[0], 100, 200); put(SPR.co[2][0], 100, 200);
       }
     };
   }
@@ -1966,7 +2382,7 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
     id: 'dusk',
     name: 'Dämmerwald',
     family: 'Pixel Art · Modern',
-    description: 'Ein verwunschener Waldrand in der goldenen Minute vor der Nacht – moderne HD-2D-Pixelkunst mit weichem Licht.',
+    description: 'Modern HD-2D pixel art: an enchanted forest clearing at golden-to-violet dusk, rim-lit sprites, banded glows, bloom and long shadows.',
     pixelArt: { scale: 1 },
     groundColor: '#1e4a44',
     chunkSize: 256,
@@ -2019,7 +2435,7 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
       let a = 1;
       if (pr.big) {
         const p = view.game.player;
-        if (p.y < pr.y - 3 && p.y > pr.y - 104 && Math.abs(p.x - pr.x) < (pr.t === 'birch' ? 24 : 42)) a = 0.55;
+        if (p.y < pr.y - 3 && p.y > pr.y - 104 && Math.abs(p.x - pr.x) < (pr.t === 'birch' ? 24 : 42)) a = 0.38;   // the main character stays the clearest read
       }
       ctx.globalAlpha = a;
       spr(ctx, s, pr.x, pr.y);
@@ -2037,17 +2453,23 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
     },
 
     drawShadow(ctx, o, view) {
-      let s = null, a = 1;
+      let s = null, a = 1, dx = 0, dy = 0;
       if (o.kind === 'prop') s = PROPS[o.t][o.v].sh;
-      else if (o.kind === 'player') s = SPR.jackSh[o.facing < 0 ? 1 : 0];
+      else if (o.kind === 'player') s = hero(heroPose(o, view.rt)).sh[o.facing < 0 ? 1 : 0];
       else if (o.kind === 'enemy') {
-        if (o.type === 'ghost') s = SPR.ghSh;
-        else s = o.type === 'creeper' ? SPR.crSh[o.facing < 0 ? 1 : 0] : SPR.coSh[o.facing < 0 ? 1 : 0];
-        a = o.dying ? 1 - o.deathT : o.spawnT;
+        const fl = o.facing < 0 ? 1 : 0;
+        a = o.dying ? 1 - o.deathT : Math.min(1, o.spawnT * 1.6);
+        if (o.type === 'ghost') { s = SPR.ghSh; a *= 1.2 - (3 + GFL[ghF(o, view.rt)]) * 0.08; }
+        else if (o.type === 'creeper') {
+          // in the air the cast shadow detaches and slides along the light direction
+          const h = o.dying || o.spawnT < 1 || crHit(o) ? 0 : -CHOP[crTick(o)].by;
+          if (h > 2) { s = SPR.crShAir[fl]; dx = Math.round(h * 0.8); dy = -Math.round(h * 0.3); }
+          else s = SPR.crSh[fl];
+        } else s = SPR.coSh[fl];
       }
       if (!s || a <= 0) return;
-      ctx.globalAlpha = a;
-      spr(ctx, s, o.x, o.y);
+      ctx.globalAlpha = Math.min(1, a);
+      spr(ctx, s, o.x + dx, o.y + dy);
       ctx.globalAlpha = 1;
     },
 
@@ -2101,109 +2523,40 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
 
     drawPlayer(ctx, p, view) {
       const rt = view.rt, fl = p.facing < 0 ? 1 : 0;
-      const thr = p.shootT > 0.35 ? 2 : 0;
-      let mode, k;
-      if (p.moving) { mode = 1 + thr; k = Math.floor(p.anim * 1.5) % 6; }
-      else { mode = thr; k = Math.floor(rt * 3.2) % 4; }
-      const s = SPR.jack[fl][mode][k];
-      // dash smear: violet afterimages
-      if (p.dashT > 0) {
-        const ds = SPR.jackDash[fl][Math.floor(p.anim * 1.5) % 6];
-        for (let i = 3; i >= 1; i--) {
-          ctx.globalAlpha = 0.16 * (4 - i);
-          spr(ctx, ds, p.x - p.dashX * i * 7, p.y - p.dashY * i * 7);
-        }
+      const s = heroPose(p, rt), v = hero(s);
+      let x = Math.round(p.x);
+      const y = Math.round(p.y);
+      // dash stretch: rose-to-violet afterimages of the stretch pose
+      if (p.dashT > 0 && p.dashT <= 0.16) {
+        const A = SPR.heroAfter[fl];
+        for (let i = 2; i >= 1; i--) { ctx.globalAlpha = i === 1 ? 0.42 : 0.2; spr(ctx, A[i - 1], x - p.dashX * i * 9, y - p.dashY * i * 9); }
+        ctx.globalAlpha = 1;
         ctx.globalAlpha = 1;
       }
-      let sx = 1, sy = 1;
-      if (p.shootT > 0) { sx = 1 + 0.07 * p.shootT; sy = 1 - 0.06 * p.shootT; }
-      if (p.levelT > 0) { const q = Math.sin(p.levelT * Math.PI); sx -= 0.08 * q; sy += 0.12 * q; }
-      if (p.hurtT > 0) { sx += 0.1 * p.hurtT; sy -= 0.08 * p.hurtT; }
-      const blink = p.iframes > 0 && p.hurtT <= 0 && Math.floor(rt * 18) % 2 === 0;
-      ctx.globalAlpha = blink ? 0.5 : 1;
-      sprS(ctx, p.hurtT > 0.55 ? s.fl : s, p.x, p.y, sx, sy);
+      // braking: a spray of dust from the planted heel
+      const skid = s === HPOSE.skid;
+      if (skid && !p.__skid && view.game && view.game.addParticle) {
+        for (let i = 0; i < 3; i++) view.game.addParticle({ kind: 'puff', color: '#9a88b0', x: x + p.facing * (5 + i * 2), y: y + 1, vx: p.facing * (10 + i * 10), vy: (i - 1) * 4, life: 0.3 + i * 0.06, drag: 4, size: 2 });
+      }
+      p.__skid = skid;
+      // hurt: knock-back recoil away from the facing direction, white for the first frames
+      if (p.hurtT > 0.5) x -= p.facing * Math.round((p.hurtT - 0.5) * 5);
+      // invulnerability shimmer after a hit (not during the dash's own short grace)
+      if (p.iframes > 0 && p.hurtT <= 0.5 && !(p.dashCd > 0 && 1.4 - p.dashCd < 0.3) && Math.floor(rt * 18) % 2 === 0) ctx.globalAlpha = 0.5;
+      spr(ctx, p.hurtT > 0.8 ? flashOf(v[fl]) : v[fl], x, y);
       ctx.globalAlpha = 1;
-      // soft inner glow of the carved face
+      // soft inner glow of the carved face (dimmer while blinking)
       const f = 0.85 + 0.1 * Math.sin(rt * 8.1) + 0.05 * Math.sin(rt * 19.3);
       add(ctx);
-      drawGlow(ctx, 'warm', 14, p.x + p.facing * 1.5, p.y - 21, 0.3 * f);
+      drawGlow(ctx, 'warm', 14, x + p.facing * (1.5 + s.lean + s.hx - s.look), y - 22 + s.bob + s.hb, (s.face === 'blink' ? 0.18 : 0.3) * f);
       norm(ctx);
     },
 
     drawEnemy(ctx, e, view) {
-      const rt = view.rt, fl = e.facing < 0 ? 1 : 0;
-      let s, eyeY = 0, gl = null;
-      if (e.type === 'creeper') {
-        s = SPR.cr[e.seed < 0.5 ? 0 : 1][fl][Math.floor(e.anim * 2.2 + e.seed * 6) % 6];
-        eyeY = 14;
-      } else if (e.type === 'ghost') {
-        s = SPR.gh[fl][Math.floor(rt * 9 + e.seed * 6) % 6];
-      } else {
-        s = SPR.co[fl][Math.floor(e.anim * 2.4 + e.seed * 6) % 6];
-      }
-      const float = e.type === 'ghost' ? 4 + Math.round(Math.sin(rt * 3 + e.seed * 9) * 1.5) : 0;
-      const x = e.x, y = e.y - float;
-      if (e.dying) {
-        const t = e.deathT;
-        // white pop, then dissolve into light
-        const sx = 1 + 0.3 * t, sy = t < 0.3 ? 1 + 0.2 * t : Math.max(0.1, 1.06 - (t - 0.3) * 1.4);
-        ctx.globalAlpha = 1 - t * 0.8;
-        sprS(ctx, s.fl, x, y, sx, sy);
-        ctx.globalAlpha = 1;
-        add(ctx);
-        drawGlow(ctx, e.type === 'ghost' ? 'ice' : e.type === 'colossus' ? 'cyan' : 'pink', e.type === 'colossus' ? 24 : 12, x, y - s.oy * 0.45, 0.7 * (1 - t));
-        norm(ctx);
-        return;
-      }
-      if (e.spawnT < 1) {
-        const k = U.ease.outQuad(e.spawnT);
-        if (e.type === 'ghost') {
-          ctx.globalAlpha = k * 0.9;
-          sprS(ctx, s, x, y, 1 - 0.4 * (1 - k), 1 + 0.6 * (1 - k));
-          ctx.globalAlpha = 1;
-        } else {
-          // sprout from the ground: soil mound + petals swirling out
-          sprRise(ctx, s, x, y, k);
-          const n = e.type === 'colossus' ? 8 : 5;
-          for (let i = 0; i < n; i++) {
-            const a = (i / n) * TAU + e.seed * 9 + k * 2.5, rr = 3 + k * (e.type === 'colossus' ? 20 : 11);
-            const px = Math.round(x + Math.cos(a) * rr), py = Math.round(y - 2 + Math.sin(a) * rr * 0.5 - k * 4);
-            ctx.globalAlpha = 1 - k;
-            ctx.drawImage(FX.petal[i % 2 ? 'pink' : 'white'][(i + Math.floor(k * 8)) & 3], px, py);
-          }
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = '#2a1d2e';
-          const mw = e.type === 'colossus' ? 22 : 12;
-          ctx.fillRect(Math.round(x - mw / 2), Math.round(y - 1), mw, 2);
-          ctx.fillStyle = '#4a3540';
-          ctx.fillRect(Math.round(x - mw / 2) + 1, Math.round(y - 2), mw - 2, 1);
-        }
-        return;
-      }
-      let sx = 1, sy = 1;
-      if (e.flash > 0) { sx = 1 + e.flash * 0.14; sy = 1 - e.flash * 0.12; }
-      if (e.type === 'ghost') ctx.globalAlpha = 0.92;
-      sprS(ctx, e.flash > 0.5 ? s.fl : s, x, y, sx, sy);
-      ctx.globalAlpha = 1;
-      add(ctx);
-      if (e.type === 'creeper') {
-        drawGlow(ctx, 'eye', 3, x + (e.facing < 0 ? -2 : 3), y - eyeY, 0.45);
-      } else if (e.type === 'ghost') {
-        drawGlow(ctx, 'ice', 9, x, y - 14, 0.16);
-        const tw = Math.sin(rt * 5 + e.seed * 40);
-        if (tw > 0.55) {
-          ctx.globalAlpha = (tw - 0.55) * 2;
-          ctx.fillStyle = '#eaffff';
-          const ox = Math.round(x + (U.hash2(Math.floor(rt * 0.8 + e.seed * 7), 1, 3) - 0.5) * 18), oy = Math.round(y - 6 - U.hash2(Math.floor(rt * 0.8 + e.seed * 7), 2, 3) * 18);
-          ctx.fillRect(ox, oy, 1, 1);
-          if (tw > 0.85) { ctx.fillRect(ox - 1, oy, 3, 1); ctx.fillRect(ox, oy - 1, 1, 3); }
-        }
-      } else {
-        const pz = 0.75 + 0.25 * Math.sin(rt * 2.2 + e.seed * 7);
-        drawGlow(ctx, 'cyan', 14, x - 1, y - 22, 0.38 * pz);
-        drawGlow(ctx, 'cyan', 5, x + (e.facing < 0 ? -4 : 4), y - 33, 0.5 * pz);
-      }
-      norm(ctx);
+      const fl = e.facing < 0 ? 1 : 0, x = Math.round(e.x), y = Math.round(e.y);
+      if (e.type === 'creeper') drawCreeper(ctx, e, x, y, fl, view.rt);
+      else if (e.type === 'ghost') drawGhost(ctx, e, x, y, fl, view.rt);
+      else drawColossus(ctx, e, x, y, fl, view.rt, view.game);
     },
 
     drawOrbital(ctx, o, view) {
@@ -2283,8 +2636,8 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
           return;
         }
         case 'puff': {
-          const pf = FX.puff[clamp(Math.floor((1 - a) * 4), 0, 3)];
-          ctx.globalAlpha = a * 0.75;
+          const small = pt.size < 1.5, pf = FX.puff[clamp(Math.floor((1 - a) * (small ? 2 : 4)), 0, 3)];   // grows as it fades
+          ctx.globalAlpha = a * (small ? 0.55 : 0.75);
           ctx.drawImage(pf, Math.round(x) - (pf.width >> 1), Math.round(y) - pf.height);
           ctx.globalAlpha = 1;
           return;
@@ -2414,28 +2767,34 @@ body.style-dusk #pausebox { font-family: 'Cinzel', serif; color: #fff2c4; letter
 
     /* ---------- hooks: petals, light motes and bloom pops */
     onHit(game, e, src) {
-      const y = e.y - e.r - (e.type === 'ghost' ? 6 : 2);
+      // core flash → star → leaf/petal chips → a couple of lingering motes, at the height of the body
+      const gh = e.type === 'ghost', big = e.type === 'colossus';
+      const y = e.y - (gh ? 20 : big ? 24 : 12);
       game.addParticle({ kind: 'bloom', x: e.x, y, life: 0.16, size: e.type === 'colossus' ? 12 : 8, glow: e.type === 'ghost' ? 'ice' : 'pink', drag: 0 });
       game.addParticle({ kind: 'star', x: e.x + (Math.random() - 0.5) * 6, y: y + (Math.random() - 0.5) * 6, life: 0.22 });
       const set = e.type === 'ghost' ? 'ice' : e.type === 'colossus' ? (Math.random() < 0.5 ? 'moss' : 'ochre') : (Math.random() < 0.5 ? 'leaf' : 'violet');
       for (let i = 0; i < 3; i++) {
         const a = Math.random() * TAU, sp = 30 + Math.random() * 40;
-        game.addParticle({ kind: 'petal', set, x: e.x, y: e.y, z: e.r + 4, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6, vz: 40 + Math.random() * 40, grav: 220, life: 0.5 + Math.random() * 0.3, vr: (Math.random() - 0.5) * 12, drag: 2 });
+        game.addParticle({ kind: 'petal', set, x: e.x, y: e.y, z: e.y - y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6, vz: 40 + Math.random() * 40, grav: 220, life: 0.5 + Math.random() * 0.3, vr: (Math.random() - 0.5) * 12, drag: 2 });
+      }
+      for (let i = 0; i < 2; i++) {
+        const sd = i ? 1 : -1;
+        game.addParticle({ kind: 'mote', glow: gh ? 'ice' : big ? 'cyan' : 'amber', core: gh ? '#f0ffff' : '#fff6d0', x: e.x + sd * (e.r * 0.7 + Math.random() * 4), y: y - 2, vx: sd * (10 + Math.random() * 12), vy: -12 - Math.random() * 12, life: 0.4 + Math.random() * 0.2, drag: 1.5, size: 2 });
       }
     },
     onKill(game, e) {
-      const big = e.type === 'colossus', gh = e.type === 'ghost';
+      const big = e.type === 'colossus', gh = e.type === 'ghost', ht = gh ? 20 : big ? 22 : 11;
       const n = big ? 26 : gh ? 8 : 12;
       const sets = gh ? ['ice', 'white', 'lav'] : big ? ['pink', 'white', 'lav', 'moss', 'peach'] : ['pink', 'lav', 'white', 'violet'];
       for (let i = 0; i < n; i++) {
         const a = Math.random() * TAU, sp = (big ? 50 : 30) + Math.random() * 50;
-        game.addParticle({ kind: 'petal', set: sets[i % sets.length], x: e.x, y: e.y, z: e.r + 2, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6, vz: 50 + Math.random() * 70, grav: 160, life: 0.7 + Math.random() * 0.6, vr: (Math.random() - 0.5) * 14, drag: 2.2 });
+        game.addParticle({ kind: 'petal', set: sets[i % sets.length], x: e.x, y: e.y, z: ht * 0.8, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6, vz: 50 + Math.random() * 70, grav: 160, life: 0.7 + Math.random() * 0.6, vr: (Math.random() - 0.5) * 14, drag: 2.2 });
       }
       const m = big ? 14 : 5;
       for (let i = 0; i < m; i++) {
-        game.addParticle({ kind: 'mote', glow: gh ? 'ice' : big ? 'cyan' : 'amber', core: gh ? '#f0ffff' : big ? '#e8fffa' : '#fff3c8', x: e.x + (Math.random() - 0.5) * e.r * 1.6, y: e.y - Math.random() * e.r * 2, vx: (Math.random() - 0.5) * 20, vy: -14 - Math.random() * 26, life: 0.6 + Math.random() * 0.7, drag: 1.2, size: big ? 3 : 2 });
+        game.addParticle({ kind: 'mote', glow: gh ? 'ice' : big ? 'cyan' : 'amber', core: gh ? '#f0ffff' : big ? '#e8fffa' : '#fff3c8', x: e.x + (Math.random() - 0.5) * e.r * 1.6, y: e.y - ht + (Math.random() - 0.5) * e.r * 1.4, vx: (Math.random() - 0.5) * 20, vy: -14 - Math.random() * 26, life: 0.6 + Math.random() * 0.7, drag: 1.2, size: big ? 3 : 2 });
       }
-      game.addParticle({ kind: 'bloom', x: e.x, y: e.y - e.r, life: 0.3, size: big ? 26 : 14, glow: gh ? 'ice' : big ? 'cyan' : 'pink', drag: 0 });
+      game.addParticle({ kind: 'bloom', x: e.x, y: e.y - ht, life: 0.3, size: big ? 26 : 14, glow: gh ? 'ice' : big ? 'cyan' : 'pink', drag: 0 });
       if (big) game.addParticle({ kind: 'ring', x: e.x, y: e.y - 4, life: 0.45, size: 60, drag: 0 });
     },
     onHurt(game, p) {
