@@ -422,6 +422,30 @@ Sicherheit kurz: Secrets nur in der `.env` auf dem Server; ein geleaktes Secret 
 Google- bzw. Discord-Portal sofort neu erzeugen und in der `.env` tauschen. Die
 Rückkehr-Adressen sind fest eingetragen, fremde Ziele lehnt der Anbieter ab.
 
+### Studio (miwale.com/studio) und Verwaltung (miwale.com/admin)
+
+Plan und Datenmodell: [`docs/studio-plan.md`](docs/studio-plan.md).
+
+- **Studio** (`server/studio.mjs`): Jede/r mit Konto (Discord, Google oder E-Mail +
+  Passwort) legt Projekte an, füllt die feste Shopseite aus (Texte, Genre, Tags,
+  Sprachen, Grafiken, Trailer, Fragebogen zu Inhalten, Datenschutz, Rechte) und lädt
+  einen Web-Build als ZIP hoch. Checkliste: Seite → Grafiken → Inhalt → Rechte →
+  Technik → Build → Datum → Einreichen. Bei jeder Einreichung geht eine Mail an die
+  Admins; nach der Freigabe veröffentlicht der Entwickler selbst (sofort oder zum Datum).
+- Hochgeladene Spiele sind fremder Code und laufen **nur** unter play.miwale.com
+  (`/community/<slug>/`, Testlinks `/vorschau/<build>/`). Ohne `SPIELE_ADRESSE` nimmt
+  das Studio keine Builds an.
+- **Verwaltung** (`server/verwaltung.mjs`, `public/admin/`): Admins mit Name, Passwort
+  und 2FA (TOTP-App). Das erste Konto legt man unter miwale.com/admin mit dem alten
+  `BEWERTUNGEN_ADMIN_PASSWORT` an; danach gilt das alte Passwort nicht mehr. Reiter:
+  Einreichungen prüfen, Spiele (ausblenden/hervorheben), Seite (Banner, Studio
+  offen/zu, Grenzen, Genres, Mail-Empfänger), Admins, Postausgang.
+- **Mails** (`server/post.mjs`) per SMTP: `SMTP_HOST`, `SMTP_PORT` (465 TLS, 587
+  STARTTLS), `SMTP_BENUTZER`, `SMTP_PASSWORT`, `SMTP_ABSENDER`, optional `MELDUNG_AN`
+  in der `.env` auf dem Server. Ohne SMTP landen Mails nur im Postausgang der Verwaltung.
+- Daten: `/data/studio` (Projekte, Medien, Builds), `/data/verwaltung.json`,
+  `/data/einstellungen.json`, `/data/postausgang.json`. Alles im Volume, gehört ins Backup.
+
 ### Sicherheits-Koepfe
 
 `docker/sicherheit.conf` fuer alles (nosniff, Referrer-Policy, X-Frame-Options,

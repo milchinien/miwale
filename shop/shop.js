@@ -4,8 +4,29 @@
 (() => {
   "use strict";
 
-  const SPIELE = window.MIWALE_SPIELE || [];
-  const PER_ID = new Map(SPIELE.map((s) => [s.id, s]));
+  // Feste Spiele (shop/spiele.js) und die veroeffentlichten Community-Spiele aus
+  // dem Studio (api/studio/katalog.js). Fehlt die Datei, bleiben es die festen.
+  // Die Verwaltung kann Spiele verstecken (nicht in Listen, der Link geht weiter)
+  // und hervorheben (vorn in Highlights und "Beliebt").
+  const FESTE = window.MIWALE_SPIELE || [];
+  const SEITE = window.MIWALE_SEITE && typeof window.MIWALE_SEITE === "object" ? window.MIWALE_SEITE : {};
+  const SICHT = SEITE.spiele && typeof SEITE.spiele === "object" ? SEITE.spiele : {};
+  const VERSTECKT = new Set(Array.isArray(SICHT.versteckt) ? SICHT.versteckt : []);
+  const HERVOR = Array.isArray(SICHT.hervorgehoben) ? SICHT.hervorgehoben : [];
+  const COMMUNITY = (Array.isArray(window.MIWALE_COMMUNITY) ? window.MIWALE_COMMUNITY : [])
+    .filter((s) => s && typeof s.id === "string" && s.name && !FESTE.some((f) => f.id === s.id))
+    .map((s) => ({ ...s, bild: s.bild || s.kapsel, hochformat: s.kapselHoch || s.kapsel || s.bild }));
+  const PER_ID = new Map(FESTE.concat(COMMUNITY).map((s) => [s.id, s]));
+  const SPIELE = (() => {
+    const sichtbar = FESTE.concat(COMMUNITY).filter((s) => !VERSTECKT.has(s.id));
+    const vorn = HERVOR.map((id) => sichtbar.find((s) => s.id === id)).filter(Boolean);
+    return vorn.concat(sichtbar.filter((s) => !vorn.includes(s)));
+  })();
+  // Bibliothek und Benachrichtigungen lesen window.MIWALE_SPIELE: die sichtbaren
+  // Community-Spiele hinten anhaengen. Die festen bleiben, wie sie sind.
+  if (Array.isArray(window.MIWALE_SPIELE)) {
+    for (const s of COMMUNITY) if (!VERSTECKT.has(s.id)) window.MIWALE_SPIELE.push(s);
+  }
   const SPRACH_SCHLUESSEL = "miwale-sprache"; // derselbe wie im Portfolio
   const WENIG_BEWEGUNG = matchMedia("(prefers-reduced-motion: reduce)");
   const SEITENWEISE = matchMedia("(min-width: 901px)");
@@ -74,6 +95,30 @@
       impressum: "Legal notice",
       impressumText: "Responsible for the content: Michel Waggoner. Contact: michi.waggoner@gmail.com",
       nichtGefunden: "This game doesn't exist (anymore).",
+      studio: "Studio",
+      studioTitel: "miwale Studio — publish your browser game",
+      studioBeschreibung: "Upload your browser game, design its store page and submit it for review. Free, like everything on miwale.",
+      spielEinreichen: "Submit a game",
+      demnaechst: "Coming soon",
+      erscheintAm: (d) => "Coming soon — releases on " + d,
+      genre: "Genre",
+      sprachen: "Languages",
+      alter: "Age rating",
+      ab: (a) => "Ages " + a + "+",
+      selbstauskunft: "self-declared",
+      webseite: "Website",
+      inhalte: "Content & notes",
+      kiInhalte: "AI-generated content",
+      datenschutzSpiel: "Privacy",
+      datenschutzLink: "Privacy policy",
+      aehnlichAlle: "More games",
+      hinweise: {
+        "gewalt-comic": "Cartoon violence", "gewalt-fantasie": "Fantasy violence", "gewalt-realistisch": "Realistic violence",
+        blut: "Blood", horror: "Horror", "sexuell-andeutungen": "Suggestive themes", "sexuell-nacktheit": "Nudity / sexual content",
+        sprache: "Strong language", drogen: "Drugs, alcohol or tobacco", gluecksspiel: "Simulated gambling",
+        mikrotransaktionen: "In-game purchases", ki: "AI-generated content", online: "Online multiplayer",
+        chat: "Players can chat", daten: "Collects player data"
+      },
       monate: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     },
     de: {
@@ -136,6 +181,30 @@
       impressum: "Impressum",
       impressumText: "Verantwortlich für den Inhalt: Michel Waggoner. Kontakt: michi.waggoner@gmail.com",
       nichtGefunden: "Dieses Spiel gibt es (nicht mehr).",
+      studio: "Studio",
+      studioTitel: "miwale Studio — dein Browserspiel veröffentlichen",
+      studioBeschreibung: "Lade dein Browserspiel hoch, gestalte die Store-Seite und reiche es zur Prüfung ein. Kostenlos, wie alles auf miwale.",
+      spielEinreichen: "Spiel einreichen",
+      demnaechst: "Demnächst",
+      erscheintAm: (d) => "Demnächst – erscheint am " + d,
+      genre: "Genre",
+      sprachen: "Sprachen",
+      alter: "Altersempfehlung",
+      ab: (a) => "ab " + a,
+      selbstauskunft: "Selbstauskunft",
+      webseite: "Webseite",
+      inhalte: "Inhalte & Hinweise",
+      kiInhalte: "KI-generierte Inhalte",
+      datenschutzSpiel: "Datenschutz",
+      datenschutzLink: "Datenschutzerklärung",
+      aehnlichAlle: "Mehr Spiele",
+      hinweise: {
+        "gewalt-comic": "Comic-Gewalt", "gewalt-fantasie": "Fantasy-Gewalt", "gewalt-realistisch": "Realistische Gewalt",
+        blut: "Blut", horror: "Horror", "sexuell-andeutungen": "Sexuelle Andeutungen", "sexuell-nacktheit": "Nacktheit / sexuelle Inhalte",
+        sprache: "Grobe Sprache", drogen: "Drogen, Alkohol oder Tabak", gluecksspiel: "Simuliertes Glücksspiel",
+        mikrotransaktionen: "Käufe im Spiel", ki: "KI-generierte Inhalte", online: "Online-Multiplayer",
+        chat: "Spieler können chatten", daten: "Sammelt Spielerdaten"
+      },
       monate: ["Jan.", "Feb.", "März", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sep.", "Okt.", "Nov.", "Dez."]
     }
   };
@@ -261,6 +330,9 @@
   }
 
   function spielHref(sp) { return "/games/" + sp.id; }
+  // "Spielen" oder, wenn ein Community-Spiel erst spaeter erscheint, "Demnaechst".
+  function spielenText(sp) { return sp.demnaechst ? t.demnaechst : t.spielen; }
+  function spielenSymbol(sp) { return sp.demnaechst ? "" : ICONS.play; }
 
   // Die Spiele selbst laufen unter einer eigenen Adresse (play.miwale.com),
   // getrennt von Konto und Diensten dieser Seite: Ein Spiel kann so nichts im
@@ -268,7 +340,7 @@
   // (im Container aus SPIELE_ADRESSE); ohne sie laufen sie hier mit (lokal).
   function spielAdresse(sp) {
     const basis = (window.MIWALE_UMGEBUNG || {}).spieleAdresse || "";
-    return basis && /^\/(games|jam-spiele)\//.test(sp.spielen) ? basis + sp.spielen : sp.spielen;
+    return basis && /^\/(games|jam-spiele|community)\//.test(sp.spielen) ? basis + sp.spielen : sp.spielen;
   }
 
   // Leise Toene aus shop/klang.js; fehlt die Datei, bleibt die Seite still.
@@ -282,7 +354,12 @@
   function adresse() {
     const teile = location.pathname.split("/").filter(Boolean).map((x) => { try { return decodeURIComponent(x); } catch (e) { return x; } });
     if (teile[0] === "games" && PER_ID.has(teile[1])) {
-      return { seite: "spiel", id: teile[1], spielt: teile[2] === "spielen" };
+      // Was noch nicht erschienen ist, laesst sich auch nicht spielen.
+      return { seite: "spiel", id: teile[1], spielt: teile[2] === "spielen" && !PER_ID.get(teile[1]).demnaechst };
+    }
+    // miwale Studio (shop/studio.js): /studio ist die Uebersicht, /studio/<projekt> der Editor.
+    if (String(teile[0]).toLowerCase() === "studio" && (teile.length === 1 || (teile.length === 2 && /^[0-9a-f-]{36}$/.test(teile[1])))) {
+      return { seite: "studio", id: teile[1] || null };
     }
     // Game Requests: /requests ist die Liste, /requests/new das Formular.
     if (String(teile[0]).toLowerCase() === "requests" && (teile.length === 1 || (teile.length === 2 && teile[1] === "new"))) {
@@ -310,6 +387,7 @@
     if (ziel.seite === "profil") return "/profile";
     if (ziel.seite === "nutzer") return "/u/" + ziel.name;
     if (ziel.seite === "datenschutz") return "/privacy";
+    if (ziel.seite === "studio") return "/studio" + (ziel.id ? "/" + ziel.id : "");
     if (ziel.seite !== "spiel") return "/";
     return "/games/" + ziel.id + (ziel.spielt ? "/spielen" : "");
   }
@@ -335,7 +413,8 @@
       bibliothek: "M5 4h4v16H5zM11 4h4v16h-4zM17 6l3.5-1 2 15-3.5 1z",
       ideen: "M12 3a6 6 0 0 0-3.5 10.9V17h7v-3.1A6 6 0 0 0 12 3zM9.5 20h5",
       perlen: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM9 9.500a3 3 0 0 1 3-2",
-      profil: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.500 7.500 0 0 1 15 0"
+      profil: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20a7.500 7.500 0 0 1 15 0",
+      studio: "M4 7h16v10H4zM8 12h4M10 10v4M15.500 11.500h.01M17 13.500h.01"
     };
     return '<svg class="sp-home__symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="' + pfade[name] + '"/></svg>';
   }
@@ -362,6 +441,8 @@
           // Schmal steht nur "Requests"; das "Game" davor faellt weg.
           reiter("/requests", symbolReiter("ideen") + '<span class="sp-home__text">' + esc(t.ideen).replace(/^(Game )/, '<span class="sp-home__vorsilbe">$1</span>') + "</span>", seite === "ideen") +
           reiter("/pearls", symbolReiter("perlen") + '<span class="sp-home__text">' + esc(t.perlen) + "</span>", seite === "perlen", "", true) +
+          // Studio: nur breit in der Kopfzeile; schmal fuehren Fuss und Konto-Seite dorthin.
+          reiter("/studio", symbolReiter("studio") + '<span class="sp-home__text">' + esc(t.studio) + "</span>", seite === "studio", " sp-home--studio") +
           // Nur schmal sichtbar: die Reiter stehen dann unten wie in einer App, das Profil gehoert dazu.
           reiter("/profile", symbolReiter("profil") + '<span class="sp-home__text">' + esc(t.profil) + "</span>", seite === "profil" || seite === "nutzer", " sp-home--profil", true) +
         "</nav>" +
@@ -397,7 +478,7 @@
   function fuss() {
     return '<footer class="sp-fuss"><div class="sp-breite">' +
       '<div class="sp-fuss__zeile"><img src="assets/logo-wordmark-light.png" alt="miwale">' +
-      '<nav><a href="/privacy" data-link>' + esc(t.datenschutz) + '</a><a href="/portfolio">' + esc(t.portfolio) + '</a><a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer">YouTube</a><a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer">itch.io</a><a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer">GitHub</a></nav></div>' +
+      '<nav><a href="/studio" data-link>' + esc(t.spielEinreichen) + '</a><a href="/privacy" data-link>' + esc(t.datenschutz) + '</a><a href="/portfolio">' + esc(t.portfolio) + '</a><a href="https://www.youtube.com/@miwale-games" target="_blank" rel="noopener noreferrer">YouTube</a><a href="https://milchinien.itch.io/" target="_blank" rel="noopener noreferrer">itch.io</a><a href="https://github.com/milchinien" target="_blank" rel="noopener noreferrer">GitHub</a></nav></div>' +
       '<p class="sp-fuss__recht"><strong>' + esc(t.impressum) + "</strong> · " + esc(t.impressumText) + "</p>" +
       "</div></footer>";
   }
@@ -462,7 +543,7 @@
           '<button type="button" data-zeige-bild="' + esc(src) + '" aria-label="' + esc(sp.name) + '"><img src="' + esc(src) + '" alt="" loading="lazy"></button>').join("") + "</div>" +
         tags(sp, 4) +
         '<div class="sp-highlight__fuss">' + geraete(sp) +
-          '<button type="button" class="sp-knopf sp-knopf--play" data-spielen="' + sp.id + '">' + ICONS.play + esc(t.spielen) + "</button></div>" +
+          '<button type="button" class="sp-knopf sp-knopf--play" data-spielen="' + esc(sp.id) + '">' + spielenSymbol(sp) + esc(spielenText(sp)) + "</button></div>" +
       "</div></article>";
   }
 
@@ -470,9 +551,10 @@
   // Angebotsreihe bei Steam. Vorn das Beliebteste, dann das Neueste.
   const PRO_SEITE = 4;
   function reiheReihenfolge() {
-    const trend = SPIELE.filter((s) => s.trend).sort((a, b) => a.trend - b.trend);
-    const rest = sortiert("neueste").filter((s) => !s.trend);
-    return trend.concat(rest);
+    const vorn = HERVOR.map((id) => SPIELE.find((s) => s.id === id)).filter(Boolean);
+    const trend = SPIELE.filter((s) => s.trend && !vorn.includes(s)).sort((a, b) => a.trend - b.trend);
+    const rest = sortiert("neueste").filter((s) => !s.trend && !vorn.includes(s));
+    return vorn.concat(trend, rest);
   }
   function reiheSeiten() {
     const liste = reiheReihenfolge();
@@ -492,19 +574,19 @@
       '<span class="sp-karte__bild"><img src="' + esc(bild) + '" alt="" loading="lazy"></span>' +
       (abzeichen(sp) || '<span class="sp-abzeichen">' + esc((text(sp).tags || [])[0] || "") + "</span>") +
       '<span class="sp-karte__unten"><span class="sp-karte__name">' + esc(sp.name) + "</span>" +
-        '<span class="sp-karte__play">' + ICONS.play + esc(t.spielen) + "</span></span>" +
+        '<span class="sp-karte__play">' + spielenSymbol(sp) + esc(spielenText(sp)) + "</span></span>" +
       "</a>";
   }
 
   function listeZeilen() {
     return sortiert(zustand.sortierung).map((sp) => {
       const tx = text(sp);
-      return '<a class="sp-zeile" href="' + spielHref(sp) + '" data-link data-vorschau-id="' + sp.id + '">' +
+      return '<a class="sp-zeile" href="' + spielHref(sp) + '" data-link data-vorschau-id="' + esc(sp.id) + '">' +
         '<span class="sp-zeile__bild"><img src="' + esc(sp.bild) + '" alt="" loading="lazy"></span>' +
         '<span class="sp-zeile__text"><span class="sp-zeile__name">' + esc(sp.name) + "</span>" +
           '<span class="sp-zeile__tags">' + esc((tx.tags || []).join(", ")) + "</span>" +
           '<span class="sp-zeile__datum">' + esc(t.veroeffentlicht) + ": " + esc(datum(sp.veroeffentlicht)) + "</span></span>" +
-        '<span class="sp-zeile__rechts">' + geraete(sp) + '<span class="sp-zeile__play">' + ICONS.play + esc(t.spielen) + "</span></span>" +
+        '<span class="sp-zeile__rechts">' + geraete(sp) + '<span class="sp-zeile__play">' + spielenSymbol(sp) + esc(spielenText(sp)) + "</span></span>" +
       "</a>";
     }).join("");
   }
@@ -526,11 +608,47 @@
 
   // ---- Spielseite -------------------------------------------------------------------
 
-  function spielSeite(sp) {
+  // Sprachnamen in der Sprache der Seite ("de" -> "Deutsch" bzw. "German").
+  function sprachName(code) {
+    try { return new Intl.DisplayNames([zustand.sprache], { type: "language" }).of(code) || code; } catch (e) { return String(code).toUpperCase(); }
+  }
+
+  // Zusaetzliche Angaben eines Community-Spiels (Selbstauskunft des Entwicklers).
+  function communityDaten(sp) {
+    const e = sp.entwickler || {};
+    const i = sp.inhalt || {};
+    const name = e.name || e.profil || "";
+    let webseite = "";
+    try { if (sp.webseite) webseite = new URL(sp.webseite).hostname.replace(/^www\./, ""); } catch (err) { webseite = ""; }
+    return "<dt>" + esc(t.entwickler) + "</dt><dd>" + (e.profil && /^[A-Za-z0-9_-]{3,20}$/.test(e.profil)
+        ? '<a href="/u/' + esc(e.profil) + '" data-link>' + esc(name) + "</a>" : esc(name)) + "</dd>" +
+      (sp.genre ? "<dt>" + esc(t.genre) + "</dt><dd>" + esc(sp.genre) + "</dd>" : "") +
+      ((sp.sprachen || []).length ? "<dt>" + esc(t.sprachen) + "</dt><dd>" + esc(sp.sprachen.map(sprachName).join(", ")) + "</dd>" : "") +
+      (typeof i.alter === "number" ? "<dt>" + esc(t.alter) + '</dt><dd><span class="sp-alter sp-alter--' + esc(i.alter) + '">' + esc(t.ab(i.alter)) + '</span><span class="sp-alter__hinweis">' + esc(t.selbstauskunft) + "</span></dd>" : "") +
+      (webseite ? "<dt>" + esc(t.webseite) + '</dt><dd><a href="' + esc(sp.webseite) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(webseite) + "</a></dd>" : "");
+  }
+
+  function communityHinweise(sp) {
+    const i = sp.inhalt || {};
+    const liste = (i.hinweise || []).filter((h) => t.hinweise[h]);
+    if (!liste.length && !i.text && !i.kiText && !i.datenText) return "";
+    return '<section class="sp-text sp-inhalt"><h2>' + esc(t.inhalte) + "</h2>" +
+      (liste.length ? '<ul class="sp-inhalt__liste">' + liste.map((h) => '<li class="sp-inhalt__hinweis">' + esc(t.hinweise[h]) + "</li>").join("") + "</ul>" : "") +
+      (i.text ? "<p>" + esc(i.text) + "</p>" : "") +
+      (i.kiText ? '<p class="sp-inhalt__absatz"><strong>' + esc(t.kiInhalte) + ":</strong> " + esc(i.kiText) + "</p>" : "") +
+      (i.datenText ? '<p class="sp-inhalt__absatz"><strong>' + esc(t.datenschutzSpiel) + ":</strong> " + esc(i.datenText) +
+        (/^https:\/\//.test(i.datenschutzUrl || "") ? ' <a href="' + esc(i.datenschutzUrl) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(t.datenschutzLink) + "</a>" : "") + "</p>" : "") +
+      "</section>";
+  }
+
+  // vorschau: dieselbe Seite fuer die Vorschau im Studio (shop/studio.js), ohne
+  // Bewertungen und Favoriten, die es zum Entwurf noch nicht gibt.
+  function spielSeite(sp, vorschau) {
     const tx = text(sp);
     const alle = medien(sp);
     const extern = /^https?:/.test(sp.spielen) && sp.neuerTab;
-    return '<main class="sp-detail sp-breite">' +
+    const huelle = vorschau ? "div" : "main";
+    return "<" + huelle + ' class="sp-detail sp-breite' + (sp.community ? " sp-detail--community" : "") + '">' +
       '<nav class="sp-pfad" aria-label="Breadcrumb"><a href="/" data-link>' + esc(t.alleSpiele) + '</a><span aria-hidden="true">›</span><span>' + esc(sp.name) + "</span></nav>" +
       '<h1 class="sp-detail__titel">' + esc(sp.name) + "</h1>" +
 
@@ -551,7 +669,7 @@
           '<dl class="sp-daten">' +
             "<dt>" + esc(t.status) + "</dt><dd>" + esc(lokal(sp.status)) + "</dd>" +
             "<dt>" + esc(t.veroeffentlicht) + "</dt><dd>" + esc(datum(sp.veroeffentlicht)) + "</dd>" +
-            "<dt>" + esc(t.entwickler) + '</dt><dd><a href="/portfolio">miwale</a></dd>' +
+            (sp.community ? communityDaten(sp) : "<dt>" + esc(t.entwickler) + '</dt><dd><a href="/portfolio">miwale</a></dd>') +
             "<dt>" + esc(t.plattform) + "</dt><dd>" + geraete(sp) + " " + esc((sp.geraete || []).map((g) => t[g]).join(" · ")) + "</dd>" +
           "</dl>" +
           tags(sp) +
@@ -560,28 +678,47 @@
 
       '<div class="sp-detail__unten">' +
         '<div class="sp-detail__haupt">' +
-          '<div class="sp-spielbox">' +
-            '<div><h2>' + esc(t.spieleName(sp.name)) + "</h2><p>" + esc(t.imBrowser) +
-              ((sp.geraete || []).indexOf("handy") < 0 ? " " + esc(t.nurPc) : "") + (extern ? " " + esc(t.neuerTab) : "") + "</p></div>" +
-            '<button type="button" class="sp-knopf sp-knopf--play sp-knopf--gross" data-spielen="' + sp.id + '">' + ICONS.play + esc(t.jetztSpielen) + "</button>" +
-          "</div>" +
+          (sp.demnaechst
+            ? '<div class="sp-spielbox sp-spielbox--demnaechst"><div><h2>' + esc(sp.name) + "</h2><p>" + esc(t.erscheintAm(datum(sp.veroeffentlicht))) + "</p></div>" +
+              '<span class="sp-knopf sp-knopf--glas sp-knopf--gross sp-demnaechst">' + esc(t.demnaechst) + "</span></div>"
+            : '<div class="sp-spielbox">' +
+              '<div><h2>' + esc(t.spieleName(sp.name)) + "</h2><p>" + esc(t.imBrowser) +
+                ((sp.geraete || []).indexOf("handy") < 0 ? " " + esc(t.nurPc) : "") + (extern ? " " + esc(t.neuerTab) : "") + "</p></div>" +
+              '<button type="button" class="sp-knopf sp-knopf--play sp-knopf--gross" data-spielen="' + esc(sp.id) + '">' + ICONS.play + esc(t.jetztSpielen) + "</button>" +
+            "</div>") +
           // Favorit und Bibliothek (shop/profil.js setzt den Zustand des Sterns).
-          '<div class="pf-spielextra"><button type="button" class="pf-favknopf" data-fav-knopf="' + esc(sp.id) + '" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/></svg><span>' + esc(t.favoritAn) + "</span></button>" +
-            '<a class="pf-favknopf" href="/library/' + esc(sp.id) + '" data-link><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17 6l3.5-1 2 15-3.5 1z"/></svg><span>' + esc(t.inBibliothek) + "</span></a></div>" +
+          (vorschau ? "" : '<div class="pf-spielextra"><button type="button" class="pf-favknopf" data-fav-knopf="' + esc(sp.id) + '" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.8z"/></svg><span>' + esc(t.favoritAn) + "</span></button>" +
+            '<a class="pf-favknopf" href="/library/' + esc(sp.id) + '" data-link><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17 6l3.5-1 2 15-3.5 1z"/></svg><span>' + esc(t.inBibliothek) + "</span></a></div>") +
           '<section class="sp-text"><h2>' + esc(t.ueber) + "</h2>" + (tx.ueber || []).map((p) => "<p>" + esc(p) + "</p>").join("") + "</section>" +
           ((tx.features || []).length ? '<section class="sp-text"><h2>' + esc(t.features) + '</h2><ul class="sp-features">' + tx.features.map((f) => "<li>" + esc(f) + "</li>").join("") + "</ul></section>" : "") +
           (tx.steuerung ? '<section class="sp-text"><h2>' + esc(t.steuerung) + "</h2><p>" + esc(tx.steuerung) + "</p></section>" : "") +
+          (sp.community ? communityHinweise(sp) : "") +
           // Bewertungen unter den Beschreibungen; gefuellt von shop/bewertungen.js.
-          '<section class="sp-text sp-bew" data-bewertungen></section>' +
+          (vorschau ? "" : '<section class="sp-text sp-bew" data-bewertungen></section>') +
         "</div>" +
-        '<aside class="sp-detail__seite"><h2 class="sp-ueberschrift sp-ueberschrift--klein">' + esc(t.aehnlich) + "</h2>" +
+        '<aside class="sp-detail__seite"><h2 class="sp-ueberschrift sp-ueberschrift--klein">' + esc(sp.community ? t.aehnlichAlle : t.aehnlich) + "</h2>" +
           aehnliche(sp, 4).map((x) =>
             '<a class="sp-aehnlich" href="' + spielHref(x) + '" data-link><img src="' + esc(x.bild) + '" alt="" loading="lazy">' +
               '<span><span class="sp-aehnlich__name">' + esc(x.name) + '</span><span class="sp-aehnlich__tags">' + esc((text(x).tags || []).slice(0, 3).join(", ")) + "</span></span></a>").join("") +
           '<a class="sp-knopf sp-knopf--glas sp-knopf--breit" href="/" data-link>' + esc(t.alleSpiele) + "</a>" +
         "</aside>" +
       "</div>" +
-    "</main>";
+    "</" + huelle + ">";
+  }
+
+  // Ankuendigung der Verwaltung oben auf jeder Seite (MIWALE_SEITE.banner).
+  function banner() {
+    const b = SEITE.banner;
+    if (!b || b.an !== true) return "";
+    const txt = String((zustand.sprache === "de" ? b.de : b.en) || b.de || b.en || "").trim();
+    if (!txt) return "";
+    const link = typeof b.link === "string" ? b.link : "";
+    const innen = '<span class="sp-banner__text">' + esc(txt) + "</span>" + (link ? '<span class="sp-banner__pfeil" aria-hidden="true">→</span>' : "");
+    return '<div class="sp-banner" role="note">' +
+      (/^\/(?!\/)/.test(link) ? '<a class="sp-banner__innen" href="' + esc(link) + '" data-link>' + innen + "</a>"
+        : /^https:\/\//.test(link) ? '<a class="sp-banner__innen" href="' + esc(link) + '" target="_blank" rel="noopener noreferrer">' + innen + "</a>"
+        : '<div class="sp-banner__innen">' + innen + "</div>") +
+      "</div>";
   }
 
   // ---- Spielfenster -------------------------------------------------------------------
@@ -607,8 +744,9 @@
     const ideen = ort.seite === "ideen";
     const konto = ort.seite === "konto";
     const datenschutz = ort.seite === "datenschutz";
+    const studio = ort.seite === "studio";
     const profilSeite = ort.seite === "bibliothek" || ort.seite === "perlen" || ort.seite === "profil" || ort.seite === "nutzer";
-    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : ort.seite === "nutzer" ? "nutzer:" + String(ort.name).toLowerCase() : ort.seite === "bibliothek" ? "bibliothek:" + (ort.id || "") : ort.seite;
+    const seitenSchluessel = sp ? "spiel:" + sp.id : ideen ? (ort.neu ? "ideen:neu" : "ideen") : ort.seite === "nutzer" ? "nutzer:" + String(ort.name).toLowerCase() : ort.seite === "bibliothek" ? "bibliothek:" + (ort.id || "") : studio ? "studio:" + (ort.id || "") : ort.seite;
 
     // Die Seite nur neu bauen, wenn sich Seite oder Sprache geaendert haben —
     // sonst liefe beim Oeffnen des Spielfensters jeder Trailer von vorn.
@@ -621,16 +759,18 @@
         : ideen ? '<main class="sp-ideen sp-breite" data-ideen></main>'
         : konto ? '<main class="sp-ideen sp-konto sp-breite" data-konto></main>'
         : datenschutz ? '<main class="sp-ideen sp-breite" data-datenschutz></main>'
+        // Das Studio fuellt shop/studio.js.
+        : studio ? '<main class="sp-ideen st-seite sp-breite" data-studio></main>'
         // Die Bibliothek nutzt wie bei Steam die ganze Breite; Profil und Shop die normale Spalte.
         : profilSeite ? (ort.seite === "bibliothek" ? '<main class="pf-seite pf-seite--voll" data-profilseite></main>' : '<main class="sp-ideen sp-breite pf-seite" data-profilseite></main>')
         : startSeite();
-      app.innerHTML = kopf() + inhalt + fuss() + '<div data-fenster></div>';
+      app.innerHTML = kopf() + banner() + inhalt + fuss() + '<div data-fenster></div>';
       app.dataset.seite = seitenSchluessel;
       app.dataset.sprache = zustand.sprache;
       if (window.MIWALE_MELDUNGEN) window.MIWALE_MELDUNGEN.einbauen(app.querySelector("[data-meldungen]"), zustand.sprache);
       if (window.MIWALE_KONTO) window.MIWALE_KONTO.knopf(app.querySelector("[data-konto-knopf]"), zustand.sprache);
       document.title = sp ? sp.name + " — miwale games" : ideen ? (ort.neu ? t.ideenNeuTitel : t.ideenTitel) : konto ? t.kontoTitel
-        : datenschutz ? t.datenschutz + " — miwale games" : t.titel;
+        : datenschutz ? t.datenschutz + " — miwale games" : studio ? t.studioTitel : t.titel;
       if (sp) {
         // Beschreibung pro Spiel, damit geteilte Links eine Vorschau bekommen.
         setzeMeta("description", text(sp).kurz);
@@ -650,6 +790,9 @@
         if (ort.seite === "bibliothek" && S.bibliothek) S.bibliothek(platz, zustand.sprache, ort.id);
         else if (ort.seite === "perlen" && S.perlen) S.perlen(platz, zustand.sprache);
         else if (S.profil) S.profil(platz, zustand.sprache, ort.seite === "nutzer" ? ort.name : null);
+      } else if (studio) {
+        setzeMeta("description", t.studioBeschreibung);
+        if (window.MIWALE_STUDIO) window.MIWALE_STUDIO.einbauen(app.querySelector("[data-studio]"), zustand.sprache, { id: ort.id });
       } else if (datenschutz) {
         setzeMeta("description", t.datenschutz);
         if (window.MIWALE_DATENSCHUTZ) window.MIWALE_DATENSCHUTZ.einbauen(app.querySelector("[data-datenschutz]"), zustand.sprache);
@@ -772,7 +915,8 @@
 
   function zeigeMedium(i) {
     const ort = adresse();
-    const sp = PER_ID.get(ort.id);
+    // In der Vorschau des Studios zeigt die Galerie den Entwurf.
+    const sp = ort.seite === "studio" ? vorschauSpiel : PER_ID.get(ort.id);
     const buehne = app.querySelector("[data-galerie-buehne]");
     if (!sp || !buehne) return;
     const alle = medien(sp);
@@ -793,6 +937,8 @@
   function spielStarten(id) {
     const sp = PER_ID.get(id);
     if (!sp) return;
+    // Noch nicht erschienen: zur Spielseite mit dem Datum.
+    if (sp.demnaechst) { geheZu({ seite: "spiel", id, spielt: false }); return; }
     if (sp.neuerTab) { window.open(spielAdresse(sp), "_blank", "noopener"); return; }
     geheZu({ seite: "spiel", id, spielt: true });
   }
@@ -978,8 +1124,30 @@
     if (txt) txt.textContent = document.fullscreenElement ? t.vollbildAus : t.vollbild;
   });
 
+  // Fuer das Studio (shop/studio.js): die Vorschau zeigt den Entwurf mit derselben
+  // Spielseite, und Wechsel innerhalb der Seite laufen ueber denselben Verlauf.
+  let vorschauSpiel = null;
+  window.MIWALE_SHOP = {
+    spielSeiteHtml(sp, sprache) {
+      zustand.sprache = sprache === "de" ? "de" : "en";
+      t = TEXTE[zustand.sprache];
+      if (!vorschauSpiel || vorschauSpiel.id !== sp.id) zustand.medium = 0;
+      vorschauSpiel = sp;
+      return spielSeite(sp, true);
+    },
+    hinweisText: (schluessel, sprache) => (TEXTE[sprache] || TEXTE.en).hinweise[schluessel] || schluessel,
+    gehe(href, ersetzen) {
+      try {
+        if (ersetzen) history.replaceState(null, "", href + location.search);
+        else { history.pushState(null, "", href + location.search); zustand.eigeneEintraege++; }
+      } catch (e) { /* ohne Verlauf */ }
+      zeichne();
+    }
+  };
+
   // Start: alte Doppelkreuz-Links und unbekannte Spiele auf die kurze Form bringen.
   const anfang = adresse();
-  try { history.replaceState(null, "", pfad(anfang) + location.search); } catch (e) { /* egal */ }
+  // Im Studio merkt sich das Doppelkreuz den Schritt (#grafiken); das bleibt.
+  try { history.replaceState(null, "", pfad(anfang) + location.search + (anfang.seite === "studio" ? location.hash : "")); } catch (e) { /* egal */ }
   zeichne();
 })();

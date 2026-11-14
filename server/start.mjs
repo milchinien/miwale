@@ -18,6 +18,9 @@ import { stimmenBauen, stylesAusKatalog, STYLE_KATALOG } from "./stimmen.mjs";
 import { profilBauen } from "./profil.mjs";
 import { jamBauen } from "./jam.mjs";
 import { minecraftBauen } from "./minecraft.mjs";
+import { verwaltungBauen } from "./verwaltung.mjs";
+import { studioBauen } from "./studio.mjs";
+import { postBauen } from "./post.mjs";
 
 const port = Number(process.env.BEWERTUNGEN_PORT || 8081);
 const ordner = process.env.BEWERTUNGEN_ORDNER || "/data";
@@ -45,23 +48,51 @@ for (const [name, z] of Object.entries(anbieter)) {
   if (!z.id || !z.secret) console.warn("Anmelden mit " + name + " ist aus: " + name.toUpperCase() + "_CLIENT_ID/_SECRET fehlen.");
 }
 
+// E-Mails (Einreichungen, Pruefergebnisse, Konten mit E-Mail). Ohne SMTP_HOST
+// landen sie nur im Postausgang der Verwaltung.
+const post = postBauen({
+  ordner,
+  zugang: {
+    host: process.env.SMTP_HOST || "", port: Number(process.env.SMTP_PORT || 465),
+    benutzer: process.env.SMTP_BENUTZER || "", passwort: process.env.SMTP_PASSWORT || "",
+    absender: process.env.SMTP_ABSENDER || process.env.SMTP_BENUTZER || ""
+  }
+});
+if (!process.env.SMTP_HOST) console.warn("SMTP_HOST fehlt: E-Mails landen nur im Postausgang der Verwaltung.");
+
+// Admin-Konten mit 2FA (/api/verwaltung/). Das alte Passwort legt nur noch das erste Konto an.
+// Benachrichtigungen gehen an die Liste aus den Einstellungen, sonst an MELDUNG_AN.
+const meldungAn = String(process.env.MELDUNG_AN || "").split(",").map((x) => x.trim()).filter(Boolean);
+const verwaltung = verwaltungBauen({ ordner, passwort, herkunft: [adresse], post, meldungAn });
+
 // Ein Schutz gegen das Raten des Verwaltungs-Passworts fuer alle Dienste zusammen.
-const gemeinsam = { ordner, passwort, salz, herkunft: [adresse], adminSchutz: adminSchutz() };
+// Mit Admin-Konten gilt stattdessen deren Sitzung (gemeinsam.mjs, adminSchutz).
+const gemeinsam = { ordner, passwort, salz, herkunft: [adresse], adminSchutz: adminSchutz(undefined, undefined, verwaltung) };
 const konten = kontenBauen({
   ...gemeinsam,
   adresse,
   anbieter,
-  beimLoeschen: (id) => { bewertungen.kontoLoeschen(id); ideen.kontoLoeschen(id); profil.kontoLoeschen(id); },
-  datenVon: (id) => ({ bewertungen: bewertungen.kontoDaten(id), ...ideen.kontoDaten(id), profil: profil.kontoDaten(id) })
+  // Anmelden mit E-Mail und Passwort: dieselbe Regel wie Discord/Google.
+  email: { aktiv: spieleGetrennt, post },
+  beimLoeschen: (id) => { bewertungen.kontoLoeschen(id); ideen.kontoLoeschen(id); profil.kontoLoeschen(id); studio.kontoLoeschen(id); },
+  datenVon: (id) => ({ bewertungen: bewertungen.kontoDaten(id), ...ideen.kontoDaten(id), profil: profil.kontoDaten(id), studio: studio.kontoDaten(id) })
+});
+const festeSpiele = spieleAusKatalog(process.env.BEWERTUNGEN_KATALOG || KATALOG);
+// Studio (/api/studio/): Builds nur mit eigener Spiele-Adresse -- fremder Code
+// laeuft nie unter miwale.com.
+const studio = studioBauen({
+  ...gemeinsam, konten, verwaltung, post, adresse, festeIds: festeSpiele,
+  spieleAdresse: (process.env.SPIELE_ADRESSE || "").replace(/\/+$/, "")
 });
 const bewertungen = anwendungBauen({
   ...gemeinsam,
   konten,
-  spiele: spieleAusKatalog(process.env.BEWERTUNGEN_KATALOG || KATALOG),
+  spiele: festeSpiele,
+  weitereSpiele: () => studio.liveIds(),
   beiBewertung: (id, spiel) => profil.ereignis(id, "bewertung", spiel)
 });
 const ideen = ideenBauen({ ...gemeinsam, konten, beiIdee: (id, idee) => profil.ereignis(id, "idee", idee) });
-const profil = profilBauen({ ...gemeinsam, konten });
+const profil = profilBauen({ ...gemeinsam, konten, weitereSpiele: () => studio.liveIds() });
 // Stimmen der Game Style Library; welche Styles es gibt, steht im Katalog der Seite.
 const stimmen = stimmenBauen({ ...gemeinsam, katalog: stylesAusKatalog(process.env.STIMMEN_KATALOG || STYLE_KATALOG) });
 // Sterne der Jam-Spiele (miwale.com/jam); welche Spiele es gibt, steht in jams.json.
@@ -78,6 +109,8 @@ http.createServer((req, res) => {
   if (unter(req.url, "/api/profil")) return profil(req, res);
   if (unter(req.url, "/api/jam")) return jam(req, res);
   if (unter(req.url, "/api/minecraft")) return minecraft(req, res);
+  if (unter(req.url, "/api/studio")) return studio(req, res);
+  if (unter(req.url, "/api/verwaltung")) return verwaltung(req, res);
   return bewertungen(req, res);
 }).listen(port, "127.0.0.1", () => console.log("Dienste auf 127.0.0.1:" + port));
 
