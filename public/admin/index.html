@@ -5,93 +5,268 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="google" content="notranslate">
+<meta name="referrer" content="no-referrer">
 <title>Verwaltung · miwale</title>
 <link rel="icon" type="image/png" href="/assets/favicon-whale-light.png">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/fonts.css">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/colors.css">
 <link rel="stylesheet" href="/_ds/miwale-design-system-4a4112aa-5a13-43da-86d2-90be065036b7/tokens/typography.css">
+<link rel="stylesheet" href="/admin/verwaltung.css">
 <!--
-  Verwaltung der Bewertungen von miwale.com/games, der Game Requests
-  von miwale.com/requests und der Konten.
-  Die Seite selbst ist nicht geheim. Jede Anfrage an die Schnittstelle traegt
-  das Passwort mit; der Dienst prueft es und bremst falsches Raten. Das Passwort
-  bleibt nur in diesem Tab (sessionStorage) und ist nach dem Schliessen weg.
+  Verwaltung von miwale.com: Einreichungen aus dem Studio, Spiele, Einstellungen
+  der Seite, Admins, Postausgang, Bewertungen, Game Requests und Konten.
+  Anmelden mit eigenem Admin-Konto (Benutzername, Passwort, 2FA-Code). Die
+  Sitzung steckt in einem HttpOnly-Cookie (server/verwaltung.mjs); diese Seite
+  speichert keine Passwoerter. Alle Skripte kommen aus Dateien, nichts ist
+  eingebettet (CSP in docker/sicherheit-admin.conf).
 -->
-<style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; background: #050A16; color: #EDF3F9; font: var(--type-body, 16px/1.5 system-ui, sans-serif); }
-  main { width: min(1100px, 100%); margin: 0 auto; padding: 40px 20px 80px; display: flex; flex-direction: column; gap: 24px; }
-  h1 { margin: 0; font: var(--type-h2, 700 28px/1.2 system-ui); color: #fff; }
-  h2 { margin: 0; font: var(--type-label, 600 16px system-ui); font-size: 18px; color: #fff; }
-  .klein { font-size: 13px; color: rgba(237,243,249,.62); }
-  .karte { padding: 20px; border-radius: 18px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); display: flex; flex-direction: column; gap: 12px; }
-  .zeile { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  input, select, textarea { font: inherit; font-size: 15px; color: #fff; background: rgba(1,10,17,.5); border: 1px solid rgba(255,255,255,.2); border-radius: 12px; padding: 10px 12px; }
-  textarea { width: 100%; min-height: 70px; resize: vertical; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: #7FE0EE; }
-  button { font: inherit; font-size: 14px; min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #EDF3F9; cursor: pointer; }
-  button:hover { background: rgba(255,255,255,.14); }
-  button:focus-visible { outline: 2px solid #7FE0EE; outline-offset: 2px; }
-  button.haupt { background: linear-gradient(180deg, #BDF3FA, #7FE0EE); color: #06303C; border: 0; font-weight: 600; }
-  button.gefahr { border-color: rgba(242,179,155,.55); color: #F7C7B4; }
-  .fehler { color: #F2B39B; }
-  .ok { color: #9BE7F2; }
-  .werte { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
-  .wert { padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
-  .wert b { display: block; color: #fff; font-size: 15px; }
-  .daumen { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; font-size: 16px; }
-  .daumen.hoch { background: rgba(127,224,238,.18); }
-  .daumen.runter { background: rgba(242,179,155,.16); }
-  .text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
-  .privat { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(255,214,120,.08); border-left: 3px solid rgba(255,214,120,.6); white-space: pre-line; overflow-wrap: anywhere; }
-  .antwort { padding: 10px 12px; border-left: 3px solid #7FE0EE; background: rgba(127,224,238,.06); border-radius: 0 12px 12px 0; }
-  .reiter { display: flex; gap: 6px; }
-  .reiter button[aria-pressed="true"] { background: rgba(127,224,238,.2); border-color: #7FE0EE; color: #fff; }
-  .nr { font-weight: 800; color: rgba(237,243,249,.62); }
-  .stand { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,.08); }
-  .stand.shortlist { background: rgba(243,213,139,.18); color: #F3D58B; }
-  .stand.in-arbeit { background: rgba(255,150,80,.25); color: #FFC9A3; }
-  .stand.fertig { background: rgba(127,224,238,.25); color: #BFF1F7; }
-  .stand.nicht-gewaehlt { opacity: .6; }
-  .bilder { display: flex; flex-wrap: wrap; gap: 8px; }
-  .bilder a { display: block; width: 160px; aspect-ratio: 4 / 3; border-radius: 10px; overflow: hidden; background: #03101A; border: 1px solid rgba(255,255,255,.12); }
-  .bilder img { width: 100%; height: 100%; object-fit: cover; }
-  label.feld { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 180px; }
-  [hidden] { display: none !important; }
-</style>
 </head>
 <body>
+<header class="kopf">
+  <div class="kopf__innen">
+    <a class="marke" href="/admin/#einreichungen"><span class="marke__punkt"></span>Verwaltung</a>
+    <div class="kopf__rechts">
+      <span id="ichName" class="klein" hidden></span>
+      <a href="/" class="klein link">Zur Spieleseite →</a>
+      <button type="button" id="abmelden" class="klein-knopf" hidden>Abmelden</button>
+    </div>
+  </div>
+  <nav id="reiter" class="reiter" aria-label="Bereiche" hidden>
+    <a href="#einreichungen" data-reiter="einreichungen">Einreichungen <span id="zaehlerOffen" class="zaehler" hidden></span></a>
+    <a href="#spiele" data-reiter="spiele">Spiele</a>
+    <a href="#seite" data-reiter="seite">Seite</a>
+    <a href="#admins" data-reiter="admins">Admins</a>
+    <a href="#postausgang" data-reiter="postausgang">Postausgang</a>
+    <a href="#bewertungen" data-reiter="bewertungen">Bewertungen</a>
+    <a href="#requests" data-reiter="requests">Game Requests</a>
+    <a href="#konten" data-reiter="konten">Konten</a>
+  </nav>
+</header>
+
 <main>
-  <div class="zeile" style="justify-content: space-between;">
-    <h1>Verwaltung</h1>
-    <a href="/" style="color: #7FE0EE;">Zur Spieleseite →</a>
-  </div>
+  <p id="laden" class="klein">Lade …</p>
 
-  <form id="anmelden" class="karte" autocomplete="on">
-    <h2>Anmelden</h2>
-    <p class="klein" style="margin: 0;">Das Passwort steht auf dem Server in der Variable BEWERTUNGEN_ADMIN_PASSWORT. Lokal mit Vite ist es „dev“.</p>
-    <input type="text" name="username" value="miwale-admin" autocomplete="username" hidden>
-    <div class="zeile">
-      <input id="passwort" type="password" autocomplete="current-password" placeholder="Passwort" required style="flex: 1; min-width: 200px;">
-      <button class="haupt" type="submit">Anmelden</button>
-    </div>
-    <p id="anmeldeFehler" class="fehler" style="margin: 0;" hidden></p>
-  </form>
+  <!-- ===== Anmelden ===== -->
+  <section id="login" class="login" hidden>
+    <!-- Ersteinrichtung: nur solange es kein Admin-Konto gibt. -->
+    <form id="einrichten" class="karte login__karte" autocomplete="on" hidden>
+      <h1>Verwaltung einrichten</h1>
+      <p class="klein">Es gibt noch kein Admin-Konto. Lege das erste an. Dafür brauchst du das alte Verwaltungs-Passwort (Variable <code>BEWERTUNGEN_ADMIN_PASSWORT</code> auf dem Server, lokal „dev“). Danach gilt es nicht mehr.</p>
+      <label class="feld">Altes Verwaltungs-Passwort
+        <input id="eAlt" type="password" autocomplete="off" required></label>
+      <label class="feld">Benutzername
+        <input id="eName" type="text" autocomplete="username" required pattern="[a-z0-9_.\-]{3,32}" maxlength="32" autocapitalize="none" spellcheck="false">
+        <span class="klein">3–32 Zeichen: Kleinbuchstaben, Ziffern, Punkt, Minus, Unterstrich.</span></label>
+      <label class="feld">Passwort
+        <input id="ePass" type="password" autocomplete="new-password" required minlength="10" maxlength="200">
+        <span class="klein">Mindestens 10 Zeichen.</span></label>
+      <label class="feld">Passwort wiederholen
+        <input id="ePass2" type="password" autocomplete="new-password" required minlength="10" maxlength="200"></label>
+      <label class="feld">E-Mail (für Benachrichtigungen)
+        <input id="eEmail" type="email" autocomplete="email" maxlength="200"></label>
+      <p id="eFehler" class="fehler" role="alert" hidden></p>
+      <button class="haupt" type="submit">Konto anlegen</button>
+    </form>
 
-  <div id="reiter" class="zeile" style="justify-content: space-between;" hidden>
-    <div class="reiter" role="group" aria-label="Bereich">
-      <button type="button" data-reiter="bereich" aria-pressed="true">Bewertungen</button>
-      <button type="button" data-reiter="ideenBereich" aria-pressed="false">Game Requests</button>
-      <button type="button" data-reiter="kontenBereich" aria-pressed="false">Konten</button>
-    </div>
-    <div class="zeile">
-      <button type="button" id="neuLaden">Neu laden</button>
-      <button type="button" id="abmelden">Abmelden</button>
-    </div>
-  </div>
+    <form id="anmelden" class="karte login__karte" autocomplete="on" hidden>
+      <h1>Anmelden</h1>
+      <p id="aHinweis" class="ok" hidden></p>
+      <label class="feld">Benutzername
+        <input id="aName" type="text" autocomplete="username" required maxlength="32" autocapitalize="none" spellcheck="false"></label>
+      <label class="feld">Passwort
+        <input id="aPass" type="password" autocomplete="current-password" required maxlength="200"></label>
+      <p id="aFehler" class="fehler" role="alert" hidden></p>
+      <button class="haupt" type="submit">Weiter</button>
+    </form>
 
-  <div id="bereich" hidden style="display: flex; flex-direction: column; gap: 24px;">
+    <form id="code" class="karte login__karte" autocomplete="off" hidden>
+      <h1 id="cTitel">Bestätigungscode</h1>
+      <div id="cEinrichten" class="stapel" hidden>
+        <p>Für dein Konto ist noch kein zweiter Faktor eingerichtet. Richte ihn jetzt ein:</p>
+        <ol class="anleitung">
+          <li>Öffne eine Authenticator-App, z. B. Google Authenticator, Aegis oder 1Password.</li>
+          <li>Wähle „Konto hinzufügen“ → „Schlüssel eingeben“ (bzw. „Einrichtungsschlüssel“).</li>
+          <li>Kontoname: <b id="cKonto"></b>, Schlüssel: der Code unten, Typ: zeitbasiert.</li>
+          <li>Gib den 6-stelligen Code ein, den die App dann zeigt.</li>
+        </ol>
+        <div class="schluessel" id="cSchluessel" aria-label="2FA-Schlüssel"></div>
+        <div class="zeile">
+          <button type="button" id="cKopieren">Schlüssel kopieren</button>
+          <a id="cOtpauth" class="knopf" href="#">In Authenticator-App öffnen</a>
+        </div>
+        <p class="klein">Auf dem Handy öffnet der Link die App direkt. Bewahre den Schlüssel nicht unverschlüsselt auf.</p>
+      </div>
+      <p id="cText" class="klein">Gib den 6-stelligen Code aus deiner Authenticator-App ein.</p>
+      <label class="feld">Code
+        <input id="cCode" class="code-feld" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" required placeholder="123456"></label>
+      <p id="cFehler" class="fehler" role="alert" hidden></p>
+      <div class="zeile">
+        <button class="haupt" type="submit">Anmelden</button>
+        <button type="button" id="cZurueck">Zurück</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== Einreichungen ===== -->
+  <section id="b-einreichungen" class="bereich" hidden>
+    <div id="einListe" class="stapel">
+      <div class="zeile zwischen">
+        <h2>Einreichungen</h2>
+        <div class="zeile">
+          <label class="klein" for="einFilter">Status</label>
+          <select id="einFilter">
+            <option value="">Alle</option>
+            <option value="eingereicht">Eingereicht (offen)</option>
+            <option value="abgelehnt">Abgelehnt</option>
+            <option value="freigegeben">Freigegeben</option>
+            <option value="entwurf">Entwurf</option>
+            <option value="live">Live</option>
+            <option value="gesperrt">Gesperrt</option>
+          </select>
+          <input id="einSuche" type="search" placeholder="Name oder Entwickler" aria-label="Suchen">
+        </div>
+      </div>
+      <p id="einMeldung" class="klein" role="status" aria-live="polite"></p>
+      <div id="einEintraege" class="liste"></div>
+    </div>
+    <div id="einDetail" hidden></div>
+  </section>
+
+  <!-- ===== Spiele ===== -->
+  <section id="b-spiele" class="bereich" hidden>
+    <div class="zeile zwischen">
+      <h2>Spiele auf miwale.com</h2>
+      <input id="spieleSuche" type="search" placeholder="Spiel suchen" aria-label="Spiel suchen">
+    </div>
+    <p class="klein">Ausgeblendete Spiele erscheinen nicht in der Spieleliste. Hervorgehobene Spiele stehen in dieser Reihenfolge oben (höchstens 12). Änderungen gelten erst nach „Speichern“.</p>
+    <div class="karte">
+      <div class="zeile zwischen"><h3>Hervorgehoben <span id="hervorZahl" class="klein"></span></h3></div>
+      <ol id="hervorListe" class="hervor"></ol>
+    </div>
+    <div id="spieleListe" class="spiele"></div>
+    <div class="leiste" id="spieleLeiste">
+      <span id="spieleStand" class="klein" role="status" aria-live="polite"></span>
+      <button type="button" id="spieleVerwerfen">Verwerfen</button>
+      <button type="button" class="haupt" id="spieleSpeichern">Speichern</button>
+    </div>
+  </section>
+
+  <!-- ===== Seite ===== -->
+  <section id="b-seite" class="bereich" hidden>
+    <h2>Einstellungen der Seite</h2>
+    <div class="spalten">
+      <div class="stapel">
+        <fieldset class="karte">
+          <legend>Ankündigungsbanner</legend>
+          <label class="schalter"><input type="checkbox" id="sBannerAn"> Banner anzeigen</label>
+          <label class="feld">Text Deutsch <input id="sBannerDe" type="text" maxlength="300"></label>
+          <label class="feld">Text Englisch <input id="sBannerEn" type="text" maxlength="300"></label>
+          <label class="feld">Link (optional, „/…“ oder „https://…“) <input id="sBannerLink" type="text" maxlength="300" placeholder="/studio"></label>
+        </fieldset>
+        <fieldset class="karte">
+          <legend>Studio</legend>
+          <label class="schalter"><input type="checkbox" id="sStudioOffen"> Studio offen (neue Projekte, Uploads und Einreichungen erlaubt)</label>
+          <div class="zeile">
+            <label class="feld">Max. Build-Größe (MB) <input id="sMaxBuild" type="number" min="10" max="1024" step="1"></label>
+            <label class="feld">Max. Projekte je Entwickler <input id="sMaxProjekte" type="number" min="1" max="100" step="1"></label>
+          </div>
+          <label class="feld">Hinweis für Entwickler (Deutsch) <textarea id="sHinweisDe" maxlength="500"></textarea></label>
+          <label class="feld">Hinweis für Entwickler (Englisch) <textarea id="sHinweisEn" maxlength="500"></textarea></label>
+        </fieldset>
+      </div>
+      <div class="stapel">
+        <fieldset class="karte">
+          <legend>Genres</legend>
+          <p class="klein">Entwickler wählen eines davon. Entfernst du ein Genre, das ein Projekt nutzt, muss der Entwickler neu wählen, bevor er wieder einreichen kann.</p>
+          <ol id="sGenres" class="sortier"></ol>
+          <div class="zeile">
+            <input id="sGenreNeu" type="text" maxlength="40" placeholder="Neues Genre" aria-label="Neues Genre">
+            <button type="button" id="sGenreDazu">Hinzufügen</button>
+          </div>
+        </fieldset>
+        <fieldset class="karte">
+          <legend>E-Mail-Benachrichtigungen</legend>
+          <p class="klein">Wer bekommt eine Mail bei neuen Einreichungen? Bis zu 10 Adressen. Leer: die Adressen der Admins.</p>
+          <ul id="sEmpfaenger" class="sortier"></ul>
+          <div class="zeile">
+            <input id="sEmpfaengerNeu" type="email" maxlength="200" placeholder="name@beispiel.de" aria-label="Neue Adresse">
+            <button type="button" id="sEmpfaengerDazu">Hinzufügen</button>
+          </div>
+          <div id="sSmtp" class="hinweis"></div>
+          <div class="zeile">
+            <button type="button" id="sTestmail">Test-Mail senden</button>
+            <span id="sTestErgebnis" class="klein" role="status" aria-live="polite"></span>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+    <div class="leiste">
+      <span id="seiteStand" class="klein" role="status" aria-live="polite"></span>
+      <button type="button" id="seiteVerwerfen">Verwerfen</button>
+      <button type="button" class="haupt" id="seiteSpeichern">Speichern</button>
+    </div>
+  </section>
+
+  <!-- ===== Admins ===== -->
+  <section id="b-admins" class="bereich" hidden>
+    <h2>Admins</h2>
+    <p id="admMeldung" class="klein" role="status" aria-live="polite"></p>
+    <div id="admListe" class="liste"></div>
+    <form id="admNeu" class="karte" autocomplete="off" hidden>
+      <h3>Admin anlegen</h3>
+      <p class="klein">Der neue Admin meldet sich mit Name und Startpasswort an und richtet dabei seinen zweiten Faktor ein. Danach sollte er das Passwort ändern.</p>
+      <div class="zeile">
+        <label class="feld">Benutzername <input id="admName" type="text" required pattern="[a-z0-9_.\-]{3,32}" maxlength="32" autocapitalize="none" spellcheck="false"></label>
+        <label class="feld">Startpasswort <input id="admPass" type="text" required minlength="10" maxlength="200" autocomplete="off"></label>
+      </div>
+      <div class="zeile">
+        <label class="feld">Rolle
+          <select id="admRolle"><option value="admin">Admin</option><option value="inhaber">Inhaber (darf Admins verwalten)</option></select></label>
+        <label class="feld">E-Mail (optional) <input id="admEmail" type="email" maxlength="200"></label>
+      </div>
+      <div class="zeile">
+        <button type="submit" class="haupt">Anlegen</button>
+        <button type="button" id="admPassVorschlag">Passwort vorschlagen</button>
+      </div>
+    </form>
+    <div class="spalten">
+      <form id="eigenPass" class="karte" autocomplete="on">
+        <h3>Eigenes Passwort ändern</h3>
+        <input type="text" id="eigenPassName" autocomplete="username" hidden>
+        <label class="feld">Aktuelles Passwort <input id="epAlt" type="password" autocomplete="current-password" required maxlength="200"></label>
+        <label class="feld">Neues Passwort (mind. 10 Zeichen) <input id="epNeu" type="password" autocomplete="new-password" required minlength="10" maxlength="200"></label>
+        <label class="feld">Neues Passwort wiederholen <input id="epNeu2" type="password" autocomplete="new-password" required minlength="10" maxlength="200"></label>
+        <p class="klein">Deine anderen Sitzungen werden dabei beendet.</p>
+        <button type="submit" class="haupt">Passwort ändern</button>
+      </form>
+      <form id="eigenEmail" class="karte" autocomplete="on">
+        <h3>Eigene E-Mail</h3>
+        <p class="klein">Für Benachrichtigungen, wenn unter „Seite“ keine Empfänger eingetragen sind, und für die Test-Mail.</p>
+        <label class="feld">E-Mail <input id="eeEmail" type="email" autocomplete="email" maxlength="200"></label>
+        <button type="submit" class="haupt">Speichern</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== Postausgang ===== -->
+  <section id="b-postausgang" class="bereich" hidden>
+    <div class="zeile zwischen">
+      <h2>Postausgang</h2>
+      <select id="postFilter" aria-label="Stand">
+        <option value="">Alle</option>
+        <option value="gesendet">Gesendet</option>
+        <option value="fehler">Fehler</option>
+        <option value="kein-smtp">Kein SMTP</option>
+        <option value="kein-empfaenger">Kein Empfänger</option>
+        <option value="wartet">Wartet</option>
+      </select>
+    </div>
+    <div id="postSmtp" class="hinweis"></div>
+    <div id="postListe" class="liste"></div>
+  </section>
+
+  <!-- ===== Bewertungen (wie bisher) ===== -->
+  <div id="bereich" class="bereich" hidden>
     <div class="zeile">
       <label class="klein" for="spielFilter">Spiel</label>
       <select id="spielFilter"><option value="">Alle Spiele</option></select>
@@ -99,13 +274,13 @@
     </div>
 
     <div id="werte" class="werte"></div>
-    <p id="meldung" class="klein" style="margin: 0;" role="status" aria-live="polite"></p>
-    <div id="liste" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    <p id="meldung" class="klein" role="status" aria-live="polite"></p>
+    <div id="liste" class="liste"></div>
 
     <details class="karte">
-      <summary style="cursor: pointer;"><h2 style="display: inline;">Wortsperrliste</h2></summary>
-      <p class="klein" style="margin: 0;">Ein Wort pro Zeile. Groß- und Kleinschreibung, Umlaute und Umschreibungen wie „sh1t“ oder „s h i t“ werden mit erkannt. Es zählen nur ganze Wörter.</p>
-      <textarea id="sperrliste" style="min-height: 240px; font-family: var(--font-mono, monospace); font-size: 14px;"></textarea>
+      <summary><h2 class="inline">Wortsperrliste</h2></summary>
+      <p class="klein">Ein Wort pro Zeile. Groß- und Kleinschreibung, Umlaute und Umschreibungen wie „sh1t“ oder „s h i t“ werden mit erkannt. Es zählen nur ganze Wörter.</p>
+      <textarea id="sperrliste" class="mono" style="min-height: 240px;"></textarea>
       <div class="zeile">
         <button type="button" class="haupt" id="sperrlisteSpeichern">Liste speichern</button>
         <span id="sperrlisteMeldung" class="klein"></span>
@@ -116,7 +291,7 @@
   <!-- Game Requests: eingereichte Spielideen von miwale.com/requests. Neue sieht
        nur diese Seite; "Auf der Seite zeigen" macht eine Idee samt Bildern und
        Namen fuer alle sichtbar. -->
-  <div id="ideenBereich" hidden style="display: flex; flex-direction: column; gap: 24px;">
+  <div id="ideenBereich" class="bereich" hidden>
     <div class="zeile">
       <label class="klein" for="standFilter">Stand</label>
       <select id="standFilter"><option value="">Alle</option></select>
@@ -125,22 +300,23 @@
       <label class="klein"><input type="checkbox" id="nurPruefen"> nur Bilder zu prüfen</label>
     </div>
     <div id="ideenWerte" class="werte"></div>
-    <p id="ideenMeldung" class="klein" style="margin: 0;" role="status" aria-live="polite"></p>
-    <div id="ideenListe" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    <p id="ideenMeldung" class="klein" role="status" aria-live="polite"></p>
+    <div id="ideenListe" class="liste"></div>
   </div>
-  <!-- Konten (server/konten.mjs). Gespeichert ist nur der gewaehlte Name, nie
-       E-Mail oder Discord-/Google-Name. Gesperrte Konten koennen nichts mehr
+  <!-- Konten (server/konten.mjs). Gesperrte Konten koennen nichts mehr
        schreiben; loescht sich ein gesperrtes Konto, kommt es nicht wieder. -->
-  <div id="kontenBereich" hidden style="display: flex; flex-direction: column; gap: 24px;">
+  <div id="kontenBereich" class="bereich" hidden>
     <div class="zeile">
-      <input id="kontoSuche" type="search" placeholder="Name suchen" style="flex: 1; min-width: 200px;">
+      <input id="kontoSuche" type="search" placeholder="Name suchen" class="wachsen">
       <label class="klein"><input type="checkbox" id="nurGesperrt"> nur gesperrte</label>
     </div>
     <div id="kontenWerte" class="werte"></div>
-    <p id="kontenMeldung" class="klein" style="margin: 0;" role="status" aria-live="polite"></p>
-    <div id="kontenListe" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    <p id="kontenMeldung" class="klein" role="status" aria-live="polite"></p>
+    <div id="kontenListe" class="liste"></div>
   </div>
 </main>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="/admin/verwaltung.js"></script>
 </body>

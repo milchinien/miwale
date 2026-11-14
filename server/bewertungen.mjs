@@ -218,7 +218,7 @@ export function anwendungBauen(optionen) {
 
     // ---- Oeffentlich ----
     const spiel = teile[0];
-    if (!spiel || !SPIELE.includes(spiel) || teile.length > 1) return [404, { fehler: "spiel" }];
+    if (!spiel || !(SPIELE.includes(spiel) || (optionen.weitereSpiele && optionen.weitereSpiele().includes(spiel))) || teile.length > 1) return [404, { fehler: "spiel" }];
     const geraetQ = url.searchParams.get("geraet") || "";
     const geraet = GERAET_RE.test(geraetQ) ? geraetQ : null;
     const konto = wer(req);

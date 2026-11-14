@@ -33,6 +33,8 @@ import { gesperrteWoerter } from "./bewertungen.mjs";
 import {
   gleich, sicherSchreiben, lesen, sperrlisteLesen, besucherAdresse, tempoGrenze, cookiesLesen, handlerAus, adminSchutz, adminAbweisung, anschluss
 } from "./gemeinsam.mjs";
+import { passwortHash, passwortPruefen, attrappePruefen } from "./verwaltung.mjs";
+import { emailOk } from "./post.mjs";
 
 const TAG = 24 * 60 * 60 * 1000;
 
@@ -52,7 +54,13 @@ export const GRENZEN = {
   anmeldenProFenster: 30,
   registrierenProFenster: 10,
   namenProFenster: 5,
-  loginVersuche: 10
+  loginVersuche: 10,
+  // E-Mail-Konten
+  passwortMin: 8,
+  emailAnmeldenProFenster: 10,
+  emailMailsProFenster: 5,
+  bestaetigenMs: 3 * TAG,
+  zuruecksetzenMs: 60 * 60 * 1000
 };
 
 // Namen: nur Buchstaben, Ziffern, _ und -. Keine Leerzeichen, keine Sonder-
@@ -133,12 +141,16 @@ export function kontenSpeicher(ordner) {
   const sitzungenDatei = join(ordner, "sitzungen.json");
   const k = existsSync(kontenDatei) ? JSON.parse(readFileSync(kontenDatei, "utf8")) : { konten: [], gesperrt: [] };
   k.gesperrt = k.gesperrt || [];
+  // Einmal-Links fuer E-Mail-Konten (Bestaetigen, Passwort zuruecksetzen); nur als Hash.
+  k.links = k.links || [];
   const s = existsSync(sitzungenDatei) ? JSON.parse(readFileSync(sitzungenDatei, "utf8")) : { sitzungen: [] };
   return {
     get konten() { return k.konten; },
     // Schluessel geloeschter, gesperrter Konten: wer gesperrt war, soll sich
     // nicht einfach loeschen und neu anmelden koennen.
     get gesperrt() { return k.gesperrt; },
+    get links() { return k.links; },
+    set links(neu) { k.links = neu; },
     get sitzungen() { return s.sitzungen; },
     set sitzungen(neu) { s.sitzungen = neu; },
     kontenSpeichern() { sicherSchreiben(kontenDatei, k); },
@@ -157,6 +169,9 @@ export function kontenSpeicher(ordner) {
 //               fehlt, wird nicht angeboten.
 //   beimLoeschen(kontoId)  entfernt alles, was dem Konto gehoert
 //   datenVon(kontoId)      alles, was dem Konto gehoert, fuer den Export
+//   email       { aktiv, post } -- Anmelden mit E-Mail und Passwort. post
+//               (server/post.mjs) verschickt Bestaetigung und Passwort-Reset;
+//               ohne SMTP gilt die Adresse sofort als bestaetigt.
 //   zusatzAnbieter  weitere Anbieter wie in ANBIETER; nur der lokale
 //               Test-Anbieter (tools/dienste-dev.mjs), nie in Produktion.
 //   holen, jetzt, geheimnis -- nur fuer Tests.
@@ -172,6 +187,9 @@ export function kontenBauen(optionen) {
   const ALLE = { ...ANBIETER, ...(optionen.zusatzAnbieter || {}) };
   const zugaenge = Object.fromEntries(Object.entries(optionen.anbieter || {}).filter(([n, z]) => Object.hasOwn(ALLE, n) && z && z.id && z.secret));
   const bekannt = (name) => !!name && Object.hasOwn(zugaenge, name);
+  const emailAktiv = !!(optionen.email && optionen.email.aktiv);
+  const post = optionen.email && optionen.email.post;
+  const mitPost = () => !!(post && post.aktiv());
 
   const COOKIE = {
     sitzung: (sicher ? "__Host-" : "") + "sitzung",
@@ -270,9 +288,9 @@ export function kontenBauen(optionen) {
   // Was die Seite ueber den Besucher wissen darf.
   function ichFuer(k, r) {
     return {
-      konto: k ? { name: k.name, anbieter: k.anbieter, erstellt: k.erstellt, gesperrt: !!k.gesperrt } : null,
+      konto: k ? { name: k.name, anbieter: k.anbieter, erstellt: k.erstellt, gesperrt: !!k.gesperrt, ...(k.email ? { email: k.email } : {}) } : null,
       registrierung: r ? { anbieter: r.anbieter } : null,
-      anbieter: Object.keys(zugaenge)
+      anbieter: [...Object.keys(zugaenge), ...(emailAktiv ? ["email"] : [])]
     };
   }
 
@@ -370,6 +388,156 @@ export function kontenBauen(optionen) {
     return weiter("/account?neu=1&zurueck=" + encodeURIComponent(offen.zurueck), [aus, cookie(COOKIE.registrierung, token, GRENZEN.registrierungMs)]);
   }
 
+  // ---- E-Mail-Konten ----
+  const emailKlein = (e) => String(e || "").trim().toLowerCase();
+  const kontoVonEmail = (e) => speicher.konten.find((k) => k.anbieter === "email" && k.email && k.email.toLowerCase() === emailKlein(e)) || null;
+  const basisAdresse = (req) => optionen.adresse || "http://" + req.headers.host;
+
+  function linkAnlegen(konto, art, ms) {
+    const token = zufall();
+    const t = jetzt();
+    speicher.links = speicher.links.filter((l) => l.ablauf > t && !(l.konto === konto.id && l.art === art));
+    speicher.links.push({ hash: hash(token), konto: konto.id, art, ablauf: t + ms });
+    speicher.kontenSpeichern();
+    return token;
+  }
+  function linkEinloesen(token, art) {
+    if (typeof token !== "string" || token.length > 100) return null;
+    const h = hash(token);
+    const l = speicher.links.find((x) => x.hash === h && x.art === art);
+    if (!l) return null;
+    speicher.links = speicher.links.filter((x) => x !== l);
+    speicher.kontenSpeichern();
+    return l.ablauf > jetzt() ? kontoVonId(l.konto) : null;
+  }
+  function bestaetigungSchicken(req, konto) {
+    const token = linkAnlegen(konto, "bestaetigen", GRENZEN.bestaetigenMs);
+    return post.schicken({
+      an: [konto.email], art: "konto", geheim: true,
+      betreff: "miwale: Bitte bestätige deine E-Mail-Adresse",
+      text: "Hallo " + konto.name + ",\n\nbitte bestätige dein Konto auf miwale.com mit diesem Link (3 Tage gültig):\n\n" +
+        basisAdresse(req) + "/api/konto/email/bestaetigen?token=" + token + "\n\nWenn du dich nicht angemeldet hast, ignoriere diese Mail einfach.\n"
+    });
+  }
+  const passwortOk = (p) => typeof p === "string" && p.length >= GRENZEN.passwortMin && p.length <= 200;
+
+  async function emailVerarbeiten(req, url, schritt, ip) {
+    const zuSchnell = (art, max) => begrenzt(art + "|" + anschluss(ip), max);
+
+    if (schritt === "registrieren" && req.method === "POST") {
+      if (zuSchnell("email-registrieren", GRENZEN.emailMailsProFenster)) return [429, { fehler: "zu-schnell" }];
+      const k = await lesen(req);
+      if (k.alter !== true) return [400, { fehler: "alter" }];
+      if (!emailOk(k.email)) return [400, { fehler: "email" }];
+      if (!passwortOk(k.passwort)) return [400, { fehler: "passwort-kurz" }];
+      const name = typeof k.name === "string" ? k.name.trim() : "";
+      const problem = nameFehler(name, sperrlisteLesen(optionen.ordner));
+      if (problem) return [problem === "name-format" ? 400 : 422, { fehler: problem }];
+      if (!nameFrei(name)) return [409, { fehler: "name-vergeben" }];
+      const schluessel = schluesselVon("email", emailKlein(k.email));
+      if (speicher.gesperrt.includes(schluessel)) return [403, { fehler: "konto-gesperrt" }];
+      const vorhanden = kontoVonEmail(k.email);
+      if (vorhanden) {
+        // Mit Mail-Versand nicht verraten, ob es die Adresse schon gibt.
+        if (!mitPost()) return [409, { fehler: "email-vergeben" }];
+        post.schicken({
+          an: [vorhanden.email], art: "konto", betreff: "miwale: Du hast schon ein Konto",
+          text: "Hallo,\n\njemand wollte mit dieser Adresse ein neues Konto auf miwale.com anlegen. Du hast schon eins (" + vorhanden.name + ").\n" +
+            "Passwort vergessen? Unter " + basisAdresse(req) + "/account kannst du es zuruecksetzen.\n"
+        });
+        return [202, { bestaetigen: true }];
+      }
+      const zeit = new Date(jetzt()).toISOString();
+      const konto = {
+        id: randomUUID(), schluessel, anbieter: "email", name, email: String(k.email).trim(),
+        passwort: await passwortHash(k.passwort), emailBestaetigt: mitPost() ? null : zeit,
+        erstellt: zeit, zuletzt: zeit, gesperrt: null, alterBestaetigt: zeit
+      };
+      speicher.konten.push(konto);
+      speicher.kontenSpeichern();
+      if (mitPost()) { bestaetigungSchicken(req, konto); return [202, { bestaetigen: true }]; }
+      const token = sitzungAnlegen(konto);
+      return [201, ichFuer(konto, null), { "Set-Cookie": [cookie(COOKIE.sitzung, token, GRENZEN.sitzungMs)] }];
+    }
+
+    if (schritt === "bestaetigen" && req.method === "GET") {
+      const konto = linkEinloesen(url.searchParams.get("token"), "bestaetigen");
+      if (!konto) return weiter(fehlerZiel("link-abgelaufen"));
+      konto.emailBestaetigt = konto.emailBestaetigt || new Date(jetzt()).toISOString();
+      speicher.kontenSpeichern();
+      const token = sitzungAnlegen(konto);
+      return weiter("/account?bestaetigt=1", [cookie(COOKIE.sitzung, token, GRENZEN.sitzungMs)]);
+    }
+
+    if (schritt === "anmelden" && req.method === "POST") {
+      if (zuSchnell("email-anmelden", GRENZEN.emailAnmeldenProFenster)) return [429, { fehler: "zu-schnell" }];
+      const k = await lesen(req);
+      const konto = emailOk(k.email) ? kontoVonEmail(k.email) : null;
+      if (konto && begrenzt("email-konto|" + konto.id, GRENZEN.emailAnmeldenProFenster)) return [429, { fehler: "zu-schnell" }];
+      const ok = konto && konto.passwort ? await passwortPruefen(String(k.passwort || ""), konto.passwort) : await attrappePruefen(String(k.passwort || ""));
+      if (!ok) return [401, { fehler: "falsch" }];
+      if (!konto.emailBestaetigt) return [403, { fehler: "bestaetigen" }];
+      const token = sitzungAnlegen(konto);
+      return [200, ichFuer(konto, null), { "Set-Cookie": [cookie(COOKIE.sitzung, token, GRENZEN.sitzungMs), cookieWeg(COOKIE.registrierung)] }];
+    }
+
+    if (schritt === "erneut" && req.method === "POST") {
+      if (zuSchnell("email-mail", GRENZEN.emailMailsProFenster)) return [429, { fehler: "zu-schnell" }];
+      const k = await lesen(req);
+      const konto = emailOk(k.email) ? kontoVonEmail(k.email) : null;
+      if (konto && !konto.emailBestaetigt && mitPost()) bestaetigungSchicken(req, konto);
+      return [200, { ok: true }];
+    }
+
+    if (schritt === "vergessen" && req.method === "POST") {
+      if (zuSchnell("email-mail", GRENZEN.emailMailsProFenster)) return [429, { fehler: "zu-schnell" }];
+      const k = await lesen(req);
+      if (!mitPost()) return [503, { fehler: "keine-post" }];
+      const konto = emailOk(k.email) ? kontoVonEmail(k.email) : null;
+      if (konto) {
+        const token = linkAnlegen(konto, "zuruecksetzen", GRENZEN.zuruecksetzenMs);
+        post.schicken({
+          an: [konto.email], art: "konto", geheim: true,
+          betreff: "miwale: Passwort zurücksetzen",
+          text: "Hallo " + konto.name + ",\n\nmit diesem Link setzt du dein Passwort auf miwale.com neu (1 Stunde gültig):\n\n" +
+            basisAdresse(req) + "/account?zuruecksetzen=" + token + "\n\nWenn du das nicht warst, ignoriere diese Mail. Dein Passwort bleibt dann gleich.\n"
+        });
+      }
+      return [200, { ok: true }];
+    }
+
+    if (schritt === "zuruecksetzen" && req.method === "POST") {
+      if (zuSchnell("email-anmelden", GRENZEN.emailAnmeldenProFenster)) return [429, { fehler: "zu-schnell" }];
+      const k = await lesen(req);
+      if (!passwortOk(k.passwort)) return [400, { fehler: "passwort-kurz" }];
+      const konto = linkEinloesen(k.token, "zuruecksetzen");
+      if (!konto) return [401, { fehler: "link-abgelaufen" }];
+      konto.passwort = await passwortHash(k.passwort);
+      // Wer den Link hat, hat die Mail: die Adresse gilt damit auch als bestaetigt.
+      konto.emailBestaetigt = konto.emailBestaetigt || new Date(jetzt()).toISOString();
+      speicher.sitzungen = speicher.sitzungen.filter((x) => x.konto !== konto.id);
+      speicher.kontenSpeichern();
+      const token = sitzungAnlegen(konto);
+      return [200, ichFuer(konto, null), { "Set-Cookie": [cookie(COOKIE.sitzung, token, GRENZEN.sitzungMs)] }];
+    }
+
+    if (schritt === "passwort" && req.method === "POST") {
+      const angemeldet = wer(req);
+      const konto = angemeldet && kontoVonId(angemeldet.id);
+      if (!konto || konto.anbieter !== "email") return [401, { fehler: "anmelden" }];
+      const k = await lesen(req);
+      if (!(await passwortPruefen(String(k.alt || ""), konto.passwort))) return [401, { fehler: "falsch" }];
+      if (!passwortOk(k.neu)) return [400, { fehler: "passwort-kurz" }];
+      konto.passwort = await passwortHash(k.neu);
+      const s = sitzungVon(req);
+      speicher.sitzungen = speicher.sitzungen.filter((x) => x.konto !== konto.id || x === s);
+      speicher.kontenSpeichern();
+      speicher.sitzungenSpeichern();
+      return [200, { ok: true }];
+    }
+    return null;
+  }
+
   // ---- Anfragen ----
   async function verarbeiten(req) {
     const url = new URL(req.url, "http://lokal");
@@ -458,6 +626,12 @@ export function kontenBauen(optionen) {
       return [200, ichFuer(null, null), kopf([cookieWeg(COOKIE.sitzung)])];
     }
 
+    // ---- E-Mail und Passwort ----
+    if (teile[0] === "email" && emailAktiv) {
+      const antwort = await emailVerarbeiten(req, url, teile[1], ip);
+      if (antwort) return antwort;
+    }
+
     // Alles ab hier nur angemeldet.
     const angemeldet = wer(req);
     const konto = angemeldet && kontoVonId(angemeldet.id);
@@ -481,7 +655,7 @@ export function kontenBauen(optionen) {
       if (!konto) return [401, { fehler: "anmelden" }];
       const daten = {
         erstellt: new Date(jetzt()).toISOString(),
-        konto: { name: konto.name, anmeldungUeber: konto.anbieter, erstellt: konto.erstellt, zuletzt: konto.zuletzt, alterBestaetigt: konto.alterBestaetigt, gesperrt: konto.gesperrt },
+        konto: { name: konto.name, anmeldungUeber: konto.anbieter, ...(konto.email ? { email: konto.email } : {}), erstellt: konto.erstellt, zuletzt: konto.zuletzt, alterBestaetigt: konto.alterBestaetigt, gesperrt: konto.gesperrt },
         sitzungen: speicher.sitzungen.filter((s) => s.konto === konto.id).map((s) => ({ erstellt: new Date(s.erstellt).toISOString(), zuletzt: new Date(s.zuletzt).toISOString() })),
         ...(optionen.datenVon ? optionen.datenVon(konto.id) : {})
       };
@@ -511,6 +685,8 @@ export function kontenBauen(optionen) {
   // Gibt es ueberhaupt eine Anmeldung? Ohne (Uebergang, solange Discord/Google
   // nicht eingerichtet sind) laufen Bewertungen und Game Requests wie vor den
   // Konten, je Geraet.
-  handler.aktiv = () => Object.keys(zugaenge).length > 0;
+  handler.aktiv = () => Object.keys(zugaenge).length > 0 || emailAktiv;
+  // E-Mail-Adresse eines Kontos (nur bestaetigte E-Mail-Konten), fuer Nachrichten aus dem Studio.
+  handler.emailVon = (id) => { const k = kontoVonId(id); return k && k.email && k.emailBestaetigt ? k.email : null; };
   return handler;
 }

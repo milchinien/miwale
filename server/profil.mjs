@@ -137,7 +137,9 @@ export function profilBauen(optionen) {
 
   const geladen = optionen.katalog || katalogLaden(optionen.katalogDatei || process.env.PROFIL_KATALOG || KATALOG);
   const katalog = geladen.profil;
-  const SPIEL_IDS = new Set((optionen.spiele || geladen.spiele.map((s) => s.id)));
+  const FESTE_IDS = new Set((optionen.spiele || geladen.spiele.map((s) => s.id)));
+  // Community-Spiele aus dem Studio kommen und gehen zur Laufzeit (optionen.weitereSpiele).
+  const SPIEL_IDS = { has: (id) => FESTE_IDS.has(id) || (!!optionen.weitereSpiele && optionen.weitereSpiele().includes(id)) };
   const R = katalog.regeln;
   const ITEMS = new Map(katalog.items.map((i) => [i.id, i]));
   const ERFOLGE = new Map(katalog.erfolge.map((e) => [e.id, e]));

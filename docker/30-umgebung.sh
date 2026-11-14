@@ -36,7 +36,8 @@ printf 'add_header Content-Security-Policy "frame-ancestors %s" always;\n' "$MIW
 if [ -n "$SPIELE_ADRESSE" ]; then
   # Spieldateien gibt es dann nur noch dort. Auch ein direkter Link auf
   # miwale.com/games/chromatic/ laeuft so nie unter der Adresse der Seite.
-  printf 'location ~ "^/(games|jam-spiele)/[a-z0-9-]+/" {\n    return 301 "%s$request_uri";\n}\n' "$SPIELE_ADRESSE" \
+  # Ebenso die hochgeladenen Spiele aus dem Studio (/community/, /vorschau/).
+  printf 'location ~ "^/(games|jam-spiele|community|vorschau)/[a-z0-9-]+/" {\n    return 301 "%s$request_uri";\n}\n' "$SPIELE_ADRESSE" \
     > /etc/nginx/miwale/spiele-umleitung.conf
 else
   : > /etc/nginx/miwale/spiele-umleitung.conf

@@ -30,6 +30,17 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       SPIELE_ADRESSE: ${SPIELE_ADRESSE:-}
+      # E-Mails (neue Einreichungen im Studio an die Admins, Pruefergebnisse an
+      # Entwickler, Bestaetigung und Passwort-Reset fuer Konten mit E-Mail).
+      # Port 465 = TLS, 587 = STARTTLS. Ohne SMTP_HOST landen Mails nur im
+      # Postausgang unter miwale.com/admin. MELDUNG_AN: Empfaenger, falls in der
+      # Verwaltung keine eingetragen sind (mehrere mit Komma).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_BENUTZER: ${SMTP_BENUTZER:-}
+      SMTP_PASSWORT: ${SMTP_PASSWORT:-}
+      SMTP_ABSENDER: ${SMTP_ABSENDER:-}
+      MELDUNG_AN: ${MELDUNG_AN:-}
     # Ohne das Volume waeren alle Bewertungen und Konten nach dem naechsten
     # Deployment weg. Es gehoert ins naechtliche Backup (README, Abschnitt Konten).
     volumes:

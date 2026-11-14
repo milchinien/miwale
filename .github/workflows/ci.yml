@@ -129,6 +129,16 @@ jobs:
           for _ in $(seq 1 15); do curl -fsS -o /dev/null http://127.0.0.1:8080/api/bewertungen/healthz && break; sleep 1; done
           test "$(status /api/bewertungen/healthz)" = 200
           test "$(status /api/bewertungen/chromatic)" = 200
+          # Studio und Verwaltung: Reiter der Spieleseite, Katalog der
+          # Community-Spiele, Admin-Login. Hochgeladene Spiele gibt es unter
+          # miwale.com nie.
+          test "$(status /studio)" = 200
+          test "$(status /studio/1b4e28ba-2fa1-11d2-883f-0016d3cca427)" = 200
+          grep -q 'MIWALE_COMMUNITY' <<< "$(curl -fsS http://127.0.0.1:8080/api/studio/katalog.js)"
+          grep -q '"eingerichtet"' <<< "$(curl -fsS http://127.0.0.1:8080/api/verwaltung/status)"
+          test "$(status /api/studio/projekte)" = 401
+          test "$(status /community/irgendwas/)" = 404
+          test "$(status /vorschau/0123456789abcdef01234567/)" = 404
           test "$(status /api/bewertungen/gibtsnicht)" = 404
           test "$(status /api/bewertungen/admin/alle)" = 503
           test "$(status /admin/)" = 200
