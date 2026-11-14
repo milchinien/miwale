@@ -35,6 +35,12 @@
   useMaterial('snake_eyes', 'green','red','green');
   useMaterial('jonny_glasses off_record', 'charcoal','gold','blue');
   useMaterial('mood_ring jonny_autograph', 'gold','gold','violet');
+  // Hunt (Elite-Bosse)
+  useMaterial('bounty_poster', 'ivory','red','leather');
+  useMaterial('bloodhound hunters_journal bounty_ledger', 'leather','gold','red');
+  useMaterial('war_paint', 'red','gold','steel');
+  useMaterial('trophy_rack', 'ivory','leather','gold');
+  useMaterial('usurper challengers_bell', 'gold','gold','violet');
 
   function shadeSprite(ctx, id) {
     const data = ctx.getImageData(0,0,32,32), src = new Uint8ClampedArray(data.data), out = data.data;
@@ -531,10 +537,44 @@
     bone_polish: p => {
       p.skull(6,4);p.poly([[23,24],[30,17],[31,22],[26,29]],GOLD);p.star(6,26,4,'#FFFFFF');p.star(27,8,3,'#FFFFFF');
     },
+    // ── Hunt: Elite-Bosse jagen ──
+    bounty_poster: p => {
+      p.rect(5,3,22,27);p.rect(7,5,18,4,GOLD);p.rect(9,6,14,2,INK);
+      p.disc(16,17,6,COOL);p.rect(13,15,2,2,INK);p.rect(18,15,2,2,INK);p.rect(13,20,7,1,INK);
+      p.rect(8,25,16,2,INK);p.rect(15,1,2,3,GOLD);p.rect(6,28,3,2,'#D9C7A0');
+    },
+    bloodhound: p => {
+      p.poly([[5,12],[17,6],[24,9],[30,15],[29,20],[21,21],[18,27],[8,27],[4,19]]);
+      p.poly([[8,9],[14,7],[14,22],[9,24],[6,17]],GOLD);
+      p.rect(19,11,3,3,INK);p.rect(27,15,4,3,INK);p.line(21,20,26,20,INK,1);
+      p.rect(9,24,11,3,COOL);p.rect(14,27,3,3,GOLD);
+    },
+    war_paint: p => {
+      p.rect(6,16,20,13);p.rect(4,13,24,4,COOL);p.rect(8,19,16,3,GOLD);p.rect(11,22,3,5,GOLD);
+      p.line(8,3,13,9,GOLD,3);p.line(15,2,20,8,PAPER,3);p.line(22,2,27,8,GOLD,3);
+    },
+    trophy_rack: p => {
+      p.poly([[9,17],[23,17],[25,23],[16,30],[7,23]],GOLD);p.rect(13,20,6,4,INK);p.rect(14,21,4,2,COOL);
+      p.line(13,17,8,5,PAPER,2);p.line(10,11,4,9,PAPER,2);p.line(9,8,11,2,PAPER,2);
+      p.line(19,17,24,5,PAPER,2);p.line(22,11,28,9,PAPER,2);p.line(23,8,21,2,PAPER,2);
+    },
+    hunters_journal: p => {
+      p.book();p.poly([[21,3],[29,3],[29,14],[25,11],[21,14]],GOLD);p.line(12,22,22,22,COOL,1);
+    },
+    usurper: p => {
+      p.crown();p.line(4,30,29,3,COOL,2);p.rect(2,27,5,5,INK);p.rect(3,28,3,3,GOLD);
+    },
+    challengers_bell: p => {
+      p.poly([[16,4],[22,8],[24,20],[29,25],[3,25],[8,20],[10,8]],GOLD);
+      p.rect(14,1,4,4,PAPER);p.disc(16,28,3,PAPER);p.line(12,9,11,20,'#FFE7A0',1);p.rect(4,23,24,2,'#C77B33');
+    },
+    bounty_ledger: p => {
+      p.book();p.coin(22,22,7);
+    },
   });
 
   const vineMarks = {golden_vine:'bank',clover_vine:'luck',thorn_vine:'risk',pattern_vine:'pattern',root_vine:'hold',dice_vine:'reroll',number_vine:'number',bag_vine:'bag',link_vine:'formation'};
-  const tagMotifs = {bank:'vault',number:'big_six',pattern:'fusion',luck:'clover',risk:'loaded_skulls',reroll:'loaded',hold:'anchor',bag:'backpack',growth:'seedling',formation:'domino'};
+  const tagMotifs = {bank:'vault',number:'big_six',pattern:'fusion',luck:'clover',risk:'loaded_skulls',reroll:'loaded',hold:'anchor',bag:'backpack',growth:'seedling',formation:'domino',hunt:'trophy_rack'};
   for (const [id, tag] of Object.entries(vineMarks)) motifs[id] = p => {
     materialById[id] = ['green',tag==='bank'?'gold':'green','green'];
     p.line(8,29,6,20,COOL,3);p.line(6,20,11,11,COOL,3);p.line(11,11,9,4,COOL,3);

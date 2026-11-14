@@ -18,7 +18,6 @@
     // Handy: Plätze, Knöpfe und Schriftgröße kommen aus dem Layout (ui/layout-mobile.js, L.tut)
     const MOB = !!K.mobile;
     const LT = () => (MOB && K.L() && K.L().tut) || null;
-    const tipBox = () => (LT() ? LT().tip : TIP);
     const faceBox = () => (LT() ? LT().face : FACE);
     const FONT_K = () => (LT() ? LT().font : 1) * (K.textScale ? K.textScale() : 1);
     const dim = (ctx, a) => { if (K.dim) K.dim(ctx, a); else { ctx.save(); ctx.fillStyle = 'rgba(0,0,0,' + a + ')'; ctx.fillRect(0, 0, 1280, 720); ctx.restore(); } };
@@ -34,7 +33,7 @@
     const mobText = (text) => (MOB ? MOBILE_TEXT.reduce((t, [re, to]) => t.replace(re, to), text) : text);
 
     // ── Zustand ───────────────────────────────────────────────────────────
-    let active = false, modal = false, finished = false;
+    let active = false, modal = false;
     let steps = [], si = -1, li = 0;                     // aktueller Schritt und Satz
     let queue = [];                                      // Einwürfe (Reaktionen), vor den Sätzen des Schritts
     let cur = null;                                      // angezeigter Satz { words, mood, shown, t0, auto, fourth, ... }
@@ -399,7 +398,6 @@
     const L = (mood, text, point) => ({ mood, text, point });
     const isHand = (name) => K.preview() && K.preview().name === name;
     const heldIs = (vals) => { const d = K.dice(); return d.length && d.every((x) => !!x.data.held === vals.includes(K.upValue(x))); };
-    const owns = (id) => S.relics.some((r) => r.id === id);
     const buyOf = (id) => (n, d) => n === 'buy' && d.item && d.item.id === id;
 
     steps = [
@@ -1092,7 +1090,7 @@
       ]);
     }
     function start(opts = {}) {
-      active = true; finished = false; modal = false;
+      active = true; modal = false;
       mistakes = 0; gaveUp = false; lastMistake = -9; idleCount = 0; queue = [];
       totalMistakes = 0; everGaveUp = false; correctStreak = 0; unfairCount = 0; sinceUnfair = 0; unfairLeft = UNFAIR.slice();
       round = 0; handInRound = -1; rerollNo = 0; shopNo = 0; lastScore = 0; lastAction = eng.time;
@@ -1116,7 +1114,6 @@
         interject([{ mood: 'paranoid', text: "Out of hands? Here. I'm giving you {g|another one}. Don't tell the casino. {q|They'd take my license.}" }]);
         return true;
       },
-      finish() { finished = true; },
       // nur für Tests: aktueller Schritt und Satz
       _sheet: () => { const c = document.createElement('canvas'), names = Object.keys(FACES); c.width = names.length * 130; c.height = 170; const x = c.getContext('2d'); x.fillStyle = '#20302A'; x.fillRect(0, 0, c.width, c.height); names.forEach((n, i) => { drawJonny(x, 8 + i * 130, 8, 1.8, n, false, 1.3, false); x.fillStyle = '#fff'; x.font = '14px monospace'; x.fillText(n, 10 + i * 130, 160); }); return c.toDataURL(); },
       _dbg: () => ({ gaveUp, total: totalMistakes, unfair: unfairCount, step: si, anchor: steps[si] && steps[si].anchor, mood: cur && cur.mood, text: cur && cur.words.map((w) => w.t).join('').slice(0, 70) }),

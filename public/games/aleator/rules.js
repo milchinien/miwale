@@ -32,7 +32,12 @@
       { name: 'High Stakes', key: 'ROUND_2', factor: 1.5, reward: 4 },
       { name: 'Showdown', key: 'ROUND_3', factor: 2, reward: 5, boss: true },
     ],
-    JONNY_FACTOR: 2.5,     // Jonnys Showdown in Stage 8
+    JONNY_FACTOR: 6,       // Jonnys Showdown in Stage 8 (Ziel x Faktor; vorher 2,5 mit 4 Händen) ...
+    JONNY_HANDS: 2,        // ... mit so vielen Händen mehr (4 + 2 = 6)
+    FATHER_STAGE: 20,      // Jonnys Vater: zweiter Endboss im Endless-Showdown von Stage 20
+    FATHER_FACTOR: 8,      // sein Ziel: mehr als Jonny, dazu zwei Phasen und Elite-Regel
+    FATHER_HANDS: 4,       // 4 + 4 = 8 Hände für beide Phasen zusammen
+    FATHER_SPLIT: 0.5,     // Phase 1 endet bei diesem Anteil des Ziels, dann Phase 2 mit Elite-Regel
     ENDLESS_GROWTH: 2.5,   // Endless: Ziel x2,5 pro Stage nach Stage 8
     HEAT_PULL: 0.6,        // Heat: Ziel wird so stark zum Score der letzten Runde gezogen, wenn sie in Hand 1 gewonnen wurde.
                            // Später gewonnen = weniger (heatSpeed), mit der letzten Hand gar nicht
@@ -92,6 +97,7 @@
     bag: { name: 'Bag', emoji: '🎒', colour: '#7A5A3A', s3: 'Bag limit +2. +1 Power per die in your bag', s5: '+2 Power per die in your bag' },
     growth: { name: 'Growth', emoji: '🌱', colour: '#56A887', s3: 'Growing relics grow 30% faster', s5: 'Growing relics never reset' },
     formation: { name: 'Formation', emoji: '🁢', colour: '#C2577E', s3: '+1 Shift per hand. Every Link gives +3 Power', s5: 'Every Link gives x1.4 Power' },
+    hunt: { name: 'Hunt', emoji: '🏹', colour: '#7E8A2B', s3: 'Elite chance +20%. Elites pay $3 more. +2 Power per trophy (boss beaten; Elites count double)', s5: 'x1.5 Power in Showdowns. Elite+ chance +20%' },
   };
   const TAG_ORDER = Object.keys(TAGS);
   const RARITY = { C: { name: 'Common', colour: '#4D8FD0', weight: 60 }, U: { name: 'Uncommon', colour: '#3E9E58', weight: 32 }, R: { name: 'Rare', colour: '#D04848', weight: 10 }, L: { name: 'Legendary', colour: '#9A5FD0', weight: 1.5 } };
@@ -417,6 +423,27 @@
     state: () => ({ x: 1.5 }), stateText: (s) => 'Currently x' + fmt(s.x) + ' Power',
     onHand: (h, s) => ({ xmult: s.x }),
     endBlind: (s, g) => { if (g.isBoss) { s.x += 0.5 * g.grow; return { text: 'x' + fmt(s.x) }; } } });
+  // 11. Hunt: Elite-Bosse jagen (g.bossLv / h.bossLv: 0 normal, 1 Elite, 2 Elite+)
+  relic('bounty_poster', 'Bounty Poster', 'C', ['hunt', 'bank'], '📜', 'Showdowns pay $2 more. Elites pay $5 more, Elite+ $8 more', {
+    endBlind: (s, g) => (g.isBoss ? { money: g.bossLv === 2 ? 8 : g.bossLv === 1 ? 5 : 2 } : null) });
+  relic('bloodhound', 'Bloodhound', 'C', ['hunt'], '🐕', '+5 Power. +12 Power in Showdowns, +20 against Elites', {
+    onHand: (h) => ({ mult: !h.isBoss ? 5 : h.bossLv > 0 ? 20 : 12 }) });
+  relic('war_paint', 'War Paint', 'U', ['hunt', 'risk'], '🎨', 'Bosses are twice as likely to be Elite. x1.3 Power, x2 against Elites', {
+    eliteX: 2, onHand: (h) => ({ xmult: h.isBoss && h.bossLv > 0 ? 2 : 1.3 }) });
+  relic('trophy_rack', 'Trophy Rack', 'U', ['hunt', 'growth'], '🦌', 'x1 Power. Gains x0.2 Power for every boss you beat, x0.5 for an Elite and x1 for an Elite+', {
+    state: () => ({ x: 1 }), stateText: (s) => 'Currently x' + fmt(s.x) + ' Power',
+    onHand: (h, s) => (s.x > 1 ? { xmult: s.x } : null),
+    endBlind: (s, g) => { if (g.isBoss) { s.x += (g.bossLv === 2 ? 1 : g.bossLv === 1 ? 0.5 : 0.2) * g.grow; return { text: 'x' + fmt(s.x) }; } } });
+  relic('hunters_journal', "Hunter's Journal", 'U', ['hunt', 'pattern'], '📓', 'Beat an Elite: the last hand you played gains +1 level (+2 for an Elite+)', {
+    endBlind: (s, g) => {
+      if (!g.isBoss || !(g.bossLv > 0) || !g.played || !g.played.length || !g.levels) return null;
+      const name = g.played[g.played.length - 1], n = g.bossLv === 2 ? 2 : 1;
+      g.levels[name] = (g.levels[name] || 1) + n;
+      return { text: name + ' +' + n };
+    } });
+  relic('usurper', "Usurper's Crown", 'L', ['hunt'], '👑', 'Elite+ chance +25%. x3 Power against Elite+ bosses', {
+    elitePlus: 0.25, onHand: (h) => (h.isBoss && h.bossLv === 2 ? { xmult: 3 } : null) });
+
   const JONNY_RELICS = ['jonny_glasses', 'off_record', 'mood_ring'];
 
   const RELIC_BY_ID = Object.fromEntries(RELICS.map((r) => [r.id, r]));
@@ -443,6 +470,8 @@
     { id: 'quick_hands', name: 'Quick Hands', rarity: 'U', emoji: '🤹', desc: '+1 reroll per hand' },
     { id: 'saddlebag', name: 'Saddlebag', rarity: 'C', emoji: '👜', desc: 'Bag limit +3. +1 Power for every die in your bag above 8' },
     { id: 'bone_polish', name: 'Bone Polish', rarity: 'U', emoji: '💀', desc: 'Skulls in your hand give x0.25 more Power' },
+    { id: 'challengers_bell', name: "Challenger's Bell", rarity: 'U', emoji: '🔔', desc: 'Every boss that has an Elite version is at least Elite. Elites pay $3 more' },
+    { id: 'bounty_ledger', name: 'Bounty Ledger', rarity: 'R', emoji: '📒', desc: 'Every Elite you beat raises your interest cap by $1 for good (Elite+: $2)' },
   ];
   const UPGRADE_PRICE = { C: 6, U: 8, R: 10, L: 14 };
   UPGRADES.forEach((u) => { u.cost = UPGRADE_PRICE[u.rarity]; });
@@ -467,14 +496,160 @@
   const NUMBER_NAMES = ['', 'Ones', 'Twos', 'Threes', 'Fours', 'Fives', 'Sixes'];
 
   // ── Bosse ───────────────────────────────────────────────────────────────
-  const BOSSES = [
-    { id: 'snake', name: 'The Snake', colour: '#3E7B4F', desc: 'Eats your lowest scored die every hand: it gives nothing' },
-    { id: 'clamp', name: 'The Clamp', colour: '#7A4FA0', desc: '-2 rerolls per hand (at least 1)' },
-    { id: 'frost', name: 'The Frost', colour: '#3C8DC0', desc: 'Dice showing 6 are frozen and cannot be rerolled' },
-    { id: 'chaos', name: 'The Chaos', colour: '#C0562E', desc: 'Held dice may be rerolled anyway (1 in 3)' },
-    { id: 'echo', name: 'The Echo', colour: '#8F3D6B', desc: 'A hand type you already played this round gives half Power' },
-    { id: 'wall', name: 'The Wall', colour: '#6B5B4B', desc: 'Huge target (4x instead of 2x)', factor: 4 },
+  // Jeder Boss hat eine Schwierigkeitsstufe (tier) und 1–3 Ausprägungen (lv): [normal, Elite, Elite+].
+  // Elite: stärkere Fähigkeit, mehr Geld. Elite+: noch stärker und Ziel x ELITE.PLUS_TARGET. Nicht jeder Boss hat Elites.
+  // noJonny: Jonny nimmt diese Regel nicht (sie ändert Ziel oder Händezahl, das passt nicht zu einem Wechsel pro Hand).
+  const BOSS_TIERS = [
+    { id: 'easy', name: 'Easy', colour: '#5DBB63', desc: 'Barely changes the fight' },
+    { id: 'medium', name: 'Medium', colour: '#E3BE62', desc: 'Changes the fight, but is not really hard' },
+    { id: 'hard', name: 'Hard', colour: '#E07A2E', desc: 'Hard early on. The right build makes it easy later' },
+    { id: 'very_hard', name: 'Very Hard', colour: '#D04848', desc: 'Stays hard, even with the right build' },
   ];
+  const TIER_BY_ID = Object.fromEntries(BOSS_TIERS.map((t) => [t.id, t]));
+  const BOSSES = [
+    { id: 'frost', name: 'The Frost', colour: '#3C8DC0', tier: 'easy', lv: [
+      { freeze: [6], desc: 'Dice showing 6 are frozen and cannot be rerolled' },
+      { freeze: [5, 6], desc: 'Dice showing 5 or 6 are frozen and cannot be rerolled' },
+      { freeze: [4, 5, 6], desc: 'Dice showing 4, 5 or 6 are frozen and cannot be rerolled' }] },
+    { id: 'fog', name: 'The Fog', colour: '#7C8A96', tier: 'easy', lv: [
+      { desc: 'Hides the hand preview: you have to read your dice yourself' },
+      { hideScore: true, desc: 'Hides the hand preview and your score for this round' },
+      { hideScore: true, desc: 'Hides the hand preview and your score for this round' }] },
+    { id: 'taxman', name: 'The Taxman', colour: '#5E7F4E', tier: 'easy', lv: [
+      { cost: 1, freeFirst: true, desc: 'Every reroll after the first in a hand costs $1 (free when you are broke)' },
+      { cost: 2, freeFirst: true, desc: 'Every reroll after the first in a hand costs $2 (free when you are broke)' },
+      { cost: 2, freeFirst: false, desc: 'Every reroll costs $2 (free when you are broke)' }] },
+    { id: 'gambler', name: 'The Gambler', colour: '#B0405A', tier: 'easy', factor: 1.8, lv: [
+      { heads: 1.5, tails: 0.75, desc: 'Flips a coin before every hand scores: Heads x1.5 Power, Tails x0.75. Smaller target' },
+      { heads: 2, tails: 0.5, desc: 'Flips a coin before every hand scores: Heads x2 Power, Tails x0.5. Smaller target' },
+      { heads: 2, tails: 0.5, desc: 'Flips a coin before every hand scores: Heads x2 Power, Tails x0.5' }] },
+    { id: 'snake', name: 'The Snake', colour: '#3E7B4F', tier: 'medium', lv: [
+      { eat: 1, desc: 'Eats your lowest scored die every hand: it gives nothing' },
+      { eat: 2, desc: 'Eats your two lowest scored dice every hand: they give nothing' },
+      { eat: 2, desc: 'Eats your two lowest scored dice every hand: they give nothing' }] },
+    { id: 'echo', name: 'The Echo', colour: '#8F3D6B', tier: 'medium', lv: [
+      { x: 0.5, desc: 'A hand type you already played this round gives half Power' },
+      { x: 0.35, desc: 'A hand type you already played this round gives x0.35 Power' },
+      { x: 0.25, desc: 'A hand type you already played this round gives x0.25 Power' }] },
+    { id: 'judge', name: 'The Judge', colour: '#4A5BA8', tier: 'medium', factor: 2.5, lv: [
+      { called: 2, other: 1, desc: 'Calls a hand type every hand: play it for x2 Power. Bigger target' },
+      { called: 2, other: 0.75, desc: 'Calls a hand type every hand: x2 Power if you play it, x0.75 if not. Bigger target' },
+      { called: 2, other: 0.5, desc: 'Calls a hand type every hand: x2 Power if you play it, x0.5 if not. Bigger target' }] },
+    { id: 'ghost', name: 'The Ghost', colour: '#6E7FA8', tier: 'medium', lv: [
+      { n: 1, desc: 'One die per hand is a ghost: it counts for the hand type, but gives no Pips and no effects' },
+      { n: 2, desc: 'Two dice per hand are ghosts: they count for the hand type, but give no Pips and no effects' },
+      { n: 2, desc: 'Two dice per hand are ghosts: they count for the hand type, but give no Pips and no effects' }] },
+    { id: 'thief', name: 'The Thief', colour: '#4B4B5E', tier: 'medium', lv: [
+      { n: 1, desc: 'Steals one relic every hand: it gives nothing when you score' },
+      { n: 2, desc: 'Steals two relics every hand: they give nothing when you score' },
+      { n: 2, desc: 'Steals two relics every hand: they give nothing when you score' }] },
+    { id: 'chaos', name: 'The Chaos', colour: '#C0562E', tier: 'hard', lv: [
+      { p: 1 / 3, desc: 'Held dice may be rerolled anyway (1 in 3)' },
+      { p: 1 / 2, desc: 'Held dice may be rerolled anyway (1 in 2)' },
+      { p: 1 / 2, desc: 'Held dice may be rerolled anyway (1 in 2)' }] },
+    { id: 'hourglass', name: 'The Hourglass', colour: '#B88A3E', tier: 'hard', noJonny: true, lv: [
+      { hands: -1, rerolls: 2, desc: '1 hand less this round, but +2 rerolls per hand' },
+      { hands: -1, rerolls: 1, desc: '1 hand less this round and only +1 reroll per hand' }] },
+    { id: 'undertow', name: 'The Undertow', colour: '#2F6E7E', tier: 'hard', noJonny: true, lv: [
+      { grow: 0.1, pay: 2, desc: 'The target grows 10% after every hand. Every unused hand pays $2 more' },
+      { grow: 0.15, pay: 3, desc: 'The target grows 15% after every hand. Every unused hand pays $3 more' },
+      { grow: 0.2, pay: 4, desc: 'The target grows 20% after every hand. Every unused hand pays $4 more' }] },
+    { id: 'clamp', name: 'The Clamp', colour: '#7A4FA0', tier: 'very_hard', lv: [
+      { minus: 2, desc: '-2 rerolls per hand (at least 1)' },
+      { minus: 3, desc: '-3 rerolls per hand (at least 1)' }] },
+    { id: 'wall', name: 'The Wall', colour: '#6B5B4B', tier: 'very_hard', noJonny: true, factor: 4, lv: [
+      { desc: 'Huge target (4x instead of 2x)' },
+      { factor: 5, desc: 'Enormous target (5x instead of 2x)' }] },
+  ];
+  BOSSES.forEach((b) => { b.desc = b.lv[0].desc; });
+  const BOSS_BY_ID = Object.fromEntries(BOSSES.map((b) => [b.id, b]));
+  const LEVEL_NAMES = ['', 'Elite', 'Elite+'];
+  const ELITE = {
+    CHANCE: 0.1, PLUS: 0.04, PLUS_FROM: 3,     // Elite 10 %, Elite+ 4 % ab Stage 3
+    ENDLESS: 0.2, ENDLESS_PLUS: 0.1,           // im Endless-Modus
+    REWARD: [0, 5, 10], BELL: 3, HUNT3: 3,     // Zusatzgeld bei Sieg; Challenger's Bell und Hunt 3 zahlen mehr
+    PLUS_TARGET: 1.25,
+  };
+  // Welche Stufen in welcher Stage drankommen (Stage 8 = Jonny, danach Endless)
+  const BOSS_STAGE_TIERS = { 1: ['easy'], 2: ['easy', 'medium'], 3: ['medium'], 4: ['medium', 'hard'], 5: ['hard'], 6: ['hard', 'very_hard'], 7: ['very_hard'] };
+  const ENDLESS_TIERS = ['medium', 'hard', 'very_hard'];
+  const tierRank = (t) => BOSS_TIERS.findIndex((x) => x.id === t);
+  // Regeln, die die Endbosse (Jonny, sein Vater) von den anderen Bossen leihen (ohne die gerade aktive)
+  const finalRules = (not) => BOSSES.filter((b) => !b.noJonny && b.id !== not);
+
+  // Laufzeit-Boss: Ausprägung lv mit ihren Werten, Name ("Elite Taxman"), Text und Zielfaktor
+  function bossOf(id, lv = 0) {
+    const def = BOSS_BY_ID[id];
+    if (!def) return null;
+    lv = Math.max(0, Math.min(lv || 0, def.lv.length - 1));
+    const p = def.lv[lv], base = p.factor || def.factor || BALANCE.BLINDS[2].factor;
+    return Object.assign({}, p, {
+      id, def, lv, tier: def.tier, colour: def.colour, base: def.name, noJonny: !!def.noJonny,
+      name: lv ? LEVEL_NAMES[lv] + ' ' + def.name.replace(/^The /, '') : def.name,
+      factor: lv === 2 ? Math.round(base * ELITE.PLUS_TARGET * 100) / 100 : base,
+      levelName: LEVEL_NAMES[lv],
+    });
+  }
+  // Bosse, die in dieser Stage drankommen können (ohne schon gesehene). Ist der Topf leer: Nachbarstufen, dann Wiederholung.
+  function bossPool(ante, used = [], antes = BALANCE.ANTES) {
+    const tiers = ante > antes ? ENDLESS_TIERS : BOSS_STAGE_TIERS[Math.max(1, Math.min(7, ante))];
+    const fresh = (ok) => BOSSES.filter((b) => ok(b) && !used.includes(b.id));
+    let pool = fresh((b) => tiers.includes(b.tier));
+    for (let d = 1; !pool.length && d < BOSS_TIERS.length; d++) {
+      const ranks = tiers.map(tierRank);
+      pool = fresh((b) => ranks.some((r) => Math.abs(tierRank(b.tier) - r) <= d));
+    }
+    return pool.length ? pool : BOSSES.filter((b) => tiers.includes(b.tier));
+  }
+  // Chancen auf Elite/Elite+ (g: { ante, antes, relics, upgrades, minElite })
+  function eliteOdds(g) {
+    const eff = effective(g.relics || []), tags = tagCounts(g.relics || []), antes = g.antes || BALANCE.ANTES;
+    const endless = g.ante > antes;
+    let e = endless ? ELITE.ENDLESS : ELITE.CHANCE, p = endless ? ELITE.ENDLESS_PLUS : ELITE.PLUS;
+    eff.forEach((x) => { if (x.def.eliteX) { e *= x.def.eliteX; p *= x.def.eliteX; } });
+    if (setLevel(tags, 'hunt') >= 3) e += 0.2;
+    if (setLevel(tags, 'hunt') >= 5) p += 0.2;
+    eff.forEach((x) => { if (x.def.elitePlus) p += x.def.elitePlus; });
+    if (!endless && g.ante < ELITE.PLUS_FROM) { e += p; p = 0; }   // Elite+ erst ab Stage 3
+    p = Math.min(1, p); e = Math.max(0, Math.min(1 - p, e));
+    const min = g.minElite || (g.upgrades || []).includes('challengers_bell') ? 1 : 0;
+    return { elite: e, plus: p, min };
+  }
+  function rollBossLevel(def, odds, rnd = Math.random) {
+    const max = def.lv.length - 1;
+    if (max <= 0) return 0;
+    const r = rnd();
+    const lv = r < odds.plus ? 2 : r < odds.plus + odds.elite ? 1 : 0;
+    return Math.min(max, Math.max(lv, odds.min || 0));
+  }
+  // Zusatzgeld für eine besiegte Elite (g: relics, upgrades)
+  function eliteReward(lv, g = {}) {
+    if (!lv) return 0;
+    return ELITE.REWARD[lv] + ((g.upgrades || []).includes('challengers_bell') ? ELITE.BELL : 0) + (setLevel(tagCounts(g.relics || []), 'hunt') >= 3 ? ELITE.HUNT3 : 0);
+  }
+  // The Judge: Handart, die er ausruft (nach grober Wahrscheinlichkeit gewichtet)
+  const JUDGE_CALLS = [['Pair', 5], ['Two Pair', 4], ['Three of a Kind', 4], ['Small Straight', 3], ['Full House', 2], ['Large Straight', 1], ['Four of a Kind', 1]];
+  function judgeCall(rnd = Math.random, not) { return pickWeighted(JUDGE_CALLS.filter(([n]) => n !== not), rnd); }
+  // The Ghost: welche Plätze diese Hand Geister sind (nie derselbe Platz wie zuletzt, solange es geht)
+  function ghostSlots(n, count, last = [], rnd = Math.random) {
+    let pool = Array.from({ length: n }, (_, i) => i).filter((i) => !last.includes(i));
+    if (pool.length < count) pool = Array.from({ length: n }, (_, i) => i);
+    const out = [];
+    while (out.length < Math.min(count, pool.length)) { const k = Math.floor(rnd() * pool.length); out.push(pool.splice(k, 1)[0]); }
+    return out.sort((a, b) => a - b);
+  }
+  // The Thief: welche Relikte diese Hand gestohlen sind
+  function stealSlots(nRelics, count, rnd = Math.random) {
+    const pool = Array.from({ length: nRelics }, (_, i) => i), out = [];
+    while (out.length < Math.min(count, nRelics)) { const k = Math.floor(rnd() * pool.length); out.push(pool.splice(k, 1)[0]); }
+    return out.sort((a, b) => a - b);
+  }
+  // The Taxman: Kosten des nächsten Rerolls (rerollsHand = Rerolls dieser Hand bisher)
+  function taxOf(boss, rerollsHand, money) {
+    if (!boss || boss.id !== 'taxman' || money <= 0) return 0;
+    if (boss.freeFirst && rerollsHand === 0) return 0;
+    return Math.min(boss.cost, money);
+  }
 
   // ── Relikte auflösen: Mirror Shard, Tags, Chameleon ─────────────────────
   const NONE = { id: 'none', tags: [] };
@@ -535,6 +710,8 @@
     let cap = 5;
     eff.forEach((e) => { if (e.def.capBonus) cap += e.def.capBonus(e.s); });
     if (setLevel(counts, 'bank') >= 3) cap += 3;
+    cap += g.capPlus || 0;   // Bounty Ledger
+    cap += g.phoneCap || 0;  // Telefon: Nest Egg
     const k = eff.some((e) => e.def.id === 'suitcase') ? Math.floor((g.bagSize || 0) / 3) : 0;
     if (g.money < 0) return { amount: 0, cap: cap + k, maxed: false };
     const base = Math.floor(g.money / 5);
@@ -564,9 +741,10 @@
     return out;
   }
   // Würfelt einen Würfel. rnd: 5 Zufallszahlen (vorab gezogen, damit Crystal Ball das Ergebnis zeigen kann).
-  function rollFace(die, rnd, luck, targets, loadedSkulls) {
+  // weigh(face): Gewicht pro Seite (Telefon-Vorteile, phone.js). Ohne weigh hat jede Seite dieselbe Chance.
+  function rollFace(die, rnd, luck, targets, loadedSkulls, weigh) {
     const n = die.faces.length;
-    let up = Math.floor(rnd[0] * n), lucky = false;
+    let up = weigh ? weightedFace(die.faces, weigh, rnd[0]) : Math.floor(rnd[0] * n), lucky = false;
     if (targets.length && rnd[1] * 100 < luck) {
       const t = targets[Math.floor(rnd[2] * targets.length)];
       const hits = die.faces.map((f, k) => (!isSkull(f) && (f.v === t || f.kind === 'wild' || (f.kind === 'twin' && 7 - f.v === t)) ? k : -1)).filter((k) => k >= 0);
@@ -577,6 +755,15 @@
       if (safe.length) up = safe[Math.floor(rnd[3] * safe.length)];
     }
     return { up, lucky };
+  }
+  // Seite nach Gewicht; bei lauter gleichen Gewichten genau dasselbe Ergebnis wie floor(r * n)
+  function weightedFace(faces, weigh, r) {
+    const ws = faces.map((f) => Math.max(0, weigh(f)));
+    const sum = ws.reduce((a, b) => a + b, 0);
+    if (!(sum > 0)) return Math.floor(r * faces.length);
+    let x = r * sum;
+    for (let k = 0; k < ws.length; k++) { x -= ws[k]; if (x < 0) return k; }
+    return ws.length - 1;
   }
   // Jacob's Ladder: hebt eine zufällige Seite (< 6) im Beutel um 1 Auge
   function raiseFace(bag, rnd = Math.random) {
@@ -700,8 +887,11 @@
     const riOf = (id) => eff.find((e) => e.def.id === id).ri;
     const upg = (id) => g.upgrades.includes(id);
     const set = (t, n) => setLevel(tags, t) >= n;
-    const boss = g.boss && g.boss.id;
-    const bustAt = 3 + (upg('rabbit_foot') ? 1 : 0) + (set('risk', 3) ? 1 : 0);
+    const boss = g.boss && g.boss.id, BS = g.boss || {};
+    const bossLv = g.isBoss ? g.bossLv || 0 : 0;
+    // The Thief: gestohlene Relikte geben beim Werten nichts (Set-Boni bleiben)
+    if (boss === 'thief' && g.stolen && g.stolen.length) { const st = new Set(g.stolen); for (let k = eff.length - 1; k >= 0; k--) if (st.has(eff[k].ri)) eff.splice(k, 1); }
+    const bustAt = 3 + (upg('rabbit_foot') ? 1 : 0) + (set('risk', 3) ? 1 : 0) + (g.bustPlus || 0);
     // g.formation: Lage auf dem Tisch zählt (im Spiel immer außer im Tutorial; in den Tests nur, wenn gesetzt)
     const opts = { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt, formation: !!g.formation,
       wild: g.formation && has('keystone') ? keystoneSlots(g.faces) : [] };
@@ -729,8 +919,11 @@
       keystone: opts.wild.filter((i) => ev.used.includes(i)) };
 
     // Snake: frisst den niedrigsten gewerteten Würfel (gehaltene Würfel mit Lockbox sind geschützt)
-    const prey = boss === 'snake' ? ev.scoring.filter((i) => ev.vals[i] > 0 && !(g.held[i] && has('lockbox')))
-      .reduce((a, i) => (a === -1 || ev.vals[i] < ev.vals[a] ? i : a), -1) : -1;
+    const prey = new Set(boss === 'snake' ? ev.scoring.filter((i) => ev.vals[i] > 0 && !(g.held[i] && has('lockbox')))
+      .sort((a, b) => ev.vals[a] - ev.vals[b] || a - b).slice(0, BS.eat || 1) : []);
+    // The Ghost: Geisterwürfel zählen für die Handart, geben aber nichts (gehaltene mit Lockbox sind geschützt)
+    const ghosts = new Set(boss === 'ghost' ? (g.ghosts || []).filter((i) => !(g.held[i] && has('lockbox'))) : []);
+    res.ghosts = [...ghosts];
     res.echo = boss === 'echo' && g.played.includes(ev.name);
 
     const hc = Object.assign({}, g.handCounts);
@@ -742,7 +935,7 @@
       name: ev.name, maxCount: ev.maxCount, sum: ev.used.reduce((a, i) => a + (ev.vals[i] || 0), 0),
       scoringVals: ev.scoring.map((i) => ev.vals[i]), skulls: ev.skulls, heldCount, isMost,
       rerollsHand: g.rerollsHand, rerollsBlind: g.rerollsBlind, rerollsLeft: g.rerollsLeft, money: g.money,
-      bagSize: g.bagSize, bagTypes: g.bagTypes, lucky: g.lucky, luckyRound: Math.max(g.luckyRound || 0, g.lucky || 0), whirls: g.whirls, isBoss: !!g.isBoss,
+      bagSize: g.bagSize, bagTypes: g.bagTypes, lucky: g.lucky, luckyRound: Math.max(g.luckyRound || 0, g.lucky || 0), whirls: g.whirls, isBoss: !!g.isBoss, bossLv,
       interest: interestInfo(g).amount, numLevels: numLv, top, tags, has, grow: g.grow, keep: g.keep, form,
     };
     res.h = h; res.isMost = isMost;
@@ -758,7 +951,8 @@
     // Pro gewertetem Würfel
     const dieSteps = (i) => {
       const v = ev.vals[i], f = faces[i], held = !!g.held[i], ex = g.extras[i] || {};
-      if (i === prey) { steps.push({ src: 'debuff', i }); return false; }
+      if (prey.has(i)) { steps.push({ src: 'debuff', i }); return false; }
+      if (ghosts.has(i)) { steps.push({ src: 'debuff', i, ghost: true }); return false; }
       steps.push({ src: 'die', i, chips: v });
       const nl = numLv[v] || 1;
       if (nl > 1) { steps.push({ src: 'die', i, chips: 4 * (nl - 1) }); steps.push({ src: 'die', i, mult: nl - 1 }); }
@@ -807,15 +1001,27 @@
     if (set('luck', 5) && g.lucky > 0) for (let k = 0; k < g.lucky; k++) steps.push({ src: 'set', tag: 'luck', xmult: 1.15 });
     if (upg('overdraft') && g.money < 0) steps.push({ src: 'upg', id: 'overdraft', xmult: 1.5 });
 
-    // Echo: schon gespielte Handart gibt halbe Power
-    if (res.echo) steps.push({ src: 'boss', id: 'echo', xmult: 0.5, text: 'Echo!' });
+    if (set('hunt', 3) && g.trophies > 0) steps.push({ src: 'set', tag: 'hunt', mult: 2 * g.trophies });
+    if (set('hunt', 5) && g.isBoss) steps.push({ src: 'set', tag: 'hunt', xmult: 1.5 });
+
+    // Bosse: Echo (schon gespielte Handart), Judge (ausgerufene Handart), Gambler (Münzwurf)
+    if (res.echo) steps.push({ src: 'boss', id: 'echo', xmult: BS.x || 0.5, text: 'Echo!' });
+    if (boss === 'judge' && g.judgeCall) {
+      if (ev.name === g.judgeCall) steps.push({ src: 'boss', id: 'judge', xmult: BS.called || 2, text: 'As ordered!', good: true });
+      else if ((BS.other || 1) < 1) steps.push({ src: 'boss', id: 'judge', xmult: BS.other, text: 'Objection!' });
+    }
+    if (boss === 'gambler' && g.coin) steps.push({ src: 'boss', id: 'gambler', xmult: g.coin === 'heads' ? BS.heads || 1.5 : BS.tails || 0.75, text: g.coin === 'heads' ? 'Heads!' : 'Tails!', good: g.coin === 'heads' });
     // Ermüdung: dieselbe Handart mehrmals direkt hintereinander. Ab der 4. in Folge -1 %, dann -1 % mehr pro Hand, höchstens -10 %
     const streak = ev.name === g.lastHand ? (g.handStreak || 0) + 1 : 1;
-    res.fatigue = fatigueOf(streak);
+    res.fatigue = fatigueScaled(streak, g.fatigueScale);
     if (res.fatigue) steps.push({ src: 'fatigue', xmult: 1 - res.fatigue / 100, text: 'Tired -' + res.fatigue + '%' });
 
+    // Challenges: verbotene Handarten (Domino) und Höchstzahl pro Runde (Pattern Lock)
+    const banned = (g.banHands && g.banHands.includes(ev.name)) || (g.handCap && g.played.filter((x) => x === ev.name).length >= g.handCap);
+    if (banned) { res.banned = true; res.factor = 0; steps.push({ src: 'msg', text: g.banHands && g.banHands.includes(ev.name) ? 'Not allowed!' : 'Locked!' }); }
+
     // Bust
-    if (bust) {
+    if (bust && !banned) {
       if (has('ritual_candle')) {
         res.candle = ev.used.find((i) => isSkull(faces[i]));
         steps.push({ src: 'relic', r: riOf('ritual_candle'), text: 'Bust averted!', money: 10 });
@@ -831,6 +1037,8 @@
   // Ermüdung in Prozent für die n-te Hand derselben Art in Folge
   const FATIGUE_FROM = 4, FATIGUE_MAX = 10;
   const fatigueOf = (streak) => Math.max(0, Math.min(FATIGUE_MAX, streak - FATIGUE_FROM + 1));
+  // Telefon-Vorteil "Second Wind" (phone.js): Ermüdung mal scale (< 1), gerundet
+  const fatigueScaled = (streak, scale) => Math.round(fatigueOf(streak) * (scale === undefined ? 1 : scale));
 
   // Wendet alle Schritte an und berechnet das Ergebnis (identisch zur Animation im Spiel).
   function finish(res) {
@@ -866,13 +1074,14 @@
   }
 
   const api = {
-    BALANCE, heatSpeed, HANDS, HAND_ORDER, handValues, FACE_KINDS, DIE_TYPES, makeDie, copyDie, isSkull,
+    BALANCE, heatSpeed, finalRules, HANDS, HAND_ORDER, handValues, FACE_KINDS, DIE_TYPES, makeDie, copyDie, isSkull,
     TAGS, TAG_ORDER, RARITY, RELICS, RELIC_BY_ID, VINES, DIAL_MODES, UPGRADES, UPGRADE_BY_ID, ORACLES, ORACLE_BY_ID, NUMBER_NAMES, BOSSES,
+    BOSS_BY_ID, BOSS_TIERS, TIER_BY_ID, BOSS_STAGE_TIERS, ELITE, LEVEL_NAMES, bossOf, bossPool, eliteOdds, rollBossLevel, eliteReward, judgeCall, ghostSlots, stealSlots, taxOf,
     MAX_RELICS, MAX_CONS, MIN_BAG, MAX_BAG, JONNY_RELICS, MOODS,
     effective, tagCounts, relicTags, mostCommonTag, setLevel, topNumber, effNumLevels,
-    interestInfo, interest, luckOf, luckTargets, rollFace, raiseFace,
+    interestInfo, interest, luckOf, luckTargets, rollFace, weightedFace, raiseFace,
     evaluate, evaluateFaces, scoreHand, pick, pickWeighted, sellValue, strongestOfTag,
-    formationOf, keystoneSlots, midSlots, NO_FORMATION, LINK_PIPS, fatigueOf, FATIGUE_FROM, FATIGUE_MAX,
+    formationOf, keystoneSlots, midSlots, NO_FORMATION, LINK_PIPS, fatigueOf, fatigueScaled, FATIGUE_FROM, FATIGUE_MAX,
   };
   global.WG = api;
   if (typeof module !== 'undefined') module.exports = api;

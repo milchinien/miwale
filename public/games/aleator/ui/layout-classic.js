@@ -1,7 +1,7 @@
 // Aleator – Layout "Classic": das ursprüngliche Layout (Seitenleiste links, Relikte oben, Beutel unten).
 // Bleibt unverändert erhalten, damit man jederzeit zurückschalten kann.
 (window.WG_LAYOUTS = window.WG_LAYOUTS || []).push((K) => {
-  const { S, R, UI, P, eng, J, B } = K;
+  const { S, R, UI, P, eng, J } = K;
   const { darken, lighten } = K;
 
   const RELIC_ROW = { x: 630, y: 80, gap: 112 };
@@ -24,12 +24,12 @@
     const heat = K.heatPct ? K.heatPct() : 0;   // Heat: Ziel wegen der starken letzten Runde erhöht
     if (heat) { UI.text(ctx, 'Target', 82, 81, { size: 16, colour: P.TEXT_LABEL }); UI.dynaText(ctx, 'Heat +' + heat + '%', 82, 100, { size: 13, colour: P.ORANGE, time: t, wave: heat >= 100 ? 2 : 0.6 }); }
     else UI.text(ctx, 'Target', 82, 89, { size: 18, colour: P.TEXT_LABEL });
-    UI.text(ctx, UI.num(S.target), 196, 89, { size: 32, colour: P.RED });
+    UI.text(ctx, UI.num(S.target), 196, 89, { size: K.fitText(ctx, UI.num(S.target), 148, 32), colour: P.RED });   // große Endless-Ziele werden kleiner
     // Punkte dieses Blinds
     UI.box(ctx, 28, 134, 258, 56, { colour: P.PANEL, radius: 10, emboss: 3 });
     UI.text(ctx, 'Score', 70, 162, { size: 20, colour: P.TEXT_LABEL });
     UI.box(ctx, 112, 141, 166, 42, { colour: P.PANEL_DARK, radius: 8, shadow: false });
-    K.juiced(ctx, J.score, 195, 162, t, () => UI.text(ctx, UI.num(S.dispScore), 195, 162, { size: 32 }));
+    K.juiced(ctx, J.score, 195, 162, t, () => UI.text(ctx, K.scoreText(), 195, 162, { size: K.fitText(ctx, K.scoreText(), 158, 32) }));
     // Handart, Chips × Mult
     UI.box(ctx, 28, 202, 258, 128, { colour: P.PANEL, radius: 10, emboss: 3 });
     if (S.handName) K.juiced(front, J.name, 157, 228, t, () => UI.dynaText(front, S.handName, 157, 228, { size: 26, time: t, pop: Math.min(1, (eng.time - S.handNameT) * 3), wave: 1.5 }));
@@ -80,8 +80,8 @@
     K.area(ctx, 330, 560, 930, 144);
     UI.text(ctx, 'Bag ' + S.bag.length + '/' + K.bagMax() + '  ·  ' + K.drawCount() + ' dice per hand', 350, 578, { size: 15, colour: P.TEXT_SOFT, align: 'left' });
     const job = K.jobLine && K.jobLine();
-    if (job) UI.text(ctx, job.text, 1160, 578, { size: K.fitText(ctx, job.text, 560, 15), colour: job.colour, align: 'right' });
-    else UI.text(ctx, '[Enter] Play  [R] Reroll  [1-6] Hold  ·  drag relics to reorder  ·  [O]', 1160, 578, { size: 13, colour: P.TEXT_DIM, align: 'right' });
+    if (job) UI.text(ctx, job.text, 1148, 578, { size: K.fitText(ctx, job.text, 550, 15), colour: job.colour, align: 'right' });
+    else UI.text(ctx, '[Enter] Play  [R] Reroll  [1-6] Hold  ·  drag relics to reorder  ·  [O]', 1148, 578, { size: 13, colour: P.TEXT_DIM, align: 'right' });
   }
 
   function drawPlay(ctx) {
@@ -90,7 +90,11 @@
     if (S.handName) UI.text(ctx, S.handName, 660, 200, { size: 34, colour: P.GOLD });
     else if (pv && K.isBust(pv)) UI.text(ctx, 'BUST!  ' + pv.skulls + ' Skulls', 660, 200, { size: 30, colour: P.RED });
     else if (pv) { const tired = K.fatigueFor(pv.name); UI.text(ctx, pv.name + '   ' + R.handValues(pv.name, S.levels).join(' x ') + (pv.skulls ? '   ' + pv.skulls + ' Skull' + (pv.skulls > 1 ? 's' : '') : '') + (tired ? '   Tired -' + tired + '%' : ''), 660, 200, { size: tired ? 26 : 28, colour: P.TEXT_SOFT }); }
-    if (K.isBossBlind() && S.boss) UI.text(ctx, S.boss.name + ': ' + S.boss.desc, 660, 236, { size: 17, colour: lighten(S.boss.colour, 0.45) });
+    if (K.isBossBlind() && S.boss) {   // lange Boss-Texte auf zwei Zeilen statt winzig
+      const ln = K.wrapPlain(ctx, S.boss.name + ': ' + K.bossDesc(), 620, 16).slice(0, 2);
+      ln.forEach((t2, i) => UI.text(ctx, t2, 660, (ln.length > 1 ? 230 : 236) + i * 18, { size: 16, colour: lighten(S.boss.colour, 0.45) }));
+    }
+    if (K.fogged && K.fogged() && S.phase === 'select' && !S.handName) UI.text(ctx, 'The Fog hides your hand', 660, 200, { size: 26, colour: P.TEXT_SOFT });
     // Statuszeile: Luck und Augenzahl-Stufen
     const L = K.luck();
     if (L > 0) UI.text(ctx, 'Luck ' + L + '%', 346, 458, { size: 16, colour: P.GREEN, align: 'left' });
@@ -131,14 +135,15 @@
     if (K.drawJob) K.drawJob(ctx, { x: 776, y: 460, w: 180, h: 80 });
     if (S.boss && (S.ante <= K.ANTES || S.endless)) {
       UI.box(ctx, 966, 460, 286, 80, { colour: P.PANEL, radius: 10, emboss: 3 });
-      UI.text(ctx, 'Stage boss: ' + S.boss.name, 1109, 476, { size: 16, colour: lighten(S.boss.colour, 0.45) });
+      const head = 'Stage boss: ' + S.boss.name + '  ·  ' + K.bossTag();
+      UI.text(ctx, head, 1109, 476, { size: K.fitText(ctx, head, 270, 16), colour: lighten(S.boss.colour, 0.45) });
       K.wrapPlain(ctx, S.boss.desc, 262, 13).slice(0, 3).forEach((ln, i) => UI.text(ctx, ln, 1109, 497 + i * 15, { size: 13, colour: P.TEXT_SOFT }));
     }
   }
 
   function drawMenu(back, front, t) {
-    UI.dynaText(front, 'ALEATOR', 640, 170, { size: 96, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
-    UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 240, { size: 28, time: t, wave: 1.5, colour: '#FFFFFF' });
+    UI.logo3D(front, 'Aleator', 640, 140, { size: 192, font: UI.LOGO_FONT, outline: '#16110C', outlineWidth: 9, spacing: -4, depth: 12, time: t, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
+    UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 258, { size: 28, time: t, wave: 1.5, colour: '#FFFFFF' });
     UI.text(front, 'Hold dice, reroll, play your hand. 8 stages. Good luck.', 640, 672, { size: 18, colour: P.TEXT_SOFT });
   }
 
@@ -162,7 +167,7 @@
     formLine: { dy: 80, size: 14 },        // Formations-Zeile unter den Würfeln (Links, Shifts)
     scoreBox: { w: 104, h: 62 },
     menuDie: (i) => { const t = i / 4 - 0.5; return { x: 640 + t * 560, y: 400 + t * t * 80, r: t * 0.25, s: 3 }; },
-    flames: { chips: { x: 40, y: 254, w: 104, h: 90 }, mult: { x: 170, y: 254, w: 104, h: 90 } },
+    flames: { chips: { x: 40, y: 254, w: 104, h: 90, py: 286 }, mult: { x: 170, y: 254, w: 104, h: 90, py: 286 } },   // py = Drehpunkt-y wie in juiced()
     spots: { money: [157, 430], score: [157, 160], total: [157, 128], chipsBox: [92, 285], multBox: [222, 285], scoreBox: [195, 162], upgrade: [222, 236], vault: [157, 400], cons: [1132, 300], vaultBox: [1109, 356] },
     drawMenu,
     drawFrame: (back, front, t) => { drawSidebar(back, t, front); drawTop(back); drawBag(back); },

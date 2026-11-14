@@ -12,9 +12,12 @@
 //   shop   {noBuy}  – Shop verlassen (noBuy = Shops in Folge ohne Kauf) · oracle · destroy
 //   job (Jonnys Auftrag erledigt) · buy (etwas im Shop gekauft) · special (Jonny's Special gekauft)
 //   shift (Würfel auf dem Tisch getauscht); hand hat dazu chain (längste Kette) und palindrome
+//   hand außerdem: boss (aktive Boss-Regel), order (Zahlen links nach rechts), fiveOf, runCount (diese Handart im Run)
+//   round außerdem: taxPaid, judgeHits, coins, ghostScoring, maxFrozen, played, heat
+//   run außerdem: busts, relicCount, cup · phone {stack} (Geschenk am Telefon genommen)
 ((global) => {
   'use strict';
-  const HAND_TYPES = 9, BOSS_COUNT = 6, ENCOUNTER_COUNT = 8;
+  const HAND_TYPES = 9, BOSS_COUNT = (global.WG && global.WG.BOSSES && global.WG.BOSSES.length) || 14, ENCOUNTER_COUNT = 8;
   const r = (id) => ['relic', id], o = (id) => ['oracle', id], u = (id) => ['upgrade', id], d = (id) => ['die', id], cups = (n) => ['cup', n];
   const cupMode = (id) => ['cupmode', id];   // Becher, der dauerhaft frei wird (wie der Classic Cup)
   const cnt = (obj) => Object.keys(obj || {}).length;
@@ -27,7 +30,9 @@
     { id: 'stage7', name: 'Deep Waters', desc: 'Reach Stage 7', on: 'state', test: (e) => e.ante >= 7, rewards: [r('crossroads'), ['background', 'starfield'], ['swatch', 'midnight']] },
     { id: 'run_win', name: 'Aleator', desc: 'Win a run', on: 'run', test: (e) => e.won, rewards: [r('monument'), u('spare_die'), ['feature', 'studio']] },
     { id: 'runs5', name: 'Regular', desc: 'Play 5 runs', on: ['run', 'state'], goal: 5, count: (p) => p.stats.runs, rewards: [r('hybrid_seed'), r('metamorphosis')] },
-    { id: 'boss_all', name: 'Bossbuster', desc: 'Beat every Showdown boss once', on: 'round', goal: BOSS_COUNT, count: (p) => Object.keys(p.track.bosses || {}).filter((b) => b !== 'jonny').length, rewards: [r('tycoon')] },
+    { id: 'big_game', name: 'Big Game', desc: 'Beat an Elite boss', on: 'round', test: (e) => (e.bossLv || 0) >= 1, rewards: [r('war_paint'), r('hunters_journal')] },
+    { id: 'apex', name: 'Apex Predator', desc: 'Beat an Elite+ boss', on: 'round', test: (e) => e.bossLv === 2, rewards: [r('usurper'), u('bounty_ledger')] },
+    { id: 'boss_all', name: 'Bossbuster', desc: 'Beat every Showdown boss once', on: 'round', goal: BOSS_COUNT, count: (p) => Object.keys(p.track.bosses || {}).filter((b) => b !== 'jonny' && b !== 'father').length, rewards: [r('tycoon')] },
     // Punkte
     { id: 'score1k', name: 'Four Digits', desc: 'Score 1,000 with one hand', on: 'hand', test: (e) => e.total >= 1000, rewards: [r('signature'), ['material', 'polished']] },
     { id: 'score10k', name: 'Big Numbers', desc: 'Score 10,000 with one hand', on: 'hand', test: (e) => e.total >= 10000, rewards: [r('trophy_case')] },
@@ -85,6 +90,31 @@
     // Begegnungen zwischen den Runden
     { id: 'enc_first', name: 'Small Talk', desc: 'Meet someone between rounds', on: 'encounter', test: () => true, rewards: [cups(1)] },
     { id: 'enc_all', name: 'Well Travelled', desc: 'See every encounter once', on: 'encounter', goal: ENCOUNTER_COUNT, count: (p) => cnt(p.track.enc), rewards: [cups(2)] },
+    // Bosse mit ihren eigenen Regeln schlagen (round-Ereignis bringt die Boss-Bilanz der Runde mit)
+    { id: 'tax_evasion', name: 'Tax Evasion', desc: 'Beat The Taxman after 6+ rerolls without paying any tax', on: 'round', test: (e) => e.boss === 'taxman' && e.taxPaid === 0 && e.rerolls >= 6, rewards: [cups(1)] },
+    { id: 'contempt', name: 'Contempt of Court', desc: "Beat The Judge in 2+ hands without ever playing the called hand", on: 'round', test: (e) => e.boss === 'judge' && e.handsUsed >= 2 && e.judgeHits === 0, rewards: [cups(1)] },
+    { id: 'against_odds', name: 'Against the Odds', desc: 'Beat The Gambler although 3+ coins all landed Tails', on: 'round', test: (e) => e.boss === 'gambler' && (e.coins || []).length >= 3 && e.coins.every((c) => c === 'tails'), rewards: [cups(1)] },
+    { id: 'empty_plate', name: 'Empty Plate', desc: 'Score a Five of a Kind against The Snake', on: 'hand', test: (e) => !e.bust && e.boss === 'snake' && e.name === 'Five of a Kind', rewards: [cups(1)] },
+    { id: 'nothing_to_steal', name: 'Nothing to Steal', desc: 'Beat The Thief without owning a single relic', on: 'round', test: (e) => e.boss === 'thief' && (e.relics || []).length === 0, rewards: [cups(1)] },
+    { id: 'exorcist', name: 'Exorcist', desc: 'Beat The Ghost in 2+ hands, never letting a ghost touch a scoring die', on: 'round', test: (e) => e.boss === 'ghost' && e.handsUsed >= 2 && e.ghostScoring === false, rewards: [cups(1)] },
+    { id: 'brick_by_brick', name: 'Brick by Brick', desc: 'Beat The Wall playing only Pairs and Two Pairs', on: 'round', test: (e) => e.boss === 'wall' && (e.played || []).length > 0 && e.played.every((n) => n === 'Pair' || n === 'Two Pair'), rewards: [cups(2)] },
+    { id: 'rip_current', name: 'Rip Current', desc: 'Beat The Undertow with 3 or more hands left', on: 'round', test: (e) => e.boss === 'undertow' && e.handsLeft >= 3, rewards: [cups(1)] },
+    { id: 'thaw', name: 'Thaw', desc: 'Beat The Frost after it froze 3+ dice at once', on: 'round', test: (e) => e.boss === 'frost' && (e.maxFrozen || 0) >= 3, rewards: [cups(1)] },
+    // Spielstil
+    { id: 'countdown', name: 'Countdown', desc: 'Score dice that read 5-4-3-2-1 from left to right', on: 'hand', test: (e) => !e.bust && e.order === '54321', rewards: [cups(1)] },
+    { id: 'ones_upon', name: 'Ones Upon a Time', desc: 'Score a Five of a Kind made of 1s', on: 'hand', test: (e) => !e.bust && e.name === 'Five of a Kind' && e.fiveOf === 1, rewards: [cups(1)] },
+    { id: 'clean_record', name: 'Clean Record', desc: 'Win a run without a single Bust', on: 'run', test: (e) => e.won && e.busts === 0, rewards: [cups(2)] },
+    { id: 'minimalist', name: 'Minimalist', desc: 'Win a run with 3 relics or fewer', on: 'run', test: (e) => e.won && e.relicCount <= 3, rewards: [cups(2)] },
+    { id: 'rags_riches', name: 'Rags to Riches', desc: 'Go from $0 to $40 within the same Stage', on: 'state', test: (e) => e.money >= 40 && e.brokeAnte === e.ante, rewards: [cups(1)] },
+    { id: 'fever_pitch', name: 'Fever Pitch', desc: 'Win a round at maximum Heat (+100%)', on: 'round', test: (e) => (e.heat || 0) >= 100, rewards: [cups(1)] },
+    { id: 'habit', name: 'Creature of Habit', desc: 'Play the same hand type 25 times in one run', on: 'hand', test: (e) => (e.runCount || 0) >= 25, rewards: [cups(1)] },
+    { id: 'astronomer', name: 'Astronomer', desc: 'Raise 7 different hand types to level 2 in one run', on: 'state', test: (e) => (e.leveled || 0) >= 7, rewards: [['material', 'constellation']] },
+    // Telefon, Becher, Daily, Endless
+    { id: 'party_line', name: 'Party Line', desc: 'Take 10 gifts on the phone', on: 'phone', goal: 10, count: (p) => p.track.phone || 0, rewards: [cups(1)] },
+    { id: 'triple_stack', name: 'Triple Stack', desc: 'Take the same phone gift 3 times in one run', on: 'phone', test: (e) => (e.stack || 0) >= 3, rewards: [cups(1)] },
+    { id: 'cupboard', name: 'Cupboard', desc: 'Win runs with 5 different cups', on: 'run', goal: 5, count: (p) => cnt(p.track.cupWins), rewards: [cups(2)] },
+    { id: 'daily_grind', name: 'Daily Grind', desc: 'Play 20 Daily Challenges', on: ['run', 'state'], goal: 20, count: (p) => cnt(p.daily), rewards: [cups(2)] },
+    { id: 'endless15', name: 'The Long Night', desc: 'Reach Stage 15 in Endless mode', on: 'state', test: (e) => e.ante >= 15, rewards: [cups(3)] },
     // Sammeln
     { id: 'set5', name: 'Full Set', desc: 'Activate a 5-relic set bonus', on: 'state', test: (e) => e.maxSet >= 5, rewards: [cups(2)] },
     { id: 'hunter', name: 'Trophy Hunter', desc: 'Unlock 20 achievements', on: 'meta', goal: 20, count: (p) => cnt(p.ach), rewards: [cups(3)] },
@@ -109,9 +139,25 @@
     S('bare_hands', 'Bare Hands', 'Beat a Showdown without owning a single relic', [cups(1)], 'round', (e) => !!e.boss && (e.relics || []).length === 0),
     S('spent', 'Spent It All', 'Buy something and leave the shop with exactly $0', [], 'shop', (e) => e.bought && e.money === 0),
     S('jonny_flawless', 'Jonny Who?', "Beat Jonny's Showdown with your first hand", [cups(1)], 'round', (e) => e.boss === 'jonny' && e.handsUsed === 1),
+    S('like_father', 'Like Father, Like Son', "Beat Jonny's father deep in Endless", [cups(3)], 'round', (e) => e.boss === 'father'),
     S('mystery_five', 'Finders Keepers', 'Roll Five Alike with the Mystery Cup', [cups(1)]),
     S('eddie_big', 'Slick Enough', 'Win the $10 duel against Slick Eddie', [cups(1)]),
     S('buyers_remorse', "Buyer's Remorse", "Sell a Jonny's Special in the same shop you bought it", []),
+    // Zweite Welle (2026-11-12)
+    S('devils_number', "The Devil's Number", 'Score exactly 666 points with one hand', [['palette', 'infernal']], 'hand', (e) => !e.bust && e.total === 666),
+    S('lucky_sevens', 'Lucky Sevens', 'Have exactly $7 and 7 dice in your bag at Stage 7', [cups(1)], 'state', (e) => e.money === 7 && e.ante === 7 && e.bag === 7),
+    S('skeleton_crew', 'Skeleton Crew', 'Bust with five Skulls showing', [cups(1)], 'hand', (e) => e.bust && e.skulls >= 5),
+    S('deja_vu', 'Deja Vu', 'Open two hands in a row with the exact same roll', []),
+    S('placebo', 'Placebo', 'Hold every die and press Reroll 10 times', []),
+    S('rage_quit', 'Rage Quit', 'Quit to the menu within 5 seconds of a Bust', []),
+    S('research', 'Research', 'Look away during a Showdown', []),
+    S('tight_squeeze', 'Tight Squeeze', 'Make the window really small', []),
+    S('so_close', 'So Close', 'Lose a run by less than 1% of the target', [cups(1)]),
+    S('stubborn', 'Stubborn', 'Click locked things in the Codex 20 times', []),
+    S('coffee_break', 'Coffee Break', 'Stay on the Game Over screen for 10 minutes', []),
+    S('cheater', 'Cheater', 'Load a menu die', []),
+    S('dizzy', 'Dizzy', 'Circle the menu dice with your mouse until they get dizzy', []),
+    S('answering_machine', 'Answering Machine', 'Find all 8 voicemail tapes', [cups(3)]),
   ];
   function S(id, name, desc, rewards, on = 'secret', test = (e) => e.id === id) { return { id, name, desc, rewards, on, test, secret: true }; }
   const BY_ID = Object.fromEntries(LIST.map((a) => [a.id, a]));
@@ -127,7 +173,7 @@
     if (!p) return p;
     if (!p.ach) p.ach = {};
     if (!p.track) p.track = {};
-    for (const k of ['hands', 'bosses', 'enc']) if (!p.track[k]) p.track[k] = {};
+    for (const k of ['hands', 'bosses', 'enc', 'cupWins']) if (!p.track[k]) p.track[k] = {};
     if (!p.cups) p.cups = {};
     if (!p.achRetro) {
       p.achRetro = true;
@@ -184,6 +230,8 @@
     else if (ev === 'buy') t.buys = (t.buys || 0) + 1;
     else if (ev === 'shift') t.shifts = (t.shifts || 0) + 1;
     else if (ev === 'encounter') t.enc[e.id] = 1;
+    else if (ev === 'phone') t.phone = (t.phone || 0) + 1;
+    else if (ev === 'run' && e.won && e.cup) t.cupWins[e.cup] = 1;
     const got = [];
     const check = (name) => {
       for (const a of LIST) {

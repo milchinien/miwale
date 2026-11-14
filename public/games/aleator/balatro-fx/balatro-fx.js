@@ -379,27 +379,41 @@ void main(){
   o = vec4(vCol.rgb * vCol.a, vCol.a);
 }`;
 
+  // Flamme auf einer Box: das Quad reicht uSink px in die Box hinein (gleiche Transformation wie die Box),
+  // dort wird nur innerhalb der Box-Form in Box-Farbe gezeichnet. So wächst die Flamme nahtlos aus der Box.
+  // uCol2 = Box-Farbe (Rand und Fuß), uCol1 = hellerer Kern.
   const FS_FLAME = `#version 300 es
 precision highp float;
 in vec2 vUv;
-uniform vec2 uPix;
-uniform float uTime, uIntensity, uSeed;
+uniform vec2 uPix, uSize;
+uniform float uTime, uIntensity, uSeed, uSink, uRad;
 uniform vec3 uCol1, uCol2;
 out vec4 o;
 ${GLSL_NOISE}
 void main(){
   vec2 uv = (floor(vUv * uPix) + 0.5) / uPix;
-  float y = 1. - uv.y;
+  vec2 px = vec2(uv.x * uSize.x, (1. - uv.y) * uSize.y - uSink);   // px: x ab linker Box-Kante, y über der Box-Oberkante
+  float fh = max(uSize.y - uSink, 1.);
+  float y = max(px.y, 0.) / fh;
   float x = uv.x * 2. - 1.;
   float tt = uTime * (1.4 + uIntensity * 0.6) + uSeed * 20.;
   float n = fbm(vec2(uv.x * 4.5, y * 2.2 - tt * 1.6));
   n += 0.55 * fbm(vec2(uv.x * 10. + 3., y * 4.5 - tt * 2.7));
-  float width = 1. - pow(abs(x), 2.6);
+  float width = 1. - pow(abs(x), 2.);
   float h = clamp(uIntensity, 0., 2.);
   float f = n * width * 1.15 - y * (1.5 / max(h, 0.05));
+  f += (1. - smoothstep(0., 0.06, y)) * 0.1 * width;   // breiter, geschlossener Fuß
   if (f < 0.12) discard;
-  vec3 c = mix(uCol2, uCol1, smoothstep(0.12, 0.45, f));
-  c = mix(c, vec3(1., 0.97, 0.86), smoothstep(0.6, 0.95, f));
+  if (px.y < 0.) {   // in der Box: nur innerhalb der (abgerundeten) Box-Form
+    float d = min(px.x, uSize.x - px.x);
+    float drop = d < uRad ? uRad - sqrt(max(0., uRad * uRad - (uRad - d) * (uRad - d))) : 0.;
+    if (d < 0. || -px.y < drop) discard;
+    o = vec4(uCol2, 1.);
+    return;
+  }
+  float lift = smoothstep(0.02, 0.2, y);               // Fuß bleibt exakt Box-Farbe
+  vec3 c = mix(uCol2, uCol1, smoothstep(0.2, 0.55, f) * lift);
+  c = mix(c, mix(uCol1, vec3(1.), 0.4), smoothstep(0.75, 1.05, f) * lift);
   o = vec4(c, 1.);
 }`;
 
@@ -420,7 +434,7 @@ in vec2 vUv;
 uniform sampler2D uScene;
 uniform vec2 uRes;
 uniform float uTime, uDpr;
-uniform float uAmount, uCurve, uScan, uBloom, uChroma, uNoise, uVignette;
+uniform float uAmount, uCurve, uScan, uBloom, uChroma, uNoise, uVignette, uBloomCut, uChromaFlat;
 out vec4 o;
 float h12(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void main(){
@@ -431,7 +445,7 @@ void main(){
   vec2 edge = smoothstep(vec2(0.), vec2(0.004 + k * 0.006), uv) * smoothstep(vec2(0.), vec2(0.004 + k * 0.006), 1. - uv);
   float inside = edge.x * edge.y;
 
-  vec2 ca = (uv - 0.5) * uChroma * uAmount * 0.006 + vec2(uChroma * uAmount * 0.6 / uRes.x, 0.);
+  vec2 ca = (uv - 0.5) * uChroma * uAmount * 0.006 + vec2(uChroma * uAmount * 0.6 * uChromaFlat / uRes.x, 0.);
   vec3 col;
   col.r = textureLod(uScene, uv + ca, 0.).r;
   col.g = textureLod(uScene, uv, 0.).g;
@@ -440,7 +454,7 @@ void main(){
   vec3 b1 = textureLod(uScene, uv, 2.5).rgb;
   vec3 b2 = textureLod(uScene, uv, 4.5).rgb;
   vec3 bloom = b1 * 0.55 + b2 * 0.45;
-  col += max(bloom - 0.28, 0.) * uBloom * uAmount * 1.1;
+  col += max(bloom - uBloomCut, 0.) * uBloom * uAmount * 1.1;
 
   float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
   float period = max(3., uDpr * 2.5);
@@ -668,7 +682,9 @@ void main(){
       this.bgMotion = 1; this.bgBright = 1; this.noFlash = false; this.motionK = 1; this.juiceK = 1;   // Barrierefreiheit
       this.bgFlow = Math.random() * 100; this.bgSpin = 0; this.spinPulse = 0; this.flowBoost = 0;
 
-      this.crt = Object.assign({ enabled: true, amount: 0.75, curvature: 0.6, scanlines: 0.55, bloom: 0.55, chroma: 0.55, noise: 0.35, vignette: 0.6 }, opts.crt);
+      this.crt = Object.assign({ enabled: true, amount: 0.75, curvature: 0.6, scanlines: 0.55, bloom: 0.55, chroma: 0.55, noise: 0.35, vignette: 0.6,
+        // bloomCut: ab welcher Helligkeit etwas leuchtet; chromaFlat: Farbsaum auch in der Bildmitte (0 = nur zum Rand hin)
+        bloomCut: 0.28, chromaFlat: 1 }, opts.crt);
 
       this.sprites = []; this.particles = []; this.popups = []; this.flames = new Map();
       this.timers = []; this.events = []; this.tweens = [];
@@ -1109,12 +1125,22 @@ void main(){
         gl.uniform4fv(F.u.uView, view);
         gl.uniform1f(F.u.uTime, this.time);
         for (const f of this.flames.values()) {
-          if (f.cur < 0.02) continue;
-          gl.uniform2f(F.u.uCenter, f.x + f.w / 2, f.y - f.h / 2);
-          gl.uniform2f(F.u.uSize, f.w, f.h);
+          if (f.cur < 0.02 || f.hidden) continue;
+          // Quad = Flamme über der Box + sink px in die Box hinein; folgt Drehung/Skalierung der Box (f.juice um f.pivot)
+          const pix = f.pixel || 3, sink = f.sink !== undefined ? f.sink : 2 * pix, H = f.h + sink;
+          const j = f.juice, rot = j ? j.r : 0, sc = j ? 1 + j.s : 1;
+          let cx = f.x + f.w / 2, cy = f.y - f.h / 2 + sink / 2;
+          if (f.pivot) {
+            const dx = (cx - f.pivot[0]) * sc, dy = (cy - f.pivot[1]) * sc, c = Math.cos(rot), s = Math.sin(rot);
+            cx = f.pivot[0] + dx * c - dy * s; cy = f.pivot[1] + dx * s + dy * c;
+          }
+          gl.uniform2f(F.u.uCenter, cx, cy);
+          gl.uniform2f(F.u.uSize, f.w, H);
           gl.uniform2f(F.u.uTilt, 0, 0);
-          gl.uniform1f(F.u.uRot, 0); gl.uniform1f(F.u.uScale, 1);
-          gl.uniform2f(F.u.uPix, f.w / (f.pixel || 3), f.h / (f.pixel || 3));
+          gl.uniform1f(F.u.uRot, rot); gl.uniform1f(F.u.uScale, sc);
+          gl.uniform2f(F.u.uPix, f.w / pix, H / pix);
+          gl.uniform1f(F.u.uSink, sink);
+          gl.uniform1f(F.u.uRad, f.radius !== undefined ? f.radius : 5);
           gl.uniform1f(F.u.uIntensity, f.cur);
           gl.uniform1f(F.u.uSeed, f.seed);
           gl.uniform3fv(F.u.uCol1, f.c1 || hexToRgb(PALETTE.ORANGE));
@@ -1181,6 +1207,8 @@ void main(){
       gl.uniform1f(C.u.uChroma, cr.chroma);
       gl.uniform1f(C.u.uNoise, cr.noise);
       gl.uniform1f(C.u.uVignette, cr.vignette);
+      gl.uniform1f(C.u.uBloomCut, cr.bloomCut);
+      gl.uniform1f(C.u.uChromaFlat, cr.chromaFlat);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
 
@@ -1209,33 +1237,128 @@ void main(){
     FONT: "'m6x11', 'Pixelify Sans', 'Courier New', monospace",
     textOutline: false, motionK: 1,   // Barrierefreiheit
     font(size) { return `${Math.round(size)}px ${UI.FONT}`; },
+    // TITLE_FONT: eigene Schrift nur für bewegte Überschriften (dynaText); null = UI.FONT
+    TITLE_FONT: null,
+    // textMap: { alter Text: neuer Text } – ersetzt feste Texte beim Zeichnen (null = aus)
+    textMap: null,
+    tx(str) { return (UI.textMap && UI.textMap[str]) || str; },
 
+    // Ecken im Pixel-Look: statt glatter Bögen eine Treppe aus Pixel-Stufen (wie Balatro).
+    // cornerPx = Kantenlänge einer Stufe (virtuelle px), cornerScale = wie stark der Radius schrumpft.
+    cornerPx: 2, cornerScale: 0.55,
+    _steps: {},
+    /** Einrückung je Pixelreihe (in Stufen) für eine Ecke mit Radius R Stufen; Reihe 0 = Außenkante. */
+    cornerSteps(R) {
+      if (UI._steps[R]) return UI._steps[R];
+      const s = [];
+      if (R === 1) s.push(1);
+      else for (let j = 0; j < R; j++) { const d = R - j - 0.5; s.push(Math.round(R - Math.sqrt(R * R - d * d) + 0.25)); }
+      return (UI._steps[R] = s);
+    },
+
+    /** Rechteck mit pixeligen Treppen-Ecken (Name bleibt roundRect, damit alle Aufrufer es nutzen). */
     roundRect(ctx, x, y, w, h, r) {
-      r = Math.max(0, Math.min(r, w / 2, h / 2));
       ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
+      UI.stairPath(ctx, x, y, w, h, r);
+    },
+    /** Hängt die Treppen-Form als eigenen Teilpfad an den aktuellen Pfad an (ohne beginPath). */
+    stairPath(ctx, x, y, w, h, r) {
+      const u = UI.cornerPx;
+      const R = Math.max(0, Math.min(Math.round((r * UI.cornerScale) / u), Math.floor(Math.min(w, h) / 2 / u)));
+      if (R <= 0 || !(w > 0) || !(h > 0)) { ctx.rect(x, y, Math.max(0, w), Math.max(0, h)); return; }
+      const s = UI.cornerSteps(R), q = [];
+      // Ecke oben links, von der linken Kante hinauf zur oberen Kante.
+      for (let j = R - 1; j >= 0; j--) { q.push(s[j] * u, (j + 1) * u, s[j] * u, j * u); }
+      const n = q.length;
+      ctx.moveTo(x + q[0], y + q[1]);
+      for (let i = 2; i < n; i += 2) ctx.lineTo(x + q[i], y + q[i + 1]);              // oben links
+      for (let i = n - 2; i >= 0; i -= 2) ctx.lineTo(x + w - q[i], y + q[i + 1]);    // oben rechts
+      for (let i = 0; i < n; i += 2) ctx.lineTo(x + w - q[i], y + h - q[i + 1]);      // unten rechts
+      for (let i = n - 2; i >= 0; i -= 2) ctx.lineTo(x + q[i], y + h - q[i + 1]);    // unten links
       ctx.closePath();
     },
 
-    /** Abgerundete Box mit Schlagschatten, dunkler "Emboss"-Unterkante und optionaler Kontur. */
+    // Look-Schalter (das Spiel setzt sie aus seinen Einstellungen):
+    //  hardShadow  deckender, harter Schlagschatten statt halbtransparentem
+    //  bevel       helle Lichtkante oben, dunkle Kante unten in jeder Box
+    //  frames      große Fenster mit Doppelrahmen, Nieten und leichter Pixel-Textur
+    //  tilt        Knöpfe mit b.tilt stehen leicht schräg
+    //  darkOutline dünne weiße Konturen werden zu dunklen Pixel-Konturen
+    //  liveButtons Knöpfe als dicke Blöcke mit Feder beim Hovern und Drücken (UI.liveButton)
+    style: { hardShadow: false, bevel: false, frames: false, tilt: false, darkOutline: false, liveButtons: false, shadowColour: '#0F1512' },
+    _grain: null,
+    /** Kachel für die Pixel-Textur großer Fenster (2-px-Zellen, fest gestreut, sehr schwach). */
+    grain(ctx) {
+      if (!UI._grain) {
+        const c = document.createElement('canvas'); c.width = c.height = 16;
+        const g = c.getContext('2d');
+        let seed = 7;
+        const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+        for (let yy = 0; yy < 16; yy += 2) for (let xx = 0; xx < 16; xx += 2) {
+          const v = rnd();
+          if (v < 0.16) { g.fillStyle = 'rgba(255,255,255,0.06)'; g.fillRect(xx, yy, 2, 2); }
+          else if (v > 0.8) { g.fillStyle = 'rgba(0,0,0,0.1)'; g.fillRect(xx, yy, 2, 2); }
+        }
+        UI._grain = c;
+      }
+      return ctx.createPattern(UI._grain, 'repeat');
+    },
+
+    /** Box mit Pixel-Ecken, Schlagschatten, dunkler "Emboss"-Unterkante und optionaler Kontur. */
     box(ctx, x, y, w, h, o = {}) {
-      const r = o.radius !== undefined ? o.radius : 10, em = o.emboss || 0, col = o.colour || PALETTE.PANEL;
+      const r = o.radius !== undefined ? o.radius : 10, em = o.emboss || 0, col = o.colour || PALETTE.PANEL, st = UI.style;
+      const am = /^rgba\(.*,\s*([\d.]+)\s*\)$/.exec(col), solid = !am || +am[1] >= 0.9;
       ctx.save();
       if (o.alpha !== undefined) ctx.globalAlpha *= o.alpha;
-      if (o.shadow !== false) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; UI.roundRect(ctx, x - 2, y + 4, w, h + em, r); ctx.fill(); }
+      if (o.shadow !== false) {   // harter Schatten: deckend und weiter versetzt, wie ein aufgeklebtes Pixel-Teil
+        const hard = st.hardShadow && solid;
+        ctx.fillStyle = hard ? st.shadowColour : 'rgba(0,0,0,0.3)';
+        UI.roundRect(ctx, x - (hard ? 4 : 2), y + (hard ? 6 : 4), w, h + em, r); ctx.fill();
+      }
       if (em) { ctx.fillStyle = o.embossColour || darken(col, 0.35); UI.roundRect(ctx, x, y + em, w, h, r); ctx.fill(); }
       ctx.fillStyle = col; UI.roundRect(ctx, x, y, w, h, r); ctx.fill();
-      if (o.outline) { ctx.lineWidth = o.outlineWidth || 2; ctx.strokeStyle = o.outline; UI.roundRect(ctx, x + 1, y + 1, w - 2, h - 2, r - 1); ctx.stroke(); }
+      const big = w >= 240 && h >= 150 && o.frame !== false;   // frame: false = Karte/Tooltip, kein Fenster
+      if ((st.bevel && Math.min(w, h) >= 8) || (st.frames && big)) {
+        ctx.save();
+        UI.roundRect(ctx, x, y, w, h, r); ctx.clip();
+        if (st.frames && big) { ctx.fillStyle = UI.grain(ctx); ctx.fillRect(x, y, w, h); }
+        if (st.bevel && Math.min(w, h) >= 8) {
+          const b = UI.cornerPx;
+          // Lichtkante: Form minus die um b nach unten verschobene Form (gerade-ungerade-Regel)
+          ctx.beginPath(); UI.stairPath(ctx, x, y, w, h, r); UI.stairPath(ctx, x, y + b, w, h, r);
+          ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fill('evenodd');
+          if (h >= 16) { ctx.beginPath(); UI.stairPath(ctx, x, y, w, h, r); UI.stairPath(ctx, x, y - b, w, h, r); ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.fill('evenodd'); }
+        }
+        ctx.restore();
+      }
+      let ol = o.outline, ow = o.outlineWidth || 2;
+      if (ol && st.darkOutline && /^(#fff(fff)?|white)$/i.test(ol) && ow <= 2) { ol = 'rgba(8,10,12,0.85)'; ow = 2; }
+      if (ol) {
+        ctx.lineJoin = 'miter';
+        if (st.frames && big) {   // Doppelrahmen: dunkle Außenlinie, Kontur, feine helle Innenlinie, Nieten in den Ecken
+          ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; UI.roundRect(ctx, x - 1, y - 1, w + 2, h + 2, r); ctx.stroke();
+        }
+        ctx.lineWidth = ow; ctx.strokeStyle = ol; UI.roundRect(ctx, x + 1, y + 1, w - 2, h - 2, r); ctx.stroke();
+        if (st.frames && big) {
+          const ins = ow + 5;
+          ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+          UI.roundRect(ctx, x + ins + 0.5, y + ins + 0.5, w - 2 * ins - 1, h - 2 * ins - 1, Math.max(0, r - ins)); ctx.stroke();
+          const d = ow + 12;
+          for (const [px, py] of [[x + d, y + d], [x + w - d - 6, y + d], [x + d, y + h - d - 6], [x + w - d - 6, y + h - d - 6]]) {
+            ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(px - 2, py + 2, 6, 6);
+            ctx.fillStyle = ol; ctx.fillRect(px, py, 6, 6);
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(px, py, 2, 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(px + 4, py + 4, 2, 2);
+          }
+        }
+      }
       ctx.restore();
     },
 
     /** Text mit Balatro-Schatten (leicht nach links unten versetzt). */
     text(ctx, str, x, y, o = {}) {
       const size = o.size || 24;
+      if (UI.textMap && UI.textMap[str]) str = UI.textMap[str];
       ctx.font = UI.font(size);
       ctx.textAlign = o.align || 'center';
       ctx.textBaseline = o.baseline || 'middle';
@@ -1249,14 +1372,15 @@ void main(){
      * "DynaText": Buchstaben wippen einzeln, poppen nacheinander auf (pop 0..1) und drehen sich leicht.
      */
     dynaText(ctx, str, x, y, o = {}) {
-      str = String(str);
+      str = UI.tx(String(str));
       const size = o.size || 32, t = o.time || 0, wave = (o.wave !== undefined ? o.wave : 2.5) * UI.motionK, rw = (o.rotWave !== undefined ? o.rotWave : 0.06) * UI.motionK;
       const pop = o.pop !== undefined ? o.pop : 1, sc = o.scale || 1;
       ctx.save();
       ctx.translate(x, y);
       if (o.rot) ctx.rotate(o.rot);
       ctx.scale(sc, sc);
-      ctx.font = UI.font(size);
+      // o.font: eigene Schrift nur für diesen Text (z. B. das Logo im Hauptmenü)
+      ctx.font = o.font ? `${Math.round(size)}px ${o.font}` : UI.TITLE_FONT && !o.plainFont ? `${Math.round(size)}px ${UI.TITLE_FONT}` : UI.font(size);
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const sp = o.spacing || 0;
       const ws = [...str].map((ch) => ctx.measureText(ch).width + sp);
@@ -1274,6 +1398,8 @@ void main(){
         ctx.rotate(r);
         ctx.scale(ls, ls);
         if (o.shadow !== false) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillText(ch, -size * 0.06, size * 0.09); }
+        // o.outline: harte Kontur um jeden Buchstaben (o.outlineWidth in px), hält Text vor unruhigem Hintergrund lesbar
+        if (o.outline) { ctx.lineWidth = o.outlineWidth || size * 0.06; ctx.lineJoin = 'miter'; ctx.strokeStyle = o.outline; ctx.strokeText(ch, 0, 0); }
         ctx.fillStyle = Array.isArray(o.colour) ? o.colour[i % o.colour.length] : o.colour || PALETTE.WHITE;
         ctx.fillText(ch, 0, 0);
         ctx.restore();
@@ -1283,20 +1409,152 @@ void main(){
     },
 
     /**
+     * Logo-Schriftzug in 3D: jeder Buchstabe mit Tiefe (Extrusion nach unten, dreht nicht mit), Lichtkante oben,
+     * Bodenschatten und eigener, unregelmäßiger Bewegung: Schweben + Neigen aus mehreren Sinus-Wellen und ab und zu
+     * ein kleiner Hüpfer mit Stauchen beim Landen. Alles aus der Zeit berechnet (kein Zustand nötig).
+     * o: size, time, font, colour (oder Liste), outline, outlineWidth, spacing, depth (px), motion (0..1)
+     */
+    logo3D(ctx, str, x, y, o = {}) {
+      const size = o.size || 96, t = o.time || 0, mk = (o.motion !== undefined ? o.motion : 1) * UI.motionK;
+      const depth = Math.max(1, Math.round(o.depth || size * 0.06)), ow = o.outlineWidth || size * 0.05, sp = o.spacing || 0;
+      const chars = [...String(str)];
+      ctx.save();
+      ctx.font = o.font ? `${Math.round(size)}px ${o.font}` : UI.font(size);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'miter';
+      const ws = chars.map((ch) => ctx.measureText(ch).width + sp);
+      const total = ws.reduce((a, b) => a + b, 0) - sp;
+      // Pseudo-Zufall pro Buchstabe (fest) und pro Hüpf-Fenster
+      const hash = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+      const hex = (c) => typeof c === 'string' && c[0] === '#';
+      let cx = x - total / 2;
+      const L = chars.map((ch, i) => {
+        const r1 = hash(i, 1), r2 = hash(i, 2), r3 = hash(i, 3), r4 = hash(i, 4);
+        // Schweben: drei unregelmäßige Wellen pro Buchstabe
+        let dy = (Math.sin(t * (1.1 + r1 * 0.9) + r2 * 6.28) * 0.55 + Math.sin(t * (2.3 + r3 * 1.4) + r4 * 6.28) * 0.3
+          + Math.sin(t * (0.45 + r2 * 0.3) + r1 * 6.28) * 0.15) * size * 0.065;
+        let rot = (Math.sin(t * (0.9 + r3 * 0.8) + r1 * 6.28) * 0.6 + Math.sin(t * (1.9 + r4 * 1.1) + r2 * 6.28) * 0.4) * 0.15;
+        let sx = 1, sy = 1;
+        // Hüpfer: jedes Fenster (je Buchstabe eigene Länge) mit 50 % Chance, zu zufälligem Zeitpunkt darin
+        const per = 1.5 + r4 * 1.5, k = Math.floor((t + r1 * per) / per), ph = (t + r1 * per) / per - k;
+        if (hash(i + 17, k) < 0.5) {
+          const st = 0.15 + hash(i + 31, k) * 0.5, u = (ph - st) * per / 0.6;   // Hüpfer dauert 0,6 s
+          if (u > 0 && u < 1) {
+            const dir = hash(i + 47, k) < 0.5 ? -1 : 1;
+            dy -= Math.sin(u * Math.PI) * size * 0.2;
+            rot += Math.sin(u * Math.PI) * 0.28 * dir;
+            if (u < 0.18) { const q = Math.sin(u / 0.18 * Math.PI); sx += q * 0.1; sy -= q * 0.14; }            // Absprung
+            else if (u > 0.82) { const q = Math.sin((u - 0.82) / 0.18 * Math.PI); sx += q * 0.12; sy -= q * 0.16; } // Landung
+            else { sx -= 0.05; sy += 0.07; }
+          }
+        }
+        const col = Array.isArray(o.colour) ? o.colour[i % o.colour.length] : o.colour || PALETTE.WHITE;
+        const p = { ch, x: cx + ws[i] / 2 - sp / 2, y, dy: dy * mk, rot: rot * mk, sx: 1 + (sx - 1) * mk, sy: 1 + (sy - 1) * mk, col,
+          side: hex(col) ? darken(col, 0.5) : 'rgba(0,0,0,0.6)', deep: hex(col) ? darken(col, 0.68) : 'rgba(0,0,0,0.75)',
+          hi: hex(col) ? lighten(col, 0.45) : 'rgba(255,255,255,0.5)' };
+        cx += ws[i];
+        return p;
+      });
+      // Buchstabe an Position zeichnen; ex/ey = Versatz in Bildschirm-Richtung (Tiefe zeigt immer nach unten)
+      const put = (p, ex, ey, fn) => {
+        ctx.save(); ctx.translate(Math.round(p.x + ex), Math.round(p.y + p.dy + ey)); ctx.rotate(p.rot); ctx.scale(p.sx, p.sy); fn(); ctx.restore();
+      };
+      const ex = -0.35;   // Tiefe leicht nach links unten, wie die übrigen Schatten im Spiel
+      // 1) Bodenschatten: bleibt unten, wird beim Hüpfen heller
+      for (const p of L) {
+        const lift = Math.min(1, Math.max(0, -p.dy) / (size * 0.2));
+        ctx.save(); ctx.globalAlpha = 0.3 * (1 - lift * 0.6); ctx.fillStyle = '#000000';
+        ctx.translate(Math.round(p.x - depth * 0.9), Math.round(p.y + depth * 1.9)); ctx.rotate(p.rot * 0.5); ctx.fillText(p.ch, 0, 0); ctx.restore();
+      }
+      // 2) Kontur um Vorderseite und ganze Tiefe
+      if (o.outline) {
+        ctx.strokeStyle = o.outline; ctx.lineWidth = ow;
+        for (const p of L) for (let d = depth; d >= 0; d -= 2) put(p, ex * d, d, () => ctx.strokeText(p.ch, 0, 0));
+        for (const p of L) put(p, ex * depth, depth, () => ctx.strokeText(p.ch, 0, 0));
+      }
+      // 3) Seitenflächen: hinten dunkler, vorne heller (in Stufen, keine weichen Verläufe)
+      for (const p of L) for (let d = depth; d >= 1; d--) {
+        ctx.fillStyle = d > depth * 0.5 ? p.deep : p.side; put(p, ex * d, d, () => ctx.fillText(p.ch, 0, 0));
+      }
+      // 4) Vorderseite mit harter Lichtkante oben
+      for (const p of L) {
+        const e = Math.max(2, Math.round(size * 0.018));
+        ctx.fillStyle = p.hi; put(p, 0, -e, () => ctx.fillText(p.ch, 0, 0));
+        ctx.fillStyle = p.col; put(p, 0, 0, () => ctx.fillText(p.ch, 0, 0));
+      }
+      ctx.restore();
+    },
+
+    /**
      * Button im Balatro-Stil. b = {x,y,w,h,label,colour,hover,pressed,disabled,juice?:Juice}
      */
     button(ctx, b, t = 0) {
+      if (UI.style.liveButtons) return UI.liveButton(ctx, b, t);
       const em = 5;
       const col = b.disabled ? PALETTE.L_BLACK : b.colour || PALETTE.ORANGE;
       const j = b.juice ? b.juice.update(t) : { s: 0, r: 0 };
       const press = b.pressed && !b.disabled ? em - 1 : 0;
       ctx.save();
       ctx.translate(b.x + b.w / 2, b.y + b.h / 2 + press);
-      ctx.rotate(j.r);
+      ctx.rotate(j.r + (UI.style.tilt && b.tilt ? b.tilt : 0));
       const s = 1 + j.s + (b.hover && !b.disabled ? 0.03 : 0);
       ctx.scale(s, s);
       UI.box(ctx, -b.w / 2, -b.h / 2, b.w, b.h, { colour: b.hover && !b.disabled ? lighten(col, 0.08) : col, radius: b.radius || 10, emboss: em - press, shadow: !press });
       UI.text(ctx, b.label, 0, -1, { size: b.size || b.h * 0.42, colour: b.disabled ? PALETTE.GREY : PALETTE.WHITE });
+      ctx.restore();
+    },
+
+    /**
+     * Knopf als dicker Block (Look-Schalter liveButtons): sichtbare Seitenwand mit dunkler Unterkante, zweifarbige
+     * Oberseite mit Pixel-Glanz. Die Oberseite hängt an einer Feder: beim Hovern hebt sie sich und schwingt leicht,
+     * beim Drücken sinkt sie auf den Sockel, beim Loslassen federt sie nach. Der Sockel und sein Schatten bleiben stehen.
+     * Zustand liegt am Knopf selbst (b._t, b._h, b._p, b._y, b._v).
+     */
+    liveButton(ctx, b, t = 0) {
+      const on = !b.disabled, mk = UI.motionK, em = 8, lift = 3;
+      const col = on ? b.colour || PALETTE.ORANGE : PALETTE.L_BLACK;
+      const j = b.juice ? b.juice.update(t) : { s: 0, r: 0 };
+      const dt = b._t === undefined ? 0 : clamp(t - b._t, 0, 0.05); b._t = t;
+      const down = b.pressed && on, up = b.hover && on && !down;
+      b._h = damp(b._h || 0, b.hover && on ? 1 : 0, 16, dt);
+      b._p = damp(b._p || 0, down ? 1 : 0, 40, dt);
+      // Feder für die Höhe der Oberseite: runter hart, hoch weich und leicht nachschwingend
+      const goal = down ? em - 1 : up ? -lift : 0;
+      if (b._y === undefined) { b._y = goal; b._v = 0; }
+      const k = goal > b._y ? 2600 : 900, c = 2 * Math.sqrt(k) * (mk ? 0.38 : 1);
+      for (let n = 0; n < 4; n++) { const h = dt / 4; b._v += (k * (goal - b._y) - c * b._v) * h; b._y += b._v * h; }
+      const dy = clamp(Math.round(b._y), -lift - 3, em - 1), side = em - dy;
+      const W = b.w, H = b.h, x0 = -W / 2, y0 = -H / 2 + dy;
+      ctx.save();
+      ctx.translate(b.x + W / 2, b.y + H / 2);
+      const sway = Math.sin(t * 3.4 + b.x * 0.071 + b.y * 0.13) * 0.012 * b._h * mk;
+      ctx.rotate(j.r + (UI.style.tilt && b.tilt ? b.tilt : 0) + sway);
+      const s = 1 + j.s + 0.035 * b._h;
+      ctx.scale(s * (1 + 0.02 * b._p), s * (1 - 0.03 * b._p));
+      // Seitenwand: zwei harte Stufen statt Verlauf (unten 2 px dunkler)
+      const sideTop = y0 + H, sideA = darken(col, 0.4), sideB = darken(col, 0.66);
+      let sideFill = sideA;
+      if (side >= 4) {
+        sideFill = ctx.createLinearGradient(0, sideTop, 0, sideTop + side);
+        const f = (side - 2) / side;
+        sideFill.addColorStop(0, sideA); sideFill.addColorStop(f, sideA); sideFill.addColorStop(f, sideB); sideFill.addColorStop(1, sideB);
+      }
+      const face = b._p > 0.01 ? darken(lighten(col, 0.1 * b._h), 0.07 * b._p) : lighten(col, 0.1 * b._h);
+      UI.box(ctx, x0, y0, W, H, { colour: face, radius: b.radius || 10, emboss: side, embossColour: sideFill });
+      if (H >= 24 && W >= 40) {
+        ctx.save();
+        UI.roundRect(ctx, x0, y0, W, H, b.radius || 10); ctx.clip();
+        ctx.fillStyle = 'rgba(0,0,0,0.09)'; ctx.fillRect(x0, y0 + Math.round(H * 0.56), W, H);   // untere Hälfte im Schatten
+        if (on && W >= 70) {   // kleiner Pixel-Glanz oben links
+          const gx = x0 + 8, gy = y0 + 5, gw = Math.round(Math.min(22, W * 0.14) / 2) * 2;
+          ctx.fillStyle = `rgba(255,255,255,${0.32 + 0.18 * b._h})`;
+          ctx.fillRect(gx, gy, gw, 2); ctx.fillRect(gx + gw + 4, gy, 2, 2);
+        }
+        ctx.restore();
+      }
+      // dunkle Pixel-Kontur um den ganzen Block (Oberseite + Seitenwand)
+      ctx.lineJoin = 'miter'; ctx.lineWidth = 2; ctx.strokeStyle = darken(col, 0.75);
+      UI.roundRect(ctx, x0 + 1, y0 + 1, W - 2, H + side - 2, b.radius || 10); ctx.stroke();
+      UI.text(ctx, b.label, 0, y0 + H / 2 - 1, { size: b.size || H * 0.42, colour: on ? PALETTE.WHITE : PALETTE.GREY });
       ctx.restore();
     },
 

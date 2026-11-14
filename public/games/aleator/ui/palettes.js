@@ -99,5 +99,22 @@
       lose: { base: '#6A2A22', special: '#24130F', contrast: 3 },
     },
   });
+  // Geheime Palette: Infernal (Glut, Asche, Schwefelgelb). Secret "The Devil's Number" (genau 666 Punkte).
+  PALETTES.push({
+    id: 'infernal', name: 'Infernal', secret: true,
+    colours: Object.assign({}, PALETTES[0].colours, {
+      RED: '#E0442E', BLUE: '#C2563A', CHIPS: '#C2563A', PLANET: '#D9822B', GREEN: '#8FA83A', ORANGE: '#F08A24', IMPORTANT: '#F08A24',
+      GOLD: '#F5C13A', MONEY: '#F5C860', PURPLE: '#A8364E', TAROT: '#A8364E', BLACK: '#1C1210', L_BLACK: '#43261E', GREY: '#6A4A40',
+      PANEL: '#40221C', PANEL_DARK: '#2A1512', BLIND: '#6E2A1E', BOSS: '#B0301E', WON: '#43261E',
+      SIDEBAR: 'rgba(38,20,16,0.9)', OVERLAY_SOLID: 'rgba(40,21,17,0.97)', OVERLAY: 'rgba(40,21,17,0.94)',
+      ROUND_1: '#C2563A', ROUND_2: '#D9822B', ROUND_3: '#B0301E', SELL: '#D9822B', DEPOSIT: '#B5702A', GOLD_TEXT: '#9A5A1A',
+    }),
+    bg: {
+      menu: { c1: '#B0301E', c2: '#E07A24', c3: '#160C0A', contrast: 3.4, lighting: 0.4, spinAmount: 0.3 },
+      table: { base: '#4A2018', contrast: 1 }, shop: { base: '#4E2418', special: '#F08A24', contrast: 1.6 },
+      won: { base: '#43261E', contrast: 1 }, gold: { base: '#C2702A', special: '#B0301E', contrast: 2.5 },
+      lose: { base: '#701E14', special: '#200C08', contrast: 3 },
+    },
+  });
   global.WG_PALETTES = PALETTES;
 })(typeof window !== 'undefined' ? window : globalThis);

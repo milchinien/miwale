@@ -47,7 +47,7 @@
     UI.box(ctx, x + 10, 134, 280, 62, { colour: P.PANEL, radius: 10, emboss: 3 });
     UI.text(ctx, 'Score', x + 52, 165, { size: 22, colour: P.TEXT_LABEL });
     UI.box(ctx, x + 96, 141, 186, 48, { colour: P.PANEL_DARK, radius: 8, shadow: false });
-    K.juiced(ctx, J.score, x + 189, 165, t, () => UI.text(ctx, UI.num(S.dispScore), x + 189, 165, { size: fit(ctx, UI.num(S.dispScore), 176, 36, 20) }));
+    K.juiced(ctx, J.score, x + 189, 165, t, () => UI.text(ctx, K.scoreText(), x + 189, 165, { size: fit(ctx, K.scoreText(), 176, 36, 20) }));
     // Pips x Power (während der Abschluss-Animation fliegt Power in Pips)
     UI.box(ctx, x + 10, 206, 280, 88, { colour: P.PANEL, radius: 10, emboss: 3 });
     const fz = K.fuse();
@@ -119,9 +119,10 @@
     if (S.handName) { line = S.handName; col = P.GOLD; size = 36; }
     else if (pv && K.isBust(pv)) { line = 'BUST!  ' + pv.skulls + ' Skulls'; col = P.RED; }
     else if (pv) { const tired = K.fatigueFor(pv.name); line = pv.name + '   ' + R.handValues(pv.name, S.levels).join(' x ') + (pv.skulls ? '   ' + pv.skulls + ' Skull' + (pv.skulls > 1 ? 's' : '') : '') + (tired ? '   Tired -' + tired + '%' : ''); }
+    else if (K.fogged && K.fogged() && S.phase === 'select') line = 'The Fog hides your hand';
     if (line) UI.text(ctx, line, G.cx, 210, { size: fit(ctx, line, W, size, 20), colour: col });
     if (K.isBossBlind() && S.boss) {
-      const b = S.boss.name + ': ' + S.boss.desc;
+      const b = S.boss.name + ': ' + K.bossDesc();
       UI.text(ctx, b, G.cx, 244, { size: fit(ctx, b, W, 21, 14), colour: lighten(S.boss.colour, 0.45) });
     }
     // Statuszeile: Luck, Augenzahl-Stufen, Anker
@@ -194,7 +195,7 @@
     if (K.drawJob && !(K.tutorial && K.tutorial())) K.drawJob(ctx, { x: G.c0 + 12, y: 486, w: W, h: 40 });
     else { const up = 'Up next: ' + lab.name + '  ·  Target ' + UI.num(S.target); UI.text(ctx, up, G.cx, 506, { size: fit(ctx, up, W, 24), colour: P.TEXT_SOFT }); }
     if (S.boss && (S.ante <= K.ANTES || S.endless)) {
-      const b = 'Boss of this stage: ' + S.boss.name + ' - ' + S.boss.desc;
+      const b = 'Boss of this stage: ' + S.boss.name + ' (' + K.bossTag() + ') - ' + S.boss.desc;
       UI.text(ctx, b, G.cx, 540, { size: fit(ctx, b, W, 20, 14), colour: lighten(S.boss.colour, 0.45) });
     }
     // Rechte Spalte: Weiter, Neu würfeln, Tresor
@@ -214,8 +215,8 @@
   }
 
   function drawMenu(back, front, t) {
-    UI.dynaText(front, 'ALEATOR', 640, 150, { size: 112, time: t, wave: 4, rotWave: 0.05, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
-    UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 232, { size: 34, time: t, wave: 1.5, colour: '#FFFFFF' });
+    UI.logo3D(front, 'Aleator', 640, 122, { size: 204, font: UI.LOGO_FONT, outline: '#16110C', outlineWidth: 10, spacing: -4, depth: 13, time: t, colour: [P.RED, P.BLUE, P.MONEY, P.GREEN] });
+    UI.dynaText(front, K.menuSub ? K.menuSub() : 'a dice roguelite', 640, 248, { size: 34, time: t, wave: 1.5, colour: '#FFFFFF' });
     UI.text(front, 'Hold dice, reroll, play your hand. 8 stages. Good luck.', 640, 686, { size: 24, colour: P.TEXT_SOFT });
   }
 
@@ -241,8 +242,8 @@
     chaos: { y: 172, size: 19, h: 30 },
     homeGap: 270,
     menuDie: (i) => { const t = i / 4 - 0.5; return { x: 640 + t * 620, y: 392 + t * t * 70, r: t * 0.25, s: 3.6 }; },
-    logo: { x: 250, y: 90, w: 780, h: 120 },
-    flames: { chips: { x: 30, y: 216, w: 112, h: 90 }, mult: { x: 178, y: 216, w: 112, h: 90 } },
+    logo: { x: 340, y: 60, w: 600, h: 150 },
+    flames: { chips: { x: 30, y: 216, w: 112, h: 90, py: 250 }, mult: { x: 178, y: 216, w: 112, h: 90, py: 250 } },   // py = Drehpunkt-y wie in juiced()
     spots: {},
     tutAreas: {},
     tut: {},

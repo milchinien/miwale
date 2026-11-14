@@ -9,14 +9,14 @@
   const OWNED_SHARE = 0.6;   // so oft kommt eine Begegnung, die zu den eigenen Tags passt
 
   const LIST = [
-    { id: 'mystery', name: 'Mystery Cup', who: 'A forgotten cup', colour: '#9A4E2C', tags: ['all'], intro: 'Someone left a dice cup on the table. It rattles a little.', desc: 'Roll 5 dice from an abandoned cup. A Pair pays, better hands give relics, three Skulls curse you.' },
-    { id: 'fortune', name: 'The Fortune Teller', who: 'Madame Zara', colour: '#6B4F92', tags: ['all', 'pattern'], intro: 'I see your Showdown in the smoke. Shall I change your fate?', desc: 'Reveals the Showdown of this stage. Swap it for $3, or take a Prophecy that boosts one hand type three times.' },
-    { id: 'backroom', name: 'The Back Room', who: 'Slick Eddie', colour: '#8F2D3B', tags: ['risk', 'bank'], intro: 'Quick game, friend? Best of three. No hard feelings.', desc: 'A dice duel for $2, $5 or $10. With a Risk relic you win every tie.' },
-    { id: 'pawnshop', name: 'The Pawnshop', who: 'Old Mr. Baum', colour: '#B58A2A', tags: ['all'], intro: 'Everything has a price. Even that thing you are holding.', desc: 'Sell a relic at full price, or pay a fee to trade it for a random relic of the same tag, one rarity higher.' },
-    { id: 'lost', name: 'Lost & Found', who: 'A dusty box', colour: '#7A5A3A', tags: ['bag'], intro: 'A box marked "unclaimed". Nobody is watching.', desc: 'Take one of three dice for free, or hand in up to two of yours for $2 each.' },
-    { id: 'well', name: 'The Wishing Well', who: 'An old well', colour: '#3A6F8F', tags: ['number', 'luck'], intro: 'The water is very deep and very patient.', desc: 'Sacrifice a die to raise its most common number by one level, or throw in $3 for +5 Luck this stage.' },
-    { id: 'spring', name: 'Cooling Spring', who: 'A cold spring', colour: '#2F8F9D', tags: ['all'], intro: 'The air is cool here. Your hands stop shaking.', desc: 'Next round the Heat falls to the normal target, but you have 1 reroll less per hand in that round.' },
-    { id: 'chalk', name: 'Chalk Lines', who: 'A chalk board', colour: '#56A887', tags: ['formation'], intro: 'Someone drew the perfect formation. You could copy it.', desc: 'This stage: +1 Shift per hand, or Links give +8 Pips instead of +4.' },
+    { id: 'mystery', name: 'Mystery Cup', who: 'A forgotten cup', colour: '#9A4E2C', tags: ['all'], intro: 'Someone left a dice cup on the table. It rattles a little.', desc: 'Shake an abandoned cup, then nudge one die. A Pair pays, better hands give relics, three Skulls curse you.' },
+    { id: 'fortune', name: 'The Fortune Teller', who: 'Madame Zara', colour: '#6B4F92', tags: ['all', 'pattern'], intro: 'I see your Showdown in the smoke. Shall I change your fate?', desc: 'Reveals the Showdown of this stage. Swap it for $3, or turn over face-down cards and keep one Prophecy.' },
+    { id: 'backroom', name: 'The Back Room', who: 'Slick Eddie', colour: '#8F2D3B', tags: ['risk', 'bank'], intro: 'Quick game, friend? Best of three. No hard feelings.', desc: 'A dice duel, round by round, with one die up your sleeve. Win, and Eddie offers double or nothing.' },
+    { id: 'pawnshop', name: 'The Pawnshop', who: 'Old Mr. Baum', colour: '#B58A2A', tags: ['all'], intro: 'Everything has a price. Even that thing you are holding.', desc: 'Haggle over the price of a relic without annoying Mr. Baum, or see what he offers in trade, one rarity higher.' },
+    { id: 'lost', name: 'Lost & Found', who: 'A dusty box', colour: '#7A5A3A', tags: ['bag'], intro: 'A box marked "unclaimed". Nobody is watching.', desc: 'Take one of three dice for free, dig deeper for a new selection, or hand in up to two of yours for $2 each.' },
+    { id: 'well', name: 'The Wishing Well', who: 'An old well', colour: '#3A6F8F', tags: ['number', 'luck'], intro: 'The water is very deep and very patient.', desc: 'Sacrifice a die to raise its most common number, or drop a coin at the right moment for up to +9 Luck this stage.' },
+    { id: 'spring', name: 'Cooling Spring', who: 'A cold spring', colour: '#2F8F9D', tags: ['all'], intro: 'The air is cool here. Your hands stop shaking.', desc: 'One gulp halves the Heat of the next round for free. A second clears it, at the cost of 1 reroll per hand.' },
+    { id: 'chalk', name: 'Chalk Lines', who: 'A chalk board', colour: '#56A887', tags: ['formation'], intro: 'Someone drew the perfect formation. You could copy it.', desc: 'This stage: +1 Shift per hand, or stronger Links. Trace the line perfectly in time and it lasts one more stage.' },
   ];
   const BY_ID = Object.fromEntries(LIST.map((e) => [e.id, e]));
   const COUNT = LIST.length;
@@ -86,7 +86,40 @@
     return Object.entries(groups).map(([type, list]) => ({ type, n: list.length, die: list.slice().sort((a, b) => (a.chips || 0) - (b.chips || 0))[0] }));
   }
 
-  const api = { LIST, BY_ID, COUNT, FROM_STAGE, MIN_PER_RUN, LAST_STAGE, CHANCE, shouldOffer, pick, mysteryRoll, mysteryOutcome, duel, prophecyPower, NEXT_RARITY, TRADE_FEE, topFace, groupBag };
+  // ── Mini-Spiele: reine Regeln, die Darstellung steht in game.js ─────────
+  // Mystery Cup: ein einzelner Würfel nachwerfen
+  const mysteryDie = (rnd = Math.random) => (rnd() < 1 / 8 ? 0 : 1 + Math.floor(rnd() * 6));
+  const MYSTERY_TEXT = { cursed: 'A Cursed Die', legendary: 'A Legendary relic', upgrade: 'A free upgrade', relic: 'A relic', money: '$3', none: 'Nothing' };
+  // Back Room: jede Runde einzeln, damit man dazwischen entscheiden kann
+  const d6 = (rnd = Math.random) => 1 + Math.floor(rnd() * 6);
+  const duelJudge = (me, them, winTies) => (me > them || (me === them && winTies) ? 'win' : me === them ? 'tie' : 'lose');
+  const SLEEVE_CAUGHT = 1 / 6;
+  // Pawnshop: Mr. Baum beginnt knapp unter dem Listenpreis. Jeder Versuch ist riskanter; ein Fehlschlag verdirbt die Laune.
+  const HAGGLE_ODDS = [0.8, 0.55, 0.3];
+  const startOffer = (cost) => Math.max(1, cost - 1);
+  const haggleOk = (n, rnd = Math.random) => n < HAGGLE_ODDS.length && rnd() < HAGGLE_ODDS[n];
+  // Wishing Well: pos ist -1..1, 0 ist genau über dem Schacht
+  function wellGrade(pos) {
+    const d = Math.abs(pos);
+    return d < 0.14 ? { grade: 'perfect', luck: 9 } : d < 0.45 ? { grade: 'good', luck: 5 } : { grade: 'poor', luck: 2 };
+  }
+  // Fortune Teller: drei verdeckte Karten, eine davon vergoldet
+  function dealCards(hands, ante, rnd = Math.random) {
+    const gilded = Math.floor(rnd() * hands.length);
+    return hands.map((hand, i) => ({ hand, power: prophecyPower(ante) + (i === gilded ? 3 : 0), gilded: i === gilded, up: false }));
+  }
+  const flipCost = (flipped) => flipped;   // erste Karte gratis, dann $1, dann $2
+  const DIG_COST = [1, 2];
+  // Chalk Lines: Punkte auf einem groben Raster (0..1), damit sie sich nicht überlappen
+  const CHALK_TIME = 7;
+  function chalkPoints(n = 5, rnd = Math.random) {
+    const cells = [];
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 4; x++) cells.push([x, y]);
+    for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+    return cells.slice(0, n).map(([x, y]) => ({ x: (x + 0.25 + rnd() * 0.5) / 4, y: (y + 0.25 + rnd() * 0.5) / 3 }));
+  }
+
+  const api = { mysteryDie, MYSTERY_TEXT, d6, duelJudge, SLEEVE_CAUGHT, HAGGLE_ODDS, startOffer, haggleOk, wellGrade, dealCards, flipCost, DIG_COST, CHALK_TIME, chalkPoints, LIST, BY_ID, COUNT, FROM_STAGE, MIN_PER_RUN, LAST_STAGE, CHANCE, shouldOffer, pick, mysteryRoll, mysteryOutcome, duel, prophecyPower, NEXT_RARITY, TRADE_FEE, topFace, groupBag };
   global.WGEncounters = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

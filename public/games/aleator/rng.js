@@ -4,7 +4,7 @@
 // Reine Optik (Animationen, Partikel, Sprüche) nutzt weiter Math.random und berührt die Ströme nicht.
 ((global) => {
   'use strict';
-  const STREAMS = ['dice', 'bag', 'shop', 'boss', 'reward', 'job', 'chaos', 'encounter'];
+  const STREAMS = ['dice', 'bag', 'shop', 'boss', 'reward', 'job', 'chaos', 'encounter', 'phone'];
 
   // FNV-1a: macht aus einem Text eine 32-Bit-Zahl
   function hash(text) {

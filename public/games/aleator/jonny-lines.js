@@ -185,6 +185,19 @@
       chaos: [['paranoid', '{g|The Chaos}. Even held dice might roll. {s|Trust no one.}'], ['excited', 'Chaos round! {w|Anything} can happen!']],
       echo: [['smug', '{g|The Echo}. Repeat a hand type and it gets {g|half} Power. {q|Half. Half. Half.}'], ['neutral', 'Echo round. Mix it up or {d|lose half}.']],
       wall: [['annoyed', "{g|The Wall}. It's a wall. It doesn't even {s|move}."], ['nervous', "That target is {s|huge}. I'd bring a ladder."]],
+      fog: [['smug', '{g|The Fog}. No hand preview. {q|Count your own pips. Like the old days.}'], ['neutral', 'Foggy round. {g|Trust your eyes.} Not your hopes.']],
+      taxman: [['annoyed', '{g|The Taxman}. Every extra reroll costs money. {q|I hate him. He audits me.}'], ['smug', 'Tax round. Roll {g|less}, keep {g|more}.']],
+      judge: [['excited', '{g|The Judge}! He calls a hand. Play it for {w|double} Power.'], ['neutral', 'Order in the court. {q|Play what he says. Or don\'t. Your funeral.}']],
+      ghost: [['paranoid', '{g|The Ghost}. One die is {s|see-through}. It counts, but it gives {d|nothing}.'], ['nervous', "Ghost round. {q|I don't do ghosts. I'll be over here.}"]],
+      gambler: [['excited', '{g|The Gambler}. A coin flip on every hand! {w|Heads} is good. {q|Tails is... less good.}'], ['smug', 'Lower target, but a coin decides. {q|Feeling lucky?}']],
+      undertow: [['nervous', '{g|The Undertow}. The target grows {s|every hand}. Be quick.'], ['neutral', 'Win early and the {g|unused hands} pay extra.']],
+      hourglass: [['neutral', '{g|The Hourglass}. One hand less, more rerolls. {q|Tick tock.}'], ['smug', 'Fewer hands. {g|Make them big.}']],
+      thief: [['annoyed', '{g|The Thief}. He steals a relic {s|every hand}. {q|Keep an eye on your pockets.}'], ['smug', 'Thief round. Good thing you have {g|more than one} relic. {q|You do, right?}']],
+    },
+    // Elite-Bosse: 1 = Elite, 2 = Elite+ (#boss# = Name)
+    elite: {
+      1: [['shocked', "An {g|Elite}! #boss# brought friends. {q|Or steroids.}"], ['excited', '{w|Elite boss!} Harder, but the bounty is {g|bigger}.'], ['nervous', '#boss#. The {g|Elite} kind. {q|I would run. Then come back for the money.}']],
+      2: [['furious', '{b|ELITE+!} #boss#! Bigger target, nastier rules. {q|Bigger bounty, though.}'], ['shocked', "#boss#?! That's {s|Elite+}! {q|I'm getting popcorn.}"]],
     },
     bigHand: [
       [['happy', 'Nice hand! {q|Not as nice as mine would\'ve been.}'], ['neutral', 'Solid. {g|Solid.} I like solid.'], ['smug', 'Okay, okay. {g|Decent.}']],

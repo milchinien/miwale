@@ -1,7 +1,32 @@
-// Aleator – Pixel-Porträts der Begegnungen (32×32). window.WGEncounterArt.portrait(id) liefert ein Canvas.
+// Aleator – gecachte Encounter-Porträts (128×128, prozeduraler Fallback 32×32).
 ((global) => {
   'use strict';
   const cache = {};
+  // Preload isolated encounter illustrations; keep the procedural portraits as
+  // a synchronous fallback while loading or when an asset is unavailable.
+  const illustrations = {};
+  // Embedded data: URIs (ui/art-data.js) first: a PNG loaded from file:// taints the canvas and
+  // the WebGL upload then throws, which froze the Codex and the encounter screens.
+  const embedded = (global.WGArtData && global.WGArtData.encounters) || {};
+  const assetBase = new URL('../assets/encounters/runtime/', document.currentScript ? document.currentScript.src : new URL('ui/encounter-art.js', document.baseURI));
+  ['mystery', 'fortune', 'backroom', 'pawnshop', 'lost', 'well', 'spring', 'chalk'].forEach((id) => {
+    const img = new Image();
+    img.onload = () => {
+      img.onload = null;
+      // Never resample the ~1250px source in the render loop. In the Codex
+      // nine portraits are drawn per frame, including the detail panel.
+      const c = document.createElement('canvas'); c.width = c.height = 128;
+      const g = c.getContext('2d');
+      g.imageSmoothingEnabled = false;
+      const scale = Math.min(c.width / img.naturalWidth, c.height / img.naturalHeight);
+      const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+      g.drawImage(img, Math.floor((c.width - w) / 2), Math.floor((c.height - h) / 2), w, h);
+      // Tainted (cross-origin) pictures must never reach the game canvas: keep the pixel fallback.
+      try { g.getImageData(0, 0, 1, 1); } catch (e) { return; }
+      illustrations[id] = c;
+    };
+    img.src = embedded[id + '-v2.png'] || new URL(id + '-v2.png', assetBase).href;
+  });
   const FACE = '#E8B48C', DARK = '#1E1A18', WHITE = '#F4EEDF';
   function make(id) {
     const c = document.createElement('canvas'); c.width = c.height = 32;
@@ -52,5 +77,5 @@
     }
     return c;
   }
-  global.WGEncounterArt = { portrait: (id) => cache[id] || (cache[id] = make(id)) };
+  global.WGEncounterArt = { portrait: (id) => illustrations[id] || cache[id] || (cache[id] = make(id)) };
 })(typeof window !== 'undefined' ? window : globalThis);

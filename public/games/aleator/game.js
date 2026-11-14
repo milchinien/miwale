@@ -13,8 +13,10 @@
   const canvas = document.getElementById('game');
   // Handy (index.html setzt WG_MOBILE): eigenes Layout, Touch-Bedienung, begrenzte Pixeldichte und schnellerer Hintergrund
   const MOBILE = !!window.WG_MOBILE;
-  const eng = new FX.Engine(canvas, MOBILE ? { width: 1280, height: 720, background: 'menu', maxDpr: 2, maxPixels: 1.4e6, bgLowRes: true }
-    : { width: 1280, height: 720, background: 'menu' });
+  // CRT lesbar halten: nur wirklich Helles leuchtet (Text auf dunklen Panels nicht), Farbsaum nur zum Bildrand hin
+  const CRT_OPTS = { bloomCut: 0.6, bloom: 0.5, chroma: 0.3, chromaFlat: 0 };
+  const eng = new FX.Engine(canvas, MOBILE ? { width: 1280, height: 720, background: 'menu', maxDpr: 2, maxPixels: 1.4e6, bgLowRes: true, crt: CRT_OPTS }
+    : { width: 1280, height: 720, background: 'menu', crt: CRT_OPTS });
   window.eng = eng;
 
   // ── Konstanten ──────────────────────────────────────────────────────────
@@ -37,11 +39,13 @@
   function jingle(name, seconds) { sfx(name); Music.duck(seconds); }
   // Achievements (achievements.js): schalten Relikte, Orakel, Upgrades und Würfel pro Speicherplatz frei
   const ACH = window.WGAchievements || null;
+  const Tapes = window.WGTapes || null;   // Anrufbeantworter-Bänder von Jonnys Vater (voicemails.js)
   const open = (kind, id) => !ACH || TUT.active || ACH.isOpen(meta(), kind, id);
   // Musik einer Runde: Stage 1–3 ruhig, ab Stage 4 mehr Spannung, Showdowns mit Boss-Musik, Stage 8 mit dem großen Boss-Track
   const roundMood = () => (isBossBlind() ? (S.ante >= ANTES ? 'final' : 'boss') : S.ante >= 4 ? 'mid' : 'early');
   const Saves = window.WGSaves;
-  const Enc = window.WGEncounters, Gif = window.WGGif, EncArt = window.WGEncounterArt;
+  const Phone = window.WGPhone;   // Telefon nach jedem Showdown (phone.js)
+  const Enc = window.WGEncounters, Gif = window.WGGif, EncArt = window.WGEncounterArt, Scenes = window.WGEncounterScenes;
   const Rng = window.WGRng, Replay = window.WGReplay, Cos = window.WGCosmetics, Col = window.WGColour;
   // Geseedeter Zufall des Runs (rng.js). Außerhalb eines Runs (Menü) normaler Zufall. Optik nutzt immer Math.random.
   const rng = (name) => (S.rng ? Rng.stream(S.rng, name) : Math.random);
@@ -88,15 +92,37 @@
   // Becher für die Cup Draw: alle außer Classic und Jonny's Cup (der wird per Achievement dauerhaft frei)
   const drawableCups = () => CUPS.filter((c) => c.id !== 'classic' && !c.jonny);
   if (ACH) ACH.setCupPool(drawableCups().map((c) => c.id));
-  // Endboss in Stage 8: Jonny. Er schummelt und nimmt jede Hand die Regel eines anderen Bosses (S.jonnyRule).
-  const JONNY_BOSS = { id: 'jonny', name: 'Jonny', colour: '#A8742A', factor: R.BALANCE.JONNY_FACTOR, final: true,
+  // Endboss in Stage 8: Jonny. Er schummelt und nimmt jede Hand die Regel eines anderen Bosses (S.jonnyRule). Mehr Hände, viel höheres Ziel.
+  const JONNY_BOSS = { id: 'jonny', name: 'Jonny', colour: '#A8742A', factor: R.BALANCE.JONNY_FACTOR, hands: R.BALANCE.JONNY_HANDS, final: true,
     get desc() {
       const r = jonnyRuleBoss();
       return r ? 'This hand: ' + r.name + ' - ' + r.desc : 'The final boss. He cheats: every hand he picks a new rule from the other bosses';
     } };
-  const jonnyRuleBoss = () => (S.boss === JONNY_BOSS && S.jonnyRule && ['rolling', 'select', 'scoring', 'won', 'lost'].includes(S.phase) ? R.BOSSES.find((b) => b.id === S.jonnyRule) || null : null);
-  // Wirksamer Boss: bei Jonny die Regel der aktuellen Hand
-  const curBoss = () => (S.boss === JONNY_BOSS ? R.BOSSES.find((b) => b.id === S.jonnyRule) || null : S.boss);
+  // Zweiter Endboss im Endless (Stage FATHER_STAGE): Jonnys Vater, der Anrufer vom Telefon. Zwei Phasen (S.bossPhase):
+  // Phase 1 bis FATHER_SPLIT des Ziels mit einer festen Regel, dann wird er ernst: neue Regel in Elite-Stärke,
+  // der Überschuss verfällt und verankerte Würfel gehen zurück in den Beutel. Beide Phasen teilen sich die Hände.
+  const FATHER_BOSS = { id: 'father', name: "Jonny's Father", colour: '#7A2E3E', factor: R.BALANCE.FATHER_FACTOR, hands: R.BALANCE.FATHER_HANDS, final: true, father: true,
+    get desc() {
+      const r = jonnyRuleBoss();
+      if (!r) return 'Two phases. Half the target under one rule, then he gets serious: a new rule at Elite strength';
+      return (S.bossPhase === 2 ? 'Phase 2: ' : 'Phase 1: ') + r.name + ' - ' + r.desc;
+    } };
+  const FINAL_BOSSES = { jonny: JONNY_BOSS, father: FATHER_BOSS };
+  const bossById = (id, lv) => FINAL_BOSSES[id] || R.bossOf(id, lv || 0);
+  const isFinal = (b = S.boss) => !!(b && b.final);
+  const fatherFight = () => S.boss === FATHER_BOSS && isBossBlind();
+  const ruleLv = () => (S.boss === FATHER_BOSS && S.bossPhase === 2 ? 1 : 0);
+  const jonnyRuleBoss = () => (isFinal() && S.jonnyRule && ['rolling', 'select', 'scoring', 'won', 'lost'].includes(S.phase) ? R.bossOf(S.jonnyRule, ruleLv()) : null);
+  // Wirksamer Boss: bei den Endbossen die geliehene Regel (Jonny: normale Ausprägung, sein Vater in Phase 2: Elite)
+  let jonnyRuleObj = null;
+  const curBoss = () => {
+    if (!isFinal()) return S.boss;
+    if (!S.jonnyRule) return null;
+    if (!jonnyRuleObj || jonnyRuleObj.id !== S.jonnyRule || jonnyRuleObj.lv !== ruleLv()) jonnyRuleObj = R.bossOf(S.jonnyRule, ruleLv());
+    return jonnyRuleObj;
+  };
+  // Zusätzliche Hände der Endbosse (nicht in den frühen Prüfungen des Exam-Bechers)
+  const finalHands = () => (isBossBlind() && isFinal() && !(S.boss === JONNY_BOSS && cup().exam && S.ante < ANTES) ? S.boss.hands || 0 : 0);
   // Chaos Cup: pro Stage eine zufällige Zusatzregel
   const CHAOS = [
     { id: 'rush', name: 'Rush', desc: '-1 hand per round, +2 rerolls per hand', hands: -1, rerolls: 2 },
@@ -114,10 +140,14 @@
   const FACE_STYLE = Cos.FACE_STYLE;
   const STAR_COLOURS = [P.RED, P.ORANGE, P.GOLD, P.GREEN, P.BLUE, P.PURPLE];
   const SKULL = ['..XXXXXXX..', '.XXXXXXXXX.', 'XXXXXXXXXXX', 'XX..XXX..XX', 'XX..XXX..XX', 'XXXXX.XXXXX', '.XXXX.XXXX.', '..XXXXXXX..', '..X.X.X.X..', '..XXXXXXX..'];
+  // Kalender-Eggs (Datum beim Start): Halloween orange Augen, Freitag der 13. grinsende Schädel, Dezember Schnee im Menü, 10.11. Aleator Day
+  const SEASON = (() => { const d = new Date(), m = d.getMonth(), day = d.getDate();
+    return { halloween: m === 9 && day === 31, fri13: d.getDay() === 5 && day === 13, december: m === 11, aleatorDay: m === 10 && day === 10 }; })();
+  const SKULL_GRIN = ['..XXXXXXX..', '.XXXXXXXXX.', 'XXXXXXXXXXX', 'XX..XXX..XX', 'XX..XXX..XX', 'XXXXX.XXXXX', 'X.XXXXXXX.X', 'XX.X.X.X.XX', '.XXXXXXXXX.', '..XXXXXXX..'];
   const MINI_PIPS = { 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]] };
   const blankDie = (opts) => Art.die(1, Object.assign({}, opts, { onePip: opts.body }));
   function drawSkull(ctx, colourAt) {
-    SKULL.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'X') { ctx.fillStyle = colourAt(x, y); ctx.fillRect(10 + x, 8 + y, 1, 1); } }));
+    (SEASON.fri13 ? SKULL_GRIN : SKULL).forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'X') { ctx.fillStyle = colourAt(x, y); ctx.fillRect(10 + x, 8 + y, 1, 1); } }));
   }
   // Barrierefreiheit: kleines Symbol oben in der Mitte (dort liegt nie ein Auge), damit Sonderseiten nicht nur an der Farbe erkennbar sind
   const HINT_GLYPH = { gold: ['.XXX.', 'X...X', 'X.X.X', 'X...X', '.XXX.'], mult: ['X...X', '.X.X.', '..X..', '.X.X.', 'X...X'], bonus: ['..X..', '..X..', 'XXXXX', '..X..', '..X..'] };
@@ -140,6 +170,7 @@
     const key = type + '|' + f.v + '|' + f.kind + '|' + (shapeHintsOn ? 1 : 0);
     if (faceCache[key]) return faceCache[key];
     const opts = Object.assign({ edge: R.DIE_TYPES[type].edge || undefined }, FACE_STYLE[f.kind]);
+    if (SEASON.halloween && f.kind === 'normal') Object.assign(opts, { pip: '#B84A12', onePip: '#B84A12' });   // Kürbis-Augen
     let c, mask = null;
     if (f.kind === 'wild') {
       // Wild: leere Fläche mit buntem Pixel-Stern
@@ -239,16 +270,40 @@
     job: null,   // Jonnys Auftrag für die laufende (bzw. im Shop: die nächste) Runde
     jonny: null, // Jonny im Run: erledigte Aufträge, bester Wurf, sein Anteil, Hilfe im Jonny's Cup, Shop-Besuche
     jonnyRule: null,   // Endboss Jonny: Regel der aktuellen Hand (Boss-ID)
+    phone: null,       // Telefon: genommene Vorteile { owned: {id: Anzahl}, calls, ignored }
+    shopFree: 0,       // kostenlose Shop-Rerolls in diesem Shop (Telefon: Fresh Stock)
   };
   const freshJonny = () => ({ jobs: 0, failed: 0, best: 0, cut: 0, helps: 0, help: false, tags: {}, rerolls: 0, visit: 0, last: null });
   S.jonny = freshJonny();
-  const freshAch = () => ({ last: null, streak: 0, busts: 0, noBuy: 0 });
+  // hc: Handarten im Run, brokeAnte: Stage, in der man zuletzt pleite war, bustT: Zeit des letzten Busts, bt: Boss-Bilanz der Runde
+  const freshBT = () => ({ taxPaid: 0, judgeHits: 0, coins: [], ghostScoring: false, maxFrozen: 0 });
+  const freshAch = () => ({ last: null, streak: 0, busts: 0, noBuy: 0, hc: {}, brokeAnte: 0, bustT: 0, open: '', bt: freshBT() });
+  const BT = () => S.ach.bt || (S.ach.bt = freshBT());
   S.ach = freshAch();
   // Statistik eines Runs (Pause-Ansicht, Auswertung am Ende, Laufhistorie)
   const freshStats = () => ({ heat: 0, hands: 0, rounds: 0, bosses: 0, rerolls: 0, lucky: 0, busts: 0, links: 0, chain: 0, palindromes: 0, shifts: 0,
     earned: 0, spent: 0, bought: 0, sold: 0, used: 0, best: 0, bestName: '', total: 0, maxMoney: 0, fives: 0, said: {} });
   S.stats = freshStats();
-  const cup = () => CUP_BY_ID[S.cup] || CUPS[0];
+  // Challenge-Runs (S.chal) nutzen einen eigenen Becher mit Zusatzregeln (challenges.js), sonst der gewählte Becher
+  const Chal = window.WGChallenges;
+  let chalCupCache = null;
+  function chalCup(ch) {
+    const key = JSON.stringify(ch);
+    if (chalCupCache && chalCupCache.key === key) return chalCupCache.cup;
+    let c;
+    if (ch.daily) {
+      const t = R.TAGS[ch.tag], rel = R.RELIC_BY_ID[ch.relic];
+      c = Object.assign({}, CUP_DEFAULTS, { id: 'daily', name: 'Daily Challenge', colour: t.colour, short: 'Build of the Day: ' + t.name, daily: true,
+        relics: [ch.relic], desc: 'Same dice, shops and bosses for everyone today. Build of the Day: ' + t.name + '. You start with ' + rel.name + '.' });
+    } else {
+      const d = Chal.BY_ID[ch.id];
+      c = Object.assign({}, CUP_DEFAULTS, { id: 'chal_' + d.id, name: d.name, colour: d.colour, short: d.short, desc: d.desc, challenge: d.id }, d.cup);
+    }
+    chalCupCache = { key, cup: c };
+    return c;
+  }
+  const cup = () => (S.chal ? chalCup(S.chal) : CUP_BY_ID[S.cup] || CUPS[0]);
+  const rushOn = () => !!cup().bossRush && !TUT.active;
   const chaosRule = () => (cup().chaos && S.chaos ? CHAOS_BY_ID[S.chaos] : null);
   const chaosVal = (k) => { const c = chaosRule(); return (c && c[k]) || 0; };
   const relicMax = () => cup().relicSlots || R.MAX_RELICS;
@@ -270,7 +325,7 @@
     use: btn(0, 0, 80, 30, 'Use', P.GREEN, { size: 18 }),
     sell: btn(0, 0, 90, 30, 'Sell', '#D99A2B', { size: 18 }),
     act: btn(0, 0, 110, 30, '', P.PURPLE, { size: 18 }),
-    settings: btn(1172, 565, 84, 26, 'Settings', P.L_BLACK, { size: 15 }),
+    settings: btn(1164, 570, 84, 26, 'Settings', P.L_BLACK, { size: 15 }),
     close: btn(560, 552, 160, 50, 'Close', P.RED, { size: 24 }),
     quit: btn(650, 552, 180, 50, 'Save & Quit', P.ORANGE, { size: 22 }),
     home: btn(535, 420, 160, 54, 'Main Menu', P.L_BLACK, { size: 22 }),
@@ -280,7 +335,7 @@
     tutYes: btn(492, 400, 250, 60, 'Yes, teach me!', P.GREEN, { size: 26 }),
     tutNo: btn(772, 400, 210, 60, 'No thanks', P.RED, { size: 24 }),
     tutDone: btn(1010, 628, 250, 64, 'Finish Tutorial', P.BLUE, { size: 24 }),
-    tutSlot: btn(1000, 492, 220, 54, 'Play Tutorial', P.PURPLE, { size: 22 }),
+    tutSlot: btn(1004, 482, 212, 50, 'Play Tutorial', P.PURPLE, { size: 22 }),
     tutX: btn(1176, 32, 58, 58, 'X', P.RED, { size: 34 }),
     cupPrev: btn(70, 262, 56, 60, '<', P.ORANGE, { size: 30 }),
     cupNext: btn(1154, 262, 56, 60, '>', P.ORANGE, { size: 30 }),
@@ -295,14 +350,16 @@
     gif: btn(0, 0, 150, 50, 'Save GIF', P.PURPLE, { size: MOBILE ? 26 : 22 }),
     pagePrev: btn(470, 622, 70, 52, '<', P.ORANGE, { size: 30 }),
     pageNext: btn(740, 622, 70, 52, '>', P.ORANGE, { size: 30 }),
+    challenges: btn(880, 616, 200, 62, 'Challenges', P.PURPLE, { size: 26 }),
+    chStart: btn(610, 622, 240, 56, 'Start', P.BLUE, { size: 26 }),
   };
   const BUY = [0, 1, 2, 3, 4].map((k) => btn(0, 412, 100, 38, 'Buy', P.BLUE, { size: 20, slot: k }));
   const CHOICE = [0, 1, 2].map((k) => btn(0, 300, 170, 60, '', P.BLUE, { size: 22, choice: k }));
   // Speicherplätze: drei Spalten links, rechts daneben das Tutorial (sobald es einmal angeboten wurde).
   // Ein Platz enthält nur einen Run: Hauptknopf (Weiter / Neuer Run) und, bei laufendem Run, Aufgeben.
   const SLOT_W = 300, SLOT_X = (k) => 40 + k * 312, TUT_CARD = { x: 980, y: 136, w: 260, h: 458 };
-  const SLOT_MAIN = [0, 1, 2].map((k) => btn(SLOT_X(k) + 20, 492, SLOT_W - 40, 54, 'New Run', P.BLUE, { size: 24, slotMain: k }));
-  const SLOT_DEL = [0, 1, 2].map((k) => btn(SLOT_X(k) + SLOT_W / 2 - 75, 552, 150, 30, 'Abandon Run', P.L_BLACK, { size: 16, slotDel: k }));
+  const SLOT_MAIN = [0, 1, 2].map((k) => btn(SLOT_X(k) + 24, 482, SLOT_W - 48, 50, 'New Run', P.BLUE, { size: 24, slotMain: k }));
+  const SLOT_DEL = [0, 1, 2].map((k) => btn(SLOT_X(k) + SLOT_W / 2 - 75, 544, 150, 28, 'Abandon Run', P.L_BLACK, { size: 16, slotDel: k }));
   // Einstellungen in Reitern. Zeilen: Regler (slider), Auswahl (< Wert >) oder Aktion (ein Knopf)
   const SET_TABS = [
     { id: 'audio', label: 'Audio', rows: [
@@ -316,6 +373,11 @@
     { id: 'style', label: 'Style', rows: [
       { key: 'palette', label: 'Colours' }, { key: 'background', label: 'Background' }, { key: 'material', label: 'Dice material' },
       { key: 'studio', label: 'Colour Studio', action: 'Open', soft: true }] },
+    { id: 'look', label: 'Look', rows: [
+      { key: 'lookShadow', label: 'Hard shadows' }, { key: 'lookBevel', label: 'Light edges' }, { key: 'lookCalm', label: 'Calm menu buttons' },
+      { key: 'lookFrame', label: 'Window frames' }, { key: 'lookTilt', label: 'Hand-placed tilt' }, { key: 'lookText', label: 'New texts' },
+      { key: 'lookOwn', label: 'Own colours & font' }, { key: 'lookIcons', label: 'Dark icon outlines' },
+      { key: 'lookButtons', label: 'Lively buttons' }] },
     { id: 'game', label: 'Gameplay', rows: [
       { key: 'speed', label: 'Game speed' }, { key: 'tipDelay', label: 'Tooltip delay' }, { key: 'textSpeed', label: 'Jonny text speed' },
       { key: 'jonnyTalk', label: 'Jonny chatter' }, { key: 'reset', label: 'Reset progress', action: 'Reset' }] },
@@ -326,40 +388,58 @@
       { key: 'accMore', label: 'More options', action: 'More >', soft: true }] },
     { id: 'access2', label: 'Access', rows: [
       { key: 'bgBright', label: 'Background light' }, { key: 'noFlash', label: 'Fewer flashes' }, { key: 'reduceMotion', label: 'Less motion' }, { key: 'skipScore', label: 'Skip scoring' },
-      { key: 'clickShift', label: 'Shift by clicking' }, { key: 'photosafe', label: 'Photosensitive safe', action: 'Apply', soft: true },
+      { key: 'clickShift', label: 'Shift by clicking' }, { key: 'photosafe', label: 'Photosensitive safe' },
       { key: 'accBack', label: 'Back to first page', action: '< Back', soft: true }] },
     { id: 'run', label: 'Run', rows: [] },   // Handy: Statistik des Runs (am PC steht sie links neben den Einstellungen)
   ];
   if (MOBILE) {
     // Handy: Tooltips per langem Druck (keine Verzögerung einstellbar), Vollbild nur, wenn der Browser es kann
     const fsOK = !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
-    SET_TABS.forEach((tb) => { tb.rows = tb.rows.filter((r) => r.key !== 'tipDelay' && (r.key !== 'fullscreen' || fsOK)); });
+    // Look-Reiter: das Handy fasst nur 8 Zeilen, 'Lively buttons' bleibt dort immer an
+    SET_TABS.forEach((tb) => { tb.rows = tb.rows.filter((r) => r.key !== 'tipDelay' && r.key !== 'lookButtons' && (r.key !== 'fullscreen' || fsOK)); });
   }
   let setTab = 0;
-  const SET_Y = (k) => 232 + k * 46;
-  const SLIDER = { x: 606, w: 218 };   // Regler-Bahn in den Lautstärke-Zeilen
+  // PC: großes Fenster, links die Zeilen (x 52–632), rechts die Erklärung (x 656–1228)
+  const SET_Y = (k) => 152 + k * 52;
+  const SET_ROW = { x: 52, w: 580, h: 44 }, SET_INFO = { x: 656, y: 122, w: 572, h: 470 };
+  const SLIDER = { x: 384, w: 160 };   // Regler-Bahn in den Lautstärke-Zeilen
   const sliderRect = (k) => (MOBILE ? mSlider(k).hit : { x: SLIDER.x - 12, y: SET_Y(k) - 20, w: SLIDER.w + 24, h: 40 });
   const SET_TAB_BTNS = SET_TABS.map((tb, i) => btn(364 + i * 93, 150, 87, 42, tb.label, P.L_BLACK, { size: 18, setTab: i }));
   const SET_BTNS = [];
   SET_TABS.forEach((tb, ti) => tb.rows.forEach((r, k) => {
     if (r.slider) return;
-    if (r.action) { SET_BTNS.push(btn(730, SET_Y(k) - 18, 160, 36, r.action, r.soft ? P.BLUE : P.RED, { size: 20, inTab: ti, setRow: k, action: true, soft: !!r.soft })); return; }
-    SET_BTNS.push(btn(626, SET_Y(k) - 18, 44, 36, '<', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: -1 }));
-    SET_BTNS.push(btn(870, SET_Y(k) - 18, 44, 36, '>', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: 1 }));
+    if (r.action) { SET_BTNS.push(btn(452, SET_Y(k) - 18, 160, 36, r.action, r.soft ? P.BLUE : P.RED, { size: 20, inTab: ti, setRow: k, action: true, soft: !!r.soft })); return; }
+    SET_BTNS.push(btn(384, SET_Y(k) - 18, 40, 36, '<', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: -1 }));
+    SET_BTNS.push(btn(572, SET_Y(k) - 18, 40, 36, '>', P.BLUE, { size: 24, inTab: ti, setRow: k, dir: 1 }));
   }));
   const setRows = () => SET_TABS[setTab].rows;
   const tabVisible = (i) => SET_TABS[i].id !== 'run' || (MOBILE && !inMenus() && !TUT.active);
   const visTabBtns = () => SET_TAB_BTNS.filter((b) => tabVisible(b.setTab) && SET_TABS[b.setTab].id !== 'access2');
   const setBtnsNow = () => SET_BTNS.filter((b) => b.inTab === setTab);
   B.shift = btn(0, 0, 140, 42, 'Shift', P.PURPLE, { size: 20 });   // Barrierefreiheit: Shift per Klick statt Ziehen
+  // Einstellungen: Anwenden (speichert), Warnung bei ungespeicherten Änderungen; Pause-Menü am PC (Esc im Spiel)
+  Object.assign(B, {
+    apply: btn(648, 622, 180, 50, 'Apply', P.GREEN, { size: 24 }),
+    askApply: btn(0, 0, 200, 50, 'Apply & close', P.GREEN, { size: 22 }),
+    askDiscard: btn(0, 0, 200, 50, 'Discard', P.RED, { size: 22 }),
+    askStay: btn(0, 0, 200, 50, 'Keep editing', P.L_BLACK, { size: 22 }),
+    resume: btn(490, 236, 300, 58, 'Back to Game', P.BLUE, { size: 26, tilt: -0.012 }),
+    pStats: btn(490, 310, 300, 54, 'Stats', P.L_BLACK, { size: 24, tilt: 0.015 }),
+    pSettings: btn(490, 380, 300, 54, 'Settings', P.L_BLACK, { size: 24, tilt: -0.01 }),
+    pBack: btn(550, 606, 180, 50, 'Back', P.RED, { size: 24 }),
+  });
+  // Look > Hand-placed tilt: Hauptmenü-Knöpfe stehen leicht schräg
+  Object.assign(B.codex, { tilt: -0.03 }); Object.assign(B.trophies, { tilt: 0.02 }); Object.assign(B.start, { tilt: -0.012 });
+  Object.assign(B.options, { tilt: 0.026 }); Object.assign(B.history, { tilt: -0.02 });
+  if (!MOBILE) B.settings.label = 'Menu';   // PC: öffnet das Pause-Menü (wie Esc)
   const ALL_BUTTONS = Object.values(B).concat(BUY, CHOICE, SET_TAB_BTNS, SET_BTNS, SLOT_MAIN, SLOT_DEL);
-  const MENU_PHASES = ['menu', 'slots', 'cups', 'trophies', 'codex', 'history'];
+  const MENU_PHASES = ['menu', 'slots', 'cups', 'trophies', 'codex', 'history', 'challenges'];
   const inMenus = () => MENU_PHASES.includes(S.phase);
   // Speichern und Beenden geht nur in ruhigen Momenten (Würfel liegen, Shop offen) – oder nach Ende des Runs
   const canQuit = () => (['select', 'shop'].includes(S.phase) && !S.choice && !eng.busy) || ['lost', 'runWon'].includes(S.phase);
   function activeButtons() {
     if (settingsOpen && studioOpen) return studioButtons();
-    if (settingsOpen) return [...visTabBtns(), ...setBtnsNow(), B.close, ...(inMenus() ? [] : [B.quit])];
+    if (settingsOpen) return settingsButtons();
     const tb = TUT.buttons();
     if (TUT.modal || tb.length) return tb;
     if (S.cupDraw) return [B.collect];
@@ -368,10 +448,12 @@
     if (S.phase === 'codex') return [...CODEX_TAB_BTNS, B.pagePrev, B.pageNext, B.back];
     if (S.phase === 'history') return histSel >= 0 ? [B.back, B.share, ...(gifOf(history()[histSel]) ? [B.gif] : [])] : [B.pagePrev, B.pageNext, B.back];
     if (S.phase === 'slots') return [...slotButtons(), ...(tutorialSeen() ? [B.tutSlot] : []), B.back];
-    if (S.phase === 'cups') return [B.cupPrev, B.cupNext, B.begin, B.back];
+    if (S.phase === 'cups') return [B.cupPrev, B.cupNext, B.begin, B.back, ...(Chal && profile ? [B.challenges] : [])];
+    if (S.phase === 'challenges') return chalButtons();
     if (S.phase === 'trophies') return [B.achPrev, B.achNext, B.back];
     if (S.phase === 'lost' || S.phase === 'runWon') return S.summary ? summaryButtons() : [B.settings];
     if (S.phase === 'encounter') return [B.settings, ...encButtons()];
+    if (S.phase === 'phone') return [B.settings, ...phoneButtons()];
     if (S.phase === 'won') return [B.settings];
     const sel = selButtons();
     if (S.phase === 'shop') return [B.settings, B.next, B.shopReroll, ...BUY.filter((b) => S.shop && S.shop[b.slot]), ...(upg('vault') ? [B.deposit, B.withdraw] : []), ...sel];
@@ -387,7 +469,7 @@
 
   // ── Hilfen ──────────────────────────────────────────────────────────────
   const blind = () => BLINDS[S.blindIdx];
-  const isBossBlind = () => S.blindIdx === 2;
+  const isBossBlind = () => S.blindIdx === 2 || rushOn();   // Boss Rush: jede Runde ist ein Boss
   const bossActive = (id) => isBossBlind() && !!curBoss() && curBoss().id === id && S.phase !== 'shop';
   const dieX = (i, n = dice.length) => L.die.x + (i - (n - 1) / 2) * L.die.gap(n);
   const dieY = () => L.die.y;
@@ -401,24 +483,41 @@
   const upg = (id) => S.upgrades.includes(id);
   const setOn = (tag, n) => R.setLevel(R.tagCounts(S.relics), tag) >= n;
   const relicSprite = (id) => relicSprites[eff().findIndex((e) => e.def.id === id)];
-  const bagMax = () => R.MAX_BAG + (cup().bagPlus || 0) + (upg('backpack') ? 4 : 0) + (upg('saddlebag') ? 3 : 0) + (setOn('bag', 3) ? 2 : 0);
+  const bagMax = () => cup().bagLimit || R.MAX_BAG + (cup().bagPlus || 0) + (upg('backpack') ? 4 : 0) + (upg('saddlebag') ? 3 : 0) + (setOn('bag', 3) ? 2 : 0);
   const minMoney = () => (upg('overdraft') ? -20 : 0);
   const canPay = (price) => S.money - price >= minMoney();
   const drawCount = () => Math.min(S.bag.length, upg('spare_die') ? 6 : 5);
   // Formation: die Lage auf dem Tisch zählt (außer im Tutorial). Shifts = Tauschzüge pro Hand.
   const formationOn = () => !TUT.active;
-  const chalkOn = (kind) => !!(S.enc && S.enc.chalk && S.enc.chalk.stage === S.ante && S.enc.chalk.kind === kind);
-  const linkPips = () => (chalkOn('links') ? 8 : R.LINK_PIPS);
-  const shiftsMax = () => (formationOn() ? 1 + (upg('turntable') ? 1 : 0) + (setOn('formation', 3) ? 1 : 0) + (chalkOn('shift') ? 1 : 0) : 0);
+  const chalkOn = (kind) => !!(S.enc && S.enc.chalk && S.enc.chalk.stage <= S.ante && S.ante <= (S.enc.chalk.until || S.enc.chalk.stage) && S.enc.chalk.kind === kind);
+  const linkPips = () => (cup().linkPips || (chalkOn('links') ? 8 : R.LINK_PIPS)) + Phone.linkPips(phoneOwned());
+  const shiftsMax = () => (formationOn() ? (cup().shifts || 1) + (upg('turntable') ? 1 : 0) + (setOn('formation', 3) ? 1 : 0) + (chalkOn('shift') ? 1 : 0) : 0);
   const FORM_COL = () => R.TAGS.formation.colour;
-  const handsMax = () => Math.max(1, cup().hands + chaosVal('hands') - (upg('overdrive') ? 1 : 0) - (has('blood_pact') ? 1 : 0));
+  const handsMax = () => Math.max(1, cup().hands + chaosVal('hands') - (upg('overdrive') ? 1 : 0) - (has('blood_pact') ? 1 : 0) + (bossActive('hourglass') ? curBoss().hands : 0) + finalHands());
   const rerollsBase = () => Math.max(0, cup().rerolls + chaosVal('rerolls')) + (upg('overdrive') ? 2 : 0) + (upg('quick_hands') ? 1 : 0) + (setOn('reroll', 3) ? 1 : 0) + eff().reduce((a, e) => a + (e.def.extraRerolls || 0), 0);
-  const rerollsMax = () => Math.max(0, (bossActive('clamp') ? Math.max(1, rerollsBase() - 2) : rerollsBase()) - (S.enc && S.enc.cool ? 1 : 0));   // The Clamp: -2, aber nie unter 1
+  const rerollsMax = () => Math.max(0, (bossActive('clamp') ? Math.max(1, rerollsBase() - curBoss().minus) : rerollsBase()) + (bossActive('hourglass') ? curBoss().rerolls : 0)
+    - (S.enc && S.enc.cool === true && !S.enc.freeCool ? 1 : 0));   // The Clamp: -2 (Elite -3), aber nie unter 1
   const anchorCap = () => (cup().anchors || 0) + (upg('anchor') ? 1 : 0) + (setOn('hold', 3) ? 1 : 0);
-  const bustAt = () => 3 + (upg('rabbit_foot') ? 1 : 0) + (setOn('risk', 3) ? 1 : 0);
+  const bustAt = () => 3 + (upg('rabbit_foot') ? 1 : 0) + (setOn('risk', 3) ? 1 : 0) + (cup().bustPlus || 0);
   const heldCount = () => dice.filter((d) => d.data.held).length;
   const skullsShowing = () => dice.filter((d) => d.data.die && R.isSkull(upFace(d))).length;
-  const frozen = (sp) => bossActive('frost') && sp.data.die && upFace(sp).v === 6 && upFace(sp).kind !== 'wild' && !R.isSkull(upFace(sp));
+  const frozen = (sp) => bossActive('frost') && sp.data.die && (curBoss().freeze || [6]).includes(upFace(sp).v) && upFace(sp).kind !== 'wild' && !R.isSkull(upFace(sp));
+  // The Fog: Vorschau aus; Elite-Fog versteckt auch den Score
+  const fogged = () => bossActive('fog') && ['rolling', 'select', 'scoring'].includes(S.phase);
+  const scoreHidden = () => fogged() && !!curBoss().hideScore;
+  // Stufe und Ausprägung des Bosses als kurzer Text ("Medium" / "Elite · Hard")
+  const tierName = (b) => (b && b.tier ? R.TIER_BY_ID[b.tier].name : '');
+  const bossTag = (b = S.boss) => (!b ? '' : b === FATHER_BOSS ? 'Final boss' + (S.bossPhase && isBossBlind() ? '  ·  Phase ' + S.bossPhase + ' of 2' : '') : b === JONNY_BOSS ? 'Final boss' : (b.lv ? b.levelName + '  ·  ' : '') + tierName(b));
+  // Text unter dem Boss-Namen: was diese Hand gilt (Judge, Thief), sonst die Regel des Bosses
+  function bossDesc() {
+    if (!S.boss) return '';
+    const b = curBoss();
+    if (b && ['select', 'scoring'].includes(S.phase) && isBossBlind()) {
+      if (b.id === 'judge' && S.judgeCall) return 'Play ' + S.judgeCall + ' for x' + b.called + ' Power' + (b.other < 1 ? ', anything else x' + b.other : '');
+      if (b.id === 'thief') { const st = S.relics.filter((r) => r.stolen).map((r) => R.RELIC_BY_ID[r.id].name); if (st.length) return 'Stolen this hand: ' + st.join(', '); }
+    }
+    return S.boss.desc;
+  }
   const fmtMult = (v) => (Math.abs(v - Math.round(v)) < 0.05 ? UI.num(v) : v.toFixed(1));
   const fmtX = (v) => (Math.abs(v - Math.round(v)) < 0.01 ? String(Math.round(v)) : String(+v.toFixed(2)));
   const TAG_COL = (t) => R.TAGS[t].colour;
@@ -436,8 +535,12 @@
       bag: S.bag, bagSize: S.bag.length, bagTypes: new Set(S.bag.map((d) => d.type)).size,
       lucky: S.lucky, luckyRound: S.luckyBlind || 0, whirls: S.whirls, skullsShowing: skullsShowing(), heldCount: heldCount(),
       grow: setOn('growth', 3) ? 1.3 : 1, keep: setOn('growth', 5), mostPlayed: mostPlayed(), rnd: rng('relic'),
-      bonusLuck: (cup().luck || 0) + chaosVal('luck') + (S.enc && S.enc.luck === S.ante ? 5 : 0), formation: formationOn(), linkPips: linkPips(),
+      bonusLuck: (cup().luck || 0) + chaosVal('luck') + (S.enc && S.enc.luck === S.ante ? (S.enc.luckAmt || 5) : 0) + Phone.luck(phoneOwned()), formation: formationOn(), linkPips: linkPips(),
+      fatigueScale: Phone.fatigueScale(phoneOwned()), phoneCap: Phone.interestCap(phoneOwned()),
       lastHand: S.ach ? S.ach.last : null, handStreak: S.ach ? S.ach.streak : 0,
+      bossLv: isBossBlind() && S.boss ? S.boss.lv || 0 : 0, judgeCall: S.judgeCall || null, capPlus: S.ledger || 0, trophies: S.stats ? (S.stats.bosses || 0) + (S.stats.elites || 0) : 0,
+      bustPlus: cup().bustPlus || 0, banHands: cup().banHands || null, handCap: cup().handCap || 0,
+      ghosts: dice.map((d, i) => (d.data.ghost ? i : -1)).filter((i) => i >= 0), stolen: S.relics.map((r, i) => (r.stolen ? i : -1)).filter((i) => i >= 0),
     }, extra);
   }
   const luck = (extra) => R.luckOf(ctx(extra));
@@ -451,7 +554,12 @@
   // Ziel ohne Heat (Stage, Blind, Boss, Chaos-Regel)
   function baseTarget(idx) {
     const base = stageBase(S.ante);
-    const factor = idx === 2 ? (S.boss && S.boss.factor) || BLINDS[2].factor : BLINDS[idx].factor;
+    let factor = BLINDS[idx].factor;
+    if (idx === 2 || rushOn()) {
+      const bf = S.boss === JONNY_BOSS && cup().exam && S.ante < ANTES ? BLINDS[2].factor : (S.boss && S.boss.factor) || BLINDS[2].factor;
+      factor = idx === 2 ? bf : BLINDS[idx].factor * bf / BLINDS[2].factor;
+      factor *= Phone.bossScale(phoneOwned());   // Telefon: Soft Spot
+    }
     return Math.round(base * factor * (chaosVal('target') || 1));
   }
   // Heat: Wer die letzte Runde weit übertroffen hat, bekommt stärkere Gegner. Der Score der letzten Runde zieht das Ziel
@@ -460,9 +568,9 @@
   const heatOn = () => !TUT.active;
   function blindTarget(idx) {
     const base = baseTarget(idx), last = S.lastScore || 0;
-    if (!heatOn() || last <= base || (S.enc && S.enc.cool)) return base;
+    if (!heatOn() || last <= base || (S.enc && S.enc.cool === true)) return base;
     const speed = S.lastSpeed === undefined ? 1 : S.lastSpeed;
-    const pull = base + (last - base) * HEAT_PULL * speed;
+    const pull = base + (last - base) * HEAT_PULL * speed * (S.enc && S.enc.cool === 'sip' ? 0.5 : 1) * Phone.heatScale(phoneOwned());
     if (pull <= base) return base;
     const step = Math.pow(10, Math.max(0, Math.floor(Math.log10(pull)) - 1));   // auf 2 Stellen abrunden
     return Math.max(base, Math.min(Math.round(base * HEAT_CAP), Math.floor(pull / step) * step));
@@ -473,7 +581,7 @@
     return Math.max(0, Math.round((S.target / Math.max(1, baseTarget(idx)) - 1) * 100));
   }
   function blindLabel(idx = S.blindIdx) {
-    return idx === 2 && S.boss ? { name: S.boss.name, colour: S.boss.colour } : { name: BLINDS[idx].name, colour: P[BLINDS[idx].key] };
+    return (idx === 2 || rushOn()) && S.boss ? { name: S.boss.name, colour: S.boss.colour } : { name: BLINDS[idx].name, colour: P[BLINDS[idx].key] };
   }
   function shuffle(a, rnd = Math.random) {
     for (let i = a.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; }
@@ -505,8 +613,11 @@
     const ratio = (S.chips * S.mult) / Math.max(1, S.target - S.score);
     let I = 0;
     if (S.phase === 'scoring' && S.chips > 0) I = ratio >= 1 ? 0.9 + Math.min(1, Math.log10(ratio)) * 0.9 : ratio > 0.4 ? (ratio - 0.4) * 1.2 : 0;
-    eng.setFlame('chips', Object.assign({ intensity: I, colours: [lighten(P.CHIPS, 0.6), P.CHIPS] }, L.flames.chips));
-    eng.setFlame('mult', Object.assign({ intensity: I, colours: [P.FLAME, P.MULT] }, L.flames.mult));
+    // Flammen in Box-Farbe, hängen an der Box (gleiches Wackeln über J.* und denselben Drehpunkt wie juiced())
+    const fz = fuseView(), fc = L.flames.chips, fm = L.flames.mult;
+    const chipCol = fz && fz.merged ? P.ORANGE : P.CHIPS;
+    eng.setFlame('chips', Object.assign({ intensity: I, colours: [lighten(chipCol, 0.45), chipCol], juice: J.chips, pivot: [fc.x + fc.w / 2, fc.py] }, fc));
+    eng.setFlame('mult', Object.assign({ intensity: I, colours: [lighten(P.MULT, 0.38), P.MULT], juice: J.mult, pivot: [fm.x + fm.w / 2, fm.py], hidden: !!(fz && fz.hideMult) }, fm));
   }
 
   function addChips(v, x, y) {
@@ -556,7 +667,7 @@
 
   // Replay der aktuellen Hand (replay.js): die beste Hand des Runs wird behalten und später für das GIF neu gezeichnet
   let handRec = null;
-  const recFrame = (kind) => { if (handRec) Replay.frame(handRec, kind, dice.map(upFace), dice.map((d) => d.data.held)); };
+  const recFrame = (kind) => { if (handRec && dice.every((d) => d.data.die)) Replay.frame(handRec, kind, dice.map(upFace), dice.map((d) => d.data.held)); };
   function recBegin() { handRec = TUT.active ? null : Replay.begin(dice.map((d) => d.data.die.type)); }
 
   // Zieht Würfel aus dem Beutel (verankerte bleiben liegen) und würfelt sie.
@@ -574,13 +685,45 @@
     });
     recBegin();
     if (isBossBlind() && S.boss === JONNY_BOSS && !TUT.active) jonnyNewRule();
+    bossNewHand();
     S.rerolls = rerollsMax(); S.rerollsHand = 0; S.freeReroll = has('loaded'); S.lucky = 0; S.whirls = 0; S.coldHand = 0;
     S.shifts = shiftsMax();
+    phoneSteady();
     fire('newHand');
     if (S.hands === 1 && handsMax() > 1) { jonnyLastHand(); jonnyEvents('lastHand'); }
     layoutDice();
     if (TUT.active) TUT.beginHand();
-    animate(outcomes(allIdx().filter((i) => !dice[i].data.anchored), true));
+    animate(outcomes(allIdx().filter((i) => !dice[i].data.anchored), true), eggOpeningRoll);
+  }
+
+  // Boss-Regeln, die jede Hand neu gelten: Judge ruft eine Handart aus, Ghost wählt Geisterwürfel, Thief stiehlt Relikte
+  function bossNewHand() {
+    const lastGhosts = dice.map((d, i) => (d.data.ghost ? i : -1)).filter((i) => i >= 0);
+    dice.forEach((d) => { d.data.ghost = false; d.alpha = 1; });
+    S.relics.forEach((r) => { delete r.stolen; });
+    S.judgeCall = null;
+    const b = isBossBlind() ? curBoss() : null;
+    if (!b || TUT.active) return;
+    if (b.id === 'judge') {
+      S.judgeCall = R.judgeCall(rng('boss'), S.lastJudge);
+      S.lastJudge = S.judgeCall;
+      eng.after(S.played.length ? 0.7 : 3.2, () => { if (S.judgeCall) { eng.popup(L.msg.x, dieY() - 130, 'The Judge calls: ' + S.judgeCall, { colour: lighten(b.colour, 0.45), size: 26, life: 2 }); sfx('boss'); } });
+    }
+    if (b.id === 'ghost') R.ghostSlots(dice.length, b.n, lastGhosts, rng('boss')).forEach((i) => { dice[i].data.ghost = true; });
+    if (b.id === 'thief' && S.relics.length) {
+      R.stealSlots(S.relics.length, b.n, rng('boss')).forEach((ri) => {
+        S.relics[ri].stolen = true;
+        const rs = relicSprites[ri];
+        if (rs) eng.after(0.5, () => { rs.juiceUp(0.4); eng.popup(rs.x, fxY(rs), 'Stolen!', { colour: lighten(b.colour, 0.5), size: 20 }); });
+      });
+      sfx('boss');
+    }
+  }
+  // Geisterwürfel durchsichtig, gestohlene Relikte grau (jedes Bild)
+  function bossVisuals() {
+    const inPlay = isBossBlind() && ['rolling', 'select', 'scoring'].includes(S.phase);
+    dice.forEach((d) => { d.alpha = inPlay && d.data.ghost ? 0.42 + 0.08 * Math.sin(eng.time * 3) : 1; });
+    relicSprites.forEach((rs, i) => { if (!rs) return; const st = inPlay && S.relics[i] && S.relics[i].stolen; rs.alpha = st ? 0.35 : 1; });
   }
 
   // Ergebnisse vorab berechnen (Luck wirkt nur beim Neu-Würfeln mit gehaltenen Würfeln)
@@ -589,7 +732,8 @@
     const L = initial ? 0 : luck(extra);
     const targets = initial ? [] : R.luckTargets(dice.filter((d) => d.data.held).map(upFace), has('spiral'));
     const out = {};
-    idx.forEach((i) => { const d = dice[i].data; out[i] = R.rollFace(d.die, d.rnd || (d.rnd = fresh()), L, targets, has('loaded_skulls')); });
+    const weigh = phoneWeigh();
+    idx.forEach((i) => { const d = dice[i].data; out[i] = R.rollFace(d.die, d.rnd || (d.rnd = fresh()), L, targets, has('loaded_skulls'), weigh); });
     return out;
   }
 
@@ -599,7 +743,8 @@
     const idx = Object.keys(out).map(Number);
     const rolled = idx.map((i) => dice[i]);
     let pending = idx.length;
-    const finishRoll = () => { magnetize(rolled); recFrame('roll'); layoutDice(); S.phase = 'select'; if (done) done(); autosave(); TUT.event('handReady'); };
+    const finishRoll = () => { if (rolled.some((d) => !dice.includes(d))) return;   // inzwischen neue Hand (z. B. neuer Kampf): alte Animation verwerfen
+      magnetize(rolled); recFrame('roll'); layoutDice(); S.phase = 'select'; eggAfterRoll(); if (done) done(); autosave(); TUT.event('handReady'); };
     if (!pending) { eng.after(0.2, finishRoll); return; }
     sfx('rattle', { n: idx.length, dur: 0.55 + 0.1 * (idx.length - 1) });
     idx.forEach((i, k) => {
@@ -610,7 +755,7 @@
         if (n < 10) {
           d.tex = faceTex(die.faces[(Math.random() * die.faces.length) | 0], die.type);
           d.juiceUp(0.12);
-          if (SETTINGS.reduceMotion) d.moveTo(x, dieY(), 0); else d.moveTo(x + rand(-8, 8), dieY() - Math.sin((n / 10) * Math.PI) * 60, rand(-0.8, 0.8));
+          if (setEff('reduceMotion')) d.moveTo(x, dieY(), 0); else d.moveTo(x + rand(-8, 8), dieY() - Math.sin((n / 10) * Math.PI) * 60, rand(-0.8, 0.8));
           eng.after(0.06, tick);
           return;
         }
@@ -641,20 +786,30 @@
   }
 
   function rerollTargets() { return allIdx().filter((i) => !dice[i].data.held && !frozen(dice[i])); }
+  // Kosten eines Rerolls: The Taxman (nie Schulden) und Roulette-Challenge ($1 pro Reroll)
+  function rerollFee() {
+    let fee = cup().rerollCost || 0;
+    if (bossActive('taxman')) fee += R.taxOf(curBoss(), S.rerollsHand, Math.max(0, S.money - fee));
+    return fee;
+  }
 
   function reroll(opts = {}) {
     if (S.phase !== 'select') return;
     const every3 = setOn('reroll', 5) && (S.rerollTotal + 1) % 3 === 0;
     const free = S.freeReroll || every3 || !!opts.jonny;
     if (!free && S.rerolls <= 0) return;
+    const fee = opts.jonny ? 0 : rerollFee();
+    if (fee > 0 && !canPay(fee) && !bossActive('taxman')) return denied(B.roll.x + B.roll.w / 2, B.roll.y - 24, 'Not enough money');
     let idx = rerollTargets();
     if (bossActive('chaos')) {
-      const extra = allIdx().filter((i) => dice[i].data.held && !frozen(dice[i]) && !has('lockbox') && rng('boss')() < 1 / 3);
+      const extra = allIdx().filter((i) => dice[i].data.held && !frozen(dice[i]) && !has('lockbox') && rng('boss')() < (curBoss().p || 1 / 3));
       extra.forEach((i) => { dice[i].data.held = false; dice[i].data.anchored = false; eng.popup(dice[i].x, dice[i].y - 70, 'Chaos!', { colour: S.boss.colour, size: 22 }); });
       idx = idx.concat(extra).sort((a, b) => a - b);
     }
-    if (!idx.length) return;
+    if (!idx.length) { if (dice.length && dice.every((d) => d.data.held)) eggPlacebo(); return; }
     TUT.event('reroll');
+    if (fee > 0 && bossActive('taxman')) BT().taxPaid += fee;
+    if (fee > 0) { S.money -= fee; J.money.up(0.4); eng.popup(B.roll.x + B.roll.w / 2, B.roll.y - 48, (bossActive('taxman') ? 'Tax ' : '') + '-$' + fee, { colour: P.RED, size: 22 }); sfx('coin'); }
     if (opts.jonny) eng.popup(B.roll.x + B.roll.w / 2, B.roll.y - 24, "Jonny's reroll!", { colour: JONNY_GOLD, size: 22 });
     else if (S.freeReroll) {
       S.freeReroll = false;
@@ -799,8 +954,10 @@
     selected = null;
     S.hands--; J.hands.up(0.4);
     fire('beforeHand');
+    const coin = bossActive('gambler') ? (rng('boss')() < 0.5 ? 'heads' : 'tails') : null;
+    if (coin) { eng.popup(L.msg.x, dieY() - 150, 'The coin spins...', { colour: lighten(curBoss().colour, 0.45), size: 22, life: 1 }); sfx('coin'); }
     const res = R.scoreHand(ctx({
-      faces: dice.map(upFace), held: dice.map((d) => d.data.held),
+      coin, faces: dice.map(upFace), held: dice.map((d) => d.data.held),
       extras: dice.map((d) => ({ chips: d.data.die.chips || 0, rerolled: d.data.rerolled || 0, lucky: !!d.data.luckyHit })),
     }));
     const prophecy = S.enc && S.enc.prophecy;
@@ -809,6 +966,11 @@
       if (--prophecy.left <= 0) S.enc.prophecy = null;
     }
     S.played.push(res.name);
+    if (!TUT.active) {
+      if (coin) BT().coins.push(coin);
+      if (bossActive('judge') && S.judgeCall && res.name === S.judgeCall) BT().judgeHits++;
+      if ((res.ghosts || []).some((i) => res.scoring.includes(i))) BT().ghostScoring = true;
+    }
     S.handName = res.name; S.handNameT = eng.time; J.name.up(0.3);
     S.chips = res.baseChips; S.mult = res.baseMult; J.chips.up(0.3); J.mult.up(0.3);
     dice.forEach((d, i) => { d.tint = res.scoring.includes(i) ? null : res.used.includes(i) ? ['#374244', 0.4] : ['#1C2426', 0.7]; });
@@ -830,14 +992,20 @@
       const A = S.ach;
       A.streak = res.name === A.last ? A.streak + 1 : 1; A.last = res.name;
       if (res.bust) A.busts++;
-      const gold = res.bust ? 0 : res.scoring.filter((i) => ['gold', 'prism'].includes(upFace(dice[i]).kind)).length;
+      const gold = res.bust ? 0 : res.scoring.filter((i) => dice[i] && dice[i].data.die && ['gold', 'prism'].includes(upFace(dice[i]).kind)).length;
       const fo = res.form && res.form.ok ? res.form : null, st = S.stats;
       st.hands++; st.total += total;
       if (total > st.best) { st.best = total; st.bestName = res.name; }
       if (res.bust) st.busts++;
       if (res.name === 'Five of a Kind' && !res.bust) st.fives++;
       if (fo && !res.bust) { st.links += fo.links; st.chain = Math.max(st.chain, fo.chain.length); if (fo.palindrome) st.palindromes++; }
-      achieve('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, streak: A.streak, gold, chain: fo ? fo.chain.length : 0, palindrome: !!(fo && fo.palindrome) });
+      if (!A.hc) A.hc = {};
+      A.hc[res.name] = (A.hc[res.name] || 0) + 1;
+      if (res.bust) A.bustT = Date.now();
+      achieve('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, streak: A.streak, gold, chain: fo ? fo.chain.length : 0, palindrome: !!(fo && fo.palindrome),
+        boss: isBossBlind() && curBoss() ? curBoss().id : null, order: dice.length === 5 ? res.vals.join('') : '', runCount: A.hc[res.name],
+        fiveOf: res.name === 'Five of a Kind' && res.scoring.length ? res.vals[res.scoring[0]] : 0 });
+      eggHand(res, total);
       jonnyEvents('hand', { res, total, fo, streak: A.streak });
       jobEvent('hand', { name: res.name, total, bust: !!res.bust, skulls: res.skulls, rerolls: S.rerollsHand, held: heldCount(), vals: res.scoring.map((i) => res.vals[i]) });
       S.jonny.best = Math.max(S.jonny.best, total);
@@ -851,8 +1019,14 @@
     }, FUSE.end + 0.25);
     eng.queue(() => {
       dice.forEach((d) => { d.data.held = false; d.data.anchored = false; d.tint = null; });
-      if (S.score >= S.target) return winBlind();
+      if (S.score >= S.target && fatherFight() && S.bossPhase === 1) fatherPhase2();
+      else if (S.score >= S.target) return winBlind();
       if (S.hands <= 0) { if (TUT.extraHand()) { S.hands = 1; return newHand(); } return loseRun(); }
+      if (isBossBlind() && S.boss && S.boss.id === 'undertow') {
+        const nt = Math.round(S.target * (1 + S.boss.grow));
+        eng.popup(...spot('total'), 'Undertow +' + Math.round(S.boss.grow * 100) + '%', { colour: lighten(S.boss.colour, 0.5), size: 22 });
+        S.target = nt; sfx('boss');
+      }
       newHand();
     }, 0.6);
   }
@@ -985,9 +1159,9 @@
     if (s.src === 'upg' && s.i !== undefined && d) { x = d.x; y = d.y - 70; }
     if (s.src === 'link') { linkFlash(s); return; }
     if (s.src === 'enc') eng.popup(L.msg.x, dieY() - 112, s.text, { colour: lighten(P.PURPLE, 0.35), size: 26, life: 1.1 });
-    if (s.src === 'debuff') { d.juiceUp(0.2); eng.popup(x, y, curBoss() && curBoss().id === 'snake' ? 'Eaten!' : 'Debuffed', { colour: P.GREY, size: 20 }); return; }
+    if (s.src === 'debuff') { d.juiceUp(0.2); eng.popup(x, y, s.ghost ? 'Ghost' : curBoss() && curBoss().id === 'snake' ? 'Eaten!' : 'Debuffed', { colour: s.ghost ? '#C9D6F0' : P.GREY, size: 20 }); return; }
     if (s.src === 'fatigue' || s.src === 'boss') {
-      const col = s.src === 'boss' && S.boss ? lighten(S.boss.colour, 0.35) : P.GREY;
+      const col = s.src === 'boss' && S.boss ? (s.good ? P.GOLD : lighten((curBoss() || S.boss).colour, 0.35)) : P.GREY;
       eng.popup(L.msg.x, dieY() - 112, s.text, { colour: col, size: 24, life: 1.2 });
       xMult(s.xmult, ...spot('multBox'));
       return;
@@ -1032,27 +1206,31 @@
   }
 
   // ── Spielablauf ─────────────────────────────────────────────────────────
+  // Boss der Stage: Stufe passend zur Stage (R.bossPool), dann der Elite-Wurf (R.eliteOdds). Stage 8 = Jonny.
   function pickBoss() {
-    if (S.ante === ANTES && !TUT.active) { S.boss = JONNY_BOSS; return; }
-    let pool = R.BOSSES.filter((b) => !S.usedBosses.includes(b.id));
-    if (!pool.length) { S.usedBosses = []; pool = R.BOSSES.slice(); }
-    S.boss = R.pick(pool, rng('boss'));
-    S.usedBosses.push(S.boss.id);
+    const rush = !!cup().bossRush && !TUT.active;
+    if (!TUT.active && S.endless && S.ante === R.BALANCE.FATHER_STAGE && (!rush || S.blindIdx === 2)) { S.boss = FATHER_BOSS; return; }
+    if (!TUT.active && (cup().exam || (S.ante === ANTES && (!rush || S.blindIdx === 2)))) { S.boss = JONNY_BOSS; return; }
+    const def = R.pick(R.bossPool(S.ante, S.usedBosses || [], ANTES), rng('boss'));
+    const lv = TUT.active ? 0 : R.rollBossLevel(def, R.eliteOdds({ ante: S.ante, antes: ANTES, relics: S.relics, upgrades: S.upgrades, minElite: cup().minElite }), rng('boss'));
+    S.boss = R.bossOf(def.id, lv);
+    S.usedBosses.push(def.id);
+    if (lv) seen('elite', def.id);
   }
   function rollUpgrade() {
     const pool = R.UPGRADES.filter((u) => !S.upgrades.includes(u.id) && open('upgrade', u.id));
     return pool.length ? R.pickWeighted(pool.map((u) => [u.id, R.RARITY[u.rarity].weight]), rng('shop')) : null;
   }
 
-  function startRun(cupId = 'classic') {
+  function startRun(cupId = 'classic', seed) {
     clearMenuSprites();
     S.cup = cupId;
     const c = cup();
     S.ante = 1; S.blindIdx = 0; S.money = c.money; S.vault = 0; S.time = 0; S.chaos = null; S.cupDrawn = false; S.cupDraw = null;
     S.relics = []; S.cons = []; S.upgrades = c.upgrades.slice(); S.levels = {}; S.numLevels = Object.assign({}, c.numLevels); S.handCounts = {}; S.usedBosses = [];
     S.rerollTotal = 0; S.anchored = []; S.msg = null; S.choice = null; S.ach = freshAch();
-    S.job = null; S.jonny = freshJonny(); S.jonnyRule = null;
-    S.rng = Rng.create(window.__WG_SEED); S.bestReplay = null; handRec = null; S.enc = freshEnc(); encNow = null;
+    S.job = null; S.jonny = freshJonny(); S.jonnyRule = null; S.judgeCall = null; S.lastJudge = null; S.ledger = 0;
+    S.rng = Rng.create(seed !== undefined ? seed : window.__WG_SEED); S.bestReplay = null; handRec = null; S.enc = freshEnc(); encNow = null; S.phone = freshPhone(); S.shopFree = 0; phoneNow = null;
     S.endless = false; S.runId = Date.now(); S.stats = freshStats(); S.runAch = []; S.summary = null; S.shifts = 0; S.lastScore = 0; S.lastSpeed = 1;
     S.bag = c.bag.map((type) => R.makeDie(type));
     seen('cup', cupId); [...new Set(c.bag)].forEach((type) => seen('die', type)); c.upgrades.forEach((id) => seen('upgrade', id));
@@ -1070,18 +1248,30 @@
   }
 
   function startBlind() {
-    const b = blind(), lab = blindLabel();
+    const lab = blindLabel();
     S.phase = 'rolling';
     S.target = blindTarget(S.blindIdx);
     S.score = 0; S.dispScore = 0; S.hands = handsMax(); S.chips = 0; S.mult = 0; S.handName = '';
-    S.played = []; S.rerollsBlind = 0; S.luckyBlind = 0; S.anchored = []; S.jonnyRule = null; S.jonny.help = false;
-    if (b.boss) {
+    S.played = []; S.rerollsBlind = 0; S.luckyBlind = 0; S.anchored = []; S.jonnyRule = null; S.jonny.help = false; S.bossPhase = 0; S.bossFull = 0;
+    S.ach.bt = freshBT();
+    if (S.endless && S.ante >= 15 && !TUT.active) tape('jacket');
+    if (fatherFight()) {   // Phase 1: halbes Ziel, eine feste Regel für die ganze Phase
+      S.bossFull = S.target; S.target = Math.round(S.target * R.BALANCE.FATHER_SPLIT); S.bossPhase = 1;
+      S.jonnyRule = R.pick(R.finalRules(null), rng('boss')).id;
+    }
+    if (isBossBlind()) {
       bgName = 'table';
       eng.setBackgroundColour(S.boss.colour, { contrast: 2 });
-      showMsg(S.boss.name, S.boss.colour, S.boss.desc, S.boss === JONNY_BOSS ? 3.2 : 2.6);
+      const tag = isFinal() ? '' : bossTag() + (S.boss.lv ? '  ·  Bounty +$' + R.eliteReward(S.boss.lv, ctx()) : '') + '  ·  ';
+      showMsg(S.boss.name, S.boss.colour, tag + S.boss.desc, isFinal() ? 3.6 : S.boss.lv ? 3.2 : 2.6);
       sfx('boss');
       seen('boss', S.boss.id);
-      if (S.boss === JONNY_BOSS) jonnyIntro(); else jonnyEvents('boss');
+      if (S.boss.lv) {
+        eng.shake(S.boss.lv * 6);
+        eng.emit(L.msg.x, L.msg.y, { count: 40 + 30 * S.boss.lv, colours: [S.boss.colour, S.boss.lv === 2 ? P.GOLD : '#D8E0E8', '#FFFFFF'], speed: 520, size: 10, life: 1.1, shape: 'star' });
+      }
+      if (S.boss === FATHER_BOSS) { eng.shake(16); fatherIntro(); }
+      else if (S.boss === JONNY_BOSS) { if (!cup().exam || !S.jonny.examIntro) { S.jonny.examIntro = true; jonnyIntro(); } } else jonnyEvents(S.boss.lv ? 'elite' : 'boss');
     } else {
       setBg('table');
       showMsg(lab.name, lab.colour, 'Reach ' + UI.num(S.target) + ' points' + (heatPct() ? '  ·  Heat +' + heatPct() + '%' : ''), 1.8);
@@ -1089,8 +1279,8 @@
     }
     musicMood(roundMood());
     const heat = heatPct();
-    if (!b.boss) { jonnyRoundStart(); if (!heat) jonnyEvents('roundStart'); }
-    if (heat) { S.stats.heat = Math.max(S.stats.heat || 0, heat); eng.after(b.boss ? 3.4 : 0.9, () => jonnyEvents('heat')); }   // statt des allgemeinen Rundenspruchs
+    if (!isBossBlind()) { jonnyRoundStart(); if (!heat) jonnyEvents('roundStart'); }
+    if (heat) { S.stats.heat = Math.max(S.stats.heat || 0, heat); eng.after(isBossBlind() ? 3.4 : 0.9, () => jonnyEvents('heat')); }   // statt des allgemeinen Rundenspruchs
     fire('startBlind');
     if (TUT.active) TUT.roundStart(S.blindIdx);
     createHandDice(drawCount());
@@ -1099,17 +1289,32 @@
 
   function winBlind() {
     S.phase = 'won';
-    if (S.enc) S.enc.cool = false;   // Cooling Spring gilt nur eine Runde
+    if (S.enc) { S.enc.cool = false; S.enc.freeCool = false; }   // Cooling Spring gilt nur eine Runde
     TUT.event('roundWon');
-    achieve('round', { score: S.score, target: S.target, handsLeft: S.hands, handsUsed: S.played.length, rerolls: S.rerollsBlind, boss: isBossBlind() && S.boss ? S.boss.id : null, relics: S.relics.map((r) => r.id) });
+    achieve('round', { score: S.score, target: S.target, handsLeft: S.hands, handsUsed: S.played.length, rerolls: S.rerollsBlind, boss: isBossBlind() && S.boss ? S.boss.id : null,
+      bossLv: isBossBlind() && S.boss ? S.boss.lv || 0 : 0, relics: S.relics.map((r) => r.id), played: S.played.slice(), heat: heatPct(),
+      taxPaid: BT().taxPaid, judgeHits: BT().judgeHits, coins: BT().coins.slice(), ghostScoring: BT().ghostScoring, maxFrozen: BT().maxFrozen });
+    if (isBossBlind() && S.boss && S.boss.id === 'jonny' && !TUT.active) tape('kid');
+    S.relics.forEach((r) => { delete r.stolen; });
+    dice.forEach((d) => { d.data.ghost = false; d.alpha = 1; });
     const ii = R.interestInfo(ctx());
-    const parts = [['Round', blind().reward + chaosVal('reward')], ['Hands', cup().noHandReward ? 0 : S.hands], ['Interest', ii.amount]];
+    const parts = [['Round', cup().noRoundReward ? 0 : blind().reward + chaosVal('reward')], ['Hands', cup().noHandReward ? 0 : S.hands], ['Interest', ii.amount]];
+    const lvWon = isBossBlind() && S.boss && !isFinal() ? S.boss.lv || 0 : 0;
+    if (lvWon) {
+      parts.push([S.boss.levelName + ' bounty', R.eliteReward(lvWon, ctx())]);
+      S.stats.elites = (S.stats.elites || 0) + 1;
+      if (upg('bounty_ledger')) { S.ledger = (S.ledger || 0) + lvWon; eng.after(1, () => eng.popup(...spot('money'), 'Interest cap +$' + lvWon, { colour: P.GOLD, size: 20 })); }
+    }
+    if (isBossBlind() && S.boss && S.boss.id === 'undertow' && S.hands > 0) parts.push(['Undertow', S.hands * S.boss.pay]);
+    const phonePay = TUT.active ? 0 : Phone.roundPay(phoneOwned()) + (isBossBlind() ? Phone.bossPay(phoneOwned()) : 0);
+    if (phonePay) parts.push(['Phone', phonePay]);
     const jobPay = jobSettle();
     if (jobPay) parts.push(["Jonny's job", jobPay]);
     if (S.jonny.cut) { parts.push(["Jonny's cut", -S.jonny.cut]); S.jonny.cut = 0; }
     S.jonny.last = { score: S.score, target: S.target, boss: isBossBlind() && S.boss ? S.boss.name : null };
     S.lastScore = S.score; S.lastSpeed = R.heatSpeed(S.played.length, handsMax());   // schneller gewonnen = mehr Heat
     if (isBossBlind() && S.boss === JONNY_BOSS) jonnySay(BOSS_TALK.defeat.slice(0, 1), { important: true, replace: true, place: 'corner' });
+    if (fatherFight()) { jonnySay(FATHER_TALK.defeat, { important: true, replace: true, place: 'corner' }); if (profile) meta().fatherBeaten = (meta().fatherBeaten || 0) + 1; }
     if (ii.maxed) eff().forEach((e) => { if (e.def.id === 'compound') { e.s.grow++; const rs = relicSprites[e.ri]; rs.juiceUp(0.4); eng.popup(rs.x, fxY(rs), 'Cap +$1', { colour: P.GOLD, size: 18 }); } });
     fire('endBlind', [], { noMoney: true }).forEach((o) => { if (o.money) parts.push([relicName(o.ri), o.money]); });
     if (upg('vault') && S.vault > 0) {
@@ -1137,17 +1342,22 @@
     eng.after(0.8, () => { S.money += reward; J.money.up(0.6); });
     eng.after(2.8, () => {
       const go = () => {
+        const showdown = S.blindIdx === BLINDS.length - 1;
         S.blindIdx++;
         if (S.blindIdx >= BLINDS.length) { S.blindIdx = 0; S.ante++; if (S.ante <= ANTES || S.endless) { pickBoss(); anteStart(); } }
-        if (S.ante > ANTES && !S.endless) runWon(); else maybeEncounter(enterShop);
+        else if (rushOn()) pickBoss();
+        if (S.ante > ANTES && !S.endless) runWon();
+        else if (showdown) maybePhone(() => maybeEncounter(enterShop));   // nach jedem Showdown klingelt das Telefon
+        else maybeEncounter(enterShop);
       };
       if (TUT.active && isBossBlind()) return;   // Tutorial endet nach dem ersten Showdown
-      if (profile && !S.cupDrawn && S.ante === CUP_DRAW_STAGE && isBossBlind()) startCupDraw(go); else go();
+      if (profile && !S.cupDrawn && S.ante === CUP_DRAW_STAGE && S.blindIdx === 2) startCupDraw(go); else go();
     });
   }
 
   // Neue Ante: Muster-Boni, neues Upgrade-Angebot
   function anteStart() {
+    if (S.ante >= 4) masteryCheck('stage');
     const outs = fire('anteStart');
     if (cup().chaos) rollChaos();
     const ups = outs.filter((o) => o.levelUp).length + (setOn('pattern', 3) ? 1 : 0), mp = mostPlayed();
@@ -1160,6 +1370,7 @@
 
   function loseRun() {
     S.phase = 'lost';
+    eggLost();
     setBg('lose');
     jingle('gameover', 4);
     musicMood('lose');
@@ -1258,16 +1469,16 @@
   const slotData = [null, null, null];
   const RUN_KEYS = ['cup', 'ante', 'blindIdx', 'target', 'score', 'hands', 'rerolls', 'money', 'vault', 'bag', 'relics', 'cons', 'upgrades',
     'levels', 'numLevels', 'handCounts', 'usedBosses', 'played', 'rerollsHand', 'rerollsBlind', 'rerollTotal', 'freeReroll', 'lucky', 'whirls',
-    'coldHand', 'shop', 'shopRerollCost', 'upgradeOffer', 'bought', 'pruneUsed', 'chaos', 'cupDrawn', 'ach', 'job', 'jonny', 'jonnyRule',
-    'shifts', 'endless', 'runId', 'stats', 'runAch', 'lastScore', 'lastSpeed', 'luckyBlind', 'rng', 'bestReplay', 'enc'];
+    'coldHand', 'shop', 'shopRerollCost', 'upgradeOffer', 'bought', 'pruneUsed', 'chaos', 'cupDrawn', 'ach', 'job', 'jonny', 'jonnyRule', 'bossPhase', 'bossFull',
+    'shifts', 'endless', 'runId', 'stats', 'runAch', 'lastScore', 'lastSpeed', 'luckyBlind', 'rng', 'bestReplay', 'enc', 'judgeCall', 'lastJudge', 'ledger', 'chal', 'phone', 'shopFree'];
 
   function snapshot() {
     const bi = (d) => S.bag.indexOf(d);
-    const snap = { phase: S.phase, boss: S.boss && S.boss.id };
+    const snap = { phase: S.phase, boss: S.boss && S.boss.id, bossLv: S.boss ? S.boss.lv || 0 : 0 };
     for (const k of RUN_KEYS) snap[k] = S[k];
     snap.anchored = S.anchored.map((a) => ({ i: a.i, die: bi(a.die), up: a.up }));
     snap.hand = S.phase === 'select' ? dice.map((d) => ({ die: bi(d.data.die), own: bi(d.data.die) < 0 ? d.data.die : undefined, up: d.data.up,
-      held: !!d.data.held, anchored: !!d.data.anchored, rerolled: d.data.rerolled || 0, rnd: d.data.rnd })) : [];
+      held: !!d.data.held, anchored: !!d.data.anchored, rerolled: d.data.rerolled || 0, rnd: d.data.rnd, ghost: !!d.data.ghost })) : [];
     return snap;
   }
   function autosave(force) {
@@ -1295,13 +1506,14 @@
     st.bestStage = Math.max(st.bestStage, Math.min(S.ante, ANTES));
     if (S.endless) st.bestEndless = Math.max(st.bestEndless || 0, S.ante);
     profile.run = null; lastSaved = '';
-    if (!S.endless) achieve('run', { won });
+    if (!S.endless) { achieve('run', { won, busts: S.ach.busts, relicCount: S.relics.length, cup: S.chal ? null : S.cup }); chalFinish(won); }
     recordHistory(won || S.endless);
     Saves.remove(slot); slotData[slot] = null;
     Saves.saveMeta();
   }
   function saveAndQuit() {
     if (!canQuit()) return;
+    eggQuit();
     autosave(true);
     sfx('save');
     settingsOpen = false;
@@ -1361,11 +1573,15 @@
     clearMenuSprites();
     S.chaos = null; S.cupDrawn = false; S.cupDraw = null; S.ach = freshAch(); S.job = null; S.jonny = freshJonny(); S.jonnyRule = null;
     S.endless = false; S.stats = null; S.runAch = []; S.runId = 0; S.shifts = undefined; S.lastScore = 0; S.rng = null; S.bestReplay = null; handRec = null; S.enc = null; encNow = null;
+    S.phone = null; S.shopFree = 0; phoneNow = null;
     for (const k of RUN_KEYS) if (snap[k] !== undefined) S[k] = snap[k];
     if (!S.rng) S.rng = Rng.create();   // ältere Speicherstände
     S.enc = Object.assign(freshEnc(), S.enc || {});
+    S.phone = Object.assign(freshPhone(), S.phone || {});
     S.jonny = Object.assign(freshJonny(), S.jonny);
-    S.boss = R.BOSSES.find((b) => b.id === snap.boss) || (snap.boss === 'jonny' ? JONNY_BOSS : null);
+    S.judgeCall = null; S.lastJudge = null; S.ledger = 0; S.chal = null;
+    for (const k of ['judgeCall', 'lastJudge', 'ledger', 'chal']) if (snap[k] !== undefined) S[k] = snap[k];
+    S.boss = bossById(snap.boss, snap.bossLv);
     if (!S.boss) pickBoss();
     S.anchored = (snap.anchored || []).map((a) => ({ i: a.i, die: S.bag[a.die], up: a.up })).filter((a) => a.die);
     S.time = snap.time || 0; S.choice = null; S.msg = null; S.chips = 0; S.mult = 0; S.handName = ''; S.dispScore = S.score;
@@ -1386,7 +1602,7 @@
       dice = snap.hand.map((h, i) => {
         const die = h.die >= 0 ? S.bag[h.die] : h.own;
         const sp = eng.sprite({ tex: faceTex(die.faces[h.up], die.type), x: dieX(i, n), y: dieY(), s: DIE_S, z: 10 + i, tiltStrength: 0.8,
-          data: { kind: 'die', die, up: h.up, held: h.held, anchored: h.anchored, rerolled: h.rerolled, rnd: h.rnd } });
+          data: { kind: 'die', die, up: h.up, held: h.held, anchored: h.anchored, rerolled: h.rerolled, rnd: h.rnd, ghost: !!h.ghost } });
         sp.materialize(0.6 + i * 0.08, { colours: [P.WHITE, P.ORANGE] });
         return sp;
       });
@@ -1423,6 +1639,7 @@
       skullFaces: S.bag.reduce((a, d) => a + d.faces.filter(R.isSkull).length, 0),
       numLevel: Math.max(1, ...Object.values(S.numLevels)), tags: counts,
       maxSet: Math.max(0, ...R.TAG_ORDER.map((t) => R.setLevel(counts, t))), runBusts: S.ach.busts,
+      brokeAnte: S.money <= 0 ? (S.ach.brokeAnte = S.ante) : S.ach.brokeAnte, leveled: Object.values(S.levels || {}).filter((v) => v >= 2).length,
     };
   }
   // Pokal als Pixel-Symbol (9x8, X = Pixel)
@@ -1519,7 +1736,7 @@
     UI.box(ctx, x, y, w, h, { colour: P.OVERLAY_SOLID, radius: 14, emboss: 4, outline: accent, outlineWidth: 3 });
     drawTrophy(ctx, x + 16, y + 24, 4, accent);
     const textW = w - 70 - 16 - Math.min(3, rw.length) * 42;
-    UI.text(ctx, a.secret ? 'Secret achievement unlocked' : 'Achievement unlocked', x + 70, y + 20, { size: 15, colour: accent, align: 'left' });
+    UI.text(ctx, a.head || (a.secret ? 'Secret achievement unlocked' : 'Achievement unlocked'), x + 70, y + 20, { size: 15, colour: accent, align: 'left' });
     UI.text(ctx, a.name, x + 70, y + 44, { size: fitText(ctx, a.name, textW, 26), align: 'left' });
     const line = !rw.length ? a.desc : (rw[0][0] === 'cup' ? 'Reward: ' : 'New: ') + rw.map(([kind, id]) => rewardName(kind, id)).join(', ');
     UI.text(ctx, line, x + 70, y + 67, { size: fitText(ctx, line, textW, 15), colour: P.TEXT_SOFT, align: 'left' });
@@ -1595,6 +1812,8 @@
   // ── Becher-Auswahl: Classic Cup plus alle Becher, die der Speicherstand besitzt ──
   let cupSprites = [], cupSel = 0, cupList = ['classic'];
   function cupCanvas(colour, locked, tag) {
+    const art = !locked && window.WGCupArt && window.WGCupArt.get(tag);
+    if (art) return art;
     const [c, x] = Art.canvas(36, 48), T = 14;   // T: Oberkante des Bechers
     const body = locked ? '#3B4649' : colour, line = darken(body, 0.55), light = lighten(body, 0.22), shade = darken(body, 0.22), base = darken(body, 0.32);
     if (!locked) {
@@ -1640,6 +1859,16 @@
     jonny: ['........', 'XXX..XXX', 'X.XXXX.X', 'XXX..XXX', '........', '.X....X.', '..XXXX..'],
   };
   const cupTex = (c) => cached('cup:' + c.id, () => cupCanvas(c.colour, false, c.id));
+  window.addEventListener('wg-cup-art-ready', ({ detail: id }) => {
+    const art = window.WGCupArt.get(id);
+    rewardModeCups[id] = art;
+    if (id === 'chaos') rewardCup = art;
+    const tex = texCache['cup:' + id];
+    if (tex) {
+      tex.source = art; tex.w = art.width; tex.h = art.height;
+      eng.updateTexture(tex, art);
+    }
+  });
   const cupAt = (i) => CUP_BY_ID[cupList[i]] || null;
   const ownedCups = () => meta().cups;
   function openCups() {
@@ -1651,7 +1880,7 @@
     cupSel = last > 0 ? last : 0;
     cupSprites = cupList.map((id, i) => {
       const c = CUP_BY_ID[id];
-      const sp = eng.sprite({ tex: cupTex(c), x: cupX(i), y: 300, s: 3, z: 5 + i, tiltStrength: 0.8, ambient: 1.6, data: { kind: 'cup', i } });
+      const sp = eng.sprite({ tex: cupTex(c), w: 36, h: 48, x: cupX(i), y: 300, s: 3, z: 5 + i, tiltStrength: 0.8, ambient: 1.6, data: { kind: 'cup', i } });
       sp.materialize(0.5 + Math.min(i, 4) * 0.1, { colours: [P.WHITE, c.colour] });
       return sp;
     });
@@ -1679,6 +1908,7 @@
       if (--owned[c.id] <= 0) delete owned[c.id];
     }
     Saves.saveMeta();
+    S.chal = null;
     startRun(c.id);
   }
 
@@ -1694,7 +1924,7 @@
     hiddenForDraw.forEach((sp) => { sp.visible = false; });
     cupDrawSprites = ids.map((id, k) => {
       const c = CUP_BY_ID[id];
-      const sp = eng.sprite({ tex: cupTex(c), x: L.msg.x + (k - 1) * (MOBILE ? 250 : 200), y: MOBILE ? 290 : 300, s: 3.2, z: 60, tiltStrength: 0.8, ambient: 1.6, data: { kind: 'cupdraw', id } });
+      const sp = eng.sprite({ tex: cupTex(c), w: 36, h: 48, x: L.msg.x + (k - 1) * (MOBILE ? 250 : 200), y: MOBILE ? 290 : 300, s: 3.2, z: 60, tiltStrength: 0.8, ambient: 1.6, data: { kind: 'cupdraw', id } });
       sp.materialize(0.6 + k * 0.3, { colours: [P.WHITE, c.colour, P.GOLD] });
       eng.after(1.25 + k * 0.09, () => { eng.emit(sp.x, sp.y, { count: 26, colours: [c.colour, P.GOLD, '#FFFFFF'], speed: 380, size: 10, life: 0.8, shape: 'star' }); });
       return sp;
@@ -1975,11 +2205,12 @@
       if (pool.length) { const id = R.pickWeighted(pool.map((d) => [d.id, R.RARITY[d.rarity].weight]), rng('shop')); return { type: 'relic', id, price: R.RELIC_BY_ID[id].cost }; }
     }
     if (r < 0.74) { const hand = R.pick(R.HAND_ORDER, rng('shop')); return { type: 'constellation', hand, price: constPrice(hand) }; }
-    if (r < 0.88) return { type: 'oracle', id: R.pick(R.ORACLES.filter((q) => open('oracle', q.id)), rng('shop')).id, price: 3 };
+    if (r < 0.88) return { type: 'oracle', id: R.pick(R.ORACLES.filter((q) => open('oracle', q.id) && !(cup().banOracles || []).includes(q.id)), rng('shop')).id, price: 3 };
     return { type: 'tally', n: 1 + ((shopRnd() * 6) | 0), price: 3 };
   }
   function genDie() {
-    const type = R.pickWeighted(Object.entries(R.DIE_TYPES).filter(([k, d]) => d.weight > 0 && open('die', k)).map(([k, d]) => [k, d.weight]), rng('shop'));
+    const c = cup(), ok = (k) => (c.shopDice ? c.shopDice.includes(k) : true) && !(c.banDice || []).includes(k);
+    const type = R.pickWeighted(Object.entries(R.DIE_TYPES).filter(([k, d]) => d.weight > 0 && (open('die', k) || (c.shopDice && c.shopDice.includes(k))) && ok(k)).map(([k, d]) => [k, d.weight]), rng('shop'));
     return { type: 'die', dieType: type, die: R.makeDie(type), price: Math.max(1, R.DIE_TYPES[type].cost - (cup().dieDiscount || 0)) };
   }
   function shopSprite(item, k) {
@@ -1998,6 +2229,7 @@
       else if (k === 2 && upg('telescope') && mp) S.shop[k] = { type: 'constellation', hand: mp, price: constPrice(mp) };
       else if (TUT.active) S.shop[k] = TUT.shopItem(k);
       else S.shop[k] = genItem(others);
+      if (S.shop[k] && !TUT.active) S.shop[k].price = Phone.price(S.shop[k].price, phoneOwned());   // Telefon: Regular
       shopSprites[k] = S.shop[k] ? shopSprite(S.shop[k], k) : null;
     }
     sfx('card');
@@ -2009,7 +2241,7 @@
     S.score = 0; S.dispScore = 0;
     setBg('shop', { spin: 1.5 });
     musicMood('shop');
-    S.shopRerollCost = 1; S.bought = false; S.pruneUsed = false;
+    S.shopRerollCost = 1; S.bought = false; S.pruneUsed = false; S.shopFree = TUT.active ? 0 : Phone.freeRerolls(phoneOwned());
     S.shop = [null, null, null, null, null]; shopSprites = [null, null, null, null, null];
     TUT.event('shop');
     stockShop([0, 1, 2, 3, 4]);
@@ -2018,10 +2250,14 @@
   }
 
   function rerollShop() {
-    if (S.phase !== 'shop' || !canPay(S.shopRerollCost)) return;
-    S.money -= S.shopRerollCost; J.money.up(0.3);
-    S.stats.spent += S.shopRerollCost;
-    S.shopRerollCost++;
+    if (S.phase !== 'shop') return;
+    if (S.shopFree > 0) S.shopFree--;   // Telefon: Fresh Stock (kostet nichts und macht den nächsten nicht teurer)
+    else {
+      if (!canPay(S.shopRerollCost)) return;
+      S.money -= S.shopRerollCost; J.money.up(0.3);
+      S.stats.spent += S.shopRerollCost;
+      S.shopRerollCost++;
+    }
     TUT.event('shopReroll');
     shopRerolled();
     sfx('shuffle');
@@ -2060,6 +2296,7 @@
     }
     if (it.type === 'upgrade') {
       S.upgrades.push(it.id); S.upgradeOffer = null;
+      if (it.id === 'challengers_bell' && S.boss && !isFinal() && !S.boss.lv && S.boss.def.lv.length > 1) { S.boss = R.bossOf(S.boss.id, 1); seen('elite', S.boss.id); }
       sp.dissolveOut(0.5, { colours: [P.WHITE, TYPE_COL.upgrade] });
       refreshUpgrades();
       upgSprites[upgSprites.length - 1].juiceUp(0.8);
@@ -2133,7 +2370,7 @@
   eng.on('down', (m) => {
     focusBtn = null;
     if (S.phase === 'scoring' && SETTINGS.skipScore === 'tap' && !settingsOpen && !TUT.active) scoreFast = true;
-    if (settingsOpen) { const k = sliderAt(m); if (k >= 0) { sliderDrag = k; setSlider(k, m); return; } }
+    if (settingsOpen && setPane === 'settings' && !setAsk && !studioOpen) { const k = sliderAt(m); if (k >= 0) { sliderDrag = k; setSlider(k, m); return; } }
     if (!settingsOpen && songRect() && UI.inside(songRect(), m)) { skipSong(); return; }
     if (MOBILE) { if (touchTipDown(m)) return; }   // Handy: Tippen in einen Tooltip öffnet Begriffe, daneben schließt ihn
     else if (overPinnedTip(m)) return;   // Klicks in festgehaltene Tooltips gehen nicht ans Spielfeld
@@ -2146,6 +2383,7 @@
     if (TUT.modal) return;
     if (MOBILE && S.phase === 'trophies' && !settingsOpen) { trophyTap(m); return; }
     if (S.phase === 'codex' && !settingsOpen) { codexClick(m); return; }
+    if (S.phase === 'challenges' && !settingsOpen) { chalClick(m); return; }
     if (S.phase === 'history' && !settingsOpen) { historyClick(m); return; }
     if (MOBILE && S.summary && !settingsOpen) {
       const hh = sumHits.find((q) => UI.inside(q.r, m));
@@ -2182,7 +2420,7 @@
   });
   eng.on('up', (m) => {
     if (MOBILE) firstTouch();
-    if (sliderDrag >= 0) { const key = setRows()[sliderDrag].key; sliderDrag = -1; saveSettings(); if (key !== 'music') sfx('coin'); return; }
+    if (sliderDrag >= 0) { const key = setRows()[sliderDrag].key; sliderDrag = -1; if (key !== 'music') sfx('coin'); return; }
     const lp = longPress; longPress = null;
     if (!press) return;
     if (press.button) {
@@ -2223,6 +2461,9 @@
     if (studioButton(b)) return;
     if (b === B.shift) return toggleShiftMode();
     if (b.encRow !== undefined) return encPress(b.encRow);
+    if (b.phoneCard !== undefined) return phonePick(b.phoneCard);
+    if (b.phoneAct === 'answer') return phoneAnswer();
+    if (b.phoneAct === 'ignore') return phoneIgnore();
     if (b === B.gif) return saveGif(S.phase === 'history' ? history()[histSel] : S.summary);
     if (b === B.play) playHand();
     else if (b === B.roll) reroll();
@@ -2232,10 +2473,19 @@
     else if (b === B.tutDone) finishTutorial();
     else if (b === B.tutSlot) startTutorial();
     else if (b === B.tutX) TUT.closeX();
-    else if (b === B.options || b === B.settings) { settingsOpen = true; sfx('panel'); }
-    else if (b === B.close) { settingsOpen = false; clearLockView(); sfx('panel', { close: true }); }
+    else if (b === B.options) openSettings('settings');
+    else if (b === B.settings) openSettings(MOBILE ? 'settings' : 'pause');
+    else if (b === B.close) closeSettings();
+    else if (b === B.apply) applyAndKeep();
+    else if (b === B.askApply) { applyAndKeep(); leaveSettings(); }
+    else if (b === B.askDiscard) { discardSettings(); leaveSettings(); }
+    else if (b === B.askStay) { setAsk = false; sfx('panel', { close: true }); }
+    else if (b === B.resume) { settingsOpen = false; sfx('panel', { close: true }); }
+    else if (b === B.pStats) { setPane = 'stats'; sfx('page'); }
+    else if (b === B.pSettings) openSettings('settings', true);
+    else if (b === B.pBack) { setPane = 'pause'; sfx('page'); }
     else if (b === B.quit) saveAndQuit();
-    else if (b.setTab !== undefined) { if (setTab !== b.setTab) { setTab = b.setTab; clearLockView(); sfx('page'); } }
+    else if (b.setTab !== undefined) { if (setTab !== b.setTab) { setTab = b.setTab; setInfo = 0; clearLockView(); sfx('page'); } }
     else if (b.setRow !== undefined) { const key = SET_TABS[b.inTab].rows[b.setRow].key; if (b.action) settingAction(key, b); else changeSetting(key, b.dir); }
     else if (b === B.trophies) openTrophies();
     else if (b === B.codex) openCodex();
@@ -2247,8 +2497,11 @@
     else if (b === B.endless) startEndless();
     else if (b === B.retry) retryRun();
     else if (b === B.home) backToMenu();
-    else if (b === B.back) { if (S.phase === 'cups') openSlots(); else if (S.phase === 'history' && histSel >= 0) { histSel = -1; tips = []; sfx('page'); } else setupMenu(); }
+    else if (b === B.back) { if (S.phase === 'challenges') openCups(); else if (S.phase === 'cups') openSlots(); else if (S.phase === 'history' && histSel >= 0) { histSel = -1; tips = []; sfx('page'); } else setupMenu(); }
     else if (b === B.begin) beginRun();
+    else if (b === B.challenges) openChallenges();
+    else if (b === B.chStart) chalStart();
+    else if (b.chTab !== undefined) { chTab = b.chTab; chHits = []; tips = []; sfx('page'); }
     else if (b === B.collect) collectCups();
     else if (b === B.cupPrev) selectCup(cupSel - 1);
     else if (b === B.cupNext) selectCup(cupSel + 1);
@@ -2272,9 +2525,10 @@
     if (e.key === 'Tab') { e.preventDefault(); moveFocus(e.shiftKey ? -1 : 1); return; }
     if ((e.key === 'Enter' || k === ' ') && focusBtn && activeButtons().includes(focusBtn) && !focusBtn.disabled) { e.preventDefault(); sfx('click'); onButton(focusBtn); return; }
     if (S.phase === 'menu' && !settingsOpen && konamiKey(k)) return;
-    const name = typedName(k);
-    if (name === 5) { callJonny(); return; }
-    if (name >= 2) return;   // Tasten gehören zu "jonny" (o und n öffnen sonst Einstellungen / überspringen den Song)
+    const tw = typedWord(k);
+    if (tw.word === 'jonny' && tw.n === 5) { typed = ''; callJonny(); return; }
+    if (tw.word && tw.word !== 'jonny' && tw.n === tw.word.length && !settingsOpen) { menuWord(tw.word); return; }
+    if (tw.n >= 2) return;   // Tasten gehören zu einem Wort (o und n öffnen sonst Einstellungen / überspringen den Song)
     if (k === 'n' && !e.repeat) { skipSong(); return; }   // Song überspringen, überall
     if (TUT.modal) return;
     if (k === ' ' && TUT.active && !settingsOpen) { e.preventDefault(); TUT.advance(); return; }
@@ -2283,14 +2537,14 @@
     if (k === 'escape') {
       focusBtn = null;
       if (settingsOpen && studioOpen) { studioOpen = false; sfx('panel', { close: true }); }
-      else if (settingsOpen) { settingsOpen = false; clearLockView(); sfx('panel', { close: true }); } else if (S.phase === 'cups') openSlots();
+      else if (settingsOpen) escSettings(); else if (S.phase === 'challenges') openCups(); else if (S.phase === 'cups') openSlots();
       else if (S.phase === 'history' && histSel >= 0) { histSel = -1; tips = []; sfx('page'); }
       else if (['slots', 'trophies', 'codex', 'history'].includes(S.phase)) setupMenu();
       else if (selected) selected = null;
-      else if (!inMenus() && !TUT.modal) { settingsOpen = true; sfx('panel'); }   // Pause: Einstellungen mit der Statistik des Runs
+      else if (!inMenus() && !TUT.modal) openSettings(MOBILE ? 'settings' : 'pause');   // Pause: Menü mit der Statistik des Runs
       return;
     }
-    if (k === 'o') { settingsOpen = !settingsOpen; sfx('panel', { close: !settingsOpen }); return; }
+    if (k === 'o') { if (!settingsOpen) openSettings('settings'); else if (setPane === 'settings' && !studioOpen) closeSettings(); return; }
     if (S.choice || settingsOpen) return;
     if (k === ' ' && S.phase === 'scoring' && SETTINGS.skipScore === 'tap' && !TUT.active) { e.preventDefault(); scoreFast = true; return; }
     if ((k === '[' || k === ']') && !inMenus()) return cycleSelected(k === ']' ? 1 : -1);
@@ -2318,7 +2572,8 @@
       if (e.key === 'ArrowRight') return selectCup(cupSel + 1);
     }
     if (S.phase === 'shop' && e.key === 'Enter') return leaveShop();
-    if (S.phase === 'encounter' && /^[1-6]$/.test(e.key)) { const b = encButtons()[+e.key - 1]; if (b && !b.disabled) { sfx('click'); onButton(b); } return; }
+    if (S.phase === 'phone') { phoneKey(e); return; }
+    if (S.phase === 'encounter' && /^[1-8]$/.test(e.key)) { const b = encButtons()[+e.key - 1]; if (b && !b.disabled) { sfx('click'); onButton(b); } return; }
     if (S.phase === 'select') {
       if (e.key === 'Enter') playHand();
       else if (k === 'r') reroll();
@@ -2329,6 +2584,7 @@
 
   // ── Update ──────────────────────────────────────────────────────────────
   function update() {
+    bossVisuals();
     const sel = S.phase === 'select';
     const every3 = setOn('reroll', 5) && (S.rerollTotal + 1) % 3 === 0;
     B.play.disabled = !sel;
@@ -2339,9 +2595,19 @@
     B.home.x = B.retry.x - (L.homeGap || 180); B.home.y = B.retry.y;
     B.quit.disabled = !canQuit();
     B.quit.label = TUT.active ? 'Leave Tutorial' : ['lost', 'runWon'].includes(S.phase) ? 'Main Menu' : 'Save & Quit';
-    if (!MOBILE) { if (inMenus()) { B.close.x = 560; B.close.w = 160; } else { B.close.x = 450; B.close.w = 180; } }
+    if (!MOBILE) placeSettingsPC();
+    B.apply.disabled = !setDirty();
+    B.pStats.disabled = !S.stats || TUT.active;
+    for (const b of SET_BTNS) if (!b.action) b.disabled = !!(SETTINGS.photosafe && SAFE_KEYS.includes(SET_TABS[b.inTab].rows[b.setRow].key));
     B.begin.disabled = !cupAt(cupSel);
-    if (!MOBILE) { B.back.x = S.phase === 'cups' ? 420 : 560; B.begin.x = 610; }
+    if (!MOBILE) {
+      // Knopfreihen unten mittig auf 640 ausrichten (Abstand 30)
+      const row = S.phase === 'cups' ? [B.back, B.begin, ...(Chal && profile ? [B.challenges] : [])]
+        : S.phase === 'challenges' ? [B.back, ...(chTab < 2 ? [B.chStart] : [])] : [B.back];
+      let x = 640 - (row.reduce((a, b) => a + b.w, 0) + 30 * (row.length - 1)) / 2;
+      for (const b of row) { b.x = x; x += b.w + 30; }
+      if (S.phase !== 'cups') B.begin.x = 610;
+    }
     B.cupPrev.disabled = cupSel <= 0; B.cupNext.disabled = cupSel >= cupList.length - 1;
     B.achPrev.disabled = achPage <= 0; B.achNext.disabled = achPage >= achPages() - 1;
     SET_TAB_BTNS.forEach((b, i) => { b.colour = i === setTab || (SET_TABS[i].id === 'access' && SET_TABS[setTab].id === 'access2') ? P.BLUE : darken(P.PANEL, 0.1); });
@@ -2351,9 +2617,11 @@
     }
     updateAccess();
     if (S.phase === 'encounter') placeEncounter();
+    if (S.phase === 'phone') { placePhone(); phoneTick(); }
     B.gif.disabled = gifBusy; B.gif.label = gifBusy ? 'Saving...' : 'Save GIF';
     trackSong();
     updateHead();
+    eggTick();
     if (TUT.active && TUT.everGaveUp) secret('breaking_point');
     // Würfel schlafen ein, wenn man sie lange nicht anfasst
     if (S.phase === 'select' && !settingsOpen && !TUT.active && dice.length) {
@@ -2372,15 +2640,15 @@
     if (S.phase === 'codex') { B.pagePrev.disabled = codexPage <= 0; B.pageNext.disabled = codexPage >= codexPages() - 1; CODEX_TAB_BTNS.forEach((b, i) => { b.colour = i === codexTab ? P.BLUE : darken(P.PANEL, 0.1); }); }
     if (S.phase === 'history') {
       B.pagePrev.disabled = histPage <= 0; B.pageNext.disabled = histPage >= histPages() - 1;
-      if (histSel >= 0) { B.back.w = 170; B.share.w = 190; placeRow([B.back, B.share, ...(gifOf(history()[histSel]) ? [B.gif] : [])], SUM.y + SUM.h - 60, MOBILE ? 54 : 48); B.back.label = 'Back'; }
+      if (histSel >= 0) { B.back.w = 170; B.share.w = 190; placeRow([B.back, B.share, ...(gifOf(history()[histSel]) ? [B.gif] : [])], SUM.y + SUM.h - SUM_BTN, MOBILE ? 54 : 48); B.back.label = 'Back'; }
     }
-    if (S.summary) {
+    if (S.summary && S.phase !== 'history') {
       Object.assign(B.home, { w: 170, label: 'Main Menu' }); B.retry.w = 170; B.share.w = 190; B.endless.w = 210;
-      placeRow(summaryButtons(), SUM.y + SUM.h - 60, MOBILE ? 54 : 48);
+      placeRow(summaryButtons(), SUM.y + SUM.h - SUM_BTN, MOBILE ? 54 : 48);
     }
     if (confirmBtn && eng.time > confirmBtn.until) confirmBtn = null;
-    B.shopReroll.label = 'Reroll $' + S.shopRerollCost;
-    B.shopReroll.disabled = !canPay(S.shopRerollCost);
+    B.shopReroll.label = S.shopFree > 0 ? 'Reroll Free' : 'Reroll $' + S.shopRerollCost;
+    B.shopReroll.disabled = !(S.shopFree > 0) && !canPay(S.shopRerollCost);
     B.deposit.disabled = S.money <= 0 || S.vault >= VAULT_MAX;
     B.withdraw.disabled = S.vault <= 0;
     BUY.forEach((b) => {
@@ -2665,7 +2933,7 @@
   }
   function drawPanel(ctx, inf, sz, x, y, links, progress, self) {
     const { w, h, lines, boxH, subH, tagsH } = sz, terms = [];
-    UI.box(ctx, x, y, w, h, { colour: P.L_BLACK, radius: 12, emboss: 4, outline: links ? P.GOLD : lighten(P.L_BLACK, 0.25), outlineWidth: links ? 2 : 1 });
+    UI.box(ctx, x, y, w, h, { colour: P.L_BLACK, radius: 12, emboss: 4, outline: links ? P.GOLD : lighten(P.L_BLACK, 0.25), outlineWidth: links ? 2 : 1, frame: false });
     UI.text(ctx, inf.title, x + w / 2, y + 22, { size: 24 });
     UI.box(ctx, x + 8, y + 40, w - 16, boxH, { colour: '#FFFFFF', radius: 8, shadow: false });
     const tk = tipK();
@@ -2759,7 +3027,7 @@
   }
   // Optionen für die Handerkennung (Vorschau, Jonnys Hilfe): wie in rules.scoreHand
   // Ermüdung, die diese Handart beim Spielen bekäme (dieselbe Handart mehrmals direkt hintereinander)
-  const fatigueFor = (name) => (S.ach && name ? R.fatigueOf(name === S.ach.last ? S.ach.streak + 1 : 1) : 0);
+  const fatigueFor = (name) => (S.ach && name ? R.fatigueScaled(name === S.ach.last ? S.ach.streak + 1 : 1, Phone.fatigueScale(phoneOwned())) : 0);
   function handOpts(faces) {
     const f = formationOn();
     return { gap: has('gap_jumper'), skullWild: has('hex_bag'), bustAt: bustAt(), formation: f, wild: f && has('keystone') ? R.keystoneSlots(faces) : [] };
@@ -2784,9 +3052,11 @@
   function shopLabels(ctx, pos) {
     (S.shop || []).forEach((it, k) => {
       if (!it) return;
-      const q = pos(k);
+      const q = pos(k), tl = UI.style.tilt ? [-0.05, 0.035, -0.025, 0.045, -0.04][k % 5] : 0;
+      ctx.save(); ctx.translate(q.x, q.price); ctx.rotate(tl); ctx.translate(-q.x, -q.price);
       UI.box(ctx, q.x - 34, q.price - 15, 68, 30, { colour: it.special ? JONNY_GOLD : P.MONEY, radius: 8, emboss: 3, outline: it.special ? '#FFFFFF' : undefined, outlineWidth: 2 });
       UI.text(ctx, '$' + it.price, q.x, q.price, { size: 22, colour: P.BLACK, shadow: false });
+      ctx.restore();
       if (it.special) {
         UI.text(ctx, '$' + it.was, q.x + 50, q.price, { size: 16, colour: P.TEXT_DIM });
         ctx.fillStyle = P.RED; ctx.fillRect(q.x + 38, q.price - 1, 24, 2);
@@ -2873,12 +3143,14 @@
 
   function draw(back, front, t) {
     drawHead(back);
+    drawDad(back);
     if (inMenus()) {
-      if (S.phase === 'menu') { L.drawMenu(back, front, t); for (const b of activeButtons()) UI.button(front, b, t); }
+      if (S.phase === 'menu') { L.drawMenu(back, front, t); drawPartyHat(front); for (const b of activeButtons()) UI.button(front, b, t); }
       else if (S.phase === 'slots') drawSlots(back, front, t);
       else if (S.phase === 'trophies') drawTrophies(back, front, t);
       else if (S.phase === 'codex') drawCodex(back, front, t);
       else if (S.phase === 'history') drawHistory(back, front, t);
+      else if (S.phase === 'challenges') drawChallenges(back, front, t);
       else drawCups(back, front, t);
       readable(() => TUT.draw(front, t));
       drawToasts(front);
@@ -2889,7 +3161,7 @@
     }
     tagRects = [];
     L.drawFrame(back, front, t);
-    if (S.phase === 'encounter') {
+    if (S.phase === 'encounter' || S.phase === 'phone') {
       /* nur Rahmen, das Fenster kommt weiter unten */
     } else if (S.phase === 'shop') {
       L.drawShop(back, front, t);
@@ -2914,6 +3186,7 @@
     readable(() => drawJonnyTalk(front, t));
     drawChoice(front, t);
     readable(() => drawEncounter(front, t));
+    readable(() => drawPhoneCall(front, t));
     drawCupDraw(back, front, t);
     drawChaos(front);
     readable(() => TUT.draw(front, t));
@@ -2922,7 +3195,7 @@
     drawPeek(front, t);
     if (S.phase !== 'menu' && !S.summary) UI.button(front, B.settings, t);
     drawSettings(front, t);
-    if (S.choice || settingsOpen || S.cupDraw || S.summary || S.phase === 'encounter') { if (!S.summary || settingsOpen) tips = []; return; }
+    if (S.choice || settingsOpen || S.cupDraw || S.summary || S.phase === 'encounter' || S.phase === 'phone') { if (!S.summary || settingsOpen) tips = []; return; }
     readable(() => { if (MOBILE) drawTipsTouch(front); else drawTips(front); });
   }
 
@@ -2930,20 +3203,34 @@
   // Gespeichert in localStorage. Paletten: ui/palettes.js, Hintergründe: BalatroFX.BG_STYLES.
   const BASE_PALETTE = Object.assign({}, P);
   const PALETTES = window.WG_PALETTES || [];
+  // Look > Own colours: Aleators eigene Akzentfarben über "Felt & Brass" (Spieltisch: Tinte, Messing, Ochsenblut, Elfenbein)
+  const OWN_COLOURS = {
+    RED: '#C0483A', BLUE: '#2B8A8F', GREEN: '#6A9F4F', ORANGE: '#D38A3B', GOLD: '#DDB25E', MONEY: '#E4BC66', PURPLE: '#7D6198',
+    PANEL: '#34433A', PANEL_DARK: '#1F2924', L_BLACK: '#47443A', TEXT_SOFT: '#F0E7D0', TEXT_LABEL: '#E4D9BC',
+    CHIPS: '#2B8A8F', MULT: '#C0483A', XMULT: '#C0483A', OVERLAY_SOLID: 'rgba(24,31,27,0.97)', OVERLAY: 'rgba(24,31,27,0.94)',
+  };
   const BG_STYLES = FX.BG_STYLES || [{ id: 'swirl', name: 'Swirl (Original)' }];
   const FONTS = [
     { id: 'aleator', name: 'Aleator Pixel', css: "'Aleator Pixel', 'Pixelify Sans', monospace" },
+    { id: 'jersey10', name: 'Jersey 10', css: "'Jersey 10', 'Pixelify Sans', monospace" },
     { id: 'pixelify', name: 'Pixelify Sans', css: "'Pixelify Sans', 'Courier New', monospace" },
   ];
-  // Gewählter Look: Felt & Brass, Lava, Pixelify Sans. SETTINGS_VERSION erhöhen, um gespeicherte Werte einmalig zu verwerfen.
+  // Gewählter Look: Felt & Brass, Lava, Jersey 10 (FONTS[0] bleibt Aleator Pixel: Überschriften). SETTINGS_VERSION erhöhen, um gespeicherte Werte einmalig zu verwerfen.
   const SETTINGS_VERSION = 2;
   // Lautstärken in Prozent (0–100); volScale markiert das neue Format (früher 0–10)
-  const SETTINGS = { v: SETTINGS_VERSION, palette: 'felt', background: 'lava', font: 'pixelify', crt: true, master: 100, music: 70, sfx: 90, volScale: 100,
+  const SETTINGS = { v: SETTINGS_VERSION, palette: 'felt', background: 'lava', font: 'jersey10', fontV: 0, crt: true, master: 100, music: 70, sfx: 90, volScale: 100,
     voice: 100, songTitles: true, muteBg: false, shake: 'full', particles: 'full', speed: 1, tipDelay: 1, textSpeed: 1, jonnyTalk: 'normal',
     material: 'matte', lookV: 0, cvd: 'off', shapeHints: false, highContrast: false, textSize: 1, readFont: false, bgMotion: 1, bgBright: 1,
-    noFlash: false, reduceMotion: false, skipScore: 'off', clickShift: false, studio: null, studioSaves: [null, null, null] };
+    noFlash: false, reduceMotion: false, skipScore: 'off', clickShift: false, studio: null, studioSaves: [null, null, null], photosafe: false,
+    lookShadow: true, lookBevel: true, lookCalm: true, lookFrame: true, lookTilt: true, lookText: true, lookOwn: true, lookIcons: true, lookButtons: true };
+  // Photosensitive safe: solange an, gelten diese Werte statt der eigenen (die bleiben gespeichert und kommen beim Ausschalten zurück)
+  const SAFE = { noFlash: true, reduceMotion: true, bgMotion: 0.35, shake: 'off', particles: 'reduced', crt: false };
+  const SAFE_KEYS = Object.keys(SAFE);
+  const setEff = (key) => (SETTINGS.photosafe && key in SAFE ? SAFE[key] : SETTINGS[key]);
   // Die Looks wurden auf Freischaltungen umgestellt: einmalig alle auf die freien Looks zurücksetzen (Lautstärken usw. bleiben)
   const LOOK_VERSION = 1;
+  // Jersey 10 ist seit 2026-11-12 die Standardschrift: gespeicherte Einstellungen einmalig darauf umstellen
+  const FONT_VERSION = 1;
   // Nur für die Entwicklung: ?devlooks zeigt alles, auch Original und Swirl, und erlaubt ?palette= / ?background=
   const devLooks = /[?&]devlooks\b/.test(location.search);
   const CHOICES = {
@@ -2961,6 +3248,8 @@
     reduceMotion: () => [[false, 'Off'], [true, 'On']],
     skipScore: () => [['off', 'Off'], ['tap', 'Tap to skip'], ['always', 'Always fast']],
     clickShift: () => [[false, 'Off'], [true, 'On']],
+    photosafe: () => [[false, 'Off'], [true, 'On']],
+    ...Object.fromEntries(['lookShadow', 'lookBevel', 'lookCalm', 'lookFrame', 'lookTilt', 'lookText', 'lookOwn', 'lookIcons', 'lookButtons'].map((k) => [k, () => [[false, 'Off'], [true, 'On']]])),
     font: () => FONTS.map((x) => [x.id, x.name]),
     crt: () => [[true, 'On'], [false, 'Off']],
     songTitles: () => [[true, 'On'], [false, 'Off']],
@@ -2979,6 +3268,73 @@
     codex: 'PURPLE', history: 'GREEN', share: 'BLUE', endless: 'PURPLE', gif: 'PURPLE', pagePrev: 'ORANGE', pageNext: 'ORANGE' };
   let settingsOpen = false;
   let PAL = PALETTES[0];
+  // Fenster über dem Spiel: 'pause' (PC, Esc im Spiel), 'stats' (große Statistik) oder 'settings'.
+  // Änderungen wirken sofort als Vorschau, gespeichert wird erst mit Apply; setSnap = zuletzt gespeicherter Stand.
+  let setPane = 'settings', setFromPause = false, setAsk = false, setSnap = null, setInfo = 0;
+  const setDirty = () => setSnap !== null && JSON.stringify(SETTINGS) !== setSnap;
+  function openSettings(pane, fromPause = false) {
+    if (!settingsOpen) sfx('panel'); else sfx('page');
+    settingsOpen = true; setPane = pane; setFromPause = fromPause; setAsk = false;
+    if (pane === 'settings') { setSnap = JSON.stringify(SETTINGS); setInfo = 0; }
+  }
+  // Zurück aus den Einstellungen: ins Pause-Menü, wenn es von dort kam, sonst ganz zu
+  function leaveSettings() {
+    setAsk = false; setSnap = null; clearLockView(); sliderDrag = -1;
+    if (setFromPause && !inMenus()) { setPane = 'pause'; sfx('page'); } else { settingsOpen = false; sfx('panel', { close: true }); }
+  }
+  function closeSettings() {
+    if (setDirty()) { setAsk = true; sfx('panel'); return; }
+    leaveSettings();
+  }
+  function escSettings() {
+    if (setPane === 'pause') { settingsOpen = false; sfx('panel', { close: true }); }
+    else if (setPane === 'stats') { setPane = 'pause'; sfx('page'); }
+    else if (setAsk) { setAsk = false; sfx('panel', { close: true }); }
+    else closeSettings();
+  }
+  function applyAndKeep() {
+    if (!setDirty()) return;
+    saveSettings(); setSnap = JSON.stringify(SETTINGS);
+    sfx('save');
+    eng.popup(640, MOBILE ? 560 : 600, 'Settings saved', { colour: P.GREEN, size: 22, life: 1.2 });
+  }
+  function discardSettings() {
+    if (setSnap === null) return;
+    const old = JSON.parse(setSnap), hints = SETTINGS.shapeHints;
+    for (const k of Object.keys(SETTINGS)) if (!(k in old)) delete SETTINGS[k];
+    Object.assign(SETTINGS, old);
+    applySettings();
+    if (hints !== SETTINGS.shapeHints) refreshAllFaces();
+  }
+  // Das Colour Studio speichert sofort, aber nur seine eigenen Werte (offene Änderungen anderer Zeilen bleiben ungespeichert)
+  function saveStudio() {
+    if (setSnap === null) return saveSettings();
+    const c = JSON.parse(setSnap);
+    c.studio = SETTINGS.studio; c.studioSaves = SETTINGS.studioSaves;
+    setSnap = JSON.stringify(c);
+    try { localStorage.setItem('wg_settings', setSnap); } catch (e) { /* ohne Speicher weiter */ }
+  }
+  function settingsButtons() {
+    if (setAsk) return [B.askApply, B.askDiscard, B.askStay];
+    if (!MOBILE && setPane === 'pause') return [B.resume, ...(B.pStats.disabled ? [] : [B.pStats]), B.pSettings, B.quit];
+    if (!MOBILE && setPane === 'stats') return [B.pBack];
+    return [...visTabBtns(), ...setBtnsNow(), B.close, B.apply, ...(MOBILE && !inMenus() ? [B.quit] : [])];
+  }
+  // PC: Reiter (Look > Hand-placed tilt: Breite nach Text, der offene ragt etwas über das Fenster), Close/Apply, Pause-Knöpfe
+  function placeSettingsPC() {
+    const vt = visTabBtns(), tilt = UI.style.tilt, gap = 8;
+    const ws = vt.map((b) => (tilt ? 66 + b.label.length * 9 : 124));
+    let x = 640 - (ws.reduce((a, w) => a + w, 0) + gap * (vt.length - 1)) / 2;
+    vt.forEach((b, i) => {
+      const on = b.setTab === setTab || (SET_TABS[b.setTab].id === 'access' && SET_TABS[setTab].id === 'access2');
+      Object.assign(b, { x, w: ws[i], y: on && tilt ? 64 : 70, h: on && tilt ? 46 : 40, size: 19, tilt: on ? -0.02 : 0 });
+      x += ws[i] + gap;
+    });
+    Object.assign(B.close, { x: 450, y: 610, w: 180, h: 48 }); Object.assign(B.apply, { x: 650, y: 610, w: 180, h: 48 });
+    if (setPane === 'pause') Object.assign(B.quit, { x: 490, y: 470, w: 300, h: 54, size: 24, tilt: 0.012 });
+    else Object.assign(B.quit, { tilt: 0 });
+    [B.askApply, B.askDiscard, B.askStay].forEach((b, i) => Object.assign(b, { x: 640 - 330 + i * 225, y: 400, w: 210, h: 52 }));
+  }
 
   function loadSettings() {
     try {
@@ -2989,6 +3345,7 @@
       }
     } catch (e) { /* Standardwerte */ }
     if (SETTINGS.lookV !== LOOK_VERSION) { SETTINGS.palette = 'felt'; SETTINGS.background = 'lava'; SETTINGS.material = 'matte'; SETTINGS.lookV = LOOK_VERSION; }
+    if (SETTINGS.fontV !== FONT_VERSION) { SETTINGS.font = 'jersey10'; SETTINGS.fontV = FONT_VERSION; }
     if (!SETTINGS.studio) SETTINGS.studio = studioDefault();
     const q = location.search;
     if (devLooks) for (const k of ['palette', 'background', 'font']) { const m = q.match(new RegExp('[?&]' + k + '=([\\w-]+)')); if (m) SETTINGS[k] = m[1]; }
@@ -3001,13 +3358,25 @@
   const lookOwned = (kind, id) => devLooks || Cos.isOwned(meta(), ACH, kind, id);
   const lockView = {};
   const clearLockView = () => { for (const k of LOOK_KEYS) delete lockView[k]; };
-  const unlockText = (kind, id) => { const a = ACH && ACH.SOURCE[Cos.key(kind, id)]; return !a ? 'Locked' : a.secret ? 'Locked: find a secret' : 'Unlock: ' + a.name + ' - ' + a.desc; };
+  const unlockText = (kind, id) => {
+    const a = ACH && ACH.SOURCE[Cos.key(kind, id)];
+    if (!a && chalSource(kind, id)) return 'Unlock: ' + chalSource(kind, id);
+    return !a ? 'Locked' : a.secret ? 'Locked: find a secret' : 'Unlock: ' + a.name + ' - ' + a.desc;
+  };
+  function chalSource(kind, id) {
+    if (!Chal) return null;
+    if (kind === 'swatch' && id.startsWith('build_')) return 'Build Mastery - ' + R.TAGS[id.slice(6)].name + ' 1 star (Challenges)';
+    if (kind === 'material' && id.startsWith('aura_')) return 'Build Mastery - ' + R.TAGS[id.slice(5)].name + ' 3 stars (Challenges)';
+    for (const c of Chal.LIST) if (Chal.winReward(c.id).some(([k, v]) => k === kind && v === id)) return 'Win the challenge ' + c.name;
+    for (const [n, [k, v]] of Chal.STREAK_REWARDS) if (k === kind && v === id) return 'Play the Daily Challenge ' + n + ' days in a row';
+    return null;
+  }
   function lockHint() {
     for (const k of LOOK_KEYS) if (lockView[k] !== undefined) return unlockText(k, lockView[k]);
     return SET_TABS[setTab].id === 'style' && !studioOwned() ? 'Win a run to open the Colour Studio' : null;
   }
   const settingName = (key) => {
-    const v = lockView[key] !== undefined ? lockView[key] : settingValue(key), c = CHOICES[key]().find((x) => x[0] === v);
+    const v = lockView[key] !== undefined ? lockView[key] : SETTINGS.photosafe && key in SAFE ? SAFE[key] : settingValue(key), c = CHOICES[key]().find((x) => x[0] === v);
     return !c ? '?' : lockView[key] !== undefined ? c[1] + ' (locked)' : c[1];
   };
   function changeSetting(key, dir) {
@@ -3022,7 +3391,7 @@
     if (look && !lookOwned(key, v)) { lockView[key] = v; return; }
     if (look) delete lockView[key];
     SETTINGS[key] = v;
-    saveSettings(); applySettings();
+    applySettings();
     if (key === 'shapeHints') refreshAllFaces();
     if (key === 'background' && studioOpen) placeStudio();
   }
@@ -3039,15 +3408,17 @@
     if (!lookOwned('background', SETTINGS.background) || !BG_STYLES.some((x) => x.id === SETTINGS.background)) SETTINGS.background = 'lava';
     if (!lookOwned('material', SETTINGS.material)) SETTINGS.material = 'matte';
     Object.assign(P, BASE_PALETTE, PAL.colours);
+    // Look > Own colours: Aleators eigene Farben auf der Standard-Palette (andere Paletten bleiben, wie sie sind)
+    if (SETTINGS.lookOwn && PAL.id === 'felt') Object.assign(P, OWN_COLOURS);
     // Reihenfolge: Palette < eigene Farben < Hoher Kontrast < Farbsehen (Barrierefreiheit hat immer das letzte Wort)
     if (studioActive()) Object.assign(P, Col.deriveUi(SETTINGS.studio.ui1, SETTINGS.studio.ui2));
     if (SETTINGS.highContrast) Object.assign(P, Col.HIGH_CONTRAST);
     if (Col.CVD[SETTINGS.cvd]) Object.assign(P, Col.CVD[SETTINGS.cvd]);
     UI.textOutline = !!SETTINGS.highContrast;
-    UI.motionK = SETTINGS.reduceMotion ? 0 : 1;
-    eng.bgMotion = +SETTINGS.bgMotion; eng.bgBright = +SETTINGS.bgBright * (SETTINGS.highContrast ? 0.6 : 1);
-    eng.noFlash = !!SETTINGS.noFlash; eng.motionK = SETTINGS.reduceMotion ? 0 : 1; eng.juiceK = SETTINGS.reduceMotion ? 0.25 : 1;
-    eng.crt.noise = SETTINGS.reduceMotion ? 0 : CRT_NOISE;
+    UI.motionK = setEff('reduceMotion') ? 0 : 1;
+    eng.bgMotion = +setEff('bgMotion'); eng.bgBright = +SETTINGS.bgBright * (SETTINGS.highContrast ? 0.6 : 1);
+    eng.noFlash = !!setEff('noFlash'); eng.motionK = setEff('reduceMotion') ? 0 : 1; eng.juiceK = setEff('reduceMotion') ? 0.25 : 1;
+    eng.crt.noise = setEff('reduceMotion') ? 0 : CRT_NOISE;
     shapeHintsOn = !!SETTINGS.shapeHints;
     const mt = Cos.MATERIAL_BY_ID[SETTINGS.material];
     MAT = mt && mt.id !== 'matte' ? mt : null;
@@ -3055,12 +3426,25 @@
     BUY.forEach((b) => { b.colour = P.BLUE; });
     SET_BTNS.forEach((b) => { b.colour = b.action && !b.soft ? P.RED : P.BLUE; });
     B.trophies.colour = darken(P.GOLD, 0.2);
+    Object.assign(B.apply, { colour: P.GREEN }); B.askApply.colour = P.GREEN; B.askDiscard.colour = P.RED; B.askStay.colour = P.L_BLACK;
+    B.resume.colour = P.BLUE; B.pBack.colour = P.RED;
+    // Look > Calm menu buttons: nur PLAY bleibt kräftig, alle anderen Menüknöpfe teilen eine ruhige Farbe
+    const hex = (c, alt) => (/^#[0-9a-f]{6}$/i.test(c) ? c : alt);
+    const calm = lighten(hex(P.PANEL, '#3B4A3E'), 0.1);
+    if (SETTINGS.lookCalm) for (const k of ['options', 'codex', 'history', 'trophies']) B[k].colour = calm;
+    B.pStats.colour = B.pSettings.colour = SETTINGS.lookCalm ? calm : P.L_BLACK;
+    // Look-Schalter für die Boxen der BalatroFX-Lib
+    Object.assign(UI.style, { hardShadow: !!SETTINGS.lookShadow, bevel: !!SETTINGS.lookBevel, frames: !!SETTINGS.lookFrame,
+      tilt: !!SETTINGS.lookTilt, darkOutline: !!SETTINGS.lookIcons, liveButtons: MOBILE || !!SETTINGS.lookButtons, shadowColour: darken(hex(P.PANEL_DARK, '#253029'), 0.55) });
+    UI.textMap = SETTINGS.lookText ? window.WG_TEXTS || null : null;
     Object.assign(TYPE_COL, { constellation: P.PLANET, oracle: P.TAROT, die: P.GREEN });
     // Hintergrund-Stil, Schrift, CRT
     if (eng.setBackgroundStyle) eng.setBackgroundStyle(SETTINGS.background);
     if (SETTINGS.font === 'wuerfel') SETTINGS.font = 'aleator'; // alter Schrift-Name
     UI.FONT = (FONTS.find((x) => x.id === SETTINGS.font) || FONTS[0]).css;
-    eng.crt.enabled = !!SETTINGS.crt;
+    // Look > Own font: Überschriften in Aleator Pixel (nicht mit "Readable font")
+    UI.TITLE_FONT = SETTINGS.lookOwn && !SETTINGS.readFont ? FONTS[0].css : null;
+    eng.crt.enabled = !!setEff('crt');
     eng.timeScale = +SETTINGS.speed || 1;
     TIP_DELAY = +SETTINGS.tipDelay || 1;
     applyVolumes();
@@ -3081,9 +3465,9 @@
   // Bildschirmwackeln und Partikel nach Einstellung abschwächen
   const SHAKE_F = { full: 1, reduced: 0.45, off: 0 }, PARTICLE_F = { full: 1, reduced: 0.5, minimal: 0.2 };
   const baseShake = eng.shake.bind(eng), baseEmit = eng.emit.bind(eng);
-  eng.shake = (a = 6) => { const f = SHAKE_F[SETTINGS.shake]; if (f === undefined || f > 0) baseShake(a * (f === undefined ? 1 : f)); };
+  eng.shake = (a = 6) => { const f = SHAKE_F[setEff('shake')]; if (f === undefined || f > 0) baseShake(a * (f === undefined ? 1 : f)); };
   eng.emit = (x, y, o = {}) => {
-    const f = PARTICLE_F[SETTINGS.particles] || 1;
+    const f = PARTICLE_F[setEff('particles')] || 1;
     if (f >= 1) return baseEmit(x, y, o);
     const n = o.count !== undefined ? o.count : 14;
     return baseEmit(x, y, Object.assign({}, o, { count: Math.max(1, Math.round(n * f)) }));
@@ -3108,11 +3492,6 @@
       return;
     }
     if (key === 'accMore' || key === 'accBack') { setTab = SET_TABS.findIndex((x) => x.id === (key === 'accMore' ? 'access2' : 'access')); sfx('page'); return; }
-    if (key === 'photosafe') {
-      Object.assign(SETTINGS, { noFlash: true, reduceMotion: true, bgMotion: 0.35, shake: 'off', particles: 'reduced', crt: false });
-      saveSettings(); applySettings();
-      eng.popup(640, 560, 'Photosensitive safe on', { colour: P.GOLD, size: 22, life: 1.4 });
-    }
   }
   // Regler ziehen
   let sliderDrag = -1;
@@ -3143,6 +3522,8 @@
   // ── Barrierefreiheit: Tastatur-Fokus, Shift per Klick, Wertung überspringen, lesbare Schrift ──
   const READ_FONT = "Verdana, 'Trebuchet MS', Arial, sans-serif";
   const CRT_NOISE = eng.crt.noise;
+  // Logo im Hauptmenü: eigene, wuchtige Schrift nur für den Spieltitel (Jacquard 12, OFL; Raster 12 px -> Größen als Vielfache von 12)
+  UI.LOGO_FONT = "'Jacquard 12', 'Aleator Pixel', monospace";
   function readable(fn) {
     if (!SETTINGS.readFont) return fn();
     const f = UI.FONT;
@@ -3205,7 +3586,7 @@
       if (sp._dead || sp.dissolve > 0 || !sp.visible) continue;
       const h = (sp.w * (sp.vs || sp.s)) / 2, snap = (v) => Math.round(v / px) * px, x = snap(sp.x), y = snap(sp.y);
       if (MAT.halo) {
-        const pulse = SETTINGS.reduceMotion ? 1 : S.phase === 'scoring' ? 0.75 + 0.45 * Math.sin(t * 7 + sp.seed * 6) : 0.85 + 0.15 * Math.sin(t * 1.6 + sp.seed * 6);
+        const pulse = setEff('reduceMotion') ? 1 : S.phase === 'scoring' ? 0.75 + 0.45 * Math.sin(t * 7 + sp.seed * 6) : 0.85 + 0.15 * Math.sin(t * 1.6 + sp.seed * 6);
         ctx.fillStyle = MAT.halo[0];
         [[9, 0.32], [6, 0.55], [3, 1]].forEach(([d, a]) => {
           ctx.globalAlpha = Math.min(1, MAT.halo[1] * a * pulse);
@@ -3216,10 +3597,10 @@
         ctx.globalAlpha = 1;
       }
       for (let k = 0; k < (MAT.sparkle || 0); k++) {
-        const r = sp.seed * 97 + k * 13.7, a = (r * 2.3) % (Math.PI * 2), life = SETTINGS.reduceMotion ? 0.5 : (t * 0.45 + r * 0.61) % 1;
-        if (!SETTINGS.reduceMotion && life > 0.3) continue;
+        const r = sp.seed * 97 + k * 13.7, a = (r * 2.3) % (Math.PI * 2), life = setEff('reduceMotion') ? 0.5 : (t * 0.45 + r * 0.61) % 1;
+        if (!setEff('reduceMotion') && life > 0.3) continue;
         const d = h * 1.32 + ((r * 7) % 16), sx = snap(x + Math.cos(a) * d), sy = snap(y + Math.sin(a) * d);
-        ctx.fillStyle = '#FFFFFF'; ctx.globalAlpha = SETTINGS.reduceMotion ? 0.7 : 1 - life / 0.3;
+        ctx.fillStyle = '#FFFFFF'; ctx.globalAlpha = setEff('reduceMotion') ? 0.7 : 1 - life / 0.3;
         ctx.fillRect(sx, sy, px, px);
         ctx.fillRect(sx - px, sy, px * 3, px); ctx.fillRect(sx, sy - px, px, px * 3);
         ctx.globalAlpha = 1;
@@ -3271,8 +3652,9 @@
     });
     const cell = 48 * k, step = cell + 8, x0 = px + 306 * k, y0 = py + 66 * k;
     STU.sw.forEach((b, i) => {
-      const special = i >= Cos.SWATCHES.length, idx = special ? i - Cos.SWATCHES.length : i, per = special ? 6 : 8;
-      const col = idx % per, row = Math.floor(idx / per) + (special ? 2 : 0);
+      // Grundfarben: 8 pro Reihe. Sonderfarben: erste Reihe 6 (daneben Auto), danach 8 pro Reihe
+      const special = i >= Cos.SWATCHES.length, idx = special ? i - Cos.SWATCHES.length : i;
+      const col = !special ? idx % 8 : idx < 6 ? idx : (idx - 6) % 8, row = !special ? Math.floor(idx / 8) : idx < 6 ? 2 : 3 + Math.floor((idx - 6) / 8);
       Object.assign(b, { x: x0 + col * step, y: y0 + row * step + (special ? 34 * k : 0), w: cell, h: cell, size: 24 * k });
       const locked = swatchLocked(ALL_SWATCHES[i]);
       b.colour = locked ? P.PANEL_DARK : ALL_SWATCHES[i].hex; b.label = locked ? '?' : '';
@@ -3288,7 +3670,7 @@
   const studioButtons = () => [...STU.tgt.filter((b) => !b.hidden), ...STU.sw, STU.auto, ...STU.save, ...STU.load, STU.reset, STU.back];
   function setStudioColour(hex) {
     SETTINGS.studio[studioTarget] = hex; SETTINGS.studio.on = true;
-    saveSettings(); applySettings(); placeStudio();
+    saveStudio(); applySettings(); placeStudio();
   }
   function studioButton(b) {
     if (b.stuTarget) { studioTarget = b.stuTarget; studioMsg = null; placeStudio(); sfx('card'); return true; }
@@ -3298,9 +3680,9 @@
       studioMsg = null; setStudioColour(s.hex); return true;
     }
     if (b.stuAuto) { setStudioColour(null); return true; }
-    if (b.stuSave !== undefined) { SETTINGS.studioSaves[b.stuSave] = Object.assign({}, SETTINGS.studio); saveSettings(); placeStudio(); studioMsg = 'Saved to slot ' + (b.stuSave + 1); return true; }
-    if (b.stuLoad !== undefined) { SETTINGS.studio = Object.assign({}, SETTINGS.studioSaves[b.stuLoad], { on: true }); saveSettings(); applySettings(); placeStudio(); return true; }
-    if (b.stuReset) { SETTINGS.studio = studioDefault(); saveSettings(); applySettings(); placeStudio(); studioMsg = 'Back to the ' + PAL.name + ' preset'; return true; }
+    if (b.stuSave !== undefined) { SETTINGS.studioSaves[b.stuSave] = Object.assign({}, SETTINGS.studio); saveStudio(); placeStudio(); studioMsg = 'Saved to slot ' + (b.stuSave + 1); return true; }
+    if (b.stuLoad !== undefined) { SETTINGS.studio = Object.assign({}, SETTINGS.studioSaves[b.stuLoad], { on: true }); saveStudio(); applySettings(); placeStudio(); return true; }
+    if (b.stuReset) { SETTINGS.studio = studioDefault(); saveStudio(); applySettings(); placeStudio(); studioMsg = 'Back to the ' + PAL.name + ' preset'; return true; }
     if (b.stuBack) { studioOpen = false; sfx('panel', { close: true }); return true; }
     return false;
   }
@@ -3333,7 +3715,7 @@
     if (h < 56) return;
     const x = px + 20, w = pw - 40, st = SETTINGS.studio, n = styleCount();
     const cols = [st.c1, st.c2].concat(n >= 3 ? [st.c3 || Col.autoDepth(st.c1)] : [], n >= 4 && st.c4 ? [st.c4] : []);
-    ctx.save(); ctx.beginPath(); ctx.roundRect(x, top, w, h, 10); ctx.clip();
+    ctx.save(); UI.roundRect(ctx, x, top, w, h, 10); ctx.clip();
     cols.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(x + (i * w) / cols.length, top, w / cols.length + 1, h); });
     ctx.restore();
     const pw2 = Math.min(380 * k, w - 40), ph2 = h - 22, bx = x + w / 2 - pw2 / 2, by = top + 11;
@@ -3347,7 +3729,7 @@
   }
   // Animierte Sonderfarben: nur im Hintergrund von Menü und Tisch, nie in Boss-Runden
   function animateStudioBg() {
-    if (!studioActive() || SETTINGS.reduceMotion || SETTINGS.noFlash || !['menu', 'table'].includes(bgName)) return;
+    if (!studioActive() || setEff('reduceMotion') || setEff('noFlash') || !['menu', 'table'].includes(bgName)) return;
     if (bgName === 'table' && isBossBlind() && S.boss && !inMenus()) return;
     const time = nowSec();
     for (const key of ['c1', 'c2']) {
@@ -3359,13 +3741,15 @@
   }
 
 
-  // ── Begegnungen zwischen den Runden (Regeln: encounters.js) ─────────────
-  function freshEnc() { return { seen: [], stage: 0, luck: 0, chalk: null, cool: false, prophecy: null }; }
+  // ── Begegnungen zwischen den Runden (Regeln: encounters.js, Kulissen: ui/encounter-scenes.js) ─────────────
+  function freshEnc() { return { seen: [], stage: 0, luck: 0, luckAmt: 5, chalk: null, cool: false, prophecy: null }; }
   let encNow = null;
-  const ENC_BTNS = [0, 1, 2, 3, 4, 5].map((k) => btn(0, 0, 220, 44, '', P.BLUE, { size: 20, encRow: k }));
+  const ENC_BTNS = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => btn(0, 0, 220, 44, '', P.BLUE, { size: 20, encRow: k }));
   ALL_BUTTONS.push(...ENC_BTNS);
-  const encButtons = () => (encNow && encNow.rows ? ENC_BTNS.slice(0, encNow.rows.length) : []);
+  const encButtons = () => (encNow && encNow.rows && !encNow.busy ? ENC_BTNS.slice(0, encNow.rows.length) : []);
   const encHeat = () => blindTarget(S.blindIdx) > baseTarget(S.blindIdx);
+  const encMoving = () => !setEff('reduceMotion');
+  const encRnd = () => rng('encounter');
   function encCan(e) {
     if (e.id === 'pawnshop') return S.relics.some((r) => !r.noRefund);
     if (e.id === 'spring') return encHeat();
@@ -3383,12 +3767,13 @@
     const def = Enc.BY_ID[id];
     S.enc.seen.push(id); S.enc.stage = S.ante;
     S.phase = 'encounter'; S.score = 0; S.dispScore = 0; S.target = blindTarget(S.blindIdx); selected = null; tips = [];
-    encNow = { id, def, step: 'main', text: def.intro, then };
+    encNow = { id, def, step: 'main', text: def.intro, textT: nowSec() + 0.25, born: nowSec(), then, busy: false };
+    if (id === 'spring') encNow.heatFrom = S.target;
     seen('encounter', id);
     achieve('encounter', { id });
     setBg('shop', { spin: 1.2 });
     musicMood('shop');
-    sfx('page');
+    sfx('whoosh');
     placeEncounter();
   }
   function encEnd() {
@@ -3397,11 +3782,25 @@
     sfx('panel', { close: true });
     then();
   }
-  function encDone(text) { encNow.step = 'done'; encNow.text = text; placeEncounter(); }
-  function encStep(step, text) { encNow.step = step; if (text) encNow.text = text; placeEncounter(); sfx('page'); }
-  function encPress(k) { const row = encNow && encNow.rows[k]; if (row && !row.off) { row.act(); if (encNow) placeEncounter(); } }
-  const encPay = (v) => { S.money -= v; S.stats.spent += v; J.money.up(0.4); sfx('coin'); };
-  const encGain = (v) => { S.money += v; S.stats.earned += v; J.money.up(0.5); sfx('coin'); };
+  function encSay(text) { encNow.text = text; encNow.textT = nowSec(); }
+  // Nach Ablauf der Animation weiter, falls die Begegnung dann noch läuft
+  function encLater(sec, fn) { const e = encNow; eng.after(setEff('reduceMotion') ? Math.min(sec, 0.12) : sec, () => { if (encNow === e) { fn(); if (encNow === e) placeEncounter(); } }); }
+  function encBurst(cols, big) {
+    const g = encGeom(), s = encScene(g);
+    eng.emit(s.x + s.w / 2, s.y + s.h / 2, { count: big ? 60 : 28, colours: cols, speed: big ? 620 : 380, size: big ? 11 : 9, life: 0.9, shape: 'star' });
+    eng.shake(big ? 10 : 4);
+  }
+  function encDone(text, opt = {}) {
+    encNow.step = 'done'; encNow.busy = false; encSay(text); encNow.reward = opt.reward || null; encNow.rewardT = nowSec();
+    if (opt.good) encBurst(opt.big ? [P.GOLD, '#FFFFFF', P.ORANGE] : [P.GOLD, P.GREEN, '#FFFFFF'], opt.big);
+    if (opt.bad) eng.shake(9);
+    placeEncounter();
+  }
+  function encStep(step, text) { encNow.step = step; if (text) encSay(text); placeEncounter(); sfx('page'); }
+  function encPress(k) { const row = encNow && !encNow.busy && encNow.rows[k]; if (row && !row.off) { row.act(); if (encNow) placeEncounter(); } }
+  function encPopMoney(v) { const s = encScene(encGeom()); eng.popup(s.x + s.w / 2, s.y + 40, (v > 0 ? '+$' : '-$') + Math.abs(v), { colour: v > 0 ? P.MONEY : P.RED, size: 30, life: 1.2 }); }
+  const encPay = (v) => { S.money -= v; S.stats.spent += v; J.money.up(0.4); sfx('coin'); encPopMoney(-v); };
+  const encGain = (v) => { S.money += v; S.stats.earned += v; J.money.up(0.5); sfx('coin'); encPopMoney(v); };
   function encRemoveRelic(item) {
     const sp = relicSprites.find((q) => q.data.item === item);
     S.relics = S.relics.filter((q) => q !== item);
@@ -3409,127 +3808,761 @@
     if (sp) sp.dissolveOut(0.6, { colours: [P.MONEY, P.GOLD] });
   }
   const WALK = () => ({ label: 'Walk away', desc: 'Nothing happens. On to the shop.', walk: true, act: encEnd });
+  const BACK = (act) => ({ label: 'Back', desc: '', walk: true, act });
   const bagSpare = () => S.bag.length > 5;
   function encTradePool(item) {
     const d = R.RELIC_BY_ID[item.id], rar = Enc.NEXT_RARITY[d.rarity];
     if (!rar) return [];
     return R.RELICS.filter((q) => !q.hidden && q.rarity === rar && q.id !== 'crossroads' && open('relic', q.id) && !S.relics.some((r) => r.id === q.id) && q.tags.some((t) => d.tags.includes(t)));
   }
-  function encMystery() {
-    const vals = Enc.mysteryRoll(rng('encounter')), out = Enc.mysteryOutcome(vals), hasRoom = S.relics.length < relicMax();
-    encNow.dice = vals;
-    sfx('rattle', { n: 5, dur: 0.6 });
+
+  // Mystery Cup
+  function encShake() {
+    const e = encNow, vals = Enc.mysteryRoll(encRnd()), now = nowSec();
+    e.busy = true; e.shakeT = now; sfx('rattle', { n: 5, dur: 0.9 });
+    encLater(0.9, () => {
+      e.cupUp = nowSec(); sfx('whoosh');
+      e.dice = vals.map((v, i) => ({ v, until: nowSec() + 0.25 + i * 0.14 }));
+      vals.forEach((v, i) => encLater(0.25 + i * 0.14, () => { sfx(v ? 'land' : 'bust'); eng.shake(v ? 2 : 5); }));
+      encLater(1.05, () => { e.busy = false; e.step = 'nudge'; encMysteryPreview(); });
+    });
+  }
+  function encMysteryPreview() {
+    const e = encNow, out = Enc.mysteryOutcome(e.dice.map((d) => d.v));
+    encSay('Right now: ' + Enc.MYSTERY_TEXT[out] + '.' + (e.nudged ? ' That was your only nudge.' : ' You may nudge one die, but it could come up Skull.'));
+  }
+  function encNudge(i) {
+    const e = encNow, d = e.dice[i];
+    e.nudged = true; e.busy = true; d.v = Enc.mysteryDie(encRnd()); d.until = nowSec() + 0.55; sfx('rattle', { n: 1, dur: 0.5 });
+    encLater(0.55, () => { sfx(d.v ? 'land' : 'bust'); e.busy = false; encMysteryPreview(); });
+  }
+  function encMysteryPay() {
+    const e = encNow, vals = e.dice.map((d) => d.v), out = Enc.mysteryOutcome(vals), hasRoom = S.relics.length < relicMax();
     if (out === 'cursed') {
-      if (S.bag.length < bagMax()) { S.bag.push(R.makeDie('cursed')); refreshBag(); seen('die', 'cursed'); return encDone('Three Skulls grin at you. A Cursed Die crawls into your bag.'); }
-      return encDone('Three Skulls grin at you, but your bag is full. Lucky.');
+      if (S.bag.length < bagMax()) { S.bag.push(R.makeDie('cursed')); refreshBag(); seen('die', 'cursed'); sfx('bust'); return encDone('Three Skulls grin at you. A Cursed Die crawls into your bag.', { bad: true, reward: ['die', 'cursed'] }); }
+      return encDone('Three Skulls grin at you, but your bag is full. Lucky.', { bad: true });
     }
     if (out === 'legendary') {
       secret('mystery_five');
       const id = hasRoom && randomRelic('L', true);
-      if (id) { addRelic(id).juiceUp(0.8); jingle('fanfare', 2.5); return encDone('Five alike! ' + R.RELIC_BY_ID[id].name + ' was hiding at the bottom of the cup.'); }
-      encGain(10); return encDone('Five alike, but no room for a relic. You take $10 instead.');
+      if (id) { addRelic(id).juiceUp(0.8); jingle('fanfare', 2.5); return encDone('Five alike! ' + R.RELIC_BY_ID[id].name + ' was hiding at the bottom of the cup.', { good: true, big: true, reward: ['relic', id] }); }
+      encGain(10); return encDone('Five alike, but no room for a relic. You take $10 instead.', { good: true, big: true });
     }
     if (out === 'upgrade') {
       const id = rollUpgrade();
-      if (id) { S.upgrades.push(id); refreshUpgrades(); seen('upgrade', id); sfx('magic'); return encDone('Five in a row! You get ' + R.UPGRADE_BY_ID[id].name + ' for free.'); }
-      encGain(5); return encDone('Five in a row! The cup pays $5.');
+      if (id) { S.upgrades.push(id); refreshUpgrades(); seen('upgrade', id); sfx('magic'); return encDone('Five in a row! You get ' + R.UPGRADE_BY_ID[id].name + ' for free.', { good: true, big: true, reward: ['upgrade', id] }); }
+      encGain(5); return encDone('Five in a row! The cup pays $5.', { good: true });
     }
     if (out === 'relic') {
       const id = hasRoom && randomRelic('U');
-      if (id) { addRelic(id).juiceUp(0.8); sfx('magic'); return encDone('Three alike! You find ' + R.RELIC_BY_ID[id].name + ' in the cup.'); }
-      encGain(4); return encDone('Three alike, but no room for a relic. You take $4 instead.');
+      if (id) { addRelic(id).juiceUp(0.8); sfx('magic'); return encDone('Three alike! You find ' + R.RELIC_BY_ID[id].name + ' in the cup.', { good: true, reward: ['relic', id] }); }
+      encGain(4); return encDone('Three alike, but no room for a relic. You take $4 instead.', { good: true });
     }
-    if (out === 'money') { encGain(3); return encDone('A Pair. There is $3 under the cup.'); }
+    if (out === 'money') { encGain(3); return encDone('A Pair. There is $3 under the cup.', { good: true }); }
     return encDone('Nothing matches. The cup is just a cup.');
   }
-  function encDuel(stake) {
-    const res = Enc.duel(rng('encounter'), (R.tagCounts(S.relics).risk || 0) > 0);
-    sfx('rattle', { n: 2, dur: 0.5 });
-    const line = res.rounds.map((q) => q.me + ':' + q.them).join('   ');
-    if (res.won) { encGain(stake); if (stake === 10) secret('eddie_big'); return encDone('You ' + line + ' Eddie. "Beginner\'s luck." You win $' + stake + '.'); }
-    encPay(stake);
-    encDone('You ' + line + ' Eddie. "Pleasure doing business." You lose $' + stake + '.');
+
+  // Back Room: Runde für Runde
+  const EDDIE = {
+    start: ['Your roll, friend.', 'Nice and easy.', 'No funny business.'],
+    win: ['Hm. Lucky.', 'Don\'t get used to it.', 'The table likes you. For now.'],
+    lose: ['Tough break.', 'That\'s one for the house.', 'Happens to the best of them.'],
+    tie: ['Even. Again.', 'Well, well. Once more.'],
+    caught: ['Is that a die in your sleeve? That round is mine.'],
+    clean: ['...I didn\'t see anything.'],
+  };
+  const eddie = (k) => { const a = EDDIE[k]; return a[Math.floor(Math.random() * a.length)]; };
+  function encDuelStart(stake) {
+    encNow.duel = { stake, me: 0, them: 0, a: null, b: null, sleeve: true, ties: (R.tagCounts(S.relics).risk || 0) > 0, until: 0, verdict: null, double: false };
+    encStep('duel', eddie('start'));
   }
+  function encDuelRoll() {
+    const e = encNow, q = e.duel;
+    q.a = Enc.d6(encRnd()); q.b = Enc.d6(encRnd()); q.until = nowSec() + 0.75; q.verdict = null; e.busy = true;
+    sfx('rattle', { n: 2, dur: 0.7 });
+    encLater(0.75, () => { sfx('land'); eng.shake(3); encDuelSettle(); });
+  }
+  function encDuelSettle() {
+    const e = encNow, q = e.duel, v = Enc.duelJudge(q.a, q.b, q.ties);
+    q.verdict = v; e.busy = false;
+    if (v === 'lose' && q.sleeve && !q.double) { encSay('You lost this one. Use the die up your sleeve? 1 in 6 he notices.'); return; }
+    encDuelApply(v);
+  }
+  function encDuelApply(v) {
+    const e = encNow, q = e.duel, s = encScene(encGeom());
+    if (v === 'tie') { encSay(eddie('tie')); q.verdict = null; q.a = q.b = null; return; }
+    if (q.double) {
+      if (v === 'win') { encGain(q.stake * 2); if (q.stake === 10) secret('eddie_big'); jingle('fanfare', 2); return encDone('"You are a menace." You leave with +$' + q.stake * 2 + '.', { good: true, big: true }); }
+      sfx('bust'); return encDone('"Easy come, easy go." You leave even.', { bad: true });
+    }
+    if (v === 'win') { q.me++; sfx('hold'); eng.popup(s.x + s.w * 0.3, s.y + 60, 'Round!', { colour: P.GREEN, size: 24 }); } else { q.them++; sfx('deny'); eng.popup(s.x + s.w * 0.7, s.y + 60, 'Eddie!', { colour: P.RED, size: 24 }); }
+    q.verdict = null;
+    if (q.me === 2) { sfx('lucky'); encBurst([P.GOLD, P.GREEN], false); e.step = 'double'; encSay('Fine, you won $' + q.stake + '. Double or nothing? One die, right now.'); return; }
+    if (q.them === 2) { encPay(q.stake); return encDone('"Pleasure doing business." You lose $' + q.stake + '.', { bad: true }); }
+    encSay(v === 'win' ? eddie('win') : eddie('lose')); q.a = q.b = null;
+  }
+  function encSleeve() {
+    const e = encNow, q = e.duel;
+    q.sleeve = false; e.busy = true; sfx('card');
+    if (encRnd()() < Enc.SLEEVE_CAUGHT) { encLater(0.5, () => { e.busy = false; encSay(eddie('caught')); sfx('deny'); eng.shake(6); encDuelApply('lose'); if (encNow && e.step === 'duel') encSay(EDDIE.caught[0]); }); return; }
+    q.a = Enc.d6(encRnd()); q.until = nowSec() + 0.6; q.mineOnly = true;
+    encLater(0.6, () => { sfx('land'); q.mineOnly = false; e.busy = false; encSay(eddie('clean')); encDuelApply(Enc.duelJudge(q.a, q.b, q.ties)); });
+  }
+
+  // Well
+  const encWellPos = () => Math.sin((nowSec() - encNow.aimT) * (setEff('reduceMotion') ? 1.3 : 2.7));
+  function encDropCoin() {
+    const e = encNow, pos = encWellPos(), res = Enc.wellGrade(pos);
+    e.aimT = null; e.coin = { pos, t: nowSec() }; e.busy = true; sfx('coin');
+    encPay(3);
+    encLater(0.55, () => {
+      S.enc.luck = S.ante; S.enc.luckAmt = res.luck; e.splashT = nowSec(); sfx(res.grade === 'perfect' ? 'lucky' : 'land');
+      const txt = { perfect: 'Dead centre. The water hums. +9 Luck this stage.', good: 'A clean splash. +5 Luck this stage.', poor: 'It clips the wall on the way down. +2 Luck this stage.' }[res.grade];
+      encDone(txt, { good: res.grade !== 'poor', big: res.grade === 'perfect' });
+    });
+  }
+  function encSacrifice(g) {
+    const e = encNow, v = Enc.topFace(g.die);
+    if (!v) return;
+    S.bag = S.bag.filter((q) => q !== g.die); refreshBag(); S.numLevels[v] = (S.numLevels[v] || 1) + 1;
+    e.step = 'main'; e.sunk = g.die; e.coin = { pos: 0, t: nowSec(), die: g }; e.busy = true; sfx('whoosh');
+    encLater(0.55, () => { e.splashT = nowSec(); sfx('magic'); encDone('The water closes over it. Your ' + v + 's reach Lv ' + S.numLevels[v] + '.', { good: true }); });
+  }
+
+  // Chalk Lines
+  function encTraceStart(kind) {
+    const e = encNow;
+    e.trace = { kind, pts: Enc.chalkPoints(5, encRnd()), next: 0, miss: 0, t0: nowSec(), limit: Enc.CHALK_TIME * (setEff('reduceMotion') ? 1.8 : 1), over: false };
+    encStep('trace', 'Follow the numbers. A clean line in time lasts one stage longer.');
+    const q = e.trace;
+    encLater2(q.limit, () => { if (!q.over && encNow === e) encTraceEnd(false); });
+  }
+  const encLater2 = (sec, fn) => eng.after(sec, fn);
+  function encTraceHit(i) {
+    const e = encNow, q = e.trace;
+    if (q.over) return;
+    if (i !== q.next) { q.miss++; q.wrongT = nowSec(); sfx('deny'); eng.shake(3); return; }
+    q.next++; sfx('hold');
+    if (q.next >= q.pts.length) encTraceEnd(q.miss === 0);
+  }
+  function encTraceEnd(perfect) {
+    const e = encNow, q = e.trace;
+    q.over = true;
+    S.enc.chalk = { stage: S.ante, kind: q.kind, until: perfect ? S.ante + 1 : S.ante };
+    sfx(perfect ? 'lucky' : 'magic');
+    const what = q.kind === 'shift' ? '+1 Shift per hand' : 'Links give +8 Pips';
+    encDone(perfect ? 'A perfect line! ' + what + ' this stage and the next.' : 'Close enough. ' + what + ' this stage.', { good: true, big: perfect });
+  }
+
   function encRows() {
     const e = encNow, id = e.id, step = e.step;
     if (step === 'done') return [{ label: 'Continue', desc: '', act: encEnd }];
     const groupRows = (desc, act) => Enc.groupBag(S.bag).slice(0, 5).map((g) => ({ label: R.DIE_TYPES[g.type].name, desc: desc(g), off: !bagSpare(), act: () => act(g) }));
-    if (id === 'mystery') return [{ label: 'Roll the cup', gamble: true, desc: 'Pair: $3. Three or more alike: a relic. Five in a row: free upgrade. Five alike: Legendary relic. 3 Skulls: a Cursed Die.', act: encMystery }, WALK()];
-    if (id === 'fortune') {
-      if (step === 'hand') return e.hands.map((hand) => ({ label: hand, desc: 'Your next 3 ' + hand + ' hands give +' + Enc.prophecyPower(S.ante) + ' Power.', act: () => { S.enc.prophecy = { hand, left: 3, power: Enc.prophecyPower(S.ante) }; encDone('The smoke agrees. Three times, ' + hand + ' will be strong.'); } })).concat([{ label: 'Back', desc: '', walk: true, act: () => encStep('main', e.def.intro) }]);
-      return [{ label: 'Change fate ($3)', desc: S.boss === JONNY_BOSS ? 'Not even fate can move Jonny.' : 'This Showdown: ' + S.boss.name + '. ' + S.boss.desc + '. Swap it for another boss.', off: S.boss === JONNY_BOSS || !canPay(3), act: () => { encPay(3); pickBoss(); encDone('The smoke shifts. Your Showdown is now ' + S.boss.name + ': ' + S.boss.desc + '.'); } },
-        { label: 'Prophecy', desc: 'Choose one of three hand types. It gives +' + Enc.prophecyPower(S.ante) + ' Power the next 3 times you play it.', act: () => { e.hands = e.hands || shuffle(R.HAND_ORDER.filter((n) => n !== 'Chance'), rng('encounter')).slice(0, 3); encStep('hand', 'Which hand shall I bless?'); } }, WALK()];
-    }
-    if (id === 'backroom') return [2, 5, 10].map((v) => ({ label: 'Stake $' + v, gamble: true, desc: 'Best of 3, one die each, higher die wins. Win +$' + v + ', lose -$' + v + '.' + ((R.tagCounts(S.relics).risk || 0) > 0 ? ' Your Risk relic wins every tie.' : ''), off: S.money < v, act: () => encDuel(v) })).concat([WALK()]);
-    if (id === 'pawnshop') {
-      if (step === 'relic') {
-        const item = e.item, d = R.RELIC_BY_ID[item.id], fee = Enc.TRADE_FEE[d.rarity], pool = encTradePool(item);
-        return [{ label: 'Sell for $' + d.cost, desc: 'Full price, no haggling. The relic is gone.', act: () => { encRemoveRelic(item); encGain(d.cost); S.stats.sold++; encDone('Mr. Baum counts out $' + d.cost + ' and polishes your ' + d.name + '.'); } },
-          { label: fee ? 'Trade up ($' + fee + ')' : 'Trade up', desc: !fee ? 'Nothing is rarer than Legendary.' : pool.length ? 'Random ' + R.RARITY[Enc.NEXT_RARITY[d.rarity]].name + ' relic with a matching tag.' : 'Nothing matching on the shelf.', off: !fee || !pool.length || !canPay(fee), act: () => { const nw = R.pick(pool, rng('encounter')); encPay(fee); encRemoveRelic(item); addRelic(nw.id).juiceUp(0.8); sfx('magic'); encDone('A fair trade. You leave with ' + nw.name + '.'); } },
-          { label: 'Back', desc: '', walk: true, act: () => encStep('main', e.def.intro) }];
+    const s = encScene(encGeom()), k = encGeom().k;
+    if (id === 'mystery') {
+      if (step === 'nudge') {
+        const sz = 72 * k, gap = 16;
+        return e.dice.map((d, i) => ({ custom: true, rect: [s.x + s.w / 2 - (5 * sz + 4 * gap) / 2 + i * (sz + gap), s.y + s.h * 0.62 - sz / 2, sz, sz], off: e.nudged || d.v === 0, act: () => encNudge(i) }))
+          .concat([{ label: 'Take it', desc: 'Lift the result off the table.', act: encMysteryPay }]);
       }
-      return S.relics.filter((r) => !r.noRefund).slice(0, 5).map((item) => { const d = R.RELIC_BY_ID[item.id]; return { label: d.name, desc: R.RARITY[d.rarity].name + ' relic. Worth $' + d.cost + ' here.', act: () => { e.item = item; encStep('relic', 'Ah, ' + d.name + '. What will it be?'); } }; }).concat([WALK()]);
+      return [{ label: 'Shake the cup', gamble: true, desc: 'Pair: $3. Three alike: relic. Five in a row: upgrade. Five alike: Legendary. 3 Skulls: curse.', act: encShake },
+        WALK(), { custom: true, rect: [s.x + s.w / 2 - 70 * k, s.y + s.h * 0.2, 140 * k, s.h * 0.6], act: encShake }];
+    }
+    if (id === 'fortune') {
+      if (step === 'cards') {
+        const cw = 120 * k, ch = 176 * k, gap = 30, flipped = e.cards.filter((c) => c.up).length, fee = Enc.flipCost(flipped);
+        return e.cards.map((c, i) => ({ custom: true, rect: [s.x + s.w / 2 - (3 * cw + 2 * gap) / 2 + i * (cw + gap), s.y + s.h / 2 - ch / 2, cw, ch], off: !c.up && !canPay(fee), act: () => {
+          if (c.up) { S.enc.prophecy = { hand: c.hand, left: 3, power: c.power }; sfx('magic'); return encDone('The smoke agrees. Three times, ' + c.hand + ' gets +' + c.power + ' Power.', { good: true, big: c.gilded }); }
+          if (fee) encPay(fee);
+          c.up = true; c.flipT = nowSec(); sfx('card');
+          encSay(c.gilded ? 'A golden card. The spirits are generous.' : flipped === 2 ? 'That is all of them. Touch the one you want.' : 'Touch it to keep it, or turn another for $' + Enc.flipCost(flipped + 1) + '.');
+        } }));
+      }
+      return [{ label: 'Change fate ($3)', desc: S.boss === JONNY_BOSS ? 'Not even fate can move Jonny.' : S.boss === FATHER_BOSS ? 'The smoke will not touch him.' : 'Swap this Showdown for another boss.', off: isFinal() || !canPay(3), act: () => { encPay(3); pickBoss(); e.ballT = nowSec(); sfx('magic'); encDone('The smoke shifts. Your Showdown is now ' + S.boss.name + '.', { good: true }); } },
+        { label: 'Read the cards', desc: 'Turn over cards and keep one. First free, then $1, then $2. One is golden.', act: () => { const hands = shuffle(R.HAND_ORDER.filter((n) => n !== 'Chance'), encRnd()).slice(0, 3); e.cards = Enc.dealCards(hands, S.ante, encRnd()); encStep('cards', 'Three cards. Three futures. Choose.'); sfx('shuffle'); } }, WALK()];
+    }
+    if (id === 'backroom') {
+      const q = e.duel;
+      if (step === 'double') return [{ label: 'Double or nothing', gamble: true, desc: 'One die each. Win: +$' + q.stake * 2 + ' in total. Lose: you leave even.', act: () => { q.double = true; q.a = q.b = null; e.step = 'duel'; encSay('Now we are talking.'); encDuelRoll(); } },
+        { label: 'Take $' + q.stake, desc: 'Quit while you are ahead.', act: () => { encGain(q.stake); if (q.stake === 10) secret('eddie_big'); encDone('"Beginner\'s luck." You pocket $' + q.stake + '.', { good: true }); } }];
+      if (step === 'duel') {
+        if (q.verdict === 'lose' && q.sleeve && !q.double) return [{ label: 'Use the sleeve', gamble: true, desc: 'Reroll your die, once per duel. If he catches you, you lose the round anyway.', act: encSleeve }, { label: 'Accept it', desc: 'Eddie takes this round.', walk: true, act: () => encDuelApply('lose') }];
+        return [{ label: 'Roll', desc: q.ties ? 'Your Risk relic wins every tie.' : 'Higher die takes the round. First to two.', act: encDuelRoll }];
+      }
+      return [2, 5, 10].map((v) => ({ label: 'Stake $' + v, gamble: true, desc: 'First to two. Win +$' + v + ', lose -$' + v + '.', off: S.money < v, act: () => encDuelStart(v) })).concat([WALK()]);
+    }
+    if (id === 'pawnshop') {
+      if (step === 'trade') {
+        const item = e.item, d = R.RELIC_BY_ID[item.id], fee = Enc.TRADE_FEE[d.rarity], nw = R.RELIC_BY_ID[e.tradeFor];
+        return [{ label: 'Deal ($' + fee + ')', desc: 'Your ' + d.name + ' for his ' + nw.name + '.', off: !canPay(fee), act: () => { encPay(fee); encRemoveRelic(item); addRelic(nw.id).juiceUp(0.8); sfx('magic'); encDone('A fair trade. You leave with ' + nw.name + '.', { good: true, reward: ['relic', nw.id] }); } },
+          { label: 'No deal', desc: 'Keep what you have.', walk: true, act: () => encStep('relic', 'Suit yourself.') }];
+      }
+      if (step === 'relic') {
+        const item = e.item, d = R.RELIC_BY_ID[item.id], fee = Enc.TRADE_FEE[d.rarity], pool = encTradePool(item), price = encPrice(), h = e.haggle, odds = Enc.HAGGLE_ODDS[h.n];
+        return [{ label: 'Haggle', gamble: true, desc: h.closed ? 'He has stopped listening.' : odds === undefined ? 'He will not go higher.' : Math.round(odds * 100) + '% for +$1. If it fails: -$1 and no more talking.', off: h.closed || odds === undefined, act: encHaggle },
+          { label: 'Sell for $' + price, desc: 'The relic is gone.', act: () => { encRemoveRelic(item); encGain(price); S.stats.sold++; encDone('Mr. Baum counts out $' + price + ' and polishes your ' + d.name + '.', { good: true }); } },
+          { label: 'Trade up', desc: !fee ? 'Nothing is rarer than Legendary.' : pool.length ? 'See what he would give you for it.' : 'Nothing matching on the shelf.', off: !fee || !pool.length, act: () => { e.trades = e.trades || {}; e.tradeFor = e.trades[item.id] = e.trades[item.id] || R.pick(pool, encRnd()).id; encStep('trade', 'For that? I could part with this.'); } },
+          BACK(() => encStep('main', e.def.intro))];
+      }
+      return S.relics.filter((r) => !r.noRefund).slice(0, 5).map((item) => { const d = R.RELIC_BY_ID[item.id]; return { label: d.name, desc: R.RARITY[d.rarity].name + ' relic.', act: () => { e.item = item; e.haggle = e.haggle || { n: 0, closed: false, up: 0 }; if (e.haggle.item !== item) { e.haggle.item = item; e.haggle.n = 0; e.haggle.up = 0; } encStep('relic', 'Ah, ' + d.name + '. I can do $' + encPrice() + '.'); } }; }).concat([WALK()]);
     }
     if (id === 'lost') {
-      if (step === 'give') return groupRows((g) => g.n + ' in your bag. Hand one in for $2.', (g) => { S.bag = S.bag.filter((q) => q !== g.die); refreshBag(); encGain(2); e.given = (e.given || 0) + 1; if (e.given >= 2 || !bagSpare()) encDone('The box takes your dice without a word. +$' + e.given * 2 + '.'); else encStep('give', 'One more, if you like.'); }).concat([{ label: e.given ? 'Done' : 'Back', desc: '', walk: true, act: () => { if (e.given) encDone('The box takes your die without a word. +$2.'); else encStep('main', e.def.intro); } }]);
-      if (!e.offer) { e.offer = []; for (let tries = 0; tries < 40 && e.offer.length < 3; tries++) { const it = genDie(); if (!e.offer.some((q) => q.dieType === it.dieType)) e.offer.push(it); } }
-      return e.offer.map((it) => ({ label: R.DIE_TYPES[it.dieType].name, faces: it.die, off: S.bag.length >= bagMax(), act: () => { S.bag.push(it.die); refreshBag(); seen('die', it.dieType); sfx('magic'); encDone('It fits your hand. ' + R.DIE_TYPES[it.dieType].name + ' joins your bag.'); } }))
-        .concat([{ label: 'Hand in dice', desc: 'Give away up to 2 dice for $2 each. A thinner bag.', off: !bagSpare(), act: () => encStep('give', 'What will you leave behind?') }, WALK()]);
+      if (step === 'give') return groupRows((g) => g.n + ' in your bag. Hand one in for $2.', (g) => { S.bag = S.bag.filter((q) => q !== g.die); refreshBag(); encGain(2); e.given = (e.given || 0) + 1; if (e.given >= 2 || !bagSpare()) encDone('The box takes your dice without a word. +$' + e.given * 2 + '.', { good: true }); else encStep('give', 'One more, if you like.'); }).concat([{ label: e.given ? 'Done' : 'Back', desc: '', walk: true, act: () => { if (e.given) encDone('The box takes your die without a word. +$2.', { good: true }); else encStep('main', e.def.intro); } }]);
+      if (!e.offer) encDig();
+      const tw = 218, th = s.h - 24, gap = 16;
+      e.digs = e.digs || 0;
+      const dig = Enc.DIG_COST[e.digs];
+      return e.offer.map((it, i) => ({ custom: true, rect: [s.x + s.w / 2 - (3 * tw + 2 * gap) / 2 + i * (tw + gap), s.y + 12, tw, th], off: S.bag.length >= bagMax(), it, act: () => { S.bag.push(it.die); refreshBag(); seen('die', it.dieType); sfx('magic'); encDone('It fits your hand. ' + R.DIE_TYPES[it.dieType].name + ' joins your bag.', { good: true, reward: ['die', it.dieType] }); } }))
+        .concat([{ label: dig ? 'Dig deeper ($' + dig + ')' : 'Dig deeper', desc: dig ? 'Replaces all three dice.' : 'The box is empty below this.', off: !dig || !canPay(dig), act: () => { encPay(dig); e.digs++; e.offer = null; e.digT = nowSec(); sfx('shuffle'); encSay('You rummage. Something else turns up.'); } },
+          { label: 'Hand in dice', desc: 'Up to 2 dice for $2 each.', off: !bagSpare(), act: () => encStep('give', 'What will you leave behind?') }, WALK()]);
     }
     if (id === 'well') {
-      if (step === 'die') return groupRows((g) => { const v = Enc.topFace(g.die); return g.n + ' in your bag. ' + (v ? 'Raises your ' + v + 's to Lv ' + ((S.numLevels[v] || 1) + 1) + '.' : 'Nothing to raise.'); }, (g) => { const v = Enc.topFace(g.die); if (!v) return; S.bag = S.bag.filter((q) => q !== g.die); refreshBag(); S.numLevels[v] = (S.numLevels[v] || 1) + 1; sfx('magic'); encDone('The water closes over it. Your ' + v + 's reach Lv ' + S.numLevels[v] + '.'); }).concat([{ label: 'Back', desc: '', walk: true, act: () => encStep('main', e.def.intro) }]);
-      return [{ label: 'Sacrifice a die', desc: 'Remove a die from your bag. Its most common number gains 1 level.', off: !bagSpare(), act: () => encStep('die', 'Which one will you give up?') },
-        { label: 'Throw in $3', desc: '+5 Luck for the rest of this stage.', off: !canPay(3), act: () => { encPay(3); S.enc.luck = S.ante; encDone('A small splash. You feel slightly luckier.'); } }, WALK()];
+      if (step === 'die') return groupRows((g) => { const v = Enc.topFace(g.die); return g.n + ' in your bag. ' + (v ? 'Raises your ' + v + 's to Lv ' + ((S.numLevels[v] || 1) + 1) + '.' : 'Nothing to raise.'); }, encSacrifice).concat([BACK(() => encStep('main', e.def.intro))]);
+      if (step === 'aim') return [{ label: 'Drop it!', gamble: true, desc: 'Centre: +9 Luck. Near: +5. Wall: +2.', act: encDropCoin }, { custom: true, rect: [s.x, s.y, s.w, s.h], act: encDropCoin }];
+      return [{ label: 'Sacrifice a die', desc: 'Remove a die. Its most common number gains 1 level.', off: !bagSpare(), act: () => encStep('die', 'Which one will you give up?') },
+        { label: 'Toss a coin ($3)', desc: 'Time your drop for up to +9 Luck this stage.', off: !canPay(3), act: () => { e.aimT = nowSec(); e.step = 'aim'; encSay('Let go when it hangs over the water.'); } }, WALK()];
     }
-    if (id === 'spring') return [{ label: 'Drink', desc: 'Next round: target ' + UI.num(blindTarget(S.blindIdx)) + ' drops to ' + UI.num(baseTarget(S.blindIdx)) + ', but 1 reroll less per hand in that round.', act: () => { S.enc.cool = true; S.target = baseTarget(S.blindIdx); sfx('magic'); encDone('Ice cold. The next round has no Heat.'); } }, WALK()];
-    return [{ label: 'Extra Shift', desc: 'This stage: +1 Shift per hand.', act: () => { S.enc.chalk = { stage: S.ante, kind: 'shift' }; sfx('magic'); encDone('You memorise the moves. +1 Shift per hand this stage.'); } },
-      { label: 'Strong Links', desc: 'This stage: Links give +8 Pips instead of +4.', act: () => { S.enc.chalk = { stage: S.ante, kind: 'links' }; sfx('magic'); encDone('The lines glow. Links give +8 Pips this stage.'); } }, WALK()];
+    if (id === 'spring') {
+      const gulp = () => {
+        e.gulps = (e.gulps || 0) + 1; e.gulpT = nowSec(); sfx('magic');
+        const sc = encScene(encGeom());
+        eng.emit(sc.x + sc.w / 2, sc.y + sc.h * 0.75, { count: 26, colours: ['#9FE3F0', '#FFFFFF', '#2F8F9D'], speed: 340, size: 8, life: 0.7, gravity: 900 });
+        if (e.gulps === 1) { S.enc.cool = 'sip'; S.target = blindTarget(S.blindIdx); if (S.target <= baseTarget(S.blindIdx)) { S.enc.cool = true; S.enc.freeCool = true; return encDone('Ice cold. The Heat is gone, and it cost you nothing.', { good: true }); } e.step = 'more'; encSay('Half the Heat is gone. Another gulp clears it, but numb fingers mean 1 reroll less per hand.'); return; }
+        S.enc.cool = true; S.target = baseTarget(S.blindIdx); encDone('Ice cold. No Heat next round, but your fingers are numb.', { good: true });
+      };
+      const pool = { custom: true, rect: [s.x, s.y + s.h * 0.55, s.w, s.h * 0.45], act: gulp };
+      if (step === 'more') return [{ label: 'Another gulp', desc: 'No Heat next round, but 1 reroll less per hand in it.', act: gulp }, { label: 'That\'s enough', desc: 'Keep half the Heat off, for free.', walk: true, act: () => encDone('You wipe your mouth and walk on.', { good: false }) }, pool];
+      return [{ label: 'Drink', desc: 'Halves the Heat of the next round. Free.', act: gulp }, WALK(), pool];
+    }
+    if (step === 'trace') { e.trace.px = e.trace.pts.map((p) => ({ x: s.x + 40 + p.x * (s.w - 80), y: s.y + 26 + p.y * (s.h - 70) })); const P2 = e.trace.px; return P2.map((p, i) => { const near = Math.min(...P2.filter((o) => o !== p).map((o) => Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)))), r = Math.max(20, Math.min(34 * k, near / 2 - 1)); return { custom: true, rect: [p.x - r, p.y - r, 2 * r, 2 * r], act: () => encTraceHit(i) }; }); }
+    return [{ label: 'Extra Shift', desc: 'This stage: +1 Shift per hand.', act: () => encTraceStart('shift') }, { label: 'Strong Links', desc: 'This stage: Links give +8 Pips instead of +4.', act: () => encTraceStart('links') }, WALK()];
+  }
+  function encPrice() { const e = encNow, h = e.haggle; return Math.max(1, Enc.startOffer(R.RELIC_BY_ID[e.item.id].cost) + h.up - (h.closed ? 1 : 0)); }
+  function encHaggle() {
+    const e = encNow, h = e.haggle;
+    e.bangT = nowSec();
+    if (Enc.haggleOk(h.n, encRnd())) { h.n++; h.up++; sfx('coin'); eng.shake(2); encSay(['Hmph. $' + encPrice() + '.', 'You drive a hard bargain. $' + encPrice() + '.', 'Thief! Fine. $' + encPrice() + '.'][Math.min(2, h.n - 1)]); }
+    else { h.closed = true; sfx('deny'); eng.shake(6); encSay('Enough! $' + encPrice() + ', take it or leave it.'); }
+  }
+  function encDig() {
+    const e = encNow;
+    e.offer = [];
+    for (let tries = 0; tries < 40 && e.offer.length < 3; tries++) { const it = genDie(); if (!e.offer.some((q) => q.dieType === it.dieType)) e.offer.push(it); }
   }
   function encGeom() {
-    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, k = MOBILE ? 1.3 : 1, w = Math.min(v.r - v.l - 24, MOBILE ? 1120 : 800), h = MOBILE ? 704 : 540;
-    return { k, x: (v.l + v.r) / 2 - w / 2, y: (720 - h) / 2, w, h, y0: (720 - h) / 2 + 150 * k, rowH: (MOBILE ? 68 : 56) };
+    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, k = MOBILE ? 1.3 : 1, w = Math.min(v.r - v.l - 24, MOBILE ? 1120 : 860), h = MOBILE ? 704 : 610;
+    const y = (720 - h) / 2, head = 126 * k, bar = MOBILE ? 150 : 110;
+    return { k, x: (v.l + v.r) / 2 - w / 2, y, w, h, head, bar, y0: y + head + 6, rowH: (MOBILE ? 68 : 56) };
   }
+  const encScene = (g) => ({ x: g.x + 20, y: g.y + g.head, w: g.w - 40, h: g.h - g.head - g.bar - 8 });
+  // Listen (Relikt oder Würfel wählen) brauchen die ganze Höhe, alles andere ist eine Szene mit Knöpfen darunter
+  const encIsList = (e) => (e.id === 'pawnshop' && e.step === 'main') || (e.id === 'well' && e.step === 'die') || (e.id === 'lost' && e.step === 'give');
   function placeEncounter() {
     if (!encNow) return;
     encNow.rows = encRows();
-    const g = encGeom();
+    const g = encGeom(), s = encScene(g), list = encIsList(encNow), bar = encNow.rows.filter((q) => !q.custom);
+    const bw = Math.min(250 * g.k, (s.w - (bar.length - 1) * 12) / Math.max(1, bar.length)), bh = 46 * g.k, x0 = s.x + s.w / 2 - (bar.length * bw + (bar.length - 1) * 12) / 2;
+    let n = 0;
     encNow.rows.forEach((row, i) => {
-      const bw = 216 * g.k, bh = g.rowH - 10;
-      Object.assign(ENC_BTNS[i], { x: g.x + 20, y: g.y0 + i * g.rowH, w: bw, h: bh, label: row.label, disabled: !!row.off, colour: row.walk ? P.L_BLACK : row.gamble ? P.ORANGE : P.BLUE });
+      const b = ENC_BTNS[i];
+      Object.assign(b, { disabled: !!row.off, label: row.label || '', colour: row.walk ? P.L_BLACK : row.gamble ? P.ORANGE : P.BLUE });
+      if (row.custom) { Object.assign(b, { x: row.rect[0], y: row.rect[1], w: row.rect[2], h: row.rect[3] }); return; }
+      if (list) Object.assign(b, { x: g.x + 20, y: g.y0 + i * g.rowH, w: 216 * g.k, h: g.rowH - 10 });
+      else Object.assign(b, { x: x0 + n * (bw + 12), y: s.y + s.h + 10, w: bw, h: bh });
+      n++;
     });
+  }
+  const encEase = (q) => { const c = Math.max(0, Math.min(1, q)); return 1 - Math.pow(1 - c, 3); };
+  // Würfel: dreht sich bis "until", landet dann mit kleinem Federn
+  function encDie(ctx, v, x, y, s, until, now, hover) {
+    const spinning = now < until, show = spinning ? 1 + (Math.floor(now * 16 + x) % 6) : v;
+    const entry = faceEntry(show ? { v: show, kind: 'normal' } : { v: 1, kind: 'skull' }, 'standard'), hop = spinning && encMoving() ? Math.abs(Math.sin(now * 13 + x)) * 22 : 0, rot = spinning && encMoving() ? Math.sin(now * 19 + x) * 0.6 : 0;
+    const land = !spinning && now - until < 0.25 && encMoving() ? 1 + 0.18 * (1 - (now - until) / 0.25) : 1, sz = s * land * (hover ? 1.08 : 1);
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.translate(x + s / 2, y + s / 2 - hop); ctx.rotate(rot);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(-sz / 2 + 4, -sz / 2 + 6 + hop, sz, sz);
+    ctx.drawImage(entry.canvas, -sz / 2, -sz / 2, sz, sz);
+    ctx.restore();
+  }
+  function encLabel(ctx, text, x, y, size, colour) { UI.text(ctx, text, x, y, { size, colour: colour || P.WHITE }); }
+  function drawEncScene(ctx, e, g, s, t, now) {
+    const k = g.k, cx = s.x + s.w / 2, mv = encMoving(), id = e.id;
+    if (id === 'mystery') {
+      const up = e.cupUp ? encEase((now - e.cupUp) / 0.35) : 0, shaking = e.shakeT && !e.cupUp && mv, sx = shaking ? Math.sin(now * 42) * 10 : mv && !e.dice ? Math.sin(now * 9) * (Math.sin(now * 1.3) > 0.7 ? 3 : 0) : 0, cw = 104 * k, chh = 130 * k, cy = s.y + s.h * 0.72 - chh - up * s.h;
+      if (e.dice) { const sz = 72 * k, gap = 16, x0 = cx - (5 * sz + 4 * gap) / 2; e.dice.forEach((d, i) => { const b = e.rows && e.rows[i] && e.rows[i].custom ? ENC_BTNS[i] : null; const dx = x0 + i * (sz + gap), dy = s.y + s.h * 0.62 - sz / 2; if (b && b.hover && !b.disabled) { ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(dx - 6, dy - 6, sz + 12, sz + 12); } encDie(ctx, d.v, dx, dy, sz, d.until, now, b && b.hover && !b.disabled); }); }
+      if (up < 1) {
+        const px = cx + sx;
+        if (window.WGPropArt && window.WGPropArt.draw(ctx, 'mystery-cover', px - cw / 2 - 6, cy - 4, cw + 12, chh + 8)) return;
+        ctx.fillStyle = '#9A4E2C';
+        for (let i = 0; i < 12; i++) { const w = cw - (12 - i) * 3.4; ctx.fillRect(px - w / 2, cy + (i / 12) * chh, w, chh / 12 + 1); }
+        ctx.fillStyle = '#C27A47'; ctx.fillRect(px - cw / 2 - 6, cy + chh - 14, cw + 12, 14);
+        ctx.fillStyle = '#6E3620'; ctx.fillRect(px - 22, cy + 20, 8, chh - 40);
+      }
+      return;
+    }
+    if (id === 'fortune') {
+      if (e.step === 'cards') {
+        e.cards.forEach((c, i) => {
+          const b = ENC_BTNS[i], flip = c.up ? encEase((now - c.flipT) / 0.28) : 0, sq = mv ? Math.abs(Math.cos(flip * Math.PI)) : 1, showFace = flip > 0.5 || (!mv && c.up), lift = b.hover ? 10 : 0, w = b.w * Math.max(0.06, sq);
+          ctx.save(); ctx.translate(b.x + b.w / 2, b.y + b.h / 2 - lift);
+          UI.box(ctx, -w / 2, -b.h / 2, w, b.h, { colour: showFace ? (c.gilded ? '#E3BE62' : '#F4EEDF') : '#4A3572', radius: 10, outline: showFace ? '#B58A2A' : '#E3BE62', outlineWidth: 3 });
+          if (showFace && sq > 0.6) {
+            const dark = '#2A1F45', sz = fitText(ctx, c.hand, b.w - 16, 20 * k);
+            encLabel(ctx, c.gilded ? 'GOLDEN' : 'PROPHECY', 0, -b.h / 2 + 24 * k, 13 * k, dark);
+            UI.text(ctx, c.hand, 0, -8, { size: sz, colour: dark, shadow: false });
+            UI.text(ctx, '+' + c.power + ' Power', 0, 24 * k, { size: 18 * k, colour: '#8F2D3B', shadow: false });
+            UI.text(ctx, 'x3 hands', 0, b.h / 2 - 22 * k, { size: 13 * k, colour: dark, shadow: false });
+          } else if (sq > 0.6) {
+            UI.text(ctx, '?', 0, 0, { size: 56 * k, colour: '#E3BE62' });
+            const fee = Enc.flipCost(e.cards.filter((q) => q.up).length);
+            if (fee) UI.text(ctx, '$' + fee, 0, b.h / 2 - 20 * k, { size: 16 * k, colour: P.GOLD });
+          }
+          ctx.restore();
+        });
+        return;
+      }
+      // Kristallkugel zeigt den Boss
+      const r = 96 * k, cy = s.y + s.h / 2 + 4, glow = 0.5 + 0.2 * Math.sin(t * 2);
+      const ballArt = window.WGPropArt && window.WGPropArt.draw(ctx, 'crystal-ball', cx - r * 1.125, cy - r * 0.95, r * 2.25, r * 2.25);
+      if (!ballArt) {
+      ctx.fillStyle = 'rgba(159,227,240,' + glow * 0.3 + ')'; ctx.beginPath(); ctx.arc(cx, cy, r + 18, 0, 7); ctx.fill();
+      ctx.fillStyle = '#7FC6DA'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill();
+      ctx.fillStyle = '#2A3F66'; ctx.beginPath(); ctx.arc(cx, cy, r - 7, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(232,251,255,0.55)'; ctx.fillRect(cx - r * 0.55, cy - r * 0.62, 26, 12);
+      ctx.fillStyle = '#6A4326'; ctx.fillRect(cx - 70 * k, cy + r - 8, 140 * k, 20);
+      }
+      const name = S.boss.name, sz = fitText(ctx, name, r * 1.6, 25 * k);
+      UI.text(ctx, 'SHOWDOWN', cx, cy - 42 * k, { size: 12 * k, colour: '#9FE3F0' });
+      UI.text(ctx, name, cx, cy - 16 * k, { size: sz, colour: P.GOLD });
+      wrapPlain(ctx, S.boss.desc, r * 1.55, 13.5 * k).slice(0, 3).forEach((ln, i) => UI.text(ctx, ln, cx, cy + 14 * k + i * 16 * k, { size: 13.5 * k, colour: '#E8FBFF' }));
+      return;
+    }
+    if (id === 'backroom') {
+      const q = e.duel, sz = 96 * k, y = s.y + s.h * 0.55 - sz / 2, xa = cx - 170 * k, xb = cx + 170 * k - sz;
+      encLabel(ctx, 'YOU', xa + sz / 2, s.y + 30, 20 * k); encLabel(ctx, 'EDDIE', xb + sz / 2, s.y + 30, 20 * k);
+      const lamps = (lx, n, col) => [0, 1].forEach((i) => UI.box(ctx, lx + i * 34 - 28, s.y + 50, 22, 22, { colour: i < n ? col : '#3A3030', radius: 11, shadow: false, outline: '#000', outlineWidth: 2 }));
+      lamps(xa + sz / 2 , q ? q.me : 0, P.GREEN); lamps(xb + sz / 2, q ? q.them : 0, P.RED);
+      if (q && q.a) { encDie(ctx, q.a, xa, y, sz, q.until, now); if (q.mineOnly) encDie(ctx, q.b, xb, y, sz, 0, now); else encDie(ctx, q.b, xb, y, sz, q.until + 0.12, now); }
+      else { UI.box(ctx, xa, y, sz, sz, { colour: 'rgba(0,0,0,0.3)', radius: 10, shadow: false }); UI.box(ctx, xb, y, sz, sz, { colour: 'rgba(0,0,0,0.3)', radius: 10, shadow: false }); }
+      UI.text(ctx, q && q.double ? 'x2' : 'VS', cx, y + sz / 2, { size: 34 * k, colour: q && q.double ? P.ORANGE : P.WHITE });
+      if (q) { UI.text(ctx, 'Stake $' + q.stake, cx, s.y + 30, { size: 19 * k, colour: P.GOLD }); if (q.sleeve && !q.double) UI.text(ctx, 'Sleeve: 1 die', cx, y + sz + 20, { size: 15 * k, colour: P.TEXT_SOFT }); }
+      return;
+    }
+    if (id === 'pawnshop' && e.item && e.step !== 'main') {
+      const d = R.RELIC_BY_ID[e.item.id], sz = 100 * k, y = s.y + s.h * 0.34, bang = e.bangT ? Math.max(0, 1 - (now - e.bangT) / 0.2) : 0;
+      UI.box(ctx, cx - 290 * k, y - 44 * k, 580 * k, sz + 120 * k, { colour: 'rgba(30,22,12,0.86)', radius: 12, shadow: false, outline: '#8A6A2E', outlineWidth: 2 });
+      if (e.step === 'trade') {
+        const nw = R.RELIC_BY_ID[e.tradeFor], xa = cx - 230 * k, xb = cx + 230 * k - sz;
+        drawReward(ctx, 'relic', d.id, xa, y, sz, false); drawReward(ctx, 'relic', nw.id, xb, y, sz, false);
+        UI.text(ctx, '>>>', cx, y + sz / 2, { size: 38 * k, colour: P.GOLD });
+        encLabel(ctx, d.name, xa + sz / 2, y - 16, 16 * k); encLabel(ctx, nw.name, xb + sz / 2, y - 16, 16 * k, P.GOLD);
+        wrapPlain(ctx, R.RELIC_BY_ID[nw.id].desc || '', 280 * k, 14 * k).slice(0, 3).forEach((ln, i) => UI.text(ctx, ln, cx, y + sz + 18 + i * 17 * k, { size: 14 * k }));
+        return;
+      }
+      drawReward(ctx, 'relic', d.id, cx - sz / 2, y - bang * 16, sz, false);
+      encLabel(ctx, d.name, cx, y - 16, 18 * k);
+      const px = cx + 110 * k, py = y + sz / 2;
+      UI.box(ctx, px, py - 26 * k, 92 * k, 52 * k, { colour: P.MONEY, radius: 8, outline: '#000', outlineWidth: 2 });
+      UI.text(ctx, '$' + encPrice(), px + 46 * k, py, { size: 30 * k * (1 + bang * 0.4) });
+      const h = e.haggle, mx = cx - 200 * k;
+      encLabel(ctx, 'Patience', mx + 36 * k, py - 26 * k, 14 * k);
+      [0, 1, 2].forEach((i) => UI.box(ctx, mx + i * 26 * k, py - 10 * k, 20 * k, 20 * k, { colour: h.closed ? P.RED : i < 3 - h.n ? P.GREEN : '#3A3030', radius: 4, shadow: false }));
+      return;
+    }
+    if (id === 'lost' && e.step === 'main' && e.offer) {
+      e.offer.forEach((it, i) => {
+        const b = ENC_BTNS[i], c = (Math.floor(now * 0.9) + i) % 6, big = 88 * k, drop = e.digT ? (1 - encEase((now - e.digT - i * 0.08) / 0.3)) * -40 : 0;
+        UI.box(ctx, b.x, b.y + drop - (b.hover ? 6 : 0), b.w, b.h, { colour: b.hover && !b.disabled ? '#6F5A42' : '#54442F', radius: 10, outline: '#A67C4E', outlineWidth: 3 });
+        ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(faceEntry(it.die.faces[c], it.dieType).canvas, b.x + b.w / 2 - big / 2, b.y + 16 + drop, big, big); ctx.restore();
+        const nm = R.DIE_TYPES[it.dieType].name, ns = fitText(ctx, nm, b.w - 16, 18 * k);
+        encLabel(ctx, nm, b.x + b.w / 2, b.y + big + 34 + drop, ns);
+        drawFaces(ctx, it.die, b.x + b.w / 2, b.y + b.h - 32 + drop, -1);
+      });
+      return;
+    }
+    if (id === 'well') {
+      const top = s.y + 32, ropeLen = s.h * 0.42, wy = s.y + s.h * 0.56, splash = e.splashT ? now - e.splashT : 9;
+      for (let i = 0; i < 3; i++) { const a = splash - i * 0.12; if (a > 0 && a < 0.7) { ctx.strokeStyle = 'rgba(159,227,240,' + (0.8 - a) + ')'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(cx, wy + 14, 20 + a * 130, 4 + a * 12, 0, 0, 7); ctx.stroke(); } }
+      if (e.aimT) {
+        const pos = encWellPos(), x = cx + pos * 190 * k, y = top + ropeLen;
+        ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(cx - 190 * k, wy - 34, 380 * k, 14);
+        ctx.fillStyle = P.RED; ctx.fillRect(cx - 86 * k, wy - 34, 172 * k, 14); ctx.fillStyle = P.GOLD; ctx.fillRect(cx - 27 * k, wy - 34, 54 * k, 14);
+        ctx.strokeStyle = '#D9D2C0'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(x, y - 14); ctx.stroke();
+        UI.box(ctx, x - 18, y - 18, 36, 36, { colour: P.GOLD, radius: 18, outline: '#6B4A12', outlineWidth: 3 }); UI.text(ctx, '$', x, y, { size: 22, colour: '#6B4A12', shadow: false });
+      }
+      if (e.coin && now - e.coin.t < 0.55) {
+        const q = (now - e.coin.t) / 0.55, x = cx + e.coin.pos * 190 * k * (1 - q * 0.2), y = top + ropeLen + q * q * (wy - top - ropeLen + 20);
+        if (e.coin.die) { ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(faceEntry(e.coin.die.die.faces[5], e.coin.die.type).canvas, x - 26, y - 26, 52, 52); ctx.restore(); }
+        else UI.box(ctx, x - 16, y - 16, 32, 32, { colour: P.GOLD, radius: 16, shadow: false });
+      }
+      return;
+    }
+    if (id === 'spring') {
+      const base = baseTarget(S.blindIdx), from = e.heatFrom || S.target, tx = s.x + s.w - 130 * k, ty = s.y + 30, th = s.h * 0.52, tw = 30 * k;
+      e.heatShown = e.heatShown === undefined ? from : e.heatShown + (S.target - e.heatShown) * 0.08;
+      const frac = from > base ? (e.heatShown - base) / (from - base) : 0;
+      UI.box(ctx, tx, ty, tw, th, { colour: '#E8FBFF', radius: 12, outline: '#123047', outlineWidth: 3 });
+      const fh = (th - 12) * Math.max(0.04, frac);
+      UI.box(ctx, tx + 6, ty + th - 6 - fh, tw - 12, fh, { colour: frac > 0.5 ? P.RED : frac > 0.05 ? P.ORANGE : P.BLUE, radius: 6, shadow: false });
+      encLabel(ctx, 'HEAT', tx + tw / 2, ty - 14, 14 * k);
+      UI.text(ctx, UI.num(Math.round(e.heatShown)), tx + tw + 50 * k, ty + th / 2, { size: 22 * k, colour: frac > 0.05 ? P.ORANGE : '#9FE3F0' });
+      const gu = e.gulpT ? now - e.gulpT : 9;
+      for (let i = 0; i < 6; i++) { const a = gu - i * 0.03; if (a > 0 && a < 0.6) { ctx.strokeStyle = 'rgba(232,251,255,' + (0.8 - a) + ')'; ctx.lineWidth = 4; ctx.beginPath(); ctx.ellipse(cx, s.y + s.h * 0.8, 30 + a * 240, 6 + a * 40, 0, 0, 7); ctx.stroke(); } }
+      UI.text(ctx, e.step === 'done' ? '' : 'Click the water', cx, s.y + s.h * 0.8, { size: 17 * k, colour: '#E8FBFF' });
+      return;
+    }
+    if (id === 'chalk' && e.trace) {
+      const q = e.trace, pts = q.px || [], n = pts.length;
+      const wrong = q.wrongT ? Math.max(0, 1 - (now - q.wrongT) / 0.3) : 0;
+      ctx.strokeStyle = '#F4EEDF'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath();
+      for (let i = 0; i < Math.min(q.next, n); i++) { if (i === 0) ctx.moveTo(pts[0].x, pts[0].y); else ctx.lineTo(pts[i].x, pts[i].y); }
+      ctx.stroke();
+      if (e.step === 'trace' || q.over) pts.forEach((p, i) => {
+        if (e.step !== 'trace' && !q.over) return;
+        const done = i < q.next, cur = i === q.next, pulse = cur && mv ? 1 + 0.12 * Math.sin(now * 9) : 1, r = 24 * k * pulse;
+        ctx.fillStyle = done ? '#F4EEDF' : wrong && !cur ? 'rgba(226,85,63,' + (0.3 + wrong * 0.5) + ')' : cur ? P.GOLD : 'rgba(244,238,223,0.25)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+        ctx.strokeStyle = '#F4EEDF'; ctx.lineWidth = 3; ctx.stroke();
+        UI.text(ctx, String(i + 1), p.x, p.y, { size: 24 * k, colour: done || cur ? '#22352C' : '#F4EEDF', shadow: false });
+      });
+      if (!q.over) { const left = Math.max(0, 1 - (now - q.t0) / q.limit), bw = s.w - 60; ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(s.x + 30, s.y + s.h - 42, bw, 10); ctx.fillStyle = left > 0.3 ? '#F4EEDF' : P.RED; ctx.fillRect(s.x + 30, s.y + s.h - 42, bw * left, 10); }
+    }
   }
   function drawEncounter(ctx, t) {
     if (!encNow || S.phase !== 'encounter') return;
-    const g = encGeom(), k = g.k, def = encNow.def, face = 104 * k;
+    const e = encNow, g = encGeom(), k = g.k, def = e.def, face = (MOBILE ? 96 : 84) * k, now = nowSec(), list = encIsList(e), s = encScene(g), fx = MOBILE ? 18 : 26, fy = MOBILE ? 12 : 22;
     dim(ctx, 0.5);
+    const intro = encMoving() ? 1 - encEase((now - e.born) / 0.3) : 0;
+    ctx.save(); ctx.translate(0, intro * 60); ctx.globalAlpha = 1 - intro * 0.8;
     UI.box(ctx, g.x, g.y, g.w, g.h, { colour: P.OVERLAY_SOLID, radius: 18, outline: def.colour, outlineWidth: 3 });
+    // Kopf: Porträt wippt, solange gesprochen wird
+    const chars = encMoving() ? Math.floor((now - e.textT) * 60) : 1e9, talking = chars < e.text.length && chars >= 0, bob = talking ? Math.abs(Math.sin(now * 16)) * 4 : encMoving() ? Math.sin(now * 1.6) * 1.5 : 0;
     ctx.save(); ctx.imageSmoothingEnabled = false;
-    UI.box(ctx, g.x + 18, g.y + 16, face + 8, face + 8, { colour: def.colour, radius: 8, shadow: false });
-    ctx.drawImage(EncArt.portrait(def.id), g.x + 22, g.y + 20, face, face);
+    UI.box(ctx, g.x + fx, g.y + fy, face + 8, face + 8, { colour: P.PANEL_DARK, radius: 8, shadow: false, outline: def.colour, outlineWidth: 2 });
+    ctx.drawImage(EncArt.portrait(def.id), g.x + fx + 4, g.y + fy + 4 - bob, face, face);
     ctx.restore();
-    const tx = g.x + face + 46, tw = g.x + g.w - 22 - tx;
-    UI.dynaText(ctx, def.name, tx, g.y + 34 * k, { size: fitText(ctx, def.name, tw, 34 * k), colour: lighten(def.colour, 0.45), time: t, wave: 1.5, align: 'left' });
-    const size = 18 * k * Math.min(tipK(), 1.15), lines = wrapPlain(ctx, encNow.text, tw - 28, size).slice(0, 3), bubH = Math.max(56 * k, lines.length * size * 1.25 + 20), by = g.y + 62 * k;
+    const tx = g.x + face + (MOBILE ? 46 : 50), tw = g.x + g.w - (MOBILE ? 22 : 28) - tx;
+    UI.dynaText(ctx, def.name, tx, g.y + 28 * k, { size: fitText(ctx, def.name, tw, 30 * k), colour: lighten(def.colour, 0.45), time: t, wave: 1.5, align: 'left' });
+    const size = 18 * k * Math.min(tipK(), 1.15), all = wrapPlain(ctx, e.text, tw - 28, size).slice(0, 3), bubH = Math.max(56 * k, all.length * size * 1.25 + 20), by = g.y + 52 * k;
     UI.box(ctx, tx, by, tw, bubH, { colour: '#FFFFFF', radius: 12, shadow: false });
-    lines.forEach((ln, i) => UI.text(ctx, ln, tx + 14, by + 10 + size * 0.62 + i * size * 1.25, { size, colour: P.BLACK, shadow: false, align: 'left' }));
-    if (encNow.rows) encNow.rows.forEach((row, i) => {
-      const b = ENC_BTNS[i], dx = b.x + b.w + 16, dw = g.x + g.w - 20 - dx;
+    let left = Math.max(0, chars);
+    all.forEach((ln, i) => { const part = ln.slice(0, left); left -= ln.length; if (left < 0) left = 0; UI.text(ctx, part, tx + 14, by + 10 + size * 0.62 + i * size * 1.25, { size, colour: P.BLACK, shadow: false, align: 'left' }); });
+    // Bühne
+    if (!list) {
+      Scenes.draw(ctx, def.id, s.x, s.y, s.w, s.h, now, encMoving());
+      if (e.rows) drawEncScene(ctx, e, g, s, t, now);
+      if (e.step === 'done' && e.reward) {
+        const q = encEase((now - e.rewardT) / 0.35), sz = 112 * k * q, rx = s.x + s.w / 2, ry = s.y + s.h / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(s.x, s.y, s.w, s.h);
+        ctx.save(); ctx.translate(rx, ry); ctx.rotate(encMoving() ? now * 0.5 : 0); ctx.fillStyle = 'rgba(243,201,105,0.3)';
+        for (let i = 0; i < 8; i++) { ctx.rotate(Math.PI / 4); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-30, -180 * k); ctx.lineTo(30, -180 * k); ctx.fill(); }
+        ctx.restore();
+        if (sz > 4) drawReward(ctx, e.reward[0], e.reward[1], rx - sz / 2, ry - sz / 2, sz, false);
+      }
+      UI.box(ctx, s.x, s.y, s.w, s.h, { colour: 'rgba(0,0,0,0)', radius: 2, shadow: false, outline: darken(def.colour, 0.2), outlineWidth: 3 });
+    }
+    if (e.rows) e.rows.forEach((row, i) => {
+      if (row.custom) return;
+      const b = ENC_BTNS[i];
       b.size = fitText(ctx, b.label, b.w - 14, 21 * k);
       UI.button(ctx, b, t);
-      if (row.faces) { drawFaces(ctx, row.faces, dx + dw / 2, b.y + b.h / 2, -1); return; }
-      const ds = 15 * k * Math.min(tipK(), 1.1), dl = wrapPlain(ctx, row.desc || '', dw, ds).slice(0, 2), cy = b.y + b.h / 2 - ((dl.length - 1) * ds * 1.2) / 2;
-      dl.forEach((ln, j) => UI.text(ctx, ln, dx, cy + j * ds * 1.2, { size: ds, colour: row.off ? P.TEXT_FAINT : P.TEXT_SOFT, align: 'left' }));
       if (row.gamble) { const tag = 'GAMBLE', ts = 12 * k; ctx.font = UI.font(ts); const w = ctx.measureText(tag).width + 12; UI.box(ctx, b.x + b.w - w - 4, b.y - 7, w, 16 * k, { colour: P.RED, radius: 6, shadow: false }); UI.text(ctx, tag, b.x + b.w - w / 2 - 4, b.y - 7 + 8 * k, { size: ts, shadow: false }); }
+      if (list) {
+        const dx = b.x + b.w + 16, dw = g.x + g.w - 20 - dx, ds = 15 * k * Math.min(tipK(), 1.1), dl = wrapPlain(ctx, row.desc || '', dw, ds).slice(0, 2), cy = b.y + b.h / 2 - ((dl.length - 1) * ds * 1.2) / 2;
+        dl.forEach((ln, j) => UI.text(ctx, ln, dx, cy + j * ds * 1.2, { size: ds, colour: row.off ? P.TEXT_FAINT : P.TEXT_SOFT, align: 'left' }));
+      } else {
+        const ds = 13.5 * k * Math.min(tipK(), 1.1);
+        wrapPlain(ctx, row.desc || '', b.w, ds).slice(0, 2).forEach((ln, j) => UI.text(ctx, ln, b.x + b.w / 2, b.y + b.h + 14 * k + j * ds * 1.2, { size: ds, colour: row.off ? P.TEXT_FAINT : P.TEXT_SOFT }));
+      }
     });
-    if (encNow.dice) {
-      const s = 52 * k, gap = 10, total = 5 * s + 4 * gap, b0 = ENC_BTNS[0], x0 = b0.x + b0.w + 24;
-      ctx.save(); ctx.imageSmoothingEnabled = false;
-      encNow.dice.forEach((v, i) => ctx.drawImage(faceEntry(v ? { v, kind: 'normal' } : { v: 1, kind: 'skull' }, 'standard').canvas, x0 + i * (s + gap), b0.y + b0.h / 2 - s / 2, s, s));
-      ctx.restore();
-    }
-    const hint = encNow.step === 'done' ? '' : def.who + (MOBILE ? '' : '   ·   [1-6] choose');
-    if (hint) UI.text(ctx, hint, g.x + g.w / 2, g.y + g.h - 16, { size: 14 * k, colour: P.TEXT_DIM });
+    ctx.restore();
   }
+
+  // ── Telefon nach jedem Showdown (Regeln und Texte: phone.js) ─────────────
+  // Erst klingelt es im Ohr, dann klingelt das Telefon. Abheben zeigt sofort drei verschiedene Vorteile, einer wird genommen.
+  // Ignorieren geht immer und kostet nichts. Die Vorteile stehen in S.phone.owned (wird mit dem Run gespeichert).
+  function freshPhone() { return { owned: {}, calls: 0, ignored: 0 }; }
+  let phoneNow = null, phoneWeighKey = null, phoneWeighFn = null;
+  const PHONE_COL = '#B8342E';   // rotes Bakelit
+  const phoneOwned = () => (S.phone && !TUT.active ? S.phone.owned : null);
+  // Gewichte der Würfelseiten, nur neu gebaut, wenn sich die Vorteile ändern
+  function phoneWeigh() {
+    const o = phoneOwned(), key = o ? JSON.stringify(o) : '';
+    if (key !== phoneWeighKey) { phoneWeighKey = key; phoneWeighFn = o ? Phone.faceWeight(o) : null; }
+    return phoneWeighFn;
+  }
+  // Steady Hands: manchmal +1 Reroll für diese Hand
+  function phoneSteady() {
+    const ch = TUT.active ? 0 : Phone.rerollChance(phoneOwned());
+    if (!(ch > 0) || rng('phone')() >= ch) return;
+    S.rerolls++;
+    eng.after(0.55, () => { J.rerolls.up(0.5); eng.popup(B.roll.x + B.roll.w / 2, B.roll.y - 18, 'Extra reroll!', { colour: P.GOLD, size: 20 }); });
+  }
+  const phoneCan = (d) => (d.id !== 'links' || formationOn()) && (d.id !== 'cool' || heatOn());
+  const PHONE_CARDS = [0, 1, 2].map((k) => btn(0, 0, 230, 290, '', P.BLUE, { size: 20, phoneCard: k }));
+  const PHONE_ANSWER = btn(0, 0, 210, 56, 'Answer', P.GREEN, { size: 26, phoneAct: 'answer' });
+  const PHONE_IGNORE = btn(0, 0, 170, 56, 'Ignore', P.L_BLACK, { size: 24, phoneAct: 'ignore' });
+  ALL_BUTTONS.push(...PHONE_CARDS, PHONE_ANSWER, PHONE_IGNORE);
+  function phoneButtons() {
+    const p = phoneNow;
+    if (!p) return [];
+    if (p.step === 'ring') return [PHONE_ANSWER, PHONE_IGNORE];
+    if (p.step === 'pick') return PHONE_CARDS.slice(0, p.offer.length);
+    return [];
+  }
+  function maybePhone(then) {
+    if (TUT.active || !S.phone) return then();
+    const now = nowSec();
+    S.phase = 'phone'; S.score = 0; S.dispScore = 0; selected = null; tips = [];
+    phoneNow = { step: 'ring', born: now, stepT: now, then, offer: [], line: '', picked: -1, nextRing: now + 1.1, ringT: -9, rings: 0 };
+    setBg('table', { spin: 0.6 });
+    Music.duck(3);
+    sfx('tinnitus');
+    placePhone();
+  }
+  // Jedes Bild: Klingeln im Takt eines alten Telefons (pausiert, solange das Menü offen ist)
+  function phoneTick() {
+    const p = phoneNow, now = nowSec();
+    if (!p || p.step !== 'ring' || settingsOpen || now < p.nextRing) return;
+    p.ringT = now; p.rings++; p.nextRing = now + 2.7;
+    sfx('ring', { soft: p.rings > 4 });
+    Music.duck(2.9);
+  }
+  function phoneAnswer() {
+    const p = phoneNow;
+    if (!p || p.step !== 'ring') return;
+    p.offer = Phone.offer(S.phone.owned, rng('phone'), phoneCan);
+    p.line = Phone.line(S.phone.owned);
+    if (S.phone.calls >= 2 && Math.random() < 0.05) p.line = "Got rights? Better call... nobody. I'm busy.";   // seltene Anspielung
+    p.step = 'pick'; p.stepT = nowSec();
+    S.phone.calls++;
+    sfx('pickup');
+    tape('first_call');
+    placePhone();
+  }
+  function phoneIgnore() {
+    const p = phoneNow;
+    if (!p || p.step !== 'ring') return;
+    S.phone.ignored++;
+    p.step = 'gone'; p.stepT = nowSec();
+    sfx('panel', { close: true });
+    eng.after(setEff('reduceMotion') ? 0.1 : 0.4, phoneEnd);
+  }
+  function phonePick(k) {
+    const p = phoneNow, id = p && p.step === 'pick' ? p.offer[k] : null;
+    if (!id) return;
+    const def = Phone.BY_ID[id], b = PHONE_CARDS[k];
+    S.phone.owned[id] = (S.phone.owned[id] || 0) + 1;
+    achieve('phone', { stack: S.phone.owned[id] });
+    p.picked = k; p.step = 'done'; p.stepT = nowSec();
+    seen('phone', id);
+    sfx('magic');
+    eng.emit(b.x + b.w / 2, b.y + b.h / 2, { count: 46, colours: [def.colour, P.GOLD, '#FFFFFF'], speed: 520, size: 10, life: 0.9, shape: 'star' });
+    eng.shake(4);
+    eng.after(setEff('reduceMotion') ? 0.35 : 1.0, () => { if (phoneNow === p) { sfx('hangup'); phoneEnd(); } });
+  }
+  function phoneEnd() {
+    const p = phoneNow;
+    if (!p) return;
+    phoneNow = null;
+    p.then();
+  }
+  function phoneKey(e) {
+    const p = phoneNow;
+    if (!p) return;
+    if (p.step === 'ring') {
+      if (e.key === 'Enter' || e.key === '1') { sfx('click'); phoneAnswer(); }
+      else if (e.key === '2' || e.key === 'Backspace') { sfx('click'); phoneIgnore(); }
+    } else if (p.step === 'pick' && /^[1-3]$/.test(e.key)) { sfx('click'); phonePick(+e.key - 1); }
+  }
+  function phoneGeom() {
+    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, k = MOBILE ? 1.3 : 1;
+    const w = Math.min(v.r - v.l - 24, MOBILE ? 1180 : 880), h = MOBILE ? 696 : 560;
+    return { k, x: (v.l + v.r) / 2 - w / 2, y: (720 - h) / 2, w, h, cx: (v.l + v.r) / 2, head: 158 * k };
+  }
+  function placePhone() {
+    const p = phoneNow;
+    if (!p) return;
+    const g = phoneGeom(), k = g.k, gap = 24 * k;
+    const bw = 210 * k, iw = 170 * k, bh = 56 * k, by = g.y + g.h - bh - 30 * k;
+    Object.assign(PHONE_ANSWER, { x: g.cx - (bw + iw + gap) / 2, y: by, w: bw, h: bh, size: 26 * k });
+    Object.assign(PHONE_IGNORE, { x: PHONE_ANSWER.x + bw + gap, y: by, w: iw, h: bh, size: 24 * k });
+    const n = Math.max(1, p.offer.length), cg = 22 * k, cw = Math.min(250 * k, (g.w - 48 - cg * (n - 1)) / n);
+    const top = g.y + g.head + 12, ch = Math.min(286 * k, g.y + g.h - 24 - top), x0 = g.cx - (n * cw + (n - 1) * cg) / 2;
+    PHONE_CARDS.forEach((b, i) => Object.assign(b, { x: x0 + i * (cw + cg), y: top, w: cw, h: ch }));
+  }
+  // Kleines Bild eines Vorteils: Würfelseiten oder ein Symbol aus card-icons.js
+  function phoneGlyph(ctx, def, cx, cy, size) {
+    if (def.face) {
+      const n = def.face.length, s = n === 1 ? size * 0.66 : size * 0.44, gap = s * 0.12, x0 = cx - (n * s + (n - 1) * gap) / 2;
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      def.face.forEach((v, i) => ctx.drawImage(faceEntry({ v, kind: 'normal' }, 'standard').canvas, Math.round(x0 + i * (s + gap)), Math.round(cy - s / 2), Math.round(s), Math.round(s)));
+      ctx.restore();
+    } else Icons.draw(ctx, def.icon, cx, cy, size);
+  }
+  // Kachel eines Vorteils (Codex, Pause, Auswertung)
+  function phoneTile(ctx, id, x, y, size) {
+    const def = Phone.BY_ID[id];
+    if (!def) return;
+    UI.box(ctx, x, y, size, size, { colour: def.colour, radius: Math.max(4, size * 0.12), shadow: false, outline: lighten(def.colour, 0.35), outlineWidth: 2 });
+    phoneGlyph(ctx, def, x + size / 2, y + size / 2, size * 0.72);
+  }
+  // Stapel als kleine Pixel-Quadrate (keine Zahlen)
+  function phonePips(ctx, n, cx, cy, s, col) {
+    const shown = Math.min(n, 6), gap = s * 0.6, x0 = cx - (shown * s + (shown - 1) * gap) / 2;
+    ctx.save();
+    for (let i = 0; i < shown; i++) {
+      const x = Math.round(x0 + i * (s + gap)), y = Math.round(cy - s / 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x + 1, y + 2, s, s);
+      ctx.fillStyle = col; ctx.fillRect(x, y, s, s);
+    }
+    ctx.restore();
+  }
+  // Altes Telefon in Pixeln (Raster 48 x 34, u = Bildschirmpixel pro Rasterpunkt). lifted: Hörer abgenommen.
+  function drawTelephone(ctx, cx, cy, u, o = {}) {
+    if (window.WGPropArt && window.WGPropArt.draw(ctx, o.lifted ? 'telephone-lifted' : 'telephone-idle', cx - 28 * u + (o.dx || 0) * u, cy - 32 * u + (o.hop || 0) * u, 56 * u, 56 * u)) return;
+    const body = PHONE_COL, dark = darken(body, 0.32), light = lighten(body, 0.28), metal = '#CFC6B2', cream = '#EADFC6', ink = '#2A1D1F';
+    const ox = Math.round(cx - 24 * u + (o.dx || 0) * u), oy = Math.round(cy - 17 * u);
+    const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(ox + Math.round(x * u), oy + Math.round(y * u), Math.ceil(w * u), Math.ceil(h * u)); };
+    const disc = (x, y, r, c) => { for (let dy = -r; dy <= r; dy++) { const hw = Math.round(Math.sqrt(Math.max(0, r * r - dy * dy))); R(x - hw, y + dy, hw * 2 + 1, 1, c); } };
+    ctx.save();
+    R(4, 32, 41, 2, 'rgba(0,0,0,0.35)');
+    // Gehäuse: Trapez, unten breiter
+    for (let i = 0; i < 18; i++) { const w = 28 + 2 * Math.round((i * 6) / 17); R(24 - w / 2, 14 + i, w, 1, i < 1 ? light : i > 14 ? dark : body); }
+    R(11, 15, 2, 12, light);
+    // Wählscheibe
+    disc(24, 22, 7, cream);
+    for (let a = 0; a < 9; a++) { const ang = -2.2 + a * 0.62; R(24 + Math.round(Math.cos(ang) * 5) - 1, 22 + Math.round(Math.sin(ang) * 5) - 1, 2, 2, ink); }
+    disc(24, 22, 2, dark);
+    // Gabel
+    R(9, 10, 3, 5, metal); R(36, 10, 3, 5, metal);
+    // Hörer: liegt auf der Gabel oder schwebt darüber (abgenommen, mit Spiralkabel)
+    const hy = o.lifted ? -9 : (o.hop || 0), hx = o.lifted ? -5 : 0;
+    const hand = (x, y) => {
+      R(x + 3, y + 5, 36, 4, body); R(x + 3, y + 5, 36, 1, light);
+      R(x + 1, y + 1, 9, 9, body); R(x, y + 2, 11, 7, body); R(x + 1, y + 1, 9, 1, light); R(x + 1, y + 9, 9, 1, dark);
+      R(x + 37, y + 1, 9, 9, body); R(x + 36, y + 2, 11, 7, body); R(x + 37, y + 1, 9, 1, light); R(x + 37, y + 9, 9, 1, dark);
+    };
+    if (o.lifted) for (let i = 0; i < 9; i++) R(4 - (i % 2) - Math.round(i * 0.3), 24 - i * 2.2, 2, 2, ink);
+    hand(1 + hx, 3 + hy);
+    ctx.restore();
+  }
+  // Klingel-Wellen ")))" links und rechts, ebenfalls in Pixeln
+  function drawRingWaves(ctx, cx, cy, u, q) {
+    ctx.save();
+    ctx.fillStyle = P.GOLD;
+    for (let i = 0; i < 3; i++) {
+      const a = Math.max(0, Math.min(1, q * 3 - i)) * (1 - q * 0.6);
+      if (a <= 0) continue;
+      ctx.globalAlpha = a;
+      const d = (30 + i * 5) * u, h = (6 + i * 3) * u, s = Math.ceil(1.4 * u);
+      for (const side of [-1, 1]) {
+        const x = Math.round(cx + side * d), xo = side > 0 ? 0 : -s;
+        ctx.fillRect(x + xo, Math.round(cy - h / 4), s, Math.round(h / 2));
+        ctx.fillRect(x + xo - side * s, Math.round(cy - h / 2), s, Math.round(h / 4));
+        ctx.fillRect(x + xo - side * s, Math.round(cy + h / 4), s, Math.round(h / 4));
+      }
+    }
+    ctx.restore();
+  }
+  function drawPhoneCall(ctx, t) {
+    const p = phoneNow;
+    if (!p || S.phase !== 'phone') return;
+    const g = phoneGeom(), k = g.k, now = nowSec(), mv = !setEff('reduceMotion');
+    dim(ctx, 0.55);
+    // Klingeln im Ohr: kurz ein heller Schleier
+    const ear = mv ? Math.max(0, 1 - (now - p.born) / 1.3) : 0;
+    if (ear > 0) {
+      const v = MOBILE ? viewBox() : { l: 0, r: 1280, t: 0, b: 720 };
+      ctx.save(); ctx.fillStyle = 'rgba(255,248,232,' + (0.3 * ear * ear).toFixed(3) + ')'; ctx.fillRect(v.l - 10, v.t - 10, v.r - v.l + 20, v.b - v.t + 20); ctx.restore();
+    }
+    const intro = mv ? 1 - encEase((now - p.born) / 0.35) : 0, out = p.step === 'gone' && mv ? encEase((now - p.stepT) / 0.35) : 0;
+    ctx.save(); ctx.translate(0, intro * 50 + out * 40); ctx.globalAlpha = Math.max(0, 1 - intro * 0.8 - out);
+    UI.box(ctx, g.x, g.y, g.w, g.h, { colour: P.OVERLAY_SOLID, radius: 18, outline: PHONE_COL, outlineWidth: 3 });
+    if (p.step === 'ring' || p.step === 'gone') {
+      UI.text(ctx, 'Incoming call', g.cx, g.y + 40 * k, { size: 20 * k, colour: P.TEXT_LABEL });
+      UI.dynaText(ctx, Phone.CALLER, g.cx, g.y + 82 * k, { size: 42 * k, colour: lighten(PHONE_COL, 0.5), time: t, wave: 2 });
+      const burst = now - p.ringT, ringing = p.step === 'ring' && burst < 1.15, u = 5.2 * k, py = g.y + g.h * 0.5;
+      const rattle = ringing && mv ? (Math.floor(now * 28) % 2 ? 1 : -1) : 0;
+      if (ringing) drawRingWaves(ctx, g.cx, py, u, Math.min(1, burst / 1.15));
+      drawTelephone(ctx, g.cx, py, u, { dx: rattle * 0.6, hop: ringing && mv && rattle > 0 ? -1 : 0 });
+      UI.button(ctx, PHONE_ANSWER, t);
+      UI.button(ctx, PHONE_IGNORE, t);
+    } else {
+      // Kopf: Telefon mit abgenommenem Hörer, Name und ein einziger Satz
+      const u = 2.4 * k, px = g.x + 30 + 26 * u, py = g.y + (MOBILE ? 40 : 54) * k + 18 * u;
+      drawTelephone(ctx, px, py, u, { lifted: true });
+      const tx = px + 34 * u, tw = g.x + g.w - 26 - tx;
+      UI.dynaText(ctx, Phone.CALLER, tx, g.y + 34 * k, { size: fitText(ctx, Phone.CALLER, tw, 30 * k), colour: lighten(PHONE_COL, 0.5), time: t, wave: 1.5, align: 'left' });
+      const size = 19 * k * Math.min(tipK(), 1.15), lines = wrapPlain(ctx, p.line, tw - 28, size).slice(0, 2), bh = Math.max(54 * k, lines.length * size * 1.25 + 22), by = g.y + 62 * k;
+      const chars = mv ? Math.floor((now - p.stepT) * 55) : 1e9;
+      UI.box(ctx, tx, by, tw, bh, { colour: '#FFFFFF', radius: 12, shadow: false });
+      let left = Math.max(0, chars);
+      lines.forEach((ln, i) => { const part = ln.slice(0, left); left = Math.max(0, left - ln.length); UI.text(ctx, part, tx + 14, by + 11 + size * 0.62 + i * size * 1.25, { size, colour: P.BLACK, shadow: false, align: 'left' }); });
+      p.offer.forEach((id, i) => drawPhoneCard(ctx, p, i, id, k, now, mv));
+    }
+    ctx.restore();
+  }
+  function drawPhoneCard(ctx, p, i, id, k, now, mv) {
+    const b = PHONE_CARDS[i], def = Phone.BY_ID[id], mine = p.step === 'done' && p.picked === i, n = (S.phone.owned[id] || 0) - (mine ? 1 : 0);
+    const deal = mv ? encEase((now - p.stepT - 0.08 * i) / 0.32) : 1, done = p.step === 'done';
+    const lift = (b.hover || focusBtn === b) && !done ? 10 : mine ? 14 : 0, alpha = deal * (done && !mine ? 0.3 : 1);
+    if (alpha <= 0.01) return;
+    const dark = '#2A1F45', cx = b.x + b.w / 2;
+    ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(0, (1 - deal) * 70 - lift);
+    if (mine && mv) { const s = 1 + 0.05 * Math.sin(Math.min(1, (now - p.stepT) / 0.25) * Math.PI); ctx.translate(cx, b.y + b.h / 2); ctx.scale(s, s); ctx.translate(-cx, -(b.y + b.h / 2)); }
+    UI.box(ctx, b.x, b.y, b.w, b.h, { colour: '#F4EEDF', radius: 12, outline: mine ? P.GOLD : def.colour, outlineWidth: mine ? 5 : 4, frame: false });
+    const band = 104 * k;
+    UI.box(ctx, b.x + 8, b.y + 8, b.w - 16, band, { colour: def.colour, radius: 8, shadow: false });
+    phoneGlyph(ctx, def, cx, b.y + 8 + band / 2, 70 * k);
+    if (!MOBILE) UI.text(ctx, String(i + 1), b.x + 22, b.y + 24, { size: 16, colour: '#FFFFFF' });
+    const ns = fitText(ctx, def.name, b.w - 24, 24 * k);
+    UI.text(ctx, def.name, cx, b.y + band + 36 * k, { size: ns, colour: darken(def.colour, 0.25), shadow: false });
+    const ts = 18 * k * Math.min(tipK(), 1.1), tl = wrapPlain(ctx, def.text, b.w - 30, ts).slice(0, 4);
+    tl.forEach((ln, j) => UI.text(ctx, ln, cx, b.y + band + 72 * k + j * ts * 1.3, { size: ts, colour: dark, shadow: false }));
+    // Unten: neu oder schon da (Stapel als Pixel-Quadrate)
+    const fy = b.y + b.h - 26 * k;
+    if (n > 0) {
+      UI.text(ctx, 'Again', cx, fy - 16 * k, { size: 14 * k, colour: '#6B5A48', shadow: false });
+      phonePips(ctx, n + (mine ? 1 : 0), cx, fy + 4 * k, Math.round(9 * k), mine ? P.GOLD : def.colour);
+    } else UI.text(ctx, mine ? 'Yours' : 'New', cx, fy, { size: 17 * k, colour: mine ? darken(P.GOLD, 0.25) : '#3E9E58', shadow: false });
+    ctx.restore();
+  }
+  // Pause am PC: rechts neben den Einstellungen die Vorteile vom Telefon
+  function drawPhonePanel(c, t) {
+    if (MOBILE || inMenus() || !S.phone || TUT.active) return;
+    const x = 954, y = 84, w = 306, h = 576, own = Phone.LIST.filter((d) => S.phone.owned[d.id] > 0);
+    UI.box(c, x, y, w, h, { colour: P.OVERLAY_SOLID, radius: 18, outline: PHONE_COL, outlineWidth: 2 });
+    UI.dynaText(c, 'Phone Calls', x + w / 2, y + 30, { size: 30, colour: lighten(PHONE_COL, 0.5), time: t, wave: 1.5 });
+    const sub = 'Answered ' + S.phone.calls + '  ·  Ignored ' + S.phone.ignored;
+    UI.text(c, sub, x + w / 2, y + 60, { size: 15, colour: P.TEXT_SOFT });
+    if (!own.length) {
+      wrapPlain(c, UI.tx('The phone rings after every Showdown. Pick up to choose a gift for this run.'), w - 50, 16).forEach((ln, i) => UI.text(c, ln, x + w / 2, y + 110 + i * 22, { size: 16, colour: P.TEXT_FAINT }));
+      return;
+    }
+    const rowH = 46, max = Math.floor((h - 120) / rowH);
+    own.slice(0, max).forEach((d, i) => {
+      const ry = y + 84 + i * rowH;
+      phoneTile(c, d.id, x + 22, ry, 38);
+      UI.text(c, d.name, x + 70, ry + 11, { size: fitText(c, d.name, 140, 16), align: 'left' });
+      phonePips(c, S.phone.owned[d.id], x + w - 54, ry + 11, 7, P.GOLD);
+      UI.text(c, d.text, x + 70, ry + 30, { size: fitText(c, d.text, w - 96, 13), colour: P.TEXT_SOFT, align: 'left' });
+    });
+    if (own.length > max) UI.text(c, '+' + (own.length - max) + ' more', x + w / 2, y + h - 30, { size: 14, colour: P.TEXT_SOFT });
+  }
+  // Handy (Reiter "Run"): Kacheln der Vorteile unter der Statistik
+  function drawPhoneRowMobile(c, g) {
+    if (!S.phone || TUT.active) return;
+    // rechte Spalte unter den Regeln (wie drawRunTabMobile: zwei Spalten mit colW)
+    const own = Phone.LIST.filter((d) => S.phone.owned[d.id] > 0), colW = Math.min(620, (g.pw - 60) / 2), x = g.vc + 10 + 12, y = 166 + 10 * 31 + 14;
+    UI.text(c, own.length ? 'Phone calls' : 'Phone calls: nothing yet', x, y, { size: 21, colour: P.TEXT_LABEL, align: 'left' });
+    const s = 36, step = s + 8, per = Math.max(1, Math.floor((colW - 12) / step));
+    own.slice(0, per * 2).forEach((d, i) => {
+      const tx = x + (i % per) * step, ty = y + 20 + Math.floor(i / per) * (s + 14);
+      phoneTile(c, d.id, tx, ty, s);
+      if (S.phone.owned[d.id] > 1) phonePips(c, S.phone.owned[d.id], tx + s / 2, ty + s + 6, 4, P.GOLD);
+    });
+  }
+
 
   // ── GIF der besten Hand (Daten: replay.js, Encoder: gif.js) ─────────────
   const GIF_W = 480, GIF_H = 270, GIF_N = 100;
@@ -3643,8 +4676,8 @@
         if (ids.length > 7) UI.text(front, '+' + (ids.length - 7), x + w - 24, ry + 114, { size: 15, colour: P.TEXT_SOFT });
         [['Cup', c.name], ['Money', r.money < 0 ? '-$' + -r.money : '$' + r.money], ['Dice in bag', r.bag.length],
           ['Upgrades', (r.upgrades || []).length], ['Run time', fmtTime(r.time || 0)]].forEach(([a, b], i) => {
-          UI.text(front, a, x + 24, sy + i * 23, { size: 17, colour: P.TEXT_LABEL, align: 'left' });
-          UI.text(front, String(b), x + w - 24, sy + i * 23, { size: 17, align: 'right' });
+          UI.text(front, a, x + 26, sy - 6 + i * 22, { size: 17, colour: P.TEXT_LABEL, align: 'left' });
+          UI.text(front, String(b), x + w - 26, sy - 6 + i * 22, { size: 17, align: 'right' });
         });
       } else {
         UI.text(front, 'Empty', cx, ry + 62, { size: 26, colour: P.TEXT_LABEL });
@@ -3675,6 +4708,212 @@
     UI.button(front, B.tutSlot, t);
   }
 
+  // ── Challenges: Daily Challenge, feste Challenges, Build Mastery (challenges.js) ──
+  // Ein Challenge-Run nutzt den gewählten Speicherplatz wie ein normaler Run. S.chal = { id } oder { daily, tag, relic, practice }.
+  const CH_TABS = [{ id: 'daily', label: 'Daily' }, { id: 'list', label: 'Challenges' }, { id: 'mastery', label: 'Build Wall' }];
+  const CH_TAB_BTNS = CH_TABS.map((tb, i) => btn(0, 0, 200, 46, tb.label, P.L_BLACK, { size: 22, chTab: i }));
+  ALL_BUTTONS.push(...CH_TAB_BTNS);
+  let chTab = 0, chSel = null, chHits = [];
+  function openChallenges() {
+    if (!Chal || !profile) return;
+    clearMenuSprites();
+    Chal.ensure(meta());
+    S.phase = 'challenges'; chHits = []; tips = [];
+    if (!chSel) chSel = (Chal.LIST.find((c) => Chal.isOpen(meta(), c.id) && !Chal.won(meta(), c.id)) || Chal.LIST[0]).id;
+    setBg('shop', { spin: 1.2 });
+    sfx('page');
+  }
+  function chalStart() {
+    if (chTab === 0) return startDailyRun();
+    if (chTab === 1 && chSel && Chal.isOpen(meta(), chSel)) { S.chal = { id: chSel }; Saves.saveMeta(); startRun('classic'); }
+  }
+  function startDailyRun() {
+    const d = Chal.daily(), m = Chal.ensure(meta()), practice = !!m.daily[d.key];
+    if (!practice) m.daily[d.key] = { stage: 1, won: false, t: Date.now() };   // der gewertete Versuch zählt ab dem Start
+    S.chal = { daily: d.key, tag: d.tag, relic: d.relic, practice };
+    Saves.saveMeta();
+    startRun('classic', d.seed);
+    if (practice) eng.after(1.2, () => showMsg('Practice run', P.PURPLE, "Today's rated attempt is done. This one is just for fun.", 2.4));
+  }
+  // Belohnungen vergeben (Becher, Farben, Materialien) und als Einblendung zeigen
+  function giveRewards(list, head, name) {
+    const m = meta();
+    list.forEach(([kind, id]) => {
+      if (kind === 'cup') { const pool = drawableCups(); for (let k = 0; k < id; k++) { const c = R.pick(pool); m.cups[c.id] = (m.cups[c.id] || 0) + 1; } }
+      else Cos.grant(m, kind, id);
+    });
+    Saves.saveMeta();
+    toasts.push({ a: { id: 'chal', name, desc: head, head, rewards: list }, t0: null });
+  }
+  // Build Mastery: ★ Stage 4 mit Set 3 (bei jedem Stage-Start ab 4), ★★/★★★ beim Sieg
+  function masteryCheck(ev) {
+    if (!Chal || !profile || TUT.active) return;
+    Chal.addStars(meta(), Chal.starsFor(R.tagCounts(S.relics), ev, S.ante)).forEach(([tag, star]) =>
+      giveRewards([Chal.starReward(tag, star)], 'Build Mastery', R.TAGS[tag].name + ': ' + star + (star === 1 ? ' star' : ' stars')));
+  }
+  // Run zu Ende: Challenge-Sieg, Daily-Ergebnis und Serie, Mastery-Sterne
+  function chalFinish(won) {
+    if (!Chal || !profile || TUT.active) return;
+    const m = Chal.ensure(meta()), ch = S.chal;
+    if (won) masteryCheck('win');
+    if (!ch) return;
+    if (ch.id) {
+      const rec = m.chal[ch.id] || (m.chal[ch.id] = { wins: 0, best: 0 });
+      rec.best = Math.max(rec.best || 0, Math.min(S.ante, ANTES));
+      if (won && ++rec.wins === 1) giveRewards(Chal.winReward(ch.id), 'Challenge won', Chal.BY_ID[ch.id].name);
+    }
+    if (ch.daily && !ch.practice) {
+      m.daily[ch.daily] = { stage: Math.min(S.ante, ANTES), won: !!won, score: (S.stats && S.stats.best) || 0, t: Date.now() };
+      Chal.streakDue(m).forEach(([n, rw]) => { m.dailyRewards[n] = Date.now(); giveRewards([rw], 'Daily streak', n + ' days in a row'); });
+    }
+    Saves.saveMeta();
+  }
+
+  // Bildschirm
+  function chGeom() {
+    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, k = MOBILE ? 1.25 : 1;
+    const pw = Math.min(v.r - v.l - 40, MOBILE ? 1500 : 1120), px = (v.l + v.r) / 2 - pw / 2;
+    return { v, k, pw, px, py: MOBILE ? 140 : 132, ph: MOBILE ? 456 : 474, cx: (v.l + v.r) / 2 };
+  }
+  function placeChallenges() {
+    const g = chGeom(), tw = 210 * g.k, th = (MOBILE ? 58 : 44);
+    CH_TAB_BTNS.forEach((b, i) => Object.assign(b, { x: g.cx + (i - 1) * (tw + 12) - tw / 2, y: MOBILE ? 72 : 78, w: tw, h: th, size: 22 * g.k, colour: i === chTab ? P.BLUE : darken(P.PANEL, 0.1) }));
+    const d = chTab === 0 ? Chal.daily() : null, m = meta();
+    if (chTab === 0) { B.chStart.label = m.daily && m.daily[d.key] ? 'Practice' : 'Start Daily'; B.chStart.disabled = false; }
+    else { B.chStart.label = 'Start Challenge'; B.chStart.disabled = !chSel || !Chal.isOpen(m, chSel); }
+  }
+  function chalButtons() { return [...CH_TAB_BTNS, ...(chTab < 2 ? [B.chStart] : []), B.back]; }
+  function chalClick(m) {
+    const h = chHits.find((q) => UI.inside(q.r, m));
+    if (!h) { tips = []; return; }
+    if (h.sel) { chSel = h.sel; sfx('card'); }
+    if (h.info && MOBILE) openTip({ key: 'ch:' + h.r.x + ':' + h.r.y, anchor: h.r, info: h.info });
+  }
+  function drawStar(ctx, x, y, r, on) {
+    ctx.save(); ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.fillStyle = on ? P.GOLD : darken(P.PANEL, 0.25); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = on ? '#FFF2C0' : lighten(P.PANEL, 0.2); ctx.stroke(); ctx.restore();
+  }
+  function drawChallenges(back, front, t) {
+    placeChallenges();
+    const g = chGeom(), m = Chal.ensure(meta());
+    chHits = [];
+    UI.dynaText(front, 'Challenges', g.cx, MOBILE ? 36 : 40, { size: (MOBILE ? 48 : 48), time: t, wave: 2.5, colour: P.GOLD });
+    UI.box(back, g.px, g.py, g.pw, g.ph, { colour: P.OVERLAY_SOLID, radius: 16, emboss: 4, outline: lighten(P.PANEL, 0.15), outlineWidth: 2 });
+    if (chTab === 0) drawDailyTab(back, front, t, g, m);
+    else if (chTab === 1) drawChalList(back, front, t, g, m);
+    else drawBuildWall(back, front, t, g, m);
+    for (const b of chalButtons()) UI.button(front, b, t);
+  }
+  function drawDailyTab(back, ctx, t, g, m) {
+    const k = g.k, d = Chal.daily(), tag = R.TAGS[d.tag], rel = R.RELIC_BY_ID[d.relic], rec = m.daily[d.key];
+    const lw = g.pw * 0.52, x = g.px + (MOBILE ? 24 : 32), y = g.py + (MOBILE ? 22 : 28);
+    UI.text(ctx, 'Daily Challenge  ·  ' + new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }), x, y + 8 * k, { size: 22 * k, colour: P.GOLD, align: 'left' });
+    UI.text(ctx, 'Same dice, shops and bosses for everyone today.', x, y + 36 * k, { size: 15 * k, colour: P.TEXT_SOFT, align: 'left' });
+    // Build of the Day mit Start-Relikt
+    const by = y + 58 * k, bh = 128 * k;
+    UI.box(back, x, by, lw - 24, bh, { colour: darken(tag.colour, 0.55), radius: 12, shadow: false, outline: tag.colour, outlineWidth: 2 });
+    Icons.tag(ctx, d.tag, x + 34 * k, by + 34 * k, 44 * k);
+    UI.text(ctx, 'Build of the Day: ' + tag.name, x + 66 * k, by + 24 * k, { size: 21 * k, colour: lighten(tag.colour, 0.45), align: 'left' });
+    UI.text(ctx, 'Set 3: ' + tag.s3, x + 66 * k, by + 48 * k, { size: fitText(ctx, 'Set 3: ' + tag.s3, lw - 110 * k, 14 * k), colour: P.TEXT_SOFT, align: 'left' });
+    drawReward(ctx, 'relic', d.relic, x + 14 * k, by + 66 * k, 50 * k, false);
+    UI.text(ctx, 'Start with ' + rel.name, x + 76 * k, by + 78 * k, { size: 18 * k, align: 'left' });
+    UI.text(ctx, rel.desc, x + 76 * k, by + 102 * k, { size: fitText(ctx, rel.desc, lw - 120 * k, 14 * k), colour: P.TEXT_SOFT, align: 'left' });
+    chHits.push({ r: { x: x + 14 * k, y: by + 66 * k, w: 50 * k, h: 50 * k }, info: plainInfo('relic', d.relic) });
+    // Status des Tages und Serie
+    const sy = by + bh + 26 * k;
+    const status = !rec ? 'Your rated attempt for today is ready.' : rec.won ? 'Today: you won! Play again as practice.' : "Today's rated attempt: Stage " + rec.stage + '. Play again as practice.';
+    UI.text(ctx, status, x, sy, { size: fitText(ctx, status, lw - 24, 18 * k), colour: rec && rec.won ? P.GOLD : P.WHITE, align: 'left' });
+    const st = Chal.streak(m);
+    UI.text(ctx, 'Streak: ' + st + (st === 1 ? ' day' : ' days') + ' in a row', x, sy + 32 * k, { size: 20 * k, colour: P.ORANGE, align: 'left' });
+    Chal.STREAK_REWARDS.forEach(([n, rw], i) => {
+      const rx = x + i * ((lw - 24) / 4), ry = sy + 52 * k, got = !!m.dailyRewards[n], s = 40 * k;
+      drawReward(ctx, rw[0], rw[1], rx, ry, s, !got);
+      UI.text(ctx, n + ' days', rx + s + 8 * k, ry + s / 2 - 8 * k, { size: 15 * k, colour: got ? P.GOLD : P.TEXT_SOFT, align: 'left' });
+      UI.text(ctx, got ? 'Got it' : rewardName(rw[0], rw[1]), rx + s + 8 * k, ry + s / 2 + 10 * k, { size: fitText(ctx, got ? 'Got it' : rewardName(rw[0], rw[1]), (lw - 24) / 4 - s - 14 * k, 12 * k), colour: P.TEXT_DIM, align: 'left' });
+      chHits.push({ r: { x: rx, y: ry, w: s, h: s }, info: { title: rewardName(rw[0], rw[1]), desc: 'Play the Daily Challenge ' + n + ' days in a row.', badge: ['Reward', P.GOLD] } });
+    });
+    // Kalender des Monats
+    const now = new Date(), cx0 = g.px + lw + 10, cw = g.pw - lw - (MOBILE ? 34 : 44), first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(), off = (first.getDay() + 6) % 7, rows = Math.ceil((off + days) / 7);
+    UI.text(ctx, now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }), cx0 + cw / 2, y + 8 * k, { size: 21 * k, colour: P.TEXT_LABEL });
+    const top = y + 48 * k, cell = Math.min(cw / 7, (g.ph - 90 * k) / (rows + 0.6));
+    ['M', 'T', 'W', 'T', 'F', 'S', 'S'].forEach((w, i) => UI.text(ctx, w, cx0 + (i + 0.5) * (cw / 7), top, { size: 14 * k, colour: P.TEXT_DIM }));
+    for (let dd = 1; dd <= days; dd++) {
+      const pos = off + dd - 1, col = pos % 7, row = Math.floor(pos / 7);
+      const bx = cx0 + col * (cw / 7) + (cw / 7 - cell) / 2 + 2, by2 = top + 16 * k + row * cell, key = Chal.dayKey(new Date(now.getFullYear(), now.getMonth(), dd)), r2 = m.daily[key];
+      const today = dd === now.getDate();
+      UI.box(back, bx, by2, cell - 4, cell - 4, { colour: r2 ? (r2.won ? darken(P.GOLD, 0.35) : darken(P.GREEN, 0.4)) : P.PANEL_DARK, radius: 6, shadow: false,
+        outline: today ? P.WHITE : undefined, outlineWidth: today ? 2 : 0 });
+      UI.text(ctx, String(dd), bx + (cell - 4) / 2, by2 + (cell - 4) * (r2 ? 0.34 : 0.5), { size: 14 * k, colour: dd > now.getDate() ? P.TEXT_DIM : P.WHITE });
+      if (r2) UI.text(ctx, r2.won ? 'Win' : 'St ' + r2.stage, bx + (cell - 4) / 2, by2 + (cell - 4) * 0.72, { size: 11 * k, colour: r2.won ? P.GOLD : P.TEXT_SOFT });
+    }
+  }
+  function drawChalList(back, ctx, t, g, m) {
+    const k = g.k, cols = MOBILE ? 4 : 5, list = Chal.LIST, rows = Math.ceil(list.length / cols), gap = 10 * k;
+    const pad = MOBILE ? 18 : 28, top = MOBILE ? 16 : 26, bot = MOBILE ? 12 : 26;   // PC: Abstand zum Rahmen und zu den Nieten
+    const detailH = 132 * k, gx = g.px + pad, gw = g.pw - 2 * pad, cw = (gw - gap * (cols - 1)) / cols;
+    const chh = Math.min(92 * k, (g.ph - detailH - top - bot - (MOBILE ? 2 : gap) - gap * (rows - 1)) / rows);
+    const wins = Chal.wins(m);
+    list.forEach((c, i) => {
+      const col = i % cols, row = Math.floor(i / cols), x = gx + col * (cw + gap), y = g.py + top + row * (chh + gap);
+      const open = Chal.isOpen(m, c.id), won = Chal.won(m, c.id), sel = chSel === c.id, hover = !MOBILE && UI.inside({ x, y, w: cw, h: chh }, eng.mouse);
+      UI.box(back, x, y, cw, chh, { colour: open ? darken(c.colour, 0.55) : P.PANEL_DARK, radius: 10, shadow: false, outline: sel ? P.GOLD : hover ? lighten(c.colour, 0.3) : open ? c.colour : P.GREY, outlineWidth: sel ? 3 : 2 });
+      UI.box(back, x + 6, y + 6, 6, chh - 12, { colour: open ? c.colour : P.GREY, radius: 3, shadow: false });
+      UI.text(ctx, open ? c.name : '???', x + cw / 2 + 4, y + chh * 0.32, { size: fitText(ctx, open ? c.name : '???', cw - 30, 19 * k), colour: open ? P.WHITE : P.TEXT_DIM });
+      const sub = !open ? 'Locked' : won ? 'Won' + (m.chal[c.id].wins > 1 ? ' x' + m.chal[c.id].wins : '') : c.tag ? R.TAGS[c.tag].name + ' build' : 'Final challenge';
+      UI.text(ctx, sub, x + cw / 2 + 4, y + chh * 0.68, { size: fitText(ctx, sub, cw - 30, 14 * k), colour: won ? P.GOLD : open ? lighten(c.colour, 0.4) : P.TEXT_DIM });
+      if (won) drawStar(ctx, x + cw - 16 * k, y + 16 * k, 9 * k, true);
+      chHits.push({ r: { x, y, w: cw, h: chh }, sel: c.id });
+    });
+    // Beschreibung der gewählten Challenge
+    const c = Chal.BY_ID[chSel], open = c && Chal.isOpen(m, c.id), dy = g.py + g.ph - detailH - bot;
+    UI.box(back, gx, dy, gw, detailH, { colour: P.PANEL_DARK, radius: 12, shadow: false, outline: c && open ? c.colour : P.GREY, outlineWidth: 2 });
+    if (!c) return;
+    UI.text(ctx, open ? c.name : 'Locked challenge', gx + 18, dy + 24 * k, { size: 24 * k, colour: open ? lighten(c.colour, 0.45) : P.TEXT_LABEL, align: 'left' });
+    const desc = open ? c.desc : Chal.openText(m, c.id);
+    wrapPlain(ctx, desc, gw - 300 * k, 17 * k).slice(0, 3).forEach((ln, i) => UI.text(ctx, ln, gx + 18, dy + 56 * k + i * 22 * k, { size: 17 * k, colour: P.TEXT_SOFT, align: 'left' }));
+    const rw = Chal.winReward(c.id), rec = m.chal[c.id];
+    UI.text(ctx, rec && rec.wins ? 'Best: won' : rec ? 'Best: Stage ' + rec.best : 'Not played yet', gx + gw - 18, dy + 24 * k, { size: 16 * k, colour: P.TEXT_LABEL, align: 'right' });
+    UI.text(ctx, rec && rec.wins ? 'Reward collected' : 'First win:', gx + gw - 18, dy + 52 * k, { size: 15 * k, colour: P.TEXT_DIM, align: 'right' });
+    rw.forEach(([kind, id], i) => {
+      const s = 40 * k, rx = gx + gw - 18 - (rw.length - i) * (s + 8), ry = dy + 70 * k;
+      drawReward(ctx, kind, id, rx, ry, s, !!(rec && rec.wins));
+      chHits.push({ r: { x: rx, y: ry, w: s, h: s }, info: { title: rewardName(kind, id), desc: 'Reward for your first win of ' + c.name + '.', badge: ['Reward', P.GOLD] } });
+    });
+    UI.text(ctx, wins + ' of ' + Chal.LIST.length + ' challenges won', gx + 18, dy + detailH - 18 * k, { size: 14 * k, colour: P.TEXT_DIM, align: 'left' });
+  }
+  function drawBuildWall(back, ctx, t, g, m) {
+    const k = g.k, tags = R.TAG_ORDER, cols = 4, rows = Math.ceil(tags.length / cols), gap = 10 * k;
+    const pad = MOBILE ? 18 : 28, top = MOBILE ? 16 : 26, footY = MOBILE ? 0 : 14;   // PC: Abstand zum Rahmen und zu den Nieten
+    const gx = g.px + pad, gw = g.pw - 2 * pad, cw = (gw - gap * (cols - 1)) / cols, foot = (MOBILE ? 64 : 72) * k, chh = (g.ph - foot - top - (MOBILE ? 14 : 10) - gap * (rows - 1)) / rows;
+    tags.forEach((tag, i) => {
+      const tg = R.TAGS[tag], col = i % cols, row = Math.floor(i / cols), x = gx + col * (cw + gap), y = g.py + top + row * (chh + gap), st = m.mastery[tag] || 0;
+      UI.box(back, x, y, cw, chh, { colour: darken(tg.colour, 0.55), radius: 10, shadow: false, outline: st === 3 ? P.GOLD : tg.colour, outlineWidth: st === 3 ? 3 : 2 });
+      Icons.tag(ctx, tag, x + 30 * k, y + chh / 2, 40 * k);
+      UI.text(ctx, tg.name, x + 58 * k, y + chh * 0.32, { size: 20 * k, colour: lighten(tg.colour, 0.45), align: 'left' });
+      [0, 1, 2].forEach((s) => {
+        const sx = x + 66 * k + s * 30 * k, sy = y + chh * 0.68;
+        drawStar(ctx, sx, sy, 11 * k, st > s);
+        const rw = Chal.starReward(tag, s + 1);
+        chHits.push({ r: { x: sx - 14 * k, y: sy - 14 * k, w: 28 * k, h: 28 * k }, info: { title: (s + 1) + (s ? ' stars' : ' star') + ': ' + rewardName(rw[0], rw[1]), desc: Chal.STAR_TEXT[s] + ' (' + tg.name + ').', badge: ['Reward', P.GOLD] } });
+      });
+      const hover = !MOBILE && UI.inside({ x, y, w: cw, h: chh }, eng.mouse);
+      if (hover) {
+        const s = Math.min(3, st + 1), rw = Chal.starReward(tag, s);
+        const line = st >= 3 ? 'Mastered!' : 'Next: ' + Chal.STAR_TEXT[st];
+        UI.text(ctx, line, g.cx, g.py + g.ph - foot / 2 - 4 - footY, { size: fitText(ctx, line, gw - 40, 17 * k), colour: P.GOLD });
+        UI.text(ctx, st >= 3 ? 'All rewards collected' : 'Reward: ' + rewardName(rw[0], rw[1]), g.cx, g.py + g.ph - foot / 2 + 18 * k - footY, { size: 15 * k, colour: P.TEXT_SOFT });
+      }
+    });
+    if (MOBILE || !tags.some((tag, i) => UI.inside({ x: gx + (i % cols) * (cw + gap), y: g.py + top + Math.floor(i / cols) * (chh + gap), w: cw, h: chh }, eng.mouse))) {
+      UI.text(ctx, '1 star: Stage 4 with a 3-relic set  ·  2 stars: win with it  ·  3 stars: win with a 5-relic set', g.cx, g.py + g.ph - foot / 2 - 4 - footY,
+        { size: fitText(ctx, '1 star: Stage 4 with a 3-relic set  ·  2 stars: win with it  ·  3 stars: win with a 5-relic set', gw - 40, 17 * k), colour: P.TEXT_SOFT });
+      UI.text(ctx, Chal.totalStars(m) + ' of ' + tags.length * 3 + ' stars  ·  Rewards: a build colour, 2 cups, a dice aura', g.cx, g.py + g.ph - foot / 2 + 18 * k - footY, { size: 15 * k, colour: P.TEXT_DIM });
+    }
+  }
+
   // ── Bildschirm: Becher-Auswahl (Platzhalter) ────────────────────────────
   function drawCups(back, front, t) {
     if (MOBILE) return drawCupsMobile(back, front, t);
@@ -3700,69 +4939,187 @@
       UI.text(front, label, x, ty, { size: 16, colour: always ? P.TEXT_SOFT : P.GOLD });
     });
     // Beschreibung
-    const c = cupAt(cupSel), x = 330, y = 428, w = 620, h = 166;
+    const c = cupAt(cupSel), x = 310, y = 428, w = 660, h = 166;
     UI.box(back, x, y, w, h, { colour: P.OVERLAY_SOLID, radius: 14, emboss: 4, outline: c ? c.colour : P.GREY, outlineWidth: 2 });
     UI.text(front, c ? c.name : 'Coming soon', 640, y + 26, { size: 30, colour: c ? lighten(c.colour, 0.35) : P.TEXT_LABEL });
     const desc = c ? c.desc : '';
-    UI.box(back, x + 12, y + 46, w - 24, 62, { colour: '#FFFFFF', radius: 8, shadow: false });
-    wrapText(front, desc, w - 60, 19).slice(0, 3).forEach((ln, i, arr) => drawLine(front, ln, 640, y + 77 + (i - (arr.length - 1) / 2) * 21, 19, false));
+    UI.box(back, x + 26, y + 44, w - 52, 62, { colour: '#FFFFFF', radius: 8, shadow: false });
+    wrapText(front, desc, w - 84, 19).slice(0, 3).forEach((ln, i, arr) => drawLine(front, ln, 640, y + 75 + (i - (arr.length - 1) / 2) * 21, 19, false));
     if (c) {
       const chips = [['Dice', c.bag.length, P.CHIPS], ['Hands', c.hands, P.BLUE], ['Rerolls', c.rerolls, P.ORANGE], ['Money', '$' + c.money, P.GOLD_TEXT],
         ['Relics', c.relics.length + (c.randomRelics ? c.randomRelics.n : 0) + (c.jonny ? 1 : 0), '#E07A2E']];
       chips.forEach(([a, b, col], i) => {
         const cx = 640 + (i - 2) * 118;
-        UI.box(front, cx - 54, y + 118, 108, 36, { colour: P.PANEL_DARK, radius: 8, shadow: false, outline: col, outlineWidth: 2 });
-        UI.text(front, a + ' ' + b, cx, y + 136, { size: 18 });
+        UI.box(front, cx - 54, y + 114, 108, 34, { colour: P.PANEL_DARK, radius: 8, shadow: false, outline: col, outlineWidth: 2 });
+        UI.text(front, a + ' ' + b, cx, y + 131, { size: fitText(front, a + ' ' + b, 96, 18) });
       });
     }
     for (const b of [B.cupPrev, B.cupNext, B.begin, B.back]) UI.button(front, b, t);
+    if (Chal && profile) UI.button(front, B.challenges, t);
   }
 
   // Tasten-Übersicht (Reiter Controls)
   const CONTROLS = [
     ['Enter', 'Play hand  ·  start  ·  continue'], ['R', 'Reroll the dice you are not holding'], ['1 - 6', 'Hold or release a die'],
     ['Mouse', 'Click dice to hold, drag relics to reorder'], ['Hover', 'Keep still to pin a tooltip and read more'],
-    ['Space', 'Next line while Jonny talks'], ['N', 'Skip the current song'], ['O', 'Open or close the settings'], ['Esc', 'Close  ·  go back'],
+    ['Space', 'Next line while Jonny talks'], ['N', 'Skip the current song'], ['O', 'Open or close the settings'], ['Esc', 'Pause menu  ·  close  ·  go back'],
     ['Tab', 'Move between buttons, Enter presses'], ['[  ]', 'Select a relic or consumable'], ['S', 'Shift mode (Settings > Access)'],
   ];
   function drawSettings(ctx, t) {
     if (!settingsOpen) return;
     if (studioOpen) return drawStudio(ctx, t);
-    if (MOBILE) return drawSettingsMobile(ctx, t);
+    if (MOBILE) { drawSettingsMobile(ctx, t); if (setAsk) drawAsk(ctx, t); return; }
     dim(ctx, 0.5);
-    drawRunPanel(ctx, t);
-    UI.box(ctx, 340, 84, 600, 576, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
-    UI.dynaText(ctx, 'Settings', 640, 118, { size: 40, colour: P.GOLD, time: t, wave: 2 });
+    if (setPane === 'pause') return drawPause(ctx, t);
+    if (setPane === 'stats') return drawStatsBig(ctx, t);
+    UI.box(ctx, 24, 10, 1232, 700, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
+    UI.dynaText(ctx, 'Settings', 640, 38, { size: 36, colour: P.GOLD, time: t, wave: 2 });
     for (const b of visTabBtns()) UI.button(ctx, b, t);
-    const tab = SET_TABS[setTab];
+    const tab = SET_TABS[setTab], info = infoRow();
     if (tab.id === 'controls') {
       CONTROLS.forEach(([key, what], i) => {
-        const y = 230 + i * 34;
-        UI.box(ctx, 380, y - 14, 104, 28, { colour: P.PANEL, radius: 7, emboss: 3 });
-        UI.text(ctx, key, 432, y, { size: 18 });
-        UI.text(ctx, what, 504, y, { size: 18, colour: P.TEXT_SOFT, align: 'left' });
+        const y = 146 + i * 38;
+        UI.box(ctx, SET_ROW.x, y - 15, 110, 30, { colour: P.PANEL, radius: 7, emboss: 3 });
+        UI.text(ctx, key, SET_ROW.x + 55, y, { size: 18 });
+        UI.text(ctx, what, SET_ROW.x + 128, y, { size: fitText(ctx, what, SET_ROW.w - 134, 18), colour: P.TEXT_SOFT, align: 'left' });
       });
     }
     tab.rows.forEach((r, k) => {
-      const y = SET_Y(k);
-      UI.box(ctx, 366, y - 21, 548, 42, { colour: P.PANEL, radius: 10, emboss: 2 });
-      UI.text(ctx, r.label, 386, y, { size: 21, colour: P.TEXT_LABEL, align: 'left' });
+      const y = SET_Y(k), safe = SETTINGS.photosafe && SAFE_KEYS.includes(r.key);
+      UI.box(ctx, SET_ROW.x, y - SET_ROW.h / 2, SET_ROW.w, SET_ROW.h, { colour: P.PANEL, radius: 10, emboss: 2, outline: k === info ? P.GOLD : undefined, outlineWidth: 2 });
+      UI.text(ctx, r.label, SET_ROW.x + 18, y, { size: fitText(ctx, r.label, 300, 21), colour: k === info ? P.WHITE : P.TEXT_LABEL, align: 'left' });
       if (r.action) return;
-      if (!r.slider) { UI.text(ctx, settingName(r.key), 770, y, { size: 21, colour: P.WHITE }); return; }
+      if (!r.slider) { const nm = settingName(r.key); UI.text(ctx, nm, 498, y, { size: fitText(ctx, nm, 136, 20), colour: safe ? P.TEXT_DIM : P.WHITE }); return; }
       // Regler: Bahn, gefüllter Teil, Griff, Prozentwert
       const v = SETTINGS[r.key] || 0, kx = SLIDER.x + (v / 100) * SLIDER.w, hot = sliderDrag === k || UI.inside(sliderRect(k), eng.mouse);
       UI.box(ctx, SLIDER.x, y - 5, SLIDER.w, 10, { colour: P.PANEL_DARK, radius: 5, shadow: false });
       if (v > 0) UI.box(ctx, SLIDER.x, y - 5, Math.max(10, kx - SLIDER.x), 10, { colour: P.BLUE, radius: 5, shadow: false });
       UI.box(ctx, kx - 11, y - 15, 22, 30, { colour: hot ? P.GOLD : P.WHITE, radius: 7, emboss: 3 });
-      UI.text(ctx, v ? v + '%' : 'Off', 878, y, { size: 21, colour: v ? P.WHITE : P.TEXT_DIM });
+      UI.text(ctx, v ? v + '%' : 'Off', 590, y, { size: 20, colour: v ? P.WHITE : P.TEXT_DIM });
     });
     for (const b of setBtnsNow()) UI.button(ctx, b, t);
+    drawSetInfo(ctx, tab, info);
     UI.button(ctx, B.close, t);
-    if (!inMenus()) UI.button(ctx, B.quit, t);
-    const hint = lockHint() || (!inMenus() && B.quit.disabled ? 'Saving is possible once the dice have settled'
-      : tab.id === 'game' ? 'Jonny chatter: his comments in the shop and during runs. Reset clears trophies and unlocks.'
-        : '[O] Settings   [Esc] Close   [N] Skip song   [H] advanced FX sliders');
-    UI.text(ctx, hint, 640, 634, { size: 14, colour: P.TEXT_DIM });
+    UI.button(ctx, B.apply, t);
+    const lock = lockHint(), dirty = setDirty();
+    const hint = lock || (dirty ? 'Changes are a preview until you press Apply' : '[O] Settings   [Esc] Close   [N] Skip song   [H] advanced FX sliders');
+    UI.text(ctx, hint, 640, 680, { size: 15, colour: !lock && dirty ? P.GOLD : P.TEXT_DIM });
+    if (setAsk) drawAsk(ctx, t);
+  }
+  // Welche Zeile rechts erklärt wird: Tastatur-Fokus, sonst die Zeile unter der Maus, sonst die zuletzt gezeigte
+  function infoRow() {
+    const rows = setRows();
+    if (!rows.length) return -1;
+    if (focusBtn && focusBtn.setRow !== undefined && focusBtn.inTab === setTab) setInfo = focusBtn.setRow;
+    else if (!setAsk) {
+      const m = eng.mouse, k = rows.findIndex((r, i) => m.x >= SET_ROW.x && m.x <= SET_ROW.x + SET_ROW.w && Math.abs(m.y - SET_Y(i)) <= SET_ROW.h / 2 + 4);
+      if (k >= 0) setInfo = k;
+    }
+    return Math.min(setInfo, rows.length - 1);
+  }
+  // Rechte Hälfte: feste Erklärung, darunter optionale Beispielbilder mit je einer Zeile darüber (alles ohne Scrollen)
+  const HELP = window.WG_SETTINGS_HELP || {};
+  // Bilder nur als data: URIs (ui/settings-shots-data.js, beim ersten Bedarf nachgeladen): Bilder per URL würden unter
+  // file:// das Canvas verunreinigen und das Spiel einfrieren
+  const helpImgs = {};
+  let shotsLoading = false;
+  function helpImg(name) {
+    const data = window.WG_SETTINGS_SHOTS;
+    if (!data) {
+      if (!shotsLoading) {
+        shotsLoading = true;
+        const el = document.createElement('script');
+        el.src = 'ui/settings-shots-data.js'; el.onerror = () => { window.WG_SETTINGS_SHOTS = {}; };
+        document.head.appendChild(el);
+      }
+      return { pending: true };
+    }
+    let im = helpImgs[name];
+    if (!im) { im = helpImgs[name] = new Image(); if (data[name]) { im.onerror = () => { im.failed = true; }; im.src = data[name]; } else im.failed = true; }
+    return im;
+  }
+  function drawSetInfo(ctx, tab, k) {
+    const I = SET_INFO, row = k >= 0 ? tab.rows[k] : null, h = HELP[row ? row.key : 'tab:' + tab.id];
+    UI.box(ctx, I.x, I.y, I.w, I.h, { colour: P.PANEL_DARK, radius: 12, shadow: false });
+    const title = row ? row.label : tab.label;
+    UI.text(ctx, title, I.x + 24, I.y + 30, { size: fitText(ctx, title, I.w - 48, 28), colour: P.GOLD, align: 'left' });
+    if (!h) return;
+    let yy = I.y + 68;
+    readable(() => wrapPlain(ctx, h.text, I.w - 48, 18).forEach((ln) => { UI.text(ctx, ln, I.x + 24, yy, { size: 18, colour: P.TEXT_SOFT, align: 'left' }); yy += 24; }));
+    if (row && SETTINGS.photosafe && SAFE_KEYS.includes(row.key)) {
+      yy += 6; UI.text(ctx, 'Locked while Photosensitive safe is on (Access, page 2)', I.x + 24, yy, { size: 16, colour: P.GOLD, align: 'left' }); yy += 24;
+    }
+    const shots = (h.shots || []).filter((s) => !helpImg(s.name).failed);
+    if (!shots.length) return;
+    yy += 8;
+    const n = shots.length, gap = 16, inner = I.w - 48, bottom = I.y + I.h - 18, capH = 46;
+    let w = (inner - gap * (n - 1)) / n, ih = (w * 9) / 16;
+    if (yy + capH + ih > bottom) { ih = Math.max(60, bottom - yy - capH); w = Math.min(w, (ih * 16) / 9); }
+    const x0 = I.x + 24 + (inner - (n * w + gap * (n - 1))) / 2;
+    shots.forEach((sh, i) => {
+      const x = x0 + i * (w + gap), im = helpImg(sh.name), iy = yy + capH;
+      const cl = wrapPlain(ctx, sh.caption, w, 16).slice(0, 2);
+      cl.forEach((ln, j) => UI.text(ctx, ln, x + w / 2, yy + 12 + j * 19 + (cl.length === 1 ? 10 : 0), { size: 16, colour: P.TEXT_LABEL }));
+      UI.box(ctx, x - 3, iy - 3, w + 6, ih + 6, { colour: '#0B0F0D', radius: 4, shadow: false });
+      if (im.complete && im.naturalWidth) { ctx.save(); ctx.imageSmoothingEnabled = true; ctx.drawImage(im, x, iy, w, ih); ctx.restore(); }
+      else UI.text(ctx, 'Loading...', x + w / 2, iy + ih / 2, { size: 15, colour: P.TEXT_DIM });
+    });
+  }
+  // Warnung: Fenster schließen mit ungespeicherten Änderungen
+  function drawAsk(ctx, t) {
+    dim(ctx, 0.45);
+    const v = MOBILE ? viewBox() : { l: 0, r: 1280 }, vc = (v.l + v.r) / 2, w = MOBILE ? 960 : 720, h = MOBILE ? 360 : 240, y = MOBILE ? 170 : 236;
+    UI.box(ctx, vc - w / 2, y, w, h, { colour: P.OVERLAY_SOLID, radius: 16, outline: P.GOLD, outlineWidth: 3, emboss: 4 });
+    UI.dynaText(ctx, 'Unsaved changes', vc, y + (MOBILE ? 54 : 40), { size: MOBILE ? 46 : 34, colour: P.GOLD, time: t, wave: 1.5 });
+    const msg = 'You changed settings but did not press Apply. Keep them?';
+    UI.text(ctx, msg, vc, y + (MOBILE ? 130 : 96), { size: fitText(ctx, msg, w - 60, MOBILE ? 28 : 20), colour: P.TEXT_SOFT });
+    for (const b of [B.askApply, B.askDiscard, B.askStay]) UI.button(ctx, b, t);
+  }
+  // Pause am PC: links die Statistik des Runs, rechts die Telefon-Vorteile, in der Mitte das Menü
+  function drawPause(ctx, t) {
+    drawRunPanel(ctx, t);
+    readable(() => drawPhonePanel(ctx, t));
+    UI.box(ctx, 340, 84, 600, 576, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
+    UI.dynaText(ctx, TUT.active ? 'Tutorial paused' : 'Paused', 640, 124, { size: 44, colour: P.GOLD, time: t, wave: 2 });
+    if (!TUT.active && S.stats) {
+      const sb = stageBox(), sub = cup().name + '  ·  ' + sb[0] + ' ' + sb[1], where = runWhere();
+      UI.text(ctx, sub, 640, 166, { size: fitText(ctx, sub, 540, 20), colour: lighten(cup().colour, 0.35) });
+      UI.text(ctx, where, 640, 194, { size: fitText(ctx, where, 540, 16), colour: P.TEXT_SOFT });
+    }
+    for (const b of settingsButtons()) UI.button(ctx, b, t);
+    const hint = B.quit.disabled ? UI.tx('Saving is possible once the dice have settled') : '[Esc] Back to the game   [O] Settings';
+    UI.text(ctx, hint, 640, 620, { size: 15, colour: P.TEXT_DIM });
+  }
+  // Große Statistik (Pause > Stats): drei Spalten über die ganze Breite
+  function drawStatsBig(ctx, t) {
+    const d = runPanelData(), sb = stageBox();
+    UI.box(ctx, 24, 10, 1232, 700, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
+    UI.dynaText(ctx, 'This Run', 640, 46, { size: 42, colour: P.GOLD, time: t, wave: 2 });
+    const head = cup().name + '  ·  ' + sb[0] + ' ' + sb[1] + '  ·  ' + runWhere();
+    UI.text(ctx, head, 640, 90, { size: fitText(ctx, head, 1100, 22), colour: lighten(cup().colour, 0.35) });
+    const col = (x, w, title) => { UI.box(ctx, x, 118, w, 470, { colour: P.PANEL_DARK, radius: 12, shadow: false }); UI.text(ctx, title, x + w / 2, 146, { size: 25, colour: P.GOLD }); };
+    [['Stats', d.stats], ['Rules right now', d.rules]].forEach(([title, rows], i) => {
+      const x = 52 + i * 400, w = 380, lh = Math.min(33, 396 / rows.length);
+      col(x, w, title);
+      rows.forEach(([a, b], j) => {
+        const y = 188 + j * lh;
+        if (j % 2 === 0) { ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.fillRect(x + 12, y - lh / 2, w - 24, lh); }
+        UI.text(ctx, a, x + 24, y, { size: 20, colour: P.TEXT_LABEL, align: 'left' });
+        UI.text(ctx, String(b), x + w - 24, y, { size: 20, align: 'right' });
+      });
+    });
+    const x = 852, w = 376, ids = (S.relics || []).map((q) => q.id).filter((id) => R.RELIC_BY_ID[id]);
+    col(x, w, 'Relics  ' + ids.length + ' / ' + relicMax());
+    if (!ids.length) UI.text(ctx, UI.tx('No relics yet'), x + w / 2, 200, { size: 19, colour: P.TEXT_DIM });
+    const lh = Math.min(54, 384 / Math.max(1, ids.length)), s = Math.min(42, lh - 8);
+    ids.forEach((id, j) => {
+      const y = 196 + j * lh, rd = R.RELIC_BY_ID[id];
+      UI.box(ctx, x + 20, y - s / 2, s, s, { colour: darken(rd.colour, 0.1), radius: 6, shadow: false, outline: R.RARITY[rd.rarity].colour, outlineWidth: 2 });
+      Icons.draw(ctx, id, x + 20 + s / 2, y, s * 0.8);
+      UI.text(ctx, rd.name, x + 34 + s, y, { size: fitText(ctx, rd.name, w - s - 56, 20), align: 'left' });
+    });
+    UI.button(ctx, B.pBack, t);
+    UI.text(ctx, '[Esc] Back', 640, 678, { size: 14, colour: P.TEXT_DIM });
   }
 
   // ── Gerade laufender Song: kurz unten rechts, sobald ein neuer beginnt ([N] oder Klick überspringt) ──
@@ -3935,7 +5292,7 @@
   const jobReward = (d) => (2 + Math.ceil(S.ante / 2) + (d || 0)) * (cup().jonny ? 2 : 1);
   // Neuer Auftrag beim Betreten des Shops (für die nächste Runde). Vor Jonnys Showdown gibt es keinen.
   function newJob() {
-    if (TUT.active || (isBossBlind() && S.boss === JONNY_BOSS)) return null;
+    if (TUT.active || (isBossBlind() && isFinal())) return null;
     const n = handsMax(), lk = luck(), sk = skullFacesInBag(), last = S.jonny.lastJob;
     const pool = JOBS.filter((d) => d.id !== last && (!d.need || d.need(n, lk, sk)));
     const def = R.pick(pool, rng('job')), j = def.make();
@@ -4151,11 +5508,13 @@
     else if (S.rerollsHand === 4) jonnySay(say1(CUP_TALK.shaking), { chance: 0.6, gap: 4 });
   }
   function jonnyLastHand() {
+    if (fatherFight()) { jonnySay(say1(FATHER_TALK.lastHand), { chance: 0.8, gap: 2 }); return; }
     if (S.boss === JONNY_BOSS && isBossBlind()) jonnySay(say1(BOSS_TALK.lastHand), { chance: 0.8, gap: 2 });
     else if (cup().jonny) jonnySay(say1(CUP_TALK.last), { chance: 0.6, gap: 3 });
   }
   // Nach jeder gewerteten Hand (Jonny's Cup und Jonnys Showdown)
   function jonnyHand(res, total) {
+    if (fatherFight()) { if (res.bust) jonnySay(say1(FATHER_TALK.bust), { important: true, replace: true, key: 'hand' }); return; }
     const boss = S.boss === JONNY_BOSS && isBossBlind();
     if (!boss && !cup().jonny) return;
     const won = S.score >= S.target, ratio = total / Math.max(1, S.target);
@@ -4178,7 +5537,7 @@
   // ── Endboss Jonny ──
   const jonnyBoss = () => S.boss === JONNY_BOSS && isBossBlind() && S.ante <= ANTES;
   function jonnyNewRule() {
-    const pool = R.BOSSES.filter((b) => !b.factor && b.id !== S.jonnyRule);
+    const pool = R.BOSSES.filter((b) => !b.noJonny && b.id !== S.jonnyRule);
     const b = R.pick(pool, rng('boss'));
     S.jonnyRule = b.id;
     if (S.played.length) {
@@ -4190,6 +5549,35 @@
   function jonnyIntro() {
     jonnySay(cup().jonny ? BOSS_TALK.introCup : BOSS_TALK.intro, { important: true, replace: true, always: true });
   }
+
+  // ── Endboss Jonnys Vater (Endless, Stage FATHER_STAGE) ──
+  // Er selbst spricht nur in den großen Einblendungen; Jonny kommentiert daneben.
+  function fatherIntro() {
+    const heard = Tapes && Tapes.all(meta()) ? [['paranoid', 'You listened to {g|his tapes}? All eight? {q|He never sent ME any.}']] : [];
+    jonnySay(FATHER_TALK.intro.concat(heard), { important: true, replace: true, always: true });
+  }
+  // Phase 1 geschafft: Überschuss verfällt, neues Ziel, neue Regel in Elite-Stärke, verankerte Würfel zurück in den Beutel
+  function fatherPhase2() {
+    S.bossPhase = 2;
+    S.score = S.target; S.dispScore = S.score;
+    S.target = S.bossFull || S.target * 2;
+    S.jonnyRule = R.pick(R.finalRules(S.jonnyRule), rng('boss')).id;
+    S.anchored = [];
+    const b = curBoss();
+    eng.setBackgroundColour(FATHER_BOSS.colour, { contrast: 2.6 });
+    showMsg('He gets serious', lighten(FATHER_BOSS.colour, 0.3), 'Phase 2  ·  ' + b.name + ' - ' + b.desc, 3.4);
+    sfx('boss');
+    eng.shake(18);
+    eng.emit(L.msg.x, L.msg.y, { count: 110, colours: [FATHER_BOSS.colour, P.GOLD, '#FFFFFF'], speed: 640, size: 11, life: 1.3, shape: 'star' });
+    jonnySay(FATHER_TALK.phase2, { important: true, replace: true, place: 'corner' });
+  }
+  const FATHER_TALK = {
+    intro: [['shocked', 'Wait. That voice. {s|That is the guy from the phone.}'], ['nervous', '...Hi, {g|Dad}. {q|He taught me everything. Including the cheating.}']],
+    phase2: [['paranoid', "Oh no. He's {b|taking his jacket off.}"], ['nervous', '{q|He only does that when he means it.}']],
+    lastHand: [['nervous', "Last hand. Don't look him in the eye. {q|I never do.}"]],
+    bust: [['shocked', 'Skulls? In front of {g|him}? {q|We are never hearing the end of this.}']],
+    defeat: [['shocked', 'You beat {g|my dad}. {w|Nobody} beats my dad.'], ['happy', "{q|He's smiling. He never smiles.} I'm telling Mom."]],
+  };
   // Stimmung des Kopfes neben seinem Namen: je näher am Ziel, desto nervöser
   function jonnyBossMood() {
     if (S.phase === 'shop') return 'smug';
@@ -4217,6 +5605,13 @@
       if (j.jobs >= 5) lines.push(['happy', 'And ' + j.jobs + " of my jobs. You're hired. {q|Unpaid, obviously.}"]);
       else if (j.best >= 100000) lines.push(['shocked', 'That {g|' + UI.num(j.best) + "} point hand? I'm telling everyone. {q|Both of my friends.}"]);
       else lines.push(['fourth', 'Seriously. Well played. {q|*ahem*} I said nothing.']);
+      return lines;
+    }
+    if (closeLoss() && Math.floor(S.score / S.target * 1000) === 991) return [['shocked', "Ninety-nine point {g|one}. {q|That's... pure.}"], ['happy', "Hey. That was really, really good. {q|I mean it. Don't tell anyone I said that.}"]];
+    if (closeLoss()) return [['nervous', 'Less than {g|one percent}. Oof.'], ['happy', "Hey. That was really, really good. {q|I mean it. Don't tell anyone I said that.}"]];
+    if (S.endless && fatherFight()) {
+      lines.push(['nervous', 'You made it all the way to {g|my dad}. {q|Stage ' + S.ante + '. Nobody gets that far.}']);
+      lines.push(['smug', "He says you can call him. {q|He won't pick up. He only calls.}"]);
       return lines;
     }
     if (S.endless) {
@@ -4250,6 +5645,14 @@
     chaos: ['excited', "{g|The Chaos} won. Chaos always wins. {q|That's my motto.}"],
     echo: ['smug', '{g|The Echo}. Same hand, half the Power. {q|Same... same... same...}'],
     wall: ['annoyed', "{g|The Wall}. It's a wall. It doesn't even {s|move}."],
+    fog: ['smug', 'Lost in {g|The Fog}. {q|I could see your dice. Just saying.}'],
+    taxman: ['annoyed', '{g|The Taxman} got you. {q|Death and taxes. Mostly taxes.}'],
+    judge: ['smug', '{g|The Judge} has spoken. {q|Guilty of bad rolls.}'],
+    ghost: ['nervous', '{g|The Ghost}. Your dice were {s|right there}. And also not.'],
+    gambler: ['excited', '{g|The Gambler} wins! Tails, tails, tails. {q|I love that coin.}'],
+    undertow: ['disappointed', '{g|The Undertow} pulled you under. {q|Swim faster next time.}'],
+    hourglass: ['smug', '{g|The Hourglass}. Time ran out. {q|It always does.}'],
+    thief: ['annoyed', '{g|The Thief} took your relics {s|and} the round. {q|Rude.}'],
   };
   const END_FILLER = [
     ['neutral', "Try again. Hold better dice. {q|That's the whole secret.}"],
@@ -4294,6 +5697,12 @@
     frost: [['smug', '{g|The Frost}. Your 6s are frozen. {q|Brrr.}']],
     chaos: [['paranoid', '{g|The Chaos}. Even held dice might roll. {s|Trust no one.}']],
     echo: [['smug', '{g|The Echo}. Repeat a hand and it gets {g|half} Power. {q|Half. Half. Half.}']],
+    fog: [['smug', '{g|The Fog}. No preview this hand. {q|Read your own dice.}']],
+    taxman: [['smug', '{g|The Taxman}. Rerolls cost money now. {q|I take cash.}']],
+    judge: [['excited', '{g|The Judge}! Play the hand he calls and get {w|double} Power.']],
+    ghost: [['paranoid', '{g|The Ghost}. One of your dice is {s|not really there}.']],
+    gambler: [['excited', '{g|The Gambler}. A coin decides your Power. {q|Heads I win, tails you lose.}']],
+    thief: [['smug', '{g|The Thief}. One of your relics takes a {d|nap} this hand.']],
   };
 
   // ── Easter Eggs und Secrets ─────────────────────────────────────────────
@@ -4348,18 +5757,8 @@
     secret('jonny_caught');
   }
 
-  // "jonny" tippen: er schaut unten links herein
+  // "jonny" tippen: er schaut unten links herein (Erkennung in typedWord, weiter unten)
   let typed = '', typedT = 0, peek = null;
-  const NAME = 'jonny';
-  function typedName(k) {
-    if (!/^[a-z]$/.test(k)) return 0;
-    const now = nowSec();
-    if (now - typedT > 1.5) typed = '';
-    typedT = now;
-    typed = (typed + k).slice(-NAME.length);
-    for (let n = NAME.length; n >= 1; n--) if (typed.endsWith(NAME.slice(0, n))) return n;
-    return 0;
-  }
   const PEEK = [
     ['excited', 'You called?'], ['nervous', "I'm on my break. What do you need?"], ['smug', "Need help? I KNEW you'd need help."],
     ['paranoid', "Shh. I'm not supposed to be in here."], ['happy', 'Hi! ...Okay, bye!'], ['shocked', 'How do you know my name?!'],
@@ -4405,7 +5804,7 @@
   }
 
   // Logo im Hauptmenü anklicken
-  const LOGO = { x: 300, y: 115, w: 680, h: 105 };
+  const LOGO = { x: 370, y: 80, w: 540, h: 140 };
   const LOGO_LINES = ['Hey.', "That's the logo.", "It doesn't do anything.", 'Seriously.', '...', 'Stop it.', 'STOP IT.', 'Okay, okay!', 'You win.', 'Fine. Have a trophy.',
     'You already have the trophy.', 'There is no second trophy.', '...'];
   let logoClicks = 0;
@@ -4420,7 +5819,8 @@
 
   // Menü-Würfel anklicken würfelt sie neu; fünf gleiche = Secret
   function rollMenuDie(sp) {
-    const v = 1 + Math.floor(Math.random() * 6);
+    if (shiftDown && !sp.data.loaded && (sp.data.loadClicks = (sp.data.loadClicks || 0) + 1) >= 6) loadMenuDie(sp);
+    const v = sp.data.loaded ? 6 : 1 + Math.floor(Math.random() * 6);
     sp.data.v = v;
     sp.tex = faceTex({ v, kind: 'normal' }, 'standard');
     sp.juiceUp(0.5);
@@ -4431,6 +5831,254 @@
       eng.popup(640, 300, 'MENU YAHTZEE!', { colour: P.GOLD, size: 36, life: 1.6 });
       sfx('lucky');
       secret('menu_yahtzee');
+    }
+  }
+
+  // ── Zweite Welle: Anrufbeantworter-Bänder, Secrets und Easter Eggs (2026-11-12) ──────────
+  const BOOT = Date.now();
+  const eggs = () => { const m = meta(); return m.eggs || (m.eggs = {}); };
+  let shiftDown = false;
+  window.addEventListener('pointerdown', (e) => { shiftDown = e.shiftKey; }, true);
+  // Jonny schaut unten links herein (Menü und Spiel)
+  function peekSay(mood, text) {
+    peek = { t0: nowSec(), mood, text };
+    for (let i = 0; i < 5; i++) eng.after(0.35 + i * 0.07, () => sfx('voice', { f: 560 + Math.random() * 120, mood }));
+  }
+  // Band von Jonnys Vater gefunden (voicemails.js): Einblendung, alle acht = Secret
+  function tape(id) {
+    if (!Tapes || TUT.active || !Tapes.add(meta(), id)) return;
+    Saves.saveMeta();
+    const t = Tapes.BY_ID[id], n = Tapes.count(meta());
+    toasts.push({ a: { name: 'Tape ' + n + ' / ' + Tapes.LIST.length + ': ' + t.title, desc: 'Listen to it in the Codex (Phone tab)', rewards: [], secret: true, head: 'New voicemail' }, t0: null });
+    sfx('ring');
+    if (Tapes.all(meta())) secret('answering_machine');
+  }
+
+  // Alle Würfel gehalten und trotzdem Reroll gedrückt
+  let placebo = 0;
+  function eggPlacebo() {
+    placebo++;
+    eng.popup(B.roll.x + B.roll.w / 2, B.roll.y - 24, 'All dice are held', { colour: P.TEXT_SOFT, size: 18 });
+    if (placebo !== 10 || TUT.active) return;
+    jonnySay([['smug', "You know nothing's happening, right? {q|Every single die is held.}"]], { always: true, replace: true });
+    secret('placebo');
+  }
+  // Nach jedem Wurf: The Frost zählt eingefrorene Würfel
+  function eggAfterRoll() {
+    if (bossActive('frost')) BT().maxFrozen = Math.max(BT().maxFrozen || 0, dice.filter((d) => frozen(d)).length);
+  }
+  // Erster Wurf einer Hand: Deja vu, und Jonny hat den gezinkten Menü-Würfel gesehen
+  let cheatSeen = false;
+  function eggOpeningRoll() {
+    placebo = 0;
+    if (TUT.active || dice.length < 5) return;
+    const key = dice.map((d) => { const f = upFace(d); return R.isSkull(f) ? 'S' : f.kind === 'wild' ? 'W' : String(f.v); }).sort().join('');
+    if (S.ach.open && S.ach.open === key) {
+      eng.popup(L.msg.x, dieY() - 130, 'Deja vu...', { colour: lighten(P.PURPLE, 0.3), size: 24, life: 1.8 });
+      secret('deja_vu');
+    }
+    S.ach.open = key;
+    if (cheatSeen) { cheatSeen = false; jonnySay([['paranoid', 'I saw that. {q|The menu die. Shift-click. Very funny.}']], { always: true, replace: true }); }
+  }
+  // Nach jeder gewerteten Hand: 666 und Pi-Tag
+  function eggHand(res, total) {
+    if (TUT.active || res.bust) return;
+    if (total === 666) {
+      eng.shake(12);
+      eng.emit(L.msg.x, dieY() - 60, { count: 70, colours: ['#B0301E', '#F08A24', '#1C1210'], speed: 520, size: 10, life: 1.2 });
+      eng.popup(L.msg.x, dieY() - 160, '6  6  6', { colour: '#B0301E', size: 42, life: 2.2 });
+      jonnySay([['shocked', 'Six. Six. Six. {q|Did you hear that? Something laughed.}']], { always: true, replace: true });
+      tape('number');
+    }
+    const d = new Date();
+    if (d.getMonth() === 2 && d.getDate() === 14 && total === 314) {
+      eng.popup(L.msg.x, dieY() - 160, 'Happy Pi Day! 3.14159...', { colour: P.GOLD, size: 30, life: 2.4 });
+      eng.emit(L.msg.x, dieY() - 60, { count: 40, colours: [P.GOLD, '#FFFFFF'], speed: 420, size: 9, life: 1, shape: 'star' });
+    }
+  }
+  // Knapp verloren (weniger als 1 % unter dem Ziel)
+  const closeLoss = () => S.target > 0 && S.score < S.target && S.score >= S.target * 0.99;
+  let lostAt = 0, coffeeDone = false;
+  function eggLost() {
+    lostAt = nowSec(); coffeeDone = false;
+    if (TUT.active || !closeLoss()) return;
+    secret('so_close');
+    tape('close');
+  }
+  // Pause > Quit kurz nach einem Bust: beim nächsten Start ruft Jonny an
+  function eggQuit() {
+    if (TUT.active || !S.ach.bustT || Date.now() - S.ach.bustT > 5000) return;
+    secret('rage_quit');
+    eggs().rage = Date.now();
+    Saves.saveMeta();
+  }
+  // Während eines Showdowns den Tab wechseln
+  let awayBoss = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { awayBoss = !inMenus() && !TUT.active && isBossBlind() && ['select', 'rolling', 'scoring'].includes(S.phase); return; }
+    if (!awayBoss) return;
+    awayBoss = false;
+    secret('research');
+    jonnySay([['smug', 'Back already? Checking the wiki? {q|There is no wiki. I checked.}']], { always: true, replace: true });
+  });
+  // Fenster ganz klein ziehen
+  let squeezeT = -99;
+  window.addEventListener('resize', () => {
+    if (MOBILE || (window.innerWidth >= 560 && window.innerHeight >= 330) || nowSec() - squeezeT < 15) return;
+    squeezeT = nowSec();
+    secret('tight_squeeze');
+    peekSay('shocked', "Hey! It's cramped in here!");
+  });
+  // Codex: gesperrte Einträge immer wieder anklicken
+  let stubborn = 0;
+  function eggLockedClick(m) {
+    stubborn++;
+    eng.popup(m.x, m.y - 24, stubborn >= 20 ? 'The lock cracks a little.' : stubborn >= 12 ? 'Still locked.' : 'Locked', { colour: lighten(P.PURPLE, 0.35), size: 16 + Math.min(8, stubborn / 3), life: 1 });
+    if (stubborn === 20) { eng.shake(6); secret('stubborn'); }
+  }
+
+  // Wörter tippen: "jonny" geht überall, die anderen nur im Hauptmenü
+  const WORDS = ['jonny', 'luck', 'roll', 'dad', 'upsidedown'];
+  function typedWord(k) {
+    if (!/^[a-z]$/.test(k)) return { word: null, n: 0 };
+    const now = nowSec();
+    if (now - typedT > 1.5) typed = '';
+    typedT = now;
+    typed = (typed + k).slice(-12);
+    let best = { word: null, n: 0 };
+    for (const w of WORDS) {
+      if (w !== 'jonny' && S.phase !== 'menu') continue;
+      for (let n = w.length; n > best.n; n--) if (typed.endsWith(w.slice(0, n))) { best = { word: w, n }; break; }
+    }
+    return best;
+  }
+  let dadFlash = -99;
+  function menuWord(w) {
+    typed = '';
+    if (w === 'luck') {
+      for (let i = 0; i < 26; i++) eng.after(i * 0.04, () => eng.emit(40 + Math.random() * 1200, -12, { count: 3, colours: ['#2E8B57', '#5DBB63', '#A8E06A'], angle: Math.PI / 2, spread: 0.7, speed: 240, gravity: 380, drag: 0.4, size: 12, life: 2.4, shape: 'diamond' }));
+      eng.popup(640, 300, '+100 Luck!', { colour: P.GREEN, size: 36, life: 1.4 });
+      eng.after(0.9, () => eng.popup(640, 340, '(only in the menu)', { colour: P.TEXT_SOFT, size: 20, life: 1.4 }));
+      sfx('lucky');
+    } else if (w === 'roll') {
+      menuDice.forEach((d, i) => eng.after(i * 0.09, () => { if (menuDice.includes(d)) rollMenuDie(d); }));
+    } else if (w === 'dad') {
+      dadFlash = nowSec();
+      eng.after(0.8, () => peekSay('shocked', 'Dad?! ...Oh. You were just typing.'));
+      tape('dad');
+    } else if (w === 'upsidedown') flipMenu();
+  }
+  // "upsidedown": das Menü steht 5 Sekunden lang Kopf, rote Sporen schweben (Eingaben mit der Maus ruhen so lange)
+  let flipUntil = 0;
+  function flipMenu() {
+    const c = eng.canvas, now = performance.now();
+    if (!c || now < flipUntil) return;
+    flipUntil = now + 5600;
+    const fast = setEff('reduceMotion');
+    c.style.transition = fast ? 'none' : 'rotate 0.6s ease-in-out';
+    c.style.rotate = '180deg';
+    eng.shake(5);
+    for (let i = 0; i < 40; i++) eng.after(i * 0.12, () => eng.emit(40 + Math.random() * 1200, 120 + Math.random() * 600, { count: 3, colours: ['#B0301E', '#E04A2A', '#FF6A3A'], angle: -Math.PI / 2, spread: 1.2, speed: 90, gravity: -40, drag: 0.5, size: 10, life: 3 }));
+    setTimeout(() => {   // echte Zeit: die Spielzeit läuft bei wenigen Bildern pro Sekunde langsamer
+      c.style.rotate = '';
+      setTimeout(() => { c.style.transition = ''; if (S.phase === 'menu') peekSay('nervous', 'Did the lights just flicker?'); }, 600);
+    }, 5000);
+  }
+  ['pointerdown', 'pointerup', 'pointermove'].forEach((t) => window.addEventListener(t, (e) => { if (performance.now() < flipUntil) e.stopPropagation(); }, true));
+  // Silhouette des Vaters flackert kurz im Hintergrund
+  const DAD_ART = ['...XXXXXX...', '...XXXXXX...', '.XXXXXXXXXX.', '....XXXX....', '....XXXX....', '.....XX.....', '..XXXXXXXX..', '.XXXXXXXXXX.', 'XXXXXXXXXXXX', 'XXXXXXXXXXXX', 'XXXXXXXXXXXX', 'XXXXXXXXXXXX'];
+  function drawDad(ctx) {
+    const age = nowSec() - dadFlash;
+    if (age > 0.9 || S.phase !== 'menu') return;
+    const a = (age < 0.12 || (age > 0.3 && age < 0.38) || (age > 0.6 && age < 0.7)) ? 0.55 : 0.12;
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#05070A';
+    DAD_ART.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === 'X') ctx.fillRect(1040 + i * 14, 300 + j * 14, 14, 14); }));
+    ctx.restore();
+  }
+  // Gezinkter Menü-Würfel: sechsmal mit Shift anklicken, dann zeigt er immer 6
+  function loadMenuDie(sp) {
+    sp.data.loaded = true;
+    eng.popup(sp.x, sp.y - 70, 'Loaded.', { colour: P.TEXT_SOFT, size: 18, life: 1.2 });
+    cheatSeen = true;
+    secret('cheater');
+    tape('lesson');
+  }
+  // Mit der Maus die Menü-Würfel umkreisen, bis ihnen schwindelig wird
+  const spin = { a: null, sum: 0, t: 0, mx: 0, my: 0 };
+  let dizzyT = -99;
+  function spinTick() {
+    if (S.phase !== 'menu' || settingsOpen || !menuDice.length) { spin.a = null; spin.sum = 0; return; }
+    const m = eng.mouse, now = nowSec();
+    if (m.x !== spin.mx || m.y !== spin.my) { spin.t = now; spin.mx = m.x; spin.my = m.y; }
+    if (now - spin.t > 1) { spin.sum = 0; spin.a = null; return; }
+    const cx = menuDice.reduce((s, d) => s + d.x, 0) / menuDice.length, cy = menuDice.reduce((s, d) => s + d.y, 0) / menuDice.length;
+    const r = Math.hypot(m.x - cx, m.y - cy);
+    if (r < 70 || r > 460) { spin.a = null; return; }
+    const a = Math.atan2(m.y - cy, m.x - cx);
+    if (spin.a !== null) {
+      let d = a - spin.a;
+      if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+      if (Math.abs(d) < 2.5) spin.sum += d;   // große Sprünge (Maus quer durch die Mitte) zählen nicht
+    }
+    spin.a = a;
+    if (Math.abs(spin.sum) < 5 * 2 * Math.PI || now - dizzyT < 8) return;
+    dizzyT = now; spin.sum = 0;
+    menuDice.forEach((d, i) => {
+      const p = L.menuDie(i);
+      for (let k = 0; k < 10; k++) eng.after(k * 0.11 + i * 0.03, () => d.moveTo(p.x + (k % 2 ? 7 : -7), p.y, p.r + (k % 2 ? 0.55 : -0.55) * (1 - k / 10)));
+      eng.after(1.25 + i * 0.03, () => d.moveTo(p.x, p.y, p.r));
+      eng.popup(p.x, p.y - 70, '@_@', { colour: P.PURPLE, size: 22, life: 1.4 });
+    });
+    sfx('whoosh');
+    secret('dizzy');
+  }
+  // Partyhut für den Wild-Würfel am Aleator Day (10. November)
+  function drawPartyHat(ctx) {
+    if (!SEASON.aleatorDay || S.phase !== 'menu' || menuDice.length < 5) return;
+    const d = menuDice[4], k = (d.s || 3) / 3, s = 5 * k, p = L.menuDie(4);
+    ctx.save(); ctx.translate(d.x + 16 * k, d.y - 42 * k); ctx.rotate((p.r || 0) + 0.3);
+    const HAT = ['.....W.....', '....XXX....', '....YXX....', '...XXYXX...', '...XXXYX...', '..YXXXXYX..', '..XYXXXXY..', '.XXXYXXXXY.', 'XXXXXYXXXXX'];
+    HAT.forEach((row, j) => [...row].forEach((ch, i) => {
+      if (ch === '.') return;
+      ctx.fillStyle = ch === 'W' ? '#FFFFFF' : ch === 'Y' ? '#F3C969' : '#C2453E';
+      ctx.fillRect((i - 5.5) * s, (j - 9) * s, s, s);
+    }));
+    ctx.restore();
+  }
+  // Laufende Kleinigkeiten (aus update)
+  let menuSince = 0, eggPhase = '', nightRang = false, rageShown = false, daySaid = false, snowClock = 0, deepSlept = false;
+  function eggTick() {
+    const now = nowSec();
+    if (S.phase !== eggPhase) { if (S.phase === 'menu') menuSince = now; eggPhase = S.phase; }
+    spinTick();
+    if (S.phase === 'menu' && !settingsOpen && !TUT.modal) {
+      const e = eggs();
+      if (e.rage && e.rage < BOOT && !rageShown && now - menuSince > 1.5) {
+        rageShown = true; delete e.rage; Saves.saveMeta();
+        sfx('ring');
+        eng.after(1, () => peekSay('paranoid', 'You hung up on me. ...I saw the Bust. I get it.'));
+      }
+      const h = new Date().getHours();
+      if (h < 5 && !nightRang && now - menuSince > 20 && Tapes && !Tapes.owned(meta()).night) {
+        nightRang = true;
+        sfx('ring');
+        eng.popup(640, 620, '* ring ring *', { colour: P.TEXT_SOFT, size: 22, life: 1.6 });
+        eng.after(1.8, () => { eng.popup(640, 620, 'Nobody picked up. He left a message.', { colour: P.TEXT_SOFT, size: 20, life: 2.2 }); tape('night'); });
+      }
+      if (SEASON.aleatorDay && !daySaid && now - menuSince > 2) { daySaid = true; peekSay('excited', 'Happy Aleator Day! Party hats for everyone. Well. For one die.'); }
+      if (SEASON.december && !setEff('reduceMotion') && now - snowClock > 0.22) {
+        snowClock = now;
+        eng.emit(Math.random() * 1280, -10, { count: 1, colours: ['#FFFFFF', '#E6F0FF'], angle: Math.PI / 2, spread: 0.5, speed: 70, gravity: 18, drag: 0, size: 6, life: 11, shape: 'circle', spin: 1 });
+      }
+    }
+    if (S.phase === 'lost' && lostAt && !coffeeDone && now - lostAt > 600) {
+      coffeeDone = true;
+      secret('coffee_break');
+      peekSay('happy', 'Still here? Here. Coffee. Black, like that run.');
+    }
+    if (S.phase === 'select' && !TUT.active && !deepSlept && now - lastInput > 600) {
+      deepSlept = true;
+      jonnySay([['happy', '...zzz... {q|five more minutes...}']], { always: true });
     }
   }
 
@@ -4606,8 +6254,12 @@
       if (b.action) Object.assign(b, { x: q.x + q.w - 236, y, w: 222, h: 76, size: 28 });
       else Object.assign(b, { x: b.dir < 0 ? q.x + q.w - 334 : q.x + q.w - 96, y, w: 86, h: 76, size: 38 });
     }
-    if (inMenus()) Object.assign(B.close, { x: vc - 140, y: 606, w: 280, h: 92, size: 34 });
-    else { Object.assign(B.close, { x: vc - 300, y: 606, w: 280, h: 92, size: 34 }); Object.assign(B.quit, { x: vc + 20, y: 606, w: 280, h: 92, size: 30 }); }
+    if (inMenus()) { Object.assign(B.close, { x: vc - 300, y: 606, w: 280, h: 92, size: 34 }); Object.assign(B.apply, { x: vc + 20, y: 606, w: 280, h: 92, size: 34 }); }
+    else {
+      Object.assign(B.close, { x: vc - 440, y: 606, w: 280, h: 92, size: 34 }); Object.assign(B.apply, { x: vc - 140, y: 606, w: 280, h: 92, size: 34 });
+      Object.assign(B.quit, { x: vc + 160, y: 606, w: 280, h: 92, size: 30 });
+    }
+    [B.askApply, B.askDiscard, B.askStay].forEach((b, i) => Object.assign(b, { x: vc - 440 + i * 300, y: 400, w: 280, h: 92, size: 30 }));
     const sg = mSlotGeom();
     for (let k = 0; k < 3; k++) {
       Object.assign(SLOT_MAIN[k], { x: sg.x(k) + 14, y: sg.y + 312, w: sg.W - 28, h: 92, size: 32 });
@@ -4615,8 +6267,10 @@
     }
     Object.assign(B.tutSlot, { x: sg.x(3) + 14, y: sg.y + 312, w: sg.W - 28, h: 92, size: 28 });
     if (S.phase === 'cups') { Object.assign(B.back, { x: vc - 300, y: 612, w: 280, h: 92, size: 34 }); Object.assign(B.begin, { x: vc + 20, y: 612, w: 280, h: 92, size: 34 }); }
+    else if (S.phase === 'challenges') { Object.assign(B.back, { x: vc - 300, y: 612, w: 280, h: 92, size: 34 }); Object.assign(B.chStart, { x: vc + 20, y: 612, w: 280, h: 92, size: 32 }); }
     else Object.assign(B.back, { x: vc - 140, y: 612, w: 280, h: 92, size: 34 });
     Object.assign(B.cupPrev, { x: v.l + 24, y: 168, w: 104, h: 124, size: 48 });
+    Object.assign(B.challenges, { x: v.r - 304, y: 14, w: 280, h: 76, size: 30 });
     Object.assign(B.cupNext, { x: v.r - 128, y: 168, w: 104, h: 124, size: 48 });
     Object.assign(B.achPrev, { x: vc - 300, y: 612, w: 130, h: 92, size: 44 });
     Object.assign(B.achNext, { x: vc + 170, y: 612, w: 130, h: 92, size: 44 });
@@ -4650,7 +6304,7 @@
     UI.box(ctx, g.vc - g.pw / 2, 8, g.pw, 704, { colour: P.OVERLAY_SOLID, radius: 18, outline: P.GOLD, outlineWidth: 3 });
     for (const b of visTabBtns()) UI.button(ctx, b, t);
     const tab = SET_TABS[setTab];
-    if (tab.id === 'run') drawRunTabMobile(ctx);
+    if (tab.id === 'run') { drawRunTabMobile(ctx); drawPhoneRowMobile(ctx, g); }
     if (tab.id === 'controls') {
       const w = Math.min(900, g.pw - 40), x = g.vc - w / 2;
       CONTROLS_TOUCH.forEach(([key, what], i) => {
@@ -4675,9 +6329,11 @@
     });
     for (const b of setBtnsNow()) UI.button(ctx, b, t);
     UI.button(ctx, B.close, t);
+    UI.button(ctx, B.apply, t);
     if (!inMenus()) UI.button(ctx, B.quit, t);
     const hint = lockHint() || (!inMenus() && B.quit.disabled ? 'Saving is possible once the dice have settled'
-      : tab.id === 'game' ? 'Jonny chatter: his comments in the shop and during runs. Reset clears trophies and unlocks.' : '');
+      : setDirty() ? 'Changes are a preview until you tap Apply'
+        : tab.id === 'game' ? 'Jonny chatter: his comments in the shop and during runs. Reset clears trophies and unlocks.' : '');
     if (hint) UI.text(ctx, hint, g.vc, 574, { size: fitText(ctx, hint, g.pw - 40, 22), colour: P.TEXT_DIM });
   }
 
@@ -4781,6 +6437,7 @@
       });
     }
     for (const b of [B.cupPrev, B.cupNext, B.begin, B.back]) UI.button(front, b, t);
+    if (Chal && profile) UI.button(front, B.challenges, t);
   }
 
   // ── Trophäen (Handy): 2 Spalten, 4 Zeilen; Antippen einer Belohnung erklärt sie ──
@@ -4887,7 +6544,7 @@
   // leuchten, wenn ein Relikt sie belohnt. Links (gleiche Nachbarn) zeigen ein Kettenglied zwischen den Würfeln.
   let formKey = '', formRes = null;
   function formationNow() {
-    if (!formationOn() || S.phase !== 'select') return null;
+    if (!formationOn() || S.phase !== 'select' || fogged()) return null;
     const pv = preview();
     if (!pv) return null;
     const key = previewKey + '|' + dice.length;
@@ -4996,7 +6653,7 @@
   let newRecord = false;   // die gerade gewertete Hand ist die beste aller Runs (setzt startFuse)
   function jonnyEvents(kind, e = {}) {
     if (TUT.active || inMenus() || !JL.EVENT) return;
-    const E = JL.EVENT, cupJ = cup().jonny, bossJ = S.boss === JONNY_BOSS && isBossBlind();
+    const E = JL.EVENT, cupJ = cup().jonny, bossJ = isFinal() && isBossBlind();
     const v = { stage: S.ante, score: UI.num(S.target) };
     if (kind === 'roundStart') {
       if (S.endless && S.blindIdx === 0) { const tier = S.ante >= 12 ? 2 : S.ante >= 10 ? 1 : 0; jonnyLine('endless:' + tier, E.endless.stage[tier], v, { chance: 0.85, gap: 4 }); return; }
@@ -5011,6 +6668,7 @@
       return;
     }
     if (kind === 'boss') { const id = S.boss && S.boss.id; if (E.boss[id]) jonnyLine('boss:' + id, E.boss[id], v, { chance: 0.5, cd: 20, gap: 4 }); return; }
+    if (kind === 'elite') { const lv = (S.boss && S.boss.lv) || 1, pool = E.elite && E.elite[lv]; if (pool) jonnyLine('elite:' + lv, pool, Object.assign({}, v, { boss: S.boss.name }), { chance: 0.9, gap: 2, important: lv === 2 }); return; }
     if (kind === 'endless') { jonnyLine('endless', E.endless.start, v, { important: true, replace: true }); return; }
     if (kind === 'chaos') { jonnyLine('chaos', E.chaos, { rule: e.rule }, { chance: 0.45, cd: 30 }); return; }
     if (kind === 'idle') { jonnyLine('idle', E.idle, v, { cd: 300, gap: 20 }); return; }
@@ -5073,7 +6731,7 @@
   // ── Codex: alles, was es gibt, mit Freischalt-Stand ─────────────────────────
   // meta().codex zählt pro Art, wie oft man etwas bekommen hat (gekauft, vom Becher, verwandelt) bzw. getroffen (Bosse).
   // Zustände: owned (schon einmal gehabt), open (freigeschaltet, aber nie gehabt: ausgegraut), locked ("???" mit Aufgabe).
-  const CODEX_KINDS = ['relic', 'upgrade', 'oracle', 'die', 'boss', 'cup', 'encounter'];
+  const CODEX_KINDS = ['relic', 'upgrade', 'oracle', 'die', 'boss', 'cup', 'encounter', 'elite', 'phone'];
   function codexData() {
     const m = meta();
     if (!m.codex) {
@@ -5102,12 +6760,14 @@
   const CODEX_TABS = [
     { id: 'relic', label: 'Relics' }, { id: 'upgrade', label: 'Upgrades' }, { id: 'oracle', label: 'Oracles' },
     { id: 'die', label: 'Dice' }, { id: 'boss', label: 'Bosses' }, { id: 'cup', label: 'Cups' }, { id: 'encounter', label: 'Encounters' },
+    { id: 'phone', label: 'Phone' },
   ];
-  const CODEX_TAB_BTNS = CODEX_TABS.map((tb, i) => (MOBILE ? btn(640 + (i - 3) * 164 - 78, 70, 156, 50, tb.label, P.L_BLACK, { size: 24, codexTab: i })
-    : btn(640 + (i - 3) * 134 - 64, 78, 128, 40, tb.label, P.L_BLACK, { size: 18, codexTab: i })));
+  const CODEX_MID = (CODEX_TABS.length - 1) / 2;   // Reiter mittig um 640
+  const CODEX_TAB_BTNS = CODEX_TABS.map((tb, i) => (MOBILE ? btn(640 + (i - CODEX_MID) * 152 - 73, 70, 146, 50, tb.label, P.L_BLACK, { size: 22, codexTab: i })
+    : btn(640 + (i - CODEX_MID) * 134 - 64, 78, 128, 40, tb.label, P.L_BLACK, { size: 18, codexTab: i })));
   ALL_BUTTONS.push(...CODEX_TAB_BTNS);
   const CODEX_GRID = MOBILE ? { x: 40, y: 152, cols: 8, size: 74, gap: 12, rows: 5 } : { x: 48, y: 150, cols: 10, size: 64, gap: 10, rows: 6 };
-  const CODEX_PANEL = MOBILE ? { x: 830, y: 146, w: 420, h: 458 } : { x: 812, y: 150, w: 428, h: 444 };
+  const CODEX_PANEL = MOBILE ? { x: 830, y: 146, w: 420, h: 458 } : { x: 800, y: 150, w: 440, h: 444 };
   let codexTab = 0, codexPage = 0, codexSel = null, codexHits = [];
   const codexPer = () => CODEX_GRID.cols * CODEX_GRID.rows;
   function codexEntries(kind) {
@@ -5115,8 +6775,10 @@
     if (kind === 'upgrade') return R.UPGRADES.map((d) => ({ kind, id: d.id, name: d.name }));
     if (kind === 'oracle') return R.ORACLES.map((d) => ({ kind, id: d.id, name: d.name }));
     if (kind === 'die') return Object.keys(R.DIE_TYPES).map((id) => ({ kind, id, name: R.DIE_TYPES[id].name }));
-    if (kind === 'boss') return R.BOSSES.concat([JONNY_BOSS]).map((b) => ({ kind, id: b.id, name: b.name }));
+    if (kind === 'boss') return R.BOSSES.concat([JONNY_BOSS, FATHER_BOSS]).map((b) => ({ kind, id: b.id, name: b.father && !codexData().boss[b.id] ? '???' : b.name }));
     if (kind === 'encounter') return Enc.LIST.map((d) => ({ kind, id: d.id, name: d.name }));
+    if (kind === 'phone') return Phone.LIST.map((d) => ({ kind, id: d.id, name: d.name }))
+      .concat(Tapes ? Tapes.LIST.map((t, i) => ({ kind: 'tape', id: t.id, name: Tapes.owned(meta())[t.id] ? t.title : 'Tape ' + (i + 1) })) : []);
     return CUPS.map((c) => ({ kind, id: c.id, name: c.name }));
   }
   // Wodurch etwas freigeschaltet wird (Achievement), sonst null
@@ -5127,22 +6789,35 @@
     return ACH.LOCKED.has(key) ? ACH.SOURCE[key] : null;
   }
   function codexState(e) {
+    if (e.kind === 'tape') return Tapes.owned(meta())[e.id] ? { state: 'owned', n: 1 } : { state: 'open', n: 0 };
     const n = codexData()[e.kind][e.id] || 0;
     if (n > 0 || (e.kind === 'cup' && e.id === 'classic' && meta().stats.runs > 0)) return { state: 'owned', n: Math.max(1, n) };
     const src = codexSource(e);
     if (src && !ACH.earned(meta(), src.id)) return { state: 'locked', n: 0, src };
     return { state: 'open', n: 0 };
   }
+  // Kassette (16 x 16 Pixel)
+  function tapeTile(c, x, y, size, on) {
+    const k = size / 16, px = (i, j, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x + i * k), Math.round(y + j * k), Math.ceil(w * k), Math.ceil(h * k)); };
+    UI.box(c, x, y, size, size, { colour: on ? '#3A2E4A' : '#2A3236', radius: 8, shadow: false, outline: on ? PHONE_COL : '#46525A', outlineWidth: 2 });
+    px(2, 4, 12, 8, on ? '#D9C9A3' : '#55626A');
+    px(3, 5, 10, 2, on ? '#C2453E' : '#46525A');
+    px(5, 8, 6, 3, on ? '#6A5A4A' : '#3A464C');
+    px(4, 8, 2, 2, '#1C2224'); px(10, 8, 2, 2, '#1C2224');
+    px(4, 11, 8, 1, on ? '#A8987A' : '#46525A');
+  }
   function codexIcon(c, e, x, y, size, state) {
     if (state === 'locked') { drawReward(c, '?', '?', x, y, size, false); return; }
     if (e.kind === 'relic' || e.kind === 'upgrade' || e.kind === 'oracle' || e.kind === 'die') drawReward(c, e.kind, e.id, x, y, size, false);
     else if (e.kind === 'cup') drawReward(c, 'cupmode', e.id, x, y, size, false);
     else if (e.kind === 'encounter') { c.save(); c.imageSmoothingEnabled = false; c.drawImage(EncArt.portrait(e.id), x, y, size, size); c.restore(); }
+    else if (e.kind === 'phone') phoneTile(c, e.id, x, y, size);
+    else if (e.kind === 'tape') tapeTile(c, x, y, size, state === 'owned');
     else {
-      const b = e.id === 'jonny' ? JONNY_BOSS : R.BOSSES.find((q) => q.id === e.id);
+      const b = FINAL_BOSSES[e.id] || R.BOSSES.find((q) => q.id === e.id);
       UI.box(c, x, y, size, size, { colour: b.colour, radius: 8, shadow: false, outline: lighten(b.colour, 0.35), outlineWidth: 2 });
       if (e.id === 'jonny' && TUT.head) { c.save(); c.imageSmoothingEnabled = false; c.drawImage(TUT.head('smug', false), x + 2, y + 2, size - 4, size - 4); c.restore(); }
-      else UI.text(c, b.name.replace(/^The /, '')[0], x + size / 2, y + size / 2, { size: size * 0.55 });
+      else UI.text(c, b.father ? (state === 'owned' ? 'F' : '?') : b.name.replace(/^The /, '')[0], x + size / 2, y + size / 2, { size: size * 0.55 });
     }
     if (state === 'open') { c.save(); c.fillStyle = 'rgba(24,30,34,0.62)'; UI.roundRect(c, x, y, size, size, 8); c.fill(); c.restore(); }
   }
@@ -5158,10 +6833,22 @@
     if (e.kind === 'oracle') { const d = R.ORACLE_BY_ID[e.id]; return { desc: st === 'locked' ? lockedDesc : d.desc, badge: ['Oracle', TYPE_COL.oracle] }; }
     if (e.kind === 'die') { const t = R.DIE_TYPES[e.id]; return { desc: st === 'locked' ? lockedDesc : 'Faces of this die:', faces: st === 'locked' ? null : (rewardDie[e.id] || (rewardDie[e.id] = R.makeDie(e.id))), badge: ['Die', TYPE_COL.die], extra: t.weight ? null : 'Only from the High Roller Cup' }; }
     if (e.kind === 'boss') {
-      const b = e.id === 'jonny' ? JONNY_BOSS : R.BOSSES.find((q) => q.id === e.id);
-      return { desc: e.id === 'jonny' ? 'The final boss of Stage 8. He cheats: every hand he picks a new rule from the other bosses.' : b.desc, badge: [e.id === 'jonny' ? 'Final boss' : 'Showdown boss', b.colour] };
+      const b = FINAL_BOSSES[e.id] || R.BOSS_BY_ID[e.id];
+      if (e.id === 'jonny') return { desc: 'The final boss of Stage 8. ' + (4 + b.hands) + ' hands and a huge target. He cheats: every hand he picks a new rule from the other bosses.', badge: ['Final boss', b.colour] };
+      if (e.id === 'father') return st === 'owned'
+        ? { desc: 'Waits in Endless Stage ' + R.BALANCE.FATHER_STAGE + '. ' + (4 + b.hands) + ' hands for two phases. Phase 1: half the target under one rule. Phase 2: extra points are lost and he picks a new rule at Elite strength.', badge: ['Final boss', b.colour], extra: 'The man on the phone' }
+        : { desc: 'Somebody waits deep in Endless. Keep going.', badge: ['Final boss', b.colour] };
+      const tier = R.TIER_BY_ID[b.tier], n = b.lv.length, met = !!codexData().elite[e.id];
+      const extra = n === 1 ? 'No Elite version' : met ? 'Elite: ' + b.lv[1].desc + (n > 2 ? '  ·  Elite+: ' + b.lv[2].desc + ', bigger target' : '')
+        : 'Has an Elite' + (n > 2 ? ' and an Elite+' : '') + ' version. Meet one to read it';
+      return { desc: b.desc, badge: [tier.name + ' boss', tier.colour], extra };
     }
     if (e.kind === 'encounter') { const d = Enc.BY_ID[e.id]; return { desc: d.desc, badge: ['Encounter', d.colour], extra: d.who }; }
+    if (e.kind === 'phone') { const d = Phone.BY_ID[e.id]; return { desc: d.text, badge: ['Phone call', PHONE_COL], extra: 'Offered on the phone after a Showdown. Stacks.' }; }
+    if (e.kind === 'tape') {
+      const tp = Tapes.BY_ID[e.id], badge = ['Voicemail ' + (Tapes.LIST.indexOf(tp) + 1) + ' / ' + Tapes.LIST.length, st === 'owned' ? PHONE_COL : '#46525A'];
+      return st === 'owned' ? { desc: '"' + tp.text + '"', badge, extra: 'Left for Jonny by the man on the phone' } : { desc: 'Hint: ' + tp.hint, badge, extra: 'Somewhere, a tape is waiting' };
+    }
     const c = CUP_BY_ID[e.id];
     return { desc: st === 'locked' ? lockedDesc : c.desc, badge: [CUP_WORD, c.colour], extra: c.id === 'classic' ? 'Always available' : c.jonny ? 'Always available once unlocked' : 'Win it in a Cup Draw (Stage ' + CUP_DRAW_STAGE + ' Showdown)' };
   }
@@ -5195,7 +6882,7 @@
     let y = P0.y + 14;
     codexIcon(c, e, cx - 48, y, 96, q.state);
     y += 120;
-    UI.text(c, e.name, cx, y, { size: fitText(c, e.name, P0.w - 30, 28 * k), colour: q.state === 'locked' ? P.TEXT_SOFT : P.WHITE });
+    UI.text(c, e.name, cx, y, { size: fitText(c, e.name, P0.w - (MOBILE ? 30 : 60), 28 * k), colour: q.state === 'locked' ? P.TEXT_SOFT : P.WHITE });
     y += 32 * k;
     c.font = UI.font(17 * k);
     const bw = c.measureText(inf.badge[0]).width + 28;
@@ -5204,15 +6891,15 @@
     y += 30 * k;
     if (inf.tags && inf.tags.length) { tagChips(c, inf.tags.map((tg) => ({ tag: tg, label: R.TAGS[tg].name, colour: darken(TAG_COL(tg), 0.1) })), cx, y + 2, 14); y += 30; }
     // Beschreibung in einem weißen Feld (Zahlen eingefärbt)
-    const lines = wrapText(c, inf.desc, P0.w - 60, 18 * k), boxH = lines.length * 22 * k + 16 + (inf.faces ? 36 : 0);
-    UI.box(c, P0.x + 16, y, P0.w - 32, boxH, { colour: '#FFFFFF', radius: 8, shadow: false });
+    const ins = MOBILE ? 16 : 26, lines = wrapText(c, inf.desc, P0.w - 2 * ins - (MOBILE ? 28 : 20), 18 * k), boxH = lines.length * 22 * k + 16 + (inf.faces ? 36 : 0);
+    UI.box(c, P0.x + ins, y, P0.w - 2 * ins, boxH, { colour: '#FFFFFF', radius: 8, shadow: false });
     lines.forEach((ln, i) => drawLine(c, ln, cx, y + 18 * k + i * 22 * k, 18 * k, false));
     if (inf.faces) drawFaces(c, inf.faces, cx, y + lines.length * 22 * k + 26, -1);
     y += boxH + 22;
     if (inf.extra) { UI.text(c, inf.extra, cx, y, { size: fitText(c, inf.extra, P0.w - 30, 15 * k), colour: P.TEXT_HINT }); y += 24 * k; }
     // Stand
-    const status = q.state === 'owned' ? (e.kind === 'boss' || e.kind === 'encounter' ? 'Met ' : e.kind === 'cup' ? 'Played ' : 'Collected ') + q.n + (q.n === 1 ? ' time' : ' times')
-      : q.state === 'open' ? (e.kind === 'boss' || e.kind === 'encounter' ? 'Not met yet' : e.kind === 'cup' ? 'Not played yet' : 'Unlocked. Get it once to fill this page.') : 'Locked';
+    const status = e.kind === 'tape' ? (q.state === 'owned' ? 'Found' : 'Not found yet') : q.state === 'owned' ? (e.kind === 'boss' || e.kind === 'encounter' ? 'Met ' : e.kind === 'cup' ? 'Played ' : e.kind === 'phone' ? 'Taken ' : 'Collected ') + q.n + (q.n === 1 ? ' time' : ' times')
+      : q.state === 'open' ? (e.kind === 'boss' || e.kind === 'encounter' ? 'Not met yet' : e.kind === 'cup' ? 'Not played yet' : e.kind === 'phone' ? 'Not taken yet' : 'Unlocked. Get it once to fill this page.') : 'Locked';
     UI.text(c, status, cx, y, { size: 18 * k, colour: q.state === 'owned' ? P.GOLD : q.state === 'open' ? P.TEXT_LABEL : lighten(P.PURPLE, 0.35) });
     y += 28 * k;
     if (q.state === 'locked' && q.src) {
@@ -5222,7 +6909,7 @@
       wrapPlain(c, a.desc, P0.w - 50, 16 * k).slice(0, 2).forEach((ln, i) => UI.text(c, ln, cx, y + i * 20 * k, { size: 16 * k, colour: P.TEXT_SOFT }));
       y += 44 * k;
       const pr = ACH.progress(meta(), a);
-      if (pr && y < P0.y + P0.h - 14) {
+      if (pr && y < P0.y + P0.h - (MOBILE ? 14 : 34)) {
         const bw2 = P0.w - 120, kk = pr.n / pr.goal;
         UI.box(c, cx - bw2 / 2, y - 6, bw2, 12, { colour: P.PANEL_DARK, radius: 6, shadow: false });
         if (kk > 0) UI.box(c, cx - bw2 / 2, y - 6, Math.max(12, bw2 * kk), 12, { colour: P.GOLD, radius: 6, shadow: false });
@@ -5235,6 +6922,7 @@
     if (tab) return false;
     const h = codexHits.find((q) => UI.inside(q.r, m));
     if (!h) return false;
+    if (codexState(h.e).state === 'locked') eggLockedClick(m);
     codexSel = h.e; sfx('card');
     return true;
   }
@@ -5261,7 +6949,7 @@
       cons: S.cons.map((c) => ({ type: c.type, id: c.id, hand: c.hand, n: c.n })),
       bag: S.bag.map((d) => ({ t: d.type, f: d.faces.map((f) => [f.v, f.kind]) })),
       hands: Object.assign({}, S.handCounts), levels: Object.assign({}, S.levels), tags: R.tagCounts(S.relics), ach: (S.runAch || []).slice(),
-      replay: S.bestReplay || null,
+      replay: S.bestReplay || null, phone: S.phone ? Object.assign({}, S.phone.owned) : {},
     };
   }
   function recordHistory(won) {
@@ -5307,11 +6995,12 @@
     if (kind === 'constellation') { const h = R.HANDS[id]; return { title: h.star, desc: 'Level up ' + id + ': +' + h.level[0] + ' Pips and +' + h.level[1] + ' Power', badge: ['Constellation', TYPE_COL.constellation] }; }
     if (kind === 'tally') return { title: 'Tally of ' + R.NUMBER_NAMES[id], desc: 'Level up ' + id + 's: each scored ' + id + ' gives +4 Pips and +1 Power more', badge: ['Tally', TYPE_COL.tally] };
     if (kind === 'die') return { title: R.DIE_TYPES[extra.type].name, desc: 'Faces of this die:', faces: extra, badge: ['Die', TYPE_COL.die] };
+    if (kind === 'phone') { const d = Phone.BY_ID[id]; return d ? { title: d.name, desc: d.text, badge: ['Phone call', PHONE_COL] } : null; }
     if (kind === 'ach') { const a = ACH.BY_ID[id]; return { title: a.name, desc: a.desc, badge: [a.secret ? 'Secret achievement' : 'Achievement', a.secret ? P.PURPLE : darken(P.GOLD, 0.2)] }; }
     return null;
   }
   let sumHits = [];
-  const SUM = { x: 40, y: 14, w: 1200, h: 548 };
+  const SUM = { x: 40, y: 14, w: 1200, h: MOBILE ? 548 : 576 }, SUM_BTN = MOBILE ? 60 : 76;   // PC: Knöpfe mit Abstand zum unteren Rand
   // Zeichnet einen Run. live: Auswertung direkt am Ende (sonst aus der Historie)
   function drawRunCard(back, front, t, rec, live) {
     const { x, y, w, h } = SUM, accent = recColour(rec), cupD = CUP_BY_ID[rec.cup] || CUPS[0], k = MOBILE ? 1.15 : 1;
@@ -5324,12 +7013,12 @@
     UI.dynaText(front, recTitle(rec, live), x + w / 2, y + 38, { size: 44, colour: accent, time: t, wave: 2.5 });
     const sub = cupD.name + '  ·  ' + recStage(rec) + '  ·  ' + fmtTime(rec.time || 0) + '  ·  ' + fmtDate(rec.date);
     UI.text(front, sub, x + w / 2, y + 76, { size: fitText(front, sub, w - 60, 17 * k), colour: P.TEXT_SOFT });
-    const col = (cx, title, cw) => { UI.box(front, cx, y + 96, cw, 384, { colour: P.PANEL_DARK, radius: 12, shadow: false }); UI.text(front, title, cx + cw / 2, y + 114, { size: 18 * k, colour: P.TEXT_LABEL }); };
+    const col = (cx, title, cw) => { UI.box(front, cx, y + 96, cw, MOBILE ? 384 : 392, { colour: P.PANEL_DARK, radius: 12, shadow: false }); UI.text(front, title, cx + cw / 2, y + 114, { size: 18 * k, colour: P.TEXT_LABEL }); };
     // Spalte 1: Zahlen
     const c1 = x + 16;
     col(c1, 'Stats', 372);
     recStatRows(rec).forEach(([a, b], i) => {
-      const ry = y + 140 + i * 21.5;
+      const ry = y + 140 + i * (MOBILE ? 20.4 : 20.5);   // Handy: 17 Zeilen müssen über die Knopfreihe passen
       UI.text(front, a, c1 + 14, ry, { size: 15 * k, colour: P.TEXT_LABEL, align: 'left' });
       const val = String(b);
       UI.text(front, val, c1 + 358, ry, { size: fitText(front, val, 190, 16 * k), align: 'right', colour: a === 'Best hand' ? P.GOLD : P.WHITE });
@@ -5376,6 +7065,18 @@
       front.save(); front.imageSmoothingEnabled = false; front.drawImage(faceEntry(f, d.t).canvas, r.x, r.y, r.w, r.h); front.restore();
       sumHits.push({ r, info: plainInfo('die', null, die) });
     });
+    // Telefon: genommene Vorteile (ältere Einträge haben keine)
+    const ph = Object.keys(rec.phone || {}).filter((id) => Phone.BY_ID[id] && rec.phone[id] > 0);
+    if (ph.length) {
+      const py = yy + Math.ceil(Math.min(24, rec.bag.length) / 12) * 31 + 2;
+      UI.text(front, 'Phone', c2 + 14, py + 12, { size: 15 * k, colour: P.TEXT_DIM, align: 'left' });
+      ph.slice(0, 11).forEach((id, i) => {
+        const r = { x: c2 + 70 + i * (MOBILE ? 29 : 28), y: py, w: 25, h: 25 };
+        phoneTile(front, id, r.x, r.y, r.w);
+        if (rec.phone[id] > 1) UI.text(front, 'x' + rec.phone[id], r.x + r.w, r.y + r.h - 2, { size: 11, colour: P.GOLD, align: 'right' });
+        sumHits.push({ r, info: plainInfo('phone', id) });
+      });
+    }
     // Spalte 3: Hände und Achievements
     const c3 = x + 812, cw3 = 372;
     col(c3, 'Hands played', cw3);
@@ -5595,11 +7296,13 @@
     const x = 20, y = 84, w = 306, h = 576, d = runPanelData(), sb = stageBox();
     UI.box(c, x, y, w, h, { colour: P.OVERLAY_SOLID, radius: 18, outline: lighten(P.PANEL, 0.25), outlineWidth: 2 });
     UI.dynaText(c, 'This Run', x + w / 2, y + 30, { size: 30, colour: P.GOLD, time: t, wave: 1.5 });
-    UI.text(c, cup().name + '  ·  ' + sb[0] + ' ' + sb[1], x + w / 2, y + 60, { size: fitText(c, cup().name + '  ·  ' + sb[0] + ' ' + sb[1], w - 24, 17), colour: lighten(cup().colour, 0.35) });
-    UI.text(c, runWhere(), x + w / 2, y + 82, { size: fitText(c, runWhere(), w - 24, 15), colour: P.TEXT_SOFT });
-    let yy = y + 106;
-    const head = (txt) => { UI.box(c, x + 12, yy - 10, w - 24, 22, { colour: P.PANEL, radius: 6, shadow: false }); UI.text(c, txt, x + w / 2, yy + 1, { size: 15, colour: P.TEXT_LABEL }); yy += 22; };
-    const row = ([a, b]) => { UI.text(c, a, x + 22, yy, { size: 15, colour: P.TEXT_LABEL, align: 'left' }); UI.text(c, String(b), x + w - 22, yy, { size: 15, align: 'right' }); yy += 19; };
+    UI.text(c, cup().name + '  ·  ' + sb[0] + ' ' + sb[1], x + w / 2, y + 58, { size: fitText(c, cup().name + '  ·  ' + sb[0] + ' ' + sb[1], w - 48, 17), colour: lighten(cup().colour, 0.35) });
+    UI.text(c, runWhere(), x + w / 2, y + 78, { size: fitText(c, runWhere(), w - 48, 15), colour: P.TEXT_SOFT });
+    let yy = y + 100;
+    // Zeilenhöhe so, dass die letzte Zeile mit Abstand über dem unteren Rand (und den Nieten) bleibt
+    const n = d.stats.length + d.rules.length, lh = Math.min(19, (y + h - 30 - yy - 52) / (n - 1));
+    const head = (txt) => { UI.box(c, x + 14, yy - 10, w - 28, 22, { colour: P.PANEL, radius: 6, shadow: false }); UI.text(c, txt, x + w / 2, yy + 1, { size: 15, colour: P.TEXT_LABEL }); yy += 22; };
+    const row = ([a, b]) => { UI.text(c, a, x + 26, yy, { size: 15, colour: P.TEXT_LABEL, align: 'left' }); UI.text(c, String(b), x + w - 26, yy, { size: 15, align: 'right' }); yy += lh; };
     head('Stats');
     d.stats.forEach(row);
     yy += 8;
@@ -5627,8 +7330,9 @@
     still: new FX.Juice(),
     dice: () => dice, juiced, area, statBox, dim, tutorial: () => TUT.active, tagChips, tagSummary, setTagRects: (r) => { tagRects = tagRects.concat(r); },
     drawLine, wrapText, faceEntry, fmtMult, money: moneyText, blindLabel, isBossBlind, luck: () => luck(), has, upg,
-    anchorCap, bustAt, mostPlayed, relicMax, preview, isBust, fatigueFor, bagMax, drawCount, shopLabels, upgradeNote, setOn, fuse: () => fuseView(),
+    anchorCap, bustAt, mostPlayed, relicMax, preview: () => (fogged() ? null : preview()), isBust, fatigueFor, bagMax, drawCount, shopLabels, upgradeNote, setOn, fuse: () => fuseView(),
     drawJob, jobLine, jonnyBoss, drawJonnyHead, wrapPlain, fitText, JONNY_GOLD, stageBox: () => stageBox(), formParts: () => formParts(), heatPct: () => heatPct(),
+    bossDesc, bossTag: () => bossTag(), scoreText: () => (scoreHidden() ? '???' : UI.num(S.dispScore)), fogged: () => fogged(),
   };
   const LAYOUTS = (window.WG_LAYOUTS || []).map((make) => make(K));
   let L = null;
@@ -5651,7 +7355,7 @@
     const panel = document.getElementById('dev');
     const sliders = [
       ['CRT total', eng.crt, 'amount', 0, 1], ['Curvature', eng.crt, 'curvature', 0, 1.5], ['Scanlines', eng.crt, 'scanlines', 0, 1],
-      ['Bloom', eng.crt, 'bloom', 0, 1.5], ['Chroma aberr.', eng.crt, 'chroma', 0, 2], ['Noise', eng.crt, 'noise', 0, 1],
+      ['Bloom', eng.crt, 'bloom', 0, 1.5], ['Bloom cut', eng.crt, 'bloomCut', 0, 1], ['Chroma aberr.', eng.crt, 'chroma', 0, 2], ['Noise', eng.crt, 'noise', 0, 1],
       ['Vignette', eng.crt, 'vignette', 0, 1], ['BG pixel', eng.bgTarget, 'pixelFilter', 150, 1500], ['BG contrast', eng.bgTarget, 'contrast', 0.5, 5],
       ['BG swirl', eng.bgTarget, 'spinAmount', 0, 1], ['BG flow', eng.bgTarget, 'spinSpeed', 0, 20], ['BG rotation', eng.bgTarget, 'rotation', -5, 5],
     ];
@@ -5682,7 +7386,7 @@
       setFaces: (vals) => dice.forEach((d, i) => { const k = d.data.die.faces.findIndex((f) => f.v === vals[i]); if (k >= 0) { d.data.up = k; refreshDieTex(d); } }), leaveShop, useCons: () => { selected = consSprites[0]; useSelected(); }, sellRelic: (k) => { selected = relicSprites[k]; sellSelected(); }, music: () => Music.playing, settings: SETTINGS, startCupDraw: () => startCupDraw(() => enterShop()), CUPS, cupList: () => cupList, slot: () => slot, profile: () => profile, saveNow: () => autosave(true), cupSel: () => cupSel, buy, startBlind, addRelic, refreshBag, stockShop, fuse: () => fuse && { t0: fuse.t0, total: fuse.total }, tips: () => tips.map((q) => ({ term: q.term, pinned: q.pinned, rect: q.rect && { x: q.rect.x, y: q.rect.y, w: q.rect.w, h: q.rect.h }, terms: q.rect ? q.rect.terms.map((r) => ({ x: r.x, y: r.y, w: r.w, h: r.h, term: r.term })) : [] })), 
       addUpgrade: (id) => { S.upgrades.push(id); refreshUpgrades(); },
       achieve, toasts: () => toasts.map((q) => q.a.id), openTrophies, genItem, genDie, rollUpgrade, open, meta,
-      song: () => ({ rel: songRel, info: songInfo, k: songK() }), spawnHead, head: () => floatHead && headPos(floatHead), secret, callJonny,
+      song: () => ({ rel: songRel, info: songInfo, k: songK() }), spawnHead, head: () => floatHead && headPos(floatHead), secret, callJonny, tape, Tapes, menuWord, peek: () => peek, BT: () => S.ach.bt,
       idle: (sec) => { lastInput = nowSec() - sec; }, menuDice: () => menuDice.map((d) => ({ x: d.x, y: d.y, v: d.data.v })), skipSong, setTab: (i) => { setTab = i; }, slotData: () => slotData,
       setRelics: (ids) => { relicSprites.forEach((s) => s.remove()); relicSprites = []; S.relics = []; ids.forEach((id) => addRelic(id)); },
       jonny: () => JS.cur && { place: JS.cur.place, mood: JS.cur.line.mood, text: JS.cur.line.words.map((w) => w.t).join(''), q: JS.q.length, rect: JS.rect },
@@ -5694,9 +7398,14 @@
       swapDice: (a, b) => { swapDice(a, b, false); layoutDice(); }, blindTarget, baseTarget, heatPct: () => heatPct(), formation: () => formationNow(), formParts, startEndless, openSummary,
       summary: () => S.summary, runImage: (rec) => runImage(rec || S.summary || lastRecord).toDataURL('image/png'), history, openCodex, openHistory,
       codexState: (kind, id) => codexState({ kind, id }).state, codexSel: (kind, id) => { codexSel = { kind, id, name: id }; }, setCodexTab: (i) => { codexTab = i; codexPage = 0; },
-      histSel: (i) => { histSel = i; }, settingsOpen: (v) => { settingsOpen = v; }, magnetize: () => magnetize(dice.slice()), slideTogether: (idx) => slideTogether(idx.map((i) => dice[i]), true, 'lodestone'),
+      histSel: (i) => { histSel = i; }, settingsOpen: (v) => { settingsOpen = v; if (v) { setPane = 'settings'; setSnap = JSON.stringify(SETTINGS); } }, setPane: () => setPane, setDirty: () => setDirty(), magnetize: () => magnetize(dice.slice()), slideTogether: (idx) => slideTogether(idx.map((i) => dice[i]), true, 'lodestone'),
+      Phone, maybePhone, phoneNow: () => phoneNow, phoneAnswer, phoneIgnore, phonePick, phoneWeigh, setCodexTabId: (id) => { codexTab = CODEX_TABS.findIndex((x) => x.id === id); codexPage = 0; },
       Enc, startEncounter, encNow: () => encNow, encPress, encEnd, makeHandGif, gifFrame, buildRecord, saveGif, relicMax, applySettings, saveSettings, lookOwned, Cos, Col, studio: (v) => { studioOpen = v; if (v) placeStudio(); }, studioButton, STU, setSettingsTab: (id) => { setTab = SET_TABS.findIndex((x) => x.id === id); }, changeSetting, activeButtons, MAT: () => MAT, faceEntry, onButton, focus: () => focusBtn, moveFocus,
       jonnyEvents, pickLine, stageBase, rngState: () => S.rng, bestReplay: () => S.bestReplay, Rng, playHand, reroll,
+      // Bosse und Challenges
+      Chal, openChallenges, chalStart, startDailyRun, chalTab: (i) => { chTab = i; }, chalSel: (id) => { chSel = id; }, chalFinish, masteryCheck, cup: () => cup(),
+      setBoss: (id, lv) => { S.boss = bossById(id, lv); }, curBoss:() => curBoss(), isBossBlind: () => isBossBlind(),
+      bossDesc: () => bossDesc(), scoreText: () => (scoreHidden() ? '???' : UI.num(S.dispScore)), rerollFee: () => rerollFee(),
     };
   }
 
@@ -5728,8 +7437,9 @@
     try { localStorage.setItem('wg_tutorial_runs', String(st.runs + 1)); localStorage.setItem('wg_tutorial', 'played'); } catch (e) { /* ohne Speicher weiter */ }
     slot = -1; profile = null;
     TUT.start({ runs: st.runs, declined: st.declined });
+    S.chal = null;
     startRun('classic');
-    S.boss = R.BOSSES.find((b) => b.id === 'snake'); S.usedBosses = ['snake'];
+    S.boss = R.bossOf('snake', 0); S.usedBosses = ['snake'];
     S.upgradeOffer = 'backpack';
   }
   function finishTutorial() {
@@ -5748,6 +7458,6 @@
   applySettings();
   setupDevPanel();
   const begin = () => { setupMenu(); eng.start(update, (b, f, t) => { drawMaterialFx(b, t); draw(b, f, t); drawFocus(f); }); };
-  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('20px "Aleator Pixel"'), document.fonts.load('20px "Pixelify Sans"')]).catch(() => {}).then(begin);
+  if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('20px "Aleator Pixel"'), document.fonts.load('20px "Jersey 10"'), document.fonts.load('20px "Jacquard 12"'), document.fonts.load('20px "Pixelify Sans"')]).catch(() => {}).then(begin);
   else begin();
 })();

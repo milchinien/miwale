@@ -183,7 +183,6 @@
   // Pentatonik: Schritt n -> MIDI-Note (für ansteigende Wertungstöne)
   const PENTA = [0, 2, 4, 7, 9];
   const pm = (base, n) => base + PENTA[n % 5] + 12 * Math.floor(n / 5);
-  const penta = (base, n) => mtof(pm(base, n));
   const MOTIF = [0, 5, 9, 12, 7];   // Würfel-Motiv: steigt und fällt wie ein geworfener Würfel
 
   // ── Klänge ────────────────────────────────────────────────────────────
@@ -346,6 +345,11 @@
       for (let i = 0; i < 3; i++) SFX.coin(c + 0.05 + i * 0.07);
     },
     chime: (t) => { smp('tri', t, { vol: 0.2, wet: 0.45 }); note('glk', 91, t + 0.1, { vol: 0.12, wet: 0.5 }); },
+    // Telefon nach dem Showdown: Klingeln im Ohr (Triangel, hoch und leise), Klingelstoß eines alten Telefons, Abheben, Auflegen
+    tinnitus: (t) => { smp('tri_long', t, { vol: 0.2, rate: 1.62, fadeIn: 0.3, wet: 0.35 }); smp('tri_long', t + 0.05, { vol: 0.08, rate: 2.43, fadeIn: 0.4, wet: 0.5, pan: 0.4 }); },
+    ring: (t, o) => smp('phone_ring', t, { vol: o.soft ? 0.32 : 0.55, wet: 0.12 }),
+    pickup: (t) => { smp('phone_up', t, { vol: 0.6 }); smp('phone_switch', t + 0.07, { vol: 0.4, rate: 0.9 }); },
+    hangup: (t) => { smp('phone_down', t, { vol: 0.55 }); smp('phone_latch', t + 0.05, { vol: 0.35, rate: 0.95 }); },
     // Boss: Gong, Paukenwirbel, tiefe Röhrenglocke
     boss: (t) => {
       smp('gong', t, { vol: 0.6, wet: 0.3 });
