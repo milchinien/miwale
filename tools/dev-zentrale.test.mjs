@@ -4,7 +4,8 @@ import {
   erlaubterUrsprung, erlaubterHost, projektAusPaket, startBefehl, leseNetstat,
   zuordnen, stoppWurzel, baueServer, vergibNamen, fehlerAusLog, fehlendePakete, befehle, portBelegt, portAusProjekt,
   erkenneArt, istProgrammOrdner, imArchiv, sindKopien, fasseKopienZusammen, leseGitLog, aendertProjekte,
-  waehleStartSkript, waehleProgramm,
+  waehleStartSkript, waehleProgramm, leseGitStatus, remoteInfo, skripteAusPaket, checkSkripte, startArgumente,
+  freierPort, lanAdressen, nurLokal, ressourcen, toastXml, dauerText,
 } from '../public/dev/agent.mjs';
 
 test('nur miwale.com und localhost duerfen den Agenten ansprechen', () => {
@@ -267,4 +268,71 @@ test('Git: erstes Commit des Ordners', () => {
 test('nichtssagende Ordner wie "game" oder "prototype" bekommen den Elternordner davor', () => {
   const p = vergibNamen([{ ordner: 'D:\\Games\\The Labyrinth\\game' }, { ordner: 'D:\\Games\\The Labyrinth\\prototype' }]);
   assert.deepEqual(p.map((x) => x.name), ['The Labyrinth/game', 'The Labyrinth/prototype']);
+});
+
+test('Git-Stand aus git status --porcelain=v2 --branch', () => {
+  const kopf = 'a'.repeat(40);
+  const text = [`# branch.oid ${kopf}`, '# branch.head main', '# branch.upstream origin/main', '# branch.ab +2 -1',
+    '1 .M N... 100644 100644 100644 abc abc src/x.js', '? neu.txt', 'u UU N... 1 2 3 4 a b c konflikt.js'].join('\n');
+  assert.deepEqual(leseGitStatus(text), { zweig: 'main', upstream: 'origin/main', vor: 2, zurueck: 1, geaendert: 3, kopf });
+  assert.deepEqual(leseGitStatus('# branch.oid (initial)\n# branch.head (detached)'), { zweig: '', upstream: '', vor: 0, zurueck: 0, geaendert: 0, kopf: '' });
+});
+
+test('Remote: Webadresse und GitHub-Repo', () => {
+  assert.deepEqual(remoteInfo('https://github.com/milchinien/miwale.git'), { web: 'https://github.com/milchinien/miwale', repo: 'milchinien/miwale' });
+  assert.deepEqual(remoteInfo('git@github.com:milchinien/Chromatic-2.git\n'), { web: 'https://github.com/milchinien/Chromatic-2', repo: 'milchinien/Chromatic-2' });
+  assert.deepEqual(remoteInfo('https://token@gitlab.com/a/b'), { web: 'https://gitlab.com/a/b', repo: '' }, 'keine Zugangsdaten in der Adresse');
+  assert.deepEqual(remoteInfo(''), { web: '', repo: '' });
+  assert.deepEqual(remoteInfo('javascript:alert(1)'), { web: '', repo: '' });
+});
+
+test('Skripte: ohne pre/post-Haken, Schnellcheck nimmt Tests und Pruefungen', () => {
+  const namen = skripteAusPaket({ scripts: { dev: 'vite', build: 'x', prebuild: 'y', postinstall: 'z', test: 'node --test', 'check:games': 'c', 'test:watch': 'w', lint: 'l', 'bös artig': 'x' } });
+  assert.deepEqual(namen, ['dev', 'build', 'postinstall', 'test', 'check:games', 'test:watch', 'lint']);
+  assert.deepEqual(checkSkripte(namen), ['test', 'check:games', 'lint']);
+  assert.deepEqual(skripteAusPaket(null), []);
+});
+
+test('anderer Port und Heimnetz: Argumente je Paketmanager', () => {
+  assert.deepEqual(startArgumente({ pm: 'npm', art: 'Vite' }, { port: 5174, host: true }), { argumente: ' -- --port 5174 --host', umgebung: { PORT: '5174' } });
+  assert.deepEqual(startArgumente({ pm: 'pnpm', art: 'Vite' }, { port: 5174 }), { argumente: ' --port 5174', umgebung: { PORT: '5174' } });
+  assert.equal(startArgumente({ pm: 'pnpm', art: 'Next.js' }, { host: true }).argumente, ' --hostname 0.0.0.0');
+  assert.equal(startArgumente({ pm: 'pnpm', art: 'Node' }, { host: true }).argumente, '', 'unbekannter Server: kein --host raten');
+  assert.equal(freierPort(new Set([5174, 5175]), 5174), 5176);
+});
+
+test('Heimnetz-Adressen und nur lokal lauschende Server', () => {
+  const netze = {
+    WLAN: [{ family: 'IPv4', address: '192.168.178.23', internal: false }, { family: 'IPv6', address: 'fe80::1', internal: false }],
+    'vEthernet (WSL)': [{ family: 'IPv4', address: '172.20.0.1', internal: false }],
+    Loopback: [{ family: 'IPv4', address: '127.0.0.1', internal: true }],
+    Ethernet: [{ family: 'IPv4', address: '10.0.0.5', internal: false }],
+  };
+  assert.deepEqual(lanAdressen(netze), ['192.168.178.23', '10.0.0.5']);
+  assert.equal(nurLokal(['127.0.0.1', '::1']), true);
+  assert.equal(nurLokal(['::']), false);
+});
+
+test('RAM und CPU ueber den ganzen Prozessbaum', () => {
+  const prozesse = new Map([[1, { ram: 100e6, cpu: 5e7 }], [2, { ram: 50e6, cpu: 2e7 }], [3, { ram: 10e6, cpu: 0 }]]);
+  const kinder = new Map([[1, [2]], [2, [3]]]);
+  const vorher = new Map([[1, 4e7], [2, 1e7]]);
+  // 2 s, 2 Kerne: (1e7 + 1e7) * 100 ns = 2 s CPU -> 50 %
+  assert.deepEqual(ressourcen(1, prozesse, kinder, vorher, 2000, 2), { ram: 160e6, cpu: 50 });
+  assert.equal(ressourcen(1, prozesse, kinder, null, 0, 2).cpu, null, 'erste Aufnahme: noch keine Auslastung');
+});
+
+test('Windows-Meldung: Text sicher im XML', () => {
+  assert.equal(toastXml('A & B', '<x>'), '<toast><visual><binding template="ToastGeneric"><text>A &amp; B</text><text>&lt;x&gt;</text></binding></visual></toast>');
+  assert.equal(dauerText(3200), '3 s');
+  assert.equal(dauerText(125000), '2 Min.');
+});
+
+test('QR-Code fuers Handy', async () => {
+  await import('../public/dev/qr.js');
+  const q = globalThis.miwaleQR('http://192.168.178.23:5173/');
+  assert.equal(q.groesse, 29, 'Version 3');
+  // Suchmuster oben links: dunkler Rand, heller Ring, dunkler Kern.
+  assert.deepEqual([q.dunkel(0, 0), q.dunkel(1, 1), q.dunkel(3, 3), q.dunkel(7, 7)], [true, false, true, false]);
+  assert.throws(() => globalThis.miwaleQR('x'.repeat(400)));
 });

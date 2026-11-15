@@ -6,6 +6,8 @@ dist
 design
 .playwright-mcp
 *.log
+# Separater Discord-Bot: lokale Zugangsdaten und Datenbank gehoeren nicht ins Website-Image.
+bots/
 # Bildvorlagen der Projektvorschauen (siehe assets/games/previews/prompts.md).
 # Ausgeliefert werden die WebP-Dateien daneben.
 assets/games/previews/*.png
