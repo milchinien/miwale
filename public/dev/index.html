@@ -63,7 +63,7 @@
   .eintrag:first-child, .tabkopf + .eintrag { border-top: 0; }
   .eintrag.laeuft { background: rgba(110,231,168,.05); }
   .eintrag.treffer { background: rgba(127,224,238,.09); box-shadow: inset 3px 0 0 var(--akzent); }
-  .tabelle .eintrag, .tabkopf { grid-template-columns: 28px minmax(0, 1fr) 104px 112px 232px; }
+  .tabelle .eintrag, .tabkopf { grid-template-columns: 28px minmax(0, 1fr) 104px 112px 292px; }
   .tabkopf { display: grid; gap: 12px; padding: 8px 14px; border-bottom: 1px solid var(--linie); background: rgba(255,255,255,.03); }
   .tabkopf button { justify-self: start; border: 0; background: none; padding: 2px 0; min-height: 24px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--leise); }
   .tabkopf button:hover, .tabkopf button[aria-sort=ascending], .tabkopf button[aria-sort=descending] { color: #fff; background: none; }
@@ -103,7 +103,85 @@
   kbd { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); border-bottom-width: 2px; font: 12px/1.6 ui-monospace, monospace; text-align: center; color: #fff; }
   .tasten { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--leise); }
 
+  .meldung { margin: 0; }
+  .meldung.rot { color: #F7C7B4; }
+  .eintrag.favorit .name::before { content: '★ '; color: #F3D58B; }
+  button.symbol.an { color: #F3D58B; }
+  button.symbol.an svg { fill: currentColor; }
+  button.mini { min-height: 22px; padding: 0 9px; font-size: 12px; }
+  .git { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--leise); font-variant-numeric: tabular-nums; }
+  .git-zweig { font-family: var(--mono); }
+  .git-vor { color: #F3D58B; font-weight: 700; }
+  .git-zurueck { color: var(--akzent); font-weight: 700; }
+  .git-geaendert { color: #DCE6EF; }
+  a.chip-link { padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 600; text-decoration: none; border: 1px solid rgba(127,224,238,.4); color: var(--akzent); line-height: 20px; }
+  a.chip-link.warnung { border-color: rgba(243,213,139,.5); color: #F3D58B; }
+  button.chip.gruppe { border-style: dashed; }
+  button.chip.lauf-laeuft { color: #F3D58B; border-color: rgba(243,213,139,.4); }
+  button.chip.lauf-ok { color: #A8F0C8; border-color: rgba(110,231,168,.35); }
+  button.chip.lauf-fehler { color: #F7C7B4; border-color: rgba(242,179,155,.45); }
+  .klein.alt { color: #F3D58B; }
+  button.notiz { all: unset; cursor: pointer; font-size: 13px; color: #DCE6EF; white-space: pre-wrap; overflow-wrap: anywhere; padding: 6px 10px; border-radius: 10px; background: rgba(243,213,139,.06); border-left: 3px solid rgba(243,213,139,.5); }
+  button.notiz:hover { background: rgba(243,213,139,.1); }
+  button.notiz:focus-visible { outline: 2px solid var(--akzent); }
+  .konflikt { gap: 6px; }
+  select { font: inherit; font-size: 13px; color: #EDF3F9; background: rgba(1,10,17,.6); border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 5px 10px; min-height: 34px; }
+  .kopf-rechts { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  /* Werkbank: Startpakete und Schnellcheck */
+  .werkbank { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .werkbank .karte { gap: 10px; }
+  .werkbank h3 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
+  .paket { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--linie); }
+  .paket:first-child { border-top: 0; }
+  .paket-text { display: flex; flex-direction: column; min-width: 0; }
+  .paket-text .klein { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .karte .leer-text { padding: 0; }
+  .check-liste { display: flex; flex-wrap: wrap; gap: 6px; }
+  button.ampel { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 3px 11px; font-size: 13px; }
+  .licht { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.3); }
+  .ampel.ok .licht { background: #6EE7A8; }
+  .ampel.fehler .licht { background: #F2836B; }
+  .ampel.laeuft .licht { background: #F3D58B; animation: puls 1s infinite alternate; }
+  @keyframes puls { to { opacity: .35; } }
+
+  /* Menue je Projekt */
+  .menue { position: fixed; z-index: 50; min-width: 230px; max-height: min(70vh, 560px); overflow: auto; padding: 6px; border-radius: 14px; background: #0D1626; border: 1px solid rgba(255,255,255,.16); box-shadow: 0 18px 50px rgba(0,0,0,.55); display: flex; flex-direction: column; }
+  .menue button { border: 0; background: none; border-radius: 8px; text-align: left; min-height: 30px; padding: 4px 10px; font-size: 13px; }
+  .menue button:hover, .menue button:focus-visible { background: rgba(255,255,255,.09); outline: none; }
+  .menue-kopf { padding: 8px 10px 3px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--leise); }
+
+  /* Dialog */
+  dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100vh - 40px); padding: 0; border-radius: 18px; border: 1px solid rgba(255,255,255,.16); background: #0B1322; color: #EDF3F9; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  dialog.breit { width: min(1040px, calc(100vw - 24px)); }
+  dialog::backdrop { background: rgba(2,6,14,.7); }
+  .dialog-kopf { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--linie); }
+  .dialog-kopf h2 { color: #fff; font-size: 15px; letter-spacing: 0; text-transform: none; }
+  .dialog-inhalt { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+  .dialog-inhalt p { margin: 0; }
+  .dialog-inhalt input[type=text], .dialog-inhalt input[type=search], .dialog-inhalt textarea { width: 100%; font: inherit; font-size: 15px; color: #fff; background: rgba(1,10,17,.6); border: 1px solid rgba(255,255,255,.18); border-radius: 12px; padding: 9px 12px; }
+  .dialog-inhalt textarea { resize: vertical; }
+  .dialog-inhalt input:focus, .dialog-inhalt textarea:focus { outline: none; border-color: var(--akzent); }
+  .zeile.ende { justify-content: flex-end; }
+  .werkzeug-log { gap: 8px; }
+  .werkzeug-log input[type=search] { flex: 1; min-width: 180px; width: auto; font-size: 14px; padding: 6px 12px; }
+  div.log { height: min(62vh, 640px); overflow: auto; padding: 10px 12px; border-radius: 10px; background: #02060E; font: 12px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  div.log .kopf { color: var(--leise); }
+  div.log .rot { color: #F7A48C; }
+  div.log .gelb { color: #F3D58B; }
+  div.log .blau { color: var(--akzent); }
+  div.log mark { background: rgba(127,224,238,.35); color: #fff; border-radius: 3px; }
+  .qr-block { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  svg.qr { width: 190px; height: 190px; border-radius: 10px; flex: none; }
+  .qr-text { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-family: var(--mono); font-size: 14px; overflow-wrap: anywhere; }
+  .hinweis { padding: 8px 12px; border-radius: 10px; background: rgba(243,213,139,.08); color: #F3D58B; font-size: 13px; }
+  .auswahl { display: flex; flex-direction: column; gap: 2px; max-height: 300px; overflow: auto; padding: 4px; border-radius: 12px; border: 1px solid var(--linie); }
+  button.auswahl-eintrag { display: flex; align-items: center; gap: 10px; border: 0; background: none; border-radius: 8px; text-align: left; min-height: 34px; }
+  button.auswahl-eintrag.an { background: rgba(127,224,238,.1); }
+  button.auswahl-eintrag.an .nr { background: var(--akzent); color: #06303C; }
+
   @media (max-width: 860px) {
+    .werkbank { grid-template-columns: 1fr; }
     .werkzeuge { grid-template-columns: 1fr; }
     .tabkopf { display: none; }
     .tabelle .eintrag { grid-template-columns: 28px minmax(0, 1fr); }
@@ -121,7 +199,10 @@
 <main>
   <div class="kopf">
     <h1>Dev-Zentrale</h1>
-    <span class="geraet"><span id="punkt" class="punkt"></span><span id="geraet">Suche Agent …</span></span>
+    <span class="kopf-rechts">
+      <button id="melden" class="leise" type="button" aria-pressed="false" title="Meldet Abstürze, fertige Skripte und Checks – im Browser, und als Windows-Benachrichtigung, wenn die Seite zu ist">🔕 Benachrichtigungen aus</button>
+      <span class="geraet"><span id="punkt" class="punkt"></span><span id="geraet">Suche Agent …</span></span>
+    </span>
   </div>
 
   <!-- Kein Agent auf diesem Geraet -->
@@ -151,6 +232,27 @@
       <div id="laufend" class="liste"></div>
     </section>
 
+    <section id="werkbank" class="werkbank" hidden>
+      <div class="karte">
+        <div class="abschnitt-kopf" style="min-height:0">
+          <h3>Startpakete</h3>
+          <button id="neuesPaket" class="leise" type="button">+ Neues Paket</button>
+        </div>
+        <div id="pakete"></div>
+      </div>
+      <div class="karte">
+        <div class="abschnitt-kopf" style="min-height:0">
+          <h3>Schnellcheck</h3>
+          <button id="checkStarten" type="button">Schnellcheck starten</button>
+        </div>
+        <div id="checkListe" class="check-liste"></div>
+        <div class="zeile" style="justify-content:space-between">
+          <span id="checkInfo" class="klein"></span>
+          <label class="schalter"><input id="checkTaeglich" type="checkbox"> Täglich automatisch</label>
+        </div>
+      </div>
+    </section>
+
     <section class="abschnitt">
       <div class="abschnitt-kopf">
         <h2>Projekte <span id="projekteZahl" class="zahl">0</span></h2>
@@ -159,11 +261,15 @@
         <input id="suche" type="search" placeholder="Suchen nach Name, Ordner oder Art … Enter startet / öffnet" autocomplete="off" spellcheck="false" aria-label="Projekt suchen">
         <div id="filter" class="filter" role="group" aria-label="Filter">
           <button type="button" data-filter="alle" aria-pressed="true">Alle<span class="anzahl"></span></button>
+          <button type="button" data-filter="favoriten" aria-pressed="false" title="Mit ☆ angeheftete Projekte">★<span class="anzahl"></span></button>
           <button type="button" data-filter="startbar" aria-pressed="false" title="Projekte mit Dev-Server, Editor (Unity, Godot) oder Startskript">Startbar<span class="anzahl"></span></button>
           <button type="button" data-filter="laeuft" aria-pressed="false">Läuft<span class="anzahl"></span></button>
         </div>
         <div class="optionen">
-          <label class="schalter"><input id="oeffnen" type="checkbox" checked> Nach dem Start im Browser öffnen</label>
+          <span class="zeile" style="gap:12px">
+            <select id="gruppe" aria-label="Gruppe" hidden></select>
+            <label class="schalter"><input id="oeffnen" type="checkbox" checked> Nach dem Start im Browser öffnen</label>
+          </span>
           <span class="zeile" style="gap:6px">
             <span id="suchStand" class="klein"></span>
             <button id="neuSuchen" class="leise" type="button">Neu suchen</button>
@@ -196,9 +302,16 @@
       <span><kbd>1</kbd>–<kbd>9</kbd> Projekt Nr. starten / öffnen</span>
       <span><kbd>Entf</kbd> alle stoppen</span>
       <span><kbd>Esc</kbd> Suche leeren</span>
+      <span>☆ anheften · ⋯ öffnen in, Skripte, Git, Gruppe, Notiz</span>
     </div>
   </div>
 </main>
+<div id="menue" class="menue" role="menu" hidden></div>
+<dialog id="dialog" aria-labelledby="dialogTitel">
+  <div class="dialog-kopf"><h2 id="dialogTitel"></h2><button id="dialogZu" class="symbol" type="button" aria-label="Schließen" title="Schließen (Esc)">✕</button></div>
+  <div id="dialogInhalt" class="dialog-inhalt"></div>
+</dialog>
+<script src="/dev/qr.js"></script>
 <script src="/dev/zentrale.js"></script>
 </body>
 </html>

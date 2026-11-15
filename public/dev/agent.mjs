@@ -5,10 +5,12 @@
 //
 // Was er kann: laufende Dev-Server zeigen und beenden, Projekte auf den
 // Laufwerken finden (Node, Godot, Unity, Rust, HTML, ...) und die mit einem
-// dev-Skript starten. Mehr nicht -- die Seite
-// kann nur "starte Projekt X" sagen; welcher Befehl dahintersteht, bestimmt
-// allein der Agent aus der package.json. Beenden darf er nur Prozesse, die er
-// selbst als Dev-Server auflistet.
+// dev-Skript starten, Skripte aus der package.json ausfuehren (test, build),
+// Git-Stand zeigen und fast-forward pullen, Projekte in VS Code, Terminal oder
+// Claude Code oeffnen. Die Seite nennt nur Projekt und Skriptnamen; welcher
+// Befehl dahintersteht, bestimmt allein der Agent aus der package.json. Freie
+// Befehle gibt es nicht. Beenden darf er nur Prozesse, die er selbst als
+// Dev-Server auflistet oder selbst gestartet hat.
 //
 // Installieren: public/dev/installieren.ps1 (legt ihn nach
 // %LOCALAPPDATA%\miwale-dev und in den Autostart). Keine Abhaengigkeiten.
@@ -26,12 +28,13 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const VERSION = 7;
+export const VERSION = 9;
 export const PORT = 5300;
 const DATEN = path.join(process.env.LOCALAPPDATA || os.homedir(), 'miwale-dev');
 const EINSTELLUNGEN = path.join(DATEN, 'einstellungen.json');
 const PROJEKTE_CACHE = path.join(DATEN, 'projekte.json');
 const GIT_CACHE = path.join(DATEN, 'git.json');
+const CHECKS = path.join(DATEN, 'checks.json');
 const LOGS = path.join(DATEN, 'logs');
 const STANDARD_SEITE = 'https://miwale.com/dev/';
 
@@ -299,9 +302,20 @@ export function leseNetstat(text) {
 // Aus dem Ende eines Logs die Zeilen, die den Fehler nennen -- ohne
 // Stacktrace ("    at ...") und ohne die Kopfzeilen des Agenten.
 export function fehlerAusLog(text) {
-  const zeilen = text.split(/\r?\n/).map((z) => z.trim()).filter((z) => z && !/^at\s/.test(z) && !z.startsWith('> '));
+  // npm-Warnungen ueber die eigene Konfiguration sagen nichts ueber den Fehler.
+  const zeilen = text.split(/\r?\n/).map((z) => z.trim()).filter((z) => z && !/^at\s/.test(z) && !z.startsWith('> ') && !/^npm warn/i.test(z));
   const treffer = zeilen.filter((z) => /err|fehler|failed|not found|nicht gefunden|cannot|EADDRINUSE|already in use/i.test(z));
-  return (treffer.length ? treffer : zeilen).slice(0, 3).join('\n');
+  // Ohne erkennbare Fehlerzeile: das Ende, dort steht meist die Ursache.
+  return (treffer.length ? treffer.slice(0, 3) : zeilen.slice(-3)).join('\n');
+}
+
+export function dauerText(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s} s`;
+  const min = Math.round(s / 60);
+  if (min < 60) return `${min} Min.`;
+  const std = Math.floor(min / 60);
+  return std < 48 ? `${std} Std. ${min % 60} Min.` : `${Math.floor(std / 24)} Tagen`;
 }
 
 // Programme, die typischerweise Dev-Server sind. Alles andere (Discord,
@@ -397,6 +411,114 @@ export function baueServer(hoeren, prozesse, projekte, gestartet, eigenePid) {
   return liste.sort((a, b) => a.ports[0] - b.ports[0]);
 }
 
+// git status --porcelain=v2 --branch: Zweig, Upstream, vor/zurueck, wie viele
+// Dateien geaendert oder neu sind.
+export function leseGitStatus(text) {
+  const s = { zweig: '', upstream: '', vor: 0, zurueck: 0, geaendert: 0, kopf: '' };
+  for (const zeile of text.split(/\r?\n/)) {
+    if (zeile.startsWith('# branch.oid ')) s.kopf = /^[0-9a-f]{40}$/.test(zeile.slice(13)) ? zeile.slice(13) : '';
+    else if (zeile.startsWith('# branch.head ')) s.zweig = zeile.slice(14) === '(detached)' ? '' : zeile.slice(14);
+    else if (zeile.startsWith('# branch.upstream ')) s.upstream = zeile.slice(18);
+    else if (zeile.startsWith('# branch.ab ')) {
+      const m = /\+(\d+) -(\d+)/.exec(zeile);
+      if (m) { s.vor = Number(m[1]); s.zurueck = Number(m[2]); }
+    } else if (/^[12u?] /.test(zeile)) s.geaendert++;
+  }
+  return s;
+}
+
+// Remote-Adresse -> Webseite und "besitzer/repo" (nur GitHub).
+export function remoteInfo(url) {
+  const u = String(url || '').trim();
+  let m = /^git@([\w.-]+):(.+?)(?:\.git)?\/?$/.exec(u) || /^ssh:\/\/git@([\w.-]+)(?::\d+)?\/(.+?)(?:\.git)?\/?$/.exec(u);
+  if (!m) {
+    const h = /^https?:\/\/(?:[^@/]+@)?([\w.-]+)\/(.+?)(?:\.git)?\/?$/.exec(u);
+    if (h) m = h;
+  }
+  if (!m || !/^[\w.-]+(\/[\w.-]+)+$/.test(m[2])) return { web: '', repo: '' };
+  return { web: `https://${m[1]}/${m[2]}`, repo: m[1].toLowerCase() === 'github.com' ? m[2] : '' };
+}
+
+// Skripte aus der package.json, die man von der Seite aus starten kann. Ohne
+// pre-/post-Haken: die laufen bei npm/pnpm von selbst mit.
+const SKRIPTNAME = /^[\w:.@/-]{1,60}$/;
+export function skripteAusPaket(paket) {
+  const skripte = paket && typeof paket.scripts === 'object' && paket.scripts ? paket.scripts : {};
+  const namen = Object.keys(skripte).filter((n) => SKRIPTNAME.test(n) && typeof skripte[n] === 'string' && skripte[n].trim());
+  return namen.filter((n) => !(/^(pre|post)/.test(n) && namen.includes(n.replace(/^(pre|post)/, '')))).slice(0, 30);
+}
+
+// Was der Schnellcheck ausfuehrt: Tests, Pruefungen, Linter.
+export function checkSkripte(namen) {
+  return namen.filter((n) => /^(test|tests|lint|check|typecheck|verify)([:.-]|$)/i.test(n) && !/watch|ui|update|fix|e2e:open/i.test(n));
+}
+
+// Zusaetzliche Argumente fuer einen anderen Port oder "im Heimnetz
+// erreichbar". npm reicht Argumente erst nach "--" weiter.
+const MIT_HOST = new Set(['Vite', 'Astro', 'SvelteKit', 'Remix', 'Nuxt', 'Next.js']);
+export function startArgumente(p, { port = 0, host = false } = {}) {
+  const teile = [];
+  if (port) teile.push(`--port ${Number(port)}`);
+  if (host && MIT_HOST.has(p.art)) teile.push(p.art === 'Next.js' ? '--hostname 0.0.0.0' : '--host');
+  const umgebung = port ? { PORT: String(Number(port)) } : {};
+  if (!teile.length) return { argumente: '', umgebung };
+  return { argumente: `${p.pm === 'npm' ? ' --' : ''} ${teile.join(' ')}`, umgebung };
+}
+
+export function kannHost(art) { return MIT_HOST.has(art); }
+
+// Der erste freie Port ab "ab" (belegt: Ports, auf denen etwas lauscht).
+export function freierPort(belegt, ab) {
+  for (let p = Math.max(1024, ab); p < 65535; p++) if (!belegt.has(p)) return p;
+  return 0;
+}
+
+// IPv4-Adressen im Heimnetz (fuers Handy), aus os.networkInterfaces().
+export function lanAdressen(netze) {
+  const privat = /^(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/;
+  const liste = [];
+  for (const [name, adressen] of Object.entries(netze || {})) {
+    if (/vethernet|virtualbox|vmware|wsl|docker|hyper-v|loopback/i.test(name)) continue;
+    for (const a of adressen || []) {
+      if ((a.family === 'IPv4' || a.family === 4) && !a.internal && privat.test(a.address)) liste.push(a.address);
+    }
+  }
+  return [...new Set(liste)].sort((a, b) => Number(b.startsWith('192.168.')) - Number(a.startsWith('192.168.')));
+}
+
+// Lauscht ein Server nur auf diesem Rechner (dann kommt das Handy nicht dran)?
+export function nurLokal(adressen) {
+  return adressen.length > 0 && adressen.every((a) => a === '127.0.0.1' || a === '::1');
+}
+
+// Arbeitsspeicher und CPU eines Servers samt allen Kindprozessen (esbuild,
+// Worker). cpuVorher: pid -> CPU-Zeit (100 ns) der letzten Aufnahme; ms: Abstand.
+export function ressourcen(wurzel, prozesse, kinder, cpuVorher, ms, kerne) {
+  let ram = 0;
+  let zeit = 0;
+  let bekannt = false;
+  const offen = [wurzel];
+  const gesehen = new Set();
+  while (offen.length) {
+    const pid = offen.pop();
+    if (gesehen.has(pid)) continue;
+    gesehen.add(pid);
+    const p = prozesse.get(pid);
+    if (!p) continue;
+    ram += p.ram || 0;
+    if (cpuVorher && cpuVorher.has(pid)) { zeit += Math.max(0, (p.cpu || 0) - cpuVorher.get(pid)); bekannt = true; }
+    offen.push(...(kinder.get(pid) || []));
+  }
+  const cpu = bekannt && ms > 0 ? Math.min(100, (zeit / 1e4 / ms / Math.max(1, kerne)) * 100) : null;
+  return { ram, cpu: cpu === null ? null : Math.round(cpu * 10) / 10 };
+}
+
+// Windows-Benachrichtigung (Toast). Text landet in XML: maskieren.
+export function toastXml(titel, text) {
+  const x = (s) => String(s).slice(0, 300).replace(/[<>&"']/g, (z) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[z]);
+  return `<toast><visual><binding template="ToastGeneric"><text>${x(titel)}</text><text>${x(text)}</text></binding></visual></toast>`;
+}
+
 // ---------------------------------------------------------------------------
 // Einstellungen
 
@@ -418,7 +540,24 @@ function ladeEinstellungen() {
     ausblenden: Array.isArray(e.ausblenden) ? e.ausblenden.filter((o) => typeof o === 'string') : [],
     // Pfad zur Godot-exe, falls die Suche sie nicht findet.
     godot: typeof e.godot === 'string' ? e.godot : '',
+    // Je Projektordner (klein geschrieben): Favorit, Gruppe, Notiz, Neustart nach Absturz.
+    favoriten: Array.isArray(e.favoriten) ? e.favoriten.filter((o) => typeof o === 'string') : [],
+    gruppen: objektMitTexten(e.gruppen, 40),
+    notizen: objektMitTexten(e.notizen, 2000),
+    neustart: Array.isArray(e.neustart) ? e.neustart.filter((o) => typeof o === 'string') : [],
+    // Startpakete: [{ name, ordner: [...] }], in dieser Reihenfolge gestartet.
+    pakete: Array.isArray(e.pakete)
+      ? e.pakete.filter((p) => p && typeof p.name === 'string' && Array.isArray(p.ordner)).map((p) => ({ name: p.name.slice(0, 40), ordner: p.ordner.filter((o) => typeof o === 'string').slice(0, 12) }))
+      : [],
+    toasts: e.toasts !== false,
+    checkTaeglich: e.checkTaeglich === true,
   };
+}
+
+function objektMitTexten(wert, laenge) {
+  const aus = {};
+  if (wert && typeof wert === 'object') for (const [k, v] of Object.entries(wert)) if (typeof v === 'string' && v.trim()) aus[k] = v.slice(0, laenge);
+  return aus;
 }
 
 function protokoll(...teile) {
@@ -451,7 +590,8 @@ const MAX_ORDNER = 200000;
 const SUCHZEIT = 2 * 60 * 1000;
 
 function unterordner(eintraege, auslassen = UEBERSPRINGEN) {
-  return eintraege.filter((e) => e.isDirectory() && !/^[.$~]/.test(e.name) && !auslassen.has(e.name.toLowerCase()));
+  // Dazu Cache-Ordner wie "90_Cache" (cargo-Registry: tausende fremde Crates).
+  return eintraege.filter((e) => e.isDirectory() && !/^[.$~]/.test(e.name) && !auslassen.has(e.name.toLowerCase()) && !/^\d*[_ -]?cache$/i.test(e.name));
 }
 
 async function leseOrdner(ordner) {
@@ -484,6 +624,8 @@ async function baueProjekt(o, art, start = o) {
     start: info && start.ordner !== o.ordner ? start.ordner : null,
     ...(info || { skript: null }),
     port: info ? portAusProjekt(start.paket, leseKonfig(start.ordner)) : 0,
+    // Weitere Skripte (test, build, ...): aus dem Ordner mit dem Dev-Server.
+    skripte: skripteAusPaket(start.paket || o.paket),
     aktiv: await letzteAenderung(o.ordner),
     dateiZeit: await aeltesteDatei(o.ordner, o.eintraege),
   };
@@ -622,18 +764,34 @@ async function sucheWerkzeuge(einstellungen) {
   // Die neueste Version zuerst: Godot_v4.7.2 vor Godot_v4.3.
   const neueste = (muster) => exes.filter((e) => muster.test(path.basename(e)))
     .sort((a, b) => path.basename(b).localeCompare(path.basename(a), 'en', { numeric: true }))[0] || '';
-  const imPfad = async (datei, name) => ((await istDatei(datei)) ? datei : (await fuehreAus('where', [name])).split(/\r?\n/)[0].trim());
+  // "where code" nennt zuerst ein Shell-Skript ohne Endung: nur exe/cmd nehmen.
+  const imPfad = async (datei, name) => ((await istDatei(datei)) ? datei
+    : (await fuehreAus('where', [name])).split(/\r?\n/).map((z) => z.trim()).find((z) => /\.(exe|cmd|bat)$/i.test(z)) || '');
   return {
     unity,
     godot: typeof einstellungen.godot === 'string' && await istDatei(einstellungen.godot) ? einstellungen.godot : neueste(/^godot(?!.*console).*\.exe$/i),
     blender: neueste(/^blender\.exe$/i),
     cargo: await imPfad(path.join(os.homedir(), '.cargo', 'bin', 'cargo.exe'), 'cargo'),
     claude: await imPfad(path.join(os.homedir(), '.local', 'bin', 'claude.exe'), 'claude'),
+    code: await imPfad(path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Microsoft VS Code', 'Code.exe'), 'code'),
+    wt: await imPfad(path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WindowsApps', 'wt.exe'), 'wt'),
   };
 }
 
 async function findeProgramm(p, w) {
   const dateien = ((await leseOrdner(p.ordner))?.eintraege || []).filter((e) => e.isFile()).map((e) => e.name);
+  // Minecraft mit Web-Panel: zwei Server. Erst das Panel (localhost:8765),
+  // dann ueber dessen API der Minecraft-Server selbst (localhost:25565).
+  const panel = p.art === 'Minecraft' && dateien.includes('Panel starten.bat') && await istDatei(path.join(p.ordner, 'panel', 'server.js'));
+  if (panel) {
+    const port = Number(leseJson(path.join(p.ordner, 'panel', 'config.json'), {})?.port) || 8765;
+    const eigenschaften = (() => { try { return fs.readFileSync(path.join(p.ordner, 'server.properties'), 'utf8'); } catch { return ''; } })();
+    const spielPort = (/^server-port=(\d+)/m.exec(eigenschaften) || [])[1] || '25565';
+    return {
+      text: 'Start', titel: `Panel (localhost:${port}) und Minecraft-Server (localhost:${spielPort}) starten`,
+      datei: 'cmd.exe', argumente: ['/c', path.join(p.ordner, 'Panel starten.bat')], danach: { port, pfad: '/api/start' },
+    };
+  }
   const skript = waehleStartSkript(dateien);
   // Voller Pfad: "cmd /c start.bat" liest cmd als eingebauten Befehl start.
   if (skript) return { text: 'Start', titel: `${skript} in eigenem Fenster`, datei: 'cmd.exe', argumente: ['/c', path.join(p.ordner, skript)] };
@@ -749,7 +907,8 @@ export async function sucheProjekte(einstellungen, gitCache = new Map()) {
 // kostet gut eine Sekunde; die offene antwortet in etwa 0,2 s.
 
 const MARKE = '<<miwale-ende>>';
-const PROZESSE_BEFEHL = "$p = Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CommandLine,CreationDate | ForEach-Object { @{i=$_.ProcessId;e=$_.ParentProcessId;n=$_.Name;c=$_.CommandLine;s=$(if ($_.CreationDate) { $_.CreationDate.ToString('o') } else { $null })} }; [Console]::Out.WriteLine((ConvertTo-Json -InputObject @($p) -Compress))";
+// m: Arbeitsspeicher in Bytes, t: verbrauchte CPU-Zeit in 100 ns (fuer die Auslastung).
+const PROZESSE_BEFEHL = "$p = Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CommandLine,CreationDate,WorkingSetSize,KernelModeTime,UserModeTime | ForEach-Object { @{i=$_.ProcessId;e=$_.ParentProcessId;n=$_.Name;c=$_.CommandLine;m=$_.WorkingSetSize;t=($_.KernelModeTime + $_.UserModeTime);s=$(if ($_.CreationDate) { $_.CreationDate.ToString('o') } else { $null })} }; [Console]::Out.WriteLine((ConvertTo-Json -InputObject @($p) -Compress))";
 
 class PowerShell {
   constructor() { this.kind = null; this.kette = Promise.resolve(); this.leerlauf = null; }
@@ -836,6 +995,40 @@ class Zentrale {
     this.waechterFehler = new Set();
     this.bekannteOrdner = new Set();
     this.veraendert = 0;
+    // Git-Stand je Ordner (klein): { zweig, upstream, vor, zurueck, geaendert, kopf, web, repo, zeit }
+    this.gitStand = new Map();
+    this.gitLaeuft = null;
+    this.gitZeit = 0;
+    // Skripte (test, build): id -> { skript, pid, seit, zustand: 'laeuft'|'ok'|'fehler', code, ende }
+    this.befehle = new Map();
+    // Schnellcheck: { laeuft, start, ende, ergebnisse: [{ id, name, skript, zustand, code, dauer }] }
+    this.check = leseJson(CHECKS, null) || { laeuft: false, start: 0, ende: 0, ergebnisse: [] };
+    this.check.laeuft = false;
+    this.paketLauf = null;
+    // Neustarts nach Absturz je Projekt (Zeitpunkte), damit ein kaputter Server nicht endlos kreist.
+    this.neustarts = new Map();
+    // Ereignisse fuer Benachrichtigungen: Die Seite zeigt neue, der Agent selbst
+    // meldet sich per Windows-Toast, wenn keine Seite offen ist.
+    this.ereignisse = [];
+    this.ereignisNr = 0;
+    this.seiteZuletzt = 0;
+  }
+
+  schluessel(p) { return p.ordner.toLowerCase(); }
+
+  melde(art, titel, text) {
+    this.ereignisse.push({ nr: ++this.ereignisNr, zeit: Date.now(), art, titel, text: String(text || '').slice(0, 400) });
+    if (this.ereignisse.length > 30) this.ereignisse.shift();
+    protokoll('Meldung', art, titel, text);
+    // Ist die Seite offen, meldet sie selbst (auch im Hintergrund-Tab).
+    if (!this.einstellungen.toasts || Date.now() - this.seiteZuletzt < 30000) return;
+    const xml = toastXml(titel, text).replace(/'/g, "''");
+    const skript = "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; "
+      + "[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null; "
+      + `$x = New-Object Windows.Data.Xml.Dom.XmlDocument; $x.LoadXml('${xml}'); `
+      + "[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe').Show([Windows.UI.Notifications.ToastNotification]::new($x))";
+    // -EncodedCommand: keine Anfuehrungszeichen-Raetsel auf der Befehlszeile.
+    fuehreAus('powershell.exe', ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(skript, 'utf16le').toString('base64')], { timeout: 15000 });
   }
 
   sichtbareProjekte() {
@@ -891,38 +1084,72 @@ class Zentrale {
     this.aufnahmeLaeuft = (async () => {
       const [netstat, json] = await Promise.all([fuehreAus('netstat', ['-ano']), this.ps.frage(PROZESSE_BEFEHL)]);
       const prozesse = new Map();
-      for (const p of JSON.parse(json.trim() || '[]')) prozesse.set(p.i, { pid: p.i, eltern: p.e, name: p.n, befehl: p.c || '', seit: p.s });
+      const kinder = new Map();
+      for (const p of JSON.parse(json.trim() || '[]')) {
+        prozesse.set(p.i, { pid: p.i, eltern: p.e, name: p.n, befehl: p.c || '', seit: p.s, ram: Number(p.m) || 0, cpu: Number(p.t) || 0 });
+        if (!kinder.has(p.e)) kinder.set(p.e, []);
+        kinder.get(p.e).push(p.i);
+      }
       const hoeren = leseNetstat(netstat);
-      this.aufnahme = { prozesse, hoeren };
+      // CPU-Zeiten der vorigen Aufnahme: daraus die Auslastung seitdem.
+      const vorher = this.aufnahme;
+      this.aufnahme = {
+        prozesse, kinder, hoeren, zeit: Date.now(),
+        cpuVorher: vorher ? new Map([...vorher.prozesse.values()].map((p) => [p.pid, p.cpu])) : null,
+        ms: vorher ? Date.now() - vorher.zeit : 0,
+      };
       this.aufnahmeZeit = Date.now();
       return this.aufnahme;
     })().finally(() => { this.aufnahmeLaeuft = null; });
     return this.aufnahmeLaeuft;
   }
 
-  async stand() {
+  async stand(vonSeite = false) {
+    if (vonSeite) this.seiteZuletzt = Date.now();
     // Nach einer Aenderung kurz warten (Kopieren, git clone) und hoechstens
     // alle 15 Sekunden suchen; ohne Aenderung alle fuenf Minuten zur Sicherheit.
     const alter = Date.now() - this.letzteSuche;
     if (alter > 5 * 60 * 1000 || (this.veraendert && alter > 15000 && Date.now() - this.veraendert > 1500)) this.neuSuchen();
-    const { prozesse, hoeren } = await this.momentaufnahme();
+    if (!this.gitLaeuft && Date.now() - this.gitZeit > 60000 && this.projekte.length) this.aktualisiereGit();
+    this.taeglicherCheck();
+    const aufnahme = await this.momentaufnahme();
+    const { prozesse, hoeren } = aufnahme;
     this.abgleichen(prozesse);
     const server = baueServer(hoeren, prozesse, this.projekte, this.gestartet, process.pid);
+    const kerne = os.cpus().length || 1;
+    for (const s of server) {
+      Object.assign(s, ressourcen(stoppWurzel(s.pid, prozesse), prozesse, aufnahme.kinder, aufnahme.cpuVorher, aufnahme.ms, kerne));
+      s.nurLokal = nurLokal(s.adressen);
+    }
+    const e = this.einstellungen;
+    const favoriten = new Set(e.favoriten);
+    const neustart = new Set(e.neustart);
     const projekte = this.sichtbareProjekte().map((p) => {
+      const k = this.schluessel(p);
       const eigene = server.filter((s) => s.projekt === p.id);
       const start = this.gestartet.get(p.id);
       let zustand = eigene.length ? 'laeuft' : start ? start.zustand : 'aus';
       if (zustand === 'laeuft' && !eigene.length && start && !prozesse.has(start.pid)) zustand = 'aus';
+      const git = this.gitStand.get(k);
+      const b = this.befehle.get(p.id);
       return {
         id: p.id, name: p.name, ordner: p.ordner, art: p.art, startbar: Boolean(p.skript),
         start: p.start ? path.relative(p.ordner, p.start) : '', skript: p.skript, pm: p.pm, installiert: p.installiert,
         befehl: p.skript ? startBefehl(p) : '', programm: !p.skript && p.programm ? { text: p.programm.text, titel: p.programm.titel } : null, aktiv: p.aktiv, erstellt: p.erstellt || 0, erstelltQuelle: p.erstelltQuelle || '',
-        backup: Boolean(p.backup), kopien: (p.kopien || []).map((k) => ({ id: k.id, ordner: k.ordner, backup: k.backup })),
-        zustand, ports: eigene.flatMap((s) => s.ports).sort((a, b) => a - b),
+        backup: Boolean(p.backup), kopien: (p.kopien || []).map((k2) => ({ id: k2.id, ordner: k2.ordner, backup: k2.backup })),
+        zustand, ports: eigene.flatMap((s) => s.ports).sort((a, b2) => a - b2),
         seit: eigene[0]?.seit || (start ? new Date(start.seit).toISOString() : null), fehler: start?.fehler || null,
         installiertGerade: Boolean(start?.installieren && start.zustand === 'startet'), repariert: Boolean(start?.reparieren && start.zustand === 'startet'),
+        konflikt: start?.konflikt || null, neugestartet: start?.neugestartet || 0,
+        port: p.port || 0, host: kannHost(p.art) && Boolean(p.skript), mitHost: Boolean(start?.optionen?.host),
+        favorit: favoriten.has(k), gruppe: e.gruppen[k] || '', notiz: e.notizen[k] || '', neustart: neustart.has(k),
+        skripte: p.skripte || [], checkSkripte: checkSkripte(p.skripte || []),
+        lauf: b ? { skript: b.skript, zustand: b.zustand, code: b.code, seit: b.seit, ende: b.ende || 0 } : null,
+        git: git ? { zweig: git.zweig, upstream: git.upstream, vor: git.vor, zurueck: git.zurueck, geaendert: git.geaendert, kopf: git.kopf, web: git.web, repo: git.repo, zeit: git.zeit, meldung: git.meldung || '' } : null,
+        editor: p.programm && ['Unity', 'Godot', 'Blender'].includes(p.programm.text) ? p.programm.text : '',
       };
     });
+    const w = werkzeugCache.wert;
     return {
       version: VERSION,
       rechner: os.hostname(),
@@ -930,7 +1157,125 @@ class Zentrale {
       projekte,
       ausgeblendet: this.projekte.length - projekte.length,
       suche: { laeuft: Boolean(this.suche), zeit: this.letzteSuche || null },
+      lan: lanAdressen(os.networkInterfaces()),
+      apps: { code: Boolean(w?.code), terminal: true, claude: Boolean(w?.claude) },
+      gruppen: [...new Set(Object.values(e.gruppen))].sort((a, b) => a.localeCompare(b, 'de')),
+      pakete: e.pakete.map((pk) => ({ name: pk.name, ids: pk.ordner.map((o) => this.projekte.find((p) => this.schluessel(p) === o)?.id).filter(Boolean) })),
+      paketLauf: this.paketLauf,
+      check: { ...this.check, taeglich: e.checkTaeglich },
+      toasts: e.toasts,
+      ereignisse: this.ereignisse,
     };
+  }
+
+  // --- Git ---------------------------------------------------------------
+
+  async gitStatusVon(p) {
+    const env = { ...process.env, GIT_OPTIONAL_LOCKS: '0' };
+    const basis = ['-c', 'safe.directory=*', '-C', p.ordner];
+    const [status, remote] = await Promise.all([
+      fuehreAus('git', [...basis, 'status', '--porcelain=v2', '--branch', '--', '.'], { env, timeout: 20000 }),
+      fuehreAus('git', [...basis, 'remote', 'get-url', 'origin'], { env, timeout: 5000 }),
+    ]);
+    if (!status.trim()) return null;
+    return { ...leseGitStatus(status), ...remoteInfo(remote), zeit: Date.now() };
+  }
+
+  // Alle Git-Projekte, hoechstens einmal pro Minute: neu, wer seit dem letzten
+  // Mal bearbeitet wurde oder aelter als zehn Minuten ist.
+  aktualisiereGit(erzwingen = false) {
+    if (this.gitLaeuft) return this.gitLaeuft;
+    this.gitZeit = Date.now();
+    const liste = this.projekte.filter((p) => p.git).filter((p) => {
+      const g = this.gitStand.get(this.schluessel(p));
+      return erzwingen || !g || g.zeit < (p.aktiv || 0) || Date.now() - g.zeit > 10 * 60 * 1000;
+    });
+    this.gitLaeuft = jeweils(liste, 4, async (p) => {
+      const g = await this.gitStatusVon(p).catch(() => null);
+      if (g) this.gitStand.set(this.schluessel(p), g);
+    }).catch((f) => protokoll('Git:', f.message)).finally(() => { this.gitLaeuft = null; });
+    return this.gitLaeuft;
+  }
+
+  // Nur fetch und pull --ff-only: holt, ueberschreibt nie etwas Eigenes.
+  async git(id, aktion) {
+    const p = this.projekte.find((x) => x.id === id);
+    if (!p || !p.git) return { status: 404, fehler: 'Kein Git-Projekt' };
+    const basis = ['-c', 'safe.directory=*', '-C', p.ordner];
+    const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+    let meldung = '';
+    if (aktion === 'fetch' || aktion === 'pull') {
+      const ausgabe = await new Promise((resolve) => {
+        execFile('git', [...basis, ...(aktion === 'pull' ? ['pull', '--ff-only'] : ['fetch', '--quiet'])], { windowsHide: true, env, timeout: 90000 },
+          (fehler, stdout, stderr) => resolve({ ok: !fehler, text: `${stdout}\n${stderr}`.trim() }));
+      });
+      meldung = ausgabe.ok ? (aktion === 'pull' ? 'Aktualisiert.' : 'Abgerufen.') : ausgabe.text.split(/\r?\n/).filter(Boolean).slice(-2).join(' ');
+      protokoll('git', aktion, p.ordner, ausgabe.ok ? 'ok' : ausgabe.text.slice(0, 300));
+      if (!ausgabe.ok) {
+        const g = await this.gitStatusVon(p);
+        if (g) this.gitStand.set(this.schluessel(p), { ...g, meldung });
+        return { status: 409, fehler: meldung || `git ${aktion} gescheitert` };
+      }
+    } else if (aktion !== 'aktualisieren') return { status: 400, fehler: 'Unbekannte Git-Aktion' };
+    const g = await this.gitStatusVon(p);
+    if (g) this.gitStand.set(this.schluessel(p), { ...g, meldung });
+    return { ok: true, meldung };
+  }
+
+  // --- Merken: Favorit, Gruppe, Notiz, Neustart ---------------------------
+
+  merken(id, daten) {
+    const p = this.projekte.find((x) => x.id === id);
+    if (!p) return { status: 404, fehler: 'Projekt unbekannt' };
+    const k = this.schluessel(p);
+    const e = this.einstellungen;
+    const schalte = (liste, an) => (an ? [...new Set([...liste, k])] : liste.filter((o) => o !== k));
+    if (typeof daten.favorit === 'boolean') e.favoriten = schalte(e.favoriten, daten.favorit);
+    if (typeof daten.neustart === 'boolean') e.neustart = schalte(e.neustart, daten.neustart);
+    if (typeof daten.gruppe === 'string') {
+      const g = daten.gruppe.trim().slice(0, 40);
+      if (g) e.gruppen[k] = g; else delete e.gruppen[k];
+    }
+    if (typeof daten.notiz === 'string') {
+      const n = daten.notiz.trim().slice(0, 2000);
+      if (n) e.notizen[k] = n; else delete e.notizen[k];
+    }
+    schreibeJson(EINSTELLUNGEN, e);
+    return { ok: true };
+  }
+
+  einstellen(daten) {
+    if (typeof daten.toasts === 'boolean') this.einstellungen.toasts = daten.toasts;
+    if (typeof daten.checkTaeglich === 'boolean') this.einstellungen.checkTaeglich = daten.checkTaeglich;
+    schreibeJson(EINSTELLUNGEN, this.einstellungen);
+    return { ok: true };
+  }
+
+  // --- Oeffnen in VS Code, Terminal, Claude Code, Editor ------------------
+
+  async oeffnenMit(id, mit) {
+    const p = this.projekte.find((x) => x.id === id);
+    if (!p) return { status: 404, fehler: 'Projekt unbekannt' };
+    if (!fs.existsSync(p.ordner)) return { status: 404, fehler: 'Ordner nicht mehr da – „Neu suchen“' };
+    const w = await findeWerkzeuge(this.einstellungen);
+    const los = (datei, argumente) => {
+      const kind = spawn(datei, argumente, { cwd: p.ordner, detached: true, stdio: 'ignore', windowsHide: false });
+      kind.on('error', (f) => protokoll('Oeffnen gescheitert:', datei, f.message));
+      kind.unref();
+      protokoll('Oeffnen mit', mit, p.ordner);
+      return { ok: true };
+    };
+    if (mit === 'code') {
+      if (!w.code) return { status: 404, fehler: 'VS Code nicht gefunden' };
+      return /\.exe$/i.test(w.code) ? los(w.code, [p.ordner]) : los('cmd.exe', ['/c', w.code, p.ordner]);
+    }
+    if (mit === 'terminal') return w.wt ? los(w.wt, ['-d', p.ordner]) : los('cmd.exe', ['/k']);
+    if (mit === 'claude') {
+      if (!w.claude) return { status: 404, fehler: 'Claude Code nicht gefunden' };
+      return los('cmd.exe', ['/k', w.claude]);
+    }
+    if (mit === 'editor' && p.programm) return this.programmStarten(p);
+    return { status: 400, fehler: 'Damit lässt es sich nicht öffnen' };
   }
 
   // Gestartete Prozesse nachhalten: Port da -> laeuft (und ggf. Browser auf),
@@ -986,12 +1331,54 @@ class Zentrale {
     kind.on('error', (f) => protokoll('Programmstart gescheitert:', datei, f.message));
     kind.unref();
     protokoll('Programm', projekt.ordner, datei, argumente.join(' '));
+    if (projekt.programm.danach) this.danach(projekt.programm.danach);
     return { ok: true, programm: projekt.programm.text };
+  }
+
+  // Zweiter Server hinter einem Panel: warten, bis das Panel antwortet (bis
+  // eine Minute), dann dessen Start-Befehl. Laeuft er schon, sagt das Panel es.
+  async danach({ port, pfad }) {
+    const frage = (methode) => new Promise((resolve) => {
+      const req = http.request({
+        host: '127.0.0.1', port, path: methode === 'GET' ? '/api/status' : pfad, method: methode, timeout: 3000,
+        headers: { Host: `localhost:${port}`, 'Content-Type': 'application/json', 'x-panel': '1' },
+      }, (res) => { let text = ''; res.on('data', (d) => { text += d; }); res.on('end', () => resolve({ status: res.statusCode, text })); });
+      req.on('error', () => resolve(null));
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.end(methode === 'POST' ? '{}' : undefined);
+    });
+    for (let i = 0; i < 60; i++) {
+      if (await frage('GET')) {
+        const antwort = await frage('POST');
+        protokoll(`Panel :${port}${pfad}`, antwort ? `${antwort.status} ${antwort.text.slice(0, 200)}` : 'keine Antwort');
+        return;
+      }
+      await warte(1000);
+    }
+    protokoll(`Panel :${port} nach einer Minute nicht erreichbar`);
   }
 
   // reparieren: zweiter Versuch nach einem gescheiterten Start -- immer erst
   // installieren, und scheitert das, node_modules neu aufbauen (kindProzess).
-  async starten(id, oeffnen, reparieren = false) {
+  // Wer lauscht auf diesem Port? { port, pid, name, projekt } oder null.
+  werHatPort(port, ausser = '') {
+    const a = this.aufnahme;
+    if (!a) return null;
+    const h = a.hoeren.find((x) => x.port === port);
+    if (!h) return null;
+    const s = baueServer(a.hoeren, a.prozesse, this.projekte, this.gestartet, process.pid).find((x) => x.ports.includes(port));
+    if (s && s.projekt === ausser && ausser) return null;
+    const projekt = s && this.projekte.find((p) => p.id === s.projekt);
+    // Nur Dev-Server darf die Seite beenden; sonst nennt sie nur den Namen.
+    return { port, pid: h.pid, name: projekt ? projekt.name : a.prozesse.get(h.pid)?.name || `PID ${h.pid}`, projekt: projekt?.id || '', stoppbar: Boolean(s) };
+  }
+
+  // optionen: oeffnen, port (fester anderer Port), andererPort (selbst einen
+  // freien suchen), host (im Heimnetz erreichbar), reparieren (zweiter Versuch
+  // nach einem gescheiterten Start -- immer erst installieren, und scheitert
+  // das, node_modules neu aufbauen, siehe kindProzess).
+  async starten(id, optionen = {}) {
+    const { oeffnen = false, reparieren = false } = optionen;
     const projekt = this.projekte.find((p) => p.id === id);
     if (!projekt) return { status: 404, fehler: 'Projekt unbekannt' };
     if (!projekt.skript && projekt.programm) return this.programmStarten(projekt);
@@ -1013,10 +1400,22 @@ class Zentrale {
     try { namen = new Set(fs.readdirSync(ordner)); } catch { /* gleich unten egal */ }
     const info = projektAusPaket(paket, namen);
     if (!info) return { status: 400, fehler: 'Kein dev-, start- oder serve-Skript mehr in der package.json – „Neu suchen“' };
-    Object.assign(projekt, info, { port: portAusProjekt(paket, leseKonfig(ordner)) });
+    Object.assign(projekt, info, { port: portAusProjekt(paket, leseKonfig(ordner)), skripte: skripteAusPaket(paket) });
+
+    // Port-Konflikt vorher erkennen: Der feste Port des Projekts ist schon belegt.
+    let port = Number(optionen.port) || 0;
+    const belegt = new Set((this.aufnahme?.hoeren || []).map((h) => h.port));
+    if (optionen.andererPort) port = freierPort(belegt, (projekt.port || 5173) + 1);
+    if (!port && projekt.port && belegt.has(projekt.port)) {
+      const konflikt = this.werHatPort(projekt.port, id);
+      if (konflikt) return { status: 409, fehler: `Port ${projekt.port} ist schon belegt – von ${konflikt.name}.`, konflikt };
+    }
+
     const fehlend = fehlendePakete(ordner, paket);
     projekt.installiert = fehlend.length === 0;
-    const { install, lauf } = befehle(projekt, await this.pmVorhanden(projekt.pm), true);
+    const { install, lauf: grundLauf } = befehle(projekt, await this.pmVorhanden(projekt.pm), true);
+    const extra = startArgumente(projekt, { port, host: optionen.host });
+    const lauf = grundLauf + extra.argumente;
     const installieren = reparieren || fehlend.length > 0;
 
     fs.mkdirSync(LOGS, { recursive: true });
@@ -1024,44 +1423,221 @@ class Zentrale {
     const kopf = [`> in ${ordner}`];
     if (reparieren) kopf.push('> Reparatur: Der erste Start ist gescheitert, darum neu installieren.');
     else if (fehlend.length) kopf.push(`> Fehlende Pakete: ${fehlend.slice(0, 8).join(', ')}${fehlend.length > 8 ? ' …' : ''}`);
+    if (port) kopf.push(`> Anderer Port: ${port}`);
     fs.writeFileSync(log, `${kopf.join('\n')}\n`);
     // Ueber einen Zwischenprozess (kindProzess unten), losgeloest vom Agenten:
     // So laufen die Server weiter, wenn der Agent neu startet. Direkt mit
     // detached gestartet, verloere Vite seine Ausgabe ins Log.
-    const auftrag = Buffer.from(JSON.stringify({ ordner, log, install: installieren ? install : '', lauf })).toString('base64url');
+    const auftrag = Buffer.from(JSON.stringify({ ordner, log, install: installieren ? install : '', lauf, umgebung: extra.umgebung })).toString('base64url');
     const kind = spawn(process.execPath, [fileURLToPath(import.meta.url), '--kind', auftrag], { detached: true, windowsHide: true, stdio: 'ignore' });
     kind.unref();
-    const eintrag = { pid: kind.pid, seit: Date.now(), oeffnen: Boolean(oeffnen), zustand: 'startet', fehler: null, installieren, reparieren };
+    const merkOptionen = { port: port || 0, host: Boolean(optionen.host) };
+    const eintrag = {
+      pid: kind.pid, seit: Date.now(), oeffnen: Boolean(oeffnen), zustand: 'startet', fehler: null, installieren, reparieren,
+      optionen: merkOptionen, neugestartet: optionen.neugestartet || 0,
+    };
     this.gestartet.set(id, eintrag);
     kind.on('exit', (code) => {
       if (this.gestartet.get(id) !== eintrag || eintrag.gestoppt) return;
       if (eintrag.zustand !== 'startet' && !code) return;
       const text = letzteZeilen(log, 80);
-      const port = portBelegt(text);
+      const belegterPort = portBelegt(text);
       // Einmal selbst reparieren -- ausser der Port ist belegt, da hilft kein Installieren.
-      if (eintrag.zustand === 'startet' && !reparieren && !port) {
+      if (eintrag.zustand === 'startet' && !reparieren && !belegterPort) {
         protokoll('Start gescheitert, repariere', ordner);
         this.gestartet.delete(id);
-        this.starten(id, eintrag.oeffnen, true).catch((f) => protokoll('Reparatur:', f.message));
+        this.starten(id, { ...merkOptionen, oeffnen: eintrag.oeffnen, reparieren: true }).catch((f) => protokoll('Reparatur:', f.message));
         return;
       }
+      const lief = Date.now() - eintrag.seit;
+      const abgestuerzt = eintrag.zustand === 'laeuft';
       eintrag.zustand = 'fehler';
-      if (port) {
-        const wer = baueServer(this.aufnahme?.hoeren || [], this.aufnahme?.prozesse || new Map(), this.projekte, this.gestartet, process.pid)
-          .find((s) => s.ports.includes(port));
-        const name = wer && this.projekte.find((p) => p.id === wer.projekt)?.name;
-        eintrag.fehler = `Port ${port} ist schon belegt${name ? ` – von ${name}` : wer ? ` – von PID ${wer.pid}` : ''}. Den dort erst stoppen.`;
+      if (belegterPort) {
+        eintrag.konflikt = this.werHatPort(belegterPort, id) || { port: belegterPort, pid: 0, name: '', projekt: '', stoppbar: false };
+        const name = eintrag.konflikt.name;
+        eintrag.fehler = `Port ${belegterPort} ist schon belegt${name ? ` – von ${name}` : ''}.`;
       } else if (reparieren) {
         eintrag.fehler = `Auch nach dem Neuinstallieren gescheitert (Code ${code ?? '?'}). ${fehlerAusLog(text)}`.trim();
       } else {
-        eintrag.fehler = `Server beendet (Code ${code ?? '?'}). ${fehlerAusLog(text)}`.trim();
+        eintrag.fehler = `${abgestuerzt ? `Abgestürzt nach ${dauerText(lief)}` : `Gestoppt nach ${dauerText(lief)}`} (Code ${code ?? '?'}). ${fehlerAusLog(text)}`.trim();
       }
+      this.nachAbsturz(id, projekt, eintrag, abgestuerzt);
     });
     kind.on('error', (f) => { eintrag.zustand = 'fehler'; eintrag.fehler = f.message; });
     this.aufnahmeZeit = 0;
     this.beobachten();
     protokoll(reparieren ? 'Reparatur-Start' : 'Start', ordner, installieren ? `${install} && ${lauf}` : lauf);
+    return { ok: true, port: port || undefined };
+  }
+
+  // Abgestuerzt oder Start gescheitert: melden, und wenn gewuenscht neu
+  // starten -- hoechstens dreimal in zehn Minuten, dann bleibt er aus.
+  nachAbsturz(id, projekt, eintrag, abgestuerzt) {
+    const wollen = this.einstellungen.neustart.includes(this.schluessel(projekt));
+    const zeiten = (this.neustarts.get(id) || []).filter((t) => Date.now() - t < 10 * 60 * 1000);
+    if (abgestuerzt && wollen && zeiten.length < 3 && !eintrag.konflikt) {
+      zeiten.push(Date.now());
+      this.neustarts.set(id, zeiten);
+      this.melde('neustart', `${projekt.name} abgestürzt`, `Startet neu (${zeiten.length}/3). ${eintrag.fehler}`);
+      setTimeout(() => {
+        if (this.gestartet.get(id) !== eintrag) return;
+        this.gestartet.delete(id);
+        this.starten(id, { ...eintrag.optionen, neugestartet: zeiten.length }).catch((f) => protokoll('Neustart:', f.message));
+      }, 2000);
+      return;
+    }
+    this.melde('fehler', abgestuerzt ? `${projekt.name} abgestürzt` : `${projekt.name} startet nicht`, eintrag.fehler);
+  }
+
+  // --- Skripte aus der package.json (test, build, ...) ---------------------
+
+  async befehlStarten(id, skript) {
+    const projekt = this.projekte.find((p) => p.id === id);
+    if (!projekt) return { status: 404, fehler: 'Projekt unbekannt' };
+    const ordner = projekt.start || projekt.ordner;
+    const paket = leseJson(path.join(ordner, 'package.json'), null);
+    // Nur Skripte, die wirklich in der package.json stehen -- die Seite nennt den Namen, nie den Befehl.
+    if (!paket || !SKRIPTNAME.test(skript) || !skripteAusPaket(paket).includes(skript)) return { status: 400, fehler: `Skript „${skript}“ gibt es in der package.json nicht` };
+    if (this.befehle.get(id)?.zustand === 'laeuft') return { status: 409, fehler: `Dort läuft schon „${this.befehle.get(id).skript}“` };
+    let namen = new Set();
+    try { namen = new Set(fs.readdirSync(ordner)); } catch { /* egal */ }
+    const pm = projektAusPaket({ ...paket, scripts: { dev: 'x' } }, namen);
+    const p = { ...pm, skript };
+    const fehlend = fehlendePakete(ordner, paket);
+    const { install, lauf } = befehle(p, await this.pmVorhanden(p.pm), true);
+    fs.mkdirSync(LOGS, { recursive: true });
+    const log = path.join(LOGS, `${id}-befehl.log`);
+    fs.writeFileSync(log, `> in ${ordner}\n> Skript: ${skript}\n`);
+    const auftrag = Buffer.from(JSON.stringify({ ordner, log, install: fehlend.length ? install : '', lauf, umgebung: { CI: 'true' } })).toString('base64url');
+    const kind = spawn(process.execPath, [fileURLToPath(import.meta.url), '--kind', auftrag], { detached: true, windowsHide: true, stdio: 'ignore' });
+    kind.unref();
+    const eintrag = { skript, pid: kind.pid, seit: Date.now(), zustand: 'laeuft', code: null, ende: 0 };
+    this.befehle.set(id, eintrag);
+    protokoll('Skript', ordner, lauf);
+    eintrag.fertig = new Promise((resolve) => {
+      const ende = (code) => {
+        if (eintrag.ende) return;
+        eintrag.ende = Date.now();
+        eintrag.code = code;
+        eintrag.zustand = eintrag.gestoppt ? 'gestoppt' : code === 0 ? 'ok' : 'fehler';
+        if (!eintrag.still && !eintrag.gestoppt) {
+          this.melde(code === 0 ? 'fertig' : 'fehler', `${projekt.name}: ${skript} ${code === 0 ? 'fertig' : 'gescheitert'}`,
+            code === 0 ? `Nach ${dauerText(eintrag.ende - eintrag.seit)}.` : fehlerAusLog(letzteZeilen(log, 60)));
+        }
+        resolve(eintrag);
+      };
+      kind.on('exit', (code) => ende(code ?? 1));
+      kind.on('error', () => ende(1));
+    });
+    return { ok: true, eintrag };
+  }
+
+  async befehlStoppen(id) {
+    const b = this.befehle.get(id);
+    if (!b || b.zustand !== 'laeuft') return { status: 404, fehler: 'Da läuft kein Skript' };
+    b.gestoppt = true;
+    await fuehreAus('taskkill', ['/PID', String(b.pid), '/T', '/F']);
     return { ok: true };
+  }
+
+  // --- Schnellcheck: test, check*, lint der Favoriten ----------------------
+
+  async schnellcheck() {
+    if (this.check.laeuft) return { ok: true };
+    const fav = new Set(this.einstellungen.favoriten);
+    const auftraege = this.projekte.filter((p) => fav.has(this.schluessel(p)))
+      .flatMap((p) => checkSkripte(p.skripte || []).map((skript) => ({ p, skript })));
+    if (!auftraege.length) return { status: 400, fehler: 'Keine Favoriten mit test-, check- oder lint-Skript. Erst Projekte mit ★ markieren.' };
+    this.check = {
+      laeuft: true, start: Date.now(), ende: 0,
+      ergebnisse: auftraege.map(({ p, skript }) => ({ id: p.id, name: p.name, skript, zustand: 'wartet', code: null, dauer: 0 })),
+    };
+    (async () => {
+      for (const [i, { p, skript }] of auftraege.entries()) {
+        const e = this.check.ergebnisse[i];
+        e.zustand = 'laeuft';
+        const r = await this.befehlStarten(p.id, skript).catch((f) => ({ fehler: f.message }));
+        if (!r.ok) { e.zustand = 'fehler'; e.text = r.fehler; continue; }
+        r.eintrag.still = true;
+        // Hoechstens 15 Minuten je Skript.
+        const zeit = setTimeout(() => this.befehlStoppen(p.id), 15 * 60 * 1000);
+        const b = await r.eintrag.fertig;
+        clearTimeout(zeit);
+        Object.assign(e, { zustand: b.zustand === 'ok' ? 'ok' : 'fehler', code: b.code, dauer: b.ende - b.seit });
+      }
+      this.check.laeuft = false;
+      this.check.ende = Date.now();
+      schreibeJson(CHECKS, this.check);
+      const rot = this.check.ergebnisse.filter((e) => e.zustand !== 'ok');
+      this.melde(rot.length ? 'fehler' : 'fertig', rot.length ? `Schnellcheck: ${rot.length} rot` : 'Schnellcheck: alles grün',
+        rot.length ? rot.map((e) => `${e.name}: ${e.skript}`).join(', ') : `${this.check.ergebnisse.length} Prüfungen bestanden.`);
+    })().catch((f) => { this.check.laeuft = false; protokoll('Schnellcheck:', f.message); });
+    return { ok: true };
+  }
+
+  // Einmal am Tag von selbst, sobald die Seite (oder der Agent) nach 6 Uhr fragt.
+  taeglicherCheck() {
+    if (!this.einstellungen.checkTaeglich || this.check.laeuft || !this.einstellungen.favoriten.length || !this.projekte.length) return;
+    const jetzt = new Date();
+    if (jetzt.getHours() < 6) return;
+    const heute = new Date(jetzt); heute.setHours(0, 0, 0, 0);
+    if ((this.check.start || 0) >= heute.getTime()) return;
+    if (this.taeglichVersucht && Date.now() - this.taeglichVersucht < 60 * 60 * 1000) return;
+    this.taeglichVersucht = Date.now();
+    this.schnellcheck().catch(() => {});
+  }
+
+  // --- Startpakete ---------------------------------------------------------
+
+  paket(daten) {
+    const e = this.einstellungen;
+    const name = String(daten.name || '').trim().slice(0, 40);
+    if (!name) return { status: 400, fehler: 'Name fehlt' };
+    if (daten.aktion === 'loeschen') {
+      e.pakete = e.pakete.filter((p) => p.name !== name);
+    } else if (daten.aktion === 'speichern') {
+      const ordner = (Array.isArray(daten.ids) ? daten.ids : []).map((id) => this.projekte.find((p) => p.id === id)).filter(Boolean).map((p) => this.schluessel(p));
+      if (!ordner.length) return { status: 400, fehler: 'Keine Projekte ausgewählt' };
+      const alt = e.pakete.findIndex((p) => p.name === (daten.alterName || name));
+      const neu = { name, ordner: [...new Set(ordner)].slice(0, 12) };
+      if (alt >= 0) e.pakete[alt] = neu; else e.pakete.push(neu);
+    } else if (daten.aktion === 'starten') {
+      const pk = e.pakete.find((p) => p.name === name);
+      if (!pk) return { status: 404, fehler: 'Paket unbekannt' };
+      if (this.paketLauf) return { status: 409, fehler: `Paket „${this.paketLauf.name}“ startet gerade` };
+      this.paketStarten(pk, Boolean(daten.oeffnen));
+      return { ok: true };
+    } else return { status: 400, fehler: 'Unbekannte Aktion' };
+    schreibeJson(EINSTELLUNGEN, e);
+    return { ok: true };
+  }
+
+  // Der Reihe nach: erst wenn ein Dev-Server seinen Port hat (hoechstens 90 s),
+  // kommt der naechste dran -- so steht das Backend, bevor das Frontend fragt.
+  async paketStarten(pk, oeffnen) {
+    const liste = pk.ordner.map((o) => this.projekte.find((p) => this.schluessel(p) === o)).filter(Boolean);
+    this.paketLauf = { name: pk.name, schritt: 0, von: liste.length, aktuell: '' };
+    const fehler = [];
+    try {
+      for (const [i, p] of liste.entries()) {
+        Object.assign(this.paketLauf, { schritt: i + 1, aktuell: p.name });
+        const r = await this.starten(p.id, { oeffnen });
+        if (r.fehler) { fehler.push(`${p.name}: ${r.fehler}`); continue; }
+        if (!p.skript) { await warte(1500); continue; }
+        for (let t = 0; t < 90; t++) {
+          await warte(1000);
+          const st = await this.stand();
+          const jetzt = st.projekte.find((x) => x.id === p.id);
+          if (!jetzt || jetzt.ports.length || jetzt.zustand === 'fehler' || jetzt.zustand === 'aus') {
+            if (jetzt?.zustand === 'fehler') fehler.push(`${p.name}: ${jetzt.fehler}`);
+            break;
+          }
+        }
+      }
+    } finally {
+      this.paketLauf = null;
+    }
+    this.melde(fehler.length ? 'fehler' : 'fertig', `Paket „${pk.name}“ ${fehler.length ? 'mit Fehlern' : 'läuft'}`, fehler.join(' · ') || `${liste.length} Projekte gestartet.`);
   }
 
   async stoppePid(pid) {
@@ -1159,16 +1735,33 @@ function dienst() {
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         return res.end(`miwale Dev-Agent ${VERSION} laeuft. Die Zentrale: ${z.einstellungen.seite}\n`);
       }
-      if (req.method === 'GET' && pfad === '/status') return antworte(res, 200, await z.stand());
+      if (req.method === 'GET' && pfad === '/status') return antworte(res, 200, await z.stand(true));
       if (req.method === 'GET' && pfad === '/log') {
-        const id = new URL(req.url, 'http://x').searchParams.get('id') || '';
+        const such = new URL(req.url, 'http://x').searchParams;
+        const id = such.get('id') || '';
         if (!/^[0-9a-f]{10}$/.test(id)) return antworte(res, 400, { fehler: 'id' });
-        return antworte(res, 200, { text: letzteZeilen(path.join(LOGS, `${id}.log`), 80) });
+        const zeilen = Math.min(2000, Math.max(20, Number(such.get('zeilen')) || 80));
+        const datei = path.join(LOGS, `${id}${such.get('art') === 'befehl' ? '-befehl' : ''}.log`);
+        return antworte(res, 200, { text: letzteZeilen(datei, zeilen) });
       }
       if (req.method !== 'POST') return antworte(res, 404, { fehler: 'Unbekannt' });
       const daten = await leseKoerper(req);
+      const id = String(daten.id || '');
       let antwort;
-      if (pfad === '/starten') antwort = await z.starten(String(daten.id || ''), daten.oeffnen !== false);
+      if (pfad === '/starten') {
+        antwort = await z.starten(id, {
+          oeffnen: daten.oeffnen !== false, host: daten.host === true, andererPort: daten.andererPort === true,
+          port: Number.isInteger(daten.port) && daten.port >= 1024 && daten.port < 65535 ? daten.port : 0,
+        });
+      } else if (pfad === '/befehl') {
+        if (daten.aktion === 'stoppen') antwort = await z.befehlStoppen(id);
+        else { const r = await z.befehlStarten(id, String(daten.skript || '')); antwort = r.ok ? { ok: true } : r; }
+      } else if (pfad === '/git') antwort = await z.git(id, String(daten.aktion || ''));
+      else if (pfad === '/merken') antwort = z.merken(id, daten);
+      else if (pfad === '/einstellung') antwort = z.einstellen(daten);
+      else if (pfad === '/oeffnen-mit') antwort = await z.oeffnenMit(id, String(daten.mit || ''));
+      else if (pfad === '/paket') antwort = z.paket(daten);
+      else if (pfad === '/schnellcheck') antwort = await z.schnellcheck();
       else if (pfad === '/stoppen') antwort = await z.stoppen({ pid: Number(daten.pid) || 0, id: daten.id ? String(daten.id) : '' });
       else if (pfad === '/alle-stoppen') antwort = await z.alleStoppen();
       else if (pfad === '/suchen') { z.neuSuchen(); antwort = { ok: true }; }
@@ -1242,12 +1835,14 @@ const KIND_UMGEBUNG = {
 const NETZFEHLER = /ENOTFOUND|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ERR_SOCKET|network/i;
 
 async function kindProzess(auftrag) {
-  const { ordner, log, install, lauf } = JSON.parse(Buffer.from(auftrag, 'base64url').toString('utf8'));
+  const { ordner, log, install, lauf, umgebung } = JSON.parse(Buffer.from(auftrag, 'base64url').toString('utf8'));
   const schreib = (text) => fs.appendFileSync(log, text);
+  // Nur PORT und CI kommen vom Agenten dazu, nie etwas von der Seite.
+  const extra = Object.fromEntries(Object.entries(umgebung || {}).filter(([k, v]) => ['PORT', 'CI'].includes(k) && /^[\w.]{1,10}$/.test(String(v))));
   const fuehre = (befehl) => new Promise((resolve) => {
     schreib(`\n> ${befehl}\n\n`);
     const fd = fs.openSync(log, 'a');
-    const kind = spawn(befehl, { cwd: ordner, shell: true, windowsHide: true, stdio: ['ignore', fd, fd], env: { ...process.env, ...KIND_UMGEBUNG } });
+    const kind = spawn(befehl, { cwd: ordner, shell: true, windowsHide: true, stdio: ['ignore', fd, fd], env: { ...process.env, ...KIND_UMGEBUNG, ...extra } });
     fs.closeSync(fd);
     kind.on('exit', (code) => resolve(code ?? 1));
     kind.on('error', (f) => { schreib(`\n${f.message}\n`); resolve(1); });
